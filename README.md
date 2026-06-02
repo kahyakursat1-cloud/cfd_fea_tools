@@ -1,8 +1,35 @@
 # CFD/FEA V&V Pipeline
 
+[![CI](https://github.com/kahyakursat/cfdfea-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/kahyakursat/cfdfea-tools/actions)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org)
+[![Ruff](https://img.shields.io/badge/lint-ruff-261230.svg)](https://github.com/astral-sh/ruff)
+
 OpenFOAM (CFD) + CalculiX (FEA) tabanlı, **ASME V&V 20 / FAR-CS-23** uyumlu
 endüstri ön-tasarım analiz hattı. Doğrulanmış (validated) çözücü, mesh
 bağımsızlık (GCI), yük zarfı (V-n), CFD→FEA coupling ve otomatik raporlama.
+
+İki giriş noktası: otomasyon için **`pipeline.py`** (CLI, aşağıda), etkileşimli
+parametrik tasarım için **`launcher.py`** (PySide6 GUI → `app_parametric.py`,
+malzeme editörü, fotogrametri tarayıcı).
+
+## Kurulum
+
+Bağımlılıklar ağır ML/GUI yığınından ayrıştırılmıştır — yalnızca gerekeni kur:
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate            # Linux/macOS: source .venv/bin/activate
+
+pip install -e .                  # çekirdek: headless CFD/FEA pipeline
+pip install -e ".[gui]"           # + PySide6 arayüzleri (launcher.py)
+pip install -e ".[scan]"          # + fotogrametri (Open3D, OpenCV)
+pip install -e ".[ml]"            # + YOLO/PyTorch dataset eğitimi
+pip install -e ".[gui,scan,ml,viz]"   # tam sistem
+```
+
+**Harici araçlar** (Python paketi değil): OpenFOAM 11 (CFD), CalculiX `ccx` 2.21
+(FEA), opsiyonel OpenVSP 3.50 (`openvsp` conda env) ve OpenRocket (`orenv`, JVM).
+Bkz. [Donanım Notu](#donanım-notu).
 
 ## Çalışma Zarfı (Geçerlilik Sınırları)
 
@@ -100,3 +127,22 @@ V-n zarfı (structural_loads)
 - CFD: WSL2 + OpenFOAM 11; MPI WSL bayrakları gerekli
 - FEA: WSL CalculiX (ccx)
 - Mesh: snappyHexMesh paralel; prism layer first-layer y⁺=1 (~21µm @ V=15)
+
+## Geliştirme
+
+```bash
+pip install -e ".[dev]"
+pre-commit install                 # her commit'te ruff + hijyen kontrolü
+
+ruff check .                       # lint (yazarın kompakt stili korunur, format yok)
+pytest -m "not external"           # harici araç gerektirmeyen testler
+pytest --cov                       # kapsam raporu
+```
+
+CI (`.github/workflows/ci.yml`) Python 3.11/3.12'de ruff + pytest çalıştırır.
+`external` / `slow` / `gui` işaretli testler (OpenFOAM, CalculiX, conda env veya
+PySide6 gerektirenler) CI'da atlanır.
+
+**Üretilen artefaktlar** (`aoa_polar/`, `mesh_independence/`, `test_*_run/` ve kök
+seviye sonuç JSON'ları) `.gitignore`'dadır (~6 GB). Kaynak girdiler
+(`materials.json`, `config.yaml`) izlenir.

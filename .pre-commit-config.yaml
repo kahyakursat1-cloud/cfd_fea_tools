@@ -1,0 +1,21 @@
+# Kurulum:  pip install pre-commit  &&  pre-commit install
+# NOT: ruff-format BILINCLI olarak yok — yazarin hizali atama stili korunur.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.15
+    hooks:
+      - id: ruff
+        args: [--fix]
+
+  - repo: https://github.com/pre-commit-hooks/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.(md|dat)$'
+      - id: end-of-file-fixer
+        exclude: 'Construct2D/|sources/'
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=5120]   # 5MB ustu dosya commit'i engelle (artefakt koruma)
