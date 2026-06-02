@@ -16,9 +16,9 @@ Her asama sonucu JSON'a yazar; report bu JSON'lari toplar.
 Agir CFD asamalari (mesh-study, polar) ayri runner'larla calistirilir:
   python run_aoa_polar.py 0 4 8 12 16
 """
-import sys
-import os
 import json
+import os
+import sys
 from pathlib import Path
 
 BASE = Path(__file__).parent
@@ -181,7 +181,7 @@ def stage_rocket_cfd():
         print(f"[rocket-cfd] Cd_CFD={d.get('Cd_cfd')} vs Cd_OR={d.get('Cd_openrocket')} "
               f"(%{d.get('cross_val_err_pct')} fark)")
         return d
-    print(f"[rocket-cfd] basarisiz")
+    print("[rocket-cfd] basarisiz")
     return None
 
 

@@ -5,7 +5,6 @@ Tests: Aircraft, Mesh, CFD, FEA, GUI
 """
 
 import sys
-from pathlib import Path
 
 print("=" * 70)
 print("CORE SISTEM TEST (Scanner hariç)")
@@ -15,9 +14,9 @@ print("=" * 70)
 print("\n1. Core Modüller:")
 try:
     from aircraft_geometry import AircraftLibrary
+    from fea_runner import MATERIAL_LIBRARY, FEASimulationRunner
     from mesh_generator import MeshGenerator
     from simulation_runner import SimulationRunner
-    from fea_runner import FEASimulationRunner, MATERIAL_LIBRARY
     print("   [OK] Tüm core modüller import edildi")
 except ImportError as e:
     print(f"   [HATA] {e}")
@@ -60,10 +59,9 @@ print("\n5. Main App Loading:")
 try:
     # Import without scanner
     from PySide6.QtWidgets import QApplication
-    from aircraft_geometry import AircraftLibrary, ParametricStudy
-    from mesh_generator import MeshGenerator
-    from simulation_runner import SimulationRunner, SimulationJob
-    from fea_runner import FEASimulationRunner, FEAJob, MATERIAL_LIBRARY
+
+    from aircraft_geometry import AircraftLibrary
+    from fea_runner import MATERIAL_LIBRARY
 
     print("   [OK] Tüm gerekli modüller import edildi")
     print("   App başlatılabilir (Scanner tab hariç)")

@@ -3,14 +3,12 @@ CalculiX FEA Simulation Runner
 Yapısal analiz (structural, thermal, frequency analysis)
 """
 
+import concurrent.futures
+import re
 import subprocess
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 from datetime import datetime
-import concurrent.futures
-import json
-import re
+from pathlib import Path
 
 
 def _is_float(s: str) -> bool:
@@ -47,7 +45,7 @@ class BoundaryCondition:
     """Sınır koşulu"""
     name: str
     node_set: str
-    dof: Tuple[int, int]       # DOF range (e.g., (1, 6) for all)
+    dof: tuple[int, int]       # DOF range (e.g., (1, 6) for all)
     value: float
 
 
@@ -66,8 +64,8 @@ class FEAJob:
     case_name: str
     mesh_file: str             # STL or MSH dosyası
     material: MaterialProperties
-    boundary_conditions: List[BoundaryCondition]
-    loads: List[Load]
+    boundary_conditions: list[BoundaryCondition]
+    loads: list[Load]
     analysis_type: str         # "STATIC", "FREQUENCY", "BUCKLING", "THERMAL"
     num_modes: int = 10        # Frequency analizi için
     output_format: str = "FRD"  # FRD (CalculiX native), VTK
@@ -135,8 +133,8 @@ def make_distributed_load_from_cfd(cfd_results: dict, stl_path: str) -> dict:
 
     Döndürür: FEAJob.loads listesine eklenebilir Load nesneleri + özet dict.
     """
-    import trimesh
     import numpy as np
+    import trimesh
 
     lift_N = cfd_results.get("lift_force_N") or cfd_results.get("Cl", 0) * (
         0.5 * 1.225 * cfd_results.get("wind_speed", 15.0) ** 2 * cfd_results.get("wing_area", 0.45)
@@ -190,9 +188,10 @@ def extract_cfd_pressure_loads(cfd_case_dir: str, stl_path: str,
     Döndürür: {node_id: (Fx, Fy, Fz)} sözlüğü — doğrudan *CLOAD olarak kullanılabilir
     """
     try:
+        from pathlib import Path
+
         import numpy as np
         import trimesh
-        from pathlib import Path
 
         case = Path(cfd_case_dir)
 
@@ -322,8 +321,8 @@ class FEASimulationRunner:
         shell_thickness: kabuk et kalınlığı (m), default 2 mm (tipik UAV alüminyum)
         """
         try:
-            import trimesh
             import numpy as np
+            import trimesh
 
             mesh_tr = trimesh.load(str(stl_path), force='mesh')
             if len(mesh_tr.faces) < 200:
@@ -429,7 +428,7 @@ class FEASimulationRunner:
         inp_path.write_text(inp_content)
         return str(inp_path)
 
-    def run_simulation(self, job: FEAJob) -> Dict:
+    def run_simulation(self, job: FEAJob) -> dict:
         """FEA simülasyonu çalıştır"""
         case_dir = self.base_path / job.case_name
 
@@ -472,7 +471,7 @@ class FEASimulationRunner:
             return {"status": "ERROR", "error": str(e)}
 
     @staticmethod
-    def _parse_frd(frd_path: Path) -> Dict:
+    def _parse_frd(frd_path: Path) -> dict:
         """CalculiX .frd dosyasını parse et.
         Döndürür: displacement (max, mean), von Mises stress (max), frequencies (list)
         FRD format: -4 block header, -5 component, -1 node_id val1 val2 ...
@@ -527,7 +526,7 @@ class FEASimulationRunner:
             results["frd_parse_error"] = str(e)
         return results
 
-    def _extract_results(self, case_dir: Path, job: FEAJob) -> Dict:
+    def _extract_results(self, case_dir: Path, job: FEAJob) -> dict:
         """FEA sonuçlarını çıkar — FRD parser + güvenlik faktörü"""
         frd_file = case_dir / f"{job.case_name}.frd"
 
@@ -553,7 +552,7 @@ class FEASimulationRunner:
 
         return results
 
-    def _extract_frequencies(self, frd_file: Path) -> List[float]:
+    def _extract_frequencies(self, frd_file: Path) -> list[float]:
         """FRD dosyasından titreşim frekanslarını çıkar"""
         frequencies = []
 
@@ -572,8 +571,8 @@ class FEASimulationRunner:
 
         return frequencies
 
-    def run_parametric_study(self, base_job: FEAJob, parameter_variations: Dict,
-                            num_workers: int = 4) -> List[Dict]:
+    def run_parametric_study(self, base_job: FEAJob, parameter_variations: dict,
+                            num_workers: int = 4) -> list[dict]:
         """Parametrik FEA çalışması"""
         jobs = []
 
@@ -609,7 +608,7 @@ class FEASimulationRunner:
                                    maneuver_g: float = 2.5,
                                    base_path: str = "./fea_cases",
                                    shell_thickness: float = 0.0015,
-                                   cfd_results: dict = None) -> Dict:
+                                   cfd_results: dict = None) -> dict:
         """Gerçek uçak yükleriyle yapısal değerlendirme.
         Limit yük (n×m×g) ve Ultimate yük (×1.5) için iki ayrı analiz çalıştırır.
 
@@ -823,8 +822,8 @@ class FEASimulationRunner:
                     cload_lines.append(f"{nid}, 3, {f_per_node:.8f}\n")
 
             step_lines = inp_lines + [
-                f"*BOUNDARY\nNROOT, 1, 6, 0\n",
-                f"*STEP\n*STATIC\n1.0, 1.0\n",
+                "*BOUNDARY\nNROOT, 1, 6, 0\n",
+                "*STEP\n*STATIC\n1.0, 1.0\n",
             ] + cload_lines + [
                 "*NODE FILE\nU\n*EL FILE\nS\n*END STEP\n",
             ]
@@ -859,7 +858,7 @@ class FEASimulationRunner:
 
         return results
 
-    def generate_report(self, results: List[Dict]) -> str:
+    def generate_report(self, results: list[dict]) -> str:
         """FEA analiz raporu oluştur"""
         report = f"""
 # FEA Analiz Raporu

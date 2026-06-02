@@ -3,17 +3,15 @@ Batch Simulation Runner
 Otomatik CFD/FEA çalıştırma, paralel işleme, sonuç analizi
 """
 
-import subprocess
-import os
-import json
-from typing import List, Dict
-from pathlib import Path
-from dataclasses import dataclass, asdict
-from datetime import datetime
 import concurrent.futures
+import json
+import subprocess
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
 
-from aircraft_geometry import Aircraft, ParametricStudy, AircraftLibrary
-from mesh_generator import MeshGenerator, MeshConverter
+from aircraft_geometry import Aircraft, AircraftLibrary, ParametricStudy
+from mesh_generator import MeshGenerator
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SIMULATION JOB
@@ -34,7 +32,7 @@ class SimulationJob:
     def case_directory(self) -> str:
         return f"cases/{self.case_name}"
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return asdict(self)
 
 
@@ -400,7 +398,7 @@ RAS
         if vsp_result is None:
             mesh_gen.generate_stl(str(stl_path))
 
-    def run_simulation(self, job: SimulationJob) -> Dict:
+    def run_simulation(self, job: SimulationJob) -> dict:
         """Simülasyon çalıştır"""
         case_dir = self.base_path / job.case_directory()
 
@@ -512,7 +510,7 @@ writeObj yes;
         except Exception as e:
             return {"status": "ERROR", "error": str(e)}
 
-    def _extract_results(self, case_dir: Path, job: SimulationJob) -> Dict:
+    def _extract_results(self, case_dir: Path, job: SimulationJob) -> dict:
         """Simülasyon sonuçlarını çıkar"""
         import math as _math
         try:
@@ -565,8 +563,8 @@ writeObj yes;
         except Exception as e:
             return {"status": "PARTIAL", "error": str(e)}
 
-    def run_parametric_study(self, base_aircraft: Aircraft, variations: Dict,
-                            num_workers: int = 4) -> List[Dict]:
+    def run_parametric_study(self, base_aircraft: Aircraft, variations: dict,
+                            num_workers: int = 4) -> list[dict]:
         """Parametrik çalışma (paralel)"""
         # Varyasyonları oluştur
         study = ParametricStudy(base_aircraft)
@@ -598,7 +596,7 @@ writeObj yes;
 
         return results
 
-    def generate_report(self, results: List[Dict]) -> str:
+    def generate_report(self, results: list[dict]) -> str:
         """Simülasyon raporu oluştur"""
         report = f"""
 # Parametrik Çalışma Raporu
@@ -625,7 +623,7 @@ Tarih: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         return report
 
     def run_mesh_independence_study(self, aircraft: Aircraft, wind_speed: float = 15.0,
-                                    base_path: str = "./mesh_independence") -> Dict:
+                                    base_path: str = "./mesh_independence") -> dict:
         """3 kademeli mesh bağımsızlık analizi.
         Coarse / Medium / Fine mesh için Cd ve Cl hesaplar.
         Sonuçlar arasındaki fark < 5% ise yakınsadı kabul edilir.
@@ -719,7 +717,7 @@ Tarih: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                 print(f"  Cl={r['Cl']:.4f}  Cd={r['Cd']:.5f}  L/D={ld:.1f}")
             else:
                 all_results[alpha] = {"status": "FAILED"}
-                print(f"  FAILED")
+                print("  FAILED")
 
         # Polar özeti
         successful = {a: v for a, v in all_results.items() if v.get("Cl") is not None}

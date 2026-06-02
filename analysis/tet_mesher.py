@@ -10,15 +10,16 @@ Strateji:
 """
 
 from __future__ import annotations
+
+import math
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
-import tempfile
-import math
+
+import gmsh
+import meshio
 import numpy as np
 import trimesh
-import meshio
-import gmsh
 
 
 @dataclass
@@ -65,7 +66,7 @@ def repair_mesh(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
 def generate_tet_mesh(
     surface_mesh: trimesh.Trimesh,
     target_size: float = 0.01,
-    output_dir: Optional[Path] = None,
+    output_dir: Path | None = None,
     progress_callback=None,
     second_order: bool = True,
 ) -> TetMesh:
@@ -167,9 +168,7 @@ def generate_tet_mesh(
             # 2. ordan tet1 varsa 2. order tercih
             if cell_block.type == "tetra10":
                 tet_block = cell_block
-        if cell_block.type in tri_type_priority and tri_block is None:
-            tri_block = cell_block
-        elif cell_block.type == "triangle6":
+        if cell_block.type in tri_type_priority and tri_block is None or cell_block.type == "triangle6":
             tri_block = cell_block
 
     if tet_block is None or len(tet_block.data) == 0:

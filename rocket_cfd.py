@@ -10,8 +10,9 @@ Sabit-kanat OpenFOAM yolunun roket karsiligi.
 import math
 import re
 import subprocess
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 
 # ── Roket geometrisi (.ork'tan) ──────────────────────────────────────────────
 NOSE_LEN   = 0.10      # ogive burun (m)

@@ -4,10 +4,10 @@ System Verification Script — bilsem_beyin CFD/FEA/ML System
 Checks all dependencies, modules, and external tools
 """
 
-import sys
-import os
 import subprocess
+import sys
 from pathlib import Path
+
 
 class SystemVerifier:
     def __init__(self):
@@ -54,7 +54,7 @@ class SystemVerifier:
                 print(f"  [OK] {lib:25} -> {description}")
                 self.results['python_libs'][lib] = True
                 ok_count += 1
-            except ImportError as e:
+            except ImportError:
                 print(f"  [EKSIK] {lib:25} -> {description}")
                 self.results['python_libs'][lib] = False
 
@@ -127,7 +127,7 @@ class SystemVerifier:
                     else:
                         print(f"  [YOK] {tool:20} -> {description}")
                         self.results['external_tools'][tool] = False
-            except Exception as e:
+            except Exception:
                 print(f"  [HATA] {tool:20} -> Check manually")
                 self.results['external_tools'][tool] = False
 
@@ -139,7 +139,6 @@ class SystemVerifier:
         self.print_header("4. GUI TEST")
 
         try:
-            from PySide6.QtWidgets import QApplication
             print("  [OK] PySide6 import basarili")
             print("  [OK] QApplication instantiate edilebilir")
             print("\n  GUI baslatmak icin: python app_parametric.py")

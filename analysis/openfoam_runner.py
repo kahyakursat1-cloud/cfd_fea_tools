@@ -21,13 +21,14 @@ Solver: simpleFoam (steady incompressible), turbulence: k-omegaSST
 """
 
 from __future__ import annotations
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Optional, Tuple, List
+
+import math
 import os
 import shutil
 import subprocess
-import math
+from dataclasses import dataclass, field
+from pathlib import Path
+
 import numpy as np
 import trimesh
 
@@ -48,7 +49,7 @@ def _default_processors() -> int:
     except Exception:
         return max(1, (os.cpu_count() or 4) // 2)
 
-from .ccx_runner import windows_to_wsl_path, WSL_DISTRO
+from .ccx_runner import WSL_DISTRO, windows_to_wsl_path
 
 # OpenFOAM 11 (Foundation) bashrc
 OF_BASHRC = "/opt/openfoam11/etc/bashrc"
@@ -65,7 +66,7 @@ class CFDCase:
     name: str
     stl_path: Path                 # Windows path
     velocity: float = 30.0         # m/s, freestream
-    flow_direction: Tuple[float, float, float] = (1.0, 0.0, 0.0)
+    flow_direction: tuple[float, float, float] = (1.0, 0.0, 0.0)
     rho: float = 1.225             # kg/m^3
     nu: float = 1.5e-5             # m^2/s (hava ~15 °C)
     turbulence_intensity: float = 0.01   # %1
@@ -75,7 +76,7 @@ class CFDCase:
     refinement_min: int = 1        # snappyHexMesh surface min level
     refinement_max: int = 2
     n_layers: int = 0              # 0 = boundary layer eklenmesin (kararlılık için)
-    bg_cell_size: Optional[float] = None  # None = otomatik (L/8)
+    bg_cell_size: float | None = None  # None = otomatik (L/8)
     end_time: int = 300            # SIMPLE iterasyonu
     write_interval: int = 100
     n_processors: int = 0          # 0 = otomatik (WSL nproc, max 8)
@@ -97,18 +98,18 @@ class CFDResult:
     return_code: int
     stdout: str
     stderr: str
-    cd: Optional[float] = None
-    cl: Optional[float] = None
-    cm: Optional[float] = None
-    forces_history: List[Tuple[int, float, float, float]] = field(default_factory=list)
-    log_files: List[Path] = field(default_factory=list)
+    cd: float | None = None
+    cl: float | None = None
+    cm: float | None = None
+    forces_history: list[tuple[int, float, float, float]] = field(default_factory=list)
+    log_files: list[Path] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
 # Domain ve dosya yardımcıları
 # ---------------------------------------------------------------------------
 
-def _compute_domain(stl_path: Path, case: CFDCase) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def _compute_domain(stl_path: Path, case: CFDCase) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """STL'den domain bbox'ı ve geometri merkezi hesaplar.
 
     Returns:
@@ -191,7 +192,7 @@ def _write_block_mesh(case_dir: Path, dmin: np.ndarray, dmax: np.ndarray,
 
 
 def _write_snappy(case_dir: Path, stl_name: str, surface_name: str,
-                   inside_pt: Tuple[float, float, float], case: CFDCase) -> None:
+                   inside_pt: tuple[float, float, float], case: CFDCase) -> None:
     max_local = max(case.max_global_cells // 4, 100_000)
     txt = _foam_header("dictionary", "snappyHexMeshDict", "system")
     txt += (
@@ -617,12 +618,12 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
     """Case'i kur, mesh'i üret, çöz, sonuçları parse et."""
     case_dir = build_case(case, out_dir)
     wsl_dir = windows_to_wsl_path(case_dir)
-    log_files: List[Path] = []
+    log_files: list[Path] = []
     all_stdout = []
     all_stderr = []
 
     def _step(percent: int, msg: str, command: str, log_name: str,
-              tmo: int) -> Optional[subprocess.CompletedProcess]:
+              tmo: int) -> subprocess.CompletedProcess | None:
         if progress_callback:
             progress_callback(percent, msg)
         try:
@@ -705,9 +706,9 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
     )
 
 
-def parse_force_coeffs(case_dir: Path) -> Tuple[Optional[float], Optional[float],
-                                                  Optional[float],
-                                                  List[Tuple[int, float, float, float]]]:
+def parse_force_coeffs(case_dir: Path) -> tuple[float | None, float | None,
+                                                  float | None,
+                                                  list[tuple[int, float, float, float]]]:
     """postProcessing/forceCoeffs1/0/coefficient.dat'ı parse et.
 
     Returns: (Cd_son, Cl_son, Cm_son, [(iter, Cd, Cl, Cm), ...])
@@ -718,7 +719,7 @@ def parse_force_coeffs(case_dir: Path) -> Tuple[Optional[float], Optional[float]
     if not candidates:
         return None, None, None, []
 
-    history: List[Tuple[int, float, float, float]] = []
+    history: list[tuple[int, float, float, float]] = []
     cd_idx = cl_idx = cm_idx = None
     with candidates[0].open() as f:
         for line in f:

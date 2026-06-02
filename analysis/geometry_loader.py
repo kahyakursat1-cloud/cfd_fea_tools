@@ -12,9 +12,10 @@ STL beklenir. STL native trimesh ile okunur.
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict
+
 import numpy as np
 import trimesh
 
@@ -29,7 +30,7 @@ class GeometryInfo:
     mesh: trimesh.Trimesh
     bbox_min: np.ndarray  # (3,)
     bbox_max: np.ndarray  # (3,)
-    faces_by_side: Dict[str, np.ndarray] = field(default_factory=dict)  # side -> face index array
+    faces_by_side: dict[str, np.ndarray] = field(default_factory=dict)  # side -> face index array
 
     @property
     def size(self) -> np.ndarray:
@@ -133,7 +134,8 @@ def _load_step(path: Path) -> trimesh.Trimesh:
         from cadquery import exporters
         result = cq.importers.importStep(str(path))
         # Geçici STL'e yaz, sonra trimesh ile oku
-        import tempfile, os
+        import os
+        import tempfile
         with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as tmp:
             tmp_path = tmp.name
         try:
@@ -160,7 +162,7 @@ def _classify_faces_by_bbox_side(
     bbox_min: np.ndarray,
     bbox_max: np.ndarray,
     tol_ratio: float = 0.02,
-) -> Dict[str, np.ndarray]:
+) -> dict[str, np.ndarray]:
     """Her bbox yüzüne 'yapışık' üçgenleri grupla.
 
     Bir üçgenin centroid'i bbox yüzüne tol mesafede ise ve normali o yöne
@@ -172,7 +174,7 @@ def _classify_faces_by_bbox_side(
     size = bbox_max - bbox_min
     tol = np.maximum(size * tol_ratio, 1e-6)
 
-    groups: Dict[str, np.ndarray] = {}
+    groups: dict[str, np.ndarray] = {}
 
     # axis index, side ('min'|'max'), expected normal sign
     sides = [

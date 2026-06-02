@@ -12,8 +12,9 @@ import math
 import re
 import shutil
 import subprocess
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 
 
 def _to_wsl_path(win_path: Path) -> str:
@@ -136,12 +137,12 @@ boundaryField{{ airfoil{{type omegaWallFunction; value uniform {w0:.4f};}} farfi
 dimensions [0 2 -1 0 0 0 0]; internalField uniform {nut0:.6e};
 boundaryField{{ airfoil{{type nutLowReWallFunction; value uniform 0;}} farfield{{type calculated; value uniform {nut0:.6e};}} front{{type empty;}} back{{type empty;}} }}""")
         # Transition alanlari
-        w("gammaInt", f"""FoamFile{{ version 2.0; format ascii; class volScalarField; object gammaInt; }}
+        w("gammaInt", """FoamFile{ version 2.0; format ascii; class volScalarField; object gammaInt; }
 dimensions [0 0 0 0 0 0 0]; internalField uniform 1;
-boundaryField{{ airfoil{{type zeroGradient;}} farfield{{type inletOutlet; inletValue uniform 1; value uniform 1;}} front{{type empty;}} back{{type empty;}} }}""")
-        w("ReThetat", f"""FoamFile{{ version 2.0; format ascii; class volScalarField; object ReThetat; }}
+boundaryField{ airfoil{type zeroGradient;} farfield{type inletOutlet; inletValue uniform 1; value uniform 1;} front{type empty;} back{type empty;} }""")
+        w("ReThetat", """FoamFile{ version 2.0; format ascii; class volScalarField; object ReThetat; }
 dimensions [0 0 0 0 0 0 0]; internalField uniform 100;
-boundaryField{{ airfoil{{type zeroGradient;}} farfield{{type inletOutlet; inletValue uniform 100; value uniform 100;}} front{{type empty;}} back{{type empty;}} }}""")
+boundaryField{ airfoil{type zeroGradient;} farfield{type inletOutlet; inletValue uniform 100; value uniform 100;} front{type empty;} back{type empty;} }""")
 
     def _set_model(self, case_dir, model, end_time):
         """momentumTransport modelini ve controlDict endTime'i degistir (2 asamali run)."""
@@ -243,7 +244,8 @@ relaxationFactors{ equations{ U 0.3; k 0.2; omega 0.2; gammaInt 0.2; ReThetat 0.
 
 
 if __name__ == "__main__":
-    import sys, json
+    import json
+    import sys
     tp = TransitionPolar()
     alphas = [int(x) for x in sys.argv[1:]] or [0,4,8,10,12,14]
     results = []

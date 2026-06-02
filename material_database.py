@@ -5,11 +5,9 @@ Kullanıcı tarafından manuel malzeme eklenebilir
 """
 
 import json
-from pathlib import Path
-from dataclasses import dataclass, asdict, field
-from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass, field
 from enum import Enum
-import math
+from pathlib import Path
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ENUMS
@@ -50,20 +48,20 @@ class MaterialProperties:
     poisson_ratio: float                        # Poisson oranı (0-0.5)
     yield_strength: float                       # Akma mukavemeti (MPa)
     tensile_strength: float                     # Çekme mukavemeti (MPa)
-    compressive_strength: Optional[float] = None  # Basma mukavemeti (MPa)
+    compressive_strength: float | None = None  # Basma mukavemeti (MPa)
 
     # ─── TERMAL ÖZELLİKLER ───
-    thermal_conductivity: Optional[float] = None # W/(m·K)
-    thermal_expansion: Optional[float] = None    # 1/K (×10⁻⁶)
-    melting_point: Optional[float] = None        # °C
+    thermal_conductivity: float | None = None # W/(m·K)
+    thermal_expansion: float | None = None    # 1/K (×10⁻⁶)
+    melting_point: float | None = None        # °C
 
     # ─── ÇEVRESEL ÖZELLİKLER ───
-    cost_per_kg: Optional[float] = None          # USD/kg
-    environmental_impact: Optional[str] = None   # Low/Medium/High
+    cost_per_kg: float | None = None          # USD/kg
+    environmental_impact: str | None = None   # Low/Medium/High
     recyclable: bool = False                     # Geri dönüştürülebilir mi?
 
     # ─── APLIKASYON ───
-    typical_applications: List[str] = field(default_factory=list)
+    typical_applications: list[str] = field(default_factory=list)
 
     # ─── HESAPLANAN ÖZELLİKLER ───
     shear_modulus: float = field(init=False)    # G = E / (2(1+ν))
@@ -137,9 +135,9 @@ class MaterialProperties:
             errors.append("Basma mukavemeti > 0 olmalı")
 
         if errors:
-            raise ValueError(f"Material property validation failed:\n" + "\n".join(errors))
+            raise ValueError("Material property validation failed:\n" + "\n".join(errors))
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """Dict'e çevir (JSON kaydetme için) - calculated fields exclude"""
         # Sadece init parameters'ı kaydet (calculated fields hariç)
         init_fields = [
@@ -153,7 +151,7 @@ class MaterialProperties:
         return d
 
     @staticmethod
-    def from_dict(data: Dict) -> 'MaterialProperties':
+    def from_dict(data: dict) -> 'MaterialProperties':
         """Dict'ten oluştur (JSON yükleme için)"""
         data = data.copy()
         data['material_type'] = MaterialType(data['material_type'])
@@ -186,9 +184,9 @@ class MaterialProperties:
 class MaterialLibrary:
     """Malzeme kütüphanesi — okuma/yazma/yönetim"""
 
-    def __init__(self, db_file: Optional[Path] = None):
+    def __init__(self, db_file: Path | None = None):
         self.db_file = db_file or Path(__file__).parent / "materials.json"
-        self.materials: Dict[str, MaterialProperties] = {}
+        self.materials: dict[str, MaterialProperties] = {}
         self._load_or_create_database()
 
     def _load_or_create_database(self):
@@ -381,16 +379,16 @@ class MaterialLibrary:
             raise KeyError(f"Malzeme bulunamadı: {name}")
         return self.materials[name]
 
-    def list_materials(self) -> List[str]:
+    def list_materials(self) -> list[str]:
         """Tüm malzemeleri listele"""
         return sorted(self.materials.keys())
 
-    def search_by_type(self, material_type: MaterialType) -> List[str]:
+    def search_by_type(self, material_type: MaterialType) -> list[str]:
         """Türe göre ara"""
         return [name for name, mat in self.materials.items()
                 if mat.material_type == material_type]
 
-    def search_by_property(self, property_name: str, min_val: float, max_val: float) -> List[str]:
+    def search_by_property(self, property_name: str, min_val: float, max_val: float) -> list[str]:
         """Özelliğe göre ara (örn: Young modülü 50-100 GPa)"""
         results = []
         for name, mat in self.materials.items():
@@ -409,7 +407,7 @@ class MaterialLibrary:
 
     def load_from_file(self):
         """JSON dosyasından yükle"""
-        with open(self.db_file, 'r', encoding='utf-8') as f:
+        with open(self.db_file, encoding='utf-8') as f:
             data = json.load(f)
         self.materials = {name: MaterialProperties.from_dict(props)
                          for name, props in data.items()}

@@ -5,6 +5,7 @@ Küre STL -> OpenFOAM case -> snappyHexMesh -> foamRun -> Cd/Cl çıkar.
 
 import shutil
 from pathlib import Path
+
 import trimesh
 
 from analysis import CFDCase, run_cfd

@@ -1,8 +1,11 @@
 """Mevcut Construct2D p3d'sinden OpenFOAM mesh + CFD validasyon."""
-import sys, json, shutil
-from pathlib import Path
-from construct2d_bridge import read_p3d_2d, write_ogrid_gmsh, _min_case, run_validation
+import json
+import shutil
 import subprocess
+import sys
+from pathlib import Path
+
+from construct2d_bridge import _min_case, read_p3d_2d, run_validation, write_ogrid_gmsh
 
 p3d = Path("cgrid_work/naca0012.p3d")
 case = Path("c2dval")

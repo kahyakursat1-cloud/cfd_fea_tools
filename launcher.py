@@ -10,17 +10,23 @@ Kullanım:
     launcher.bat (çift tıkla)
 """
 
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QSize
-from PySide6.QtGui import QPalette, QColor
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-    QLabel, QMessageBox, QFrame, QGridLayout
+    QApplication,
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
 )
-
 
 # ────────────────────────────────────────────────────────────────────────────
 # CONFIG

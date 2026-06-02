@@ -1,0 +1,107 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cfdfea-tools"
+version = "1.0.0"
+description = "OpenFOAM (CFD) + CalculiX (FEA) entegre on-tasarim ve V&V is akisi paketi"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Kursat Kahya", email = "kahyakursat1@gmail.com" }]
+keywords = ["cfd", "fea", "openfoam", "calculix", "aerodynamics", "teknofest"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Intended Audience :: Science/Research",
+]
+
+# Cekirdek: CFD/FEA orkestrasyonu icin minimum (GUI/ML olmadan headless pipeline calisir)
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "matplotlib>=3.7",
+    "pandas>=2.0",
+    "pyyaml>=6.0",
+    "trimesh>=3.20",
+    "gmsh>=4.11",
+]
+
+[project.optional-dependencies]
+gui = ["PySide6>=6.5"]
+scan = ["open3d>=0.17", "opencv-contrib-python>=4.8", "Pillow>=10.0"]
+ml = ["torch>=2.0", "torchvision>=0.15", "ultralytics>=8.0", "scikit-learn>=1.3"]
+viz = ["seaborn>=0.12", "plotly>=5.17"]
+dev = [
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "pre-commit>=3.7",
+]
+
+[project.urls]
+Documentation = "https://github.com/kahyakursat/cfdfea-tools#readme"
+
+# NOT: Paket bulma (src/ layout) Faz 4'te kesinlestirilecek. Su an dosyalar
+# kok dizinde flat; pipeline.py / launcher.py CLI giris noktalaridir.
+[tool.setuptools]
+py-modules = []
+
+# ─── Ruff (lint + format) ─────────────────────────────────────────────────
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = ["Construct2D", "sources"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM"]
+# Mevcut kod tabaninin gercekligine gore baslangic toleransi:
+ignore = [
+    "E501",   # satir uzunlugu (format halleder; uzun string'ler var)
+    "E741",   # ortam degiskeni isimleri (l, I) — bilimsel notasyon
+    "B008",   # cagri varsayilanlari
+    "SIM108", # ternary zorlama
+    "E701",   # tek satirda colon — yazarin bilincli kompakt stili
+    "E702",   # tek satirda semicolon — ayni stil
+    "UP031",  # printf-string (bilimsel cikti formatlama)
+    "SIM105", # contextlib.suppress yerine try/except — okunabilirlik tercihi
+    "SIM115", # acik open() — bazi solver akislarinda gerekli
+    "B905",   # zip strict= — Py<3.10 uyumu degil ama mevcut kod toleransi
+    "B007",   # kullanilmayan dongu degiskeni
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["F401", "F811"]
+"**/__init__.py" = ["F401"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# ─── mypy ─────────────────────────────────────────────────────────────────
+[tool.mypy]
+python_version = "3.11"
+warn_unused_ignores = true
+warn_redundant_casts = true
+ignore_missing_imports = true   # gmsh/trimesh/PySide6 stub yok
+exclude = ["Construct2D/", "build/", "tests/fixtures/"]
+# Aşamalı benimseme: katı mod yeni kod icin Faz 4'te acilacak
+check_untyped_defs = false
+
+# ─── pytest ───────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra --strict-markers"
+markers = [
+    "external: dis arac gerektirir (OpenFOAM, CalculiX, conda env) — CI'da atlanir",
+    "slow: dakikalar suren CFD calismasi",
+    "gui: PySide6 GUI gerektirir",
+]
+
+# ─── coverage ─────────────────────────────────────────────────────────────
+[tool.coverage.run]
+omit = ["tests/*", "*/__pycache__/*", "Construct2D/*"]

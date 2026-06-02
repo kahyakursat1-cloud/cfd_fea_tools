@@ -4,12 +4,12 @@ Kameradan otomatik 3D model oluşturma
 Structure from Motion (SfM) → Point Cloud → Mesh → CFD
 """
 
-import cv2
-import numpy as np
-from pathlib import Path
-from typing import List, Tuple, Dict, Optional
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+
+import cv2
+import numpy as np
 
 # open3d is optional (not available on Python 3.13)
 try:
@@ -102,13 +102,13 @@ class CameraCapture:
         cap.release()
         return ret
 
-    def get_frame(self) -> Tuple[bool, np.ndarray]:
+    def get_frame(self) -> tuple[bool, np.ndarray]:
         """Bir frame al"""
         ret, frame = self.cap.read()
         return ret, frame
 
     def capture_sequence(self, num_images: int, interval: int = 500,
-                         progress_callback=None) -> List[np.ndarray]:
+                         progress_callback=None) -> list[np.ndarray]:
         """Resim sekansı yakala (cv2.imshow kullanmaz — PySide6 uyumlu)"""
         import time
         images = []
@@ -123,7 +123,7 @@ class CameraCapture:
         return images
 
     def preview_with_countdown(self, num_images: int, interval: int = 2000,
-                               progress_callback=None) -> List[np.ndarray]:
+                               progress_callback=None) -> list[np.ndarray]:
         """Geri sayımlı resim çekimi (cv2.imshow yok — PySide6 uyumlu)"""
         import time
         images = []
@@ -174,14 +174,14 @@ class FeatureDetector:
         else:
             self.detector = cv2.SIFT_create()
 
-    def detect_and_compute(self, image: np.ndarray) -> Tuple[List, np.ndarray]:
+    def detect_and_compute(self, image: np.ndarray) -> tuple[list, np.ndarray]:
         """Keypoint ve descriptor hesapla"""
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         keypoints, descriptors = self.detector.detectAndCompute(gray, None)
         return keypoints, descriptors
 
     def match_features(self, desc1: np.ndarray, desc2: np.ndarray,
-                      ratio_threshold: float = 0.8) -> List:
+                      ratio_threshold: float = 0.8) -> list:
         """İki görüntü arasında eşleşme bul (Lowe's ratio test)"""
         if desc1 is None or desc2 is None:
             return []
@@ -225,7 +225,7 @@ class StructureFromMotion:
             [0, 0, 1.0],
         ])
 
-    def estimate_fundamental_matrix(self, pts1: np.ndarray, pts2: np.ndarray) -> Tuple:
+    def estimate_fundamental_matrix(self, pts1: np.ndarray, pts2: np.ndarray) -> tuple:
         """Temel matris (F) hesapla. 8-point RANSAC, sonuç (3,3) garanti."""
         if len(pts1) < 8 or len(pts2) < 8:
             return None, None
@@ -381,7 +381,7 @@ class PointCloudProcessor:
         raise RuntimeError("Mesh backend bulunamadı: pymeshlab, open3d veya trimesh gerekli")
 
     def ball_pivoting_mesh(self, pcd: np.ndarray,
-                          radii: Optional[List[float]] = None):
+                          radii: list[float] | None = None):
         """Ball pivoting (open3d) veya convex hull fallback"""
         if HAS_OPEN3D:
             o3pcd = o3d.geometry.PointCloud()
@@ -444,7 +444,7 @@ class MeshOptimizer:
         return mesh
 
     @staticmethod
-    def check_mesh_quality(mesh) -> Dict:
+    def check_mesh_quality(mesh) -> dict:
         """Mesh kalitesini kontrol et"""
         if _is_o3d_mesh(mesh):
             return {
@@ -474,7 +474,7 @@ class PhotogrammetryScanner:
     def __init__(self, config: ScanConfig):
         self.config = config
         self.images = []
-        self.image_dir: Optional[Path] = None  # for COLMAP / disk-based modes
+        self.image_dir: Path | None = None  # for COLMAP / disk-based modes
         self.point_cloud = None
         self.mesh = None
 
@@ -649,7 +649,7 @@ class PhotogrammetryScanner:
         return len(self.images) >= 2
 
     def run_colmap_pipeline(self, images_dir: Path, workspace: Path,
-                            progress_callback=None) -> Optional[Path]:
+                            progress_callback=None) -> Path | None:
         """COLMAP-based reconstruction (Desktop\\photogrammetry kütüphanesi).
 
         Reconstructor sınıfını core/__init__.py'yi atlayarak doğrudan
@@ -708,8 +708,8 @@ class PhotogrammetryScanner:
         # Reconstructor Config()'i CWD'den arar; geçici olarak photogrammetry'e in.
         # Ayrıca Reconstructor/Config unicode (✅, ❌, ⚠) basıyor — Windows
         # cp1254 konsolunda patlamasın diye builtins.print'i sarmalıyoruz.
-        import os as _os
         import builtins as _builtins
+        import os as _os
         _orig_cwd = _os.getcwd()
         _orig_print = _builtins.print
 
@@ -964,10 +964,10 @@ class PhotogrammetryScanner:
         return True
 
     def run_full_pipeline(self, progress_callback=None,
-                          image_folder: Optional[Path] = None,
-                          video_path: Optional[Path] = None,
+                          image_folder: Path | None = None,
+                          video_path: Path | None = None,
                           use_colmap: bool = False,
-                          workspace: Optional[Path] = None,
+                          workspace: Path | None = None,
                           frame_callback=None) -> bool:
         """Tam pipeline'ı çalıştır.
 

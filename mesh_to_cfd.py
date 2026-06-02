@@ -3,10 +3,10 @@ Scanned Mesh → Aircraft Geometry Converter
 STL mesh'ten otomatik olarak Aircraft parametreleri çıkarma
 """
 
-import numpy as np
-from pathlib import Path
-from typing import Tuple, Optional, Dict
 import struct
+from pathlib import Path
+
+import numpy as np
 
 
 class MeshAnalyzer:
@@ -75,7 +75,7 @@ class MeshAnalyzer:
         """ASCII STL yükle"""
         vertices_set = set()
 
-        with open(self.stl_file, 'r') as f:
+        with open(self.stl_file) as f:
             for line in f:
                 line = line.strip()
 
@@ -85,7 +85,7 @@ class MeshAnalyzer:
                         self.vertices.append(coords)
                         vertices_set.add(coords)
 
-    def get_bounding_box(self) -> Tuple[np.ndarray, np.ndarray]:
+    def get_bounding_box(self) -> tuple[np.ndarray, np.ndarray]:
         """Mesh sınırlarını al"""
         if not self.vertices:
             return np.array([0, 0, 0]), np.array([1, 1, 1])
@@ -96,7 +96,7 @@ class MeshAnalyzer:
 
         return min_point, max_point
 
-    def get_dimensions(self) -> Dict[str, float]:
+    def get_dimensions(self) -> dict[str, float]:
         """Mesh boyutlarını al"""
         min_point, max_point = self.get_bounding_box()
 
@@ -157,7 +157,7 @@ class MeshAnalyzer:
 
         return mass_kg
 
-    def get_mesh_statistics(self) -> Dict:
+    def get_mesh_statistics(self) -> dict:
         """Mesh istatistiklerini döndür"""
         min_point, max_point = self.get_bounding_box()
 
@@ -183,7 +183,7 @@ def convert_mesh_to_aircraft(stl_file: str, aircraft_name: str = "Scanned_Aircra
 
     Returns: Aircraft instance (aircraft_geometry.py'den)
     """
-    from aircraft_geometry import Aircraft, Wing, Fuselage, Empennage, AirfoilProfile
+    from aircraft_geometry import Aircraft, AirfoilProfile, Empennage, Fuselage, Wing
 
     analyzer = MeshAnalyzer(stl_file)
     stats = analyzer.get_mesh_statistics()

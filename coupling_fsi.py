@@ -10,9 +10,9 @@ sum(F_FEA) == sum(F_CFD) (makine hassasiyetinde).
 Endustri pratigi: ASME V&V, bir-yonlu aero-yapisal coupling.
 """
 
-import re
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 
 
 def _parse_legacy_vtk(vtk_path: Path):
@@ -230,7 +230,8 @@ def write_cload(node_forces: dict, out_path: str) -> str:
 
 
 if __name__ == "__main__":
-    import sys, json
+    import json
+    import sys
     vtk = sys.argv[1] if len(sys.argv) > 1 else \
         "mesh_independence/cases/medium_fixed/VTK/aircraft/aircraft_143.vtk"
     stl = sys.argv[2] if len(sys.argv) > 2 else \

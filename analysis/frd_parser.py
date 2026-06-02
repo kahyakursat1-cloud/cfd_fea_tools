@@ -30,9 +30,10 @@ Stress için 6 bileşen: SXX SYY SZZ SXY SYZ SZX
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+
 import numpy as np
 
 
@@ -41,15 +42,15 @@ class FRDResult:
     """Tek bir adıma ait nodal sonuçlar."""
     points: np.ndarray   # (N, 3)
     node_ids: np.ndarray # (N,) — orijinal CalculiX 1-indexed
-    fields: Dict[str, np.ndarray] = field(default_factory=dict)
+    fields: dict[str, np.ndarray] = field(default_factory=dict)
     # alanlar: 'DISP': (N, 3), 'STRESS': (N, 6), 'VON_MISES': (N,)
 
-    def displacement_magnitude(self) -> Optional[np.ndarray]:
+    def displacement_magnitude(self) -> np.ndarray | None:
         if "DISP" not in self.fields:
             return None
         return np.linalg.norm(self.fields["DISP"], axis=1)
 
-    def von_mises(self) -> Optional[np.ndarray]:
+    def von_mises(self) -> np.ndarray | None:
         if "VON_MISES" in self.fields:
             return self.fields["VON_MISES"]
         if "STRESS" not in self.fields:
@@ -83,17 +84,17 @@ def parse_frd(frd_path: Path) -> FRDResult:
     if not frd_path.exists():
         raise FileNotFoundError(f"FRD dosyası yok: {frd_path}")
 
-    points_list: List[List[float]] = []
-    node_ids_list: List[int] = []
-    fields: Dict[str, np.ndarray] = {}
+    points_list: list[list[float]] = []
+    node_ids_list: list[int] = []
+    fields: dict[str, np.ndarray] = {}
 
     # State machine
     in_node_block = False
     in_result_block = False
     current_field_name = ""
     current_field_components = 0
-    current_field_data: List[List[float]] = []
-    current_field_node_ids: List[int] = []
+    current_field_data: list[list[float]] = []
+    current_field_node_ids: list[int] = []
 
     with frd_path.open("r") as f:
         for line in f:
@@ -185,7 +186,7 @@ def parse_frd(frd_path: Path) -> FRDResult:
     node_ids = np.array(node_ids_list, dtype=np.int64)
 
     # Alan boyutlarını standartlaştır: DISP -> 3 bileşen (ALL'ı at), STRESS -> 6
-    cleaned: Dict[str, np.ndarray] = {}
+    cleaned: dict[str, np.ndarray] = {}
     for name, arr in fields.items():
         if name == "DISP" and arr.shape[1] >= 3:
             cleaned["DISP"] = arr[:, :3]

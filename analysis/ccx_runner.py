@@ -7,10 +7,11 @@ tarafına geri verir.
 """
 
 from __future__ import annotations
+
+import re
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-import subprocess
-import re
 
 WSL_DISTRO = "Ubuntu-22.04"
 

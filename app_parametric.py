@@ -4,28 +4,41 @@ Sabit kanat roket, drone, İHA için parametrik simülasyon
 PySide6 GUI — Teal & Navy Cyberpunk Tema
 """
 
-import sys
 import json
-from pathlib import Path
+import sys
 from datetime import datetime
-from typing import Dict, List, Tuple, Optional
+from pathlib import Path
 
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QComboBox, QSpinBox, QDoubleSpinBox, QLineEdit,
-    QTableWidget, QTableWidgetItem, QFrame, QTabWidget, QListWidget, QListWidgetItem,
-    QProgressBar, QGroupBox, QFormLayout, QTextEdit, QHeaderView, QGridLayout,
-    QDialog, QScrollArea, QCheckBox, QFileDialog, QMessageBox
+    QApplication,
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QDoubleSpinBox,
+    QFormLayout,
+    QFrame,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QListWidget,
+    QMainWindow,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QSpinBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QTabWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Qt, QTimer, QThread, Signal, QSize, QRect
-from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QFont, QIcon
 
-from aircraft_geometry import AircraftLibrary, ParametricStudy
-from mesh_generator import MeshGenerator
-from simulation_runner import SimulationRunner, SimulationJob
-from fea_runner import FEASimulationRunner, FEAJob
+from aircraft_geometry import AircraftLibrary
 from material_database import MaterialLibrary
 from material_editor_gui import MaterialManagerTab
+from mesh_generator import MeshGenerator
+from simulation_runner import SimulationJob, SimulationRunner
 
 # Unified malzeme kütüphanesi (advanced JSON-backed DB).
 # fea_runner.MATERIAL_LIBRARY (dict) eski API; GUI ise MaterialLibrary objesi bekliyor.
@@ -231,7 +244,7 @@ class ParametricStudyDialog(QDialog):
         self.param_table.setCellWidget(row, 1, min_spin)
         self.param_table.setCellWidget(row, 2, max_spin)
 
-    def get_study_config(self) -> Dict:
+    def get_study_config(self) -> dict:
         """Çalışma konfigürasyonunu al"""
         variations = {}
 
@@ -778,18 +791,18 @@ Sonraki: Mesh Tab'ında işlem devam eder
         max_stress = self.fea_load.value() / 100 * 2.5  # Basit hesaplama
         safety_factor = material.yield_strength / max_stress if max_stress > 0 else float('inf')
 
-        self.fea_log.append(f"📊 Sonuçlar:")
+        self.fea_log.append("📊 Sonuçlar:")
         self.fea_log.append(f"  • Maks. Gerilme: {max_stress:.2f} MPa")
         self.fea_log.append(f"  • Emniyet Faktörü: {safety_factor:.2f}")
         self.fea_log.append(f"  • Durum: {'✅ GÜVENLI' if safety_factor > 1.5 else '⚠️ UYARI'}\n")
 
         if self.fea_analysis_combo.currentText() == "FREQUENCY":
-            self.fea_log.append(f"🔊 Doğal Frekanslar (ilk 5 mod):")
+            self.fea_log.append("🔊 Doğal Frekanslar (ilk 5 mod):")
             for i in range(min(5, self.fea_modes.value())):
                 freq = 5.0 + i * 2.5  # Simüle edilmiş
                 self.fea_log.append(f"  • Mod {i+1}: {freq:.2f} Hz")
 
-        self.fea_log.append(f"\n✅ FEA Analizi Tamamlandı!")
+        self.fea_log.append("\n✅ FEA Analizi Tamamlandı!")
 
     def _generate_fea_report(self):
         """FEA Raporu oluştur"""

@@ -7,15 +7,15 @@ FEA : Ankastre kiris — Euler-Bernoulli analitik cozumuyle karsilastirma
 Her iki validation da gecerse solver/mesh pipeline guvenilir kabul edilir.
 """
 
-import subprocess
-import re
-import math
 import json
+import math
+import re
 import shutil
-import numpy as np
-from pathlib import Path
+import subprocess
 from datetime import datetime
+from pathlib import Path
 
+import numpy as np
 
 # ─────────────────────────────────────────────────────────────────────────────
 # REFERANS VERILER
@@ -806,14 +806,14 @@ class CantileverBeamValidation:
         # Kiris kesiti: dikdortgen  b x h
         # CalculiX RECT section: parametreler a, b (genislik, yukseklik)
         # Kesit normal vektoru: 0,0,-1 (z yönünde egrilme icin)
-        lines.append(f"*BEAM SECTION, ELSET=EBEAM, MATERIAL=AL6061, SECTION=RECT\n")
+        lines.append("*BEAM SECTION, ELSET=EBEAM, MATERIAL=AL6061, SECTION=RECT\n")
         lines.append(f"{self.b}, {self.h}\n")
         lines.append("0., 1., 0.\n")   # local y ekseni (enine yön)
 
         # Malzeme
-        lines.append(f"*MATERIAL, NAME=AL6061\n")
+        lines.append("*MATERIAL, NAME=AL6061\n")
         lines.append(f"*ELASTIC\n{self.E:.6e}, {self.NU}\n")
-        lines.append(f"*DENSITY\n2700\n")
+        lines.append("*DENSITY\n2700\n")
 
         # Sinir kosulu: node 1 tum DOF sabit
         lines.append("*NSET, NSET=NSET_FIXED\n1\n")

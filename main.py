@@ -4,25 +4,34 @@ TEKNOFEST 2026 — Çelik Kubbe, Model Roket, İHA Aerodinamik Simülasyonları
 Futuristic Teal & Navy UI Theme
 """
 
-import sys
-import os
-import json
 import subprocess
-import yaml
-from pathlib import Path
+import sys
 from datetime import datetime
+from pathlib import Path
 
+import yaml
+from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QComboBox, QSpinBox, QDoubleSpinBox, QLineEdit,
-    QTableWidget, QTableWidgetItem, QFrame, QTabWidget, QListWidget, QListWidgetItem,
-    QProgressBar, QGroupBox, QFormLayout, QTextEdit, QFileDialog, QMessageBox,
-    QGridLayout, QHeaderView
-)
-from PySide6.QtCore import Qt, QTimer, QThread, Signal, QSize, QRect
-from PySide6.QtGui import (
-    QPainter, QColor, QPen, QBrush, QFont, QLinearGradient,
-    QIcon, QPalette
+    QApplication,
+    QComboBox,
+    QDoubleSpinBox,
+    QFormLayout,
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QProgressBar,
+    QPushButton,
+    QSpinBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QTabWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -30,7 +39,7 @@ from PySide6.QtGui import (
 # ─────────────────────────────────────────────────────────────────────────────
 
 try:
-    with open("config.yaml", "r", encoding="utf-8") as f:
+    with open("config.yaml", encoding="utf-8") as f:
         CONFIG = yaml.safe_load(f)
 except Exception:
     CONFIG = {
@@ -39,6 +48,7 @@ except Exception:
     }
 
 import logging
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s — %(message)s"
@@ -477,7 +487,7 @@ class CFDFEAToolsApp(QMainWindow):
             info = f"**{scenario}**\n\n"
             info += f"Araç: {config.get('tool', '?').upper()}\n"
             info += f"Açıklama: {config.get('description', '?')}\n"
-            info += f"\nParametreler:\n"
+            info += "\nParametreler:\n"
             for key, value in config.items():
                 if key not in ['tool', 'description']:
                     info += f"  • {key}: {value}\n"

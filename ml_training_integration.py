@@ -4,12 +4,11 @@ Sentetik dataset → YOLO/ML Model eğitimi
 """
 
 import json
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from datetime import datetime
-import numpy as np
+from pathlib import Path
 
+import numpy as np
 
 # ─────────────────────────────────────────────────────────────────────────────
 # DATASET PREPARATION
@@ -33,10 +32,10 @@ class ImageAnnotation:
     image_path: str
     width: int
     height: int
-    bounding_boxes: List[AnnotationBBox]
-    camera_view: Optional[str] = None
-    lighting: Optional[str] = None
-    texture: Optional[str] = None
+    bounding_boxes: list[AnnotationBBox]
+    camera_view: str | None = None
+    lighting: str | None = None
+    texture: str | None = None
 
 
 class DatasetPreparator:
@@ -50,12 +49,12 @@ class DatasetPreparator:
         self.annotations = []
         self.classes = ["aircraft", "drone", "rocket", "uav"]
 
-    def load_metadata(self, metadata_file: str) -> Dict:
+    def load_metadata(self, metadata_file: str) -> dict:
         """Blender synthetic dataset metadata'sını yükle"""
-        with open(metadata_file, "r") as f:
+        with open(metadata_file) as f:
             return json.load(f)
 
-    def estimate_bounding_box(self, image_data: Dict) -> Tuple[float, float, float, float]:
+    def estimate_bounding_box(self, image_data: dict) -> tuple[float, float, float, float]:
         """
         Resimden otomatik olarak bounding box tahmin et
         (Gerçek uygulamada: object detection model veya manuel koordinatlar)
@@ -74,7 +73,7 @@ class DatasetPreparator:
 
         return xmin, ymin, xmax, ymax
 
-    def create_yolo_annotations(self, metadata_file: str) -> List[Dict]:
+    def create_yolo_annotations(self, metadata_file: str) -> list[dict]:
         """YOLO format annotasyonları oluştur"""
         metadata = self.load_metadata(metadata_file)
         annotations = []
@@ -106,7 +105,7 @@ class DatasetPreparator:
 
         return annotations
 
-    def create_dataset_split(self, annotations: List[Dict], train_ratio: float = 0.8):
+    def create_dataset_split(self, annotations: list[dict], train_ratio: float = 0.8):
         """Train/Val/Test split oluştur"""
         total = len(annotations)
         train_count = int(total * train_ratio)
@@ -125,7 +124,7 @@ class DatasetPreparator:
             "test": test_annotations
         }
 
-    def save_yolo_dataset(self, annotations: List[Dict], split_name: str):
+    def save_yolo_dataset(self, annotations: list[dict], split_name: str):
         """YOLO dataset formatında kaydet"""
         split_dir = self.output_dir / split_name
         images_dir = split_dir / "images"
@@ -210,16 +209,16 @@ class MLTrainer:
 
         try:
             from ultralytics import YOLO
-            print(f"  ✅ Ultralytics YOLOv8 ready")
+            print("  ✅ Ultralytics YOLOv8 ready")
         except ImportError:
             print("  ⚠️  YOLOv8 bulunamadı. (pip install ultralytics)")
             return False
 
         return True
 
-    def train_model(self, data_yaml: str) -> Dict:
+    def train_model(self, data_yaml: str) -> dict:
         """YOLO modelini eğit"""
-        print(f"\n🚀 Model eğitimi başlıyor...")
+        print("\n🚀 Model eğitimi başlıyor...")
         print(f"   Model: {self.config.model}")
         print(f"   Epochs: {self.config.epochs}")
         print(f"   Batch Size: {self.config.batch_size}")
@@ -256,7 +255,7 @@ class MLTrainer:
                 "timestamp": datetime.now().isoformat()
             }
 
-            print(f"\n✅ Eğitim başarıyla tamamlandı!")
+            print("\n✅ Eğitim başarıyla tamamlandı!")
             return self.training_results
 
         except Exception as e:
@@ -278,7 +277,7 @@ class MLTrainer:
 
             return self.training_results
 
-    def evaluate_model(self, test_data_yaml: str) -> Dict:
+    def evaluate_model(self, test_data_yaml: str) -> dict:
         """Eğitilmiş modeli test set'te değerlendir"""
         print("\n📊 Model değerlendiriliyor...")
 
@@ -298,7 +297,7 @@ class MLTrainer:
                 "recall": results.results_dict.get("metrics/recall", 0)
             }
 
-            print(f"\n✅ Değerlendirme tamamlandı")
+            print("\n✅ Değerlendirme tamamlandı")
             print(f"   mAP50: {metrics['map50']:.3f}")
             print(f"   mAP50-95: {metrics['map50_95']:.3f}")
 
@@ -367,7 +366,7 @@ def full_ml_pipeline(metadata_file: str, output_dir: str = "./ml_datasets"):
         print(f"   • {split_name}: {count} görüntü")
 
     data_yaml = preparator.create_data_yaml(num_classes=1)
-    print(f"✅ YOLO data.yaml oluşturuldu")
+    print("✅ YOLO data.yaml oluşturuldu")
 
     # 2. Model eğitimi
     print("\n🚀 Adım 2: Model Eğitimi")
@@ -384,7 +383,7 @@ def full_ml_pipeline(metadata_file: str, output_dir: str = "./ml_datasets"):
     trainer.prepare_environment()
     training_results = trainer.train_model(data_yaml)
 
-    print(f"✅ Eğitim tamamlandı")
+    print("✅ Eğitim tamamlandı")
     print(f"   mAP50: {training_results['results']['map50']:.3f}")
     print(f"   mAP50-95: {training_results['results']['map50_95']:.3f}")
 
@@ -393,7 +392,7 @@ def full_ml_pipeline(metadata_file: str, output_dir: str = "./ml_datasets"):
     print("-" * 60)
 
     metrics = trainer.evaluate_model(data_yaml)
-    print(f"✅ Değerlendirme tamamlandı")
+    print("✅ Değerlendirme tamamlandı")
 
     # 4. Model dışa aktarma
     print("\n📦 Adım 4: Model Dışa Aktarma")
@@ -409,8 +408,8 @@ def full_ml_pipeline(metadata_file: str, output_dir: str = "./ml_datasets"):
     print("=" * 60)
     print(f"✅ Veri seti hazırlandı ({len(annotations)} görsem)")
     print(f"✅ Model eğitildi (mAP50: {training_results['results']['map50']:.3f})")
-    print(f"✅ Model dışa aktarıldı")
-    print(f"✅ Sentetik veri → ML pipeline tamamlandı!")
+    print("✅ Model dışa aktarıldı")
+    print("✅ Sentetik veri → ML pipeline tamamlandı!")
 
     return {
         "annotations": len(annotations),
@@ -430,4 +429,4 @@ if __name__ == "__main__":
 
     metadata_file = sys.argv[1]
     results = full_ml_pipeline(metadata_file)
-    print(f"\n🎉 ML Pipeline tamamlandı!")
+    print("\n🎉 ML Pipeline tamamlandı!")

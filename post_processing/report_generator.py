@@ -9,33 +9,33 @@ Yapılandırma:
 """
 
 import io
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 from datetime import datetime
+from pathlib import Path
 
 try:
-    from reportlab.lib.pagesizes import letter, A4
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import inch
     from reportlab.lib import colors
+    from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
+    from reportlab.lib.pagesizes import A4, letter
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import inch
     from reportlab.platypus import (
-        SimpleDocTemplate, Paragraph, Spacer, Image, PageBreak,
-        Table, TableStyle, KeepTogether
+        Image,
+        KeepTogether,
+        PageBreak,
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
     )
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
     REPORTLAB_AVAILABLE = True
 except ImportError:
     print("[WARNING] reportlab not available - using mock report generation")
     REPORTLAB_AVAILABLE = False
 
-import matplotlib.pyplot as plt
-import matplotlib.figure
 
 from post_processing.cfd_postprocessor import CFDResult
 from post_processing.fea_postprocessor import FEAResult
-from post_processing.visualization import (
-    CFDVisualizer, FEAVisualizer, CommonVisualizer
-)
 
 
 class PDFReportGenerator:
@@ -136,7 +136,7 @@ Wind Speed: {cfd_result.wind_speed:.1f} m/s | Reynolds: {cfd_result.reynolds_num
         self.story.append(Paragraph(summary_text, self.styles['CustomBody']))
         self.story.append(Spacer(1, 0.2*inch))
 
-    def add_cfd_analysis(self, cfd_figures: Dict[str, io.BytesIO]):
+    def add_cfd_analysis(self, cfd_figures: dict[str, io.BytesIO]):
         """CFD analiz sekmesi"""
         self.story.append(PageBreak())
         self.story.append(Paragraph("CFD Analysis", self.styles['CustomHeading2']))
@@ -190,7 +190,7 @@ approximately 2.5 million tetrahedral elements with boundary layer refinement
             self.story.append(img)
             self.story.append(Spacer(1, 0.1*inch))
 
-    def add_fea_analysis(self, fea_figures: Dict[str, io.BytesIO]):
+    def add_fea_analysis(self, fea_figures: dict[str, io.BytesIO]):
         """FEA analiz sekmesi"""
         self.story.append(PageBreak())
         self.story.append(Paragraph("FEA Analysis", self.styles['CustomHeading2']))
@@ -256,19 +256,19 @@ approximately 150,000 elements.
             stress_status = self.fea_result.stress_status()
 
             if stress_status == "SAFE":
-                rec_text = """
+                rec_text = f"""
 The structure is <b>mechanically safe</b> under the analyzed conditions.
-The safety factor of {:.2f} provides adequate margin against material failure.
+The safety factor of {self.fea_result.safety_factor:.2f} provides adequate margin against material failure.
 <br/><br/>
 <b>Recommendations:</b><br/>
 1. Design is suitable for implementation<br/>
 2. Consider optimization for weight reduction<br/>
 3. Perform fatigue analysis for extended service life<br/>
 4. Validate with physical testing
-""".format(self.fea_result.safety_factor)
+"""
             else:
-                rec_text = """
-The structure requires <b>design modifications</b>. The safety factor of {:.2f}
+                rec_text = f"""
+The structure requires <b>design modifications</b>. The safety factor of {self.fea_result.safety_factor:.2f}
 is below recommended threshold (1.5-2.0).
 <br/><br/>
 <b>Recommendations:</b><br/>
@@ -276,7 +276,7 @@ is below recommended threshold (1.5-2.0).
 2. <b>Material upgrade</b> to higher strength alloy<br/>
 3. <b>Geometry redesign</b> to reduce stress concentration<br/>
 4. Perform detailed nonlinear analysis with contact
-""".format(self.fea_result.safety_factor)
+"""
 
             self.story.append(Paragraph(rec_text, self.styles['CustomBody']))
 
@@ -288,8 +288,8 @@ is below recommended threshold (1.5-2.0).
         ))
 
     def generate_pdf(self, cfd_result: CFDResult, fea_result: FEAResult,
-                    cfd_figures: Dict[str, io.BytesIO] = None,
-                    fea_figures: Dict[str, io.BytesIO] = None) -> Path:
+                    cfd_figures: dict[str, io.BytesIO] = None,
+                    fea_figures: dict[str, io.BytesIO] = None) -> Path:
         """
         PDF raporu oluştur ve kaydet
         → Returns: Path to generated PDF

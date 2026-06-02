@@ -12,9 +12,7 @@ Referans:
 """
 
 import math
-from dataclasses import dataclass, field
-from typing import List, Tuple, Optional
-
+from dataclasses import dataclass
 
 # Kategori basina limit yuk faktorleri (FAR 23.337)
 CATEGORY_LIMITS = {
@@ -146,7 +144,7 @@ class FlightEnvelope:
         return {"K_g": round(K_g, 4), "mu_g": round(mu_g, 2), "lines": lines}
 
     # ── Kritik yuk durumlari ────────────────────────────────────────────────
-    def critical_load_cases(self) -> List[dict]:
+    def critical_load_cases(self) -> list[dict]:
         """FEA'ya beslenecek kritik yuk durumlarini dondurur.
         Manevra ve gust zarflarinin en kotu kosesini secer.
         """
@@ -170,7 +168,7 @@ class FlightEnvelope:
         cases.append({"name": "Vc_gust_up", "V": gc["V"], "n": gc["n_up"],
                       "desc": f"Vc yukari gust (U={gc['U_de']} m/s)"})
         cases.append({"name": "Vc_gust_down", "V": gc["V"], "n": gc["n_down"],
-                      "desc": f"Vc asagi gust"})
+                      "desc": "Vc asagi gust"})
         cases.append({"name": "Vd_gust_up", "V": gd["V"], "n": gd["n_up"],
                       "desc": f"Vd yukari gust (U={gd['U_de']} m/s)"})
 

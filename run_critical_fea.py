@@ -1,7 +1,8 @@
 """Sertifikasyon zinciri: V-n kritik yuk -> kanat FEA boyutlandirma."""
 import json
-from structural_loads import FlightEnvelope
+
 from fea_runner import FEASimulationRunner
+from structural_loads import FlightEnvelope
 
 env = FlightEnvelope(mass_kg=1.8, wing_area_m2=0.45, wing_span_m=1.5, mac_m=0.30,
                      cl_max=1.3, cl_min=-1.04, cl_alpha=5.0, v_cruise_ms=18.0)

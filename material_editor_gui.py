@@ -3,16 +3,29 @@ Material Editor GUI — Kullanıcı tarafından malzeme eklemesi/düzenlemesi
 Advanced material database arayüzü
 """
 
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit,
-    QDoubleSpinBox, QComboBox, QTableWidget, QTableWidgetItem, QDialog,
-    QMessageBox, QCheckBox, QTextEdit, QSpinBox, QGroupBox, QFormLayout,
-    QTabWidget
-)
-from PySide6.QtCore import Qt, Signal
-from material_database import MaterialLibrary, MaterialProperties, MaterialType
 from pathlib import Path
-from typing import Optional
+
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QDoubleSpinBox,
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
+from material_database import MaterialLibrary, MaterialProperties, MaterialType
 
 # ─────────────────────────────────────────────────────────────────────────────
 # MATERIAL EDITOR DIALOG
@@ -21,7 +34,7 @@ from typing import Optional
 class MaterialEditorDialog(QDialog):
     """Yeni malzeme ekleme/düzenleme diyaloğu"""
 
-    def __init__(self, parent=None, material: Optional[MaterialProperties] = None):
+    def __init__(self, parent=None, material: MaterialProperties | None = None):
         super().__init__(parent)
         self.material = material
         self.setWindowTitle("Malzeme Editörü" if not material else f"Düzenle: {material.name}")
@@ -366,6 +379,7 @@ class MaterialManagerTab(QWidget):
 
 if __name__ == "__main__":
     import sys
+
     from PySide6.QtWidgets import QApplication
 
     app = QApplication([])

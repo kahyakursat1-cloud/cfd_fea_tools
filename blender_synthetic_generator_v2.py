@@ -11,16 +11,14 @@ Entegre edilen özellikler:
 ✅ YOLO annotation with vertex sampling
 """
 
-import bpy
-import os
 import json
 import math
 import random
-import numpy as np
-from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Tuple, Optional
+from pathlib import Path
 
+import bpy
+import numpy as np
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ADVANCED CONFIG (Üretime hazır)
@@ -117,7 +115,7 @@ ADVANCED_CONFIG = {
 class AdvancedSyntheticGenerator:
     """Üretim-kalitesi sentetik dataset generator"""
 
-    def __init__(self, mesh_path: str, output_dir: str, background_dir: Optional[str] = None):
+    def __init__(self, mesh_path: str, output_dir: str, background_dir: str | None = None):
         self.mesh_path = mesh_path
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
@@ -134,7 +132,7 @@ class AdvancedSyntheticGenerator:
             "renders": []
         }
 
-    def _load_backgrounds(self) -> List[str]:
+    def _load_backgrounds(self) -> list[str]:
         """Arka plan resimlerini yükle"""
         if not self.background_dir or not self.background_dir.exists():
             return []
@@ -283,7 +281,7 @@ class AdvancedSyntheticGenerator:
             json.dump(self.metadata, f, indent=2)
 
         print("\n" + "=" * 60)
-        print(f"✅ Dataset oluşturuldu!")
+        print("✅ Dataset oluşturuldu!")
         print(f"   • Toplam render: {len(self.metadata['renders'])}")
         print(f"   • Konum: {self.output_dir}")
         print("=" * 60)

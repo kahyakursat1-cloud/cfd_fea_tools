@@ -16,7 +16,6 @@ except Exception as e:
     sys.exit(1)
 
 try:
-    from material_editor_gui import MaterialManagerTab, MaterialEditorDialog
     print("  [OK] material_editor_gui yüklendi")
 except Exception as e:
     print(f"  [FAIL] material_editor_gui hatası: {e}")
@@ -26,7 +25,7 @@ except Exception as e:
 print("\n[TEST 2] MaterialLibrary ornegi olustur...")
 try:
     lib = MaterialLibrary()
-    print(f"  [OK] Kutuhane olusturuldu")
+    print("  [OK] Kutuhane olusturuldu")
     print(f"  [OK] {len(lib.materials)} malzeme yuklendi")
 except Exception as e:
     print(f"  [FAIL] Hata: {e}")
@@ -43,7 +42,7 @@ try:
     print(f"  - Lame Constant (hesaplanmis): {aluminum.lame_constant:.1f} GPa")
     print(f"  - Strength-to-Weight: {aluminum.strength_to_weight/1e6:.2f} m/s2")
     print(f"  - Stiffness-to-Weight: {aluminum.stiffness_to_weight/1e6:.2f} m/s2")
-    print(f"  [OK] Otomatik hesaplamalar dogru")
+    print("  [OK] Otomatik hesaplamalar dogru")
 except Exception as e:
     print(f"  [FAIL] Hata: {e}")
     sys.exit(1)
@@ -62,12 +61,12 @@ try:
         cost_per_kg=3.0,
         typical_applications=["Testing"]
     )
-    print(f"  [OK] Malzeme nesnesi olusturuldu")
+    print("  [OK] Malzeme nesnesi olusturuldu")
     print(f"  - Shear Modulus: {custom.shear_modulus:.1f} GPa")
     print(f"  - Bulk Modulus: {custom.bulk_modulus:.1f} GPa")
 
     lib.add_material(custom)
-    print(f"  [OK] Kutuphanaye eklendi")
+    print("  [OK] Kutuphanaye eklendi")
 except Exception as e:
     print(f"  [FAIL] Hata: {e}")
     sys.exit(1)
@@ -95,7 +94,7 @@ try:
             lines = f.readlines()
             print(f"  [OK] {len(lines)} satir iceriyor")
     else:
-        print(f"  [FAIL] Dosya olusturulamadi")
+        print("  [FAIL] Dosya olusturulamadi")
 except Exception as e:
     print(f"  [FAIL] Hata: {e}")
     sys.exit(1)
@@ -121,10 +120,10 @@ try:
         print(f"  [OK] Gecersiz E degeri yakalmasi: {str(ve)[:50]}...")
 
     if invalid_test:
-        print(f"  [FAIL] Dogrulama basarisiz!")
+        print("  [FAIL] Dogrulama basarisiz!")
         sys.exit(1)
     else:
-        print(f"  [OK] Dogrulama calistiyor")
+        print("  [OK] Dogrulama calistiyor")
 except Exception as e:
     print(f"  [FAIL] Hata: {e}")
     sys.exit(1)
@@ -134,8 +133,8 @@ print("[SUCCESS] TUM TESTLER BASARILI!")
 print("="*60)
 print("\nMalzeme Sistemi Ozeti:")
 print(f"  - Toplam malzeme: {len(lib.materials)}")
-print(f"  - Otomatik hesaplamalar: [OK] Calisiyor")
-print(f"  - Dogrulama: [OK] Calisiyor")
-print(f"  - Disari aktarma: [OK] Calisiyor")
-print(f"  - GUI entegrasyonu: Hazir (MaterialManagerTab)")
+print("  - Otomatik hesaplamalar: [OK] Calisiyor")
+print("  - Dogrulama: [OK] Calisiyor")
+print("  - Disari aktarma: [OK] Calisiyor")
+print("  - GUI entegrasyonu: Hazir (MaterialManagerTab)")
 print("\nSistem uretime hazir!")

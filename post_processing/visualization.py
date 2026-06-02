@@ -6,13 +6,11 @@ Yapılandırma:
 - FEA: Stress, Deformation, Modal shapes
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_agg import FigureCanvasAgg
-from pathlib import Path
-from typing import Tuple, List, Optional
 import io
+
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.figure import Figure
 
 
 class CFDVisualizer:
@@ -22,7 +20,7 @@ class CFDVisualizer:
     def plot_convergence_history(iterations: np.ndarray,
                                  pressure_residuals: np.ndarray,
                                  velocity_residuals: np.ndarray,
-                                 drag_history: Optional[np.ndarray] = None) -> Figure:
+                                 drag_history: np.ndarray | None = None) -> Figure:
         """Convergence history grafiği (residuals + forces)"""
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
 
@@ -87,7 +85,7 @@ class CFDVisualizer:
     @staticmethod
     def plot_streamlines(x: np.ndarray, y: np.ndarray,
                          u: np.ndarray, v: np.ndarray,
-                         pressure: Optional[np.ndarray] = None) -> Figure:
+                         pressure: np.ndarray | None = None) -> Figure:
         """Akış çizgileri (streamlines)"""
         fig, ax = plt.subplots(figsize=(11, 8))
 
@@ -165,8 +163,8 @@ class FEAVisualizer:
         return fig
 
     @staticmethod
-    def plot_modal_frequencies(frequencies: List[float],
-                               mode_numbers: Optional[List[int]] = None) -> Figure:
+    def plot_modal_frequencies(frequencies: list[float],
+                               mode_numbers: list[int] | None = None) -> Figure:
         """Modal frekansları bar grafik"""
         fig, ax = plt.subplots(figsize=(10, 6))
 

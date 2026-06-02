@@ -4,14 +4,12 @@ Taranmış 3D model → Sentetik veriler oluşturma
 CFD/FEA eğitim dataset'i otomasyonu
 """
 
-import bpy
-import bmesh
-import numpy as np
-from pathlib import Path
-from typing import List, Dict, Tuple
-from dataclasses import dataclass
 import json
-import os
+from dataclasses import dataclass
+from pathlib import Path
+
+import bpy
+import numpy as np
 
 # ─────────────────────────────────────────────────────────────────────────────
 # BLENDER SETUP (Bu script Blender içinde çalışır)
@@ -46,23 +44,23 @@ class RenderConfig:
 class CameraView:
     """Kamera açısı"""
     name: str
-    location: Tuple[float, float, float]  # (x, y, z)
-    rotation: Tuple[float, float, float]  # (rx, ry, rz) derece
+    location: tuple[float, float, float]  # (x, y, z)
+    rotation: tuple[float, float, float]  # (rx, ry, rz) derece
     zoom: float = 1.0
 
 @dataclass
 class LightingSetup:
     """Aydınlatma konfigürasyonu"""
     name: str
-    light_types: List[str]  # "SUN" | "POINT" | "SPOT" | "AREA"
-    intensities: List[float]
-    angles: List[Tuple[float, float, float]]  # Euler angles
+    light_types: list[str]  # "SUN" | "POINT" | "SPOT" | "AREA"
+    intensities: list[float]
+    angles: list[tuple[float, float, float]]  # Euler angles
 
 @dataclass
 class TextureVariant:
     """Doku/renk varyantı"""
     name: str
-    base_color: Tuple[float, float, float, float]  # RGBA
+    base_color: tuple[float, float, float, float]  # RGBA
     metallic: float = 0.0
     roughness: float = 0.5
     normal_strength: float = 1.0
@@ -121,7 +119,7 @@ class BlenderScene:
         self.object.scale = (scale, scale, scale)
         bpy.context.view_layer.update()
 
-    def rotate_object(self, rotation_euler: Tuple[float, float, float]):
+    def rotate_object(self, rotation_euler: tuple[float, float, float]):
         """Objeyi döndür (radian cinsinden)"""
         if not self.object:
             return
@@ -164,7 +162,7 @@ class BlenderScene:
 
         return camera
 
-    def add_lighting(self, setup: LightingSetup) -> List[bpy.types.Object]:
+    def add_lighting(self, setup: LightingSetup) -> list[bpy.types.Object]:
         """Aydınlatma ekle"""
         lights = []
 
@@ -303,7 +301,7 @@ class SyntheticDatasetGenerator:
             # Varsayılan gri background
             bg.inputs[0].default_value = (0.5, 0.5, 0.5, 1.0)
 
-    def generate_camera_views(self, num_views: int = 8) -> List[CameraView]:
+    def generate_camera_views(self, num_views: int = 8) -> list[CameraView]:
         """Çevre kamerası görüntülerini oluştur"""
         views = []
 
@@ -325,7 +323,7 @@ class SyntheticDatasetGenerator:
 
         return views
 
-    def generate_lighting_setups(self) -> List[LightingSetup]:
+    def generate_lighting_setups(self) -> list[LightingSetup]:
         """Farklı aydınlatma kombinasyonları"""
         setups = [
             LightingSetup(
@@ -359,7 +357,7 @@ class SyntheticDatasetGenerator:
         ]
         return setups
 
-    def generate_texture_variants(self) -> List[TextureVariant]:
+    def generate_texture_variants(self) -> list[TextureVariant]:
         """Farklı doku/renk varyantları"""
         variants = [
             TextureVariant(
@@ -397,7 +395,7 @@ class SyntheticDatasetGenerator:
 
     def generate_dataset(self,
                         num_views: int = 8,
-                        render_config: RenderConfig = None) -> Dict:
+                        render_config: RenderConfig = None) -> dict:
         """Tam dataset oluştur"""
         if render_config is None:
             render_config = RenderConfig()

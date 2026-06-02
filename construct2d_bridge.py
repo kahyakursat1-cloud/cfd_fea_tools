@@ -12,8 +12,9 @@ cozucu yazmak yerine.
 """
 
 import subprocess
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 
 C2D_DIR = Path(__file__).parent / "Construct2D"
 C2D_BIN = C2D_DIR / "construct2d"
@@ -198,7 +199,8 @@ def _fix_patches(case: Path):
 def run_validation(case_dir: str, alpha_deg=0.0, V=50.0, nu=1.48e-5,
                    rho=1.225, chord=1.0, end_time=2000):
     """Construct2D O-grid'inde kOmegaSST CFD -> Cd, Cl. NASA ile karsilastir."""
-    import math, re
+    import math
+    import re
     case = Path(case_dir)
     _fix_patches(case)
     a = math.radians(alpha_deg)
@@ -277,7 +279,8 @@ relaxationFactors{ equations{ U 0.3; k 0.2; omega 0.2; } fields{ p 0.2; } }""")
 
 
 if __name__ == "__main__":
-    import sys, json
+    import json
+    import sys
     af = str(C2D_DIR / "sample_airfoils" / "naca0012.dat")
     mode = sys.argv[1] if len(sys.argv) > 1 else "mesh"
     if mode == "mesh":

@@ -13,8 +13,8 @@ print("=" * 70)
 # Check PySide6
 print("\n1. PySide6 kontrolu...")
 try:
-    from PySide6.QtWidgets import QApplication, QMainWindow
     from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QApplication, QMainWindow
     print("   [OK] PySide6 imports successful")
 except ImportError as e:
     print(f"   [HATA] PySide6 import failed: {e}")

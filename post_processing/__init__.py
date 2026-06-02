@@ -9,9 +9,9 @@ Submodules:
 """
 
 from post_processing.cfd_postprocessor import CFDPostProcessor, CFDResult
-from post_processing.fea_postprocessor import FEAPostProcessor, FEAResult, AnalysisType
-from post_processing.visualization import CFDVisualizer, FEAVisualizer, CommonVisualizer
+from post_processing.fea_postprocessor import AnalysisType, FEAPostProcessor, FEAResult
 from post_processing.report_generator import PDFReportGenerator
+from post_processing.visualization import CFDVisualizer, CommonVisualizer, FEAVisualizer
 
 __all__ = [
     'CFDPostProcessor',

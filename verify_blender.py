@@ -4,9 +4,9 @@ Blender Kurulum Kontrolü
 Blender ve gerekli modüllerin yüklü olup olmadığını kontrol et
 """
 
+import platform
 import subprocess
 import sys
-import platform
 from pathlib import Path
 
 
@@ -141,7 +141,7 @@ except Exception:
             )
 
             if "✅ Blender Python API" in result.stdout or "✅ Blender Python API" in result.stderr:
-                print(f"  ✅ API Test Passed")
+                print("  ✅ API Test Passed")
                 print(result.stdout if result.stdout else result.stderr)
                 return True
         except subprocess.TimeoutExpired:
@@ -188,7 +188,7 @@ except Exception:
                 print(f"  ⚠️  Eksik: {', '.join(missing)}")
                 return False
 
-            print(f"  ✅ Tüm gerekli bileşenler var")
+            print("  ✅ Tüm gerekli bileşenler var")
             return True
 
         except Exception as e:

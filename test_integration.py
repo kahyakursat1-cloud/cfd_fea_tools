@@ -11,8 +11,8 @@ Tüm sistemi test et:
   7. Rapor oluştur (PDF)
 """
 
+import tempfile
 from pathlib import Path
-from datetime import datetime
 
 # Core modules
 from aircraft_geometry import AircraftLibrary
@@ -21,14 +21,11 @@ from material_database import MaterialLibrary
 # Post-processing
 from post_processing.cfd_postprocessor import CFDPostProcessor
 from post_processing.fea_postprocessor import FEAPostProcessor
+from solvers.calculix_wrapper import CalculiXRunner
 
 # Solvers
 from solvers.gmsh_wrapper import GMSHMeshGenerator
 from solvers.openfoam_wrapper import OpenFOAMRunner
-from solvers.calculix_wrapper import CalculiXRunner
-
-import tempfile
-import numpy as np
 
 
 def test_end_to_end_workflow():
@@ -98,7 +95,7 @@ def test_end_to_end_workflow():
             size_kb = mesh_file.stat().st_size / 1024
             print(f"  [OK] Mesh oluşturuldu: {size_kb:.1f} KB")
         else:
-            print(f"  [WARNING] Gerçek mesh yok, mock kullanılıyor")
+            print("  [WARNING] Gerçek mesh yok, mock kullanılıyor")
 
         # STEP 4: CFD Simulation
         wind_speed = 15.0  # m/s
@@ -153,7 +150,7 @@ def test_end_to_end_workflow():
             tube_od=spar_od,
             tube_id=spar_id,
         )
-        
+
         print(f"  [OK] FEA Sonuçları: sigma_max={fea_result.max_stress:.2f} MPa, SF={fea_result.safety_factor:.2f}")
 
         # STEP 6: Summary

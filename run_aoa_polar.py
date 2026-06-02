@@ -3,7 +3,11 @@
 AoA velocity ile uygulanir => mesh SABIT, sadece hiz degisir (verimli).
 Onceden meshlenmis prism_validation/cases/minihawk_prism yeniden kullanilir.
 """
-import math, re, shutil, subprocess, json
+import json
+import math
+import re
+import shutil
+import subprocess
 from pathlib import Path
 
 V = 15.0
@@ -56,12 +60,12 @@ def write_fields(case, alpha):
 dimensions [0 1 -1 0 0 0 0]; internalField uniform ({Ux:.5f} 0 {Uz:.5f});
 boundaryField{{ inlet {far_U} outlet {far_U} sides {far_U} aircraft {{ type noSlip; }} }}""")
 
-    (z/"p").write_text(f"""FoamFile{{ version 2.0; format ascii; class volScalarField; object p; }}
+    (z/"p").write_text("""FoamFile{ version 2.0; format ascii; class volScalarField; object p; }
 dimensions [0 2 -2 0 0 0 0]; internalField uniform 0;
-boundaryField{{ inlet {{ type freestreamPressure; freestreamValue uniform 0; }}
-  outlet {{ type freestreamPressure; freestreamValue uniform 0; }}
-  sides {{ type freestreamPressure; freestreamValue uniform 0; }}
-  aircraft {{ type zeroGradient; }} }}""")
+boundaryField{ inlet { type freestreamPressure; freestreamValue uniform 0; }
+  outlet { type freestreamPressure; freestreamValue uniform 0; }
+  sides { type freestreamPressure; freestreamValue uniform 0; }
+  aircraft { type zeroGradient; } }""")
 
     # k/omega: inletOutlet (freestream'den nazik, omega bounding yapmaz)
     far_k = "{ type inletOutlet; inletValue uniform %s; value uniform %s; }" % (k0, k0)

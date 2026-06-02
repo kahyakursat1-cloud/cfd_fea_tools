@@ -6,21 +6,31 @@ Photogrammetry scanning interface
 
 import sys
 from pathlib import Path
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox,
-    QSpinBox, QDoubleSpinBox, QProgressBar, QTextEdit, QGroupBox, QFormLayout,
-    QFileDialog, QMessageBox, QLineEdit
-)
-from PySide6.QtCore import QThread, Signal
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap, QImage
+
 import cv2
 import numpy as np
-
-from photogrammetry_scanner import (
-    PhotogrammetryScanner, ScanConfig, ScannerMode, MeshQuality
+from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtWidgets import (
+    QComboBox,
+    QDoubleSpinBox,
+    QFileDialog,
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QSpinBox,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from mesh_to_cfd import convert_mesh_to_aircraft, MeshAnalyzer
+
+from mesh_to_cfd import MeshAnalyzer, convert_mesh_to_aircraft
+from photogrammetry_scanner import MeshQuality, PhotogrammetryScanner, ScanConfig, ScannerMode
 
 # ─────────────────────────────────────────────────────────────────────────────
 # COLOR THEME (CFD arayüzü ile uyumlu)
@@ -82,7 +92,9 @@ class ScannerWorker(QThread):
 
     def run(self):
         """Pipeline çalıştır — tüm stdout'u log dosyasına da yönlendir"""
-        import io, sys, tempfile
+        import io
+        import sys
+        import tempfile
         from pathlib import Path as _P
         log_path = _P(tempfile.gettempdir()) / "bilsem_scanner.log"
         log_buf = io.StringIO()
@@ -289,13 +301,13 @@ class ScannerTab(QWidget):
         # Video label
         self.preview_label = QLabel("Kamera başlatılmadı")
         self.preview_label.setMinimumHeight(300)
-        self.preview_label.setStyleSheet(f"background-color: #0a1628; color: #80deea;")
+        self.preview_label.setStyleSheet("background-color: #0a1628; color: #80deea;")
         layout.addWidget(self.preview_label)
 
         # Preview toggle
         self.test_preview_btn = QPushButton("▶ Kamera Önizleme")
         self.test_preview_btn.setStyleSheet(
-            f"background-color: #0f2340; color: #06d6d0; border: 1px solid #06d6d0; border-radius:4px; padding:6px;")
+            "background-color: #0f2340; color: #06d6d0; border: 1px solid #06d6d0; border-radius:4px; padding:6px;")
         self.test_preview_btn.setCheckable(True)
         self.test_preview_btn.clicked.connect(self._toggle_preview)
         layout.addWidget(self.test_preview_btn)

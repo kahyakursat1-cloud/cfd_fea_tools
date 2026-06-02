@@ -4,10 +4,10 @@ Parametrik kanat, gövde, kuyruk tasarımı
 STEP export + mesh yönetimi
 """
 
-import numpy as np
-from dataclasses import dataclass
-from typing import List, Tuple, Dict
 import json
+from dataclasses import dataclass
+
+import numpy as np
 
 # ─────────────────────────────────────────────────────────────────────────────
 # AIRCRAFT GEOMETRY CLASSES
@@ -93,9 +93,9 @@ class Aircraft:
     fuselage: Fuselage
     empennage: Empennage = None
     landing_gear: bool = False
-    control_surfaces: Dict = None
+    control_surfaces: dict = None
 
-    def mass_properties(self) -> Dict:
+    def mass_properties(self) -> dict:
         """Kütle özellikleri tahmin et"""
         # Çok basit tahmin (gerçekte CFD/FEA gerekli)
         fuselage_vol = np.pi * (self.fuselage.diameter/2)**2 * self.fuselage.length
@@ -123,7 +123,7 @@ class Aircraft:
             "ar": self.wing.aspect_ratio,
         }
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """JSON serileştirme"""
         return {
             "name": self.name,
@@ -320,14 +320,14 @@ class ParametricStudy:
         self.base = base_aircraft
         self.variations = []
 
-    def add_variation(self, param_name: str, values: List[float]) -> None:
+    def add_variation(self, param_name: str, values: list[float]) -> None:
         """Parametreye birden fazla değer ata"""
         self.variations.append({
             "parameter": param_name,
             "values": values
         })
 
-    def generate_cases(self) -> List[Aircraft]:
+    def generate_cases(self) -> list[Aircraft]:
         """Tüm kombinasyonları oluştur"""
         import itertools
 
@@ -341,7 +341,7 @@ class ParametricStudy:
 
         return cases
 
-    def _create_variant(self, params: Dict) -> Aircraft:
+    def _create_variant(self, params: dict) -> Aircraft:
         """Parametreye göre varyant oluştur"""
         import copy
         variant = copy.deepcopy(self.base)

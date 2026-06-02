@@ -8,11 +8,11 @@ Yapılandırma:
 - Modal analiz: doğal frekansları oku
 """
 
-import numpy as np
-from pathlib import Path
-from typing import Dict, Tuple, Optional, List
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+
+import numpy as np
 
 from material_database import MaterialProperties
 
@@ -38,8 +38,8 @@ class FEAResult:
     safety_factor: float
 
     # Frequency analysis sonuçları
-    natural_frequencies: List[float] = None  # Hz
-    modal_mass_fractions: List[float] = None
+    natural_frequencies: list[float] = None  # Hz
+    modal_mass_fractions: list[float] = None
 
     # Kalite
     n_elements: int = 0
@@ -106,7 +106,7 @@ class FEAPostProcessor:
         self.mesh_file = Path(mesh_file) if mesh_file else None
         self.results = None
 
-    def read_static_results(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def read_static_results(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Static analysis sonuçlarını oku (.frd dosyasından).
         CalculiX .frd yoksa boş array döndür (analytical hesap fallback olur).
@@ -120,7 +120,7 @@ class FEAPostProcessor:
         node_ids = []
 
         try:
-            with open(self.result_file, 'r') as f:
+            with open(self.result_file) as f:
                 in_stress_block = False
                 in_disp_block = False
                 for line in f:
@@ -168,7 +168,7 @@ class FEAPostProcessor:
                                tube_od: float = 0.02,
                                tube_id: float = 0.018,
                                density: float = 2700.0,
-                               E_modulus_GPa: float = 70.0) -> Tuple[List[float], List[np.ndarray]]:
+                               E_modulus_GPa: float = 70.0) -> tuple[list[float], list[np.ndarray]]:
         """
         Analytical cantilever beam natural frequencies (Euler-Bernoulli).
         fn = (βn*L)² / (2π*L²) * sqrt(EI / (ρ*A))
@@ -201,7 +201,7 @@ class FEAPostProcessor:
                                    beam_length: float = 0.5,
                                    tube_od: float = 0.02,
                                    tube_id: float = 0.018,
-                                   E_modulus_GPa: float = 70.0) -> Tuple[float, float]:
+                                   E_modulus_GPa: float = 70.0) -> tuple[float, float]:
         """
         Cantilever beam theory (hollow circular tube - typical aircraft spar).
 
@@ -247,7 +247,7 @@ class FEAPostProcessor:
         return delta_m * 1000.0  # m → mm
 
     def calculate_safety_factors(self, max_stress: float,
-                                material: MaterialProperties) -> Dict[str, float]:
+                                material: MaterialProperties) -> dict[str, float]:
         """
         Safety factors hesapla
         → Returns: {vs_yield, vs_ultimate, buckling, ...}
@@ -285,11 +285,11 @@ class FEAPostProcessor:
 
         if analysis_enum == AnalysisType.STATIC:
             if has_real_data:
-                print(f"[INFO] FEA data source: CALCULIX (.frd)")
+                print("[INFO] FEA data source: CALCULIX (.frd)")
                 max_stress = float(np.max(stress_arr)) / 1e6  # Pa → MPa
                 max_disp = float(np.max(disp_arr)) * 1000.0   # m → mm
             else:
-                print(f"[INFO] FEA data source: ANALYTICAL (beam theory)")
+                print("[INFO] FEA data source: ANALYTICAL (beam theory)")
                 max_stress, _ = self.calculate_stress_from_load(
                     applied_load, reference_area,
                     beam_length=beam_length,

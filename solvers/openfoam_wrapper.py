@@ -10,10 +10,7 @@ Yapılandırma:
 """
 
 import subprocess
-import shutil
 from pathlib import Path
-from typing import Dict, Optional, List
-import time
 
 
 class OpenFOAMRunner:
@@ -87,7 +84,7 @@ class OpenFOAMRunner:
             return ""
         return b.decode("utf-8", errors="replace") if isinstance(b, (bytes, bytearray)) else str(b)
 
-    def create_case_structure(self, mesh_file: Path, params: Dict) -> bool:
+    def create_case_structure(self, mesh_file: Path, params: dict) -> bool:
         """OpenFOAM case klasör yapısını oluştur"""
         try:
             # Klasörler
@@ -144,7 +141,7 @@ class OpenFOAMRunner:
             print(f"[WARNING] gmshToFoam başarısız: {err[-300:]}")
             return False
 
-    def _write_blockMeshDict(self, params: Dict):
+    def _write_blockMeshDict(self, params: dict):
         """Basit external flow domain için blockMeshDict yaz"""
         content = """FoamFile
 {
@@ -215,7 +212,7 @@ mergePatchPairs ();
             print(f"[WARNING] blockMesh başarısız: {err[-300:]}")
             return False
 
-    def _write_boundary_conditions(self, params: Dict):
+    def _write_boundary_conditions(self, params: dict):
         """Boundary conditions dosyalarını yaz (0/U, 0/p, 0/k, 0/omega)"""
 
         # Mock: U (velocity) file
@@ -302,7 +299,7 @@ boundaryField
         with open(self.case_dir / "0" / "p", 'w') as f:
             f.write(p_content)
 
-        print(f"[OK] Boundary conditions yazıldı")
+        print("[OK] Boundary conditions yazıldı")
 
     def _write_transport_properties(self):
         """OpenFOAM 12: physicalProperties + momentumTransport (replaces transportProperties)"""
@@ -336,7 +333,7 @@ simulationType laminar;
 """
         (self.case_dir / "constant" / "momentumTransport").write_text(momentum)
 
-    def _write_solver_config(self, params: Dict):
+    def _write_solver_config(self, params: dict):
         """Solver configuration (controlDict, fvSchemes, fvSolution)"""
 
         # controlDict (OpenFOAM 12 format)
@@ -470,7 +467,7 @@ relaxationFactors
         with open(self.case_dir / "system" / "fvSolution", 'w') as f:
             f.write(solution_content)
 
-        print(f"[OK] Solver konfigürasyonu yazıldı")
+        print("[OK] Solver konfigürasyonu yazıldı")
 
     def run_simulation(self, n_processors: int = 4, timeout: int = 3600, use_gpu: bool = True) -> bool:
         """
@@ -496,7 +493,7 @@ relaxationFactors
             print(f"[INFO] Case: {self.case_dir}")
             print(f"[INFO] Processors: {n_processors}")
             if use_gpu:
-                print(f"[INFO] GPU hızlandırması: AKTIF (NVIDIA RTX 4060)")
+                print("[INFO] GPU hızlandırması: AKTIF (NVIDIA RTX 4060)")
 
             # OpenFOAM 12 uses foamRun -solver incompressibleFluid instead of simpleFoam
             # Map legacy solver names to foamRun solver modules
@@ -526,7 +523,7 @@ relaxationFactors
                     f.write(stderr)
 
             if result.returncode == 0:
-                print(f"[OK] Simülasyon başarıyla tamamlandı")
+                print("[OK] Simülasyon başarıyla tamamlandı")
                 self.simulation_status = "COMPLETED"
                 return True
             else:
@@ -581,7 +578,7 @@ relaxationFactors
         self.simulation_status = "COMPLETED"
         return True
 
-    def get_simulation_status(self) -> Dict:
+    def get_simulation_status(self) -> dict:
         """Simülasyon durumunu sor"""
         return {
             'status': self.simulation_status,
@@ -590,7 +587,7 @@ relaxationFactors
             'log_file': str(self.log_file),
         }
 
-    def extract_forces(self) -> Dict:
+    def extract_forces(self) -> dict:
         """postProcessing/forces dosyasından kuvvetleri oku"""
         force_file = self.case_dir / "postProcessing" / "forces" / "0" / "coefficient.dat"
 

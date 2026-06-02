@@ -5,10 +5,10 @@ Tüm modüllerin birlikte çalıştığını doğrula
 Scanner → Mesh → CFD/FEA → Results
 """
 
-import sys
 import json
-from pathlib import Path
+import sys
 from datetime import datetime
+from pathlib import Path
 
 
 class IntegrationTestSuite:
@@ -100,7 +100,7 @@ class IntegrationTestSuite:
                 num_processors=4
             )
 
-            print(f"  ✅ Job oluşturuldu")
+            print("  ✅ Job oluşturuldu")
             print(f"    • Case: {job.case_name}")
             print(f"    • Aircraft: {job.aircraft.name}")
             print(f"    • Solver: {job.solver}")
@@ -122,9 +122,7 @@ class IntegrationTestSuite:
         print("=" * 60)
 
         try:
-            from fea_runner import (
-                FEAJob, BoundaryCondition, Load, MATERIAL_LIBRARY
-            )
+            from fea_runner import MATERIAL_LIBRARY, BoundaryCondition, FEAJob, Load
 
             material = MATERIAL_LIBRARY["aluminum_6061"]
 
@@ -152,7 +150,7 @@ class IntegrationTestSuite:
                 num_modes=10
             )
 
-            print(f"  ✅ FEA Job oluşturuldu")
+            print("  ✅ FEA Job oluşturuldu")
             print(f"    • Case: {job.case_name}")
             print(f"    • Material: {material.name}")
             print(f"    • Analysis: {job.analysis_type}")
@@ -185,7 +183,7 @@ class IntegrationTestSuite:
 
             cases = study.generate_cases()
 
-            print(f"  ✅ Parametrik çalışma oluşturuldu")
+            print("  ✅ Parametrik çalışma oluşturuldu")
             print(f"    • Base Aircraft: {base_aircraft.name}")
             print(f"    • Generated Cases: {len(cases)}")
             print(f"    • Case 1: {cases[0].name if cases else 'N/A'}")
@@ -205,7 +203,6 @@ class IntegrationTestSuite:
         print("=" * 60)
 
         try:
-            from mesh_to_cfd import MeshAnalyzer
 
             # Test mesh oluştur (basit tetrahedron)
             test_vertices = [
@@ -215,9 +212,9 @@ class IntegrationTestSuite:
                 (0.5, 0.5, 1)
             ]
 
-            print(f"  ✅ Mesh Analyzer oluşturuldu")
+            print("  ✅ Mesh Analyzer oluşturuldu")
             print(f"    • Test vertices: {len(test_vertices)}")
-            print(f"    • Ready for real mesh analysis")
+            print("    • Ready for real mesh analysis")
 
             self.results["Mesh Analysis"] = True
             return True
@@ -274,13 +271,13 @@ class IntegrationTestSuite:
                 json.dump(config, f, indent=2)
 
             # Yükle
-            with open(config_file, "r") as f:
+            with open(config_file) as f:
                 loaded_config = json.load(f)
 
             # Temizle
             config_file.unlink()
 
-            print(f"  ✅ Konfigürasyon başarıyla kaydet/yüklendi")
+            print("  ✅ Konfigürasyon başarıyla kaydet/yüklendi")
             print(f"    • Wind Speed: {loaded_config['wind_speed']} m/s")
             print(f"    • Mesh Size: {loaded_config['mesh_size']} m")
 

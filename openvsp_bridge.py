@@ -10,7 +10,6 @@ Gereksinim: openvsp conda ortamı (Python 3.13)
 
 import os
 import sys
-import math
 
 # OpenVSP DLL yolu — Windows'ta gerekli
 _VSP_DIR = r"C:\Users\Victus\Desktop\OpenVSP\OpenVSP-3.50.4-win64"

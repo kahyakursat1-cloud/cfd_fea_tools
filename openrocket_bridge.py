@@ -14,19 +14,18 @@ Calistirma:
   <orenv>/python.exe openrocket_bridge.py <rocket.ork>
 """
 
-import os
-import sys
 import json
 import math
+import sys
 
 JAR = r"C:\Program Files\OpenRocket\OpenRocket.jar"
 
 
 def simulate(ork_path: str, sim_index: int = 0) -> dict:
     """Bir .ork roketini simule eder, ucus + aerodinamik metrikleri dondurur."""
+    import numpy as np
     import orhelper
     from orhelper import FlightDataType
-    import numpy as np
 
     with orhelper.OpenRocketInstance(JAR) as inst:
         orh = orhelper.Helper(inst)

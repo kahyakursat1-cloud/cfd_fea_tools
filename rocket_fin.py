@@ -11,8 +11,9 @@ Fin geometrisi .ork'tan (rocket_cfd ile ayni):
 
 import math
 import subprocess
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 
 # Fin geometrisi
 FIN_ROOT  = 0.0508
@@ -166,7 +167,8 @@ def assess(material: str = "balsa", v_flight_ms: float = 29.3) -> dict:
 
 
 if __name__ == "__main__":
-    import sys, json
+    import json
+    import sys
     mat = sys.argv[1] if len(sys.argv) > 1 else "balsa"
     v = float(sys.argv[2]) if len(sys.argv) > 2 else 29.3
     r = assess(mat, v)

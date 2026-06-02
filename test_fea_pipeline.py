@@ -9,8 +9,14 @@ from pathlib import Path
 import trimesh
 
 from analysis import (
-    generate_tet_mesh, FEAMaterial, FixedBC, ForceLoad, FEACase,
-    write_inp, surface_face_nodes, faces_in_axis_band,
+    FEACase,
+    FEAMaterial,
+    FixedBC,
+    ForceLoad,
+    faces_in_axis_band,
+    generate_tet_mesh,
+    surface_face_nodes,
+    write_inp,
 )
 from analysis.ccx_runner import run_ccx
 

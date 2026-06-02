@@ -14,8 +14,9 @@ Hedef: checkMesh non-ortho < 30, ilk hucre ~1e-5 (y+~1 @ Re=3e6), Cd hata < %5.
 
 import math
 import subprocess
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 
 
 def naca4_thickness(x, t=0.12):
@@ -302,7 +303,6 @@ def generate(case_dir, naca="0012", **kw):
 
 
 if __name__ == "__main__":
-    import sys
     case = Path("cgrid_test")
     msh, dims = generate(case, naca="0012")
     print(f"C-grid uretildi: {msh}  dims(I,nj)={dims}  dugum~{dims[0]*dims[1]*2}")
@@ -312,7 +312,7 @@ if __name__ == "__main__":
         return subprocess.run(
             f'wsl bash -c "source /opt/openfoam11/etc/bashrc && cd {wsl} && {cmd}"',
             shell=True, capture_output=True, text=True, timeout=t)
-    r = of(f"gmshToFoam cgrid.msh > log.g2f 2>&1")
+    r = of("gmshToFoam cgrid.msh > log.g2f 2>&1")
     print("gmshToFoam rc:", r.returncode)
     r2 = of("checkMesh > log.check 2>&1")
     chk = (case/"log.check").read_text(errors="replace")

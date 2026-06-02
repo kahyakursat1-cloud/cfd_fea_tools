@@ -11,7 +11,7 @@ Yapılandırma:
 
 import subprocess
 from pathlib import Path
-from typing import Dict, Optional
+
 from material_database import MaterialProperties
 
 
@@ -221,16 +221,16 @@ LOAD_POINT, 2, {applied_load}
             # Input file adı (extension siz)
             case_name = self.input_file.stem
 
-            print(f"[INFO] CalculiX analiz başlatılıyor...")
+            print("[INFO] CalculiX analiz başlatılıyor...")
             print(f"[INFO] Case: {case_name}")
             print(f"[INFO] CPUs/Threads: {n_cpus}")
             if use_gpu:
-                print(f"[INFO] GPU hızlandırması: AKTIF")
+                print("[INFO] GPU hızlandırması: AKTIF")
 
             # Run CCX with full path
             ccx_exe = r"C:\AnalysisTools\CalculiX\CL32-win32\bin\ccx\ccx213.exe"
             if n_cpus > 1:
-                cmd = [ccx_exe, "-i", case_name, f"-nproc", str(n_cpus)]
+                cmd = [ccx_exe, "-i", case_name, "-nproc", str(n_cpus)]
             else:
                 cmd = [ccx_exe, "-i", case_name]
 
@@ -243,7 +243,7 @@ LOAD_POINT, 2, {applied_load}
             )
 
             if result.returncode == 0:
-                print(f"[OK] Analiz başarıyla tamamlandı")
+                print("[OK] Analiz başarıyla tamamlandı")
                 self.simulation_status = "COMPLETED"
                 return True
             else:
@@ -289,11 +289,11 @@ Max Displacement: 2.34 mm
         with open(dat_file, 'w') as f:
             f.write(mock_dat)
 
-        print(f"[OK] Mock analiz tamamlandı")
+        print("[OK] Mock analiz tamamlandı")
         self.simulation_status = "COMPLETED"
         return True
 
-    def read_results(self) -> Dict:
+    def read_results(self) -> dict:
         """
         Sonuç dosyasından veri oku
 
@@ -320,7 +320,7 @@ Max Displacement: 2.34 mm
         # Mock frequencies
         return [12.5 + i * 5.5 for i in range(n_modes)]
 
-    def get_analysis_status(self) -> Dict:
+    def get_analysis_status(self) -> dict:
         """Analiz durumunu sor"""
         return {
             'status': self.simulation_status,

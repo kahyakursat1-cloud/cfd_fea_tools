@@ -8,11 +8,12 @@ FEA emniyet faktoru ve CFD->FEA coupling korunumunu tek raporda toplar.
 
 import json
 import math
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -187,11 +188,11 @@ class VVReport:
               fea=None, coupling=None, mesh_quality=None, polar=None,
               vspaero=None, rocket=None, rocket_fin=None, rocket_cfd=None,
               project="MiniHawk İHA"):
-        md = [f"# CFD/FEA Doğrulama ve Validation Raporu",
+        md = ["# CFD/FEA Doğrulama ve Validation Raporu",
               f"\n**Proje:** {project}  ",
               f"**Tarih:** {datetime.now():%Y-%m-%d %H:%M}  ",
-              f"**Standart:** ASME V&V 20-2009, FAR/CS-23  ",
-              f"\n---\n"]
+              "**Standart:** ASME V&V 20-2009, FAR/CS-23  ",
+              "\n---\n"]
 
         # 0. Mesh kalitesi / y+ (prism layer)
         if mesh_quality:

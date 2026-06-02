@@ -4,12 +4,13 @@ Aircraft/Rocket geometrisi → Gmsh mesh
 Boundary layer, refinement kontrol
 """
 
-import numpy as np
-import subprocess
 import os
-from typing import Dict, List, Tuple
+import subprocess
 from pathlib import Path
-from aircraft_geometry import Aircraft, Wing, Fuselage
+
+import numpy as np
+
+from aircraft_geometry import Aircraft
 
 
 def generate_stl_openvsp(aircraft: Aircraft, output_path: str,
@@ -31,7 +32,8 @@ def generate_stl_openvsp(aircraft: Aircraft, output_path: str,
     vsp_dll_dir = r"C:\Users\Victus\Desktop\OpenVSP\OpenVSP-3.50.4-win64"
 
     # Parametreleri JSON ile geç
-    import json, tempfile
+    import json
+    import tempfile
     params = {
         "aircraft_name": aircraft.name,
         "aircraft_type": aircraft.aircraft_type,
@@ -124,7 +126,7 @@ print("VSP_STL_OK:" + p['output'])
         return output_path
     else:
         # OpenVSP mevcut değilse trimesh fallback
-        print(f"[OpenVSP] Kullanilamiyor, trimesh fallback kullaniliyor")
+        print("[OpenVSP] Kullanilamiyor, trimesh fallback kullaniliyor")
         print(f"  Hata: {result.stderr[:200] if result.stderr else 'unknown'}")
         return None
 
@@ -166,7 +168,7 @@ class MeshGenerator:
         u_tau = math.sqrt(tau_w / rho)
         return self.target_yplus * nu / u_tau
 
-    def add_refinement_region(self, region_name: str, location: Tuple[float, float, float],
+    def add_refinement_region(self, region_name: str, location: tuple[float, float, float],
                              radius: float, factor: float) -> None:
         """Mesh iyileştirme bölgesi ekle"""
         self.refinement_regions.append({
@@ -924,7 +926,7 @@ Save "aircraft_mesh.msh";
 """
         return script
 
-    def generate_mesh_config(self) -> Dict:
+    def generate_mesh_config(self) -> dict:
         """Mesh konfigürasyonu (json)"""
         mass_props = self.aircraft.mass_properties()
 
@@ -979,7 +981,7 @@ class MeshConverter:
     """Gmsh MSH → OpenFOAM blockMeshDict / snappyHexMesh"""
 
     @staticmethod
-    def generate_blockmeshdict(mesh_config: Dict) -> str:
+    def generate_blockmeshdict(mesh_config: dict) -> str:
         """OpenFOAM blockMeshDict oluştur"""
 
         script = """FoamFile

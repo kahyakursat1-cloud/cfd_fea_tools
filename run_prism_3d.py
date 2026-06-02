@@ -2,10 +2,11 @@
 A3 dogrulama: prism-layer'li 3D mesh ile CFD + y+ kontrolu.
 Tek medium case calistirir, checkMesh + y+ raporlar.
 """
-import sys, subprocess
+import subprocess
 from pathlib import Path
+
 from aircraft_geometry import AircraftLibrary
-from simulation_runner import SimulationRunner, SimulationJob, _to_wsl_path, _wsl_openfoam
+from simulation_runner import SimulationJob, SimulationRunner, _to_wsl_path, _wsl_openfoam
 
 ac = AircraftLibrary.minihawk_uav()
 runner = SimulationRunner(base_path="./prism_validation")

@@ -8,11 +8,10 @@ Yapılandırma:
 - Görselleştirme için data hazırla
 """
 
-import numpy as np
-from pathlib import Path
-from typing import Dict, Tuple, Optional, List
 from dataclasses import dataclass
-import re
+from pathlib import Path
+
+import numpy as np
 
 
 @dataclass
@@ -43,9 +42,9 @@ class CFDResult:
     mesh_elements: int
 
     # Alanlar
-    pressure_field: Optional[Dict] = None
-    velocity_field: Optional[Dict] = None
-    convergence_history: Optional[Dict] = None
+    pressure_field: dict | None = None
+    velocity_field: dict | None = None
+    convergence_history: dict | None = None
 
     def __str__(self) -> str:
         return f"""
@@ -92,7 +91,7 @@ class CFDPostProcessor:
         self.postprocessing_dir = self.case_dir / "postProcessing"
         self.results = None
 
-    def read_convergence_history(self) -> Dict[str, np.ndarray]:
+    def read_convergence_history(self) -> dict[str, np.ndarray]:
         """
         OpenFOAM log dosyasından convergence history oku
         → Returns: {iteration: np.array, residuals: {...}, forces: {...}}
@@ -112,7 +111,7 @@ class CFDPostProcessor:
         u_residuals = []
 
         try:
-            with open(log_file, 'r') as f:
+            with open(log_file) as f:
                 for line in f:
                     # OpenFOAM log format: "Time = 0.001"
                     if 'Time =' in line:
@@ -133,7 +132,7 @@ class CFDPostProcessor:
 
     def read_force_coefficients(self, wind_speed: float = 15.0,
                                  aspect_ratio: float = 6.0,
-                                 alpha_deg: float = 2.0) -> Dict[str, float]:
+                                 alpha_deg: float = 2.0) -> dict[str, float]:
         """
         Force coefficients oku - OpenFOAM varsa dosyadan, yoksa analytical hesap.
 
@@ -222,7 +221,7 @@ class CFDPostProcessor:
 
     def read_force_absolute(self, wind_speed: float,
                             aspect_ratio: float = 6.0,
-                            alpha_deg: float = 2.0) -> Dict[str, float]:
+                            alpha_deg: float = 2.0) -> dict[str, float]:
         """
         Mutlak kuvvetleri hesapla: F = 0.5 * ρ * V² * A * Cf
         → Returns: {Fd (N), Fl (N), M (N⋅m)}
@@ -245,7 +244,7 @@ class CFDPostProcessor:
             'M': M,
         }
 
-    def read_pressure_field(self) -> Optional[np.ndarray]:
+    def read_pressure_field(self) -> np.ndarray | None:
         """
         Pressure field oku (PostProcessing)
         → Returns: (node_coords, pressure_values) or None
@@ -254,7 +253,7 @@ class CFDPostProcessor:
         # Şu an placeholder
         return None
 
-    def read_velocity_field(self) -> Optional[Tuple[np.ndarray, np.ndarray]]:
+    def read_velocity_field(self) -> tuple[np.ndarray, np.ndarray] | None:
         """
         Velocity field oku
         → Returns: (node_coords, velocity_vectors) or None

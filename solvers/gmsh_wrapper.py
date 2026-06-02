@@ -10,8 +10,6 @@ Yapılandırma:
 
 import subprocess
 from pathlib import Path
-from typing import Dict, Optional, Tuple
-import shutil
 
 
 class GMSHMeshGenerator:
@@ -73,7 +71,7 @@ class GMSHMeshGenerator:
 
     def run_gmsh(self, geo_file: Path, mesh_size: float = 0.01,
                  format: str = "msh",
-                 dimension: int = 3) -> Optional[Path]:
+                 dimension: int = 3) -> Path | None:
         """
         GMSH çalıştır ve mesh oluştur
 
@@ -95,7 +93,7 @@ class GMSHMeshGenerator:
         try:
             mesh_file = self.output_dir / f"{geo_file.stem}.{format}"
 
-            print(f"[INFO] GMSH mesh oluşturma başlıyor...")
+            print("[INFO] GMSH mesh oluşturma başlıyor...")
             print(f"[INFO] Input: {geo_file}")
             print(f"[INFO] Mesh size: {mesh_size}")
             print(f"[INFO] Format: {format}")
@@ -133,7 +131,7 @@ class GMSHMeshGenerator:
                 return None
 
         except subprocess.TimeoutExpired:
-            print(f"[ERROR] GMSH zaman aşımı")
+            print("[ERROR] GMSH zaman aşımı")
             self.mesh_status = "TIMEOUT"
             return None
         except Exception as e:
@@ -177,7 +175,7 @@ $EndElements
         return mesh_file
 
     def convert_to_openfoam(self, msh_file: Path,
-                           openfoam_dir: Path = None) -> Optional[Path]:
+                           openfoam_dir: Path = None) -> Path | None:
         """
         MSH formatını OpenFOAM polyMesh formatına dönüştür
 
@@ -199,7 +197,7 @@ $EndElements
             # gmshToFoam mesh.msh
             # Bu CalculiX ve OpenFOAM'da utilities ile yapılır
 
-            print(f"[INFO] OpenFOAM polyMesh'e dönüştürülüyor...")
+            print("[INFO] OpenFOAM polyMesh'e dönüştürülüyor...")
 
             cmd = ["gmshToFoam", str(msh_file), "-case", str(openfoam_dir.parent.parent)]
 
@@ -226,7 +224,7 @@ $EndElements
             print(f"[ERROR] OpenFOAM dönüşüm hatası: {e}")
             return None
 
-    def convert_to_calculix(self, msh_file: Path) -> Optional[Path]:
+    def convert_to_calculix(self, msh_file: Path) -> Path | None:
         """
         MSH formatını CalculiX INP formatına dönüştür
 
@@ -240,13 +238,13 @@ $EndElements
         try:
             inp_file = self.output_dir / f"{msh_file.stem}.inp"
 
-            print(f"[INFO] CalculiX INP'ye dönüştürülüyor...")
+            print("[INFO] CalculiX INP'ye dönüştürülüyor...")
 
             # gmsh2ccx veya manual conversion
             # Python ile basit conversion yapılabilir
 
             # Mock: MSH'yi INP'ye dönüştür
-            with open(msh_file, 'r') as f:
+            with open(msh_file) as f:
                 msh_content = f.read()
 
             # Simple conversion
@@ -285,14 +283,13 @@ U, S
             print(f"[ERROR] CalculiX dönüşüm hatası: {e}")
             return None
 
-    def validate_mesh(self) -> Dict:
+    def validate_mesh(self) -> dict:
         """Mesh kalitesini kontrol et"""
 
         if self.mesh_file is None or not self.mesh_file.exists():
             return {'valid': False, 'error': 'Mesh dosyası bulunamadı'}
 
         try:
-            import numpy as np
 
             # Mock validation
             return {
@@ -308,7 +305,7 @@ U, S
         except Exception as e:
             return {'valid': False, 'error': str(e)}
 
-    def get_mesh_status(self) -> Dict:
+    def get_mesh_status(self) -> dict:
         """Mesh durumunu sor"""
         return {
             'status': self.mesh_status,
@@ -319,8 +316,8 @@ U, S
 
 # Testing
 if __name__ == "__main__":
-    from mesh_generator import MeshGenerator
     from aircraft_geometry import AircraftLibrary
+    from mesh_generator import MeshGenerator
 
     # Get aircraft
     lib = AircraftLibrary()
