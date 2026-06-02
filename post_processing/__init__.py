@@ -6,6 +6,10 @@ Submodules:
   - fea_postprocessor: CalculiX sonuçlarını işle
   - visualization: Matplotlib grafikler
   - report_generator: PDF rapor oluşturma
+
+.. deprecated::
+    Eski kuşak #2 (bkz. docs/adr/0001-kanonik-mimari.md). Kanonik raporlama:
+    kök ``report_generator.py`` (pipeline.py üzerinden). Yeni kod buraya bağımlanmamalı.
 """
 
 from post_processing.cfd_postprocessor import CFDPostProcessor, CFDResult

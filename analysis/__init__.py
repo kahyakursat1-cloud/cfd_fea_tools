@@ -1,4 +1,11 @@
-"""Analysis pipeline: STL/STEP -> mesh -> CalculiX/OpenFOAM -> results."""
+"""Analysis pipeline: STL/STEP -> mesh -> CalculiX/OpenFOAM -> results.
+
+.. deprecated::
+    Bu paket eski kuşak #3 (bkz. docs/adr/0001-kanonik-mimari.md). Kanonik
+    CFD/FEA path: ``simulation_runner`` / ``fea_runner`` (pipeline.py üzerinden).
+    Yalnızca küre doğrulama smoke testleri (test_cfd_pipeline / test_fea_pipeline)
+    tüketir. Yeni kod buraya bağımlılık eklememeli.
+"""
 
 from .calculix_writer import (
     FEACase,

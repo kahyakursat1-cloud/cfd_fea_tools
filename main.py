@@ -2,6 +2,11 @@
 CFD/FEA ANALYSIS TOOLS — OpenFOAM & CalculiX Arayüzü
 TEKNOFEST 2026 — Çelik Kubbe, Model Roket, İHA Aerodinamik Simülasyonları
 Futuristic Teal & Navy UI Theme
+
+.. deprecated::
+    YETİM — bu modüle sıfır referans var (launcher.py ve RUN_SYSTEM.bat
+    app_parametric.py'yi başlatır). Eski CFD-only GUI; halefi app_parametric.py.
+    Bkz. docs/adr/0001-kanonik-mimari.md. Silinmesi kullanıcı onayına bağlı.
 """
 
 import subprocess
