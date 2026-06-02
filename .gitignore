@@ -1,0 +1,92 @@
+# ─── Python ───────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.Python
+*.so
+
+# ─── Virtual environments ─────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ─── Tooling caches ───────────────────────────────────────────────────────
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ─── IDE / OS ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ─── Simülasyon çıktı dizinleri (üretilen, ~6 GB) ─────────────────────────
+# OpenFOAM / CalculiX case ve sonuç klasörleri — kaynak değil, artefakt.
+aoa_polar/
+mesh_independence/
+prism_validation/
+transition/
+test_cfd_run/
+test_fea_run/
+rocket_cfd_case/
+rocket_fin/
+structural_assessment/
+dist_load_test/
+c2dval/
+cgrid_val/
+cgrid_work/
+fea_cases/
+validation/
+simulations/
+report/
+logs/
+vspaero_results/
+vspaero_run/
+
+# ─── OpenFOAM artefaktları (case dizinleri dışında kalanlar) ──────────────
+processor*/
+postProcessing/
+*.foam
+
+# NOT: Çözücü çıktıları (*.frd, *.dat, *.cvg, *.12d, *.sta) yukarıdaki case
+# dizinlerinin içinde; global ignore EKLENMEDİ çünkü airfoil .dat ve örnek
+# .msh dosyaları meşru KAYNAK girdiler (ör. Construct2D/sample_airfoils).
+
+# ─── Kök dizine yazılan sonuç JSON'ları (üretilen) ────────────────────────
+# NOT: materials.json ve config.yaml KAYNAK — izlenir, ignore edilmez.
+envelope.json
+fea_critical.json
+coupling_result.json
+vspaero_polar.json
+aoa_polar.json
+openrocket_result.json
+rocket_cfd_result.json
+rocket_fin_result.json
+mesh_quality.json
+
+# ─── Üretilen geometri / mesh dosyaları ───────────────────────────────────
+scanned_object.stl
+test_sphere.stl
+
+# ─── Loglar ───────────────────────────────────────────────────────────────
+*.log
+test_output.log
+
+# ─── Üretilen test çıktıları ──────────────────────────────────────────────
+test_materials_export.csv
+
+# ─── Vendored third-party araç (kendi git geçmişi var) ────────────────────
+# Construct2D: airfoil C-grid mesh üreteci. construct2d_bridge.py disk'ten
+# çağırır; kaynak ağacımıza dahil değil.
+Construct2D/

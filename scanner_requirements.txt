@@ -1,0 +1,16 @@
+PySide6>=6.5.0
+numpy>=1.24.0
+opencv-python>=4.8.0
+open3d>=0.17.0
+trimesh>=3.20.0
+scipy>=1.10.0
+pillow>=9.5.0
+colmap>=3.9.0
+pyyaml>=6.0
+
+# Photogrammetry
+meshlab>=2022.12
+
+# GPU acceleration (optional)
+# cupy>=12.0.0
+# torch>=2.0.0

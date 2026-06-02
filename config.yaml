@@ -1,0 +1,118 @@
+# =====================================================================
+# CFD/FEA ANALYSIS TOOLS — TEKNOFEST 2026
+# OpenFOAM ve CalculiX Simülasyon Arayüzü Konfigürasyonu
+# =====================================================================
+
+# --- OpenFOAM Ayarları ---
+openfoam:
+  enabled: true
+  version: "11"
+  solvers:
+    - simpleFoam          # Laminar/Turbulent steady-state
+    - pimpleFoam         # Transient incompressible
+    - rhoCentralFoam     # Compressible Euler
+    - sonicFoam          # Compressible RANS
+
+  turbulence_models:
+    - laminar
+    - kEpsilon
+    - kOmegaSST
+    - spalartAllmaras
+
+# --- CalculiX Ayarları ---
+calculix:
+  enabled: true
+  version: "2.21"
+  analysis_types:
+    - static             # Statik analiz
+    - frequency          # Özdeğer (Natural frequency)
+    - buckling           # Burkulma
+    - thermal            # Termal analiz
+
+  materials:
+    aluminum:
+      density: 2700      # kg/m³
+      elastic_modulus: 69000  # MPa
+      poisson_ratio: 0.33
+      yield_strength: 290 # MPa
+    steel:
+      density: 7850
+      elastic_modulus: 210000
+      poisson_ratio: 0.30
+      yield_strength: 250
+    carbon_fiber:
+      density: 1600
+      elastic_modulus: 140000
+      poisson_ratio: 0.30
+      yield_strength: 800
+
+# --- Mesh Ayarları ---
+mesh:
+  generator: "gmsh"      # gmsh | salome
+  default_element_size: 0.01  # m
+  boundary_layer:
+    enabled: true
+    layers: 10
+    growth_rate: 1.2
+
+# --- Çözücü Ayarları ---
+solver:
+  openfoam:
+    tolerance: 1e-6
+    max_iterations: 1000
+    timestep: 0.001      # sn
+  calculix:
+    tolerance: 1e-8
+    max_iterations: 10000
+
+# --- Simülasyon Senaryoları ---
+scenarios:
+  celik_kubbe_aerodinamik:
+    tool: openfoam
+    description: "Radar kubbe aerodinamik analizi"
+    domain_size: [5, 5, 5]  # m
+    reference_velocity: 20  # m/s
+    reference_density: 1.225  # kg/m³
+    solver: simpleFoam
+    turbulence: kOmegaSST
+
+  celik_kubbe_yapisal:
+    tool: calculix
+    description: "Kubbe mekanik dayanıklılık analizi"
+    material: aluminum
+    analysis: static
+    wind_pressure: 1200  # Pa (40 m/s rüzgar)
+
+  model_roket_aerodinamik:
+    tool: openfoam
+    description: "Model roket balistik sürüş analizi"
+    domain_size: [2, 2, 2]
+    reference_velocity: 100  # m/s (Mach 0.3)
+    solver: rhoCentralFoam
+    turbulence: spalartAllmaras
+
+  mini_hawk_uav_aerodinamik:
+    tool: openfoam
+    description: "MiniHawk İHA aerodinamik (rüzgarlı koşullar)"
+    domain_size: [3, 3, 3]
+    reference_velocity: 15  # m/s
+    wind_direction: [1, 0, 0]
+
+# --- Post-Processing ---
+postprocessing:
+  paraview_enabled: true
+  export_formats: [vtk, tecplot, csv]
+  plot_fields:
+    - pressure
+    - velocity
+    - turbulent_kinetic_energy
+    - wall_shear_stress
+    - displacement
+    - von_mises_stress
+
+# --- Loglama ---
+logging:
+  level: "INFO"
+  file: "logs/cfd_fea.log"
+  max_bytes: 10485760  # 10MB
+  backup_count: 5

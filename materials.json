@@ -1,0 +1,203 @@
+{
+  "Aluminum 6061": {
+    "name": "Aluminum 6061",
+    "material_type": "aluminum",
+    "density": 2700,
+    "youngs_modulus": 69,
+    "poisson_ratio": 0.33,
+    "yield_strength": 275,
+    "tensile_strength": 310,
+    "compressive_strength": null,
+    "thermal_conductivity": 167,
+    "thermal_expansion": 2.36e-05,
+    "melting_point": 660,
+    "cost_per_kg": 2.5,
+    "environmental_impact": null,
+    "recyclable": false,
+    "typical_applications": [
+      "Aerospace",
+      "Automotive",
+      "Structural"
+    ]
+  },
+  "Aluminum 7075": {
+    "name": "Aluminum 7075",
+    "material_type": "aluminum",
+    "density": 2810,
+    "youngs_modulus": 72,
+    "poisson_ratio": 0.33,
+    "yield_strength": 505,
+    "tensile_strength": 570,
+    "compressive_strength": null,
+    "thermal_conductivity": 130,
+    "thermal_expansion": 2.34e-05,
+    "melting_point": 477,
+    "cost_per_kg": 4.0,
+    "environmental_impact": null,
+    "recyclable": false,
+    "typical_applications": [
+      "Aerospace",
+      "High-strength"
+    ]
+  },
+  "Steel S355": {
+    "name": "Steel S355",
+    "material_type": "metal",
+    "density": 7850,
+    "youngs_modulus": 210,
+    "poisson_ratio": 0.3,
+    "yield_strength": 355,
+    "tensile_strength": 510,
+    "compressive_strength": null,
+    "thermal_conductivity": 50,
+    "thermal_expansion": 1.2e-05,
+    "melting_point": 1500,
+    "cost_per_kg": 1.2,
+    "environmental_impact": null,
+    "recyclable": false,
+    "typical_applications": [
+      "Structural",
+      "Automotive"
+    ]
+  },
+  "Steel Stainless 316": {
+    "name": "Steel Stainless 316",
+    "material_type": "metal",
+    "density": 8000,
+    "youngs_modulus": 193,
+    "poisson_ratio": 0.3,
+    "yield_strength": 310,
+    "tensile_strength": 515,
+    "compressive_strength": null,
+    "thermal_conductivity": 16,
+    "thermal_expansion": 1.6e-05,
+    "melting_point": 1370,
+    "cost_per_kg": 8.0,
+    "environmental_impact": null,
+    "recyclable": false,
+    "typical_applications": [
+      "Marine",
+      "Corrosion-resistant"
+    ]
+  },
+  "Carbon Fiber (Epoxy)": {
+    "name": "Carbon Fiber (Epoxy)",
+    "material_type": "composite",
+    "density": 1600,
+    "youngs_modulus": 150,
+    "poisson_ratio": 0.35,
+    "yield_strength": 1200,
+    "tensile_strength": 1300,
+    "compressive_strength": null,
+    "thermal_conductivity": 5,
+    "thermal_expansion": 2e-08,
+    "melting_point": 300,
+    "cost_per_kg": 15.0,
+    "environmental_impact": null,
+    "recyclable": false,
+    "typical_applications": [
+      "Aerospace",
+      "High-performance"
+    ]
+  },
+  "Titanium Grade 5 (Ti-6Al-4V)": {
+    "name": "Titanium Grade 5 (Ti-6Al-4V)",
+    "material_type": "metal",
+    "density": 4506,
+    "youngs_modulus": 103,
+    "poisson_ratio": 0.342,
+    "yield_strength": 880,
+    "tensile_strength": 950,
+    "compressive_strength": null,
+    "thermal_conductivity": 7.4,
+    "thermal_expansion": 8.6e-06,
+    "melting_point": 1660,
+    "cost_per_kg": 12.0,
+    "environmental_impact": null,
+    "recyclable": false,
+    "typical_applications": [
+      "Aerospace",
+      "Medical"
+    ]
+  },
+  "Balsa Wood": {
+    "name": "Balsa Wood",
+    "material_type": "wood",
+    "density": 150,
+    "youngs_modulus": 4.5,
+    "poisson_ratio": 0.4,
+    "yield_strength": 30,
+    "tensile_strength": 35,
+    "compressive_strength": null,
+    "thermal_conductivity": 0.05,
+    "thermal_expansion": 8e-06,
+    "melting_point": 200,
+    "cost_per_kg": 5.0,
+    "environmental_impact": null,
+    "recyclable": false,
+    "typical_applications": [
+      "Model aircraft",
+      "Lightweight"
+    ]
+  },
+  "Glass Fiber (Epoxy)": {
+    "name": "Glass Fiber (Epoxy)",
+    "material_type": "composite",
+    "density": 1900,
+    "youngs_modulus": 45,
+    "poisson_ratio": 0.3,
+    "yield_strength": 500,
+    "tensile_strength": 600,
+    "compressive_strength": null,
+    "thermal_conductivity": 0.25,
+    "thermal_expansion": 2e-05,
+    "melting_point": 250,
+    "cost_per_kg": 3.0,
+    "environmental_impact": null,
+    "recyclable": false,
+    "typical_applications": [
+      "Marine",
+      "Automotive"
+    ]
+  },
+  "Magnesium AZ91D": {
+    "name": "Magnesium AZ91D",
+    "material_type": "metal",
+    "density": 1810,
+    "youngs_modulus": 45,
+    "poisson_ratio": 0.35,
+    "yield_strength": 160,
+    "tensile_strength": 230,
+    "compressive_strength": null,
+    "thermal_conductivity": 73,
+    "thermal_expansion": 2.6e-05,
+    "melting_point": 595,
+    "cost_per_kg": 5.0,
+    "environmental_impact": null,
+    "recyclable": false,
+    "typical_applications": [
+      "Aerospace",
+      "Lightweight"
+    ]
+  },
+  "Kevlar (Aramid Fiber)": {
+    "name": "Kevlar (Aramid Fiber)",
+    "material_type": "composite",
+    "density": 1450,
+    "youngs_modulus": 130,
+    "poisson_ratio": 0.35,
+    "yield_strength": 3600,
+    "tensile_strength": 3800,
+    "compressive_strength": null,
+    "thermal_conductivity": 0.04,
+    "thermal_expansion": -2e-06,
+    "melting_point": 400,
+    "cost_per_kg": 20.0,
+    "environmental_impact": null,
+    "recyclable": false,
+    "typical_applications": [
+      "Ballistic",
+      "Aerospace"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+# Satır sonu normalizasyonu — Windows geliştirme, çapraz-platform repo
+* text=auto eol=lf
+
+# Windows script'leri CRLF kalsın
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary varlıklar (diff/merge yapma)
+*.pdf binary
+*.stl binary
+*.ork binary
+*.png binary
+*.jpg binary
+*.frd binary
+*.msh binary
