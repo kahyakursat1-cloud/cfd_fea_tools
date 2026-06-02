@@ -20,8 +20,8 @@ def minihawk() -> FlightEnvelope:
 
 
 def test_post_init_derived(minihawk):
-    assert minihawk.W == pytest.approx(1.8 * 9.81)
-    assert minihawk.WS == pytest.approx(1.8 * 9.81 / 0.45)
+    assert pytest.approx(1.8 * 9.81) == minihawk.W
+    assert pytest.approx(1.8 * 9.81 / 0.45) == minihawk.WS
     assert minihawk.n_max == CATEGORY_LIMITS["normal"]["n_max"]
     assert minihawk.n_min == CATEGORY_LIMITS["normal"]["n_min"]
 
