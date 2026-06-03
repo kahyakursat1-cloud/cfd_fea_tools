@@ -79,6 +79,13 @@ mesh_quality.json
 scanned_object.stl
 test_sphere.stl
 
+# ─── VSPAERO scratch çıktıları (bridge cwd=kök'e döker) ───────────────────
+Unnamed.*
+*.vspaero
+*.vspgeom
+*.adb
+*.adb.cases
+
 # ─── Loglar ───────────────────────────────────────────────────────────────
 *.log
 test_output.log

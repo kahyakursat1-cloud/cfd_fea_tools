@@ -6,6 +6,10 @@ GUI Startup Test — Check if app_parametric.py can initialize
 import sys
 from pathlib import Path
 
+# Windows konsolu (cp1252) emoji içeren pencere başlığını yazdıramaz — UTF-8'e geç
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 print("=" * 70)
 print("GUI STARTUP TEST — bilsem_beyin")
 print("=" * 70)
@@ -13,8 +17,7 @@ print("=" * 70)
 # Check PySide6
 print("\n1. PySide6 kontrolu...")
 try:
-    from PySide6.QtCore import Qt
-    from PySide6.QtWidgets import QApplication, QMainWindow
+    from PySide6.QtWidgets import QApplication
     print("   [OK] PySide6 imports successful")
 except ImportError as e:
     print(f"   [HATA] PySide6 import failed: {e}")
