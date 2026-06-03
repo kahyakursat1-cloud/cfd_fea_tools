@@ -219,7 +219,7 @@ class MeshGenerator:
     def _extrude_profile_to_mesh(profile_2d: np.ndarray,
                                   y_root: float, y_tip: float,
                                   chord_root: float, chord_tip: float,
-                                  le_x_root: float, le_x_tip: float) -> "trimesh.Trimesh":
+                                  le_x_root: float, le_x_tip: float) -> "trimesh.Trimesh":  # noqa: F821 — trimesh fonksiyon govdesinde lazy import
         """2D NACA profili → watertight kanat solid.
         trimesh.creation.extrude_polygon ile Shapely üzerinden garantili watertight.
         Taper için kök ve uç ayrı extrude edilip blend yapılır.

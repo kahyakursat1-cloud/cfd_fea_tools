@@ -142,7 +142,7 @@ def generate_tet_mesh(
         gmsh.write(str(msh_path))
     except Exception as e:
         gmsh.finalize()
-        raise RuntimeError(f"Gmsh tet mesh üretimi başarısız: {e}")
+        raise RuntimeError(f"Gmsh tet mesh üretimi başarısız: {e}") from e
     finally:
         try:
             gmsh.finalize()
@@ -164,7 +164,7 @@ def generate_tet_mesh(
     for cell_block in m.cells:
         if cell_block.type in tet_type_priority and tet_block is None:
             tet_block = cell_block
-        elif cell_block.type in tet_type_priority:
+        elif cell_block.type in tet_type_priority:  # noqa: SIM102 — deprecated, mantik korunuyor
             # 2. ordan tet1 varsa 2. order tercih
             if cell_block.type == "tetra10":
                 tet_block = cell_block

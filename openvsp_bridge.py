@@ -16,7 +16,7 @@ _VSP_DIR = r"C:\Users\Victus\Desktop\OpenVSP\OpenVSP-3.50.4-win64"
 if os.path.exists(_VSP_DIR):
     os.add_dll_directory(_VSP_DIR)
 
-import openvsp as vsp
+import openvsp as vsp  # noqa: E402 — DLL dizini eklendikten sonra import edilmeli
 
 
 def aircraft_to_vsp(aircraft, vsp3_path: str = None) -> str:

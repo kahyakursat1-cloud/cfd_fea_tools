@@ -49,7 +49,7 @@ def _default_processors() -> int:
     except Exception:
         return max(1, (os.cpu_count() or 4) // 2)
 
-from .ccx_runner import WSL_DISTRO, windows_to_wsl_path
+from .ccx_runner import WSL_DISTRO, windows_to_wsl_path  # noqa: E402
 
 # OpenFOAM 11 (Foundation) bashrc
 OF_BASHRC = "/opt/openfoam11/etc/bashrc"
