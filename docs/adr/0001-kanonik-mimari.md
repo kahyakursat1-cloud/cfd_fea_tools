@@ -48,7 +48,8 @@ birleştirme, OpenFOAM/CalculiX olmadan doğrulanamayacağı için yüksek riskl
 - Üç "kuşak" aslında üç **tamamlayıcı katman**: uçak-V&V (pipeline) / genel-motor
   (analysis) / wrapper+rapor (solvers). Mass deletion **iptal** — regresyon olurdu.
 - Etiketler düzeltildi (`__init__.py` notları: analysis=genel motor, solvers/pp=ikincil).
-- Tek açık aksiyon: `main.py` (yetim) silme — kullanıcı kararı.
+- ✅ `main.py` (yetim) **silindi** (2026-06-03). Sıfır fonksiyonel referanstı;
+   halefi `app_parametric.py`. Gerekirse git geçmişinden geri alınabilir.
 
 ## Notlar
 
