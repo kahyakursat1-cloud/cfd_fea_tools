@@ -148,7 +148,7 @@ def fin_fea(material: str = "balsa", q_pa: float = None, v_ms: float = 29.0,
 
 def _isf(s):
     try: float(s); return True
-    except: return False
+    except (ValueError, TypeError): return False
 
 
 def assess(material: str = "balsa", v_flight_ms: float = 29.3) -> dict:

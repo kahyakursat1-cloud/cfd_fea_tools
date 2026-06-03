@@ -107,7 +107,7 @@ for gid in vsp.FindGeoms():
     try:
         vsp.SetParmValUpdate(vsp.FindParm(gid,"Tess_W","Shape"), p['tess_w'])
         vsp.SetParmValUpdate(vsp.FindParm(gid,"Tess_U","Shape"), p['tess_u'])
-    except: pass
+    except Exception: pass  # opsiyonel tessellation — geom desteklemiyorsa atla
 
 vsp.Update()
 vsp.ExportFile(p['output'], vsp.SET_ALL, vsp.EXPORT_STL)

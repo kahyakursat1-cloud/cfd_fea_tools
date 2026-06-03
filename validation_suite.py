@@ -847,7 +847,7 @@ class CantileverBeamValidation:
 
         def _is_float(s):
             try: float(s); return True
-            except: return False
+            except (ValueError, TypeError): return False
 
         for line in lines:
             if " -4  DISP" in line:   block = "DISP";   continue
