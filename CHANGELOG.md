@@ -4,6 +4,32 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-06-03] hardening | Endüstri-seviye sağlamlaştırma (uygulama bozulmadan)
+
+**What:** Versiyonsuz araştırma kod tabanı → sürüm kontrollü, paketlenmiş, test
+edilen, regresyona karşı korunan mühendislik aracı. Çözücü/analiz mantığına dokunulmadı.
+
+**Actions:**
+- ✅ Git deposu başlatıldı; `.gitignore` ~6 GB simülasyon artefaktını hariç tutar
+  (`aoa_polar/`, `mesh_independence/`, sonuç JSON'ları, VSPAERO scratch). `materials.json`/`config.yaml` izlenir.
+- ✅ `pyproject.toml` — ayrıştırılmış bağımlılık grupları (core/gui/scan/ml/viz/dev)
+- ✅ Kalite araçları: ruff (lint 743→52), mypy, pytest, pre-commit, GitHub Actions CI
+- ✅ Test paketi (24 test, CI altkümesi 20):
+  - Karakterizasyon: V-n/gust zarfı (FAR-23), malzeme elastik sabitleri
+  - **Numerik regresyon ağı** (golden): CFD Cl/Cd, kanat SF, flutter, apogee, coupling korunumu
+  - Orkestrasyon iç mantığı: `parse_forces` (Cl/Cd + wind-axis), `_parse_frd` (von Mises), WSL yol
+- ✅ ADR 0001 — 3-kuşak çözücü mimarisi belgelendi; kanonik = `pipeline.py` + `app_parametric.py`; eski kuşaklar deprecate
+- 🐛 Düzeltilen hatalar:
+  - GUI startup `charmap` crash (Windows cp1252 + emoji pencere başlığı)
+  - VSPAERO scratch (`Unnamed.*`) repo sızıntısı engellendi
+  - 3 bare `except:` daraltıldı (KeyboardInterrupt yutma riski)
+- ✅ Tüm pipeline aşamaları bu makinede uçtan uca **canlı doğrulandı**: CFD (OpenFOAM),
+  FEA (CalculiX), VSPAERO, OpenRocket, coupling, GUI.
+
+**Bekleyen (opsiyonel):** eski kuşak ~2000 satır silme (kullanıcı kararı), `src/` paket taşıma.
+
+---
+
 ## [2026-04-07] ingest | Akademik Kaynaklar & Merkezileştirilmiş Sistemler
 
 **What:** Tam akademik kaynaklar belgesi oluşturuldu + sources/ klasörü merkezileştirildi
