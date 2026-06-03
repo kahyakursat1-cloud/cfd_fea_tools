@@ -24,6 +24,10 @@ def main():
     print(f"    {stl_path}  ({len(sphere.faces)} üçgen)")
 
     print("[2] CFD case kuruluyor...")
+    # Smoke test: pipeline'ı KANITLAMAK için kasıtlı küçük/hızlı mesh.
+    # Varsayılan domain (15×L downstream) + base cell L/8, küre için 2.5M hücre
+    # üretip serial-dışı solve'u dakikalarca sürdürüyordu. Burada makul domain +
+    # kaba base cell + serial (n_processors=1, MPI-WSL'i atlar) ile ~100k hücre.
     case = CFDCase(
         name="sphere_cfd",
         stl_path=stl_path,
@@ -33,9 +37,13 @@ def main():
         nu=1.5e-5,
         end_time=200,
         write_interval=200,
-        n_processors=4,
+        n_processors=1,          # serial — MPI-WSL paralel takılmasını atlar
         refinement_min=1,
         refinement_max=2,
+        domain_upstream=3.0,     # varsayılan 5
+        domain_downstream=6.0,   # varsayılan 15 (smoke için fazla)
+        domain_lateral=3.0,      # varsayılan 5
+        bg_cell_size=0.3,        # ~L/3 kaba base (varsayılan otomatik L/8)
     )
 
     print("[3] CFD koşusu başlatılıyor (snappyHexMesh + foamRun)...")
