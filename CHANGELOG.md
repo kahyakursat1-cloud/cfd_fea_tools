@@ -14,19 +14,27 @@ edilen, regresyona karşı korunan mühendislik aracı. Çözücü/analiz mantı
   (`aoa_polar/`, `mesh_independence/`, sonuç JSON'ları, VSPAERO scratch). `materials.json`/`config.yaml` izlenir.
 - ✅ `pyproject.toml` — ayrıştırılmış bağımlılık grupları (core/gui/scan/ml/viz/dev)
 - ✅ Kalite araçları: ruff (lint 743→52), mypy, pytest, pre-commit, GitHub Actions CI
-- ✅ Test paketi (24 test, CI altkümesi 20):
+- ✅ Test paketi (28 test, CI altkümesi 24):
   - Karakterizasyon: V-n/gust zarfı (FAR-23), malzeme elastik sabitleri
   - **Numerik regresyon ağı** (golden): CFD Cl/Cd, kanat SF, flutter, apogee, coupling korunumu
   - Orkestrasyon iç mantığı: `parse_forces` (Cl/Cd + wind-axis), `_parse_frd` (von Mises), WSL yol
-- ✅ ADR 0001 — 3-kuşak çözücü mimarisi belgelendi; kanonik = `pipeline.py` + `app_parametric.py`; eski kuşaklar deprecate
+  - ML dataset: gerçek bbox kullanımı, görünmeyen atlama, legacy fallback
+- ✅ ADR 0001 — mimari belgelendi; **doğrulamayla revize**: 3 "kuşak" aslında 3 tamamlayıcı
+  katman (uçak-V&V `pipeline.py` / genel-motor `analysis/` / wrapper+rapor `solvers/`)
 - 🐛 Düzeltilen hatalar:
   - GUI startup `charmap` crash (Windows cp1252 + emoji pencere başlığı)
   - VSPAERO scratch (`Unnamed.*`) repo sızıntısı engellendi
   - 3 bare `except:` daraltıldı (KeyboardInterrupt yutma riski)
-- ✅ Tüm pipeline aşamaları bu makinede uçtan uca **canlı doğrulandı**: CFD (OpenFOAM),
-  FEA (CalculiX), VSPAERO, OpenRocket, coupling, GUI.
+  - **Sentetik dataset bbox stub** → gerçek `world_to_camera_view` 2D projeksiyon + sınıf
+  - Sıfırdan-CFD smoke testi (2.5M→~100k hücre, serial) tamamlanabilir hale getirildi
+- ✅ **Uçtan uca canlı doğrulama** (bu makine): kanonik CFD (Cl=0.4124), sıfırdan CFD
+  (Cd=0.135, snappyHexMesh→foamRun), sıfırdan FEA (gmsh tet→ccx), FEA V&V, VSPAERO,
+  OpenRocket, coupling, GUI (7 sekme inşa), ML stack (torch+CUDA+RTX4060), scanner (cfd_tools env)
+- 🧹 Yapısal: yetim `main.py` silindi (tek gerçek ölü kod); mass-deletion iptal
+  (analysis/ doğrulamayla çalışır çıktı). `src/` taşıma → tek-makinede net negatif, yapılmadı.
 
-**Bekleyen (opsiyonel):** eski kuşak ~2000 satır silme (kullanıcı kararı), `src/` paket taşıma.
+**Ortam notları:** scanner `open3d` ister (Python 3.11/3.12 — `cfd_tools` env); ML gerçek
+eğitim için dataset/3D model gerekir (üreteç artık gerçek etiketli dataset çıkarır).
 
 ---
 
