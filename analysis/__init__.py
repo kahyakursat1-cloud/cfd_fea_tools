@@ -1,10 +1,14 @@
 """Analysis pipeline: STL/STEP -> mesh -> CalculiX/OpenFOAM -> results.
 
-.. deprecated::
-    Bu paket eski kuşak #3 (bkz. docs/adr/0001-kanonik-mimari.md). Kanonik
-    CFD/FEA path: ``simulation_runner`` / ``fea_runner`` (pipeline.py üzerinden).
-    Yalnızca küre doğrulama smoke testleri (test_cfd_pipeline / test_fea_pipeline)
-    tüketir. Yeni kod buraya bağımlılık eklememeli.
+GENEL (geometriden-bağımsız) sıfırdan CFD/FEA motoru. Herhangi bir STL'i alır,
+domain + mesh üretir (snappyHexMesh / gmsh tet), çözer ve sonuç çıkarır.
+
+`pipeline.py` (uçağa-özel V&V iş akışı) ile TAMAMLAYICIDIR, eskimiş değildir:
+- pipeline.py → belirli uçak konfigi, V-n zarfı, sertifikasyon zinciri
+- analysis/   → keyfi geometri için sıfırdan mesh→çözüm
+
+2026-06-03 uçtan uca doğrulandı (küre: CFD Cd=0.135, FEA .frd). Bkz.
+docs/adr/0001-kanonik-mimari.md. Tüketici: test_cfd_pipeline / test_fea_pipeline.
 """
 
 from .calculix_writer import (

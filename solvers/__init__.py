@@ -6,10 +6,10 @@ Submodules:
   - openfoam_wrapper: OpenFOAM CFD simulation
   - calculix_wrapper: CalculiX FEA simulation
 
-.. deprecated::
-    Eski kuşak #2 (bkz. docs/adr/0001-kanonik-mimari.md). Kanonik path
-    ``simulation_runner`` / ``fea_runner`` (pipeline.py). Tüketici: main.py (yetim) +
-    test_integration / full_integration_test. Yeni kod buraya bağımlanmamalı.
+İKİNCİL wrapper katmanı (bkz. docs/adr/0001-kanonik-mimari.md). Gerçek-solver
+kanonik yolları: ``pipeline.py`` (uçak V&V) ve ``analysis/`` (genel sıfırdan).
+Bu paketi entegrasyon smoke testleri (test_integration — mock solver'larla,
+full_integration_test) tüketir. Yeni gerçek-solver kodu için pipeline/analysis tercih et.
 """
 
 from solvers.calculix_wrapper import CalculiXRunner

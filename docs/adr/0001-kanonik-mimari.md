@@ -1,8 +1,8 @@
 # ADR 0001 — Kanonik Çözücü Mimarisi ve Giriş Noktaları
 
-- **Durum:** Kabul edildi
+- **Durum:** Kabul edildi (2026-06-03 doğrulamayla revize — aşağıdaki REVİZYON)
 - **Tarih:** 2026-06-03
-- **Bağlam:** Endüstri-seviye refactor (Faz 3)
+- **Bağlam:** Endüstri-seviye refactor (Faz 3) + uçtan uca doğrulama
 
 ## Bağlam
 
@@ -27,20 +27,30 @@ birleştirme, OpenFOAM/CalculiX olmadan doğrulanamayacağı için yüksek riskl
 2. **Kanonik çözücü kuşağı = #1.** Yeni geliştirme `simulation_runner` /
    `fea_runner` / kök `report_generator` üzerinden yapılır.
 
-3. **#2 ve #3 deprecated.** `__init__.py`/başlık notlarıyla işaretlendi. Tüketicileri:
-   - `main.py` — yetim (sıfır referans), eski CFD-only GUI; `app_parametric.py` halefi.
-   - `analysis/` ve `solvers/post_processing/` test'leri — küre doğrulama smoke testleri.
+3. **#2 ve #3 ikincil/tamamlayıcı — eskimiş DEĞİL.** Yalnızca `main.py` gerçek yetim.
+
+## REVİZYON (2026-06-03) — doğrulamayla düzeltildi
+
+İlk taslak #2/#3'ü "deprecated kuşak" sandı. Uçtan uca canlı doğrulama bunu çürüttü:
+
+- **#3 `analysis/` = çalışan GENEL sıfırdan motor.** Küre ile kanıtlandı:
+  CFD `Cd=0.135` (snappyHexMesh→foamRun), FEA `.frd` (gmsh tet→ccx). `pipeline.py`
+  (uçağa-özel V&V) ile **tamamlayıcı**; o keyfi STL geometriyi meshleyip çözer.
+  Silmek = çalışan yeteneği kaybetmek → **silinmez.**
+- **#2 `solvers/` + `post_processing/` = ikincil wrapper + PDF rapor.**
+  `test_integration` (mock solver'larla) + `full_integration_test` tüketir. İkincil
+  ama işlevsel; kanonik gerçek-solver yolları `pipeline.py` ve `analysis/`.
+- **`main.py` = tek gerçek yetim** (sıfır referans, eski CFD-only GUI; halefi
+  `app_parametric.py`). Silinmesi tek meşru aday; kullanıcı onayına bağlı.
 
 ## Sonuç
 
-- **Kısa vade:** Deprecation notları aktif; CI yalnızca kanonik path + karakterizasyon
-  testlerini çalıştırır (eski smoke testler `external` gerektirir, atlanır).
-- **Bekleyen karar (kullanıcı onayı):** `main.py`, `solvers/`, `post_processing/`,
-  `analysis/` ve bağlı smoke testlerin **silinmesi**. ~2000 satır. Silme öncesi
-  kullanıcı, bu test/validation kodundan harvest edilecek bir şey kalmadığını teyit
-  etmeli. O zamana dek deprecated ama yerinde.
+- Üç "kuşak" aslında üç **tamamlayıcı katman**: uçak-V&V (pipeline) / genel-motor
+  (analysis) / wrapper+rapor (solvers). Mass deletion **iptal** — regresyon olurdu.
+- Etiketler düzeltildi (`__init__.py` notları: analysis=genel motor, solvers/pp=ikincil).
+- Tek açık aksiyon: `main.py` (yetim) silme — kullanıcı kararı.
 
 ## Notlar
 
-Karakterizasyon testleri (`tests/test_structural_loads.py`, `tests/test_material_database.py`)
-kuşak #1'in çekirdek fiziğini dondurur — gelecekteki konsolidasyon için güvenlik ağı.
+Karakterizasyon + regresyon testleri (`tests/`) üç katmanın çekirdek fiziğini ve
+post-processing matematiğini dondurur — 28 test, golden değerler dahil.
