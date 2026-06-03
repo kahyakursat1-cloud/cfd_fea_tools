@@ -11,6 +11,9 @@ from pathlib import Path
 import bpy
 import numpy as np
 
+# YOLO sınıfları (ml_training_integration.DatasetPreparator ile aynı sıra)
+CLASSES = ["aircraft", "drone", "rocket", "uav"]
+
 # ─────────────────────────────────────────────────────────────────────────────
 # BLENDER SETUP (Bu script Blender içinde çalışır)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -226,10 +229,15 @@ class BlenderScene:
 class SyntheticDatasetGenerator:
     """Sentetik dataset oluşturma"""
 
-    def __init__(self, mesh_path: str, output_dir: str = "./dataset", background_dir: str = None):
+    def __init__(self, mesh_path: str, output_dir: str = "./dataset", background_dir: str = None,
+                 class_name: str = "aircraft"):
         self.mesh_path = mesh_path
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
+
+        # YOLO sınıf etiketi (her render bu sınıfa ait nesneyi içerir)
+        self.class_name = class_name if class_name in CLASSES else "aircraft"
+        self.class_id = CLASSES.index(self.class_name)
 
         # Arka plan klasörü
         self.background_dir = Path(background_dir) if background_dir else None
@@ -393,6 +401,49 @@ class SyntheticDatasetGenerator:
         ]
         return variants
 
+    def compute_screen_bbox(self, camera) -> dict | None:
+        """Nesnenin gerçek ekran-uzayı (2D) bounding box'ını hesapla.
+
+        Nesnenin 8 dünya-uzayı bbox köşesini aktif kameraya projekte eder
+        (bpy_extras.world_to_camera_view). Çerçeveye clamp'lenmiş piksel kutu +
+        normalize YOLO kutusu (cx, cy, w, h) döndürür. Nesne kameranın arkasında
+        veya tamamen çerçeve dışındaysa None.
+        """
+        from bpy_extras.object_utils import world_to_camera_view
+        from mathutils import Vector
+
+        scene = bpy.context.scene
+        obj = self.scene.object
+        if obj is None:
+            return None
+
+        rx, ry = scene.render.resolution_x, scene.render.resolution_y
+        mat = obj.matrix_world
+        xs, ys, in_front = [], [], False
+        for corner in obj.bound_box:          # 8 yerel-uzay köşe
+            co = world_to_camera_view(scene, camera, mat @ Vector(corner))
+            xs.append(co.x); ys.append(co.y)
+            if co.z > 0:                       # kameranın önünde
+                in_front = True
+
+        if not in_front:
+            return None
+
+        # Blender kamera-görünümü: x sol→sağ 0..1, y alt→üst 0..1.
+        # Görüntü y'si üstten aşağı → ters çevir. Çerçeveye clamp.
+        xmin = max(0.0, min(xs)) * rx
+        xmax = min(1.0, max(xs)) * rx
+        ymin = (1.0 - min(1.0, max(ys))) * ry
+        ymax = (1.0 - max(0.0, min(ys))) * ry
+        if xmax <= xmin or ymax <= ymin:       # çerçeve dışı
+            return None
+
+        return {
+            "bbox_px": [round(xmin, 1), round(ymin, 1), round(xmax, 1), round(ymax, 1)],
+            "bbox_yolo": [round((xmin + xmax) / 2 / rx, 6), round((ymin + ymax) / 2 / ry, 6),
+                          round((xmax - xmin) / rx, 6), round((ymax - ymin) / ry, 6)],
+        }
+
     def generate_dataset(self,
                         num_views: int = 8,
                         render_config: RenderConfig = None) -> dict:
@@ -458,6 +509,9 @@ class SyntheticDatasetGenerator:
 
                     self.scene.render_frame(output_path, camera)
 
+                    # Gerçek 2D bbox'ı bu kamera açısı için hesapla (stub değil)
+                    bbox_info = self.compute_screen_bbox(camera)
+
                     # Metadata
                     render_meta = {
                         "filename": filename,
@@ -466,8 +520,14 @@ class SyntheticDatasetGenerator:
                         "texture": texture.name,
                         "background": bg_name if current_background else "procedural",
                         "camera_location": view.location,
-                        "resolution": f"{render_config.resolution_x}x{render_config.resolution_y}"
+                        "resolution": f"{render_config.resolution_x}x{render_config.resolution_y}",
+                        "class_id": self.class_id,
+                        "class_name": self.class_name,
+                        "visible": bbox_info is not None,
                     }
+                    if bbox_info:
+                        render_meta["bbox_px"] = bbox_info["bbox_px"]
+                        render_meta["bbox_yolo"] = bbox_info["bbox_yolo"]
                     self.metadata["renders"].append(render_meta)
 
                     render_count += 1

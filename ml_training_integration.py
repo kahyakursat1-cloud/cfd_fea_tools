@@ -55,54 +55,59 @@ class DatasetPreparator:
             return json.load(f)
 
     def estimate_bounding_box(self, image_data: dict) -> tuple[float, float, float, float]:
+        """FALLBACK — yalnızca metadata gerçek bbox içermiyorsa (eski dataset).
+
+        Blender üreteci artık her render için gerçek 2D bbox (`bbox_yolo`) yazar;
+        bu kaba merkez-tahmin sadece geriye-dönük uyumluluk içindir.
         """
-        Resimden otomatik olarak bounding box tahmin et
-        (Gerçek uygulamada: object detection model veya manuel koordinatlar)
-        """
-        # Basitleştirilmiş tahmin: image center'da %70 scale object
-        width = 1280
-        height = 720
-
-        margin_x = width * 0.15
-        margin_y = height * 0.15
-
-        xmin = margin_x
-        ymin = margin_y
-        xmax = width - margin_x
-        ymax = height - margin_y
-
-        return xmin, ymin, xmax, ymax
+        width = int(image_data.get("resolution", "1280x720").split("x")[0])
+        height = int(image_data.get("resolution", "1280x720").split("x")[1])
+        margin_x, margin_y = width * 0.15, height * 0.15
+        return margin_x, margin_y, width - margin_x, height - margin_y
 
     def create_yolo_annotations(self, metadata_file: str) -> list[dict]:
-        """YOLO format annotasyonları oluştur"""
+        """YOLO format annotasyonları oluştur.
+
+        Blender metadata'sındaki gerçek `bbox_yolo` (normalize cx,cy,w,h) ve
+        `class_id`'yi kullanır. Nesnesi çerçeve dışı (`visible=False`) render'lar
+        atlanır. Eski (bbox'sız) metadata için merkez-tahmine düşer.
+        """
         metadata = self.load_metadata(metadata_file)
         annotations = []
+        skipped = 0
 
         for render_info in metadata.get("renders", []):
-            image_path = render_info["filename"]
-            width = int(render_info.get("resolution", "1280x720").split("x")[0])
-            height = int(render_info.get("resolution", "1280x720").split("x")[1])
+            # Nesne çerçeve dışındaysa eğitime alma (yanlış pozitif önler)
+            if render_info.get("visible") is False:
+                skipped += 1
+                continue
 
-            # Bounding box tahmin et
-            xmin, ymin, xmax, ymax = self.estimate_bounding_box(render_info)
+            bbox_yolo = render_info.get("bbox_yolo")
+            if bbox_yolo is not None:
+                center_x, center_y, box_width, box_height = bbox_yolo
+                class_id = render_info.get("class_id", 0)
+            else:
+                # Geriye-dönük uyumluluk: gerçek bbox yok → kaba tahmin
+                width = int(render_info.get("resolution", "1280x720").split("x")[0])
+                height = int(render_info.get("resolution", "1280x720").split("x")[1])
+                xmin, ymin, xmax, ymax = self.estimate_bounding_box(render_info)
+                center_x = ((xmin + xmax) / 2) / width
+                center_y = ((ymin + ymax) / 2) / height
+                box_width = (xmax - xmin) / width
+                box_height = (ymax - ymin) / height
+                class_id = render_info.get("class_id", 0)
 
-            # YOLO format: center_x, center_y, width, height (normalized)
-            center_x = ((xmin + xmax) / 2) / width
-            center_y = ((ymin + ymax) / 2) / height
-            box_width = (xmax - xmin) / width
-            box_height = (ymax - ymin) / height
-
-            yolo_annotation = {
-                "image": image_path,
-                "class_id": 0,  # aircraft
+            annotations.append({
+                "image": render_info["filename"],
+                "class_id": class_id,
                 "center_x": center_x,
                 "center_y": center_y,
                 "width": box_width,
-                "height": box_height
-            }
+                "height": box_height,
+            })
 
-            annotations.append(yolo_annotation)
-
+        if skipped:
+            print(f"  {skipped} render atlandı (nesne çerçeve dışında)")
         return annotations
 
     def create_dataset_split(self, annotations: list[dict], train_ratio: float = 0.8):
