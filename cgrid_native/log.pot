@@ -1,0 +1,41 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  11
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+Build  : 11-e1fc8c682ae6
+Exec   : potentialFoam -initialiseUBCs -writep
+Date   : Jun 09 2026
+Time   : 22:04:50
+Host   : "Kursat"
+PID    : 2082
+I/O    : uncollated
+Case   : /mnt/d/bilsem_beyin/cfd_fea_tools/cgrid_native
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+Reading velocity field U
+
+
+
+--> FOAM FATAL IO ERROR: 
+
+    patch type 'patch' not constraint type 'empty'
+    for patch frontAndBack of field U in file "/mnt/d/bilsem_beyin/cfd_fea_tools/cgrid_native/0/U"
+
+file: /mnt/d/bilsem_beyin/cfd_fea_tools/cgrid_native/0/U/boundaryField/frontAndBack from line 6 to line 6.
+
+    From function Foam::emptyFvPatchField<Type>::emptyFvPatchField(const Foam::fvPatch&, const Foam::DimensionedField<Type, Foam::volMesh>&, const Foam::dictionary&) [with Type = Foam::Vector<double>]
+    in file fields/fvPatchFields/constraint/empty/emptyFvPatchField.C at line 54.
+
+FOAM exiting
+
