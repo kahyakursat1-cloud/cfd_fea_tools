@@ -1,3 +1,0 @@
-FoamFile{ version 2.0; format ascii; class volScalarField; object k; }
-dimensions [0 2 -2 0 0 0 0]; internalField uniform 1.215000e-02;
-boundaryField{ airfoil{type kqRWallFunction; value uniform 1.215000e-02;} farfield{type freestream; freestreamValue uniform 1.215000e-02;} frontAndBack{type empty;} }

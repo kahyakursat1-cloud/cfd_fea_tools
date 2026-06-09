@@ -1,6 +1,0 @@
-FoamFile{version 2.0; format ascii; class volVectorField; object U;}
-dimensions [0 1 -1 0 0 0 0]; internalField uniform (49.87820251299121 3.487823687206265 0);
-boundaryField{ airfoil{type noSlip;}
- farfield{type freestreamVelocity; freestreamValue uniform (49.87820251299121 3.487823687206265 0);}
- outlet{type freestreamVelocity; freestreamValue uniform (49.87820251299121 3.487823687206265 0);}
- frontAndBack{type empty;} }
