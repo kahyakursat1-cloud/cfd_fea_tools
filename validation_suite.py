@@ -117,9 +117,9 @@ class NACA0012Validation:
         n=200 blocks, 80 cells wall-normal, grading 500.
         First cell ~3mm (y+~400) → wall functions (kOmegaSST), stable.
         """
-        n        = 200      # profile points — LE çözünürlüğü için
-        n_normal = 80       # cells wall-normal
-        grading  = 500      # grading=500 → y+≈400, non-ortho<65° (kararlı). Yüksek grading LE/TE'de bozuyor.
+        n        = getattr(self, "n_prof", 200)   # profile points — LE çözünürlüğü için
+        n_normal = getattr(self, "n_norm", 80)    # cells wall-normal
+        grading  = getattr(self, "grading", 500)  # grading=500 → y+≈400, non-ortho<65° (kararlı). Yüksek grading LE/TE'de bozuyor.
         W        = 0.1      # span (2D: 1 cell, empty patches)
         R        = 20.0     # outer radius (chord lengths)
         cx, cz   = 0.25, 0.0  # reference centroid
@@ -210,6 +210,10 @@ vertices
         omega0 = math.sqrt(k0) / (0.09**0.25 * L_t)
         nut0   = k0 / omega0
 
+        # Duvar muamelesi — varsayilan high-Re (y+~400); y+~1 icin low-Re override edilir
+        nut_wall = getattr(self, "nut_wall", "nutkWallFunction")
+        k_wall   = getattr(self, "k_wall", "kqRWallFunction")
+
         zero = case_dir / "0"
         zero.mkdir(exist_ok=True)
 
@@ -243,7 +247,7 @@ dimensions [0 2 -2 0 0 0 0];
 internalField uniform {k0:.6e};
 boundaryField
 {{
-    airfoil  {{ type kqRWallFunction; value uniform {k0:.6e}; }}
+    airfoil  {{ type {k_wall}; value uniform {k0:.6e}; }}
     farfield {{ type fixedValue; value uniform {k0:.6e}; }}
     front    {{ type empty; }}
     back     {{ type empty; }}
@@ -267,7 +271,7 @@ dimensions [0 2 -1 0 0 0 0];
 internalField uniform {nut0:.6e};
 boundaryField
 {{
-    airfoil  {{ type nutkWallFunction; value uniform 0; }}
+    airfoil  {{ type {nut_wall}; value uniform 0; }}
     farfield {{ type calculated; value uniform {nut0:.6e}; }}
     front    {{ type empty; }}
     back     {{ type empty; }}

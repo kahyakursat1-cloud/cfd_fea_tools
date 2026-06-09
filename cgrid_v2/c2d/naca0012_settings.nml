@@ -1,0 +1,27 @@
+&SOPT
+  nsrf = 280
+  radi = 50.0
+  nwke = 50
+  tele = 1.15
+  bunc = 1.15
+  fdst = 1.0
+  fwkl = 1.0
+  fwki = 10.0
+/
+&VOPT
+  name = 'naca0012'
+  jmax = 150
+  slvr = 'ELLP'
+  topo = 'OGRD'
+  ypls = 1.0
+  recd = 3400000.0
+  stp1 = 1000
+  stp2 = 200
+  funi = 0.20
+  asmt = 20
+/
+&OOPT
+  gdim = 2
+  npln = 2
+  dpln = 0.1
+/

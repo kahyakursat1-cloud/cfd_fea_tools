@@ -1,0 +1,9 @@
+{
+  "status": "SUCCESS",
+  "alpha": 4.0,
+  "Cd": 0.01231,
+  "Cl": 0.3506,
+  "Cl_ref": 0.452,
+  "Cd_ref": 0.0092,
+  "Cd_err_pct": 33.8
+}

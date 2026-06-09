@@ -1,0 +1,57 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  11
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+Build  : 11-e1fc8c682ae6
+Exec   : potentialFoam -initialiseUBCs -writep
+Date   : Jun 09 2026
+Time   : 21:56:03
+Host   : "Kursat"
+PID    : 2054
+I/O    : uncollated
+Case   : /mnt/d/bilsem_beyin/cfd_fea_tools/cgrid_v2
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+Reading velocity field U
+
+Constructing pressure field p
+
+Constructing velocity potential field Phi
+
+No MRF models present
+
+
+Calculating potential flow
+GAMG:  Solving for Phi, Initial residual = 1, Final residual = 0.00726853, No Iterations 4
+GAMG:  Solving for Phi, Initial residual = 0.00647046, Final residual = 5.62665e-05, No Iterations 51
+GAMG:  Solving for Phi, Initial residual = 0.00714026, Final residual = 5.56118e-05, No Iterations 3
+GAMG:  Solving for Phi, Initial residual = 0.000194345, Final residual = 1.89951e-06, No Iterations 35
+GAMG:  Solving for Phi, Initial residual = 0.000167528, Final residual = 1.46917e-06, No Iterations 3
+GAMG:  Solving for Phi, Initial residual = 6.35798e-06, Final residual = 9.17419e-07, No Iterations 3
+Continuity error = 5.11798e-06
+Interpolated velocity error = 9.60087e-06
+
+Calculating approximate pressure field
+
+
+--> FOAM FATAL IO ERROR: 
+Cannot find scheme for div(div(phi,U)) in dictionary "$FOAM_CASE/system/fvSchemes/divSchemes"
+
+file: /mnt/d/bilsem_beyin/cfd_fea_tools/cgrid_v2/system/fvSchemes/divSchemes from line 4 to line 6.
+
+    From function Foam::ITstream& Foam::fvSchemes::lookupScheme(const Foam::word&, const Foam::dictionary&, const Foam::ITstream&) const
+    in file finiteVolume/fvSchemes/fvSchemes.C at line 285.
+
+FOAM exiting
+

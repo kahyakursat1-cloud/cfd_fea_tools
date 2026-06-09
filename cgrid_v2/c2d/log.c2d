@@ -1,0 +1,252 @@
+
+ This is Construct2D, the structured grid generator for airfoils
+ Version: 2.1.4
+
+ Successfully loaded airfoil file naca0012.dat
+  Number of points:         160
+  Setting default project name: naca0012
+  Blunt trailing edge: O-grid topology is recommended.
+
+ Main program commands:
+
+  SOPT  Change airfoil surface grid options
+  VOPT  Change volume grid options
+  OOPT  Grid output options
+  LOAD  Load a new airfoil
+  OPTW  Write current program options to a file
+  GRID  Generate grid for currently loaded airfoil
+  QUIT  Exit program
+
+ Command > 
+ Generate grid for which airfoil?
+
+   SMTH  Smoothed airfoil using current surface grid options
+         (recommended)
+   BUFF  Buffer airfoil defined directly by loaded geometry
+         (nsrf will be set to number of points in buffer airfoil)
+   QUIT  Leave menu without generating grid
+
+ Input > 
+ Applying airfoil surface point clustering ...
+ Done.
+
+ Growing hyperbolic grid ... 
+
+  Level (current, total):      2,   100
+
+  Level (current, total):      3,   100
+
+  Level (current, total):      4,   100
+
+  Level (current, total):      5,   100
+
+  Level (current, total):      6,   100
+
+  Level (current, total):      7,   100
+
+  Level (current, total):      8,   100
+
+  Level (current, total):      9,   100
+
+  Level (current, total):     10,   100
+
+  Level (current, total):     11,   100
+
+  Level (current, total):     12,   100
+
+  Level (current, total):     13,   100
+
+  Level (current, total):     14,   100
+
+  Level (current, total):     15,   100
+
+  Level (current, total):     16,   100
+
+  Level (current, total):     17,   100
+
+  Level (current, total):     18,   100
+
+  Level (current, total):     19,   100
+
+  Level (current, total):     20,   100
+
+  Level (current, total):     21,   100
+
+  Level (current, total):     22,   100
+
+  Level (current, total):     23,   100
+
+  Level (current, total):     24,   100
+
+  Level (current, total):     25,   100
+
+  Level (current, total):     26,   100
+
+  Level (current, total):     27,   100
+
+  Level (current, total):     28,   100
+
+  Level (current, total):     29,   100
+
+  Level (current, total):     30,   100
+
+  Level (current, total):     31,   100
+
+  Level (current, total):     32,   100
+
+  Level (current, total):     33,   100
+
+  Level (current, total):     34,   100
+
+  Level (current, total):     35,   100
+
+  Level (current, total):     36,   100
+
+  Level (current, total):     37,   100
+
+  Level (current, total):     38,   100
+
+  Level (current, total):     39,   100
+
+  Level (current, total):     40,   100
+
+  Level (current, total):     41,   100
+
+  Level (current, total):     42,   100
+
+  Level (current, total):     43,   100
+
+  Level (current, total):     44,   100
+
+  Level (current, total):     45,   100
+
+  Level (current, total):     46,   100
+
+  Level (current, total):     47,   100
+
+  Level (current, total):     48,   100
+
+  Level (current, total):     49,   100
+
+  Level (current, total):     50,   100
+
+  Level (current, total):     51,   100
+
+  Level (current, total):     52,   100
+
+  Level (current, total):     53,   100
+
+  Level (current, total):     54,   100
+
+  Level (current, total):     55,   100
+
+  Level (current, total):     56,   100
+
+  Level (current, total):     57,   100
+
+  Level (current, total):     58,   100
+
+  Level (current, total):     59,   100
+
+  Level (current, total):     60,   100
+
+  Level (current, total):     61,   100
+
+  Level (current, total):     62,   100
+
+  Level (current, total):     63,   100
+
+  Level (current, total):     64,   100
+
+  Level (current, total):     65,   100
+
+  Level (current, total):     66,   100
+
+  Level (current, total):     67,   100
+
+  Level (current, total):     68,   100
+
+  Level (current, total):     69,   100
+
+  Level (current, total):     70,   100
+
+  Level (current, total):     71,   100
+
+  Level (current, total):     72,   100
+
+  Level (current, total):     73,   100
+
+  Level (current, total):     74,   100
+
+  Level (current, total):     75,   100
+
+  Level (current, total):     76,   100
+
+  Level (current, total):     77,   100
+
+  Level (current, total):     78,   100
+
+  Level (current, total):     79,   100
+
+  Level (current, total):     80,   100
+
+  Level (current, total):     81,   100
+
+  Level (current, total):     82,   100
+
+  Level (current, total):     83,   100
+
+  Level (current, total):     84,   100
+
+  Level (current, total):     85,   100
+
+  Level (current, total):     86,   100
+
+  Level (current, total):     87,   100
+
+  Level (current, total):     88,   100
+
+  Level (current, total):     89,   100
+
+  Level (current, total):     90,   100
+
+  Level (current, total):     91,   100
+
+  Level (current, total):     92,   100
+
+  Level (current, total):     93,   100
+
+  Level (current, total):     94,   100
+
+  Level (current, total):     95,   100
+
+  Level (current, total):     96,   100
+
+  Level (current, total):     97,   100
+
+  Level (current, total):     98,   100
+
+  Level (current, total):     99,   100
+
+  Level (current, total):    100,   100
+
+ Enforcing normal spacing based on y-plus ...
+ First layer wall distance: 1.03985492E-05
+
+                     Grid quality information                     
+ -----------------------------------------------------------------
+ Max skew angle (deg):   17.20563
+   x, y:    1.00792   0.01462
+   i, j:       8     45
+ Max growth in xi-direction:    0.10485
+   x, y:    0.99989  -0.00051
+   i, j:     248      1
+ Max growth in eta-direction:    0.12920
+   x, y:    0.77018  -0.27429
+   i, j:     190     67
+
+ Writing grid to file naca0012.p3d ...
+
+ Writing grid quality information to file naca0012_stats.p3d ...
+
+ Writing boundary conditions file naca0012.nmf ...

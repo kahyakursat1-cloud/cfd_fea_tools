@@ -1,0 +1,69 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  11
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+Build  : 11-e1fc8c682ae6
+Exec   : gmshToFoam mesh.msh
+Date   : Jun 09 2026
+Time   : 21:55:58
+Host   : "Kursat"
+PID    : 1125
+I/O    : uncollated
+Case   : /mnt/d/bilsem_beyin/cfd_fea_tools/cgrid_v2
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Starting to read mesh format at line 2
+Read format version 2.2  ascii 0
+
+Starting to read physical names at line 5
+Physical names:3
+    Surface 1	airfoil
+    Surface 2	farfield
+    Surface 3	frontAndBack
+
+Starting to read points at line 11
+Vertices to be read:49800
+Vertices read:49800
+
+Starting to read cells at line 49814
+Cells to be read:74451
+
+Mapping region 0 to Foam cellZone 0
+Mapping region 1 to Foam patch 0
+Mapping region 2 to Foam patch 1
+Mapping region 3 to Foam patch 2
+Cells:
+    total:24651
+    hex  :24651
+    prism:0
+    pyr  :0
+    tet  :0
+
+CellZones:
+Zone	Size
+    0	24651
+
+Skipping tag  at line 124268
+Patch 0 gets name airfoil
+Patch 1 gets name farfield
+Patch 2 gets name frontAndBack
+
+Finding faces of patch 0
+Finding faces of patch 1
+Finding faces of patch 2
+
+FaceZones:
+Zone	Size
+
+Writing zone 0 to cellZone cellZone_0 and cellSet
+End
+

@@ -1,0 +1,6 @@
+FoamFile{ version 2.0; format ascii; class dictionary; object controlDict; }
+application foamRun; startFrom startTime; startTime 0; stopAt endTime; endTime 2000;
+deltaT 1; writeControl timeStep; writeInterval 2000; writeFrequency 2000;
+purgeWrite 1; writeFormat binary;
+functions{ forces{ type forces; libs ("libforces.so"); writeControl timeStep; writeInterval 50;
+  patches ("airfoil"); rho rhoInf; rhoInf 1.225; pRef 0; CofR (0.25 0 0); } }
