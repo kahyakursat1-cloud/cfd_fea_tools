@@ -8,11 +8,11 @@
 Build  : 11-e1fc8c682ae6
 Exec   : potentialFoam -initialiseUBCs -writep
 Date   : Jun 10 2026
-Time   : 00:34:18
+Time   : 00:41:26
 Host   : "Kursat"
-PID    : 2055
+PID    : 4871
 I/O    : uncollated
-Case   : /mnt/d/bilsem_beyin/cfd_fea_tools/tr_4
+Case   : /mnt/d/bilsem_beyin/cfd_fea_tools/gci_medium
 nProcs : 1
 sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
 fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
@@ -51,7 +51,7 @@ Calculating approximate pressure field
 --> FOAM FATAL IO ERROR: 
 Cannot find scheme for div(div(phi,U)) in dictionary "$FOAM_CASE/system/fvSchemes/divSchemes"
 
-file: /mnt/d/bilsem_beyin/cfd_fea_tools/tr_4/system/fvSchemes/divSchemes from line 2 to line 2.
+file: /mnt/d/bilsem_beyin/cfd_fea_tools/gci_medium/system/fvSchemes/divSchemes from line 2 to line 2.
 
     From function Foam::ITstream& Foam::fvSchemes::lookupScheme(const Foam::word&, const Foam::dictionary&, const Foam::ITstream&) const
     in file finiteVolume/fvSchemes/fvSchemes.C at line 285.

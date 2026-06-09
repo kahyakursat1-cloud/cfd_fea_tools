@@ -8,11 +8,11 @@
 Build  : 11-e1fc8c682ae6
 Exec   : foamRun -solver incompressibleFluid
 Date   : Jun 10 2026
-Time   : 00:37:02
+Time   : 00:39:42
 Host   : "Kursat"
-PID    : 2530
+PID    : 3467
 I/O    : uncollated
-Case   : /mnt/d/bilsem_beyin/cfd_fea_tools/tr_4
+Case   : /mnt/d/bilsem_beyin/cfd_fea_tools/tr_8
 nProcs : 1
 sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
 fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
@@ -51,7 +51,7 @@ RAS
 
 
 --> FOAM FATAL ERROR: 
-cannot find file "/mnt/d/bilsem_beyin/cfd_fea_tools/tr_4/2000/ReThetat"
+cannot find file "/mnt/d/bilsem_beyin/cfd_fea_tools/tr_8/2000/ReThetat"
 
     From function virtual Foam::autoPtr<Foam::ISstream> Foam::fileOperations::uncollatedFileOperation::readStream(Foam::regIOobject&, const Foam::fileName&, const Foam::word&, bool) const
     in file global/fileOperations/uncollatedFileOperation/uncollatedFileOperation.C at line 539.

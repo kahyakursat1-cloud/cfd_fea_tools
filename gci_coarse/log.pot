@@ -8,11 +8,11 @@
 Build  : 11-e1fc8c682ae6
 Exec   : potentialFoam -initialiseUBCs -writep
 Date   : Jun 10 2026
-Time   : 00:34:18
+Time   : 00:39:46
 Host   : "Kursat"
-PID    : 2055
+PID    : 3931
 I/O    : uncollated
-Case   : /mnt/d/bilsem_beyin/cfd_fea_tools/tr_4
+Case   : /mnt/d/bilsem_beyin/cfd_fea_tools/gci_coarse
 nProcs : 1
 sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
 fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
@@ -33,17 +33,17 @@ No MRF models present
 
 
 Calculating potential flow
-GAMG:  Solving for Phi, Initial residual = 1, Final residual = 0.00907707, No Iterations 2
-GAMG:  Solving for Phi, Initial residual = 0.00920276, Final residual = 8.69743e-05, No Iterations 6
-GAMG:  Solving for Phi, Initial residual = 0.00336336, Final residual = 2.46965e-05, No Iterations 4
-GAMG:  Solving for Phi, Initial residual = 0.00114013, Final residual = 8.29998e-06, No Iterations 4
-GAMG:  Solving for Phi, Initial residual = 0.000522961, Final residual = 5.06585e-06, No Iterations 3
-GAMG:  Solving for Phi, Initial residual = 0.000249174, Final residual = 2.27411e-06, No Iterations 3
-GAMG:  Solving for Phi, Initial residual = 0.000123939, Final residual = 1.08661e-06, No Iterations 3
-GAMG:  Solving for Phi, Initial residual = 6.30192e-05, Final residual = 5.09959e-07, No Iterations 3
-GAMG:  Solving for Phi, Initial residual = 3.24438e-05, Final residual = 6.85024e-07, No Iterations 2
-Continuity error = 1.23334e-06
-Interpolated velocity error = 1.97637e-05
+GAMG:  Solving for Phi, Initial residual = 1, Final residual = 0.00828196, No Iterations 2
+GAMG:  Solving for Phi, Initial residual = 0.0123802, Final residual = 8.09304e-05, No Iterations 5
+GAMG:  Solving for Phi, Initial residual = 0.00427827, Final residual = 1.7954e-05, No Iterations 4
+GAMG:  Solving for Phi, Initial residual = 0.00137565, Final residual = 6.6086e-06, No Iterations 4
+GAMG:  Solving for Phi, Initial residual = 0.000614349, Final residual = 4.4391e-06, No Iterations 3
+GAMG:  Solving for Phi, Initial residual = 0.000285837, Final residual = 2.22647e-06, No Iterations 3
+GAMG:  Solving for Phi, Initial residual = 0.000139232, Final residual = 8.82425e-07, No Iterations 3
+GAMG:  Solving for Phi, Initial residual = 6.88385e-05, Final residual = 4.18452e-07, No Iterations 3
+GAMG:  Solving for Phi, Initial residual = 3.43839e-05, Final residual = 5.75334e-07, No Iterations 2
+Continuity error = 1.05641e-06
+Interpolated velocity error = 5.12076e-05
 
 Calculating approximate pressure field
 
@@ -51,7 +51,7 @@ Calculating approximate pressure field
 --> FOAM FATAL IO ERROR: 
 Cannot find scheme for div(div(phi,U)) in dictionary "$FOAM_CASE/system/fvSchemes/divSchemes"
 
-file: /mnt/d/bilsem_beyin/cfd_fea_tools/tr_4/system/fvSchemes/divSchemes from line 2 to line 2.
+file: /mnt/d/bilsem_beyin/cfd_fea_tools/gci_coarse/system/fvSchemes/divSchemes from line 2 to line 2.
 
     From function Foam::ITstream& Foam::fvSchemes::lookupScheme(const Foam::word&, const Foam::dictionary&, const Foam::ITstream&) const
     in file finiteVolume/fvSchemes/fvSchemes.C at line 285.
