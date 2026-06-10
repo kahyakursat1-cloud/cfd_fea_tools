@@ -26,9 +26,10 @@
 - **5-seviye GCI (`gci_airfoil.json`):** Cl mesh-stabil ve referansla uyumlu;
   Cd wake-kümelemesiz O-grid'de asimptotik aralığa girmiyor (p≈0.23) — kanıtlı.
 - **C-grid (`cgrid_elliptic.py`):** wake-kümelemeli topoloji geçerli mesh
-  üretiyor; eski-y⁺ üçlüsünde LM p=1.71 (ilk kez teorik aralıkta). `tanh_radial`
-  ölü-parametre hatası düzeltildi (gerçek y⁺~1); düzeltilmiş üçlü düşük
-  relaxation ile yeniden koşuluyor — sonuç `gci_cgrid_*.json`'a işlenecek.
+  üretiyor; geçerli kayıt eski-y⁺ üçlüsü (LM p=1.71, GCI %18.5 — y⁺~7
+  çekincesi belgeli). y⁺~1 varyantı 3 stabilizasyon denemesine rağmen
+  çözülemedi (wake hattında AR~10⁴ duvarsız hücreler); wake-normal aralık
+  gevşetmesi kanıtlı future-work (CHANGELOG 2026-06-10b).
 - **Rapor araştırma-sınıfı:** `report_generator.py` ASME V&V 20 verdiktleri,
   sıkı eşikler (Cd %15 / Cl %5), 2D GCI + geçiş-polar bölümleri, 300 DPI figürler.
 - Yapısal: `exp_*` → `experiments/`, kök `test_*` → `check_*`, tarihsel

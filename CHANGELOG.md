@@ -42,9 +42,18 @@ pencere arayüzle kuruldu ve **yayınlanmış deneyle doğrulandı**.
   extra, tüm doc referansları temizlendi (rehberler docs/archive'da);
   bonus: verify_system'deki `mesh_to_cdf` yazım hatası (kontrol hep FAIL'di)
 
-**Açık iş:** y⁺-düzeltmeli C-grid GCI üçlüsü düşük-relaxation setiyle yeniden
-koşuyor (y⁺~1 hücreleri eski ayarları istikrarsızlaştırdı — mid SST Cd=-65
-divergansı yakalandı, stabilizasyon uygulandı). Test sayısı 31→39.
+**y⁺-düzeltmeli C-grid GCI — kanıtlı FUTURE-WORK olarak kapatıldı:**
+Üç stabilizasyon denemesi de başarısız (kanıt loglarda):
+(1) varsayılan ayarlar → mid SST Cd=−65; (2) düşük relaxation (U 0.25/p 0.10)
+→ base LM Cd=−1.2×10¹²; (3) birinci-mertebe ısınma fazı (s0=1500 upwind)
+→ base SST Cl=3.13 (fiziksel değil). Kök neden çözücü ayarı değil mesh
+tasarımı: y⁺~1 kümeleme wake hattı boyunca da 8µm hücre üretiyor —
+duvarsız bölgede AR~10⁴ hücrelerdeki serbest kayma tabakası yapısal
+istikrarsız. Gereken: TE sonrası wake-normal aralık gevşetmesi
+(j-dağılımının i boyunca değişmesi) — gerçek mesh-üreteci özelliği.
+**Geçerli kayıt:** eski-y⁺ C-grid üçlüsü (`gci_cgrid_*.json`, LM p=1.71,
+GCI=%18.5) — kendi ailesi içinde tutarlı, y⁺ ort. 7 çekincesi belgeli.
+Test sayısı 31→39.
 
 ---
 
