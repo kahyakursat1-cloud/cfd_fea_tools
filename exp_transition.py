@@ -50,17 +50,25 @@ for alpha in alphas:
     # Asama 1: kOmegaSST (akisi kur)
     ctrl(case,"kOmegaSST",2000)
     of("potentialFoam -initialiseUBCs -writep >log.pot 2>&1; foamRun -solver incompressibleFluid >log.s1 2>&1")
-    # Asama 2: kOmegaSSTLM gecis modeli
+    # Asama 2: kOmegaSSTLM gecis modeli — restart zamaninda gammaInt/ReThetat yok, 0/'dan tasi
+    lt=max((d for d in case.iterdir() if d.is_dir() and d.name!="0" and d.name.replace(".","",1).isdigit()),key=lambda d:float(d.name),default=None)
+    if lt is None:
+        print(f"alpha={alpha}: STAGE1 FAIL",flush=True); results[alpha]={"status":"stage1_failed"}; continue
+    for fld in ("gammaInt","ReThetat"): shutil.copy(case/"0"/fld, lt/fld)
     ctrl(case,"kOmegaSSTLM",4000)
     of("foamRun -solver incompressibleFluid >log.s2 2>&1")
-    ff=list((case/"postProcessing"/"forces").glob("*/forces.dat"))
+    if "FOAM FATAL" in (case/"log.s2").read_text(errors="ignore"):
+        print(f"alpha={alpha}: STAGE2 FATAL",flush=True); results[alpha]={"status":"stage2_failed"}; continue
+    ff=sorted((case/"postProcessing"/"forces").glob("*/forces.dat"),key=lambda f:float(f.parent.name))
     if not ff:
         print(f"alpha={alpha}: FORCES YOK",flush=True); continue
-    ll=[l for l in ff[0].read_text().splitlines() if l.strip() and not l.startswith("#")]
+    ll=[l for l in ff[-1].read_text().splitlines() if l.strip() and not l.startswith("#")]
     nums=re.findall(r'[-+]?\d+\.?\d*[eE]?[-+]?\d*', ll[-1])
     Fx=float(nums[1])+float(nums[4]); Fy=float(nums[2])+float(nums[5])
     a=math.radians(alpha); drag=Fx*math.cos(a)+Fy*math.sin(a); lift=-Fx*math.sin(a)+Fy*math.cos(a)
     q=0.5*rho*V**2; S=chord*0.1; Cd,Cl=drag/(q*S),lift/(q*S)
+    if not (math.isfinite(Cd) and abs(Cd)<0.5):
+        print(f"alpha={alpha}: DIVERGED Cd={Cd:.3g}",flush=True); results[alpha]={"status":f"diverged Cd={Cd:.3g}"}; continue
     clf,cdf=ref_free[alpha]
     ecl=abs(Cl-clf)/(abs(clf)+1e-3)*100; ecd=abs(Cd-cdf)/cdf*100
     results[alpha]={"Cl":round(Cl,4),"Cd":round(Cd,5),"errCl":round(ecl,1),"errCd":round(ecd,1)}

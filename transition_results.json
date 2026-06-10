@@ -1,4 +1,7 @@
 {
+  "_GECERSIZ": "2. asama (kOmegaSSTLM) tum alpha'larda kosamadi: restart zamaninda gammaInt/ReThetat eksikti (tr_*/log.s2: FOAM FATAL). Asagidaki degerler 1. asama kOmegaSST (fully turbulent) sonuclaridir; free-transition referanslariyla kiyas bu yuzden yaniltici (alpha=0'da errCd %49). Duzeltilmis exp_transition.py ile yeniden kosulmali.",
+  "model_amaclanan": "kOmegaSSTLM",
+  "model_gerceklesen": "kOmegaSST (stage-1)",
   "0": {
     "Cl": -0.0015,
     "Cd": 0.00821,
