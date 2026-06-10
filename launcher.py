@@ -272,13 +272,18 @@ class LauncherWindow(QWidget):
 
     @staticmethod
     def _wsl_openfoam() -> bool:
-        """Gerçek çözücü WSL'deki OpenFOAM 11 — Windows PATH'inde aranmaz."""
-        try:
-            r = subprocess.run(["wsl", "bash", "-c", "test -d /opt/openfoam11"],
-                               capture_output=True, timeout=8)
-            return r.returncode == 0
-        except Exception:
-            return False
+        """Gerçek çözücü WSL'deki OpenFOAM 11 — Windows PATH'inde aranmaz.
+        Soğuk WSL başlangıcı yük altında 10+ sn sürebilir; cömert timeout + 1 tekrar."""
+        for tmo in (25, 25):
+            try:
+                r = subprocess.run(["wsl", "bash", "-c", "test -d /opt/openfoam11"],
+                                   capture_output=True, timeout=tmo)
+                return r.returncode == 0
+            except subprocess.TimeoutExpired:
+                continue
+            except Exception:
+                return False
+        return False
 
 
 # ────────────────────────────────────────────────────────────────────────────
