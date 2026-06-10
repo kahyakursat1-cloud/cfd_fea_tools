@@ -25,7 +25,7 @@ for lvl,(na,njj) in meshes.items():
     write_polymesh(case,X,Y,I,nj)
     T.setup(case,alpha)
     p=str(case.resolve()); wsl=f"/mnt/{p[0].lower()}{p[2:].replace(chr(92),'/')}"
-    def of(cmd,t=2400,wsl=wsl): return subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && cd {wsl} && {cmd}"',shell=True,capture_output=True,text=True,timeout=t)
+    def of(cmd,t=2400,wsl=wsl): return subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && unset FOAM_SIGFPE && cd {wsl} && {cmd}"',shell=True,capture_output=True,text=True,timeout=t)
     T.ctrl(case,"kOmegaSST",2000)
     of("potentialFoam -initialiseUBCs -writep >log.pot 2>&1; foamRun -solver incompressibleFluid >log.s1 2>&1")
     lt=max((d for d in case.iterdir() if d.is_dir() and d.name!="0" and d.name.replace(".","",1).isdigit()),key=lambda d:float(d.name),default=None)

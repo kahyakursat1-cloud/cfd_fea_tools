@@ -27,7 +27,7 @@ X,Y,I,nj=build_ogrid(R=R,n_around=na,nj=njj,first_cell=8e-6,sweeps=sw,iters=it)
 write_polymesh(case,X,Y,I,nj)
 T.setup(case,alpha)
 p=str(case.resolve()); wsl=f"/mnt/{p[0].lower()}{p[2:].replace(chr(92),'/')}"
-def of(cmd,t=7200): return subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && cd {wsl} && {cmd}"',shell=True,capture_output=True,text=True,timeout=t)
+def of(cmd,t=7200): return subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && unset FOAM_SIGFPE && cd {wsl} && {cmd}"',shell=True,capture_output=True,text=True,timeout=t)
 
 def parse_cd_cl(fdat):
     ll=[l for l in fdat.read_text().splitlines() if l.strip() and not l.startswith("#")]
