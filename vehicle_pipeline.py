@@ -186,6 +186,20 @@ def inspect_geometry(stl_path: Path) -> dict:
     }
 
 
+def resolution_warning(lmax_m: float, bg_div: int, ref_max: int, min_dim_m: float,
+                       min_cells_across: int = 6) -> str | None:
+    """En ince bbox boyutunun en ince yüzey hücresine oranı — kanat/fin gibi
+    ince özelliklerin çözünürlük bekçisi. Yetersizse uyarı metni döner."""
+    surf_cell = (lmax_m / bg_div) / (2 ** ref_max)
+    n_across = min_dim_m / surf_cell
+    if n_across >= min_cells_across:
+        return None
+    return (f"En ince boyut ({min_dim_m:.3g} m) en ince yüzey hücresinin "
+            f"~{n_across:.1f} katı (hedef ≥{min_cells_across}) — kanat/fin gibi ince "
+            "özellikler yeterince çözülmüyor olabilir; Cl/Cd güvenilirliği için "
+            "'hassas' kalite önerilir")
+
+
 def parse_checkmesh(log: Path) -> dict:
     out = {"cells": None, "non_ortho_max": None, "skew_max": None, "mesh_ok": None}
     if not log.exists():
@@ -350,6 +364,10 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     if not geo["su_gecirmez"]:
         uyarilar.append("STL su geçirmez değil — snappyHexMesh toleranslı ama "
                         "kapalı yüzey önerilir")
+    rw = resolution_warning(geo["lmax_m"], q["bg_div"], case.refinement_max,
+                            min(geo["boyutlar_m"]))
+    if rw:
+        uyarilar.append(rw)
     base.uyarilar = uyarilar
 
     # Opsiyonel mesh duyarlılık kontrolü: ayni analiz kaba seviyede, fark = belirsizlik bandi

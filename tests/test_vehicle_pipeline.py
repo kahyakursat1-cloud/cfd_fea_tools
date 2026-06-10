@@ -11,6 +11,7 @@ from vehicle_pipeline import (
     parse_checkmesh,
     parse_residuals,
     prepare_geometry,
+    resolution_warning,
 )
 
 
@@ -63,6 +64,17 @@ def test_orientation_matrix_identity():
 def test_orientation_matrix_rejects_parallel_axes():
     with pytest.raises(ValueError):
         orientation_matrix("+x", "-x")
+
+
+def test_resolution_warning_thin_wing_flags():
+    # 3 m kanat acikligi, 12 mm kalinlik, hizli mod (L/5, ref 1): hucre 0.3 m >> kalinlik
+    w = resolution_warning(3.0, 5, 1, 0.012)
+    assert w is not None and "hassas" in w
+
+
+def test_resolution_warning_ok_for_blunt_body():
+    # 0.5 m kup, standart mod (L/7, ref 2): hucre ~18 mm, 0.5/0.018 ~ 28 >= 6
+    assert resolution_warning(0.5, 7, 2, 0.5) is None
 
 
 def test_prepare_geometry_repairs_open_cube(tmp_path):
