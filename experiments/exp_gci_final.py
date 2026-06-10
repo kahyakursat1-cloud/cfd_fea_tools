@@ -33,8 +33,9 @@ for lvl,(na,njj) in meshes.items():
     for fld in ("gammaInt","ReThetat"): shutil.copy(case/"0"/fld, lt/fld)
     T.ctrl(case,"kOmegaSSTLM",4000)
     of("foamRun -solver incompressibleFluid >log.s2 2>&1")
-    if "FOAM FATAL" in (case/"log.s2").read_text(errors="ignore"):
-        print(f"{lvl}: STAGE2 FATAL",flush=True); status[lvl]="stage2_failed"; continue
+    s2=(case/"log.s2").read_text(errors="ignore")
+    if "FOAM FATAL" in s2 or not s2.rstrip().endswith("End"):
+        print(f"{lvl}: STAGE2 FATAL/CRASH",flush=True); status[lvl]="stage2_failed"; continue
     ff=sorted((case/"postProcessing"/"forces").glob("*/forces.dat"),key=lambda f:float(f.parent.name))
     if not ff: print(f"{lvl}: FAIL",flush=True); status[lvl]="no_forces"; continue
     ll=[l for l in ff[-1].read_text().splitlines() if l.strip() and not l.startswith("#")]

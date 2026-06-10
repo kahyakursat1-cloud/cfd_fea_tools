@@ -1,10 +1,12 @@
 {
-  "_GECERSIZ": "Bu kosunun 2. asamasi (kOmegaSSTLM) hicbir mesh'te kosamadi: restart zamaninda gammaInt/ReThetat alanlari eksikti (log.s2: FOAM FATAL, 2000/ReThetat bulunamadi). Asagidaki cd degerleri 1. asama kOmegaSST (fully turbulent) sonuclaridir, gecis modeli DEGILDIR. fine mesh ayrica diverge etti. Duzeltilmis exp_gci_final.py ile yeniden kosulmali.",
-  "model_amaclanan": "kOmegaSSTLM",
-  "model_gerceklesen": "kOmegaSST (stage-1)",
+  "model": "kOmegaSSTLM",
+  "status": {
+    "coarse": "ok",
+    "medium": "ok",
+    "fine": "diverged Cd=-1.6"
+  },
   "cd": {
-    "coarse": 0.007943390098390802,
-    "medium": 0.008667078329520033,
-    "fine": "diverged (-1.599)"
+    "coarse": 0.007943119852738212,
+    "medium": 0.00855279224466971
   }
 }

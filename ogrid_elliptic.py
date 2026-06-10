@@ -11,14 +11,16 @@ from pathlib import Path
 import numpy as np
 
 
-def naca0012_loop(n_around, te_blunt=1e-4):
+def naca0012_loop(n_around):
     """Kapali NACA0012 dongusu: ust-TE -> LE -> alt-TE, kosinus kumeleme (LE+TE sik).
     n_around tek olmali; donus i=0..n_around-1, i=n_around -> i=0'a sarar.
+    Kapali-TE katsayisi (-0.1036): yt(1)=0, aksi halde TE'deki kalinlik bosluguna
+    sarilan yuzler her cozunurlukte ters-yonelimli/carpik hucre uretiyor (checkMesh).
     """
     t = 0.12
     def yt(x):
         return (t/0.2)*(0.2969*np.sqrt(np.clip(x,0,None)) - 0.1260*x - 0.3516*x**2
-                        + 0.2843*x**3 - 0.1015*x**4)
+                        + 0.2843*x**3 - 0.1036*x**4)
     nh = n_around // 2
     beta = np.linspace(0, np.pi, nh+1)
     xc = 0.5*(1 - np.cos(beta))            # 0..1, LE+TE sik
@@ -42,7 +44,7 @@ def tanh_radial(nj, first, R):
     return raw
 
 
-def build_ogrid(naca="0012", n_around=240, nj=120, first_cell=8e-6, R=40.0, sweeps=8, iters=80):
+def build_ogrid(naca="0012", n_around=240, nj=120, first_cell=8e-6, R=40.0, sweeps=16, iters=120):
     loop = naca0012_loop(n_around)
     I = len(loop)                          # cevre nokta sayisi (i=0..I-1 sarar)
     rad = tanh_radial(nj, first_cell, R)   # (nj+1,)

@@ -27,7 +27,7 @@ def setup(case,alpha):
     W("gammaInt",'FoamFile{version 2.0;format ascii;class volScalarField;object gammaInt;} dimensions [0 0 0 0 0 0 0]; internalField uniform 1; boundaryField{ airfoil{type zeroGradient;} farfield{type inletOutlet;inletValue uniform 1;value uniform 1;} frontAndBack{type empty;} }')
     W("ReThetat",'FoamFile{version 2.0;format ascii;class volScalarField;object ReThetat;} dimensions [0 0 0 0 0 0 0]; internalField uniform 100; boundaryField{ airfoil{type zeroGradient;} farfield{type inletOutlet;inletValue uniform 100;value uniform 100;} frontAndBack{type empty;} }')
     (case/"constant"/"transportProperties").write_text(f'FoamFile{{version 2.0;format ascii;class dictionary;object transportProperties;}}\ntransportModel Newtonian; nu {nu};')
-    (case/"system"/"fvSchemes").write_text('FoamFile{version 2.0;format ascii;class dictionary;object fvSchemes;}\nddtSchemes{default steadyState;} gradSchemes{default cellLimited Gauss linear 1;} divSchemes{default none; div(phi,U) bounded Gauss linearUpwindV grad(U); div(phi,k) bounded Gauss upwind; div(phi,omega) bounded Gauss upwind; div(phi,gammaInt) bounded Gauss upwind; div(phi,ReThetat) bounded Gauss upwind; div((nuEff*dev2(T(grad(U))))) Gauss linear;} laplacianSchemes{default Gauss linear limited corrected 0.33;} interpolationSchemes{default linear;} snGradSchemes{default limited corrected 0.33;} wallDist{method meshWave;}')
+    (case/"system"/"fvSchemes").write_text('FoamFile{version 2.0;format ascii;class dictionary;object fvSchemes;}\nddtSchemes{default steadyState;} gradSchemes{default cellLimited Gauss linear 1;} divSchemes{default none; div(phi,U) bounded Gauss linearUpwindV grad(U); div(phi,k) bounded Gauss upwind; div(phi,omega) bounded Gauss upwind; div(phi,gammaInt) bounded Gauss upwind; div(phi,ReThetat) bounded Gauss upwind; div((nuEff*dev2(T(grad(U))))) Gauss linear; div(div(phi,U)) Gauss linear;} laplacianSchemes{default Gauss linear limited corrected 0.33;} interpolationSchemes{default linear;} snGradSchemes{default limited corrected 0.33;} wallDist{method meshWave;}')
     (case/"system"/"fvSolution").write_text('FoamFile{version 2.0;format ascii;class dictionary;object fvSolution;}\nsolvers{ p{solver GAMG;tolerance 1e-7;relTol 0.05;smoother DICGaussSeidel;nCellsInCoarsestLevel 20;} Phi{solver GAMG;tolerance 1e-6;relTol 0.01;smoother DICGaussSeidel;nCellsInCoarsestLevel 20;} "(U|k|omega|gammaInt|ReThetat)"{solver smoothSolver;smoother symGaussSeidel;tolerance 1e-8;relTol 0.05;nSweeps 2;} }\nSIMPLE{nNonOrthogonalCorrectors 6;consistent yes;residualControl{p 1e-6;U 1e-6;}} potentialFlow{nNonOrthogonalCorrectors 8;} relaxationFactors{equations{U 0.3;k 0.2;omega 0.2;gammaInt 0.2;ReThetat 0.2;}fields{p 0.15;}}')
 
 def ctrl(case,model,end):
@@ -63,8 +63,9 @@ if __name__=="__main__":
         for fld in ("gammaInt","ReThetat"): shutil.copy(case/"0"/fld, lt/fld)
         ctrl(case,"kOmegaSSTLM",4000)
         of("foamRun -solver incompressibleFluid >log.s2 2>&1")
-        if "FOAM FATAL" in (case/"log.s2").read_text(errors="ignore"):
-            print(f"alpha={alpha}: STAGE2 FATAL",flush=True); results[alpha]={"status":"stage2_failed"}; continue
+        s2=(case/"log.s2").read_text(errors="ignore")
+        if "FOAM FATAL" in s2 or not s2.rstrip().endswith("End"):
+            print(f"alpha={alpha}: STAGE2 FATAL/CRASH",flush=True); results[alpha]={"status":"stage2_failed"}; continue
         ff=sorted((case/"postProcessing"/"forces").glob("*/forces.dat"),key=lambda f:float(f.parent.name))
         if not ff:
             print(f"alpha={alpha}: FORCES YOK",flush=True); continue
