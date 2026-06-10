@@ -7,6 +7,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+
 from ogrid_elliptic import build_ogrid, write_polymesh
 
 alphas=[int(x) for x in sys.argv[1:]] or [0,4,8]

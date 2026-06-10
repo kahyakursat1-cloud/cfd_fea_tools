@@ -4,9 +4,14 @@ import math
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+
 import exp_transition as T  # setup/ctrl fonksiyonlarini yeniden kullan
+
 from ogrid_elliptic import build_ogrid, write_polymesh
 
 alpha=4; R=40.0; rho,V,chord=1.225,50.0,1.0

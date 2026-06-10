@@ -5,6 +5,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+
 from construct2d_bridge import (
     _min_case,
     read_p3d_2d,

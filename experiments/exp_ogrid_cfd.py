@@ -7,6 +7,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+
 from ogrid_elliptic import build_ogrid, write_polymesh
 
 alpha = int(sys.argv[1]) if len(sys.argv)>1 else 4
