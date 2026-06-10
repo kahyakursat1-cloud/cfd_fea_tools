@@ -46,10 +46,13 @@ VEHICLE_PRESETS = {
     },
 }
 
+# bg_div: arka-plan hucresi = L/bg_div. maxGlobalCells yalniz refinement'i
+# sinirlar; domain ~21Lx11Lx11L oldugundan taban mesh = 2541*bg_div^3 hucre —
+# tavani asil delen buydu (L/8 otomatigi tek basina ~1.3M taban uretiyordu).
 MESH_QUALITY = {
-    "hizli":    {"end_time": 200, "ref_bump": -1, "max_cells": 400_000},
-    "standart": {"end_time": 400, "ref_bump": 0,  "max_cells": 1_200_000},
-    "hassas":   {"end_time": 800, "ref_bump": 1,  "max_cells": 2_500_000},
+    "hizli":    {"end_time": 200, "ref_bump": -1, "max_cells": 400_000,   "bg_div": 5},
+    "standart": {"end_time": 400, "ref_bump": 0,  "max_cells": 1_200_000, "bg_div": 7},
+    "hassas":   {"end_time": 800, "ref_bump": 1,  "max_cells": 2_500_000, "bg_div": 9},
 }
 
 RESIDUAL_TARGET = 1e-4   # proje kuralı: yakınsama kriteri
@@ -168,6 +171,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         refinement_max=max(1, rmax + bump),
         end_time=q["end_time"],
         max_global_cells=q["max_cells"],
+        bg_cell_size=geo["lmax_m"] / q["bg_div"],
         n_processors=n_processors,
     )
     run_dir = Path(out_root) / stl_path.stem

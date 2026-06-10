@@ -668,6 +668,19 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
     # 5) Solver: foamRun (OF 11) — çok işlemcili
     n = case.n_processors
     if n > 1:
+        # mpirun bazı WSL kurulumlarında süresiz asılı kalıyor (worker'lar hiç
+        # doğmuyor, log 0 bayt). 15 sn'lik smoke geçemezse seri koşuya düş.
+        try:
+            probe = _wsl_run(wsl_dir, "timeout 15 mpirun -np 2 true", timeout=40)
+            mpi_ok = probe.returncode == 0
+        except subprocess.TimeoutExpired:
+            mpi_ok = False
+        if not mpi_ok:
+            all_stderr.append("UYARI: mpirun smoke testi başarısız/asılı — seri koşuya düşüldü")
+            if progress_callback:
+                progress_callback(58, "mpirun çalışmıyor — seri moda geçildi")
+            n = 1
+    if n > 1:
         r = _step(60, f"decomposePar ({n} işlemci)...",
                   "decomposePar -force", "log.decomposePar", 300)
         if r is None or r.returncode != 0:
