@@ -176,6 +176,9 @@ def _polar_report(out, rep_dir: Path):
 
 
 if __name__ == "__main__":
+    import sys
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description="Tek mesh, çoklu hücum açısı polar taraması")
     ap.add_argument("model")
     ap.add_argument("--tip", default="ucak")

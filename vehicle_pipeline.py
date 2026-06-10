@@ -393,7 +393,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         uyarilar.append(rw)
 
     if progress_cb:
-        progress_cb(78, "y⁺ ölçümü…")
+        progress_cb(78, "y+ olcumu...")
     yp = measure_yplus(case_dir)
     base.sinir_tabaka = {"katman_sayisi": n_layers, "yplus": yp}
     if yp and yp["ort"] > 30 and n_layers == 0:
@@ -441,6 +441,9 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
 
 
 if __name__ == "__main__":
+    import sys
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description="Katı model → CFD → mühendis raporu")
     ap.add_argument("model", help="STL/OBJ/STEP/IGES dosyası")
     ap.add_argument("--tip", default="ucak", choices=list(VEHICLE_PRESETS))
