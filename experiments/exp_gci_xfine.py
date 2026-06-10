@@ -1,5 +1,7 @@
 """GCI ek seviye kosucusu (asimptotik aralik testi, alpha=4, 2-asamali).
-Kullanim: python exp_gci_xfine.py [etiket na nj sweeps iters]  (vars: xfine 440 220 22 150)
+Kullanim: python exp_gci_xfine.py [etiket na nj sweeps iters [s1_end s2_end]]
+Vars: xfine 440 220 22 150 2000 4000. Buyuk meshlerde iterasyon butcesi
+hucre sayisiyla olceklenmeli; residualControl erken durdurmayi saglar.
 """
 import json
 import math
@@ -17,6 +19,7 @@ from ogrid_elliptic import build_ogrid, write_polymesh
 
 alpha=4; R=40.0; rho,V,chord=1.225,50.0,1.0
 lbl,na,njj,sw,it=(sys.argv[1],int(sys.argv[2]),int(sys.argv[3]),int(sys.argv[4]),int(sys.argv[5])) if len(sys.argv)>5 else ("xfine",440,220,22,150)
+s1_end,s2_end=(int(sys.argv[6]),int(sys.argv[7])) if len(sys.argv)>7 else (2000,4000)
 case=Path(f"gci_{lbl}")
 if case.exists(): shutil.rmtree(case)
 (case/"system").mkdir(parents=True,exist_ok=True)
@@ -24,7 +27,7 @@ X,Y,I,nj=build_ogrid(R=R,n_around=na,nj=njj,first_cell=8e-6,sweeps=sw,iters=it)
 write_polymesh(case,X,Y,I,nj)
 T.setup(case,alpha)
 p=str(case.resolve()); wsl=f"/mnt/{p[0].lower()}{p[2:].replace(chr(92),'/')}"
-def of(cmd,t=2400): return subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && export FOAM_SIGFPE=false && cd {wsl} && {cmd}"',shell=True,capture_output=True,text=True,timeout=t)
+def of(cmd,t=7200): return subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && export FOAM_SIGFPE=false && cd {wsl} && {cmd}"',shell=True,capture_output=True,text=True,timeout=t)
 
 def parse_cd_cl(fdat):
     ll=[l for l in fdat.read_text().splitlines() if l.strip() and not l.startswith("#")]
@@ -33,8 +36,8 @@ def parse_cd_cl(fdat):
     a=math.radians(alpha); q=0.5*rho*V**2; S=chord*0.1
     return (Fx*math.cos(a)+Fy*math.sin(a))/(q*S), (-Fx*math.sin(a)+Fy*math.cos(a))/(q*S)
 
-out={"mesh":f"{na}x{njj} sweeps={sw} iters={it}"}
-T.ctrl(case,"kOmegaSST",2000)
+out={"mesh":f"{na}x{njj} sweeps={sw} iters={it}","s1_end":s1_end,"s2_end":s2_end}
+T.ctrl(case,"kOmegaSST",s1_end)
 of("potentialFoam -initialiseUBCs -writep >log.pot 2>&1; foamRun -solver incompressibleFluid >log.s1 2>&1")
 lt=max((d for d in case.iterdir() if d.is_dir() and d.name!="0" and d.name.replace(".","",1).isdigit()),key=lambda d:float(d.name),default=None)
 if lt is None:
@@ -44,7 +47,7 @@ else:
     out["SST"]={"Cd":round(cd1,5),"Cl":round(cl1,4)}
     print(f"{lbl} SST: Cd={cd1:.5f} Cl={cl1:.4f}",flush=True)
     for fld in ("gammaInt","ReThetat"): shutil.copy(case/"0"/fld, lt/fld)
-    T.ctrl(case,"kOmegaSSTLM",4000)
+    T.ctrl(case,"kOmegaSSTLM",s2_end)
     of("foamRun -solver incompressibleFluid >log.s2 2>&1")
     s2=(case/"log.s2").read_text(errors="ignore")
     if "FOAM FATAL" in s2 or not s2.rstrip().endswith("End"):
