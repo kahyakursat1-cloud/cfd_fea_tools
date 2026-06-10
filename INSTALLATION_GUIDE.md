@@ -55,7 +55,7 @@ python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
 # 3. Bağımlılıkları yükle
-pip install -r requirements.txt
+pip install -e .[gui,viz]
 
 # 4. GUI'yi başlat
 python app_parametric.py
@@ -104,23 +104,22 @@ python -c "import sys; print(sys.version)"
 ### Adım 2: Bağımlılık Yüklemesi
 
 ```bash
-# requirements.txt'i oluştur veya mevcut olanı kullan
 pip install --upgrade pip
 
-pip install -r requirements.txt
+# Çekirdek + GUI (headless pipeline için sadece: pip install -e .)
+pip install -e .[gui,viz]
 ```
 
-**requirements.txt içeriği:**
+**Bağımlılık grupları `pyproject.toml`'da tanımlı** (tek doğru kaynak):
 
-```
-PySide6==6.4.2
-numpy==1.24.0
-opencv-python==4.7.0
-open3d==0.17.0
-scipy==1.10.0
-scikit-image==0.20.0
-trimesh==3.15.0
-```
+| Grup | İçerik | Ne zaman |
+|------|--------|----------|
+| (çekirdek) | numpy, scipy, matplotlib, pandas, pyyaml, trimesh, gmsh | her zaman |
+| `gui` | PySide6 | masaüstü arayüz |
+| `scan` | open3d, opencv-contrib, Pillow | fotogrametri |
+| `ml` | torch, ultralytics, scikit-learn | YOLO eğitimi |
+| `viz` | seaborn, plotly | gelişmiş grafikler |
+| `dev` | ruff, mypy, pytest, pre-commit | geliştirme |
 
 ### Adım 3: Sistem Bileşenlerini Kontrol Et
 
@@ -438,12 +437,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Python paketlerini yükle
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-# Kod
+# Kod + Python paketleri
 COPY . .
+RUN pip install -e .[gui,viz]
 
 # GUI port
 EXPOSE 5000

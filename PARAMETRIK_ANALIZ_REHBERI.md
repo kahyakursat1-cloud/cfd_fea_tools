@@ -29,7 +29,7 @@ cfd_fea_tools/
 ├── OPENFOAM_REHBERI.md        ← OpenFOAM detayı
 ├── CALCULIX_REHBERI.md        ← CalculiX detayı
 ├── config.yaml                ← Senaryo şablonları
-├── requirements.txt           ← Bağımlılıklar
+├── pyproject.toml             ← Bağımlılıklar (core/gui/scan/ml/viz/dev)
 └── PARAMETRIK_ANALIZ_REHBERI.md ← Bu dosya
 ```
 
@@ -41,7 +41,7 @@ cfd_fea_tools/
 
 ```bash
 cd cfd_fea_tools
-pip install -r requirements.txt
+pip install -e .[gui,viz]
 ```
 
 ### 2. Uygulamayı Çalıştır

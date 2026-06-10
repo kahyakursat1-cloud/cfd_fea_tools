@@ -47,7 +47,7 @@ Sabit kanat roket, drone, İHA ve uçak tasarımları için **tarama → 3D mode
 ```bash
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
+pip install -e .[gui,viz]
 python app_parametric.py
 ```
 
@@ -59,7 +59,7 @@ python -m venv venv
 source venv/bin/activate
 
 # 2. Python paketleri
-pip install -r requirements.txt
+pip install -e .[gui,viz]
 
 # 3. OpenFOAM kur (WSL2/Linux/macOS)
 # Windows: WSL2 + Ubuntu'da çalıştır
@@ -296,7 +296,7 @@ cfd_fea_tools/
 ├── INSTALLATION_GUIDE.md
 ├── README_TR.md (bu dosya)
 │
-├── requirements.txt
+├── pyproject.toml
 ├── config.json (opsiyonel)
 │
 └── cfd_cases/                       # CFD case directories (auto)

@@ -173,7 +173,7 @@ class SystemVerifier:
             print("   EKSIK MODULLER KURULMALI")
         else:
             print("\n[RED] SISTEM DURUMU: KURULUM YAPILMALI")
-            print("   Calistir: pip install -r requirements.txt")
+            print("   Calistir: pip install -e .[gui,scan,viz]")
 
         print("\n" + "=" * 70)
 

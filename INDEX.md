@@ -9,8 +9,9 @@
 ## 📚 Kategoriler
 
 ### System & Architecture
-- [SYSTEM_STATUS.md](SYSTEM_STATUS.md) — Production status, module checklist, performance metrics
-- [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) — What was built & why
+- [SYSTEM_STATUS.md](SYSTEM_STATUS.md) — Production status, module checklist, performance metrics (tek güncel durum kaynağı)
+- [docs/adr/0001-kanonik-mimari.md](docs/adr/0001-kanonik-mimari.md) — Katman mimarisi kararı
+- Tarihsel anlık görüntüler (SYSTEM_COMPLETE, SYSTEM_READY, SETUP_COMPLETE, IMPLEMENTATION_*) → [docs/archive/](docs/archive/)
 
 ### Akademik Kaynaklar & Teori
 - [ACADEMIC_REFERENCES.md](ACADEMIC_REFERENCES.md) — Theory foundations + course curriculum mapping
@@ -87,7 +88,7 @@ sources/SOURCES_INDEX
 | SCAN_TO_DATASET_WORKFLOW.md | Workflow | 2026-03-18 | 3 | 12 KB |
 | SCANNER_REHBERI.md | How-To | 2026-03-15 | 2 | 9 KB |
 | BLENDER_BACKGROUNDS_GUIDE.md | How-To | 2026-03-18 | 1 | 7 KB |
-| IMPLEMENTATION_SUMMARY.md | Overview | 2026-04-01 | - | 20 KB |
+| docs/archive/IMPLEMENTATION_SUMMARY.md | Overview (arşiv) | 2026-04-01 | - | 20 KB |
 | README_TR.md | Quick-Start | 2026-03-01 | 1 | 6 KB |
 | INSTALLATION_GUIDE.md | Setup | 2026-03-05 | 2 | 11 KB |
 
@@ -148,7 +149,7 @@ sources/SOURCES_INDEX
 ### For Researchers
 1. [ACADEMIC_REFERENCES.md](ACADEMIC_REFERENCES.md) — Theory & citations (start here)
 2. [sources/SOURCES_INDEX.md](sources/SOURCES_INDEX.md) — Source catalog
-3. [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) — What was built
+3. [docs/archive/IMPLEMENTATION_SUMMARY.md](docs/archive/IMPLEMENTATION_SUMMARY.md) — What was built (arşiv)
 
 ---
 
@@ -167,4 +168,3 @@ sources/SOURCES_INDEX
 - Add YAML frontmatter to all pages
 - Set up Obsidian vault (optional)
 - Schedule regular lint passes
-

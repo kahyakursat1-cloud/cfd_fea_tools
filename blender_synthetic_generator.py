@@ -1,5 +1,11 @@
 """
-Blender Synthetic Dataset Generator
+Blender Synthetic Dataset Generator (v1 — temel sürüm)
+
+NOT: Yeni dataset üretimi için blender_synthetic_generator_v2.py kullan
+(GPU optimizasyonu, materyal/atmosfer randomizasyonu, bbox kalite kontrolü).
+Bu dosya basit/öğretici akış olarak korunuyor; gerçek bbox üretimi buradadır
+ve v2 ile aynı CLASSES sırasını paylaşır.
+
 Taranmış 3D model → Sentetik veriler oluşturma
 CFD/FEA eğitim dataset'i otomasyonu
 """

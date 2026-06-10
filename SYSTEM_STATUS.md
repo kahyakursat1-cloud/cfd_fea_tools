@@ -243,7 +243,7 @@ python -m venv venv
 venv\Scripts\activate
 
 # 3. Bağımlılıkları yükle
-pip install -r requirements.txt
+pip install -e .[gui,viz]
 
 # 4. Sistem test et
 python check_integration.py
@@ -321,7 +321,7 @@ cfd_fea_tools/
 │   ├── IMPLEMENTATION_SUMMARY.md
 │   └── SYSTEM_STATUS.md (bu dosya)
 ├── 📦 Resources
-│   ├── requirements.txt
+│   ├── pyproject.toml
 │   ├── config.json (optional)
 │   └── backgrounds/ (link to D:\synthetic_dataset\backgrounds)
 │
@@ -339,7 +339,7 @@ cfd_fea_tools/
 
 ### Adım 1: Kurulum (30 dakika)
 ```bash
-pip install -r requirements.txt
+pip install -e .[gui,viz]
 python check_integration.py
 ```
 
