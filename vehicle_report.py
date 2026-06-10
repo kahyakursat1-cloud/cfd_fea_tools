@@ -146,9 +146,23 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
     if sk is not None:
         md.append(f"- Max skewness: **{sk}** "
                   f"{'✅' if sk < SKEW_LIMIT else f'❌ (limit {SKEW_LIMIT})'}  ")
-    md.append("- Sınır tabaka: prizma katmanı YOK — duvar y⁺ kontrolsüz; "
-              "sürtünme sürüklemesi duvar fonksiyonu varsayımıyla, mutlak C_D "
-              "buna bağlı belirsizlik taşır.\n")
+    bl = getattr(r, "sinir_tabaka", None) or {}
+    nlay = bl.get("katman_sayisi", 0)
+    yp = bl.get("yplus")
+    if nlay:
+        line = f"- Sınır tabaka: **{nlay} prizma katmanı**"
+    else:
+        line = "- Sınır tabaka: prizma katmanı YOK"
+    if yp:
+        reg = ("viskoz alt-tabaka (y⁺<5) — sürtünme doğrudan çözülüyor" if yp["ort"] < 5 else
+               "buffer bölgesi (5<y⁺<30) — kOmegaSST sürekli duvar fonksiyonu, orta belirsizlik"
+               if yp["ort"] < 30 else
+               "log bölgesi (y⁺>30) — duvar fonksiyonu varsayımı, sürtünme C_D yaklaşık")
+        line += (f"; **ölçülen y⁺**: min={yp['min']}, ort=**{yp['ort']}**, "
+                 f"max={yp['max']} → {reg}")
+    else:
+        line += "; y⁺ ölçülemedi"
+    md.append(line + "\n")
 
     # 3. Yakınsama
     md.append("## 3. Yakınsama\n")

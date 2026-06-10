@@ -14,6 +14,7 @@ import argparse
 import json
 import math
 import re
+import subprocess
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -215,6 +216,26 @@ def parse_checkmesh(log: Path) -> dict:
     return out
 
 
+def measure_yplus(case_dir, timeout=600) -> dict | None:
+    """Çözülmüş alanda duvar y⁺'ını ÖLÇER (varsayım değil; foamPostProcess)."""
+    p = str(Path(case_dir).resolve())
+    wsl = "/mnt/" + p[0].lower() + p[2:].replace("\\", "/")
+    try:
+        r = subprocess.run(
+            f'wsl bash -c "source /opt/openfoam11/etc/bashrc && unset FOAM_SIGFPE && '
+            f"cd {wsl} && foamPostProcess -solver incompressibleFluid -func yPlus -latestTime 2>&1"
+            f'"',
+            shell=True, capture_output=True, text=True, timeout=timeout)
+        m = re.search(r"y\+ : min = ([\d.eE+-]+), max = ([\d.eE+-]+), average = ([\d.eE+-]+)",
+                      r.stdout)
+        if m:
+            return {"min": round(float(m.group(1)), 2), "max": round(float(m.group(2)), 2),
+                    "ort": round(float(m.group(3)), 2)}
+    except Exception:
+        pass
+    return None
+
+
 def parse_residuals(log: Path) -> dict:
     """foamRun logundan alan bazlı initial-residual tarihçesi."""
     hist: dict[str, list[float]] = {}
@@ -251,6 +272,7 @@ class VehicleAnalysisResult:
     mesh: dict | None = None
     convergence: dict | None = None
     uyarilar: list = None
+    sinir_tabaka: dict | None = None
     mesh_duyarlilik: dict | None = None
     case_dir: str = ""
     report: str = ""
@@ -261,7 +283,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                          quality="standart", out_root="vehicle_runs",
                          n_processors=0, rho=1.225,
                          nose_axis="+x", up_axis="+z",
-                         mesh_sensitivity=False,
+                         mesh_sensitivity=False, n_layers=0,
                          progress_cb=None) -> VehicleAnalysisResult:
     stl_path = Path(stl_path)
     stem = stl_path.stem
@@ -296,6 +318,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         end_time=q["end_time"],
         max_global_cells=q["max_cells"],
         bg_cell_size=geo["lmax_m"] / q["bg_div"],
+        n_layers=n_layers,
         n_processors=n_processors,
     )
     res = run_cfd(case, run_dir, progress_callback=progress_cb)
@@ -368,6 +391,14 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                             min(geo["boyutlar_m"]))
     if rw:
         uyarilar.append(rw)
+
+    if progress_cb:
+        progress_cb(78, "y⁺ ölçümü…")
+    yp = measure_yplus(case_dir)
+    base.sinir_tabaka = {"katman_sayisi": n_layers, "yplus": yp}
+    if yp and yp["ort"] > 30 and n_layers == 0:
+        uyarilar.append(f"Ölçülen y⁺ ort={yp['ort']} (log bölgesi üstü) — sürtünme "
+                        "sürüklemesi duvar fonksiyonu sınırında; katman sayısını artırın")
     base.uyarilar = uyarilar
 
     # Opsiyonel mesh duyarlılık kontrolü: ayni analiz kaba seviyede, fark = belirsizlik bandi
@@ -423,6 +454,8 @@ if __name__ == "__main__":
                     help="modelin üst ekseni")
     ap.add_argument("--duyarlilik", action="store_true",
                     help="ikinci (kaba) koşuyla mesh duyarlılık bandı hesapla")
+    ap.add_argument("--katman", type=int, default=0,
+                    help="prizma sınır-tabaka katman sayısı (0=kapalı)")
     args = ap.parse_args()
 
     def _cb(pct, msg):
@@ -431,7 +464,8 @@ if __name__ == "__main__":
     r = run_vehicle_analysis(args.model, args.tip, args.hiz, args.aoa,
                              args.kalite, n_processors=args.islemci,
                              nose_axis=args.burun, up_axis=args.ust,
-                             mesh_sensitivity=args.duyarlilik, progress_cb=_cb)
+                             mesh_sensitivity=args.duyarlilik, n_layers=args.katman,
+                             progress_cb=_cb)
     if r.status == "ok":
         print(f"\nCd={r.cd}  CdA={r.cda_m2} m²  Drag={r.drag_N} N"
               + (f"  Cl={r.cl}  L/D={r.ld}" if r.cl is not None else ""))

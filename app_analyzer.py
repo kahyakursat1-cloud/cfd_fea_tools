@@ -152,6 +152,9 @@ class AnalyzerWindow(QMainWindow):
         self.spn_proc = QSpinBox(); self.spn_proc.setRange(0, 16); self.spn_proc.setValue(0)
         self.spn_proc.setSpecialValueText("otomatik")
         form.addRow("İşlemci", self.spn_proc)
+        self.spn_layers = QSpinBox(); self.spn_layers.setRange(0, 10); self.spn_layers.setValue(0)
+        self.spn_layers.setSpecialValueText("kapalı")
+        form.addRow("Sınır tabaka katmanı", self.spn_layers)
         self.chk_sens = QCheckBox("Mesh duyarlılık bandı (2. kaba koşu)")
         form.addRow("", self.chk_sens)
         left.addWidget(gb_cfg)
@@ -262,6 +265,7 @@ class AnalyzerWindow(QMainWindow):
             "nose_axis": self.cmb_nose.currentText(),
             "up_axis": self.cmb_up.currentText(),
             "mesh_sensitivity": self.chk_sens.isChecked(),
+            "n_layers": self.spn_layers.value(),
         }
         self.worker = AnalysisWorker(params)
         self.worker.progress.connect(self._on_progress)
