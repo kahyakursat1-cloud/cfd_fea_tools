@@ -73,13 +73,26 @@ def parse_cd_cl(fdat):
 
 out={"topology":"C-grid (wake-kumelemeli)","mesh":f"n_air={na} n_wake={nw} nj={njj}","cells":ncell,
      "s1_end":s1_end,"s2_end":s2_end}
+# Asama 0: birinci-mertebe (upwind) isinma — y+~1 yuksek-AR hucrelerde
+# linearUpwindV ile soguk kalkis patlamasinin standart caresi
+s0_end=1500
+fvs_ho=(case/"system"/"fvSchemes").read_text()
+fvs_fo=fvs_ho.replace("div(phi,U) bounded Gauss linearUpwindV grad(U)","div(phi,U) bounded Gauss upwind")
+(case/"system"/"fvSchemes").write_text(fvs_fo)
+T.ctrl(case,"kOmegaSST",s0_end)
+of("potentialFoam -initialiseUBCs -writep >log.pot 2>&1; foamRun -solver incompressibleFluid >log.s0 2>&1")
+# Asama 1: yuksek-mertebe semaya gec, isinmis alandan devam
+(case/"system"/"fvSchemes").write_text(fvs_ho)
 T.ctrl(case,"kOmegaSST",s1_end)
-of("potentialFoam -initialiseUBCs -writep >log.pot 2>&1; foamRun -solver incompressibleFluid >log.s1 2>&1")
+cd_txt=(case/"system"/"controlDict").read_text()
+(case/"system"/"controlDict").write_text(cd_txt.replace("startFrom startTime","startFrom latestTime"))
+of("foamRun -solver incompressibleFluid >log.s1 2>&1")
 lt=max((d for d in case.iterdir() if d.is_dir() and d.name!="0" and d.name.replace(".","",1).isdigit()),key=lambda d:float(d.name),default=None)
 if lt is None:
     out["status"]="stage1_failed"
 else:
-    cd1,cl1=parse_cd_cl(case/"postProcessing"/"forces"/"0"/"forces.dat")
+    ff1=sorted((case/"postProcessing"/"forces").glob("*/forces.dat"),key=lambda f:float(f.parent.name))
+    cd1,cl1=parse_cd_cl(ff1[-1])
     out["SST"]={"Cd":round(cd1,5),"Cl":round(cl1,4)}
     print(f"{lbl} SST: Cd={cd1:.5f} Cl={cl1:.4f}",flush=True)
     for fld in ("gammaInt","ReThetat"): shutil.copy(case/"0"/fld, lt/fld)
