@@ -168,6 +168,8 @@ class VehicleAnalysisResult:
     drag_N: float | None = None
     mesh: dict | None = None
     convergence: dict | None = None
+    uyarilar: list = None
+    mesh_duyarlilik: dict | None = None
     case_dir: str = ""
     report: str = ""
     error: str = ""
@@ -177,6 +179,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                          quality="standart", out_root="vehicle_runs",
                          n_processors=0, rho=1.225,
                          nose_axis="+x", up_axis="+z",
+                         mesh_sensitivity=False,
                          progress_cb=None) -> VehicleAnalysisResult:
     stl_path = Path(stl_path)
     stem = stl_path.stem
@@ -269,6 +272,46 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     base.mesh = meshq
     base.convergence = conv
 
+    uyarilar = []
+    mach = velocity / 340.0
+    if mach > 0.3:
+        uyarilar.append(f"Mach {mach:.2f} > 0.3 — sıkıştırılamaz çözücü varsayımı "
+                        "ihlal; Cd sistematik hatalı olabilir (sıkışabilir çözücü gerekir)")
+    if not geo["su_gecirmez"]:
+        uyarilar.append("STL su geçirmez değil — snappyHexMesh toleranslı ama "
+                        "kapalı yüzey önerilir")
+    base.uyarilar = uyarilar
+
+    # Opsiyonel mesh duyarlılık kontrolü: ayni analiz kaba seviyede, fark = belirsizlik bandi
+    if mesh_sensitivity:
+        if progress_cb:
+            progress_cb(80, "Mesh duyarlılık koşusu (kaba seviye)…")
+        coarse = CFDCase(
+            name=f"{stem}_kaba", stl_path=stl_path, velocity=velocity,
+            flow_direction=(math.cos(a), 0.0, math.sin(a)), rho=rho,
+            domain_upstream=preset["domain"][0],
+            domain_downstream=preset["domain"][1],
+            domain_lateral=preset["domain"][2],
+            refinement_min=max(1, rmin + bump - 1),
+            refinement_max=max(1, rmax + bump - 1),
+            end_time=MESH_QUALITY["hizli"]["end_time"],
+            max_global_cells=q["max_cells"],
+            bg_cell_size=geo["lmax_m"] / max(3, q["bg_div"] - 2),
+            n_processors=n_processors,
+        )
+        res2 = run_cfd(coarse, run_dir, progress_callback=None)
+        if res2.success and res2.cd is not None:
+            cd2 = res2.cd * scale
+            delta_pct = abs(cd - cd2) / (abs(cd) + 1e-12) * 100
+            base.mesh_duyarlilik = {
+                "kaba_cd": round(cd2, 5),
+                "fark_pct": round(delta_pct, 1),
+                "yorum": ("iki-seviye farkı sayısal belirsizlik bandı olarak kullanılır; "
+                          "GCI yerine geçmez ama tek-mesh iddiasını niceler"),
+            }
+        else:
+            base.mesh_duyarlilik = {"durum": "kaba koşu başarısız — bant hesaplanamadı"}
+
     (run_dir / "sonuc.json").write_text(json.dumps(asdict(base), indent=2, ensure_ascii=False), encoding="utf-8")
 
     from vehicle_report import build_vehicle_report
@@ -290,6 +333,8 @@ if __name__ == "__main__":
                     help="modelin burun/akış ekseni")
     ap.add_argument("--ust", default="+z", choices=list(AXIS_VECTORS),
                     help="modelin üst ekseni")
+    ap.add_argument("--duyarlilik", action="store_true",
+                    help="ikinci (kaba) koşuyla mesh duyarlılık bandı hesapla")
     args = ap.parse_args()
 
     def _cb(pct, msg):
@@ -297,7 +342,8 @@ if __name__ == "__main__":
 
     r = run_vehicle_analysis(args.model, args.tip, args.hiz, args.aoa,
                              args.kalite, n_processors=args.islemci,
-                             nose_axis=args.burun, up_axis=args.ust, progress_cb=_cb)
+                             nose_axis=args.burun, up_axis=args.ust,
+                             mesh_sensitivity=args.duyarlilik, progress_cb=_cb)
     if r.status == "ok":
         print(f"\nCd={r.cd}  CdA={r.cda_m2} m²  Drag={r.drag_N} N"
               + (f"  Cl={r.cl}  L/D={r.ld}" if r.cl is not None else ""))

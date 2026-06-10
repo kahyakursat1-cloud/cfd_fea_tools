@@ -176,6 +176,22 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
     md.append(f"| Sürükleme gücü @ {r.velocity} m/s | {r.drag_N * r.velocity:.1f} W |")
     md.append(f"| Dinamik basınç q | {q:.1f} Pa |\n")
 
+    # 4b. Uyarılar + mesh duyarlılığı
+    if getattr(r, "uyarilar", None):
+        for u in r.uyarilar:
+            md.append(f"> ⚠️ **UYARI:** {u}\n")
+    md_s = getattr(r, "mesh_duyarlilik", None)
+    if md_s:
+        if "fark_pct" in md_s:
+            band = md_s["fark_pct"]
+            ok = band < 10
+            md.append(f"**Mesh duyarlılık bandı:** kaba seviye $C_D$={md_s['kaba_cd']} → "
+                      f"iki-seviye farkı **±%{band}** "
+                      f"{'✅ (<%10 — sonuç bu bantla savunulabilir)' if ok else '⚠️ (≥%10 — daha ince mesh önerilir)'}  ")
+            md.append(f"*{md_s['yorum']}*\n")
+        else:
+            md.append(f"**Mesh duyarlılık:** {md_s.get('durum')}\n")
+
     # 5. Mühendis yorumu
     md.append("## 5. Mühendislik Değerlendirmesi\n")
     md.append(TYPE_COMMENT.get(r.vehicle_type, "") + "\n")

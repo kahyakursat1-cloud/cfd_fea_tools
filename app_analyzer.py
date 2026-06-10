@@ -17,6 +17,7 @@ from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QComboBox,
     QDoubleSpinBox,
     QFileDialog,
@@ -150,6 +151,8 @@ class AnalyzerWindow(QMainWindow):
         self.spn_proc = QSpinBox(); self.spn_proc.setRange(0, 16); self.spn_proc.setValue(0)
         self.spn_proc.setSpecialValueText("otomatik")
         form.addRow("İşlemci", self.spn_proc)
+        self.chk_sens = QCheckBox("Mesh duyarlılık bandı (2. kaba koşu)")
+        form.addRow("", self.chk_sens)
         left.addWidget(gb_cfg)
 
         self.btn_run = QPushButton("▶  ANALİZ ET")
@@ -249,6 +252,7 @@ class AnalyzerWindow(QMainWindow):
             "n_processors": self.spn_proc.value(),
             "nose_axis": self.cmb_nose.currentText(),
             "up_axis": self.cmb_up.currentText(),
+            "mesh_sensitivity": self.chk_sens.isChecked(),
         }
         self.worker = AnalysisWorker(params)
         self.worker.progress.connect(self._on_progress)
