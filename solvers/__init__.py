@@ -8,7 +8,7 @@ Submodules:
 
 İKİNCİL wrapper katmanı (bkz. docs/adr/0001-kanonik-mimari.md). Gerçek-solver
 kanonik yolları: ``pipeline.py`` (uçak V&V) ve ``analysis/`` (genel sıfırdan).
-Bu paketi entegrasyon smoke testleri (test_integration — mock solver'larla,
+Bu paketi entegrasyon smoke testleri (check_integration — mock solver'larla,
 full_integration_test) tüketir. Yeni gerçek-solver kodu için pipeline/analysis tercih et.
 """
 

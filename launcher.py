@@ -74,11 +74,11 @@ def launch_material_editor():
 
 
 def launch_integration_test():
-    _run_python("test_integration.py")
+    _run_python("check_integration.py")
 
 
 def launch_material_test():
-    _run_python("test_material_system.py")
+    _run_python("check_material_system.py")
 
 
 def launch_verify_system():

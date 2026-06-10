@@ -59,7 +59,7 @@
 
 ### 4. Test & Doğrulama
 
-✅ **test_material_system.py** — 7 test adımı
+✅ **check_material_system.py** — 7 test adımı
 ```
 [TEST 1] Module imports ............................ ✓
 [TEST 2] Library initialization (10 materials) .... ✓
@@ -140,7 +140,7 @@ VERI:
 ├── materials.json                 (Otomatik, 10 malzeme)
 
 TEST:
-├── test_material_system.py        (7 test adımı, %100 başarılı)
+├── check_material_system.py        (7 test adımı, %100 başarılı)
 └── verify_system.py               (System check)
 ```
 
@@ -181,7 +181,7 @@ MATERIAL_LIBRARY.save_to_file()
 
 ### Seçenek 3: Test Çalıştır
 ```bash
-python test_material_system.py
+python check_material_system.py
 # → 7/7 test başarılı çıktısı
 ```
 
@@ -302,7 +302,7 @@ Safety Factor = σ_y / σ_max
 **Sorunlar:**
 1. Malzeme ekleme başarısız? → Validation kurallarını kontrol et (E>0, ν≤0.5)
 2. CSV export hata? → Dosya yazma izni kontrol et
-3. GUI açılmıyor? → `test_core_only.py` çalıştır
+3. GUI açılmıyor? → `check_core_only.py` çalıştır
 4. Combo box senkron olmıyor? → App'ı yeniden başlat
 
 **Daha fazla bilgi:**

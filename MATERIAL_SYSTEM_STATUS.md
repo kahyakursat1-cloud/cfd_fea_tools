@@ -349,7 +349,7 @@ cfd_fea_tools/
 ├── MATERIAL_SYSTEM_STATUS.md     (bu dosya)
 ├── MESH_THEORY_GUIDE.md          (mesh kriteri)
 │
-└── test_material_system.py       (7 test adımı)
+└── check_material_system.py       (7 test adımı)
 ```
 
 ---
@@ -409,7 +409,7 @@ Stiffness-to-Weight = E / ρ
 cd D:\bilsem_beyin\cfd_fea_tools
 
 # Test çalıştır
-python test_material_system.py
+python check_material_system.py
 
 # GUI aç
 python app_parametric.py

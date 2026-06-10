@@ -20,7 +20,7 @@
 | **Bug Fixler** | ✅ | pyqtSignal → Signal (PySide6 uyumluluğu) |
 | **Type Hints** | ✅ | Dict, List import eklendi |
 | **Scanner Tab** | ✅ Conditional | open3d kurulduktan sonra aktif |
-| **Test Scriptleri** | ✅ | verify_system.py, test_gui_startup.py, test_core_only.py |
+| **Test Scriptleri** | ✅ | verify_system.py, check_gui_startup.py, check_core_only.py |
 | **Launcher** | ✅ | RUN_SYSTEM.bat (Windows) |
 | **Belgeler** | ✅ | EXTERNAL_TOOLS_SETUP.md |
 
@@ -211,10 +211,10 @@ python app_parametric.py
 ### "GUI açılmıyor"
 ```bash
 # 1. Core test
-python test_core_only.py
+python check_core_only.py
 
 # 2. GUI test
-python test_gui_startup.py
+python check_gui_startup.py
 
 # 3. Verify system
 python verify_system.py

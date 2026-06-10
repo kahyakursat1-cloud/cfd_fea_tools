@@ -76,7 +76,7 @@ Başlangıçtaki durum:
 
 ### PHASE 3: Test & Integration
 
-✅ **test_integration.py** (170 satır)
+✅ **check_integration.py** (170 satır)
 - End-to-end workflow test
 - 7 steps: Geometry → Material → Mesh → CFD → FEA → Post-processing
 - Mock execution (all external tools)
@@ -178,7 +178,7 @@ RESULTS OUTPUT (GUI):
 
 ### 1. Run Integration Test
 ```bash
-python test_integration.py
+python check_integration.py
 ```
 **Result:** Full pipeline executes, generates mock results
 **Expected output:** Aircraft → Material → Mesh → CFD → FEA → Report
@@ -192,7 +192,7 @@ python app_parametric.py
 
 ### 3. Test Material System
 ```bash
-python test_material_system.py
+python check_material_system.py
 ```
 **Result:** 7/7 tests pass
 **Validates:** Material library, auto-calculations, validation, CSV export
@@ -390,7 +390,7 @@ DEPLOYMENT:
 
 1. **See it work:**  
    ```bash
-   python test_integration.py
+   python check_integration.py
    ```
 
 2. **Use the GUI:**  

@@ -126,7 +126,7 @@ trimesh==3.15.0
 
 ```bash
 # Python modüllerini kontrol et
-python test_integration.py
+python check_integration.py
 
 # Blender kurulumunu kontrol et
 python verify_blender.py
@@ -274,7 +274,7 @@ python verify_blender.py
 ### 1. Modül Kontrol
 
 ```bash
-python test_integration.py
+python check_integration.py
 ```
 
 Beklenen çıktı:

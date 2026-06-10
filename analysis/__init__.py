@@ -8,7 +8,7 @@ domain + mesh üretir (snappyHexMesh / gmsh tet), çözer ve sonuç çıkarır.
 - analysis/   → keyfi geometri için sıfırdan mesh→çözüm
 
 2026-06-03 uçtan uca doğrulandı (küre: CFD Cd=0.135, FEA .frd). Bkz.
-docs/adr/0001-kanonik-mimari.md. Tüketici: test_cfd_pipeline / test_fea_pipeline.
+docs/adr/0001-kanonik-mimari.md. Tüketici: check_cfd_pipeline / check_fea_pipeline.
 """
 
 from .calculix_writer import (

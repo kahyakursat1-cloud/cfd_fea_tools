@@ -170,7 +170,7 @@
 - ✅ ml_training_integration
 
 ### Testing
-- ✅ test_integration.py (modül kontrolü)
+- ✅ check_integration.py (modül kontrolü)
 - ✅ full_integration_test.py (sistem test)
 - ✅ verify_blender.py (Blender setup)
 
@@ -246,7 +246,7 @@ venv\Scripts\activate
 pip install -r requirements.txt
 
 # 4. Sistem test et
-python test_integration.py
+python check_integration.py
 python full_integration_test.py
 
 # 5. GUI başlat
@@ -303,7 +303,7 @@ cfd_fea_tools/
 │   ├── blender_synthetic_generator_v2.py
 │   └── ml_training_integration.py
 ├── 🧪 Testing (3 files)
-│   ├── test_integration.py
+│   ├── check_integration.py
 │   ├── full_integration_test.py
 │   └── verify_blender.py
 ├── 📚 Documentation (15 files)
@@ -340,7 +340,7 @@ cfd_fea_tools/
 ### Adım 1: Kurulum (30 dakika)
 ```bash
 pip install -r requirements.txt
-python test_integration.py
+python check_integration.py
 ```
 
 ### Adım 2: İlk Simülasyon (5 dakika)

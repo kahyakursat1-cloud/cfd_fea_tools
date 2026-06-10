@@ -12,8 +12,8 @@ Bağımlılık grafiği çıkarıldığında her kuşağın farklı tüketicisi 
 | Kuşak | Modüller | Tüketici | Son aktivite |
 |-------|----------|----------|--------------|
 | **#1 — pipeline** | `simulation_runner.py`, `fea_runner.py`, `report_generator.py` (kök) | `pipeline.py`, `app_parametric.py`, `run_aoa_polar.py`, `run_prism_3d.py` | Haz 2026 (aktif) |
-| **#2 — solvers/post_processing** | `solvers/`, `post_processing/` | `main.py` (yetim), `test_integration.py`, `full_integration_test.py` | Nis 2026 |
-| **#3 — analysis** | `analysis/` (`openfoam_runner`, `calculix_writer`, `ccx_runner`, `tet_mesher`, `frd_parser`) | `test_cfd_pipeline.py`, `test_fea_pipeline.py` | Nis 2026 |
+| **#2 — solvers/post_processing** | `solvers/`, `post_processing/` | `main.py` (yetim), `check_integration.py`, `full_integration_test.py` | Nis 2026 |
+| **#3 — analysis** | `analysis/` (`openfoam_runner`, `calculix_writer`, `ccx_runner`, `tet_mesher`, `frd_parser`) | `check_cfd_pipeline.py`, `check_fea_pipeline.py` | Nis 2026 |
 
 Bunlar satır-satır kopya **değil** — aynı problemi çözen üç jenerasyon. Mekanik
 birleştirme, OpenFOAM/CalculiX olmadan doğrulanamayacağı için yüksek riskli.
@@ -38,7 +38,7 @@ birleştirme, OpenFOAM/CalculiX olmadan doğrulanamayacağı için yüksek riskl
   (uçağa-özel V&V) ile **tamamlayıcı**; o keyfi STL geometriyi meshleyip çözer.
   Silmek = çalışan yeteneği kaybetmek → **silinmez.**
 - **#2 `solvers/` + `post_processing/` = ikincil wrapper + PDF rapor.**
-  `test_integration` (mock solver'larla) + `full_integration_test` tüketir. İkincil
+  `check_integration` (mock solver'larla) + `full_integration_test` tüketir. İkincil
   ama işlevsel; kanonik gerçek-solver yolları `pipeline.py` ve `analysis/`.
 - **`main.py` = tek gerçek yetim** (sıfır referans, eski CFD-only GUI; halefi
   `app_parametric.py`). Silinmesi tek meşru aday; kullanıcı onayına bağlı.

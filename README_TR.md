@@ -72,7 +72,7 @@ sudo apt-get install -y calculix-cgx calculix-ccx
 # İndir: https://www.blender.org/download/
 
 # 6. Sistem test et
-python test_integration.py
+python check_integration.py
 python full_integration_test.py
 
 # 7. GUI başlat
@@ -253,7 +253,7 @@ Mevcut malzemeler:
 
 ### Modül Testi
 ```bash
-python test_integration.py
+python check_integration.py
 ```
 
 ### Tam Entegrasyon Testi
@@ -284,7 +284,7 @@ cfd_fea_tools/
 ├── mesh_to_cfd.py                   # Mesh dönüştürme
 ├── blender_synthetic_generator.py   # Blender dataset
 ├── ml_training_integration.py       # ML training
-├── test_integration.py              # Modül test
+├── check_integration.py              # Modül test
 ├── full_integration_test.py         # Entegrasyon test
 ├── verify_blender.py                # Blender doğrula
 │

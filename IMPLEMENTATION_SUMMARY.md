@@ -109,7 +109,7 @@ fea_runner.py                    # CalculiX FEA simülasyon
 mesh_to_cfd.py                   # STL → Aircraft dönüştürme
 ml_training_integration.py       # YOLO eğitim pipeline
 verify_blender.py                # Blender kurulum doğrulama
-test_integration.py              # Modül test
+check_integration.py              # Modül test
 full_integration_test.py         # Sistem entegrasyon test
 ```
 
@@ -141,7 +141,7 @@ pip install -r requirements.txt
 
 ### Adım 2: Sistem Test
 ```bash
-python test_integration.py
+python check_integration.py
 python full_integration_test.py
 ```
 
@@ -160,7 +160,7 @@ python app_parametric.py
 
 ## 🧪 Test Sonuçları
 
-### test_integration.py
+### check_integration.py
 ```
 ✅ aircraft_geometry      — OK
 ✅ mesh_generator         — OK
