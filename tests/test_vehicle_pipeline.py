@@ -1,6 +1,7 @@
 """vehicle_pipeline saf fonksiyonlari: geometri, log parserlar, presetler."""
 import numpy as np
 import pytest
+import trimesh
 
 from vehicle_pipeline import (
     MESH_QUALITY,
@@ -9,6 +10,7 @@ from vehicle_pipeline import (
     orientation_matrix,
     parse_checkmesh,
     parse_residuals,
+    prepare_geometry,
 )
 
 
@@ -61,6 +63,37 @@ def test_orientation_matrix_identity():
 def test_orientation_matrix_rejects_parallel_axes():
     with pytest.raises(ValueError):
         orientation_matrix("+x", "-x")
+
+
+def test_prepare_geometry_repairs_open_cube(tmp_path):
+    box = trimesh.creation.box(extents=(1, 1, 1))
+    broken = trimesh.Trimesh(vertices=box.vertices, faces=box.faces[:-2])  # 2 ucgen sil
+    assert not broken.is_watertight
+    src = tmp_path / "bozuk.stl"
+    broken.export(str(src))
+    prepared, info = prepare_geometry(src, tmp_path / "out")
+    assert not info["su_gecirmez_once"]
+    assert info["su_gecirmez_sonra"]
+    assert any("delik" in r for r in info["onarimlar"])
+    assert trimesh.load(str(prepared), force="mesh").is_watertight
+
+
+def test_prepare_geometry_counts_bodies(tmp_path):
+    a = trimesh.creation.box(extents=(1, 1, 1))
+    b = trimesh.creation.box(extents=(1, 1, 1))
+    b.apply_translation((3, 0, 0))
+    src = tmp_path / "iki_govde.stl"
+    trimesh.util.concatenate([a, b]).export(str(src))
+    prepared, info = prepare_geometry(src, tmp_path / "out")
+    assert info["govde_sayisi"] == 2
+    assert prepared.exists()
+
+
+def test_prepare_geometry_rejects_empty(tmp_path):
+    src = tmp_path / "bos.stl"
+    src.write_text("solid bos\nendsolid bos\n")
+    with pytest.raises(ValueError):
+        prepare_geometry(src, tmp_path / "out")
 
 
 def test_parse_residuals(tmp_path):

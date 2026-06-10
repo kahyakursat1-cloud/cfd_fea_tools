@@ -61,6 +61,74 @@ SKEW_LIMIT = 4.0
 DRIFT_LIMIT_PCT = 2.0    # son %20 pencerede |dCd|/Cd
 
 
+CAD_EXTS = {".step", ".stp", ".iges", ".igs"}
+
+
+def convert_cad_to_stl(cad_path: Path, out_stl: Path) -> Path:
+    """STEP/IGES → STL (gmsh yüzey mesh'i; çekirdek bağımlılık, ek kurulum yok)."""
+    import gmsh
+    gmsh.initialize()
+    try:
+        gmsh.option.setNumber("General.Terminal", 0)
+        gmsh.open(str(cad_path))
+        xmin, ymin, zmin, xmax, ymax, zmax = gmsh.model.getBoundingBox(-1, -1)
+        L = max(xmax - xmin, ymax - ymin, zmax - zmin)
+        gmsh.option.setNumber("Mesh.MeshSizeMin", L / 200)
+        gmsh.option.setNumber("Mesh.MeshSizeMax", L / 60)
+        gmsh.model.mesh.generate(2)
+        gmsh.write(str(out_stl))
+    finally:
+        gmsh.finalize()
+    return out_stl
+
+
+def prepare_geometry(path, out_dir: Path, progress_cb=None) -> tuple[Path, dict]:
+    """Her formatı analiz-hazır tek STL'e indirger: CAD dönüşümü, çok-gövde
+    birleştirme, normal/sarım onarımı, delik kapatma. Onarım kaydı döner."""
+    path = Path(path)
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    info = {"kaynak": path.name, "onarimlar": []}
+
+    if path.suffix.lower() in CAD_EXTS:
+        if progress_cb:
+            progress_cb(1, f"CAD dönüşümü (gmsh): {path.name}")
+        path = convert_cad_to_stl(path, out_dir / f"{path.stem}_cad.stl")
+        info["onarimlar"].append("CAD→STL dönüşümü (gmsh yüzey mesh)")
+
+    m = trimesh.load(str(path), force="mesh")   # Scene ise gövdeler birleştirilir
+    if not isinstance(m, trimesh.Trimesh) or len(m.faces) == 0:
+        raise ValueError(f"Model okunamadı veya boş: {path}")
+
+    try:
+        info["govde_sayisi"] = len(m.split(only_watertight=False))
+    except Exception:
+        info["govde_sayisi"] = 1
+
+    before_wt = bool(m.is_watertight)
+    n_face0 = len(m.faces)
+    m.process(validate=True)                    # tekil nokta birleştirme + dejenere üçgen temizliği
+    if len(m.faces) != n_face0:
+        info["onarimlar"].append(f"dejenere/yinelenen üçgen temizliği ({n_face0}→{len(m.faces)})")
+    try:
+        trimesh.repair.fix_normals(m)
+        info["onarimlar"].append("normal/sarım onarımı")
+    except Exception:
+        pass
+    if not m.is_watertight:
+        try:
+            if trimesh.repair.fill_holes(m) and m.is_watertight:
+                info["onarimlar"].append("delik kapatma (su geçirmez hale getirildi)")
+        except Exception:
+            pass
+    info["su_gecirmez_once"] = before_wt
+    info["su_gecirmez_sonra"] = bool(m.is_watertight)
+
+    prepared = out_dir / f"{Path(info['kaynak']).stem}_prep.stl"
+    m.export(str(prepared))
+    return prepared, info
+
+
 AXIS_VECTORS = {
     "+x": np.array([1.0, 0, 0]), "-x": np.array([-1.0, 0, 0]),
     "+y": np.array([0, 1.0, 0]), "-y": np.array([0, -1.0, 0]),
@@ -188,9 +256,11 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
 
     run_dir = Path(out_root) / stem
     run_dir.mkdir(parents=True, exist_ok=True)
+    stl_path, prep = prepare_geometry(stl_path, run_dir, progress_cb)
     stl_path = orient_mesh(stl_path, nose_axis, up_axis,
                            run_dir / f"{stem}_oriented.stl")
     geo = inspect_geometry(stl_path)
+    geo["hazirlik"] = prep
     geo["oryantasyon"] = f"burun={nose_axis} üst={up_axis} → akış çerçevesi (+x, +z)"
     if progress_cb:
         progress_cb(2, f"Geometri: {geo['lmax_m']} m, {geo['ucgen_sayisi']} üçgen")
@@ -323,7 +393,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Katı model → CFD → mühendis raporu")
-    ap.add_argument("model", help="STL/OBJ dosyası")
+    ap.add_argument("model", help="STL/OBJ/STEP/IGES dosyası")
     ap.add_argument("--tip", default="ucak", choices=list(VEHICLE_PRESETS))
     ap.add_argument("--hiz", type=float, default=30.0, help="m/s")
     ap.add_argument("--aoa", type=float, default=0.0, help="hücum açısı (derece)")

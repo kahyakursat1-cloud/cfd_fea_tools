@@ -126,6 +126,12 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
     md.append(f"- Kapsayan kutu: **{dims[0]} × {dims[1]} × {dims[2]} m** (L_ref = {geo['lmax_m']} m)  ")
     md.append(f"- Üçgen sayısı: {geo['ucgen_sayisi']:,} — su geçirmezlik: "
               f"{'✅ kapalı' if geo['su_gecirmez'] else '⚠️ açık (snappyHexMesh toleranslı ama riskli)'}  ")
+    prep = geo.get("hazirlik") or {}
+    if prep.get("govde_sayisi", 1) > 1:
+        md.append(f"- Gövde sayısı: **{prep['govde_sayisi']}** (çok-parçalı model — "
+                  "tek yüzey olarak mesh'lendi)  ")
+    if prep.get("onarimlar"):
+        md.append("- Geometri hazırlığı: " + "; ".join(prep["onarimlar"]) + "  ")
     md.append(f"- Referans alan ({r.aref_mode}): **{r.aref_m2} m²** "
               "(konveks-zarf izdüşümü — içbükey kesitlerde üst sınır)\n")
     md.append("![Geometri](figures/geometry.png)\n")

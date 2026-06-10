@@ -42,6 +42,7 @@ from vehicle_pipeline import (
     MESH_QUALITY,
     VEHICLE_PRESETS,
     inspect_geometry,
+    prepare_geometry,
     run_vehicle_analysis,
 )
 
@@ -200,31 +201,39 @@ class AnalyzerWindow(QMainWindow):
         if e.mimeData().hasUrls():
             e.acceptProposedAction()
 
+    MODEL_EXTS = (".stl", ".obj", ".step", ".stp", ".iges", ".igs")
+
     def dropEvent(self, e):
         for url in e.mimeData().urls():
             p = Path(url.toLocalFile())
-            if p.suffix.lower() in (".stl", ".obj"):
+            if p.suffix.lower() in self.MODEL_EXTS:
                 self._load_model(p)
                 return
 
     def _browse(self):
         f, _ = QFileDialog.getOpenFileName(self, "Katı model seç", "",
-                                           "3B Model (*.stl *.obj)")
+                                           "3B Model (*.stl *.obj *.step *.stp *.iges *.igs)")
         if f:
             self._load_model(Path(f))
 
     def _load_model(self, path: Path):
         try:
-            geo = inspect_geometry(path)
+            prepared, prep = prepare_geometry(path, Path("vehicle_runs") / path.stem)
+            geo = inspect_geometry(prepared)
         except Exception as e:
             QMessageBox.critical(self, "Hata", f"Model okunamadı:\n{e}")
             return
         self.model_path = path
         d = geo["boyutlar_m"]
         wt = "kapalı ✓" if geo["su_gecirmez"] else "açık ⚠"
+        extra = ""
+        if prep.get("govde_sayisi", 1) > 1:
+            extra += f"   gövde: {prep['govde_sayisi']}"
+        if prep.get("onarimlar"):
+            extra += f"\nHazırlık: {'; '.join(prep['onarimlar'])}"
         self.drop_label.setText(f"✅ {path.name}")
         self.geo_label.setText(
-            f"Boyut: {d[0]} × {d[1]} × {d[2]} m   |   üçgen: {geo['ucgen_sayisi']:,}\n"
+            f"Boyut: {d[0]} × {d[1]} × {d[2]} m   |   üçgen: {geo['ucgen_sayisi']:,}{extra}\n"
             f"Yüzey: {geo['yuzey_alani_m2']} m²   ön: {geo['on_alan_m2']} m²   "
             f"planform: {geo['planform_alan_m2']} m²   |   yüzey {wt}")
         self.btn_run.setEnabled(True)
