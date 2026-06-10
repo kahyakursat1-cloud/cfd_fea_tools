@@ -12,13 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from ogrid_elliptic import build_ogrid, write_polymesh
 
-alphas=[int(x) for x in sys.argv[1:]] or [0,4,8]
 R=40.0; V,nu,rho,chord=50.0,1.48e-5,1.225,1.0
-base=Path("tr_mesh")
-if base.exists(): shutil.rmtree(base)
-(base/"system").mkdir(parents=True, exist_ok=True)
-X,Y,I,nj=build_ogrid(R=R,n_around=260,nj=130,first_cell=8e-6)
-write_polymesh(base,X,Y,I,nj)
 
 def setup(case,alpha):
     a=math.radians(alpha); Ux,Uy=V*math.cos(a),V*math.sin(a)
@@ -42,38 +36,47 @@ def ctrl(case,model,end):
     (case/"system"/"controlDict").write_text(f'FoamFile{{version 2.0;format ascii;class dictionary;object controlDict;}}\napplication foamRun; startFrom {sf}; startTime 0; stopAt endTime; endTime {end}; deltaT 1; writeControl timeStep; writeInterval {end}; purgeWrite 1; writeFormat binary;\nfunctions{{ forces{{ type forces; libs ("libforces.so"); writeControl timeStep; writeInterval 100; patches ("airfoil"); rho rhoInf; rhoInf {rho}; pRef 0; CofR (0.25 0 0); }} }}')
 
 ref_free={0:(0.0,0.0055),4:(0.44,0.0064),8:(0.85,0.0095)}
-results={}
-for alpha in alphas:
-    case=Path(f"tr_{alpha}")
-    if case.exists(): shutil.rmtree(case)
-    shutil.copytree(base,case)
-    setup(case,alpha)
-    p=str(case.resolve()); wsl=f"/mnt/{p[0].lower()}{p[2:].replace(chr(92),'/')}"
-    def of(cmd,t=2400,wsl=wsl): return subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && export FOAM_SIGFPE=false && cd {wsl} && {cmd}"',shell=True,capture_output=True,text=True,timeout=t)
-    # Asama 1: kOmegaSST (akisi kur)
-    ctrl(case,"kOmegaSST",2000)
-    of("potentialFoam -initialiseUBCs -writep >log.pot 2>&1; foamRun -solver incompressibleFluid >log.s1 2>&1")
-    # Asama 2: kOmegaSSTLM gecis modeli — restart zamaninda gammaInt/ReThetat yok, 0/'dan tasi
-    lt=max((d for d in case.iterdir() if d.is_dir() and d.name!="0" and d.name.replace(".","",1).isdigit()),key=lambda d:float(d.name),default=None)
-    if lt is None:
-        print(f"alpha={alpha}: STAGE1 FAIL",flush=True); results[alpha]={"status":"stage1_failed"}; continue
-    for fld in ("gammaInt","ReThetat"): shutil.copy(case/"0"/fld, lt/fld)
-    ctrl(case,"kOmegaSSTLM",4000)
-    of("foamRun -solver incompressibleFluid >log.s2 2>&1")
-    if "FOAM FATAL" in (case/"log.s2").read_text(errors="ignore"):
-        print(f"alpha={alpha}: STAGE2 FATAL",flush=True); results[alpha]={"status":"stage2_failed"}; continue
-    ff=sorted((case/"postProcessing"/"forces").glob("*/forces.dat"),key=lambda f:float(f.parent.name))
-    if not ff:
-        print(f"alpha={alpha}: FORCES YOK",flush=True); continue
-    ll=[l for l in ff[-1].read_text().splitlines() if l.strip() and not l.startswith("#")]
-    nums=re.findall(r'[-+]?\d+\.?\d*[eE]?[-+]?\d*', ll[-1])
-    Fx=float(nums[1])+float(nums[4]); Fy=float(nums[2])+float(nums[5])
-    a=math.radians(alpha); drag=Fx*math.cos(a)+Fy*math.sin(a); lift=-Fx*math.sin(a)+Fy*math.cos(a)
-    q=0.5*rho*V**2; S=chord*0.1; Cd,Cl=drag/(q*S),lift/(q*S)
-    if not (math.isfinite(Cd) and abs(Cd)<0.5):
-        print(f"alpha={alpha}: DIVERGED Cd={Cd:.3g}",flush=True); results[alpha]={"status":f"diverged Cd={Cd:.3g}"}; continue
-    clf,cdf=ref_free[alpha]
-    ecl=abs(Cl-clf)/(abs(clf)+1e-3)*100; ecd=abs(Cd-cdf)/cdf*100
-    results[alpha]={"Cl":round(Cl,4),"Cd":round(Cd,5),"errCl":round(ecl,1),"errCd":round(ecd,1)}
-    print(f"alpha={alpha}: Cd={Cd:.5f} (free-ref {cdf}, err={ecd:.0f}%)  Cl={Cl:.4f} (ref {clf}, err={ecl:.0f}%)",flush=True)
-Path("transition_results.json").write_text(json.dumps(results,indent=2))
+
+# import yan-etkisi yok: exp_gci_final setup/ctrl'u yeniden kullanmak icin import ediyor
+if __name__=="__main__":
+    alphas=[int(x) for x in sys.argv[1:]] or [0,4,8]
+    base=Path("tr_mesh")
+    if base.exists(): shutil.rmtree(base)
+    (base/"system").mkdir(parents=True, exist_ok=True)
+    X,Y,I,nj=build_ogrid(R=R,n_around=260,nj=130,first_cell=8e-6)
+    write_polymesh(base,X,Y,I,nj)
+    results={}
+    for alpha in alphas:
+        case=Path(f"tr_{alpha}")
+        if case.exists(): shutil.rmtree(case)
+        shutil.copytree(base,case)
+        setup(case,alpha)
+        p=str(case.resolve()); wsl=f"/mnt/{p[0].lower()}{p[2:].replace(chr(92),'/')}"
+        def of(cmd,t=2400,wsl=wsl): return subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && export FOAM_SIGFPE=false && cd {wsl} && {cmd}"',shell=True,capture_output=True,text=True,timeout=t)
+        # Asama 1: kOmegaSST (akisi kur)
+        ctrl(case,"kOmegaSST",2000)
+        of("potentialFoam -initialiseUBCs -writep >log.pot 2>&1; foamRun -solver incompressibleFluid >log.s1 2>&1")
+        # Asama 2: kOmegaSSTLM gecis modeli — restart zamaninda gammaInt/ReThetat yok, 0/'dan tasi
+        lt=max((d for d in case.iterdir() if d.is_dir() and d.name!="0" and d.name.replace(".","",1).isdigit()),key=lambda d:float(d.name),default=None)
+        if lt is None:
+            print(f"alpha={alpha}: STAGE1 FAIL",flush=True); results[alpha]={"status":"stage1_failed"}; continue
+        for fld in ("gammaInt","ReThetat"): shutil.copy(case/"0"/fld, lt/fld)
+        ctrl(case,"kOmegaSSTLM",4000)
+        of("foamRun -solver incompressibleFluid >log.s2 2>&1")
+        if "FOAM FATAL" in (case/"log.s2").read_text(errors="ignore"):
+            print(f"alpha={alpha}: STAGE2 FATAL",flush=True); results[alpha]={"status":"stage2_failed"}; continue
+        ff=sorted((case/"postProcessing"/"forces").glob("*/forces.dat"),key=lambda f:float(f.parent.name))
+        if not ff:
+            print(f"alpha={alpha}: FORCES YOK",flush=True); continue
+        ll=[l for l in ff[-1].read_text().splitlines() if l.strip() and not l.startswith("#")]
+        nums=re.findall(r'[-+]?\d+\.?\d*[eE]?[-+]?\d*', ll[-1])
+        Fx=float(nums[1])+float(nums[4]); Fy=float(nums[2])+float(nums[5])
+        a=math.radians(alpha); drag=Fx*math.cos(a)+Fy*math.sin(a); lift=-Fx*math.sin(a)+Fy*math.cos(a)
+        q=0.5*rho*V**2; S=chord*0.1; Cd,Cl=drag/(q*S),lift/(q*S)
+        if not (math.isfinite(Cd) and abs(Cd)<0.5):
+            print(f"alpha={alpha}: DIVERGED Cd={Cd:.3g}",flush=True); results[alpha]={"status":f"diverged Cd={Cd:.3g}"}; continue
+        clf,cdf=ref_free[alpha]
+        ecl=abs(Cl-clf)/(abs(clf)+1e-3)*100; ecd=abs(Cd-cdf)/cdf*100
+        results[alpha]={"Cl":round(Cl,4),"Cd":round(Cd,5),"errCl":round(ecl,1),"errCd":round(ecd,1)}
+        print(f"alpha={alpha}: Cd={Cd:.5f} (free-ref {cdf}, err={ecd:.0f}%)  Cl={Cl:.4f} (ref {clf}, err={ecl:.0f}%)",flush=True)
+    Path("transition_results.json").write_text(json.dumps(results,indent=2))
