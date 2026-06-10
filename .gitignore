@@ -53,6 +53,16 @@ report/
 logs/
 vspaero_results/
 vspaero_run/
+gci_coarse/
+gci_medium/
+gci_fine/
+tr_[0-9]*/
+tr_mesh/
+ogrid_test/
+cgrid_test/
+
+# ─── Şartname PDF'leri (bilgi tabanına ait, kod reposuna değil) ───────────
+sources/*.pdf
 
 # ─── OpenFOAM artefaktları (case dizinleri dışında kalanlar) ──────────────
 processor*/

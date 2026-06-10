@@ -1,7 +1,0 @@
-FoamFile{version 2.0; format ascii; class polyBoundaryMesh; location "constant/polyMesh"; object boundary;}
-3
-(
-  airfoil{ type wall; nFaces 200; startFace 39800; }
-  farfield{ type patch; nFaces 200; startFace 40000; }
-  frontAndBack{ type empty; nFaces 40000; startFace 40200; }
-)
