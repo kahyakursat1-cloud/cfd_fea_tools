@@ -23,6 +23,15 @@ plt.rcParams.update({
     "axes.linewidth": 0.8,
 })
 
+# Arastirma-sinifi kabul esikleri — rapor verdiktleri girdi JSON'undaki
+# pass bayraklarindan DEGIL, bu esiklerden yeniden hesaplanir.
+TOL_CD_PCT = 15.0    # NACA0012 Cd validation (RANS, bagli akis)
+TOL_CL_PCT = 5.0     # NACA0012 Cl validation
+TOL_CL_ABS = 0.01    # |Cl_ref| ~ 0 durumunda mutlak kriter (yuzde anlamsiz)
+TOL_FEA_PCT = 5.0    # analitik kiris sehimi
+GCI_PASS_PCT = 5.0
+P_RANGE = (0.5, 3.0)  # gozlemlenen mertebe makul araligi (teorik ~2)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # GCI — Richardson Extrapolation (ASME V&V 20)
@@ -38,7 +47,7 @@ def compute_gci(h_coarse, h_med, h_fine, f_coarse, f_med, f_fine, Fs=1.25):
     e32 = f_med - f_coarse
     if abs(e21) < 1e-15 or abs(e32) < 1e-15:
         return None
-    s = math.copysign(1, e32 / e21)
+    monotonic = (e32 / e21) > 0
     # Sabit r icin: p = ln|e32/e21| / ln(r)
     p = math.log(abs(e32 / e21)) / math.log(r21)
     f_exact = f_fine + e21 / (r21 ** p - 1)
@@ -48,7 +57,27 @@ def compute_gci(h_coarse, h_med, h_fine, f_coarse, f_med, f_fine, Fs=1.25):
         "p": round(p, 3), "f_exact": round(f_exact, 6),
         "gci_fine_pct": round(gci_fine, 4), "gci_med_pct": round(gci_med, 4),
         "asymptotic": round((r21 ** p) * gci_fine / gci_med, 4) if gci_med else None,
+        "monotonic": monotonic,
+        "p_in_range": P_RANGE[0] <= p <= P_RANGE[1],
     }
+
+
+def gci_verdict(gci):
+    """ASME V&V 20 uyumlu durust verdikt: GCI esigi tek basina yetmez —
+    monotonluk, gozlemlenen mertebenin makullugu ve asimptotik oran da gerekir."""
+    problems = []
+    if not gci.get("monotonic"):
+        problems.append("yakinsamamis/salinimli dizi")
+    if not gci.get("p_in_range"):
+        problems.append(f"p={gci['p']} makul aralik {P_RANGE} disi — asimptotik aralikta degil")
+    asy = gci.get("asymptotic")
+    if asy is not None and not (0.5 <= asy <= 2.0):
+        problems.append(f"asimptotik oran {asy} (≈1 beklenir)")
+    if gci["gci_fine_pct"] >= GCI_PASS_PCT:
+        problems.append(f"GCI={gci['gci_fine_pct']}% ≥ {GCI_PASS_PCT}%")
+    if not problems:
+        return f"✅ Yakınsadı (GCI<{GCI_PASS_PCT}%, monoton, p makul, asimptotik oran≈1)"
+    return "⚠️ Mesh bağımsızlığı GÖSTERİLEMEDİ: " + "; ".join(problems)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -73,6 +102,41 @@ def fig_mesh_convergence(meshes, out_path):
     ax.set_xlabel("Mesh boyutu h (m)")
     ax.set_ylabel("Sürükleme katsayısı $C_d$")
     ax.set_title("Mesh Bağımsızlık Analizi", fontsize=10)
+    fig.tight_layout()
+    fig.savefig(out_path)
+    plt.close(fig)
+    return gci
+
+
+def fig_airfoil_gci(levels, refs, out_path):
+    """2D airfoil GCI: Cd-h (h=1/sqrt(N)) + Richardson + referans bandi.
+    Sadece status=ok seviyeleri cizilir; en ince 3 gecerli seviyeden GCI."""
+    ok = [lv for lv in levels if lv.get("status") == "ok" and lv.get("Cd") is not None]
+    if len(ok) < 2:
+        return None
+    ok.sort(key=lambda lv: lv["cells"])
+    h = np.array([1.0 / math.sqrt(lv["cells"]) for lv in ok])
+    cd = np.array([lv["Cd"] for lv in ok])
+
+    gci = None
+    if len(ok) >= 3:
+        f3, f2, f1 = ok[-3], ok[-2], ok[-1]   # coarse->fine (en ince 3)
+        gci = compute_gci(1/math.sqrt(f3["cells"]), 1/math.sqrt(f2["cells"]),
+                          1/math.sqrt(f1["cells"]), f3["Cd"], f2["Cd"], f1["Cd"])
+
+    fig, ax = plt.subplots(figsize=(4.5, 3.2))
+    ax.plot(h, cd, "o-", color="#1f4e79", mfc="white", ms=6, lw=1.3, label="kOmegaSSTLM")
+    if gci and gci.get("monotonic"):
+        ax.axhline(gci["f_exact"], ls="--", color="#c00000", lw=1,
+                   label=f"Richardson: Cd={gci['f_exact']:.5f}")
+    for name, val, c in (("ref (serbest geçiş)", refs.get("Cd_free"), "#2e7d32"),
+                         ("ref (türbülanslı)", refs.get("Cd_turb"), "#7b1fa2")):
+        if val:
+            ax.axhline(val, ls=":", color=c, lw=1, label=f"{name}={val}")
+    ax.set_xlabel("h = N$^{-1/2}$")
+    ax.set_ylabel("$C_d$")
+    ax.set_title("2D NACA0012 GCI (O-grid, geçiş modeli)", fontsize=10)
+    ax.legend(fontsize=7)
     fig.tight_layout()
     fig.savefig(out_path)
     plt.close(fig)
@@ -143,6 +207,13 @@ def fig_polar(polar, out_path):
     return {"clmax": cl[clmax_i], "alpha_stall": a[clmax_i]}
 
 
+def _cl_pass(r):
+    """|Cl_ref|~0 ise yuzde hata anlamsiz — mutlak kriter kullan."""
+    if abs(r.get("Cl_ref", 0)) < 0.05:
+        return abs(r.get("Cl_sim", 1e9) - r.get("Cl_ref", 0)) <= TOL_CL_ABS
+    return r.get("Cl_err_pct", 1e9) <= TOL_CL_PCT
+
+
 def fig_validation_bars(val_results, out_path):
     """Validation hata barlari (deney vs simulasyon)."""
     labels, errs, tols = [], [], []
@@ -150,11 +221,15 @@ def fig_validation_bars(val_results, out_path):
         if key.startswith("cfd_") and "Cd_err_pct" in r:
             labels.append(f"NACA0012\nα={r.get('alpha')}° Cd")
             errs.append(r["Cd_err_pct"])
-            tols.append(40)
+            tols.append(TOL_CD_PCT)
+        if key.startswith("cfd_") and "Cl_err_pct" in r and abs(r.get("Cl_ref", 0)) >= 0.05:
+            labels.append(f"NACA0012\nα={r.get('alpha')}° Cl")
+            errs.append(r["Cl_err_pct"])
+            tols.append(TOL_CL_PCT)
         if key == "fea_cantilever" and "deflection_err_pct" in r:
             labels.append("Kiriş\nδ")
             errs.append(r["deflection_err_pct"])
-            tols.append(5)
+            tols.append(TOL_FEA_PCT)
 
     if not labels:
         return
@@ -187,7 +262,7 @@ class VVReport:
     def build(self, mesh_indep=None, validation=None, envelope=None,
               fea=None, coupling=None, mesh_quality=None, polar=None,
               vspaero=None, rocket=None, rocket_fin=None, rocket_cfd=None,
-              project="MiniHawk İHA"):
+              airfoil_gci=None, project="MiniHawk İHA"):
         md = ["# CFD/FEA Doğrulama ve Validation Raporu",
               f"\n**Proje:** {project}  ",
               f"**Tarih:** {datetime.now():%Y-%m-%d %H:%M}  ",
@@ -224,9 +299,38 @@ class VVReport:
                 md.append(f"\n**Richardson ekstrapolasyon:** $C_d$ = {gci['f_exact']:.4f}  ")
                 md.append(f"**Gözlemlenen mertebe** p = {gci['p']}  ")
                 md.append(f"**GCI (fine)** = {gci['gci_fine_pct']}%  ")
-                verdict = "✅ Yakınsadı (GCI < 5%)" if gci['gci_fine_pct'] < 5 else "⚠️ Yakınsamadı"
-                md.append(f"**Sonuç:** {verdict}\n")
+                md.append(f"**Asimptotik oran** = {gci.get('asymptotic')}  ")
+                md.append(f"**Sonuç:** {gci_verdict(gci)}\n")
             md.append("![Mesh Convergence](figures/mesh_convergence.png)\n")
+
+        # 1b. 2D airfoil GCI (O-grid, gecis modeli)
+        if airfoil_gci and airfoil_gci.get("levels"):
+            levels = airfoil_gci["levels"]
+            refs = airfoil_gci.get("reference", {})
+            gci2 = fig_airfoil_gci(levels, refs, self.out / "figures" / "airfoil_gci.png")
+            md.append(f"## 1b. 2D Airfoil GCI — NACA0012 α={airfoil_gci.get('alpha')}° "
+                      f"({airfoil_gci.get('model')})\n")
+            md.append("| Seviye | Grid | Hücre | $C_d$ | $C_l$ | İter. drift | Durum |")
+            md.append("|--------|------|-------|-------|-------|-------------|-------|")
+            for lv in sorted(levels, key=lambda x: x["cells"]):
+                stat = "✅ ok" if lv.get("status") == "ok" else f"❌ {lv.get('status')}"
+                cd_s = f"{lv['Cd']:.5f}" if lv.get("Cd") is not None else "—"
+                cl_s = f"{lv['Cl']:.4f}" if lv.get("Cl") is not None else "—"
+                dr_s = f"{lv['drift']:.1e}" if lv.get("drift") is not None else "—"
+                md.append(f"| {lv['name']} | {lv.get('grid','-')} | {lv['cells']} | "
+                          f"{cd_s} | {cl_s} | {dr_s} | {stat} |")
+            if gci2:
+                md.append(f"\n**Richardson (en ince 3 geçerli seviye):** $C_d$ = "
+                          f"{gci2['f_exact']:.5f}  ")
+                md.append(f"**Gözlemlenen mertebe** p = {gci2['p']}  ")
+                md.append(f"**GCI (fine)** = {gci2['gci_fine_pct']}%  ")
+                md.append(f"**Sonuç:** {gci_verdict(gci2)}\n")
+            if refs:
+                md.append(f"*Referans: Ladson — serbest geçiş Cd={refs.get('Cd_free')}, "
+                          f"türbülanslı Cd={refs.get('Cd_turb')}, Cl={refs.get('Cl')}.*\n")
+            if airfoil_gci.get("note"):
+                md.append(f"> ⚠️ *{airfoil_gci['note']}*\n")
+            md.append("![Airfoil GCI](figures/airfoil_gci.png)\n")
 
         # 2. Validation
         if validation:
@@ -236,17 +340,21 @@ class VVReport:
             md.append("|------|----------|----------|------------|------|-------|")
             for key, r in validation.items():
                 if key.startswith("cfd_") and "Cd_ref" in r:
+                    cd_ok = r["Cd_err_pct"] <= TOL_CD_PCT
                     md.append(f"| NACA0012 α={r.get('alpha')}° | Cd | {r['Cd_ref']:.4f} | "
                               f"{r['Cd_sim']:.4f} | {r['Cd_err_pct']}% | "
-                              f"{'✅' if r.get('Cd_pass') else '❌'} |")
+                              f"{'✅' if cd_ok else '❌'} |")
+                    cl_note = " (mutlak kriter)" if abs(r.get("Cl_ref", 0)) < 0.05 else ""
                     md.append(f"| NACA0012 α={r.get('alpha')}° | Cl | {r['Cl_ref']:.4f} | "
-                              f"{r['Cl_sim']:.4f} | {r.get('Cl_err_pct')}% | "
-                              f"{'✅' if r.get('Cl_pass') else '❌'} |")
+                              f"{r['Cl_sim']:.4f} | {r.get('Cl_err_pct')}%{cl_note} | "
+                              f"{'✅' if _cl_pass(r) else '❌'} |")
                 if key == "fea_cantilever":
                     md.append(f"| Ankastre kiriş | δ (mm) | {r['delta_analytic_mm']} | "
                               f"{r['delta_fea_mm']} | {r['deflection_err_pct']}% | "
-                              f"{'✅' if r.get('deflection_pass') else '❌'} |")
-            md.append("\n![Validation](figures/validation.png)\n")
+                              f"{'✅' if r['deflection_err_pct'] <= TOL_FEA_PCT else '❌'} |")
+            md.append(f"\n*Kabul eşikleri: Cd ≤ %{TOL_CD_PCT:.0f}, Cl ≤ %{TOL_CL_PCT:.0f} "
+                      f"(|Cl_ref|≈0 için |ΔCl| ≤ {TOL_CL_ABS}), FEA ≤ %{TOL_FEA_PCT:.0f}.*\n")
+            md.append("![Validation](figures/validation.png)\n")
 
         # 3. Yapisal yuk zarfi
         if envelope:
@@ -397,13 +505,22 @@ class VVReport:
 
         # V&V notları / dürüst limitasyonlar
         md.append("## V&V Notları ve Geçerlilik Sınırları\n")
-        md.append("- **Bağlı akış (α=0–8°):** CFD deneyle <%3, mühendislik-güvenilir.  ")
-        md.append("- **Sınır tabaka:** prism layer ile y⁺~14 (buffer/log), "
-                  "kOmegaSST sürekli duvar fonksiyonu geçerli.  ")
-        md.append("- **2D y⁺<1 transition:** tek-blok O-grid topolojisi "
-                  "(non-ortho 82°) bunu kaldıramaz; C-grid/eliptik mesh gerektirir.  ")
+        md.append("- **2D y⁺<1 + kOmegaSSTLM geçiş modeli:** kapalı-TE eliptik O-grid "
+                  "(non-ortho ≤65°, 0 açık hücre) ile çalışır; iki aşamalı başlatma "
+                  "(SST → LM, geçiş alanları restart zamanına kopyalanır) gerekir.  ")
+        md.append("- **2D Cl:** mesh-stabil ve referansla uyumlu — kaldırma doğrulaması "
+                  "için bu O-grid ailesi yeterli.  ")
+        md.append("- **2D Cd:** wake-kümelemesiz O-grid ailesinde kaba seviyeler asimptotik "
+                  "aralık dışı kalabilir (negatif basınç sürüklemesi); sürükleme GCI'ı ancak "
+                  "yeterince ince, iterasyon-yakınsamış seviyelerle raporlanır. Kesin Cd "
+                  "doğrulaması için wake-çözünürlüklü (C-grid) topoloji önerilir.  ")
+        md.append("- **3D MiniHawk:** prism layer y⁺~14 (buffer/log), kOmegaSST sürekli "
+                  "duvar fonksiyonu geçerli; stall bölgesi RANS belirsizliği yüksek.  ")
         md.append("- **Yapısal:** FEA analitikle <%0.05; kanat kabuk modeli, "
-                  "tam-araç gövde rijitliği ihmal.\n")
+                  "tam-araç gövde rijitliği ihmal.  ")
+        md.append("- **İterasyon yakınsaması:** GCI öncesi her seviyede kuvvet drifti "
+                  "grid-farklarının küçüğü olmalı (ASME V&V 20 ön-koşulu); tablodaki "
+                  "drift sütunu son 500 iterasyondaki |ΔCd|.\n")
 
         md.append("\n---\n*Otomatik üretildi — CFD/FEA Tools V&V pipeline*\n")
 
@@ -417,11 +534,10 @@ if __name__ == "__main__":
 
     # Mevcut sonuclari topla
     base = Path(".")
-    mesh_indep = [
-        {"name": "medium", "h": 0.025, "Cd": 0.0286, "Cl": 0.1381, "cells": "~0.4M"},
-        {"name": "fine",   "h": 0.012, "Cd": 0.0233, "Cl": 0.1439, "cells": "~0.9M"},
-        {"name": "extra",  "h": 0.006, "Cd": 0.0230, "Cl": 0.1455, "cells": "~2M"},
-    ]
+    mesh_indep = None
+    mifile = base / "mesh_independence.json"
+    if mifile.exists():
+        mesh_indep = json.loads(mifile.read_text(encoding="utf-8-sig")).get("levels")
 
     validation = {}
     vfile = base / "validation" / "validation_results.json"
@@ -465,10 +581,12 @@ if __name__ == "__main__":
     rocket     = _load("openrocket_result.json")
     rocket_fin = _load("rocket_fin_result.json")
     rocket_cfd = _load("rocket_cfd_result.json")
+    airfoil_gci = _load("gci_airfoil.json")
 
     rep = VVReport("./report")
     path = rep.build(mesh_indep=mesh_indep, validation=validation,
                      envelope=env, fea=fea, coupling=coupling,
                      mesh_quality=mesh_quality, polar=polar, vspaero=vspaero,
-                     rocket=rocket, rocket_fin=rocket_fin, rocket_cfd=rocket_cfd)
+                     rocket=rocket, rocket_fin=rocket_fin, rocket_cfd=rocket_cfd,
+                     airfoil_gci=airfoil_gci)
     print(f"Rapor olusturuldu: {path}")
