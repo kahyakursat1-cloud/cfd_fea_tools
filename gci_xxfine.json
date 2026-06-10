@@ -1,0 +1,15 @@
+{
+  "mesh": "572x286 sweeps=26 iters=170",
+  "s1_end": 6000,
+  "s2_end": 10000,
+  "SST": {
+    "Cd": 0.01122,
+    "Cl": 0.4216
+  },
+  "LM": {
+    "Cd": 0.01085,
+    "Cl": 0.4194
+  },
+  "status": "ok",
+  "_not": "Stage-2 ilk denemede FPE tuzagi (FOAM_SIGFPE bashrc bos-tanimli) yuzunden cokmustu; unset ile manuel yeniden kosuldu, End ile tamamlandi. Konsolide veri: gci_airfoil.json"
+}

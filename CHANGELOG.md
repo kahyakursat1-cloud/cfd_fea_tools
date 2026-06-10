@@ -38,6 +38,26 @@ aynı davranışta → sorun LM değil, **wake kümelemesiz O-grid ailesi Cd iç
 yetersiz** (Cl makul: 0.409-0.450, ref ~0.44). Drag GCI için wake-çözünürlüklü
 topoloji gerekir. Detay: `gci_final.json`.
 
+**Devam oturumu — 5-seviye GCI + dördüncü gizli hata + rapor yükseltme:**
+- 🐛 **FPE tuzağı kök nedeni (4. gizli hata):** OpenFOAM bashrc'si `FOAM_SIGFPE`'yi
+  *boş ama tanımlı* export ediyor; .org sigFpe varlık-bazlı kontrol yapar → tuzak
+  hep açıktı. `kOmegaSSTLM::Fthetat`'ta `delta ∝ Ω` ve farfield'da Ω=0 hücrede
+  `y/delta` = 1/0 → SIGFPE. IEEE'de zararsız (`exp(-inf)=0`); çözüm her koşuda
+  `unset FOAM_SIGFPE`. Yazarın `export FOAM_SIGFPE=false` denemesi tuzağı
+  *açıyormuş*. fine t=2076 ve xxfine t=6001 crash'leri aynı mekanizma.
+- ✅ xfine (440×220) + xxfine (572×286) seviyeleri eklendi; iterasyon bütçesi
+  mesh ile ölçeklenir (xxfine s1: 2000→6000, aksi halde Cl=0.28'de yarım kalıyor).
+- 📊 **5-seviye sonuç** (`gci_airfoil.json`): Cd = −0.0036 → −0.0006 → +0.0064 →
+  +0.0087 → +0.0109 — monoton ama p≈0.23 (sub-lineer): **Cd mesh bağımsızlığı
+  163k hücrede dahi GÖSTERİLEMEDİ** — wake-kümelemesiz O-grid yapısal limiti
+  artık 5 noktayla kanıtlı. Cl 5 seviyede stabil (0.42±0.03, ref 0.44).
+- 📑 **Rapor araştırma-sınıfı:** eşikler Cd %40→%15, Cl %5 (Cl_ref≈0 → mutlak
+  kriter); GCI verdikti monotonluk+p-aralığı+asimptotik-oran ister (eski p=4.14 ✅
+  artık gerekçeli ⚠️); yeni Bölüm 1b (5-seviye airfoil GCI, drift sütunu, referans
+  bantlı figür); hardcoded MiniHawk tablosu → `mesh_independence.json`; V&V
+  notları güncel bulgularla yeniden yazıldı. Anlamsız Richardson değeri asimptotik
+  aralık dışında raporlanmaz.
+
 **Yapısal:**
 - 🧹 ~83 MB artefakt untrack (gci_*/tr_* case'leri 151 dosya + 11 şartname PDF'i)
 - 🧹 8 `exp_*.py` → `experiments/`; 6 kök `test_*.py` → `check_*` (pytest ad

@@ -1,4 +1,5 @@
 {
+  "_SUPERSEDED": "Bu dosya ilk duzeltilmis 3-seviye kosunun tarihsel kaydidir. Guncel ve kanonik 5-seviye veri: gci_airfoil.json (rapor Bolum 1b bunu tuketir).",
   "_DEGERLENDIRME": "Divergans cozuldu: kapali-TE O-grid ile 3 mesh de iki asamayi (kOmegaSST -> kOmegaSSTLM) cokmeden tamamladi. ANCAK Cd asimptotik aralikta degil: coarse/medium'da basinc surukleme negatif (fiziksel degil), hata rafine ile monoton kuculuyor (-0.0036 -> -0.0006 -> +0.0064). Asama-1 fully-turbulent SST ayni davranisi gosteriyor (-0.0036 / -0.0003 / +0.0071) => sorun LM kalibrasyonu DEGIL, mesh ailesi: wake kumelemesi olmayan O-grid'de Cd buyuk sayilarin kucuk farki olarak cozulemiyor. Cl ise mesh-stabil ve makul (0.4496/0.4217/0.4087, ref ~0.44). SONUC: bu O-grid ailesi lift dogrulamasi icin yeterli, drag GCI icin yetersiz; wake-cozunurluklu topoloji (orn. C-grid + elliptic) gerekir. p=-3.18 ve gci_pct anlamsiz, rapor edilemez.",
   "model": "kOmegaSSTLM (2-asama; asama-1 kOmegaSST)",
   "mesh": "kapali-TE elliptic O-grid, sweeps=16/iters=120; checkMesh: 0 acik hucre, 0 ters yuz, nonOrtho<=64.5, TE'de 2 lokal skew yuz (~5.2)",

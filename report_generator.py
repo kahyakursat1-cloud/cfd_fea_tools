@@ -126,7 +126,7 @@ def fig_airfoil_gci(levels, refs, out_path):
 
     fig, ax = plt.subplots(figsize=(4.5, 3.2))
     ax.plot(h, cd, "o-", color="#1f4e79", mfc="white", ms=6, lw=1.3, label="kOmegaSSTLM")
-    if gci and gci.get("monotonic"):
+    if gci and gci.get("monotonic") and gci.get("p_in_range"):
         ax.axhline(gci["f_exact"], ls="--", color="#c00000", lw=1,
                    label=f"Richardson: Cd={gci['f_exact']:.5f}")
     for name, val, c in (("ref (serbest geçiş)", refs.get("Cd_free"), "#2e7d32"),
@@ -320,10 +320,14 @@ class VVReport:
                 md.append(f"| {lv['name']} | {lv.get('grid','-')} | {lv['cells']} | "
                           f"{cd_s} | {cl_s} | {dr_s} | {stat} |")
             if gci2:
-                md.append(f"\n**Richardson (en ince 3 geçerli seviye):** $C_d$ = "
-                          f"{gci2['f_exact']:.5f}  ")
-                md.append(f"**Gözlemlenen mertebe** p = {gci2['p']}  ")
-                md.append(f"**GCI (fine)** = {gci2['gci_fine_pct']}%  ")
+                md.append(f"\n**Gözlemlenen mertebe** p = {gci2['p']}  ")
+                if gci2.get("monotonic") and gci2.get("p_in_range"):
+                    md.append(f"**Richardson (en ince 3 geçerli seviye):** $C_d$ = "
+                              f"{gci2['f_exact']:.5f}  ")
+                    md.append(f"**GCI (fine)** = {gci2['gci_fine_pct']}%  ")
+                else:
+                    md.append("**Richardson ekstrapolasyonu raporlanmadı** "
+                              "(asimptotik aralık dışı — değer anlamsız olur)  ")
                 md.append(f"**Sonuç:** {gci_verdict(gci2)}\n")
             if refs:
                 md.append(f"*Referans: Ladson — serbest geçiş Cd={refs.get('Cd_free')}, "

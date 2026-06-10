@@ -1,0 +1,59 @@
+{
+  "alpha": 4,
+  "model": "kOmegaSSTLM, 2-asamali SST→LM baslatma",
+  "mesh_family": "kapali-TE eliptik O-grid, first_cell=8e-6 (y+~1), R=40c",
+  "note": "coarse/medium asimptotik aralik disi (negatif basinc surukleme: wake-kumelemesiz O-grid kaba seviyede Cd cozemiyor); GCI en ince 3 gecerli seviyeden. Cl tum seviyelerde stabil.",
+  "reference": {
+    "Cd_free": 0.0064,
+    "Cd_turb": 0.0092,
+    "Cl": 0.44,
+    "kaynak": "Ladson NACA0012, Re=3.4e6"
+  },
+  "levels": [
+    {
+      "name": "coarse",
+      "grid": "200x100",
+      "cells": 20000,
+      "Cd": -0.003593,
+      "Cl": 0.4478,
+      "drift": 2.09e-05,
+      "status": "ok"
+    },
+    {
+      "name": "medium",
+      "grid": "260x130",
+      "cells": 33800,
+      "Cd": -0.00059,
+      "Cl": 0.4235,
+      "drift": 6.656e-05,
+      "status": "ok"
+    },
+    {
+      "name": "fine",
+      "grid": "340x170",
+      "cells": 57800,
+      "Cd": 0.006386,
+      "Cl": 0.4204,
+      "drift": 0.0002645,
+      "status": "ok"
+    },
+    {
+      "name": "xfine",
+      "grid": "440x220",
+      "cells": 96800,
+      "Cd": 0.008683,
+      "Cl": 0.4225,
+      "drift": 0.00013202,
+      "status": "ok"
+    },
+    {
+      "name": "xxfine",
+      "grid": "572x286",
+      "cells": 163592,
+      "Cd": 0.010847,
+      "Cl": 0.4194,
+      "drift": 2.66e-06,
+      "status": "ok"
+    }
+  ]
+}
