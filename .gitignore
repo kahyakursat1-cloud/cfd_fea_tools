@@ -53,9 +53,7 @@ report/
 logs/
 vspaero_results/
 vspaero_run/
-gci_coarse/
-gci_medium/
-gci_fine/
+gci_*/
 tr_[0-9]*/
 tr_mesh/
 ogrid_test/
