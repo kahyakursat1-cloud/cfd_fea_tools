@@ -32,16 +32,20 @@ def naca0012_loop(n_around):
 
 
 def tanh_radial(nj, first, R):
-    """tanh radyal dagilim: ilk hucre ~first, toplam R, nj+1 nokta."""
-    s = np.linspace(0, 1, nj+1)
-    b = 4.0
-    d = np.tanh(b*s)/np.tanh(b)
-    # ilk araligi 'first'e olcekle, sonra normalize
-    d = d/d[-1]
-    # ilk hucre orani ayari: geometric-ish blend
-    raw = first*(np.cosh(b*s)-1)  # kaba
-    raw = raw/raw[-1]*R
-    return raw
+    """Ilk hucreyi TAM 'first' yapan geometrik radyal dagilim (nj+1 nokta, toplam R).
+
+    NOT (2026-06-10): onceki cosh-tabanli form 'first'i raw[-1] normalizasyonunda
+    SADELESTIRIYORDU — ilk hucre yuksekligi kontrolsuzdu (olculen y+ ort. 7-12,
+    hedef ~1; kOmegaSSTLM y+<=1 sartini ihlal). Buyume orani bisection ile cozulur.
+    """
+    lo, hi = 1.0 + 1e-9, 2.0
+    for _ in range(100):
+        r = 0.5*(lo + hi)
+        if first*(r**nj - 1)/(r - 1) < R: lo = r
+        else: hi = r
+    r = 0.5*(lo + hi)
+    d = np.concatenate([[0.0], np.cumsum(first*r**np.arange(nj))])
+    return d/d[-1]*R
 
 
 def build_ogrid(naca="0012", n_around=240, nj=120, first_cell=8e-6, R=40.0, sweeps=16, iters=120):

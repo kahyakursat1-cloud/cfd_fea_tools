@@ -1,7 +1,7 @@
 """
 bilsem_beyin Launcher
 =====================
-Tüm CFD/FEA/Scanner araçlarına tek noktadan erişim sağlayan
+Tüm CFD/FEA araçlarına tek noktadan erişim sağlayan
 PySide6 tabanlı uygulama başlatıcı.
 
 Kullanım:
@@ -65,8 +65,8 @@ def launch_full_app():
     _run_python("app_parametric.py")
 
 
-def launch_scanner_only():
-    _run_python("scanner_gui_module.py")
+def launch_analyzer():
+    _run_python("app_analyzer.py")
 
 
 def launch_material_editor():
@@ -139,7 +139,7 @@ class LauncherWindow(QWidget):
         root.setSpacing(14)
 
         # ─── Header ───
-        title = QLabel("🛩️  bilsem_beyin CFD / FEA / Scanner")
+        title = QLabel("🛩️  bilsem_beyin CFD / FEA Araçları")
         title.setStyleSheet(f"color: {TEAL}; font-size: 22px; font-weight: bold;")
         root.addWidget(title)
 
@@ -155,17 +155,17 @@ class LauncherWindow(QWidget):
         grid_main = QGridLayout()
         grid_main.setSpacing(10)
 
-        b_full = LauncherButton(
-            "🚀", "Tam Parametrik Analiz Arayüzü",
-            "CFD + FEA + Scanner + Material Editor (tüm sekmeler)", GREEN)
-        b_full.clicked.connect(launch_full_app)
-        grid_main.addWidget(b_full, 0, 0, 1, 2)
+        b_analyzer = LauncherButton(
+            "✈️", "Araç Aerodinamik Analiz Stüdyosu",
+            "Katı model → araca uygun mesh → CFD → mühendis raporu", GREEN)
+        b_analyzer.clicked.connect(launch_analyzer)
+        grid_main.addWidget(b_analyzer, 0, 0, 1, 2)
 
-        b_scanner = LauncherButton(
-            "📸", "3D Photogrammetry Scanner",
-            "Webcam / Video / Klasör + COLMAP entegrasyonu", TEAL)
-        b_scanner.clicked.connect(launch_scanner_only)
-        grid_main.addWidget(b_scanner, 1, 0)
+        b_full = LauncherButton(
+            "🚀", "Parametrik Analiz Arayüzü",
+            "CFD + FEA + Material Editor (tüm sekmeler)", TEAL)
+        b_full.clicked.connect(launch_full_app)
+        grid_main.addWidget(b_full, 1, 0)
 
         b_mat = LauncherButton(
             "🧪", "Malzeme Editörü",

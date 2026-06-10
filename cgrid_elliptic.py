@@ -36,9 +36,10 @@ def geometric_spacing(d0, L, n):
 
 
 def build_cgrid(n_air=200, n_wake=60, nj=100, first_cell=8e-6,
-                R=15.0, L_wake=20.0, sweeps=4, iters=60):
-    # sweeps=4/iters=60 ampirik tatli nokta: TFI zaten skew 0.32 veriyor;
-    # fazla Winslow wake kesiginin iki yakasini bagimsiz kaydirip skew uretiyor
+                R=15.0, L_wake=20.0, sweeps=8, iters=100):
+    # sweeps=8/iters=100: y+ duzeltmeli duvar kumelemesi (gercek 8e-6 ilk hucre)
+    # icin ampirik tatli nokta (skew<4, non-ortho ~70); fazla Winslow wake
+    # kesiginin iki yakasini bagimsiz kaydirip skew uretiyor
     """j=0 egrisi: alt-wake(ters) + airfoil(alt TE->LE->ust TE) + ust-wake.
     Dis sinir: y=-R duz + (0.5,0) merkezli yari-cember + y=+R duz.
     Donus: X, Y (I x nj+1), I, nj, n_wake."""
