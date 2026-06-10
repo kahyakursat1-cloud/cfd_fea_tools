@@ -322,8 +322,10 @@ def _write_control_dict(case_dir: Path, case: CFDCase, surface_name: str,
         "runTimeModifiable true;\n\n"
     )
     fx, fy, fz = case.flow_direction
-    # Lift yönü: akış yönüne dik (+z varsayılan)
-    lift = (0.0, 0.0, 1.0)
+    # Lift yönü: akış yönüne dik, x-z düzleminde (alpha != 0'da (0,0,1) yanlış olur)
+    lift = (-fz, 0.0, fx)
+    norm = math.sqrt(lift[0]**2 + lift[2]**2) or 1.0
+    lift = (lift[0]/norm, 0.0, lift[2]/norm)
     Aref = lref * lref
     txt += (
         "functions\n{\n"
