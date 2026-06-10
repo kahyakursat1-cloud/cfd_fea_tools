@@ -53,10 +53,14 @@ from .ccx_runner import WSL_DISTRO, windows_to_wsl_path  # noqa: E402
 
 # OpenFOAM 11 (Foundation) bashrc
 OF_BASHRC = "/opt/openfoam11/etc/bashrc"
-# ParaView'sız environment (headless WSL'de pvserver --version takılabiliyor)
+# ParaView'sız environment (headless WSL'de pvserver --version takılabiliyor).
+# vader single-copy: WSL'de CMA (process_vm_readv) engelli — OpenMPI paylaşımlı
+# bellek aktarımı süresiz asılıyor; bilinen çözüm mekanizmayı kapatmak.
+# unset FOAM_SIGFPE: bashrc boş-tanımlı export ediyor, .org sigFpe varlık-bazlı.
 OF_ENV_PREFIX = (
     "export ParaView_TYPE=none && "
-    f"source {OF_BASHRC} && "
+    "export OMPI_MCA_btl_vader_single_copy_mechanism=none && "
+    f"source {OF_BASHRC} && unset FOAM_SIGFPE && "
 )
 
 
