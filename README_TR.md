@@ -46,7 +46,21 @@ Sabit kanat roket, drone, İHA ve uçak tasarımları için **3D model → CFD/F
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -e .[gui,viz]
-python app_parametric.py
+python app_analyzer.py      # Araç Aerodinamik Analiz Stüdyosu (ana uygulama)
+python app_parametric.py    # Parametrik arayüz (CFD + FEA + malzeme)
+```
+
+### Araç Analiz Stüdyosu (katı model → mesh → CFD → rapor)
+
+```bash
+# GUI: model sürükle-bırak, araç tipi seç, ANALİZ ET → figürlü mühendis raporu
+python app_analyzer.py
+
+# CLI eşdeğeri
+python vehicle_pipeline.py model.stl --tip ucak --hiz 25 --aoa 4 --burun +y --ust +x
+
+# Deneysel doğrulama çapası (küp vs Hoerner Cd=1.05; son sonuç: %2.4 hata)
+python check_vehicle_validation.py standart
 ```
 
 ### Tam Sistem

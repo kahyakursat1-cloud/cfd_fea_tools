@@ -4,6 +4,50 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-06-10b] feature | Araç Analiz Stüdyosu + fotogrametri kaldırma + deneysel doğrulama
+
+**What:** Kullanıcı kararıyla kapsam dönüşümü: fotogrametri tamamen kaldırıldı;
+yerine "katı model at → araca uygun mesh → CFD → mühendis raporu" akışı tek
+pencere arayüzle kuruldu ve **yayınlanmış deneyle doğrulandı**.
+
+**Yeni katman:**
+- ✅ `vehicle_pipeline.py` — araç tipi presetleri (uçak/roket/multikopter/genel),
+  geometri muayenesi (konveks-zarf ön/planform alan), oryantasyon (burun/üst
+  ekseni), katsayıların gerçek A_ref'e ölçeklenmesi, checkMesh/rezidüel/drift
+  teşhisi; CLI: `--tip --hiz --aoa --kalite --burun --ust --duyarlilik`
+- ✅ `vehicle_report.py` — 300 DPI figürlü Markdown raporu: mesh kalite
+  verdiktleri, yakınsama kanıtı, sonuç tablosu, araç-tipine göre mühendis
+  yorumu, otomatik uyarılar (Mach>0.3, açık STL), **mesh duyarlılık bandı**
+  (2. kaba koşu → ±%X sayısal belirsizlik), dürüst V&V sınırları
+- ✅ `app_analyzer.py` — koyu-tema tek pencere GUI: sürükle-bırak model, canlı
+  log/progress, sonuç kartları, Raporu Aç; launcher'da ana buton
+- ✅ **Deneysel doğrulama çapası:** keskin-kenarlı küp Cd=1.075 vs Hoerner 1.05
+  → **%2.4 hata** (`check_vehicle_validation.py`, `vehicle_validation.json`).
+  Küre bilinçli seçilmedi (drag krizi geçiş-güdümlü, fully-turbulent RANS
+  şaşırır); keskin kenar ayrılmayı sabitler → prizma-katmansız hattın adil testi.
+
+**Bulunan/düzeltilen ürün hataları:**
+- 🐛 mpirun bu WSL'de worker doğurmadan süresiz asılıyor → koşu öncesi 15 sn
+  probe + otomatik seri fallback
+- 🐛 Hücre bütçesi delinmesi: maxGlobalCells yalnız refinement'ı sınırlar;
+  bg hücre artık kalite presetinde (hızlı L/5, standart L/7, hassas L/9)
+- 🐛 STL oryantasyonu: +x varsayımı MiniHawk'ı düşey üflüyordu (Cd=3.76, Cl≈0
+  → CdA tam ön-alan×küt-cisim) — burun/üst ekseni rotasyonu eklendi
+- 🐛 **5. gizli hata — `tanh_radial` ilk-hücre parametresi ÖLÜ idi:**
+  normalizasyon `first`i sadeleştiriyordu; ölçülen y⁺ ort. 7-12 (hedef ~1),
+  kOmegaSSTLM y⁺≤1 şartı tüm koşularda ihlalmiş. Bisection'lı geometrik
+  dağılımla düzeltildi (ilk hücre tam 8e-6 doğrulandı)
+- 🧹 Fotogrametri: photogrammetry_scanner / scanner_gui_module /
+  scanner_requirements silindi; GUI sekmesi, launcher butonu, pyproject scan
+  extra, tüm doc referansları temizlendi (rehberler docs/archive'da);
+  bonus: verify_system'deki `mesh_to_cdf` yazım hatası (kontrol hep FAIL'di)
+
+**Açık iş:** y⁺-düzeltmeli C-grid GCI üçlüsü düşük-relaxation setiyle yeniden
+koşuyor (y⁺~1 hücreleri eski ayarları istikrarsızlaştırdı — mid SST Cd=-65
+divergansı yakalandı, stabilizasyon uygulandı). Test sayısı 31→39.
+
+---
+
 ## [2026-06-10] audit+fix | Proje denetimi: kalite kapıları + V&V kök-neden zinciri
 
 **What:** Tam proje analizi → 7 mekanik iyileştirme + 3 katmanlı gizli V&V hatası

@@ -12,15 +12,23 @@
 > V&V durumu ve kalite altyapısı bu tarihte önemli ölçüde değişti.
 > Tam kayıt: `CHANGELOG.md` (2026-06-10 girişi).
 
+- **Araç Analiz Stüdyosu (yeni ana uygulama):** `app_analyzer.py` — katı model
+  (STL/OBJ) → araca uygun mesh → CFD → mühendis raporu (figür + yorum + uyarı +
+  duyarlılık bandı). **Deneysel doğrulama: küp Cd %2.4 hata vs Hoerner**
+  (`vehicle_validation.json`). CLI eşdeğeri: `vehicle_pipeline.py`.
+- **Fotogrametri modülü kaldırıldı** (2026-06-10, kullanıcı kararı) — kod, GUI
+  sekmesi, launcher butonu, scan extra ve doc referansları temiz.
 - **Kalite kapıları aktif:** pre-commit (ruff + hooks) kurulu ve çalışıyor;
-  CI workflow `pip install -e .[dev]` ile tüm branch'lerde; ruff temiz; 31 test.
+  CI workflow `pip install -e .[dev]` ile tüm branch'lerde; ruff temiz; 39 test.
 - **V&V zinciri onarıldı:** kOmegaSSTLM artık gerçekten koşuyor (aşamalar arası
   alan kopyalama); potentialFoam init şeması düzeltildi; FPE tuzağı kapatıldı
   (`unset FOAM_SIGFPE`); O-grid üreteci kapalı-TE ile her çözünürlükte geçerli.
 - **5-seviye GCI (`gci_airfoil.json`):** Cl mesh-stabil ve referansla uyumlu;
   Cd wake-kümelemesiz O-grid'de asimptotik aralığa girmiyor (p≈0.23) — kanıtlı.
 - **C-grid (`cgrid_elliptic.py`):** wake-kümelemeli topoloji geçerli mesh
-  üretiyor (skew 2.83, non-ortho 66); Cd doğrulama yolu açıldı.
+  üretiyor; eski-y⁺ üçlüsünde LM p=1.71 (ilk kez teorik aralıkta). `tanh_radial`
+  ölü-parametre hatası düzeltildi (gerçek y⁺~1); düzeltilmiş üçlü düşük
+  relaxation ile yeniden koşuluyor — sonuç `gci_cgrid_*.json`'a işlenecek.
 - **Rapor araştırma-sınıfı:** `report_generator.py` ASME V&V 20 verdiktleri,
   sıkı eşikler (Cd %15 / Cl %5), 2D GCI + geçiş-polar bölümleri, 300 DPI figürler.
 - Yapısal: `exp_*` → `experiments/`, kök `test_*` → `check_*`, tarihsel
