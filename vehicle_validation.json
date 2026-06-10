@@ -1,0 +1,12 @@
+{
+  "vaka": "kup 0.5 m, V=10 m/s (Re~3.4e5), yuzeyi akisa dik",
+  "Cd_ref": 1.05,
+  "kaynak": "Hoerner 1965, Fluid-Dynamic Drag",
+  "kalite": "standart",
+  "status": "ok",
+  "Cd_sim": 1.07504,
+  "hata_pct": 2.4,
+  "gecti": true,
+  "mesh_hucre": 888377,
+  "rapor": "vehicle_runs\\dogrulama_kup\\rapor\\RAPOR.md"
+}
