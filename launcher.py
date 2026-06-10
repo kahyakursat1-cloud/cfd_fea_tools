@@ -236,28 +236,19 @@ class LauncherWindow(QWidget):
         layout = QHBoxLayout()
         layout.setContentsMargins(10, 6, 10, 6)
 
-        has_open3d = self._has("open3d")
-        has_pymeshlab = self._has("pymeshlab")
         has_trimesh = self._has("trimesh")
-        # Mesh backend gösterimi: en iyi mevcut backend
-        if has_open3d:
-            mesh_label, mesh_ok = "open3d", True
-        elif has_pymeshlab:
-            mesh_label, mesh_ok = "pymeshlab", True
-        elif has_trimesh:
+        if has_trimesh:
             mesh_label, mesh_ok = "trimesh", True
         else:
             mesh_label, mesh_ok = "mesh-backend", False
 
         checks = [
             ("PySide6", self._has("PySide6")),
-            ("OpenCV", self._has("cv2")),
             ("numpy", self._has("numpy")),
             (mesh_label, mesh_ok),
             ("GMSH", self._has_exe("gmsh")),
-            ("OpenFOAM", Path(r"C:\Program Files\blueCFD-Core-2024\setvars_OF12.bat").exists()),
+            ("OpenFOAM (WSL)", self._wsl_openfoam()),
             ("CalculiX", Path(r"C:\AnalysisTools\CalculiX\CL32-win32\bin\ccx\ccx213.exe").exists()),
-            ("COLMAP", Path(r"C:\Users\Victus\Desktop\photogrammetry").exists()),
         ]
         for name, ok in checks:
             color = GREEN if ok else "#ff6b6b"
@@ -278,6 +269,16 @@ class LauncherWindow(QWidget):
     def _has_exe(name: str) -> bool:
         import shutil
         return shutil.which(name) is not None
+
+    @staticmethod
+    def _wsl_openfoam() -> bool:
+        """Gerçek çözücü WSL'deki OpenFOAM 11 — Windows PATH'inde aranmaz."""
+        try:
+            r = subprocess.run(["wsl", "bash", "-c", "test -d /opt/openfoam11"],
+                               capture_output=True, timeout=8)
+            return r.returncode == 0
+        except Exception:
+            return False
 
 
 # ────────────────────────────────────────────────────────────────────────────
