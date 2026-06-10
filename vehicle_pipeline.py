@@ -179,13 +179,14 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                          nose_axis="+x", up_axis="+z",
                          progress_cb=None) -> VehicleAnalysisResult:
     stl_path = Path(stl_path)
+    stem = stl_path.stem
     preset = VEHICLE_PRESETS[vehicle_type]
     q = MESH_QUALITY[quality]
 
-    run_dir_early = Path(out_root) / stl_path.stem
-    run_dir_early.mkdir(parents=True, exist_ok=True)
+    run_dir = Path(out_root) / stem
+    run_dir.mkdir(parents=True, exist_ok=True)
     stl_path = orient_mesh(stl_path, nose_axis, up_axis,
-                           run_dir_early / f"{stl_path.stem}_oriented.stl")
+                           run_dir / f"{stem}_oriented.stl")
     geo = inspect_geometry(stl_path)
     geo["oryantasyon"] = f"burun={nose_axis} üst={up_axis} → akış çerçevesi (+x, +z)"
     if progress_cb:
@@ -195,7 +196,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     rmin, rmax = preset["refinement"]
     bump = q["ref_bump"]
     case = CFDCase(
-        name=stl_path.stem,
+        name=stem,
         stl_path=stl_path,
         velocity=velocity,
         flow_direction=(math.cos(a), 0.0, math.sin(a)),
@@ -210,8 +211,6 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         bg_cell_size=geo["lmax_m"] / q["bg_div"],
         n_processors=n_processors,
     )
-    run_dir = Path(out_root) / stl_path.stem
-    run_dir.mkdir(parents=True, exist_ok=True)
     res = run_cfd(case, run_dir, progress_callback=progress_cb)
     case_dir = res.case_dir
 
