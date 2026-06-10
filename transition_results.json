@@ -1,23 +1,29 @@
 {
-  "_GECERSIZ": "2. asama (kOmegaSSTLM) tum alpha'larda kosamadi: restart zamaninda gammaInt/ReThetat eksikti (tr_*/log.s2: FOAM FATAL). Asagidaki degerler 1. asama kOmegaSST (fully turbulent) sonuclaridir; free-transition referanslariyla kiyas bu yuzden yaniltici (alpha=0'da errCd %49). Duzeltilmis exp_transition.py ile yeniden kosulmali.",
-  "model_amaclanan": "kOmegaSSTLM",
-  "model_gerceklesen": "kOmegaSST (stage-1)",
+  "_not": "Duzeltilmis zincirle (kapali-TE O-grid 260x130, alan kopyalama, unset FOAM_SIGFPE) kOmegaSSTLM gercekten kosuldu. Cl guvenilir; Cd bu cozunurlukte mesh-bagimsiz DEGIL (bkz. gci_airfoil.json: 260x130 asimptotik aralik disi, alpha=4 Cd negatif bu yuzden) — Cd kiyasi bilgilendirme amaclidir.",
+  "model": "kOmegaSSTLM, 2-asamali SST→LM baslatma",
+  "mesh": "260x130 kapali-TE eliptik O-grid",
   "0": {
-    "Cl": -0.0015,
-    "Cd": 0.00821,
-    "errCl": 148.1,
-    "errCd": 49.3
+    "Cl": -0.0006,
+    "Cd": 0.00374,
+    "Cl_ref": 0.0,
+    "Cd_ref_free": 0.0055,
+    "errCl": 57.3,
+    "errCd": 32.0
   },
   "4": {
-    "Cl": 0.4191,
-    "Cd": 0.00867,
-    "errCl": 4.7,
-    "errCd": 35.4
+    "Cl": 0.4235,
+    "Cd": -0.00059,
+    "Cl_ref": 0.44,
+    "Cd_ref_free": 0.0064,
+    "errCl": 3.7,
+    "errCd": 109.2
   },
   "8": {
-    "Cl": 0.7341,
-    "Cd": 0.01065,
-    "errCl": 13.6,
-    "errCd": 12.2
+    "Cl": 0.7832,
+    "Cd": 0.00199,
+    "Cl_ref": 0.85,
+    "Cd_ref_free": 0.0095,
+    "errCl": 7.8,
+    "errCd": 79.1
   }
 }

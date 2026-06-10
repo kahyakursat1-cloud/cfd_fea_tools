@@ -78,6 +78,7 @@ if __name__=="__main__":
             print(f"alpha={alpha}: DIVERGED Cd={Cd:.3g}",flush=True); results[alpha]={"status":f"diverged Cd={Cd:.3g}"}; continue
         clf,cdf=ref_free[alpha]
         ecl=abs(Cl-clf)/(abs(clf)+1e-3)*100; ecd=abs(Cd-cdf)/cdf*100
-        results[alpha]={"Cl":round(Cl,4),"Cd":round(Cd,5),"errCl":round(ecl,1),"errCd":round(ecd,1)}
+        results[alpha]={"Cl":round(Cl,4),"Cd":round(Cd,5),"Cl_ref":clf,"Cd_ref_free":cdf,
+                        "errCl":round(ecl,1),"errCd":round(ecd,1)}
         print(f"alpha={alpha}: Cd={Cd:.5f} (free-ref {cdf}, err={ecd:.0f}%)  Cl={Cl:.4f} (ref {clf}, err={ecl:.0f}%)",flush=True)
     Path("transition_results.json").write_text(json.dumps(results,indent=2))

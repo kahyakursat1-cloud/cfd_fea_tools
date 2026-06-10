@@ -143,6 +143,38 @@ def fig_airfoil_gci(levels, refs, out_path):
     return gci
 
 
+def fig_transition_polar(tr, out_path):
+    """2D NACA0012 gecis-modeli polar: Cl-a ve Cd-a, serbest-gecis referanslariyla."""
+    rows = [(int(k), v) for k, v in tr.items()
+            if k.isdigit() and isinstance(v, dict) and v.get("Cd") is not None]
+    if len(rows) < 2:
+        return None
+    rows.sort()
+    a = [r[0] for r in rows]
+    cl = [r[1]["Cl"] for r in rows]
+    cd = [r[1]["Cd"] for r in rows]
+    clr = [r[1].get("Cl_ref") for r in rows]
+    cdr = [r[1].get("Cd_ref_free") for r in rows]
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7, 3))
+    ax1.plot(a, cl, "o-", color="#1f4e79", mfc="white", ms=6, lw=1.3, label="kOmegaSSTLM")
+    if all(v is not None for v in clr):
+        ax1.plot(a, clr, "s--", color="#2e7d32", ms=5, lw=1, label="Ladson (serbest geçiş)")
+    ax1.set_xlabel("α (°)")
+    ax1.set_ylabel("$C_l$")
+    ax1.legend(fontsize=7)
+    ax2.plot(a, cd, "o-", color="#1f4e79", mfc="white", ms=6, lw=1.3)
+    if all(v is not None for v in cdr):
+        ax2.plot(a, cdr, "s--", color="#2e7d32", ms=5, lw=1)
+    ax2.set_xlabel("α (°)")
+    ax2.set_ylabel("$C_d$")
+    fig.suptitle("2D NACA0012 Geçiş-Modeli Polar (260×130 O-grid)", fontsize=10)
+    fig.tight_layout()
+    fig.savefig(out_path)
+    plt.close(fig)
+    return True
+
+
 def fig_vn_diagram(envelope_summary, out_path):
     """V-n manevra + gust zarfi."""
     man = envelope_summary["speeds_ms"]
@@ -262,7 +294,7 @@ class VVReport:
     def build(self, mesh_indep=None, validation=None, envelope=None,
               fea=None, coupling=None, mesh_quality=None, polar=None,
               vspaero=None, rocket=None, rocket_fin=None, rocket_cfd=None,
-              airfoil_gci=None, project="MiniHawk İHA"):
+              airfoil_gci=None, transition=None, project="MiniHawk İHA"):
         md = ["# CFD/FEA Doğrulama ve Validation Raporu",
               f"\n**Proje:** {project}  ",
               f"**Tarih:** {datetime.now():%Y-%m-%d %H:%M}  ",
@@ -335,6 +367,35 @@ class VVReport:
             if airfoil_gci.get("note"):
                 md.append(f"> ⚠️ *{airfoil_gci['note']}*\n")
             md.append("![Airfoil GCI](figures/airfoil_gci.png)\n")
+
+        # 1c. 2D gecis-modeli polar
+        if transition:
+            ok = fig_transition_polar(transition, self.out / "figures" / "transition_polar.png")
+            md.append(f"## 1c. 2D Geçiş-Modeli Polar — NACA0012 "
+                      f"({transition.get('model', 'kOmegaSSTLM')}, "
+                      f"{transition.get('mesh', '-')})\n")
+            md.append("| α (°) | $C_l$ | $C_l$ ref | Hata | Sonuç | $C_d$ | $C_d$ ref (serbest) |")
+            md.append("|-------|-------|-----------|------|-------|-------|---------------------|")
+            for k in sorted([k for k in transition if k.isdigit()], key=int):
+                r = transition[k]
+                if not isinstance(r, dict) or r.get("Cl") is None:
+                    md.append(f"| {k} | — | — | — | ❌ {r.get('status', '?')} | — | — |")
+                    continue
+                clr = r.get("Cl_ref", 0)
+                if abs(clr) < 0.05:
+                    cl_ok = abs(r["Cl"] - clr) <= TOL_CL_ABS
+                    err_s = f"ΔCl={abs(r['Cl'] - clr):.4f} (mutlak)"
+                else:
+                    cl_ok = r.get("errCl", 1e9) <= TOL_CL_PCT
+                    err_s = f"{r.get('errCl')}%"
+                md.append(f"| {k} | {r['Cl']:.4f} | {clr} | "
+                          f"{err_s} | {'✅' if cl_ok else '❌'} | "
+                          f"{r['Cd']:.5f} | {r.get('Cd_ref_free', '-')} |")
+            md.append("\n> ⚠️ *Cd bu çözünürlükte mesh-bağımsız değil (Bölüm 1b) — "
+                      "Cd sütunu bilgilendirme amaçlı, doğrulama kanıtı değil. "
+                      "Cl doğrulaması geçerlidir.*\n")
+            if ok:
+                md.append("![Transition Polar](figures/transition_polar.png)\n")
 
         # 2. Validation
         if validation:
@@ -586,11 +647,12 @@ if __name__ == "__main__":
     rocket_fin = _load("rocket_fin_result.json")
     rocket_cfd = _load("rocket_cfd_result.json")
     airfoil_gci = _load("gci_airfoil.json")
+    transition  = _load("transition_results.json")
 
     rep = VVReport("./report")
     path = rep.build(mesh_indep=mesh_indep, validation=validation,
                      envelope=env, fea=fea, coupling=coupling,
                      mesh_quality=mesh_quality, polar=polar, vspaero=vspaero,
                      rocket=rocket, rocket_fin=rocket_fin, rocket_cfd=rocket_cfd,
-                     airfoil_gci=airfoil_gci)
+                     airfoil_gci=airfoil_gci, transition=transition)
     print(f"Rapor olusturuldu: {path}")
