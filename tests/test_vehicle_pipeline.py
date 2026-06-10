@@ -6,6 +6,7 @@ from vehicle_pipeline import (
     MESH_QUALITY,
     VEHICLE_PRESETS,
     _hull_projected_area,
+    orientation_matrix,
     parse_checkmesh,
     parse_residuals,
 )
@@ -44,6 +45,22 @@ def test_parse_checkmesh(tmp_path):
 def test_parse_checkmesh_missing_file(tmp_path):
     q = parse_checkmesh(tmp_path / "yok")
     assert q["cells"] is None and q["mesh_ok"] is None
+
+
+def test_orientation_matrix_maps_nose_to_x_up_to_z():
+    R = orientation_matrix("+y", "+x")
+    assert np.allclose(R @ np.array([0, 1, 0.0]), [1, 0, 0])   # burun -> +x
+    assert np.allclose(R @ np.array([1, 0, 0.0]), [0, 0, 1])   # ust -> +z
+    assert np.linalg.det(R) == pytest.approx(1.0)              # sag-el, yansima yok
+
+
+def test_orientation_matrix_identity():
+    assert np.allclose(orientation_matrix("+x", "+z"), np.eye(3))
+
+
+def test_orientation_matrix_rejects_parallel_axes():
+    with pytest.raises(ValueError):
+        orientation_matrix("+x", "-x")
 
 
 def test_parse_residuals(tmp_path):

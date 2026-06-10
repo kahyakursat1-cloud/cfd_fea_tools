@@ -61,6 +61,36 @@ SKEW_LIMIT = 4.0
 DRIFT_LIMIT_PCT = 2.0    # son %20 pencerede |dCd|/Cd
 
 
+AXIS_VECTORS = {
+    "+x": np.array([1.0, 0, 0]), "-x": np.array([-1.0, 0, 0]),
+    "+y": np.array([0, 1.0, 0]), "-y": np.array([0, -1.0, 0]),
+    "+z": np.array([0, 0, 1.0]), "-z": np.array([0, 0, -1.0]),
+}
+
+
+def orientation_matrix(nose_axis: str, up_axis: str) -> np.ndarray:
+    """Modeli burun→+x, üst→+z olacak şekilde döndüren 3x3 matris.
+    nose ve up dik olmalı (aynı/karşıt eksen kabul edilmez)."""
+    nose = AXIS_VECTORS[nose_axis]
+    up = AXIS_VECTORS[up_axis]
+    if abs(float(nose @ up)) > 1e-9:
+        raise ValueError(f"Burun ({nose_axis}) ve üst ({up_axis}) eksenleri dik olmalı")
+    side = np.cross(up, nose)            # sağ-el: y = z × x
+    return np.vstack([nose, side, up])   # satırlar: hedef eksenlerin kaynak ifadesi
+
+
+def orient_mesh(stl_path: Path, nose_axis: str, up_axis: str, out_path: Path) -> Path:
+    """STL'i akış çerçevesine (+x burun, +z üst) döndürüp out_path'e yazar."""
+    if nose_axis == "+x" and up_axis == "+z":
+        return Path(stl_path)
+    m = trimesh.load(str(stl_path), force="mesh")
+    T = np.eye(4)
+    T[:3, :3] = orientation_matrix(nose_axis, up_axis)
+    m.apply_transform(T)
+    m.export(str(out_path))
+    return out_path
+
+
 def _hull_projected_area(vertices: np.ndarray, drop_axis: int) -> float:
     """Konveks-zarf izdüşüm alanı (üst sınır kestirimi)."""
     pts2 = np.delete(vertices, drop_axis, axis=1)
@@ -146,12 +176,18 @@ class VehicleAnalysisResult:
 def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg=0.0,
                          quality="standart", out_root="vehicle_runs",
                          n_processors=0, rho=1.225,
+                         nose_axis="+x", up_axis="+z",
                          progress_cb=None) -> VehicleAnalysisResult:
     stl_path = Path(stl_path)
     preset = VEHICLE_PRESETS[vehicle_type]
     q = MESH_QUALITY[quality]
 
+    run_dir_early = Path(out_root) / stl_path.stem
+    run_dir_early.mkdir(parents=True, exist_ok=True)
+    stl_path = orient_mesh(stl_path, nose_axis, up_axis,
+                           run_dir_early / f"{stl_path.stem}_oriented.stl")
     geo = inspect_geometry(stl_path)
+    geo["oryantasyon"] = f"burun={nose_axis} üst={up_axis} → akış çerçevesi (+x, +z)"
     if progress_cb:
         progress_cb(2, f"Geometri: {geo['lmax_m']} m, {geo['ucgen_sayisi']} üçgen")
 
@@ -251,13 +287,18 @@ if __name__ == "__main__":
     ap.add_argument("--aoa", type=float, default=0.0, help="hücum açısı (derece)")
     ap.add_argument("--kalite", default="standart", choices=list(MESH_QUALITY))
     ap.add_argument("--islemci", type=int, default=0, help="0 = otomatik")
+    ap.add_argument("--burun", default="+x", choices=list(AXIS_VECTORS),
+                    help="modelin burun/akış ekseni")
+    ap.add_argument("--ust", default="+z", choices=list(AXIS_VECTORS),
+                    help="modelin üst ekseni")
     args = ap.parse_args()
 
     def _cb(pct, msg):
         print(f"[{pct:3d}%] {msg}", flush=True)
 
     r = run_vehicle_analysis(args.model, args.tip, args.hiz, args.aoa,
-                             args.kalite, n_processors=args.islemci, progress_cb=_cb)
+                             args.kalite, n_processors=args.islemci,
+                             nose_axis=args.burun, up_axis=args.ust, progress_cb=_cb)
     if r.status == "ok":
         print(f"\nCd={r.cd}  CdA={r.cda_m2} m²  Drag={r.drag_N} N"
               + (f"  Cl={r.cl}  L/D={r.ld}" if r.cl is not None else ""))

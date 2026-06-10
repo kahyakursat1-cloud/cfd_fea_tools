@@ -37,6 +37,7 @@ from PySide6.QtWidgets import (
 )
 
 from vehicle_pipeline import (
+    AXIS_VECTORS,
     MESH_QUALITY,
     VEHICLE_PRESETS,
     inspect_geometry,
@@ -137,6 +138,15 @@ class AnalyzerWindow(QMainWindow):
             self.cmb_quality.addItem(key, key)
         self.cmb_quality.setCurrentIndex(1)
         form.addRow("Mesh kalitesi", self.cmb_quality)
+        self.cmb_nose = QComboBox()
+        self.cmb_up = QComboBox()
+        for ax in AXIS_VECTORS:
+            self.cmb_nose.addItem(ax, ax)
+            self.cmb_up.addItem(ax, ax)
+        self.cmb_nose.setCurrentText("+x")
+        self.cmb_up.setCurrentText("+z")
+        form.addRow("Burun ekseni", self.cmb_nose)
+        form.addRow("Üst eksen", self.cmb_up)
         self.spn_proc = QSpinBox(); self.spn_proc.setRange(0, 16); self.spn_proc.setValue(0)
         self.spn_proc.setSpecialValueText("otomatik")
         form.addRow("İşlemci", self.spn_proc)
@@ -225,6 +235,11 @@ class AnalyzerWindow(QMainWindow):
         self.progress.setValue(0)
         self.log.clear()
         self._log("Analiz başlatılıyor…")
+        if self.cmb_nose.currentText()[1] == self.cmb_up.currentText()[1]:
+            QMessageBox.warning(self, "Eksen hatası",
+                                "Burun ve üst eksenleri dik olmalı (farklı eksen seçin).")
+            self.btn_run.setEnabled(True)
+            return
         params = {
             "stl_path": self.model_path,
             "vehicle_type": self.cmb_type.currentData(),
@@ -232,6 +247,8 @@ class AnalyzerWindow(QMainWindow):
             "alpha_deg": self.spn_aoa.value(),
             "quality": self.cmb_quality.currentData(),
             "n_processors": self.spn_proc.value(),
+            "nose_axis": self.cmb_nose.currentText(),
+            "up_axis": self.cmb_up.currentText(),
         }
         self.worker = AnalysisWorker(params)
         self.worker.progress.connect(self._on_progress)
