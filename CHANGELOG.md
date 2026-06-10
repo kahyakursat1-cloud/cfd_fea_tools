@@ -4,6 +4,48 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-06-10] audit+fix | Proje denetimi: kalite kapıları + V&V kök-neden zinciri
+
+**What:** Tam proje analizi → 7 mekanik iyileştirme + 3 katmanlı gizli V&V hatası
+bulundu ve düzeltildi. En kritik bulgu: yayınlanan tüm "geçiş modeli" sonuçları
+aslında hiç koşmamış bir modelin yerine geçen stage-1 kOmegaSST değerleriydi.
+
+**Kalite kapıları (üçü de fiilen devre dışıydı):**
+- ✅ pre-commit: hiç kurulmamıştı + config'de yanlış repo URL'i
+  (`pre-commit-hooks/pre-commit-hooks` → `pre-commit/pre-commit-hooks`); kuruldu, çalışıyor
+- ✅ CI: deps kurmuyordu (`pip install -e .[dev]` eklendi), branch filtresi hiçbir
+  push'u yakalamıyordu (kaldırıldı); not: remote yok, CI henüz hiç koşmadı
+- ✅ ruff: 27 birikmiş hata kapatıldı (B023 loop-closure ×2 dahil); 24 test yeşil
+
+**V&V kök-neden zinciri (üç bağımsız gizli hata):**
+1. 🐛 **kOmegaSSTLM hiç koşmamış**: restart zamanında `gammaInt`/`ReThetat` yok →
+   tüm tr_*/gci_* log.s2 FOAM FATAL; sonuçlar sessizce stage-1'den geliyordu
+   (α=0'da %49 Cd hatasının açıklaması). Fix: aşamalar arası alan kopyalama.
+2. 🐛 **potentialFoam init hiç çalışmamış**: `div(div(phi,U))` şeması eksik →
+   `-writep` tüm koşularda sessizce FATAL. Fix: şema eklendi.
+3. 🐛 **O-grid üreteci her çözünürlükte bozuk yüz üretiyordu**: açık-TE katsayısı
+   (`-0.1015`, yt(1)≠0) TE boşluğuna sarılan yüzler → 340×170'te 6 açık hücre,
+   87.7° non-ortho, garbage'a yakınsama (fine Cd=-1.6'nın kaynağı). Fix: kapalı-TE
+   (`-0.1036`) + smoothing 16×120 → 0 açık hücre, 0 ters yüz, non-ortho ≤64.5.
+- Guard'lar: FOAM FATAL + log "End" kontrolü (SIGFPE stack-trace yakalanıyor),
+  forces.dat en-son-zaman dizininden, |Cd|≥0.5 divergans işareti
+- `exp_transition` import yan-etkisi giderildi (`__main__` guard — `import`
+  anında 3 CFD koşusu tetikliyordu)
+
+**GCI sonucu (dürüst):** 3 mesh de stabil tamamlandı (divergans çözüldü) ama Cd
+asimptotik aralıkta değil: coarse/medium'da basınç sürükleme negatif; stage-1 SST
+aynı davranışta → sorun LM değil, **wake kümelemesiz O-grid ailesi Cd için
+yetersiz** (Cl makul: 0.409-0.450, ref ~0.44). Drag GCI için wake-çözünürlüklü
+topoloji gerekir. Detay: `gci_final.json`.
+
+**Yapısal:**
+- 🧹 ~83 MB artefakt untrack (gci_*/tr_* case'leri 151 dosya + 11 şartname PDF'i)
+- 🧹 8 `exp_*.py` → `experiments/`; 6 kök `test_*.py` → `check_*` (pytest ad
+  çakışması bitti); 5 tarihsel durum dokümanı → `docs/archive/`
+- 🧹 `requirements.txt` silindi (pyproject ile drift; tek kaynak pyproject)
+
+---
+
 ## [2026-06-03] hardening | Endüstri-seviye sağlamlaştırma (uygulama bozulmadan)
 
 **What:** Versiyonsuz araştırma kod tabanı → sürüm kontrollü, paketlenmiş, test
