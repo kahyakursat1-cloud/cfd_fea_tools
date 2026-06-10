@@ -48,6 +48,7 @@ def setup(case,alpha):
     tmp=Path("_cg_tmp"); tmp_sys=tmp/"system"
     if tmp.exists(): shutil.rmtree(tmp)
     tmp_sys.mkdir(parents=True)
+    (tmp/"constant").mkdir()
     T.setup(tmp,alpha)
     shutil.copy(tmp_sys/"fvSchemes",src/"fvSchemes")
     shutil.copy(tmp_sys/"fvSolution",src/"fvSolution")
