@@ -51,7 +51,13 @@ def setup(case,alpha):
     (tmp/"constant").mkdir()
     T.setup(tmp,alpha)
     shutil.copy(tmp_sys/"fvSchemes",src/"fvSchemes")
-    shutil.copy(tmp_sys/"fvSolution",src/"fvSolution")
+    # y+~1 duvar kumelemesi (aspect ~1e4) O-grid icin ayarlanmis relaxation'i
+    # istikrarsizlastiriyor (mid SST Cd=-65 divergansi) — C-grid'e dusuk set
+    fvsol=(tmp_sys/"fvSolution").read_text()
+    fvsol=fvsol.replace(
+        "relaxationFactors{equations{U 0.3;k 0.2;omega 0.2;gammaInt 0.2;ReThetat 0.2;}fields{p 0.15;}}",
+        "relaxationFactors{equations{U 0.25;k 0.15;omega 0.15;gammaInt 0.15;ReThetat 0.15;}fields{p 0.1;}}")
+    (src/"fvSolution").write_text(fvsol)
     shutil.rmtree(tmp)
 
 setup(case,alpha)
