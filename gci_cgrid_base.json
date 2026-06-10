@@ -1,0 +1,16 @@
+{
+  "topology": "C-grid (wake-kumelemeli)",
+  "mesh": "n_air=200 n_wake=60 nj=100",
+  "cells": 32000,
+  "s1_end": 3000,
+  "s2_end": 6000,
+  "SST": {
+    "Cd": 0.00946,
+    "Cl": 0.4143
+  },
+  "LM": {
+    "Cd": 0.01017,
+    "Cl": 0.4285
+  },
+  "status": "ok"
+}

@@ -44,14 +44,6 @@ from simulation_runner import SimulationJob, SimulationRunner
 # fea_runner.MATERIAL_LIBRARY (dict) eski API; GUI ise MaterialLibrary objesi bekliyor.
 MATERIAL_LIBRARY = MaterialLibrary()
 
-# Optional: Scanner (requires open3d)
-try:
-    from scanner_gui_module import ScannerTab
-    SCANNER_AVAILABLE = True
-except ImportError:
-    SCANNER_AVAILABLE = False
-    ScannerTab = None
-
 # ─────────────────────────────────────────────────────────────────────────────
 # COLOR THEME
 # ─────────────────────────────────────────────────────────────────────────────
@@ -371,24 +363,12 @@ class ParametricAnalysisTool(QMainWindow):
         results_tab = self._create_results_tab()
         tabs.addTab(results_tab, "Sonuçlar")
 
-        # Tab 5: Scanner (NEW) - Optional (requires open3d)
-        if SCANNER_AVAILABLE and ScannerTab is not None:
-            scanner_tab = ScannerTab()
-            scanner_tab.mesh_ready.connect(self._on_mesh_ready)
-            tabs.addTab(scanner_tab, "📸 Scanner")
-        else:
-            # Placeholder if Scanner unavailable
-            placeholder = QWidget()
-            placeholder.setLayout(QVBoxLayout())
-            placeholder.layout().addWidget(QLabel("Scanner (open3d gerekli - yüklemeyi tamamla)"))
-            tabs.addTab(placeholder, "📸 Scanner")
-
-        # Tab 6: Materials (NEW)
+        # Tab 5: Materials
         self.materials_tab = MaterialManagerTab(MATERIAL_LIBRARY)
         self.materials_tab.materials_changed.connect(self._on_materials_updated)
         tabs.addTab(self.materials_tab, "🧪 Malzemeler")
 
-        # Tab 7: FEA (NEW)
+        # Tab 6: FEA
         fea_tab = self._create_fea_tab()
         tabs.addTab(fea_tab, "⚙️ FEA")
 
@@ -681,42 +661,6 @@ Kütle: {self.current_aircraft.mass_properties()['total_mass']:.2f} kg
     def _generate_report(self):
         """Rapor oluştur"""
         QMessageBox.information(self, "Rapor", "Rapor oluşturuluyor...")
-
-    def _on_mesh_ready(self, mesh_path: str):
-        """Scanner'dan mesh hazırlandı, CFD'ye yükle"""
-        try:
-            # Mesh bilgisini göster
-            info = f"""
-✅ MESH HAZIR
-
-Dosya: {Path(mesh_path).name}
-Yolu: {mesh_path}
-
-Yapılacak:
-1. Mesh alanı oluşturmaya hazır
-2. CFD simülasyonu başlayabilir
-3. Aerodinamik analiz mümkün
-
-Sonraki: Mesh Tab'ında işlem devam eder
-"""
-
-            # Results tab'ında göster
-            results_text = QTextEdit()
-            results_text.setText(info)
-            results_text.setReadOnly(True)
-
-            QMessageBox.information(
-                self,
-                "✅ Mesh Hazır",
-                f"Mesh başarıyla yüklendi!\n{Path(mesh_path).name}\n\n"
-                f"Simülasyona hazırlanıyor..."
-            )
-
-            # Mesh path'ını sakla (sonra kullanmak için)
-            self.last_mesh_path = mesh_path
-
-        except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Mesh yükleme hatası: {str(e)}")
 
     def _create_fea_tab(self) -> QWidget:
         """FEA (Yapısal Analiz) Tab'ı"""

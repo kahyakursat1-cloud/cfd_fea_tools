@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Core System Test (without Scanner/open3d)
+Core System Test
 Tests: Aircraft, Mesh, CFD, FEA, GUI
 """
 
 import sys
 
 print("=" * 70)
-print("CORE SISTEM TEST (Scanner hariç)")
+print("CORE SISTEM TEST")
 print("=" * 70)
 
 # 1. Core modules
@@ -54,30 +54,28 @@ try:
 except Exception as e:
     print(f"   [HATA] {e}")
 
-# 5. Try to load main app (without scanner tab)
+# 5. Try to load main app
 print("\n5. Main App Loading:")
 try:
-    # Import without scanner
     from PySide6.QtWidgets import QApplication
 
     from aircraft_geometry import AircraftLibrary
     from fea_runner import MATERIAL_LIBRARY
 
     print("   [OK] Tüm gerekli modüller import edildi")
-    print("   App başlatılabilir (Scanner tab hariç)")
+    print("   App başlatılabilir")
 except Exception as e:
     print(f"   [HATA] {e}")
 
 print("\n" + "=" * 70)
-print("SONUC: CORE SISTEM CALISIYYOR")
+print("SONUC: CORE SISTEM CALISIYOR")
 print("=" * 70)
 print("\nKomut: python app_parametric.py")
-print("  → GUI açılacak (5 tab normal, 1 tab optional)")
 print("\nAçılacak Tablar:")
 print("  ✓ Konfigürasyon")
 print("  ✓ Mesh")
 print("  ✓ Simülasyon (CFD)")
 print("  ✓ Sonuçlar")
+print("  ✓ Malzemeler")
 print("  ✓ FEA")
-print("  ? Scanner (open3d kurulduktan sonra)")
 print("\n" + "=" * 70)

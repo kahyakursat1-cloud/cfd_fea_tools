@@ -2,7 +2,7 @@
 
 **Teknofest 2026 — İleri Otonom Sistemler**
 
-Sabit kanat roket, drone, İHA ve uçak tasarımları için **tarama → 3D model → CFD/FEA → ML** entegre sistem.
+Sabit kanat roket, drone, İHA ve uçak tasarımları için **3D model → CFD/FEA → ML** entegre sistem.
 
 ---
 
@@ -11,7 +11,6 @@ Sabit kanat roket, drone, İHA ve uçak tasarımları için **tarama → 3D mode
 ### ✅ Tam Pipeline
 
 ```
-📸 3D Tarama (Photogrammetry)
     ↓
 🔧 Mesh Otomatik Dönüştürme
     ↓
@@ -32,7 +31,6 @@ Sabit kanat roket, drone, İHA ve uçak tasarımları için **tarama → 3D mode
 | **mesh_generator** | Mesh oluşturma | Gmsh |
 | **simulation_runner** | CFD simülasyonu | OpenFOAM subprocess |
 | **fea_runner** | Yapısal analiz | CalculiX subprocess |
-| **photogrammetry_scanner** | 3D tarama | OpenCV, Open3D |
 | **mesh_to_cfd** | Mesh → Aircraft dönüştürme | NumPy, STL parsing |
 | **blender_synthetic_generator** | Sentetik veri | Blender Python API |
 | **ml_training_integration** | ML eğitimi | YOLOv8, PyTorch |
@@ -90,8 +88,6 @@ Detaylar: [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)
 | **PARAMETRIK_ANALIZ_REHBERI.md** | Parametrik çalışmalar, tasarım optimization |
 | **OPENFOAM_REHBERI.md** | CFD setup, case directory, solver seçimi |
 | **CALCULIX_REHBERI.md** | FEA analizi, malzeme özellikleri, sınır koşulları |
-| **SCANNER_REHBERI.md** | 3D photogrammetry tarama, mesh kalitesi |
-| **SCAN_TO_DATASET_WORKFLOW.md** | Tarama → Dataset → ML tam workflow |
 | **INSTALLATION_GUIDE.md** | Kurulum, sorun giderme, Docker |
 
 ---
@@ -174,12 +170,6 @@ Detaylar: [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)
 - Tablo ve grafik
 - Rapor oluştur
 - Sonuçları karşılaştır
-
-### 5️⃣ 📸 Scanner (YENİ)
-- Webcam preview
-- 3D tarama (photogrammetry)
-- Mesh export
-- Otomatik CFD yükleme
 
 ### 6️⃣ ⚙️ FEA (YENİ)
 - Malzeme seç
@@ -279,8 +269,6 @@ cfd_fea_tools/
 ├── mesh_generator.py                # Mesh üretimi
 ├── simulation_runner.py             # CFD runner
 ├── fea_runner.py                    # FEA runner
-├── photogrammetry_scanner.py        # 3D tarama
-├── scanner_gui_module.py            # Scanner GUI
 ├── mesh_to_cfd.py                   # Mesh dönüştürme
 ├── blender_synthetic_generator.py   # Blender dataset
 ├── ml_training_integration.py       # ML training
@@ -291,7 +279,6 @@ cfd_fea_tools/
 ├── PARAMETRIK_ANALIZ_REHBERI.md
 ├── OPENFOAM_REHBERI.md
 ├── CALCULIX_REHBERI.md
-├── SCANNER_REHBERI.md
 ├── SCAN_TO_DATASET_WORKFLOW.md
 ├── INSTALLATION_GUIDE.md
 ├── README_TR.md (bu dosya)

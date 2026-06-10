@@ -23,10 +23,8 @@
 - [PARAMETRIK_ANALIZ_REHBERI.md](PARAMETRIK_ANALIZ_REHBERI.md) — CFD parametric studies
 - [OPENFOAM_REHBERI.md](OPENFOAM_REHBERI.md) — OpenFOAM setup & usage
 - [CALCULIX_REHBERI.md](CALCULIX_REHBERI.md) — CalculiX FEA guide
-- [SCANNER_REHBERI.md](SCANNER_REHBERI.md) — 3D photogrammetry guide
 
 ### Workflow Guides
-- [SCAN_TO_DATASET_WORKFLOW.md](SCAN_TO_DATASET_WORKFLOW.md) — Photogrammetry → CFD pipeline
 - [BLENDER_BACKGROUNDS_GUIDE.md](BLENDER_BACKGROUNDS_GUIDE.md) — Background image setup
 - [ADVANCED_DATASET_WORKFLOW.md](ADVANCED_DATASET_WORKFLOW.md) — Full ML training pipeline
 
@@ -43,10 +41,6 @@
 PARAMETRIK_ANALIZ_REHBERI 
   ↓ (uses OpenFOAM)
 OPENFOAM_REHBERI
-  ↓ (mesh from)
-SCANNER_REHBERI
-  ↓ (SfM reconstruction)
-SCAN_TO_DATASET_WORKFLOW
 ```
 
 **ML Pipeline:**
@@ -85,8 +79,6 @@ sources/SOURCES_INDEX
 | YOLO_RTX4060_MEMORY.md | Reference | 2026-03-20 | 3 | 16 KB |
 | ADVANCED_DATASET_WORKFLOW.md | Workflow | 2026-04-06 | 4 | 18 KB |
 | PARAMETRIK_ANALIZ_REHBERI.md | How-To | 2026-03-10 | 2 | 8 KB |
-| SCAN_TO_DATASET_WORKFLOW.md | Workflow | 2026-03-18 | 3 | 12 KB |
-| SCANNER_REHBERI.md | How-To | 2026-03-15 | 2 | 9 KB |
 | BLENDER_BACKGROUNDS_GUIDE.md | How-To | 2026-03-18 | 1 | 7 KB |
 | docs/archive/IMPLEMENTATION_SUMMARY.md | Overview (arşiv) | 2026-04-01 | - | 20 KB |
 | README_TR.md | Quick-Start | 2026-03-01 | 1 | 6 KB |
@@ -104,11 +96,6 @@ sources/SOURCES_INDEX
 ### FEA (Finite Element Analysis)
 - [CALCULIX_REHBERI.md](CALCULIX_REHBERI.md) — Solver guide
 - [ACADEMIC_REFERENCES.md](ACADEMIC_REFERENCES.md#2-fea-analizi) — Theory (Elasticity, Galerkin)
-
-### 3D Scanning & Photogrammetry
-- [SCANNER_REHBERI.md](SCANNER_REHBERI.md) — Operation guide
-- [SCAN_TO_DATASET_WORKFLOW.md](SCAN_TO_DATASET_WORKFLOW.md) — Integration
-- [ACADEMIC_REFERENCES.md](ACADEMIC_REFERENCES.md#3-3d-fotogrametri) — Theory (SfM, SIFT)
 
 ### ML & YOLOv11
 - [ADVANCED_DATASET_WORKFLOW.md](ADVANCED_DATASET_WORKFLOW.md) — Full training pipeline

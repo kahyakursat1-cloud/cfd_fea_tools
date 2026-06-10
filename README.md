@@ -22,7 +22,6 @@ python -m venv .venv
 
 pip install -e .                  # çekirdek: headless CFD/FEA pipeline
 pip install -e ".[gui]"           # + PySide6 arayüzleri (launcher.py)
-pip install -e ".[scan]"          # + fotogrametri (Open3D, OpenCV)
 pip install -e ".[ml]"            # + YOLO/PyTorch dataset eğitimi
 pip install -e ".[gui,scan,ml,viz]"   # tam sistem
 ```
@@ -31,10 +30,7 @@ pip install -e ".[gui,scan,ml,viz]"   # tam sistem
 (FEA), opsiyonel OpenVSP 3.50 (`openvsp` conda env) ve OpenRocket (`orenv`, JVM).
 Bkz. [Donanım Notu](#donanım-notu).
 
-> **Fotogrametri scanner notu:** `photogrammetry_scanner` / `scanner_gui_module`
-> **`open3d`** gerektirir. `open3d`'nin Python 3.14 wheel'i henüz yok — scanner'ı
-> **Python 3.11/3.12** bir ortamdan çalıştır (ör. `cfd_tools` conda env: open3d 0.19 + cv2
-> mevcut). Diğer modüller open3d olmadan çalışır (scanner `HAS_OPEN3D` ile graceful degrade).
+
 
 ## Çalışma Zarfı (Geçerlilik Sınırları)
 

@@ -29,8 +29,6 @@ class IntegrationTestSuite:
             "mesh_generator",
             "simulation_runner",
             "fea_runner",
-            "photogrammetry_scanner",
-            "scanner_gui_module",
             "mesh_to_cfd",
             "blender_synthetic_generator",
             "app_parametric",

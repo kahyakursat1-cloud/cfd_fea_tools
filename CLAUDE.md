@@ -4,7 +4,7 @@
 `bilsem_beyin/CLAUDE.md` kurallarını devralır. Mod: 🔬 Araştırma
 
 ## Proje
-OpenFOAM (CFD) + CalculiX (FEA) entegre analiz paketi. Blender ile sentetik veri üretimi, fotogrametri, parametrik mesh çalışmaları.
+OpenFOAM (CFD) + CalculiX (FEA) entegre analiz paketi. Blender ile sentetik veri üretimi, parametrik mesh çalışmaları. (Fotogrametri modülü 2026-06-10 itibarıyla kaldırıldı.)
 
 ## Yapı
 ```

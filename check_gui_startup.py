@@ -30,7 +30,6 @@ modules_to_check = [
     'mesh_generator',
     'simulation_runner',
     'fea_runner',
-    'scanner_gui_module',
 ]
 
 for mod in modules_to_check:
@@ -79,11 +78,11 @@ print("\n" + "=" * 70)
 print("SONUC: GUI BASLATILABILIR")
 print("=" * 70)
 print("\nKomut: python app_parametric.py")
-print("Bu, 6 tabl?? GUI'yi acak:")
-print("  1. Konfigúrasyon")
+print("Bu, 6 tabli GUI'yi acak:")
+print("  1. Konfigurasyon")
 print("  2. Mesh")
 print("  3. Simulasyon (CFD)")
 print("  4. Sonuclar")
-print("  5. Scanner (3D Tarama)")
+print("  5. Malzemeler")
 print("  6. FEA (Statik/Frequency/Buckling)")
 print("\n" + "=" * 70)

@@ -30,8 +30,7 @@ dependencies = [
 
 [project.optional-dependencies]
 gui = ["PySide6>=6.5"]
-scan = ["open3d>=0.17", "opencv-contrib-python>=4.8", "Pillow>=10.0"]
-ml = ["torch>=2.0", "torchvision>=0.15", "ultralytics>=8.0", "scikit-learn>=1.3"]
+ml = ["torch>=2.0", "torchvision>=0.15", "ultralytics>=8.0", "scikit-learn>=1.3", "Pillow>=10.0"]
 viz = ["seaborn>=0.12", "plotly>=5.17"]
 dev = [
     "ruff>=0.5",

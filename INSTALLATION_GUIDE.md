@@ -116,8 +116,7 @@ pip install -e .[gui,viz]
 |------|--------|----------|
 | (çekirdek) | numpy, scipy, matplotlib, pandas, pyyaml, trimesh, gmsh | her zaman |
 | `gui` | PySide6 | masaüstü arayüz |
-| `scan` | open3d, opencv-contrib, Pillow | fotogrametri |
-| `ml` | torch, ultralytics, scikit-learn | YOLO eğitimi |
+| `ml` | torch, ultralytics, scikit-learn, Pillow | YOLO eğitimi |
 | `viz` | seaborn, plotly | gelişmiş grafikler |
 | `dev` | ruff, mypy, pytest, pre-commit | geliştirme |
 
@@ -283,8 +282,6 @@ Beklenen çıktı:
 ✅ mesh_generator            — OK
 ✅ simulation_runner         — OK
 ✅ fea_runner                — OK
-✅ photogrammetry_scanner    — OK
-✅ scanner_gui_module        — OK
 ✅ mesh_to_cfd               — OK
 ✅ blender_synthetic_generator — OK
 ✅ app_parametric            — OK
@@ -354,20 +351,6 @@ source ~/.bashrc
 python verify_blender.py
 ```
 
-### Problem: "Cannot find camera"
-
-```bash
-# Hangi kameranın mevcut olduğunu kontrol et
-python -c "
-import cv2
-for i in range(5):
-    cap = cv2.VideoCapture(i)
-    if cap.isOpened():
-        print(f'Camera {i} found')
-        cap.release()
-"
-```
-
 ### Problem: "Memory allocation error"
 
 Mesh boyutunu azalt:
@@ -391,11 +374,6 @@ Mesh boyutunu azalt:
   "fea": {
     "base_path": "./fea_cases",
     "default_material": "aluminum_6061"
-  },
-  "scanner": {
-    "mode": "WEBCAM",
-    "quality": "NORMAL",
-    "num_images": 15
   },
   "blender": {
     "resolution_x": 1280,
@@ -469,12 +447,6 @@ python app_parametric.py
 - Aircraft tipi seç (MiniHawk UAV, Fixed-Wing, vb.)
 - Rüzgar hızı gir: 10-20 m/s
 - Mesh boyutu: 0.01-0.02 m
-
-### 3. Scanner Sekmesi (İsteğe Bağlı)
-
-- Webcam testi: "Kamera Testi" butonuna tıkla
-- 3D tarama başlat: "Başlat" butonuna tıkla
-- Mesh'i kaydet ve CFD'ye yükle
 
 ### 4. Simülasyon Sekmesi
 

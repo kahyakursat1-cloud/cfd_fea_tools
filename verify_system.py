@@ -70,8 +70,7 @@ class SystemVerifier:
             'mesh_generator',
             'simulation_runner',
             'fea_runner',
-            'mesh_to_cdf',
-            'scanner_gui_module',
+            'mesh_to_cfd',
         ]
 
         ok_count = 0
@@ -173,7 +172,7 @@ class SystemVerifier:
             print("   EKSIK MODULLER KURULMALI")
         else:
             print("\n[RED] SISTEM DURUMU: KURULUM YAPILMALI")
-            print("   Calistir: pip install -e .[gui,scan,viz]")
+            print("   Calistir: pip install -e .[gui,viz]")
 
         print("\n" + "=" * 70)
 
