@@ -1,6 +1,12 @@
 """Valid O-grid + kOmegaSSTLM gecis modeli (2-asamali). Free-transition fizigi."""
-import json, math, re, shutil, subprocess, sys
+import json
+import math
+import re
+import shutil
+import subprocess
+import sys
 from pathlib import Path
+
 from ogrid_elliptic import build_ogrid, write_polymesh
 
 alphas=[int(x) for x in sys.argv[1:]] or [0,4,8]
@@ -40,7 +46,7 @@ for alpha in alphas:
     shutil.copytree(base,case)
     setup(case,alpha)
     p=str(case.resolve()); wsl=f"/mnt/{p[0].lower()}{p[2:].replace(chr(92),'/')}"
-    def of(cmd,t=2400): return subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && export FOAM_SIGFPE=false && cd {wsl} && {cmd}"',shell=True,capture_output=True,text=True,timeout=t)
+    def of(cmd,t=2400,wsl=wsl): return subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && export FOAM_SIGFPE=false && cd {wsl} && {cmd}"',shell=True,capture_output=True,text=True,timeout=t)
     # Asama 1: kOmegaSST (akisi kur)
     ctrl(case,"kOmegaSST",2000)
     of("potentialFoam -initialiseUBCs -writep >log.pot 2>&1; foamRun -solver incompressibleFluid >log.s1 2>&1")

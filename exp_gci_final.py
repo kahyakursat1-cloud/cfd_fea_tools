@@ -1,8 +1,13 @@
 """GCI mesh-bagimsizlik: 3 cozunurluk, alpha=4, transition modeli, valid O-grid."""
-import json, math, re, shutil, subprocess
+import json
+import math
+import re
+import shutil
+import subprocess
 from pathlib import Path
-from ogrid_elliptic import build_ogrid, write_polymesh
+
 import exp_transition as T  # setup/ctrl fonksiyonlarini yeniden kullan
+from ogrid_elliptic import build_ogrid, write_polymesh
 
 alpha=4; R=40.0; rho,V,chord=1.225,50.0,1.0
 meshes={"coarse":(200,100),"medium":(260,130),"fine":(340,170)}
@@ -15,7 +20,7 @@ for lvl,(na,njj) in meshes.items():
     write_polymesh(case,X,Y,I,nj)
     T.setup(case,alpha)
     p=str(case.resolve()); wsl=f"/mnt/{p[0].lower()}{p[2:].replace(chr(92),'/')}"
-    def of(cmd,t=2400): return subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && export FOAM_SIGFPE=false && cd {wsl} && {cmd}"',shell=True,capture_output=True,text=True,timeout=t)
+    def of(cmd,t=2400,wsl=wsl): return subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && export FOAM_SIGFPE=false && cd {wsl} && {cmd}"',shell=True,capture_output=True,text=True,timeout=t)
     T.ctrl(case,"kOmegaSST",2000)
     of("potentialFoam -initialiseUBCs -writep >log.pot 2>&1; foamRun -solver incompressibleFluid >log.s1 2>&1")
     T.ctrl(case,"kOmegaSSTLM",4000)

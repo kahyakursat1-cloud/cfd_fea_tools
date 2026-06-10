@@ -51,9 +51,9 @@ def gci_richardson(f1, f2, f3, r):
 
 # 3 mesh — sabit inceltme orani r ~ 1.30 (toplam hucre = n_prof*n_norm, h ~ 1/sqrt(N))
 MESHES = {
-    "coarse": dict(n_prof=150, n_norm=60,  grading=500),
-    "medium": dict(n_prof=195, n_norm=78,  grading=500),
-    "fine":   dict(n_prof=254, n_norm=101, grading=500),
+    "coarse": {"n_prof": 150, "n_norm": 60,  "grading": 500},
+    "medium": {"n_prof": 195, "n_norm": 78,  "grading": 500},
+    "fine":   {"n_prof": 254, "n_norm": 101, "grading": 500},
 }
 ALPHA = 4   # tasarim noktasi (iyi yakinsayan, Ladson ref mevcut)
 

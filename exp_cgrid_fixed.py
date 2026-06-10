@@ -2,10 +2,17 @@
 wake-cut iki cakisik patch (wakeUp/wakeDown) -> stitchMesh ile internal.
 Grid geometrisi cgrid_generator'dan (saglam), sadece yazma/stitch duzeltildi.
 """
-import json, math, re, shutil, subprocess, sys
+import json
+import math
+import re
+import shutil
+import subprocess
+import sys
 from pathlib import Path
+
 import numpy as np
-from cgrid_generator import build_cgrid, _min_case
+
+from cgrid_generator import _min_case, build_cgrid
 
 alpha = int(sys.argv[1]) if len(sys.argv) > 1 else 4
 R_far = float(sys.argv[2]) if len(sys.argv) > 2 else 40.0
@@ -106,9 +113,8 @@ V,nu,rho,chord=50.0,1.48e-5,1.225,1.0
 a=math.radians(alpha); Ux,Uy=V*math.cos(a),V*math.sin(a)
 I_t=0.0018; Lt=0.07; k0=1.5*(V*I_t)**2; w0=math.sqrt(k0)/(0.09**0.25*Lt); nut0=k0/w0
 z=case/"0"; z.mkdir(exist_ok=True)
-bc=lambda extra: f"airfoil{{type noSlip;}} farfield{{type {extra[0]};{extra[1]}}} outlet{{type {extra[0]};{extra[1]}}} frontAndBack{{type empty;}}"
 (z/"U").write_text(f'FoamFile{{version 2.0;format ascii;class volVectorField;object U;}} dimensions [0 1 -1 0 0 0 0]; internalField uniform ({Ux} {Uy} 0); boundaryField{{ airfoil{{type noSlip;}} farfield{{type freestreamVelocity;freestreamValue uniform ({Ux} {Uy} 0);}} outlet{{type freestreamVelocity;freestreamValue uniform ({Ux} {Uy} 0);}} frontAndBack{{type empty;}} }}')
-(z/"p").write_text(f'FoamFile{{version 2.0;format ascii;class volScalarField;object p;}} dimensions [0 2 -2 0 0 0 0]; internalField uniform 0; boundaryField{{ airfoil{{type zeroGradient;}} farfield{{type freestreamPressure;freestreamValue uniform 0;}} outlet{{type freestreamPressure;freestreamValue uniform 0;}} frontAndBack{{type empty;}} }}')
+(z/"p").write_text('FoamFile{version 2.0;format ascii;class volScalarField;object p;} dimensions [0 2 -2 0 0 0 0]; internalField uniform 0; boundaryField{ airfoil{type zeroGradient;} farfield{type freestreamPressure;freestreamValue uniform 0;} outlet{type freestreamPressure;freestreamValue uniform 0;} frontAndBack{type empty;} }')
 (z/"k").write_text(f'FoamFile{{version 2.0;format ascii;class volScalarField;object k;}} dimensions [0 2 -2 0 0 0 0]; internalField uniform {k0:.6e}; boundaryField{{ airfoil{{type kqRWallFunction;value uniform {k0:.6e};}} farfield{{type freestream;freestreamValue uniform {k0:.6e};}} outlet{{type freestream;freestreamValue uniform {k0:.6e};}} frontAndBack{{type empty;}} }}')
 (z/"omega").write_text(f'FoamFile{{version 2.0;format ascii;class volScalarField;object omega;}} dimensions [0 0 -1 0 0 0 0]; internalField uniform {w0:.4f}; boundaryField{{ airfoil{{type omegaWallFunction;value uniform {w0:.4f};}} farfield{{type freestream;freestreamValue uniform {w0:.4f};}} outlet{{type freestream;freestreamValue uniform {w0:.4f};}} frontAndBack{{type empty;}} }}')
 (z/"nut").write_text(f'FoamFile{{version 2.0;format ascii;class volScalarField;object nut;}} dimensions [0 2 -1 0 0 0 0]; internalField uniform {nut0:.6e}; boundaryField{{ airfoil{{type nutLowReWallFunction;value uniform 0;}} farfield{{type calculated;value uniform {nut0:.6e};}} outlet{{type calculated;value uniform {nut0:.6e};}} frontAndBack{{type empty;}} }}')

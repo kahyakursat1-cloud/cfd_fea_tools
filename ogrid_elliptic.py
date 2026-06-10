@@ -6,8 +6,9 @@ Buyuk domain (R), y+~1 (tanh radyal), Winslow smoothing -> dusuk non-ortho.
 Amac: gecerli mesh (0 negatif) + Cd hata arastirma-sinifi.
 """
 import math
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 
 
 def naca0012_loop(n_around, te_blunt=1e-4):
@@ -178,7 +179,8 @@ def write_polymesh(case, X, Y, I, nj, span=0.1):
 
 
 if __name__ == "__main__":
-    import subprocess, sys
+    import subprocess
+    import sys
     R = float(sys.argv[1]) if len(sys.argv)>1 else 40.0
     case = Path("ogrid_test")
     import shutil

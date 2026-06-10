@@ -56,12 +56,12 @@ boundaryField{{ airfoil{{type noSlip;}}
  farfield{{type freestreamVelocity; freestreamValue uniform ({Ux} {Uy} 0);}}
  outlet{{type freestreamVelocity; freestreamValue uniform ({Ux} {Uy} 0);}}
  frontAndBack{{type empty;}} }}""")
-fa("p", f"""FoamFile{{version 2.0; format ascii; class volScalarField; object p;}}
+fa("p", """FoamFile{version 2.0; format ascii; class volScalarField; object p;}
 dimensions [0 2 -2 0 0 0 0]; internalField uniform 0;
-boundaryField{{ airfoil{{type zeroGradient;}}
- farfield{{type freestreamPressure; freestreamValue uniform 0;}}
- outlet{{type freestreamPressure; freestreamValue uniform 0;}}
- frontAndBack{{type empty;}} }}""")
+boundaryField{ airfoil{type zeroGradient;}
+ farfield{type freestreamPressure; freestreamValue uniform 0;}
+ outlet{type freestreamPressure; freestreamValue uniform 0;}
+ frontAndBack{type empty;} }""")
 fa("k", f"""FoamFile{{version 2.0; format ascii; class volScalarField; object k;}}
 dimensions [0 2 -2 0 0 0 0]; internalField uniform {k0:.6e};
 boundaryField{{ airfoil{{type kqRWallFunction; value uniform {k0:.6e};}}

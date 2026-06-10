@@ -1,7 +1,11 @@
 """Basit O-grid, y+~30 sweet-spot (log-law) — drag'i duzeltme denemesi."""
-import json, sys
+import json
+import sys
 from pathlib import Path
+
 from validation_suite import NACA0012Validation
+
+
 class V30(NACA0012Validation):
     def __init__(s, bp, grading, n_norm=100, n_prof=240):
         super().__init__(bp); s.n_prof=n_prof; s.n_norm=n_norm; s.grading=grading

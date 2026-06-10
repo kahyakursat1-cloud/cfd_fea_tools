@@ -1,6 +1,12 @@
 """Elliptic O-grid (direkt polyMesh) + CFD. Wake-cut yok, gmsh yok."""
-import json, math, re, shutil, subprocess, sys
+import json
+import math
+import re
+import shutil
+import subprocess
+import sys
 from pathlib import Path
+
 from ogrid_elliptic import build_ogrid, write_polymesh
 
 alpha = int(sys.argv[1]) if len(sys.argv)>1 else 4

@@ -1,6 +1,12 @@
 """Valid O-grid mesh'inde turbulans seeding taramasi -> Cd'yi 0.0092'ye otur."""
-import json, math, re, shutil, subprocess, sys
+import json
+import math
+import re
+import shutil
+import subprocess
+import sys
 from pathlib import Path
+
 from ogrid_elliptic import build_ogrid, write_polymesh
 
 alpha=4; R=40.0

@@ -13,7 +13,7 @@ import math
 import sys
 from pathlib import Path
 
-from validation_suite import NACA0012Validation, NACA0012_NASA
+from validation_suite import NACA0012_NASA, NACA0012Validation
 
 
 def first_layer_for_yplus(yplus, V, nu, c=1.0):

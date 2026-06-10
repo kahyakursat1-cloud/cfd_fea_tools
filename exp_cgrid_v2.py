@@ -1,11 +1,17 @@
 """Deney: farfield 50c + daha iyi radyal/LE cozunurluk ile C-grid validasyon."""
+import json
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-from construct2d_bridge import (run_construct2d, write_ogrid_gmsh, read_p3d_2d,
-                                _min_case, run_validation)
+from construct2d_bridge import (
+    _min_case,
+    read_p3d_2d,
+    run_construct2d,
+    run_validation,
+    write_ogrid_gmsh,
+)
 
 alpha = float(sys.argv[1]) if len(sys.argv) > 1 else 4.0
 work = Path("cgrid_v2/c2d")
@@ -42,5 +48,5 @@ if r.get("status") == "SUCCESS" and ref:
     r["Cl_ref"], r["Cd_ref"] = ref
     r["Cl_err_pct"] = round(abs(r["Cl"] - ref[0]) / (abs(ref[0]) + 1e-3) * 100, 1)
     r["Cd_err_pct"] = round(abs(r["Cd"] - ref[1]) / ref[1] * 100, 1)
-import json
+
 print(json.dumps(r, indent=2, default=str), flush=True)
