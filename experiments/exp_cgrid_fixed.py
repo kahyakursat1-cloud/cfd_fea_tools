@@ -92,7 +92,7 @@ print(f"grid I={I} nj={nj} cells={I*nj} (n yok-paylasim)", flush=True)
 
 p = str(case.resolve()); wsl = f"/mnt/{p[0].lower()}{p[2:].replace(chr(92),'/')}"
 def of(cmd, t=900):
-    return subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && export FOAM_SIGFPE=false && cd {wsl} && {cmd}"',
+    return subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && cd {wsl} && {cmd}"',
                           shell=True, capture_output=True, text=True, timeout=t)
 of("gmshToFoam cgrid.msh > log.g2f 2>&1")
 # wake-cut'i stitch et (cakisik wakeUp<->wakeDown -> internal)

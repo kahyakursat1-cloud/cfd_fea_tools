@@ -52,7 +52,7 @@ if __name__=="__main__":
         shutil.copytree(base,case)
         setup(case,alpha)
         p=str(case.resolve()); wsl=f"/mnt/{p[0].lower()}{p[2:].replace(chr(92),'/')}"
-        def of(cmd,t=2400,wsl=wsl): return subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && export FOAM_SIGFPE=false && cd {wsl} && {cmd}"',shell=True,capture_output=True,text=True,timeout=t)
+        def of(cmd,t=2400,wsl=wsl): return subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && cd {wsl} && {cmd}"',shell=True,capture_output=True,text=True,timeout=t)
         # Asama 1: kOmegaSST (akisi kur)
         ctrl(case,"kOmegaSST",2000)
         of("potentialFoam -initialiseUBCs -writep >log.pot 2>&1; foamRun -solver incompressibleFluid >log.s1 2>&1")

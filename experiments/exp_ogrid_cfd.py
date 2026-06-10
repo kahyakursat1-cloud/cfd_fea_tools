@@ -39,7 +39,7 @@ W("nut",f'FoamFile{{version 2.0;format ascii;class volScalarField;object nut;}} 
 
 p=str(case.resolve()); wsl=f"/mnt/{p[0].lower()}{p[2:].replace(chr(92),'/')}"
 def of(cmd,t=3600):
-    return subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && export FOAM_SIGFPE=false && cd {wsl} && {cmd}"',shell=True,capture_output=True,text=True,timeout=t)
+    return subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && cd {wsl} && {cmd}"',shell=True,capture_output=True,text=True,timeout=t)
 of("checkMesh > log.check 2>&1")
 print(f"CFD alpha={alpha} ...", flush=True)
 of("potentialFoam -initialiseUBCs -writep > log.pot 2>&1; foamRun -solver incompressibleFluid > log.run 2>&1")
