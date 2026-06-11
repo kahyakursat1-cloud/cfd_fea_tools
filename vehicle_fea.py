@@ -65,6 +65,18 @@ def resolve_cp_vtk(run_dir: Path, sonuc: dict) -> str | None:
     return sonuc["cp_vtk"]
 
 
+def _mechanism_check(max_disp_mm, lmax_m, fixed_n, total_n) -> str | None:
+    """Mekanizma/yetersiz-mesnet imzası: devasa sehim + ufak gerilme tipiktir.
+    Lineer çözücü mekanizmada km-ölçekli yer değiştirme döndürebilir."""
+    if max_disp_mm is None:
+        return None
+    if max_disp_mm > 0.05 * lmax_m * 1000:
+        return (f"Sehim ({max_disp_mm:.0f} mm) model boyutunun %5'ini aşıyor — "
+                f"mesnet muhtemelen yetersiz/mekanizma ({fixed_n}/{total_n} düğüm "
+                "sabit). Sonuç GEÇERSİZ; farklı mesnet preseti veya oryantasyon seçin.")
+    return None
+
+
 def _material(key: str) -> FEAMaterial:
     m = MATERIAL_LIBRARY[key]   # youngs_modulus MPa, yield MPa
     return FEAMaterial.from_gpa(m.name, m.youngs_modulus / 1000.0,
@@ -233,6 +245,8 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
         max_vm_mpa = float(vm.max()) / 1e6 if vm is not None else None
         sf = (mat.yield_strength_pa / 1e6 / max_vm_mpa) if (max_vm_mpa and
               mat.yield_strength_pa > 0) else None
+        lmax = float((m.bounds[1] - m.bounds[0]).max())
+        mech = _mechanism_check(max_disp_mm, lmax, len(fixed), len(m.vertices))
         out = {"status": "ok", "model": f"kabuk (t={shell_thickness_mm} mm)",
                "malzeme": mat.name, "mesnet": desc,
                "dugum": int(len(m.vertices)), "eleman": int(len(m.faces)),
@@ -240,7 +254,8 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
                "toplam_kuvvet_N": mp["toplam_kuvvet_N"],
                "max_sehim_mm": round(max_disp_mm, 4) if max_disp_mm else None,
                "max_von_mises_MPa": round(max_vm_mpa, 3) if max_vm_mpa else None,
-               "emniyet_faktoru": round(sf, 2) if sf else None,
+               "emniyet_faktoru": (None if mech else (round(sf, 2) if sf else None)),
+               "gecersiz": mech,
                "_not": ("Üniform kalınlıklı kabuk: spar/kaburga/iç yapı yok — "
                         "gerçek yapıdan ESNEK taraftadır (sehim üst-sınır eğilimli); "
                         "dolu-katı modelin tamamlayıcısı.")}
@@ -294,13 +309,15 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
     sf = (mat.yield_strength_pa / 1e6 / max_vm_mpa) if (max_vm_mpa and
           mat.yield_strength_pa > 0) else None
 
+    mech = _mechanism_check(max_disp_mm, lmax, len(fixed), tet.num_nodes)
     out = {"status": "ok", "model": "dolu katı", "malzeme": mat.name, "mesnet": desc,
            "dugum": tet.num_nodes, "eleman": tet.num_tets,
            "sabit_dugum": int(len(fixed)),
            "toplam_kuvvet_N": mp["toplam_kuvvet_N"],
            "max_sehim_mm": round(max_disp_mm, 4) if max_disp_mm else None,
            "max_von_mises_MPa": round(max_vm_mpa, 3) if max_vm_mpa else None,
-           "emniyet_faktoru": round(sf, 2) if sf else None,
+           "emniyet_faktoru": (None if mech else (round(sf, 2) if sf else None)),
+           "gecersiz": mech,
            "_not": "Dolu-katı varsayımı: sehim alt-sınır, gerilme yük-yolu "
                    "göstergesi; kabuk/iç yapı modellenmedi."}
     (run_dir / "fea_sonuc.json").write_text(json.dumps(out, indent=2, ensure_ascii=False),
@@ -316,9 +333,13 @@ def _append_report(run_dir: Path, out: dict):
         return
     sf = out.get("emniyet_faktoru")
     sf_s = (">1000" if sf and sf > 1000 else str(sf))
-    verdict = ("✅ güvenli" if sf and sf >= 1.5 else
-               "⚠️ marjinal (SF<1.5)" if sf and sf >= 1.0 else
-               "❌ yetersiz (SF<1)" if sf else "—")
+    if out.get("gecersiz"):
+        verdict = "❌ GEÇERSİZ (mekanizma)"
+        sf_s = "—"
+    else:
+        verdict = ("✅ güvenli" if sf and sf >= 1.5 else
+                   "⚠️ marjinal (SF<1.5)" if sf and sf >= 1.0 else
+                   "❌ yetersiz (SF<1)" if sf else "—")
     md = ["\n## 7. Yapısal Kontrol (FEA — CFD basınçlarıyla)\n",
           f"- Model: **{out.get('model', 'dolu katı')}**  ",
           f"- Malzeme: **{out['malzeme']}**, mesnet: {out['mesnet']}  ",
@@ -328,7 +349,8 @@ def _append_report(run_dir: Path, out: dict):
           f"- Max sehim: **{out['max_sehim_mm']} mm**  ",
           f"- Max von Mises: **{out['max_von_mises_MPa']} MPa** → "
           f"Emniyet faktörü: **{sf_s}** {verdict}\n",
-          f"> ⚠️ *{out['_not']}*\n"]
+          (f"> ❌ *{out['gecersiz']}*\n" if out.get("gecersiz") else
+           f"> ⚠️ *{out['_not']}*\n")]
     txt = rapor.read_text(encoding="utf-8")
     anchor = "\n---\n*Otomatik üretildi"
     if "## 7. Yapısal Kontrol" in txt:
