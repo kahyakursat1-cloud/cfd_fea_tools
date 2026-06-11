@@ -4,6 +4,37 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-06-11] feature | Faz 2 tamamlandı — "her türlü geometri" temeli
+
+**What:** Araç Analiz Stüdyosu'nun genelleme fazı: 5 maddenin tamamı ya
+doğrulanmış ✅ ya da kanıtlı kararla kapatılmış.
+
+- ✅ **2.1 Geometri sağlamlaştırma:** `prepare_geometry` — onarım zinciri
+  (delik kapatma, normal/sarım, dejenere temizlik), çok-gövde desteği,
+  STEP/IGES→STL (gmsh). 3 birim test.
+- ✅ **2.2 Çözünürlük bekçisi:** en ince boyut / yüzey hücresi oranı < 6 →
+  rapor uyarısı. (Bilinen sınır: bbox-min vekili kanat *kalınlığını* tam
+  temsil etmez — gelecek iyileştirme.)
+- ✅ **2.3 Prizma katmanları + ölçülen y⁺:** n_layers uçtan uca; her koşuda
+  foamPostProcess ile y⁺ ÖLÇÜLÜR; rapor BL bölümü dinamik (rejim yorumu).
+  Doğrulama: katmanlı küp — 3 katman, y⁺ ort 42.7 (log bölgesi, duvar fn
+  geçerli), Cd=1.117 (%6.4, band içi), Cl≈0 ✓.
+- ✅ **2.4 Polar taraması + Cm:** `vehicle_polar` — tek mesh, çoklu α
+  (α başına snappy maliyeti yok); POLAR.md (Cl-α, polar, Cm-α + lift eğimi
+  + dCm/dα, CofR/CG notu). Doğrulama: MiniHawk α=0/4/8, üç nokta ok,
+  Cl monoton ✓. Bonus doğruluk: forceCoeffs liftDir α≠0'da dik değildi —
+  düzeltildi.
+- ✅ **2.5 Performans/mpirun kararı:** 3 onarım denemesi (vader, TCP-loopback)
+  kanıtlı başarısız — orted/pty seviyesi; kalıcı mod seri + probe-fallback.
+  OF env prefix'e `unset FOAM_SIGFPE` eklendi (2D dersinin 3D'ye taşınması).
+- 🐛 İlk-koşu hataları kapatıldı: cp1254 `y⁺` crash (CFD bitmişken sonuç
+  yazımı düşüyordu), polar triSurface/patch adı varsayımı, controlDict
+  endTime naif parse.
+
+Test: 44 yeşil. Durum: SYSTEM_STATUS güncel.
+
+---
+
 ## [2026-06-10b] feature | Araç Analiz Stüdyosu + fotogrametri kaldırma + deneysel doğrulama
 
 **What:** Kullanıcı kararıyla kapsam dönüşümü: fotogrametri tamamen kaldırıldı;
