@@ -37,6 +37,34 @@ CONSTRAINT_PRESETS = {
 }
 
 
+def resolve_cp_vtk(run_dir: Path, sonuc: dict) -> str | None:
+    """sonuc.json'daki cp_vtk'yı döndürür; yoksa çözülmüş case'ten çıkarır ve
+    sonuc.json'a kalıcı yazar (eski koşulara geriye-dönük uyumluluk)."""
+    run_dir = Path(run_dir)
+    cp = sonuc.get("cp_vtk")
+    if cp and Path(cp).exists():
+        return cp
+    case_dirs = [d for d in run_dir.iterdir() if d.is_dir() and (d / "system").exists()]
+    if not case_dirs:
+        return None
+    case_dir = case_dirs[0]
+    yb = case_dir / "postProcessing" / "yuzeyBasinc"
+    hits = sorted(yb.rglob("*.vtk")) if yb.exists() else []
+    if not hits:
+        from vehicle_pipeline import export_surface_vtk
+        tris = list((case_dir / "constant" / "triSurface").glob("*.stl"))
+        if not tris:
+            return None
+        hit = export_surface_vtk(case_dir, tris[0].stem.replace(" ", "_"))
+        if not hit:
+            return None
+        hits = [hit]
+    sonuc["cp_vtk"] = str(hits[-1])
+    (run_dir / "sonuc.json").write_text(json.dumps(sonuc, indent=2, ensure_ascii=False),
+                                        encoding="utf-8")
+    return sonuc["cp_vtk"]
+
+
 def _material(key: str) -> FEAMaterial:
     m = MATERIAL_LIBRARY[key]   # youngs_modulus MPa, yield MPa
     return FEAMaterial.from_gpa(m.name, m.youngs_modulus / 1000.0,
@@ -104,27 +132,9 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
     sonuc = json.loads((run_dir / "sonuc.json").read_text(encoding="utf-8"))
     if sonuc.get("status") != "ok":
         return {"status": "FAILED", "error": "Önce başarılı bir CFD koşusu gerekli"}
-    cp_vtk = sonuc.get("cp_vtk")
-    if not cp_vtk or not Path(cp_vtk).exists():
-        # Eski koşu: yüzey VTK'sını şimdi çıkar (cozum diskte duruyor)
-        case_dirs = [d for d in run_dir.iterdir()
-                     if d.is_dir() and (d / "system").exists()]
-        if not case_dirs:
-            return {"status": "FAILED", "error": "Çözülmüş case dizini bulunamadı"}
-        case_dir = case_dirs[0]
-        hits = sorted((case_dir / "postProcessing" / "yuzeyBasinc").rglob("*.vtk")) \
-            if (case_dir / "postProcessing" / "yuzeyBasinc").exists() else []
-        if not hits:
-            from vehicle_pipeline import export_surface_vtk
-            tris = list((case_dir / "constant" / "triSurface").glob("*.stl"))
-            if not tris:
-                return {"status": "FAILED", "error": "triSurface STL yok"}
-            hit = export_surface_vtk(case_dir, tris[0].stem.replace(" ", "_"))
-            if not hit:
-                return {"status": "FAILED", "error": "Yüzey VTK çıkarılamadı"}
-            hits = [hit]
-        cp_vtk = str(hits[-1])
-    sonuc["cp_vtk"] = cp_vtk
+    cp_vtk = resolve_cp_vtk(run_dir, sonuc)
+    if not cp_vtk:
+        return {"status": "FAILED", "error": "Yüzey basınç VTK'sı bulunamadı/çıkarılamadı"}
     stl_candidates = sorted(run_dir.glob("*_oriented.stl")) or sorted(run_dir.glob("*_prep.stl"))
     if not stl_candidates:
         return {"status": "FAILED", "error": "Hazırlanmış STL bulunamadı"}

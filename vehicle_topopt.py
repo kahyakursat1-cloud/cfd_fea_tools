@@ -191,10 +191,11 @@ def run_topopt(run_dir, material="aluminum_6061", constraint="y_min",
             progress_cb(p, m)
 
     # Yük durumu: vehicle_fea ile aynı kaynaklar
+    from vehicle_fea import resolve_cp_vtk
     sonuc = json.loads((run_dir / "sonuc.json").read_text(encoding="utf-8"))
-    cp_vtk = sonuc.get("cp_vtk")
-    if not cp_vtk or not Path(cp_vtk).exists():
-        return {"status": "FAILED", "error": "cp_vtk yok — önce CFD koşusu (veya vehicle_fea backfill)"}
+    cp_vtk = resolve_cp_vtk(run_dir, sonuc)
+    if not cp_vtk:
+        return {"status": "FAILED", "error": "Yüzey basınç VTK'sı yok — önce CFD koşusu"}
     stls = sorted(run_dir.glob("*_oriented.stl")) or sorted(run_dir.glob("*_prep.stl"))
     if not stls:
         return {"status": "FAILED", "error": "Hazırlanmış STL yok"}
