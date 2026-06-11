@@ -103,6 +103,66 @@ def _fig_geometry(geo, out):
     return True
 
 
+def _fig_cp_surface(vtk_path, velocity, out, max_faces=45000):
+    """Yüzey Cp haritası: OpenFOAM surfaces VTK'sı → matplotlib 3D render
+    (iso + yan görünüm). OpenFOAM incompressible p kinematiktir (m²/s²):
+    Cp = p / (0.5·V²)."""
+    try:
+        import vtk as _vtk
+        from vtk.util.numpy_support import vtk_to_numpy
+        rd = (_vtk.vtkXMLPolyDataReader() if str(vtk_path).endswith(".vtp")
+              else _vtk.vtkPolyDataReader())
+        rd.SetFileName(str(vtk_path))
+        rd.Update()
+        pd = rd.GetOutput()
+        if pd.GetNumberOfPolys() > max_faces:
+            tri = _vtk.vtkTriangleFilter(); tri.SetInputData(pd); tri.Update()
+            dec = _vtk.vtkDecimatePro()
+            dec.SetInputData(tri.GetOutput())
+            dec.SetTargetReduction(1.0 - max_faces / pd.GetNumberOfPolys())
+            dec.Update()
+            pd = dec.GetOutput()
+        tri = _vtk.vtkTriangleFilter(); tri.SetInputData(pd); tri.Update()
+        pd = tri.GetOutput()
+        pts = vtk_to_numpy(pd.GetPoints().GetData())
+        faces = vtk_to_numpy(pd.GetPolys().GetData()).reshape(-1, 4)[:, 1:]
+        q = 0.5 * velocity**2   # OF incompressible p kinematik (m²/s²)
+        if pd.GetCellData().GetArray("p") is not None:
+            cp_face = vtk_to_numpy(pd.GetCellData().GetArray("p")) / q
+        elif pd.GetPointData().GetArray("p") is not None:
+            cp_face = (vtk_to_numpy(pd.GetPointData().GetArray("p")) / q)[faces].mean(axis=1)
+        else:
+            return False
+
+        from matplotlib import cm
+        from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+        lo, hi = float(np.percentile(cp_face, 2)), float(np.percentile(cp_face, 98))
+        norm = plt.Normalize(lo, hi)
+        fig = plt.figure(figsize=(9, 4))
+        for k, (elev, azim, title) in enumerate(
+                [(25, 150, "rüzgâr-üstü (stagnasyon)"), (25, -30, "rüzgâr-altı (iz bölgesi)")]):
+            ax = fig.add_subplot(1, 2, k + 1, projection="3d")
+            coll = Poly3DCollection(pts[faces], linewidths=0)
+            coll.set_facecolor(cm.coolwarm(norm(cp_face)))
+            ax.add_collection3d(coll)
+            mn, mx = pts.min(0), pts.max(0)
+            c, half = (mn + mx) / 2, (mx - mn).max() / 2
+            ax.set_xlim(c[0]-half, c[0]+half)
+            ax.set_ylim(c[1]-half, c[1]+half)
+            ax.set_zlim(c[2]-half, c[2]+half)
+            ax.view_init(elev=elev, azim=azim)
+            ax.set_axis_off()
+            ax.set_title(title, fontsize=9)
+        sm = cm.ScalarMappable(cmap=cm.coolwarm, norm=norm)
+        fig.colorbar(sm, ax=fig.axes, shrink=0.7, label="$C_p$")
+        fig.suptitle("Yüzey Basınç Katsayısı Dağılımı", fontsize=10)
+        fig.savefig(out, bbox_inches="tight")
+        plt.close(fig)
+        return True
+    except Exception:
+        return False
+
+
 def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
     """r: VehicleAnalysisResult. Markdown rapor + 300 DPI figürler üretir."""
     out = Path(out_dir)
@@ -195,6 +255,11 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
     q = 0.5 * 1.225 * r.velocity**2
     md.append(f"| Sürükleme gücü @ {r.velocity} m/s | {r.drag_N * r.velocity:.1f} W |")
     md.append(f"| Dinamik basınç q | {q:.1f} Pa |\n")
+    if getattr(r, "cp_vtk", "") and _fig_cp_surface(r.cp_vtk, r.velocity,
+                                                    out / "figures" / "cp_surface.png"):
+        md.append("![Cp](figures/cp_surface.png)\n")
+        md.append("> *Cp = p/(½V²); renk skalası 2-98 persentil aralığına kırpıldı "
+                  "(stagnasyon/uç tekillikleri skalayı ezmesin diye).*\n")
 
     # 4b. Uyarılar + mesh duyarlılığı
     if getattr(r, "uyarilar", None):
