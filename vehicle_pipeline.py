@@ -283,6 +283,34 @@ def export_surface_vtk(case_dir, patch_name: str, timeout=600) -> Path | None:
         return None
 
 
+def export_cutplane_vtk(case_dir, center, timeout=600) -> Path | None:
+    """Simetri düzleminden (y=merkez) hız kesiti VTK'sı çıkarır (foamPostProcess)."""
+    case_dir = Path(case_dir)
+    cx, cy, cz = center
+    func = (
+        'type surfaces; libs ("libsampling.so");\n'
+        "surfaceFormat vtk; fields (U p);\n"
+        "interpolationScheme cellPoint;\n"
+        "surfaces ( kesit { type cutPlane; planeType pointAndNormal; "
+        f"pointAndNormalDict {{ point ({cx} {cy} {cz}); normal (0 1 0); }} "
+        "interpolate true; } );\n"
+    )
+    (case_dir / "system" / "hizKesiti").write_text(
+        "FoamFile{version 2.0; format ascii; class dictionary; object hizKesiti;}\n" + func)
+    p = str(case_dir.resolve())
+    wsl = "/mnt/" + p[0].lower() + p[2:].replace("\\", "/")
+    try:
+        subprocess.run(
+            f'wsl bash -c "source /opt/openfoam11/etc/bashrc && unset FOAM_SIGFPE && '
+            f'cd {wsl} && foamPostProcess -solver incompressibleFluid -func hizKesiti '
+            f'-latestTime > log.hizKesiti 2>&1"',
+            shell=True, capture_output=True, text=True, timeout=timeout)
+        cands = sorted((case_dir / "postProcessing" / "hizKesiti").rglob("kesit.vtk"))
+        return cands[-1] if cands else None
+    except Exception:
+        return None
+
+
 def parse_residuals(log: Path) -> dict:
     """foamRun logundan alan bazlı initial-residual tarihçesi."""
     hist: dict[str, list[float]] = {}
@@ -321,6 +349,7 @@ class VehicleAnalysisResult:
     uyarilar: list = None
     sinir_tabaka: dict | None = None
     cp_vtk: str = ""
+    kesit_vtk: str = ""
     mesh_duyarlilik: dict | None = None
     case_dir: str = ""
     report: str = ""
@@ -448,6 +477,10 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         progress_cb(82, "Yuzey basinc alani cikariliyor...")
     vtk_path = export_surface_vtk(case_dir, Path(stl_path).stem.replace(" ", "_"))
     base.cp_vtk = str(vtk_path) if vtk_path else ""
+    bb = trimesh.load(str(stl_path), force="mesh").bounds
+    center = [(bb[0][i] + bb[1][i]) / 2 for i in range(3)]
+    kesit = export_cutplane_vtk(case_dir, center)
+    base.kesit_vtk = str(kesit) if kesit else ""
     if yp and yp["ort"] > 30 and n_layers == 0:
         uyarilar.append(f"Ölçülen y⁺ ort={yp['ort']} (log bölgesi üstü) — sürtünme "
                         "sürüklemesi duvar fonksiyonu sınırında; katman sayısını artırın")

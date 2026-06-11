@@ -163,6 +163,42 @@ def _fig_cp_surface(vtk_path, velocity, out, max_faces=45000):
         return False
 
 
+def _fig_velocity_slice(vtk_path, velocity, out):
+    """Simetri düzlemi |U|/V∞ haritası — iz bölgesi ve hızlanma alanları."""
+    try:
+        import vtk as _vtk
+        from vtk.util.numpy_support import vtk_to_numpy
+        rd = _vtk.vtkPolyDataReader()
+        rd.SetFileName(str(vtk_path))
+        rd.Update()
+        tri = _vtk.vtkTriangleFilter(); tri.SetInputData(rd.GetOutput()); tri.Update()
+        pd = tri.GetOutput()
+        pts = vtk_to_numpy(pd.GetPoints().GetData())
+        faces = vtk_to_numpy(pd.GetPolys().GetData()).reshape(-1, 4)[:, 1:]
+        if pd.GetCellData().GetArray("U") is not None:
+            umag = np.linalg.norm(vtk_to_numpy(pd.GetCellData().GetArray("U")), axis=1)
+        elif pd.GetPointData().GetArray("U") is not None:
+            up = np.linalg.norm(vtk_to_numpy(pd.GetPointData().GetArray("U")), axis=1)
+            umag = up[faces].mean(axis=1)
+        else:
+            return False
+        import matplotlib.tri as mtri
+        t = mtri.Triangulation(pts[:, 0], pts[:, 2], faces)
+        fig, ax = plt.subplots(figsize=(7, 3.2))
+        tp = ax.tripcolor(t, facecolors=umag / velocity, cmap="viridis",
+                          vmin=0, vmax=1.4)
+        fig.colorbar(tp, ax=ax, label="$|U|/V_\\infty$")
+        ax.set_aspect("equal")
+        ax.set_xlabel("x (m)"); ax.set_ylabel("z (m)")
+        ax.set_title("Simetri Düzlemi Hız Haritası (iz bölgesi)", fontsize=10)
+        fig.tight_layout()
+        fig.savefig(out)
+        plt.close(fig)
+        return True
+    except Exception:
+        return False
+
+
 def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
     """r: VehicleAnalysisResult. Markdown rapor + 300 DPI figürler üretir."""
     out = Path(out_dir)
@@ -260,6 +296,9 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
         md.append("![Cp](figures/cp_surface.png)\n")
         md.append("> *Cp = p/(½V²); renk skalası 2-98 persentil aralığına kırpıldı "
                   "(stagnasyon/uç tekillikleri skalayı ezmesin diye).*\n")
+    if getattr(r, "kesit_vtk", "") and _fig_velocity_slice(r.kesit_vtk, r.velocity,
+                                                           out / "figures" / "velocity_slice.png"):
+        md.append("![Hız kesiti](figures/velocity_slice.png)\n")
 
     # 4b. Uyarılar + mesh duyarlılığı
     if getattr(r, "uyarilar", None):

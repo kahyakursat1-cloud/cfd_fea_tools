@@ -31,7 +31,19 @@ doğrulanmış ✅ ya da kanıtlı kararla kapatılmış.
   yazımı düşüyordu), polar triSurface/patch adı varsayımı, controlDict
   endTime naif parse.
 
-Test: 44 yeşil. Durum: SYSTEM_STATUS güncel.
+**Devam (aynı gün) — 2.6 ve 2.7:**
+- ✅ **2.6 Gerçek et-kalınlığı bekçisi:** ray-tabanlı yüzey kalınlık örneklemesi
+  (p10; max_sphere kenarda sistematik küçük verdiği için ölçümle elendi).
+  MiniHawk 0.35 m → bekçi artık *hızlı* modda haklı uyarır, *standart*ta susar.
+  rtree çekirdek bağımlılığa eklendi. GUI'ye polar taraması kutusu
+  (α listesi + worker + POLAR.md aç).
+- ✅ **2.7 Akış görselleştirme (ParaView'sız):** her koşuda foamPostProcess ile
+  yüzey-p ve simetri-düzlemi kesiti VTK'sı; vtk(9.6)+matplotlib render —
+  **Cp yüzey haritası** (rüzgâr-üstü/altı, stagnasyon çekirdeği doğrulandı) ve
+  **|U|/V∞ hız kesiti** (resirkülasyon + iz, ders kitabı desen) rapora otomatik.
+  Solver yeniden koşmaz; eski case'lere de uygulanabilir.
+
+Test: 45 yeşil. Durum: SYSTEM_STATUS güncel.
 
 ---
 
