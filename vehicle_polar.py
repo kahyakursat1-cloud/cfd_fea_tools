@@ -74,9 +74,10 @@ def run_polar(stl_path, vehicle_type="ucak", velocity=25.0, alphas=(-4, 0, 4, 8)
     class _C:  # _write_field_U/_write_control_dict'in ihtiyaç duyduğu alanlar
         pass
 
-    import trimesh
-    m = trimesh.load(str(base_case / "constant" / "triSurface" / f"{base_case.name}.stl"),
-                     force="mesh") if (base_case / "constant" / "triSurface").exists() else None
+    # snappy patch adi = triSurface'taki STL stem'i (oriented ad — case adi DEGIL)
+    tris = list((base_case / "constant" / "triSurface").glob("*.stl"))
+    surface = tris[0].stem.replace(" ", "_") if tris else base_case.name
+    lref = r0.geometry["lmax_m"]
 
     for i, a_deg in enumerate(alphas[1:], start=1):
         cb(int(100 * i / len(alphas)), f"Polar: α={a_deg}° (mesh yeniden kullanılıyor)")
@@ -101,8 +102,6 @@ def run_polar(stl_path, vehicle_type="ucak", velocity=25.0, alphas=(-4, 0, 4, 8)
         c.end_time = int((base_case / "system" / "controlDict").read_text()
                          .split("endTime")[1].split(";")[0].strip())
         c.write_interval = c.end_time
-        surface = base_case.name
-        lref = float(m.extents.max()) if m is not None else r0.geometry["lmax_m"]
         _write_field_U(case_a, c, surface)
         _write_control_dict(case_a, c, surface, lref)
         r = _wsl_solve(case_a)
