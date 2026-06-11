@@ -99,8 +99,9 @@ def run_polar(stl_path, vehicle_type="ucak", velocity=25.0, alphas=(-4, 0, 4, 8)
         c.flow_direction = (math.cos(a), 0.0, math.sin(a))
         c.rho = 1.225
         c.turbulence_intensity = 0.01
-        c.end_time = int((base_case / "system" / "controlDict").read_text()
-                         .split("endTime")[1].split(";")[0].strip())
+        import re as _re
+        m_end = _re.search(r"^endTime\s+(\d+)\s*;", (base_case / "system" / "controlDict").read_text(), _re.M)
+        c.end_time = int(m_end.group(1)) if m_end else 400
         c.write_interval = c.end_time
         _write_field_U(case_a, c, surface)
         _write_control_dict(case_a, c, surface, lref)
