@@ -55,6 +55,18 @@ doğrulanmış ✅ ya da kanıtlı kararla kapatılmış.
   17.097 N vs CFD sürükleme 17.107 N (%0.06): eşlemenin korunumu CFD kuvvet
   integraline karşı bağımsız doğrulandı. Dolu-katı varsayımı raporda açık.
 
+**Faz 3.1 — SIMP topoloji optimizasyonu (`vehicle_topopt.py`):**
+CFD-yüklü TO: stüdyonun basınç alanı yük durumu, ccx çözücü. ρᵖ·E0
+malzeme kutulaması (K=20), *EL PRINT ENER duyarlılığı, Sigmund duyarlılık
+filtresi, OC + hacim kısıtı, **pasif dış kabuk** (aerodinamik form korunur,
+iç yapı tasarlanır), fizibilite bekçisi. Çıktılar: ρ-VTK, eşiklenmiş STL,
+yakınsama grafiği. **Doğrulama (küp, 27.2k eleman, 25 iter):** komplians
+monoton 1.031e-7→5.736e-8 (aynı %45 hacimde rijitlik ~%44 ↑), hacim her
+iterasyonda tam hedefte. İlk koşuların yakaladığı 3 hata kapalı (ELSET
+zorunluluğu, kabuk fizibilitesi, cp_vtk kalıcılığı). Sınırlar dürüst:
+tek yük durumu, lineer statik, burkulma/yorulma yok — ön-tasarım;
+tam 0/1 kutuplaşma için uzun koşu/p-continuation önerilir. 48 test.
+
 Test: 45 yeşil. Durum: SYSTEM_STATUS güncel.
 
 ---
