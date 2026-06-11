@@ -236,6 +236,16 @@ def parse_checkmesh(log: Path) -> dict:
     return out
 
 
+def first_layer_height(velocity, lref, yplus_target, nu=1.5e-5):
+    """Hedef y⁺ için ilk prizma katmanı YÜKSEKLİĞİ (m).
+    Düz-plaka türbülanslı korelasyon: Cf=0.026·Re⁻¹ᐟ⁷, u*=V√(Cf/2),
+    y₁=y⁺·ν/u* hücre MERKEZİ olduğundan yükseklik = 2·y₁."""
+    re = max(velocity * lref / nu, 1e3)
+    cf = 0.026 / re ** (1 / 7)
+    utau = velocity * math.sqrt(cf / 2)
+    return 2.0 * yplus_target * nu / utau
+
+
 def measure_yplus(case_dir, timeout=600) -> dict | None:
     """Çözülmüş alanda duvar y⁺'ını ÖLÇER (varsayım değil; foamPostProcess)."""
     p = str(Path(case_dir).resolve())
@@ -360,7 +370,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                          quality="standart", out_root="vehicle_runs",
                          n_processors=0, rho=1.225,
                          nose_axis="+x", up_axis="+z",
-                         mesh_sensitivity=False, n_layers=0,
+                         mesh_sensitivity=False, n_layers=0, yplus_target=30.0,
                          progress_cb=None) -> VehicleAnalysisResult:
     stl_path = Path(stl_path)
     stem = stl_path.stem
@@ -396,6 +406,8 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         max_global_cells=q["max_cells"],
         bg_cell_size=geo["lmax_m"] / q["bg_div"],
         n_layers=n_layers,
+        first_layer_thickness=(first_layer_height(velocity, geo["lmax_m"], yplus_target)
+                               if n_layers > 0 else None),
         n_processors=n_processors,
     )
     res = run_cfd(case, run_dir, progress_callback=progress_cb)
@@ -472,7 +484,10 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     if progress_cb:
         progress_cb(78, "y+ olcumu...")
     yp = measure_yplus(case_dir)
-    base.sinir_tabaka = {"katman_sayisi": n_layers, "yplus": yp}
+    base.sinir_tabaka = {"katman_sayisi": n_layers, "yplus": yp,
+                         "yplus_hedef": yplus_target if n_layers > 0 else None,
+                         "ilk_katman_m": (round(case.first_layer_thickness, 8)
+                                          if case.first_layer_thickness else None)}
     if progress_cb:
         progress_cb(82, "Yuzey basinc alani cikariliyor...")
     vtk_path = export_surface_vtk(case_dir, Path(stl_path).stem.replace(" ", "_"))
@@ -544,6 +559,8 @@ if __name__ == "__main__":
                     help="ikinci (kaba) koşuyla mesh duyarlılık bandı hesapla")
     ap.add_argument("--katman", type=int, default=0,
                     help="prizma sınır-tabaka katman sayısı (0=kapalı)")
+    ap.add_argument("--yplus", type=float, default=30.0,
+                    help="hedef y+ (ilk katman kalınlığı buna göre hesaplanır)")
     args = ap.parse_args()
 
     def _cb(pct, msg):
@@ -553,7 +570,7 @@ if __name__ == "__main__":
                              args.kalite, n_processors=args.islemci,
                              nose_axis=args.burun, up_axis=args.ust,
                              mesh_sensitivity=args.duyarlilik, n_layers=args.katman,
-                             progress_cb=_cb)
+                             yplus_target=args.yplus, progress_cb=_cb)
     if r.status == "ok":
         print(f"\nCd={r.cd}  CdA={r.cda_m2} m²  Drag={r.drag_N} N"
               + (f"  Cl={r.cl}  L/D={r.ld}" if r.cl is not None else ""))

@@ -80,6 +80,7 @@ class CFDCase:
     refinement_min: int = 1        # snappyHexMesh surface min level
     refinement_max: int = 2
     n_layers: int = 0              # 0 = boundary layer eklenmesin (kararlılık için)
+    first_layer_thickness: float | None = None  # m; None = göreli snappy varsayılanı
     bg_cell_size: float | None = None  # None = otomatik (L/8)
     end_time: int = 300            # SIMPLE iterasyonu
     write_interval: int = 100
@@ -248,15 +249,27 @@ def _write_snappy(case_dir: Path, stl_name: str, surface_name: str,
         "    multiRegionFeatureSnap false;\n"
         "}\n\n"
     )
+    if case.first_layer_thickness:
+        h1 = case.first_layer_thickness
+        sizing = (
+            "    relativeSizes false;\n"
+            f"    firstLayerThickness {h1:.6e};\n"
+            f"    minThickness {h1 * 0.25:.6e};\n"
+            "    expansionRatio 1.25;\n"
+        )
+    else:
+        sizing = (
+            "    relativeSizes true;\n"
+            "    expansionRatio 1.2;\n"
+            "    finalLayerThickness 0.5;\n"
+            "    minThickness 0.1;\n"
+        )
     txt += (
         "addLayersControls\n{\n"
-        "    relativeSizes true;\n"
+        + sizing +
         "    layers\n    {\n"
         f"        {surface_name} {{ nSurfaceLayers {max(case.n_layers, 0)}; }}\n"
         "    }\n"
-        "    expansionRatio 1.2;\n"
-        "    finalLayerThickness 0.5;\n"
-        "    minThickness 0.1;\n"
         "    nGrow 0;\n"
         "    featureAngle 130;\n"
         "    nRelaxIter 5;\n"

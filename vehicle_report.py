@@ -284,6 +284,9 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
     yp = bl.get("yplus")
     if nlay:
         line = f"- Sınır tabaka: **{nlay} prizma katmanı**"
+        if bl.get("yplus_hedef"):
+            line += (f" (hedef y⁺={bl['yplus_hedef']:.0f}, "
+                     f"ilk katman {bl.get('ilk_katman_m', 0)*1000:.3f} mm)")
     else:
         line = "- Sınır tabaka: prizma katmanı YOK"
     if yp:

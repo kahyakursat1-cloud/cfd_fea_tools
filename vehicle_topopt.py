@@ -287,6 +287,41 @@ def run_topopt(run_dir, material="aluminum_6061", constraint="y_min",
         if change < 0.02 and it > 3:
             break
 
+    # B2: final tasarımın yeniden-analizi — son yoğunluklarla bir çözüm daha,
+    # gerilme çıktısı istenerek; vM yalnız KATI (rho>=0.5) elemanların
+    # düğümlerinde değerlendirilir (düşük-yoğunluk eleman gerilmesi anlamsız)
+    cb(92, "Final tasarım yeniden-analizi (gerilme)...")
+    reanaliz = None
+    try:
+        bins_of = np.clip(((rho - RHO_MIN) / (1 - RHO_MIN) * (n_bins - 1)).round(),
+                          0, n_bins - 1).astype(int)
+        bin_rho = RHO_MIN + np.arange(n_bins) / (n_bins - 1) * (1 - RHO_MIN)
+        inp = _write_inp(out_dir / "to_final.inp", P, tets, bins_of, bin_rho,
+                         e0_mpa, nu, dens, fixed, cload_block, penal)
+        txt = inp.read_text(encoding="utf-8").replace(
+            "*NODE FILE\nU", "*NODE FILE\nU\n*EL FILE\nS")
+        inp.write_text(txt, encoding="utf-8")
+        ccx_f = run_ccx(inp, timeout=3600)
+        if ccx_f.success:
+            from analysis.frd_parser import parse_frd
+            frd = parse_frd(ccx_f.frd_path)
+            disp = frd.displacement_magnitude()
+            vm = frd.von_mises()
+            solid_nodes = np.unique(tets[rho >= 0.5])
+            nid_to_idx = {int(n): i for i, n in enumerate(frd.node_ids)}
+            idx = [nid_to_idx[int(n) + 1] for n in solid_nodes
+                   if int(n) + 1 in nid_to_idx]
+            vm_solid = float(vm[idx].max()) / 1e6 if vm is not None and idx else None
+            yld = mat.yield_strength
+            reanaliz = {
+                "max_sehim_mm": round(float(disp.max()) * 1000, 4) if disp is not None else None,
+                "max_vm_kati_MPa": round(vm_solid, 3) if vm_solid else None,
+                "emniyet_faktoru": (round(yld / vm_solid, 2)
+                                    if vm_solid and yld else None),
+            }
+    except Exception as e:
+        reanaliz = {"hata": str(e)[:200]}
+
     cb(95, "Çıktılar yazılıyor...")
     _write_rho_vtk(out_dir / "rho.vtk", P, tets, rho)
     stl_ok = _threshold_stl(out_dir / "tasarim.stl", P, tets, rho)
@@ -311,7 +346,8 @@ def run_topopt(run_dir, material="aluminum_6061", constraint="y_min",
            "komplians_ilk": hist[0]["komplians"], "komplians_son": hist[-1]["komplians"],
            "pasif_kabuk_orani": round(float(passive.mean()), 3),
            "tasarim_stl": str(out_dir / "tasarim.stl") if stl_ok else None,
-           "rho_vtk": str(out_dir / "rho.vtk"), "gecmis": hist,
+           "rho_vtk": str(out_dir / "rho.vtk"), "yeniden_analiz": reanaliz,
+           "gecmis": hist,
            "_not": ("Tek yük durumu, lineer statik, komplians min. Burkulma/"
                     "yorulma kısıtı yok — ön-tasarım. Dış kabuk pasif-katı.")}
     (out_dir / "sonuc_topopt.json").write_text(
