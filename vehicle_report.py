@@ -296,6 +296,13 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
                "log bölgesi (y⁺>30) — duvar fonksiyonu varsayımı, sürtünme C_D yaklaşık")
         line += (f"; **ölçülen y⁺**: min={yp['min']}, ort=**{yp['ort']}**, "
                  f"max={yp['max']} → {reg}")
+        ht = bl.get("yplus_hedef")
+        if ht:
+            oran = yp["ort"] / ht
+            line += (f". Hedef/ölçüm oranı {oran:.2f} — "
+                     + ("hedefe oturdu ✓" if 0.5 <= oran <= 2.0 else
+                        "düz-plaka korelasyonu bu gövdede sapıyor; hedefi "
+                        f"~{ht/max(oran,1e-3):.0f} alıp tekrarlayın"))
     else:
         line += "; y⁺ ölçülemedi"
     md.append(line + "\n")

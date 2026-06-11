@@ -67,6 +67,19 @@ zorunluluğu, kabuk fizibilitesi, cp_vtk kalıcılığı). Sınırlar dürüst:
 tek yük durumu, lineer statik, burkulma/yorulma yok — ön-tasarım;
 tam 0/1 kutuplaşma için uzun koşu/p-continuation önerilir. 48 test.
 
+**B1+B2 — rapor uyarılarının düğmeye bağlanması:**
+- ✅ **B1 y⁺-hedefli katman boyutlama:** düz-plaka korelasyonuyla (Cf=0.026·Re⁻¹ᐟ⁷)
+  hedef y⁺ için ilk katman yüksekliği hesaplanır; snappy mutlak boyutlama
+  (relativeSizes false + firstLayerThickness). Rapor kapalı döngü basar:
+  hedef + ilk-katman-mm + ölçülen + oran yorumu (band dışıysa yeni hedef
+  önerisi). Küp doğrulaması: kontrolsüz y⁺ 42.7 → kontrollü 14.8 (hedef 30;
+  küt gövdede ayrılma nedeniyle düz-plaka sapması — beklenen, raporda
+  açıklanıyor); Cd %4.0 (Hoerner bandı içinde).
+- ✅ **B2 TO final yeniden-analizi:** döngü sonunda final yoğunluklarla bir
+  çözüm daha (*EL FILE S); von Mises yalnız katı (ρ≥0.5) eleman düğümlerinde,
+  max sehim + SF `yeniden_analiz` alanında — TO çıktısı artık kendi yapısal
+  doğrulamasıyla gelir. Küp: 12 iterasyonda komplians −%31, yeniden-analiz ✓.
+
 Test: 45 yeşil. Durum: SYSTEM_STATUS güncel.
 
 ---
