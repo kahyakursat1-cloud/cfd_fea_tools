@@ -118,6 +118,38 @@ def test_prepare_geometry_rejects_empty(tmp_path):
         prepare_geometry(src, tmp_path / "out")
 
 
+def test_oc_update_hits_volume_target():
+    from vehicle_topopt import _oc_update
+    n = 500
+    rng = np.random.default_rng(7)
+    rho = np.full(n, 0.5)
+    sens = rng.uniform(0.1, 1.0, n)
+    vol = np.ones(n)
+    passive = np.zeros(n, dtype=bool)
+    new = _oc_update(rho, sens, vol, volfrac=0.4, passive=passive)
+    assert abs((new * vol).sum() / vol.sum() - 0.4) < 0.02
+    assert new.min() >= 0.05 - 1e-9 and new.max() <= 1.0 + 1e-9
+
+
+def test_oc_update_respects_passive():
+    from vehicle_topopt import _oc_update
+    n = 100
+    rho = np.full(n, 0.5)
+    sens = np.ones(n)
+    vol = np.ones(n)
+    passive = np.zeros(n, dtype=bool)
+    passive[:10] = True
+    new = _oc_update(rho, sens, vol, volfrac=0.3, passive=passive)
+    assert np.allclose(new[:10], 1.0)
+
+
+def test_tet_volumes_unit_tet():
+    from vehicle_topopt import _tet_volumes
+    P = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]], float)
+    v = _tet_volumes(P, np.array([[0, 1, 2, 3]]))
+    assert v[0] == pytest.approx(1 / 6)
+
+
 def test_parse_residuals(tmp_path):
     log = tmp_path / "log.foamRun"
     log.write_text(
