@@ -188,9 +188,46 @@ def _fig_velocity_slice(vtk_path, velocity, out):
         tp = ax.tripcolor(t, facecolors=umag / velocity, cmap="viridis",
                           vmin=0, vmax=1.4)
         fig.colorbar(tp, ax=ax, label="$|U|/V_\\infty$")
+
+        # Akış çizgileri: hücre-merkez U vektörleri düzenli ızgaraya
+        # enterpole edilir; gövde deliği trifinder ile maskelenir
+        try:
+            from scipy.interpolate import griddata
+            from scipy.spatial import cKDTree
+            cc = pts[faces].mean(axis=1)
+            if pd.GetCellData().GetArray("U") is not None:
+                uv = vtk_to_numpy(pd.GetCellData().GetArray("U"))
+            else:
+                uv = vtk_to_numpy(pd.GetPointData().GetArray("U"))[faces].mean(axis=1)
+            v1 = pts[faces[:, 1]] - pts[faces[:, 0]]
+            v2 = pts[faces[:, 2]] - pts[faces[:, 0]]
+            area = 0.5 * np.linalg.norm(np.cross(v1, v2), axis=1)
+            csize = np.sqrt(2.0 * np.maximum(area, 1e-30))
+            # linspace min/max'tan türetilince streamplot'un eşit-aralık
+            # kontrolüne takılabiliyor; x0 + dx*arange inşası geçiyor
+            nx, nz = 240, 120
+            x0, x1 = float(pts[:, 0].min()), float(pts[:, 0].max())
+            z0, z1 = float(pts[:, 2].min()), float(pts[:, 2].max())
+            gx = x0 + ((x1 - x0) / (nx - 1)) * np.arange(nx)
+            gz = z0 + ((z1 - z0) / (nz - 1)) * np.arange(nz)
+            GX, GZ = np.meshgrid(gx, gz)
+            Ux = griddata(cc[:, [0, 2]], uv[:, 0], (GX, GZ), method="linear")
+            Uz = griddata(cc[:, [0, 2]], uv[:, 2], (GX, GZ), method="linear")
+            # Gövde deliği maskesi: en yakın örnek hücreye uzaklık, o hücrenin
+            # kendi boyutunun ~1.5 katını aşıyorsa orada akış verisi yok demektir
+            # (trifinder kesit üçgenlemesini reddediyor — çakışık noktalar)
+            d, idx = cKDTree(cc[:, [0, 2]]).query(np.c_[GX.ravel(), GZ.ravel()])
+            hole = (d > 1.5 * csize[idx]).reshape(GX.shape)
+            Ux = np.where(hole, np.nan, Ux)
+            Uz = np.where(hole, np.nan, Uz)
+            ax.streamplot(GX, GZ, Ux, Uz, density=1.0, linewidth=0.45,
+                          color=(1, 1, 1, 0.7), arrowsize=0.6)
+        except Exception:
+            pass   # akış çizgisi süslemedir; harita tek başına da geçerli
+
         ax.set_aspect("equal")
         ax.set_xlabel("x (m)"); ax.set_ylabel("z (m)")
-        ax.set_title("Simetri Düzlemi Hız Haritası (iz bölgesi)", fontsize=10)
+        ax.set_title("Simetri Düzlemi Hız Haritası ve Akış Çizgileri", fontsize=10)
         fig.tight_layout()
         fig.savefig(out)
         plt.close(fig)
