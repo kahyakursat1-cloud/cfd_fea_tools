@@ -338,6 +338,12 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
     q = 0.5 * 1.225 * r.velocity**2
     md.append(f"| Sürükleme gücü @ {r.velocity} m/s | {r.drag_N * r.velocity:.1f} W |")
     md.append(f"| Dinamik basınç q | {q:.1f} Pa |\n")
+    pv = getattr(r, "pervane", None)
+    if pv:
+        md.append(f"**Pervane (aktüatör disk):** itki {pv['itki_N']} N, "
+                  f"çap {pv['cap_m']} m, indüksiyon a={pv['a']} (Froude). "
+                  "*Üniform disk — pal geometrisi/swirl modellenmedi; "
+                  "itki etkisinin gövde aerodinamiğine yansıması ön-tasarım düzeyinde.*\n")
     if getattr(r, "cp_vtk", "") and _fig_cp_surface(r.cp_vtk, r.velocity,
                                                     out / "figures" / "cp_surface.png"):
         md.append("![Cp](figures/cp_surface.png)\n")

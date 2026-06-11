@@ -65,6 +65,32 @@ def resolve_cp_vtk(run_dir: Path, sonuc: dict) -> str | None:
     return sonuc["cp_vtk"]
 
 
+def _parse_eigenfrequencies(dat_path: Path, max_modes=10) -> list[float]:
+    """ccx .dat EIGENVALUE OUTPUT bölümünden frekanslar (Hz)."""
+    freqs = []
+    if not dat_path.exists():
+        return freqs
+    in_block = False
+    for line in dat_path.read_text(errors="ignore").splitlines():
+        if "E I G E N V A L U E" in line:
+            in_block = True
+            continue
+        if in_block:
+            parts = line.split()
+            if len(parts) >= 4:
+                try:
+                    int(parts[0])
+                    freqs.append(float(parts[3]))   # CYCLES/TIME sütunu
+                    if len(freqs) >= max_modes:
+                        break
+                    continue
+                except ValueError:
+                    pass
+            if freqs and line.strip() and not line.strip()[0].isdigit():
+                break
+    return freqs
+
+
 def _mechanism_check(max_disp_mm, lmax_m, fixed_n, total_n) -> str | None:
     """Mekanizma/yetersiz-mesnet imzası: devasa sehim + ufak gerilme tipiktir.
     Lineer çözücü mekanizmada km-ölçekli yer değiştirme döndürebilir."""
@@ -149,7 +175,8 @@ def _map_pressure_to_shell(vtk_patch, m: trimesh.Trimesh, rho=1.225) -> dict:
 
 
 def _write_shell_inp(path: Path, m: trimesh.Trimesh, mat: FEAMaterial,
-                     thickness_m: float, fixed_nodes, cload: str) -> Path:
+                     thickness_m: float, fixed_nodes, cload: str,
+                     frequency_modes: int = 0) -> Path:
     L = ["*HEADING", "Kabuk (S3) yapisal kontrol", "*NODE"]
     for i, (x, y, z) in enumerate(m.vertices, start=1):
         L.append(f"{i}, {x:.9e}, {y:.9e}, {z:.9e}")
@@ -167,14 +194,22 @@ def _write_shell_inp(path: Path, m: trimesh.Trimesh, mat: FEAMaterial,
     L.append(f"*SHELL SECTION, ELSET=KABUK, MATERIAL={mat.name.replace(' ', '_')[:60]}")
     L.append(f"{thickness_m:.6e}")
     L.append("*STEP")
-    L.append("*STATIC")
-    L.append("*BOUNDARY")
-    L.append("SABIT, 1, 6, 0.0")   # kabukta dönme DOF'ları da bağlanır
-    L.append(cload)
-    L.append("*NODE FILE")
-    L.append("U")
-    L.append("*EL FILE")
-    L.append("S")
+    if frequency_modes > 0:
+        L.append("*FREQUENCY")
+        L.append(str(frequency_modes))
+        L.append("*BOUNDARY")
+        L.append("SABIT, 1, 6, 0.0")
+        L.append("*NODE FILE")
+        L.append("U")
+    else:
+        L.append("*STATIC")
+        L.append("*BOUNDARY")
+        L.append("SABIT, 1, 6, 0.0")   # kabukta dönme DOF'ları da bağlanır
+        L.append(cload)
+        L.append("*NODE FILE")
+        L.append("U")
+        L.append("*EL FILE")
+        L.append("S")
     L.append("*END STEP")
     path.write_text("\n".join(L), encoding="utf-8")
     return path
@@ -191,6 +226,7 @@ def _cload_lines(node_forces: dict) -> str:
 
 def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
                          rho=1.225, model="dolu", shell_thickness_mm=2.0,
+                         analysis="statik", n_modes=8,
                          progress_cb=None) -> dict:
     run_dir = Path(run_dir)
 
@@ -201,9 +237,11 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
     sonuc = json.loads((run_dir / "sonuc.json").read_text(encoding="utf-8"))
     if sonuc.get("status") != "ok":
         return {"status": "FAILED", "error": "Önce başarılı bir CFD koşusu gerekli"}
-    cp_vtk = resolve_cp_vtk(run_dir, sonuc)
-    if not cp_vtk:
-        return {"status": "FAILED", "error": "Yüzey basınç VTK'sı bulunamadı/çıkarılamadı"}
+    cp_vtk = None
+    if analysis == "statik":   # frekans analizi yük gerektirmez
+        cp_vtk = resolve_cp_vtk(run_dir, sonuc)
+        if not cp_vtk:
+            return {"status": "FAILED", "error": "Yüzey basınç VTK'sı bulunamadı/çıkarılamadı"}
     stl_candidates = sorted(run_dir.glob("*_oriented.stl")) or sorted(run_dir.glob("*_prep.stl"))
     if not stl_candidates:
         return {"status": "FAILED", "error": "Hazırlanmış STL bulunamadı"}
@@ -214,10 +252,20 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
     # ── KABUK modeli: yüzey mesh'i doğrudan S3 eleman — tet gerekmez,
     # ince-OML/tam-araç derisi için doğru araç (dolu model parça ister) ──
     if model == "kabuk":
+        # Kaba STL kabuk için yetersizdir (küp prep'i 8 düğüm!): hedef kenar
+        # boyutuna kadar incelt — hem statik hem modal doğruluk için şart
+        lmax0 = float((m.bounds[1] - m.bounds[0]).max())
+        max_edge = lmax0 / 25.0
+        try:
+            if len(m.faces) < 50000:
+                m = m.subdivide_to_size(max_edge, max_iter=6)
+        except Exception:
+            pass
         cb(10, f"Kabuk modeli: {len(m.faces):,} S3 eleman, t={shell_thickness_mm} mm")
-        mp = _map_pressure_to_shell(cp_vtk, m, rho=rho)
-        if mp["status"] != "SUCCESS":
-            return mp
+        if analysis == "statik":
+            mp = _map_pressure_to_shell(cp_vtk, m, rho=rho)
+            if mp["status"] != "SUCCESS":
+                return mp
         desc, axis, side = CONSTRAINT_PRESETS[constraint]
         coord = m.vertices[:, axis]
         plane = coord.min() if side == "min" else coord.max()
@@ -230,6 +278,27 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
         mat = _material(material)
         fea_dir = run_dir / "fea"
         fea_dir.mkdir(exist_ok=True)
+        if analysis == "frekans":
+            inp = _write_shell_inp(fea_dir / "kabuk_frekans.inp", m, mat,
+                                   shell_thickness_mm / 1000.0, fixed, "",
+                                   frequency_modes=n_modes)
+            cb(40, f"CalculiX modal çözüm ({len(m.vertices):,} düğüm)...")
+            ccx = run_ccx(inp, timeout=3600)
+            if not ccx.success:
+                return {"status": "FAILED", "error": f"ccx: {ccx.stderr[-400:]}"}
+            freqs = _parse_eigenfrequencies(ccx.dat_path, n_modes)
+            out = {"status": "ok", "analiz": "doğal frekans",
+                   "model": f"kabuk (t={shell_thickness_mm} mm)", "malzeme": mat.name,
+                   "mesnet": desc, "dugum": int(len(m.vertices)),
+                   "dogal_frekanslar_hz": [round(f, 2) for f in freqs],
+                   "_not": ("Yakıt/donanım/motor kütleleri ve iç yapı yok — frekanslar "
+                            "yapısal-deri üst sınırıdır; flutter taraması için 1. mod "
+                            "uçuş zarfı uyarım frekanslarıyla kıyaslanır.")}
+            (run_dir / "fea_frekans.json").write_text(
+                json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
+            _append_freq_report(run_dir, out)
+            cb(100, "Modal analiz tamamlandı")
+            return out
         inp = _write_shell_inp(fea_dir / "kabuk_kontrol.inp", m, mat,
                                shell_thickness_mm / 1000.0, fixed,
                                _cload_lines(mp["node_forces"]))
@@ -273,10 +342,11 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
                             second_order=False,
                             progress_callback=lambda p, s: cb(5 + p // 5, s))
 
-    cb(30, "CFD basınçları tet yüzeyine eşleniyor...")
-    mp = _map_pressure_to_tet(cp_vtk, tet, rho=rho)
-    if mp["status"] != "SUCCESS":
-        return mp
+    if analysis == "statik":
+        cb(30, "CFD basınçları tet yüzeyine eşleniyor...")
+        mp = _map_pressure_to_tet(cp_vtk, tet, rho=rho)
+        if mp["status"] != "SUCCESS":
+            return mp
 
     desc, axis, side = CONSTRAINT_PRESETS[constraint]
     coord = tet.points[:, axis]
@@ -288,8 +358,29 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
         tol *= 2
         fixed = np.where(np.abs(coord - plane) < tol)[0] + 1
 
-    cb(40, f"CalculiX statik çözüm ({tet.num_nodes:,} düğüm)...")
     mat = _material(material)
+    if analysis == "frekans":
+        cb(40, f"CalculiX modal çözüm ({tet.num_nodes:,} düğüm)...")
+        case = FEACase(name="dolu_frekans", mesh=tet, material=mat,
+                       fixed_bcs=[FixedBC(node_ids=fixed)],
+                       analysis_type="FREQUENCY", num_modes=n_modes)
+        inp = write_inp(case, run_dir / "fea")
+        ccx = run_ccx(inp, timeout=3600)
+        if not ccx.success:
+            return {"status": "FAILED", "error": f"ccx: {ccx.stderr[-400:]}"}
+        freqs = _parse_eigenfrequencies(ccx.dat_path, n_modes)
+        out = {"status": "ok", "analiz": "doğal frekans", "model": "dolu katı",
+               "malzeme": mat.name, "mesnet": desc, "dugum": tet.num_nodes,
+               "dogal_frekanslar_hz": [round(f, 2) for f in freqs],
+               "_not": ("Dolu-katı: gerçek (kabuk) yapıdan RİJİT — frekanslar üst "
+                        "sınır eğilimli; kütle dağılımı idealize.")}
+        (run_dir / "fea_frekans.json").write_text(
+            json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
+        _append_freq_report(run_dir, out)
+        cb(100, "Modal analiz tamamlandı")
+        return out
+
+    cb(40, f"CalculiX statik çözüm ({tet.num_nodes:,} düğüm)...")
     case = FEACase(name="yapisal_kontrol", mesh=tet, material=mat,
                    fixed_bcs=[FixedBC(node_ids=fixed)], analysis_type="STATIC")
     inp = write_inp(case, run_dir / "fea")
@@ -325,6 +416,26 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
     _append_report(run_dir, out)
     cb(100, "Yapısal kontrol tamamlandı")
     return out
+
+
+def _append_freq_report(run_dir: Path, out: dict):
+    rapor = run_dir / "rapor" / "RAPOR.md"
+    if not rapor.exists():
+        return
+    md = ["\n## 8. Doğal Frekanslar (flutter/titreşim taraması)\n",
+          f"- Model: **{out['model']}** — {out['malzeme']}, mesnet: {out['mesnet']}  ",
+          "\n| Mod | Frekans (Hz) |", "|-----|--------------|"]
+    for i, f in enumerate(out["dogal_frekanslar_hz"], start=1):
+        md.append(f"| {i} | {f} |")
+    md.append(f"\n> ⚠️ *{out['_not']}*\n")
+    txt = rapor.read_text(encoding="utf-8")
+    anchor = "\n---\n*Otomatik üretildi"
+    if "## 8. Doğal Frekanslar" in txt:
+        txt = txt.split("\n## 8. Doğal Frekanslar")[0] + "\n".join(md) + \
+              anchor + " — vehicle_pipeline (CFD/FEA Tools)*\n"
+    else:
+        txt = txt.replace(anchor, "\n".join(md) + anchor, 1)
+    rapor.write_text(txt, encoding="utf-8")
 
 
 def _append_report(run_dir: Path, out: dict):
@@ -373,6 +484,9 @@ if __name__ == "__main__":
                     help="dolu katı (parça) / kabuk S3 (tam araç derisi)")
     ap.add_argument("--kalinlik", type=float, default=2.0,
                     help="kabuk et kalınlığı (mm)")
+    ap.add_argument("--analiz", default="statik", choices=["statik", "frekans"],
+                    help="statik (CFD yükü) / frekans (modal, yük gerekmez)")
+    ap.add_argument("--modlar", type=int, default=8, help="mod sayısı")
     args = ap.parse_args()
 
     def _cb(p, m):
@@ -380,8 +494,11 @@ if __name__ == "__main__":
 
     r = run_structural_check(args.run_dir, args.malzeme, args.mesnet,
                              model=args.model, shell_thickness_mm=args.kalinlik,
+                             analysis=args.analiz, n_modes=args.modlar,
                              progress_cb=_cb)
-    if r["status"] == "ok":
+    if r["status"] == "ok" and r.get("analiz") == "doğal frekans":
+        print("\nDogal frekanslar (Hz):", r["dogal_frekanslar_hz"])
+    elif r["status"] == "ok":
         print(f"\nSehim={r['max_sehim_mm']} mm  vonMises={r['max_von_mises_MPa']} MPa  "
               f"SF={r['emniyet_faktoru']}")
     else:

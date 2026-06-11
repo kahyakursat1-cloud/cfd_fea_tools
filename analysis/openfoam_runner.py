@@ -81,6 +81,7 @@ class CFDCase:
     refinement_max: int = 2
     n_layers: int = 0              # 0 = boundary layer eklenmesin (kararlılık için)
     first_layer_thickness: float | None = None  # m; None = göreli snappy varsayılanı
+    propeller: dict | None = None  # {cap_m, area, Cp, Ct} — aktüatör disk (Froude)
     bg_cell_size: float | None = None  # None = otomatik (L/8)
     end_time: int = 300            # SIMPLE iterasyonu
     write_interval: int = 100
@@ -620,7 +621,41 @@ def build_case(case: CFDCase, out_dir: Path) -> Path:
     _write_field_omega(case_dir, case, surface_name, lref)
     _write_field_nut(case_dir, surface_name)
 
+    if case.propeller:
+        _write_propeller(case_dir, case.propeller, gmin, gmax, cell_size)
+
     return case_dir
+
+
+def _write_propeller(case_dir: Path, prop: dict, gmin, gmax, bg_cell: float):
+    """Burnun önünde silindirik cellSet (topoSetDict) + actuationDiskSource.
+    diskDir (+1 0 0): kaynak akışı İTER (pervane); upstreamPoint disk önünde."""
+    cap = prop["cap_m"]
+    yc = float((gmin[1] + gmax[1]) / 2)
+    zc = float((gmin[2] + gmax[2]) / 2)
+    t = max(0.06 * cap, 3.0 * bg_cell)
+    x2 = float(gmin[0]) - 0.02 * float(gmax[0] - gmin[0])
+    x1 = x2 - t
+    (case_dir / "system" / "topoSetDict").write_text(
+        _foam_header("dictionary", "topoSetDict", "system") +
+        "actions (\n"
+        "  { name pervaneDisk; type cellSet; action new; source cylinderToCell;\n"
+        f"    p1 ({x1:.6f} {yc:.6f} {zc:.6f}); p2 ({x2:.6f} {yc:.6f} {zc:.6f}); "
+        f"radius {cap/2:.6f}; }}\n"
+        ");\n")
+    up = x1 - 1.5 * cap
+    (case_dir / "constant" / "fvModels").write_text(
+        _foam_header("dictionary", "fvModels", "constant") +
+        "pervane\n{\n"
+        "    type            actuationDiskSource;\n"
+        "    select          cellSet;\n"
+        "    cellSet         pervaneDisk;\n"
+        "    diskDir         (1 0 0);\n"
+        f"    Cp              {prop['Cp']};\n"
+        f"    Ct              {prop['Ct']};\n"
+        f"    diskArea        {prop['area']:.6f};\n"
+        f"    upstreamPoint   ({up:.6f} {yc:.6f} {zc:.6f});\n"
+        "}\n")
 
 
 def _wsl_run(wsl_dir: str, command: str, timeout: int) -> subprocess.CompletedProcess:
@@ -683,6 +718,15 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
 
     # 4) checkMesh (uyarılar normal, başarısızlık değil)
     _step(55, "checkMesh...", "checkMesh", "log.checkMesh", 300)
+
+    # 4b) topoSet (varsa — pervane diski cellSet'i vb.)
+    if (case_dir / "system" / "topoSetDict").exists():
+        r = _step(57, "topoSet (pervane diski)...", "topoSet", "log.topoSet", 300)
+        if r is None or r.returncode != 0:
+            return CFDResult(case_dir=case_dir, success=False,
+                             return_code=-1 if r is None else r.returncode,
+                             stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
+                             log_files=log_files)
 
     # 5) Solver: foamRun (OF 11) — çok işlemcili
     n = case.n_processors

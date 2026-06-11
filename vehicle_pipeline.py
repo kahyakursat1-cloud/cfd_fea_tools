@@ -236,6 +236,25 @@ def parse_checkmesh(log: Path) -> dict:
     return out
 
 
+def propeller_params(thrust_n: float, cap_m: float, velocity: float,
+                     rho: float = 1.225) -> dict:
+    """Froude aktüatör diski: hedef itkiden indüksiyon faktörü.
+    OF11 actuationDiskSource T = 2A·U₀²·a(1−a); diskDir akış yönünde (+x)
+    seçilince kaynak akışkanı İTER (pervane). Froude sınırı τ ≤ 0.25."""
+    area = math.pi * (cap_m / 2) ** 2
+    tau = thrust_n / (2 * rho * area * velocity ** 2)
+    uyari = None
+    if tau > 0.24:
+        uyari = (f"İtki Froude sınırını aşıyor (τ={tau:.2f}>0.25; bu hız/çapta "
+                 f"max ~{0.24 * 2 * rho * area * velocity**2:.1f} N) — sınıra kapatıldı")
+        tau = 0.24
+    a = (1 - math.sqrt(1 - 4 * tau)) / 2
+    ct = 0.7
+    return {"itki_N": thrust_n, "cap_m": cap_m, "area": area,
+            "a": round(a, 4), "Cp": round(ct * (1 - a), 4), "Ct": ct,
+            "tau": round(tau, 4), "uyari": uyari}
+
+
 def first_layer_height(velocity, lref, yplus_target, nu=1.5e-5):
     """Hedef y⁺ için ilk prizma katmanı YÜKSEKLİĞİ (m).
     Düz-plaka türbülanslı korelasyon: Cf=0.026·Re⁻¹ᐟ⁷, u*=V√(Cf/2),
@@ -358,6 +377,7 @@ class VehicleAnalysisResult:
     convergence: dict | None = None
     uyarilar: list = None
     sinir_tabaka: dict | None = None
+    pervane: dict | None = None
     cp_vtk: str = ""
     kesit_vtk: str = ""
     mesh_duyarlilik: dict | None = None
@@ -371,6 +391,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                          n_processors=0, rho=1.225,
                          nose_axis="+x", up_axis="+z",
                          mesh_sensitivity=False, n_layers=0, yplus_target=30.0,
+                         pervane_itki_n=0.0, pervane_cap_m=0.0,
                          progress_cb=None) -> VehicleAnalysisResult:
     stl_path = Path(stl_path)
     stem = stl_path.stem
@@ -391,6 +412,9 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     a = math.radians(alpha_deg)
     rmin, rmax = preset["refinement"]
     bump = q["ref_bump"]
+    prop = None
+    if pervane_itki_n > 0 and pervane_cap_m > 0:
+        prop = propeller_params(pervane_itki_n, pervane_cap_m, velocity, rho)
     case = CFDCase(
         name=stem,
         stl_path=stl_path,
@@ -408,6 +432,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         n_layers=n_layers,
         first_layer_thickness=(first_layer_height(velocity, geo["lmax_m"], yplus_target)
                                if n_layers > 0 else None),
+        propeller=prop,
         n_processors=n_processors,
     )
     res = run_cfd(case, run_dir, progress_callback=progress_cb)
@@ -480,6 +505,10 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     rw = resolution_warning(geo["lmax_m"], q["bg_div"], case.refinement_max, thin)
     if rw:
         uyarilar.append(rw)
+    if prop:
+        base.pervane = prop
+        if prop.get("uyari"):
+            uyarilar.append(prop["uyari"])
 
     if progress_cb:
         progress_cb(78, "y+ olcumu...")
@@ -561,6 +590,10 @@ if __name__ == "__main__":
                     help="prizma sınır-tabaka katman sayısı (0=kapalı)")
     ap.add_argument("--yplus", type=float, default=30.0,
                     help="hedef y+ (ilk katman kalınlığı buna göre hesaplanır)")
+    ap.add_argument("--itki", type=float, default=0.0,
+                    help="pervane itkisi (N) — aktüatör disk modeli")
+    ap.add_argument("--cap", type=float, default=0.0,
+                    help="pervane çapı (m)")
     args = ap.parse_args()
 
     def _cb(pct, msg):
@@ -570,7 +603,9 @@ if __name__ == "__main__":
                              args.kalite, n_processors=args.islemci,
                              nose_axis=args.burun, up_axis=args.ust,
                              mesh_sensitivity=args.duyarlilik, n_layers=args.katman,
-                             yplus_target=args.yplus, progress_cb=_cb)
+                             yplus_target=args.yplus,
+                             pervane_itki_n=args.itki, pervane_cap_m=args.cap,
+                             progress_cb=_cb)
     if r.status == "ok":
         print(f"\nCd={r.cd}  CdA={r.cda_m2} m²  Drag={r.drag_N} N"
               + (f"  Cl={r.cl}  L/D={r.ld}" if r.cl is not None else ""))
