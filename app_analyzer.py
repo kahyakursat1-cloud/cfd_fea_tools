@@ -235,6 +235,13 @@ class AnalyzerWindow(QMainWindow):
         for key, (desc, _, _) in CONSTRAINT_PRESETS.items():
             self.cmb_fix.addItem(desc, key)
         ff.addRow("Mesnet", self.cmb_fix)
+        self.cmb_femodel = QComboBox()
+        self.cmb_femodel.addItem("Dolu katı (parça)", "dolu")
+        self.cmb_femodel.addItem("Kabuk S3 (tam araç derisi)", "kabuk")
+        ff.addRow("Yapı modeli", self.cmb_femodel)
+        self.spn_thick = QDoubleSpinBox(); self.spn_thick.setRange(0.2, 20.0)
+        self.spn_thick.setValue(2.0); self.spn_thick.setSuffix(" mm")
+        ff.addRow("Kabuk kalınlığı", self.spn_thick)
         self.btn_fea = QPushButton("🛠  FEA ÇALIŞTIR")
         self.btn_fea.setEnabled(False)
         self.btn_fea.clicked.connect(self._run_fea)
@@ -419,6 +426,8 @@ class AnalyzerWindow(QMainWindow):
             "run_dir": run_dir,
             "material": self.cmb_mat.currentData(),
             "constraint": self.cmb_fix.currentData(),
+            "model": self.cmb_femodel.currentData(),
+            "shell_thickness_mm": self.spn_thick.value(),
         })
         self.worker.progress.connect(self._on_progress)
         self.worker.finished_ok.connect(self._on_fea_done)

@@ -178,9 +178,29 @@ def _threshold_stl(path: Path, P, tets, rho, thr=0.5):
 
 # ───────────────────────── ana döngü ─────────────────────────
 
+def _collect_polar_cases(run_dir: Path) -> list[Path]:
+    """run_dir içindeki tüm çözülmüş case dizinleri (ana + polar _a* kopyaları)."""
+    out = []
+    for d in sorted(run_dir.iterdir()):
+        if d.is_dir() and (d / "system").exists() and d.name not in ("fea", "topopt"):
+            out.append(d)
+    return out
+
+
+def _case_vtk(case_dir: Path) -> Path | None:
+    yb = case_dir / "postProcessing" / "yuzeyBasinc"
+    hits = sorted(yb.rglob("*.vtk")) if yb.exists() else []
+    if hits:
+        return hits[-1]
+    from vehicle_pipeline import export_surface_vtk
+    tris = list((case_dir / "constant" / "triSurface").glob("*.stl"))
+    return export_surface_vtk(case_dir, tris[0].stem.replace(" ", "_")) if tris else None
+
+
 def run_topopt(run_dir, material="aluminum_6061", constraint="y_min",
                volfrac=0.4, penal=3.0, max_iter=30, n_bins=20,
-               mesh_div=15, rho_cfd=1.225, progress_cb=None) -> dict:
+               mesh_div=15, rho_cfd=1.225, multi_load=False, weights=None,
+               progress_cb=None) -> dict:
     run_dir = Path(run_dir)
     out_dir = run_dir / "topopt"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -210,16 +230,32 @@ def run_topopt(run_dir, material="aluminum_6061", constraint="y_min",
     cc = P[tets].mean(axis=1)
     rmin = 2.0 * float(np.cbrt(vol.mean()))
 
-    cb(8, f"Yük eşleme ({n_elem:,} eleman)...")
-    mp = _map_pressure_to_tet(cp_vtk, tet, rho=rho_cfd)
-    if mp["status"] != "SUCCESS":
-        return mp
-    cl = ["*CLOAD"]
-    for nid, (fx, fy, fz) in sorted(mp["node_forces"].items()):
-        for dof, val in ((1, fx), (2, fy), (3, fz)):
-            if abs(val) > 1e-9:
-                cl.append(f"{nid}, {dof}, {val:.6e}")
-    cload_block = "\n".join(cl)
+    # Yük durumları: tek vaka veya (multi_load) run_dir'deki tüm çözülmüş
+    # case'ler (ana + polar _a* kopyaları) — gerçek uçuş zarfı yaklaşımı
+    if multi_load:
+        case_dirs = _collect_polar_cases(run_dir)
+        vtks = [(d.name, _case_vtk(d)) for d in case_dirs]
+        vtks = [(n, v) for n, v in vtks if v is not None]
+    else:
+        vtks = [("ana", Path(cp_vtk))]
+    if not vtks:
+        return {"status": "FAILED", "error": "Hiç yük durumu bulunamadı"}
+    wts = np.asarray(weights if weights else [1.0] * len(vtks), float)
+    wts = wts / wts.sum()
+
+    cb(8, f"Yük eşleme: {len(vtks)} yük durumu × {n_elem:,} eleman...")
+    cload_blocks = []
+    for name, v in vtks:
+        mp = _map_pressure_to_tet(v, tet, rho=rho_cfd)
+        if mp["status"] != "SUCCESS":
+            return {"status": "FAILED", "error": f"yük {name}: {mp.get('error')}"}
+        cl = ["*CLOAD"]
+        for nid, (fx, fy, fz) in sorted(mp["node_forces"].items()):
+            for dof, val in ((1, fx), (2, fy), (3, fz)):
+                if abs(val) > 1e-9:
+                    cl.append(f"{nid}, {dof}, {val:.6e}")
+        cload_blocks.append((name, "\n".join(cl)))
+    cload_block = cload_blocks[0][1]   # reanaliz/tekil kullanım için ilk vaka
 
     _, axis, side = CONSTRAINT_PRESETS[constraint]
     coord = P[:, axis]
@@ -262,19 +298,26 @@ def run_topopt(run_dir, material="aluminum_6061", constraint="y_min",
         bins_of = np.clip(((rho - RHO_MIN) / (1 - RHO_MIN) * (n_bins - 1)).round(),
                           0, n_bins - 1).astype(int)
         bin_rho = RHO_MIN + (np.arange(n_bins) + 0.0) / (n_bins - 1) * (1 - RHO_MIN)
-        inp = _write_inp(out_dir / "to_iter.inp", P, tets, bins_of, bin_rho,
-                         e0_mpa, nu, dens, fixed, cload_block, penal)
-        ccx = run_ccx(inp, timeout=3600)
-        if not ccx.success:
-            return {"status": "FAILED", "error": f"ccx iter {it}: {ccx.stderr[-300:]}",
-                    "iterasyon": it}
-        sed = _parse_ener(ccx.dat_path, n_elem)
-        if sed is None:
-            return {"status": "FAILED", "error": f"iter {it}: ENER parse edilemedi"}
-        w = sed * vol                                   # eleman enerjisi
-        comp = 2.0 * float(w.sum())                     # komplians ~ 2*W
         rho_eff = bin_rho[bins_of]
-        sens = penal * w / np.maximum(rho_eff, RHO_MIN)  # -dc/drho ölçüsü
+        # Ağırlıklı çoklu yük: her vaka ayrı çözülür, enerji/komplians toplanır
+        comp = 0.0
+        w_total = np.zeros(n_elem)
+        for li, (lname, lblock) in enumerate(cload_blocks):
+            inp = _write_inp(out_dir / f"to_iter_{li}.inp", P, tets, bins_of, bin_rho,
+                             e0_mpa, nu, dens, fixed, lblock, penal)
+            ccx = run_ccx(inp, timeout=3600)
+            if not ccx.success:
+                return {"status": "FAILED",
+                        "error": f"ccx iter {it} yük {lname}: {ccx.stderr[-300:]}",
+                        "iterasyon": it}
+            sed = _parse_ener(ccx.dat_path, n_elem)
+            if sed is None:
+                return {"status": "FAILED",
+                        "error": f"iter {it} yük {lname}: ENER parse edilemedi"}
+            w_l = sed * vol
+            w_total += wts[li] * w_l
+            comp += wts[li] * 2.0 * float(w_l.sum())
+        sens = penal * w_total / np.maximum(rho_eff, RHO_MIN)  # -dc/drho ölçüsü
         sens = _sens_filter(cc, rho, sens, rmin)
         rho_new = _oc_update(rho, sens, vol, volfrac, passive)
         change = float(np.abs(rho_new - rho).max())
@@ -345,6 +388,8 @@ def run_topopt(run_dir, material="aluminum_6061", constraint="y_min",
            "hacim_son": hist[-1]["hacim"],
            "komplians_ilk": hist[0]["komplians"], "komplians_son": hist[-1]["komplians"],
            "pasif_kabuk_orani": round(float(passive.mean()), 3),
+           "yuk_durumlari": [n for n, _ in cload_blocks],
+           "agirliklar": [round(float(w), 3) for w in wts],
            "tasarim_stl": str(out_dir / "tasarim.stl") if stl_ok else None,
            "rho_vtk": str(out_dir / "rho.vtk"), "yeniden_analiz": reanaliz,
            "gecmis": hist,
@@ -367,13 +412,18 @@ if __name__ == "__main__":
     ap.add_argument("--hacim", type=float, default=0.4)
     ap.add_argument("--iter", type=int, default=30, dest="iters")
     ap.add_argument("--mesh-div", type=int, default=15)
+    ap.add_argument("--coklu", action="store_true",
+                    help="run_dir'deki TÜM çözülmüş case'leri (ana + polar) yük durumu yap")
+    ap.add_argument("--agirlik", type=float, nargs="+", default=None,
+                    help="yük durumu ağırlıkları (vaka sayısıyla aynı uzunlukta)")
     args = ap.parse_args()
 
     def _cb(p, m):
         print(f"[{p:3d}%] {m}", flush=True)
 
     r = run_topopt(args.run_dir, args.malzeme, args.mesnet, args.hacim,
-                   max_iter=args.iters, mesh_div=args.mesh_div, progress_cb=_cb)
+                   max_iter=args.iters, mesh_div=args.mesh_div,
+                   multi_load=args.coklu, weights=args.agirlik, progress_cb=_cb)
     if r["status"] == "ok":
         print(f"\nC: {r['komplians_ilk']:.4e} -> {r['komplians_son']:.4e}  "
               f"hacim: {r['hacim_son']:.3f}  STL: {r['tasarim_stl']}")
