@@ -61,6 +61,8 @@ def _write_inp(path: Path, P, tets, bins_of, bin_rho, e0_mpa, nu, density,
         for ei in ids:
             n = tets[ei] + 1
             L.append(f"{ei+1}, {n[0]}, {n[1]}, {n[2]}, {n[3]}")
+    L.append("*ELSET, ELSET=EALL, GENERATE")
+    L.append(f"1, {len(tets)}, 1")
     L.append("*NSET, NSET=SABIT")
     for k in range(0, len(fixed_nodes), 8):
         L.append(", ".join(str(int(n)) for n in fixed_nodes[k:k+8]))
@@ -79,15 +81,12 @@ def _write_inp(path: Path, P, tets, bins_of, bin_rho, e0_mpa, nu, density,
     L.append("*BOUNDARY")
     L.append("SABIT, 1, 3, 0.0")
     L.append(cload_block)
-    L.append("*EL PRINT, ELSET=BIN00, FREQUENCY=1")  # placeholder; asagida duzeltilir
+    L.append("*EL PRINT, ELSET=EALL")   # CalculiX'te ELSET zorunlu
     L.append("ENER")
     L.append("*NODE FILE")
     L.append("U")
     L.append("*END STEP")
-    txt = "\n".join(L)
-    # ENER tum elemanlar icin: ELSET belirtmeden tum mesh
-    txt = txt.replace("*EL PRINT, ELSET=BIN00, FREQUENCY=1", "*EL PRINT, FREQUENCY=1")
-    path.write_text(txt, encoding="utf-8")
+    path.write_text("\n".join(L), encoding="utf-8")
     return path
 
 
@@ -232,18 +231,33 @@ def run_topopt(run_dir, material="aluminum_6061", constraint="y_min",
         tol *= 2
         fixed = np.where(np.abs(coord - plane) < tol)[0] + 1
 
-    # Pasif kabuk: yüzeyde düğümü olan elemanlar katı kalır (form korunur)
-    surf_nodes = {int(n) for n in np.unique(tet.surface_tris[:, :3])}
-    passive = np.array([any(int(n) in surf_nodes for n in t) for t in tets])
+    # Pasif kabuk: yüzeyde YÜZÜ olan elemanlar katı kalır (form korunur).
+    # Düğüm-temas kriteri kabuğu 2-3 kat kalınlaştırıp hacim kısıtını
+    # fizibil olmaktan çıkarabiliyordu.
+    surf_faces = {tuple(sorted(f)) for f in tet.surface_tris[:, :3].astype(int)}
+    def _faces(t):
+        return ((t[0], t[1], t[2]), (t[0], t[1], t[3]),
+                (t[0], t[2], t[3]), (t[1], t[2], t[3]))
+    passive = np.array([any(tuple(sorted(f)) in surf_faces for f in _faces(t))
+                        for t in tets])
+
+    pas_frac = float(vol[passive].sum() / vol.sum())
+    volfrac_eff = volfrac
+    uyari = None
+    if volfrac <= pas_frac + 0.02:
+        volfrac_eff = min(pas_frac + 0.10, 0.9)
+        uyari = (f"Hedef hacim ({volfrac}) pasif kabuk tabanının ({pas_frac:.2f}) "
+                 f"altında — fizibil değil; hedef {volfrac_eff:.2f}'ye yükseltildi. "
+                 "Daha ince mesh (--mesh-div) iç tasarım alanını büyütür.")
 
     mat = MATERIAL_LIBRARY[material]
     e0_mpa, nu, dens = mat.youngs_modulus, mat.poisson_ratio, mat.density
 
-    rho = np.full(n_elem, volfrac)
+    rho = np.full(n_elem, volfrac_eff)
     rho[passive] = 1.0
     hist = []
-    cb(12, f"SIMP döngüsü: {n_elem:,} eleman, hedef hacim %{volfrac*100:.0f}, "
-           f"pasif kabuk %{passive.mean()*100:.0f}")
+    cb(12, f"SIMP döngüsü: {n_elem:,} eleman, hedef hacim %{volfrac_eff*100:.0f}, "
+           f"pasif kabuk %{pas_frac*100:.0f} (hacim)")
     for it in range(1, max_iter + 1):
         bins_of = np.clip(((rho - RHO_MIN) / (1 - RHO_MIN) * (n_bins - 1)).round(),
                           0, n_bins - 1).astype(int)
@@ -285,12 +299,15 @@ def run_topopt(run_dir, material="aluminum_6061", constraint="y_min",
     ax2.plot([h["iter"] for h in hist], [h["hacim"] for h in hist],
              "s--", color="#2e7d32")
     ax2.set_ylabel("Hacim oranı", color="#2e7d32")
+    ax2.set_ylim(0, 1)   # hacim sabit hedefte; autoscale 1e-8 gürültüyü büyütüyor
     fig.tight_layout()
     fig.savefig(out_dir / "yakinsama.png", dpi=200)
     plt.close(fig)
 
     out = {"status": "ok", "iterasyon": len(hist), "eleman": n_elem,
-           "hacim_hedef": volfrac, "hacim_son": hist[-1]["hacim"],
+           "hacim_hedef": volfrac_eff, "hacim_hedef_istenen": volfrac,
+           "pasif_taban": round(pas_frac, 3), "uyari": uyari,
+           "hacim_son": hist[-1]["hacim"],
            "komplians_ilk": hist[0]["komplians"], "komplians_son": hist[-1]["komplians"],
            "pasif_kabuk_orani": round(float(passive.mean()), 3),
            "tasarim_stl": str(out_dir / "tasarim.stl") if stl_ok else None,
