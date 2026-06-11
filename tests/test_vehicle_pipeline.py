@@ -77,6 +77,16 @@ def test_resolution_warning_ok_for_blunt_body():
     assert resolution_warning(0.5, 7, 2, 0.5) is None
 
 
+def test_thin_thickness_plate_vs_cube():
+    from vehicle_pipeline import estimate_thin_thickness
+    plate = trimesh.creation.box(extents=(1.0, 1.0, 0.02))
+    t_plate = estimate_thin_thickness(plate, samples=150)
+    assert t_plate is not None and t_plate < 0.1   # ~0.02 bekleriz, bbox-min ile ayni
+    cube = trimesh.creation.box(extents=(1.0, 1.0, 1.0))
+    t_cube = estimate_thin_thickness(cube, samples=150)
+    assert t_cube is not None and t_cube > 0.5     # kup kalin: ~1.0
+
+
 def test_prepare_geometry_repairs_open_cube(tmp_path):
     box = trimesh.creation.box(extents=(1, 1, 1))
     broken = trimesh.Trimesh(vertices=box.vertices, faces=box.faces[:-2])  # 2 ucgen sil

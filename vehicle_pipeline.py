@@ -184,7 +184,27 @@ def inspect_geometry(stl_path: Path) -> dict:
         "yuzey_alani_m2": round(float(m.area), 5),
         "on_alan_m2": round(_hull_projected_area(m.vertices, 0), 5),     # akış +x
         "planform_alan_m2": round(_hull_projected_area(m.vertices, 2), 5),  # üstten
+        "ince_kalinlik_m": (lambda t: round(t, 5) if t else None)(estimate_thin_thickness(m)),
     }
+
+
+def estimate_thin_thickness(m: trimesh.Trimesh, samples: int = 200,
+                            percentile: float = 10.0) -> float | None:
+    """Yüzeyden örneklenmiş yerel et-kalınlığı kestirimi (normal boyunca ray).
+    Kanat/fin gibi ince özellikleri bbox'tan çok daha iyi temsil eder; alt
+    persentil alınır ki gövde kalınlığı inceyi maskelemesin. (max_sphere
+    kenar yakınında sistematik küçük verir — ray doğru semantik.)"""
+    try:
+        pts, face_idx = trimesh.sample.sample_surface(m, samples)
+        normals = m.face_normals[face_idx]
+        th = trimesh.proximity.thickness(m, pts, normals=normals,
+                                         method="ray")
+        th = th[np.isfinite(th) & (th > 0)]
+        if len(th) < samples // 4:
+            return None
+        return float(np.percentile(th, percentile))
+    except Exception:
+        return None
 
 
 def resolution_warning(lmax_m: float, bg_div: int, ref_max: int, min_dim_m: float,
@@ -387,8 +407,8 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     if not geo["su_gecirmez"]:
         uyarilar.append("STL su geçirmez değil — snappyHexMesh toleranslı ama "
                         "kapalı yüzey önerilir")
-    rw = resolution_warning(geo["lmax_m"], q["bg_div"], case.refinement_max,
-                            min(geo["boyutlar_m"]))
+    thin = geo.get("ince_kalinlik_m") or min(geo["boyutlar_m"])
+    rw = resolution_warning(geo["lmax_m"], q["bg_div"], case.refinement_max, thin)
     if rw:
         uyarilar.append(rw)
 

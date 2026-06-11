@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMainWindow,
     QMessageBox,
     QPlainTextEdit,
@@ -87,6 +88,28 @@ class AnalysisWorker(QThread):
                 self.finished_ok.emit(r)
             else:
                 self.failed.emit(r.error or "Bilinmeyen hata — case loglarına bakın: " + r.case_dir)
+        except Exception as e:
+            self.failed.emit(str(e))
+
+
+class PolarWorker(QThread):
+    progress = Signal(int, str)
+    finished_ok = Signal(object)
+    failed = Signal(str)
+
+    def __init__(self, params: dict):
+        super().__init__()
+        self.params = params
+
+    def run(self):
+        try:
+            from vehicle_polar import run_polar
+            out = run_polar(progress_cb=lambda p, m: self.progress.emit(p, m),
+                            **self.params)
+            if out.get("status") == "ok":
+                self.finished_ok.emit(out)
+            else:
+                self.failed.emit(out.get("error", "Polar başarısız"))
         except Exception as e:
             self.failed.emit(str(e))
 
@@ -164,6 +187,16 @@ class AnalyzerWindow(QMainWindow):
         self.btn_run.setEnabled(False)
         self.btn_run.clicked.connect(self._run)
         left.addWidget(self.btn_run)
+
+        gb_polar = QGroupBox("Polar Taraması (opsiyonel)")
+        pf = QFormLayout(gb_polar)
+        self.edt_alphas = QLineEdit("-4, 0, 4, 8")
+        pf.addRow("α listesi (°)", self.edt_alphas)
+        self.btn_polar = QPushButton("📈  POLAR TARA")
+        self.btn_polar.setEnabled(False)
+        self.btn_polar.clicked.connect(self._run_polar)
+        pf.addRow(self.btn_polar)
+        left.addWidget(gb_polar)
         left.addStretch(1)
 
         # Sağ: ilerleme + log + sonuç
@@ -235,11 +268,14 @@ class AnalyzerWindow(QMainWindow):
         if prep.get("onarimlar"):
             extra += f"\nHazırlık: {'; '.join(prep['onarimlar'])}"
         self.drop_label.setText(f"✅ {path.name}")
+        thin = geo.get("ince_kalinlik_m")
+        thin_s = f"   et-kalınlığı≈{thin} m" if thin else ""
         self.geo_label.setText(
             f"Boyut: {d[0]} × {d[1]} × {d[2]} m   |   üçgen: {geo['ucgen_sayisi']:,}{extra}\n"
             f"Yüzey: {geo['yuzey_alani_m2']} m²   ön: {geo['on_alan_m2']} m²   "
-            f"planform: {geo['planform_alan_m2']} m²   |   yüzey {wt}")
+            f"planform: {geo['planform_alan_m2']} m²{thin_s}   |   yüzey {wt}")
         self.btn_run.setEnabled(True)
+        self.btn_polar.setEnabled(True)
 
     # ── Çalıştırma ──────────────────────────────────────────────────────────
     def _run(self):
@@ -273,6 +309,56 @@ class AnalyzerWindow(QMainWindow):
         self.worker.failed.connect(self._on_fail)
         self.worker.start()
 
+    def _run_polar(self):
+        if not self.model_path:
+            return
+        try:
+            alphas = [float(x) for x in self.edt_alphas.text().replace(";", ",").split(",")
+                      if x.strip()]
+        except ValueError:
+            QMessageBox.warning(self, "α listesi", "Virgülle ayrılmış sayılar girin: -4, 0, 4, 8")
+            return
+        if len(alphas) < 2:
+            QMessageBox.warning(self, "α listesi", "En az 2 hücum açısı gerekli.")
+            return
+        if self.cmb_nose.currentText()[1] == self.cmb_up.currentText()[1]:
+            QMessageBox.warning(self, "Eksen hatası", "Burun ve üst eksenleri dik olmalı.")
+            return
+        self.btn_run.setEnabled(False)
+        self.btn_polar.setEnabled(False)
+        self.btn_report.setEnabled(False)
+        self.progress.setValue(0)
+        self.log.clear()
+        self._log(f"Polar taraması: α = {alphas}")
+        params = {
+            "stl_path": self.model_path,
+            "vehicle_type": self.cmb_type.currentData(),
+            "velocity": self.spn_v.value(),
+            "alphas": alphas,
+            "quality": self.cmb_quality.currentData(),
+            "n_layers": self.spn_layers.value(),
+            "nose_axis": self.cmb_nose.currentText(),
+            "up_axis": self.cmb_up.currentText(),
+            "n_processors": self.spn_proc.value(),
+        }
+        self.worker = PolarWorker(params)
+        self.worker.progress.connect(self._on_progress)
+        self.worker.finished_ok.connect(self._on_polar_done)
+        self.worker.failed.connect(self._on_fail)
+        self.worker.start()
+
+    def _on_polar_done(self, out: dict):
+        self.progress.setValue(100)
+        self._log("✅ Polar tamamlandı.")
+        for row in out["polar"]:
+            self._log(f"  α={row['alpha']}°: Cl={row.get('Cl')} Cd={row.get('Cd')} "
+                      f"Cm={row.get('Cm')}")
+        self.last_result = type("R", (), {"report": out.get("report", "")})()
+        self.btn_report.setEnabled(bool(out.get("report")))
+        self.btn_run.setEnabled(True)
+        self.btn_polar.setEnabled(True)
+        self._log(f"Rapor: {out.get('report')}")
+
     def _log(self, msg: str):
         self.log.appendPlainText(msg)
 
@@ -305,6 +391,7 @@ class AnalyzerWindow(QMainWindow):
         self.progress.setValue(0)
         self._log("❌ HATA:\n" + err)
         self.btn_run.setEnabled(True)
+        self.btn_polar.setEnabled(True)
         QMessageBox.critical(self, "Analiz başarısız",
                              "Detay için log panelini ve case dizinindeki "
                              "log.* dosyalarını inceleyin.")
