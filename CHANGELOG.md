@@ -43,6 +43,18 @@ doğrulanmış ✅ ya da kanıtlı kararla kapatılmış.
   **|U|/V∞ hız kesiti** (resirkülasyon + iz, ders kitabı desen) rapora otomatik.
   Solver yeniden koşmaz; eski case'lere de uygulanabilir.
 
+**Devam — 2.8 ve 2.9:**
+- ✅ **2.8 Akış çizgileri:** mevcut kesit U vektörlerinden streamplot overlay
+  (yeni OF çıktısı yok). İki teknik engel: trifinder kesit üçgenlemesini
+  reddediyor → cKDTree gövde-deliği maskesi; streamplot linspace ızgarasını
+  reddediyor → x0+dx·arange inşası.
+- ✅ **2.9 Stüdyoya FEA:** `vehicle_fea` — CFD yüzey basınçları → tet mesh
+  (et-kalınlığına göre boyut) → korunumlu kuvvet eşleme → mesnet preseti →
+  ccx statik → sehim/von Mises/SF; RAPOR.md Bölüm 7. GUI: malzeme+mesnet+
+  FEA ÇALIŞTIR. **Doğrulama:** küp 167k düğüm — FEA'ya aktarılan kuvvet
+  17.097 N vs CFD sürükleme 17.107 N (%0.06): eşlemenin korunumu CFD kuvvet
+  integraline karşı bağımsız doğrulandı. Dolu-katı varsayımı raporda açık.
+
 Test: 45 yeşil. Durum: SYSTEM_STATUS güncel.
 
 ---
