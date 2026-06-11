@@ -92,6 +92,28 @@ class AnalysisWorker(QThread):
             self.failed.emit(str(e))
 
 
+class FEAWorker(QThread):
+    progress = Signal(int, str)
+    finished_ok = Signal(object)
+    failed = Signal(str)
+
+    def __init__(self, params: dict):
+        super().__init__()
+        self.params = params
+
+    def run(self):
+        try:
+            from vehicle_fea import run_structural_check
+            out = run_structural_check(progress_cb=lambda p, m: self.progress.emit(p, m),
+                                       **self.params)
+            if out.get("status") == "ok":
+                self.finished_ok.emit(out)
+            else:
+                self.failed.emit(out.get("error", "FEA başarısız"))
+        except Exception as e:
+            self.failed.emit(str(e))
+
+
 class PolarWorker(QThread):
     progress = Signal(int, str)
     finished_ok = Signal(object)
@@ -197,6 +219,24 @@ class AnalyzerWindow(QMainWindow):
         self.btn_polar.clicked.connect(self._run_polar)
         pf.addRow(self.btn_polar)
         left.addWidget(gb_polar)
+
+        gb_fea = QGroupBox("Yapısal Kontrol (CFD basınçlarıyla)")
+        ff = QFormLayout(gb_fea)
+        from fea_runner import MATERIAL_LIBRARY
+        from vehicle_fea import CONSTRAINT_PRESETS
+        self.cmb_mat = QComboBox()
+        for key, mt in MATERIAL_LIBRARY.items():
+            self.cmb_mat.addItem(mt.name, key)
+        ff.addRow("Malzeme", self.cmb_mat)
+        self.cmb_fix = QComboBox()
+        for key, (desc, _, _) in CONSTRAINT_PRESETS.items():
+            self.cmb_fix.addItem(desc, key)
+        ff.addRow("Mesnet", self.cmb_fix)
+        self.btn_fea = QPushButton("🛠  FEA ÇALIŞTIR")
+        self.btn_fea.setEnabled(False)
+        self.btn_fea.clicked.connect(self._run_fea)
+        ff.addRow(self.btn_fea)
+        left.addWidget(gb_fea)
         left.addStretch(1)
 
         # Sağ: ilerleme + log + sonuç
@@ -358,6 +398,41 @@ class AnalyzerWindow(QMainWindow):
         self.btn_run.setEnabled(True)
         self.btn_polar.setEnabled(True)
         self._log(f"Rapor: {out.get('report')}")
+
+    def _run_fea(self):
+        if not self.model_path:
+            return
+        run_dir = Path("vehicle_runs") / self.model_path.stem
+        if not (run_dir / "sonuc.json").exists():
+            QMessageBox.warning(self, "FEA", "Önce ANALİZ ET ile CFD koşusu tamamlanmalı.")
+            return
+        self.btn_fea.setEnabled(False)
+        self.btn_run.setEnabled(False)
+        self.progress.setValue(0)
+        self._log(f"Yapısal kontrol: {self.cmb_mat.currentText()} / "
+                  f"{self.cmb_fix.currentText()}")
+        self.worker = FEAWorker({
+            "run_dir": run_dir,
+            "material": self.cmb_mat.currentData(),
+            "constraint": self.cmb_fix.currentData(),
+        })
+        self.worker.progress.connect(self._on_progress)
+        self.worker.finished_ok.connect(self._on_fea_done)
+        self.worker.failed.connect(self._on_fail)
+        self.worker.start()
+
+    def _on_fea_done(self, out: dict):
+        self.progress.setValue(100)
+        self._log("✅ Yapısal kontrol tamamlandı.")
+        self._log(f"  Max sehim: {out['max_sehim_mm']} mm | "
+                  f"von Mises: {out['max_von_mises_MPa']} MPa | "
+                  f"SF: {out['emniyet_faktoru']}")
+        self._set_metric("verdict",
+                         f"SF={out['emniyet_faktoru']}" if out.get("emniyet_faktoru") else "FEA ✓")
+        self._log("Rapora Bölüm 7 eklendi (Raporu Aç ile gör).")
+        self.btn_fea.setEnabled(True)
+        self.btn_run.setEnabled(True)
+        self.btn_report.setEnabled(True)
 
     def _log(self, msg: str):
         self.log.appendPlainText(msg)
