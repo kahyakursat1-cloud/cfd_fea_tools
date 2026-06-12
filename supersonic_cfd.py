@@ -80,10 +80,13 @@ def _write_shock_fields(case_dir: Path, surf: str, mach: float,
     ulines = [f"    {p} {{ type fixedValue; value uniform ({u:.4f} 0 0); }}\n" for p in fs]
     ulines.append("    outlet { type zeroGradient; }\n")
     ulines.append(f"    {surf} {{ type slip; }}\n")   # inviscid duvar
+    # M>=2.5: durgun iç alan (U=0) -> bow-shock girişten kademeli yürür;
+    # impulsive üniform başlangıç güçlü genleşmede negatif T üretiyordu.
+    u_init = "(0 0 0)" if mach >= 2.5 else f"({u:.4f} 0 0)"
     (case_dir / "0" / "U").write_text(
         _foam_header("volVectorField", "U", "0") +
         "dimensions [0 1 -1 0 0 0 0];\n"
-        f"internalField uniform ({u:.4f} 0 0);\n" + bf(ulines))
+        f"internalField uniform {u_init};\n" + bf(ulines))
     # T
     tlines = [f"    {p} {{ type fixedValue; value uniform {t_inf}; }}\n" for p in fs]
     tlines.append("    outlet { type zeroGradient; }\n")
@@ -105,7 +108,12 @@ def _write_shock_fields(case_dir: Path, surf: str, mach: float,
 
 def _write_shock_system(case_dir: Path, surf: str, end_time: float,
                         write_int: float, lref: float, u: float,
-                        rho_inf: float, sref: float):
+                        rho_inf: float, sref: float, mach: float = 2.0):
+    # Yüksek Mach'ta vanLeer başlangıç-darbesinde overshoot -> negatif T.
+    # Minmod (en disipatif TVD limiter) + düşük maxCo ile sağlamlaştır.
+    robust = mach >= 2.5
+    lim, limV = ("Minmod", "MinmodV") if robust else ("vanLeer", "vanLeerV")
+    maxco = 0.2 if robust else 0.3
     (case_dir / "system" / "fvSchemes").write_text(
         _foam_header("dictionary", "fvSchemes", "system") +
         "fluxScheme Kurganov;\n"
@@ -114,8 +122,8 @@ def _write_shock_system(case_dir: Path, surf: str, end_time: float,
         "divSchemes { default none; }\n"
         "laplacianSchemes { default Gauss linear corrected; }\n"
         "interpolationSchemes\n{\n    default linear;\n"
-        "    reconstruct(rho) vanLeer;\n    reconstruct(U) vanLeerV;\n"
-        "    reconstruct(T) vanLeer;\n}\n"
+        f"    reconstruct(rho) {lim};\n    reconstruct(U) {limV};\n"
+        f"    reconstruct(T) {lim};\n}}\n"
         "snGradSchemes { default corrected; }\n")
     (case_dir / "system" / "fvSolution").write_text(
         _foam_header("dictionary", "fvSolution", "system") +
@@ -198,7 +206,7 @@ def run_supersonic(stl_path, mach=2.0, vehicle_type="roket", quality="standart",
     end_time = n_flow_pass * (L / u)         # N akış-geçiş süresi
     _write_shock_thermo(case_dir)
     _write_shock_fields(case_dir, surf, mach, t_inf, p_inf)
-    _write_shock_system(case_dir, surf, end_time, end_time / 10, L, u, rho_inf, sref)
+    _write_shock_system(case_dir, surf, end_time, end_time / 10, L, u, rho_inf, sref, mach)
 
     wsl_dir = windows_to_wsl_path(case_dir)
     for pct, msg, cmd, tmo in [
@@ -215,9 +223,15 @@ def run_supersonic(stl_path, mach=2.0, vehicle_type="roket", quality="standart",
     cb(70, f"shockFluid (M={mach}, zaman-yürüyüşü)...")
     r = _of(wsl_dir, "foamRun > log.foamRun 2>&1", 7200)
     log = (case_dir / "log.foamRun").read_text(errors="ignore")
+    base_artifact = ""
     if "FOAM FATAL" in log or r.returncode != 0:
-        return {"status": "FAILED", "asama": "shockFluid", "case": str(case_dir),
-                "error": log[-1500:]}
+        # Cd yakınsadıktan SONRA geç taban-çökmesi -> değeri kurtar, bayrakla
+        cdc, driftc, ok = _cd_converged(case_dir)
+        if not ok:
+            return {"status": "FAILED", "asama": "shockFluid", "case": str(case_dir),
+                    "error": log[-1500:]}
+        base_artifact = ("geç taban-bölgesi (inviscid near-vacuum) çökmesi; "
+                         f"Cd yakınsamadan sonra alındı (drift %{driftc:.2f})")
 
     cb(92, "Cd ayrıştırılıyor...")
     cd, cd_hist = _parse_cd(case_dir)
@@ -234,6 +248,8 @@ def run_supersonic(stl_path, mach=2.0, vehicle_type="roket", quality="standart",
            "_not": ("shockFluid Euler-benzeri (inviscid duvar): basınç + dalga "
                     "sürüklemesi; skin-friction yok (süpersonikte ikincil). Tek "
                     "mesh — bağımsızlık gösterilmedi.")}
+    if base_artifact:
+        out["uyari"] = base_artifact
     (run_dir / "supersonic.json").write_text(
         json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
     cb(100, f"Cd(M={mach}) = {cd:.3f}")
@@ -285,17 +301,24 @@ def run_mach_sweep(stl_path, machs=(0.8, 1.2, 2.0, 3.0), vehicle_type="roket",
         u = mach * a
         end_time = n_flow_pass * (L / u)
         _write_shock_fields(case_a, surf, mach, t_inf, p_inf)
-        _write_shock_system(case_a, surf, end_time, end_time / 10, L, u, rho_inf, sref)
+        _write_shock_system(case_a, surf, end_time, end_time / 10, L, u, rho_inf, sref, mach)
         r = _of(windows_to_wsl_path(case_a), "foamRun > log.foamRun 2>&1", 7200)
         log = (case_a / "log.foamRun").read_text(errors="ignore")
+        artifact = None
         if "FOAM FATAL" in log or r.returncode != 0:
-            rows.append({"mach": mach, "Cd": None, "durum": "failed"})
-            continue
+            cdc, driftc, ok = _cd_converged(case_a)
+            if not ok:
+                rows.append({"mach": mach, "Cd": None, "durum": "failed"})
+                continue
+            artifact = f"geç taban-çökmesi; Cd yakınsamadan sonra (drift %{driftc:.2f})"
         cd, hist = _parse_cd(case_a)
         drift = (abs(hist[-1] - hist[-max(2, len(hist)//5)]) / (abs(hist[-1]) + 1e-9) * 100
                  if cd is not None and len(hist) >= 6 else None)
-        rows.append({"mach": mach, "Cd": round(cd, 4) if cd else None,
-                     "drift_pct": round(drift, 2) if drift else None})
+        row = {"mach": mach, "Cd": round(cd, 4) if cd else None,
+               "drift_pct": round(drift, 2) if drift else None}
+        if artifact:
+            row["uyari"] = artifact
+        rows.append(row)
 
     out = {"status": "ok", "model": stem, "S_ref_m2": round(sref, 6),
            "egri": rows, "case_dir": str(base_case.parent),
@@ -332,11 +355,12 @@ def _sweep_report(out, rep_dir: Path):
     md = [f"# Süpersonik Cd-Mach Taraması — {out['model']}",
           f"\n**Referans alan (frontal):** {out['S_ref_m2']} m²  ",
           "**Yöntem:** OpenFOAM 11 shockFluid (Kurganov yoğunluk-bazlı şok-yakalama)\n",
-          "| Mach | $C_D$ | drift % |", "|------|-------|---------|"]
+          "| Mach | $C_D$ | drift % | not |", "|------|-------|---------|-----|"]
     for r in out["egri"]:
         cd = r.get("Cd")
+        note = "geç taban-çökmesi (yakınsama sonrası)" if r.get("uyari") else ""
         md.append(f"| {r['mach']} | {cd if cd is not None else '— (başarısız)'} | "
-                  f"{r.get('drift_pct', '—')} |")
+                  f"{r.get('drift_pct', '—')} | {note} |")
     md.append("\n![Cd-Mach](figures/cd_mach.png)\n")
     md.append(f"> ⚠️ *{out['_not']} Skin-friction yok (süpersonikte ikincil); "
               "transonik (M≈1) bölge en belirsiz. Tek mesh — GCI yapılmadı.*\n")
@@ -370,6 +394,18 @@ def _parse_cd(case_dir: Path):
     if not hist:
         return None, []
     return float(np.mean(hist[-max(1, len(hist)//5):])), hist   # son %20 ortalama
+
+
+def _cd_converged(case_dir: Path, drift_tol: float = 8.0, min_hist: int = 40):
+    """Geç taban-bölgesi (inviscid wake near-vacuum) çökmesi shockFluid'i M≳2.5'te
+    yakınsamadan SONRA düşürebilir. Cd yeterli geçmişle oturmuşsa (drift toleransı
+    geniş — inviscid taban yavaş oturur, drift tabloda gösterilir) değeri kurtar."""
+    cd, hist = _parse_cd(case_dir)
+    if cd is None or len(hist) < min_hist:
+        return None, None, False
+    w = max(2, len(hist) // 5)
+    drift = abs(hist[-1] - hist[-w]) / (abs(hist[-1]) + 1e-9) * 100
+    return cd, drift, drift <= drift_tol
 
 
 if __name__ == "__main__":
