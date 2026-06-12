@@ -118,6 +118,27 @@ def test_prepare_geometry_rejects_empty(tmp_path):
         prepare_geometry(src, tmp_path / "out")
 
 
+def test_prepare_geometry_autoscale_mm_to_m(tmp_path):
+    # mm-ölçekli roket (2000 birim) -> ÷1000 = 2 m
+    box = trimesh.creation.box(extents=(2000, 200, 200))
+    src = tmp_path / "mm_roket.stl"
+    box.export(str(src))
+    prepared, info = prepare_geometry(src, tmp_path / "out")
+    assert info.get("birim_olcek") == "mm→m"
+    lmax = float((lambda m: (m.bounds[1] - m.bounds[0]).max())(
+        trimesh.load(str(prepared), force="mesh")))
+    assert 1.9 < lmax < 2.1
+
+
+def test_prepare_geometry_keeps_meter_scale(tmp_path):
+    # zaten metre (2 birim) -> ölçek YOK
+    box = trimesh.creation.box(extents=(2.0, 0.2, 0.2))
+    src = tmp_path / "m_roket.stl"
+    box.export(str(src))
+    _, info = prepare_geometry(src, tmp_path / "out")
+    assert "birim_olcek" not in info
+
+
 def test_oc_update_hits_volume_target():
     from vehicle_topopt import _oc_update
     n = 500

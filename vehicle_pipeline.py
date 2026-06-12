@@ -126,6 +126,14 @@ def prepare_geometry(path, out_dir: Path, progress_cb=None) -> tuple[Path, dict]
     info["su_gecirmez_once"] = before_wt
     info["su_gecirmez_sonra"] = bool(m.is_watertight)
 
+    # Birim sezgisi: CAD (STEP/IGES) konvansiyonel mm; çözücü metre bekler.
+    # BİLSEM araçları (roket/İHA/dron) 0.05–10 m; >50 birim => mm, ÷1000.
+    lmax = float((m.bounds[1] - m.bounds[0]).max())
+    if lmax > 50.0:
+        m.apply_scale(0.001)
+        info["onarimlar"].append(f"birim ölçek mm→m (÷1000; ham Lmax={lmax:.0f})")
+        info["birim_olcek"] = "mm→m"
+
     prepared = out_dir / f"{Path(info['kaynak']).stem}_prep.stl"
     m.export(str(prepared))
     return prepared, info
