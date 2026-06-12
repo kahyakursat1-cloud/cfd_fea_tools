@@ -4,6 +4,24 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-06-12e] feat | ANSYS-tarzı alan figürleri + mühendis raporu (shockFluid)
+
+**What:** Süpersonik/transonik yol artık Fluent-CFD-Post tarzı profesyonel
+görseller + sayısal mühendis raporu üretiyor (`supersonic_report.py`).
+
+- **Alan figürleri:** simetri düzleminde **basınç(gauge) / |U| / Mach**
+  konturları + akış çizgileri, yumuşatılmış **gövde silüeti** overlay'i,
+  gövde-civarı renk limiti. foamPostProcess `-solver shockFluid` ile VTK
+  çıkarılır (çözücü yeniden koşmaz). 3B **yüzey Cp** (rüzgâr-üstü/altı).
+- **Mühendis raporu (RAPOR.md):** figürler + **sayısal Cd / drag (N) / akış
+  koşulları** + rejim-bağlı Türkçe yorum + yöntem/sınır notları (Bel2 tarzı
+  ama sayılarla — kullanıcının Fluent raporunun nicel karşılığı).
+- `run_supersonic` her tekil koşudan sonra otomatik üretir (figür hatası Cd
+  sonucunu düşürmez). 4 birim test.
+- **Doğrulama:** M0.74 transonik (yumuşak akış, taban-resirkülasyonu) ve M2.0
+  süpersonik (**boattail şoku, Mach 2.0→1.7 sıçraması** net) figürleri doğru
+  fiziği gösteriyor — shockFluid'in şok-yakalaması görsel olarak kanıtlandı.
+
 ## [2026-06-12d] feat | Transonik rejim + Fluent referans karşılaştırması
 
 **What:** Kullanıcının ANSYS Fluent referansı (Bel1.docx) transonik ~M0.74
