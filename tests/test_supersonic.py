@@ -70,3 +70,25 @@ def test_supersonic_report_helpers_importable():
     assert callable(sr.build_supersonic_report)
     assert callable(sr.render_field_figure)
     assert callable(sr.export_field_cutplane)
+
+
+def test_mesh_metrics_parses_checkmesh(tmp_path):
+    (tmp_path / "log.checkMesh").write_text(
+        "    cells:            336143\n"
+        "    Max aspect ratio = 3.853635 OK.\n"
+        "    Mesh non-orthogonality Max: 46.29828 average: 0.95\n"
+        "    Max skewness = 1.835658 OK.\nMesh OK.\n")
+    mm = sr._mesh_metrics(tmp_path)
+    assert mm["cells"] == 336143
+    assert abs(mm["skew_max"] - 1.8357) < 1e-3
+    assert abs(mm["non_ortho_max"] - 46.298) < 1e-2
+    assert abs(mm["aspect_max"] - 3.8536) < 1e-3
+    assert mm["mesh_ok"] is True
+
+
+def test_cp_theory_values():
+    # M0.74 transonik: durma Cp0>1 (sıkıştırılabilirlik), kritik Cp*<0
+    assert sr._isentropic_cp0(0.74) > 1.0
+    assert sr._critical_cp(0.74) < 0.0
+    # M2 süpersonik: durma referansı daha yüksek
+    assert sr._isentropic_cp0(2.0) > sr._isentropic_cp0(0.74)

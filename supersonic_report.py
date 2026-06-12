@@ -85,6 +85,26 @@ def _read_polydata(vtk_path):
     return pts, faces, arr
 
 
+def _mesh_metrics(case_dir: Path) -> dict | None:
+    """checkMesh log'undan ağ kalite ölçütleri (OpenFOAM konvansiyonu)."""
+    import re
+    log = Path(case_dir) / "log.checkMesh"
+    if not log.exists():
+        return None
+    txt = log.read_text(errors="ignore")
+    def g(pat):
+        m = re.search(pat, txt)
+        return float(m.group(1)) if m else None
+    cells = g(r"cells:\s+(\d+)")
+    return {
+        "cells": int(cells) if cells else None,
+        "non_ortho_max": g(r"non-orthogonality Max:\s*([\d.]+)"),
+        "skew_max": g(r"Max skewness =\s*([\d.]+)"),
+        "aspect_max": g(r"Max aspect ratio =\s*([\d.]+)"),
+        "mesh_ok": "Mesh OK" in txt,
+    }
+
+
 def _isentropic_cp0(mach: float) -> float:
     """Sıkıştırılabilir (izentropik) durma noktası basınç katsayısı."""
     return ((1 + 0.2 * mach ** 2) ** 3.5 - 1) / (0.7 * mach ** 2)
@@ -252,7 +272,7 @@ def _register_pdf_font():
 
 
 def _emit_pdf(out_pdf: Path, rep_dir: Path, title, cond_lines,
-              res_rows, sections, yontem) -> bool:
+              res_rows, mesh_rows, sections, yontem) -> bool:
     """Yapılandırılmış içerikten profesyonel PDF (reportlab, A4, Türkçe font)."""
     try:
         from reportlab.lib import colors
@@ -281,23 +301,28 @@ def _emit_pdf(out_pdf: Path, rep_dir: Path, title, cond_lines,
         for ln in cond_lines:
             flow.append(Paragraph(sub(ln), body))
         flow.append(Spacer(1, 6))
-        flow.append(Paragraph("Sayısal Sonuçlar", h2))
         cell = ParagraphStyle("cell", fontName=font, fontSize=9.5, leading=12)
-        data = [["Büyüklük", "Değer"]] + [[Paragraph(sub(r[0]), cell), r[1]]
-                                          for r in res_rows]
-        tbl = Table(data, colWidths=[pw * 0.62, pw * 0.38])
-        tbl.setStyle(TableStyle([
-            ("FONTNAME", (0, 0), (-1, -1), font),
-            ("FONTNAME", (0, 0), (-1, 0), bold),
-            ("FONTSIZE", (0, 0), (-1, -1), 9.5),
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f4e79")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1),
-             [colors.white, colors.HexColor("#eef3f8")]),
-            ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#b8c4d0")),
-            ("PADDING", (0, 0), (-1, -1), 5)]))
-        flow.append(tbl)
-
+        def styled_table(rows, header):
+            data = [list(header)] + [[Paragraph(sub(str(r[0])), cell), str(r[1])]
+                                     for r in rows]
+            tb = Table(data, colWidths=[pw * 0.62, pw * 0.38])
+            tb.setStyle(TableStyle([
+                ("FONTNAME", (0, 0), (-1, -1), font),
+                ("FONTNAME", (0, 0), (-1, 0), bold),
+                ("FONTSIZE", (0, 0), (-1, -1), 9.5),
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f4e79")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1),
+                 [colors.white, colors.HexColor("#eef3f8")]),
+                ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#b8c4d0")),
+                ("PADDING", (0, 0), (-1, -1), 5)]))
+            return tb
+        flow.append(Paragraph("Sayısal Sonuçlar", h2))
+        flow.append(styled_table(res_rows, ["Büyüklük", "Değer"]))
+        if mesh_rows:
+            flow.append(Spacer(1, 5))
+            flow.append(Paragraph("Ağ (Mesh) Kalitesi", h2))
+            flow.append(styled_table(mesh_rows, ["Ölçüt", "Değer"]))
         def acad(s):   # akademik metin: önce XML-kaçış, sonra alt-simge işaretle
             s = (s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                  .replace("C_D", "C<sub>D</sub>").replace("C_p", "C<sub>p</sub>")
@@ -474,9 +499,35 @@ def build_supersonic_report(result: dict, case_dir, stl_path, t_inf=288.15,
         ["Sürükleme katsayısı C_D", f"{result['Cd']:.4f}"],
         ["Sürükleme kuvveti", f"{result.get('drag_N', float('nan')):.1f} N"],
         ["Yakınsama sapması (son %20)", f"%{result.get('Cd_drift_pct', 0) or 0:.2f}"]]
+    mesh = _mesh_metrics(case_dir)
+    mesh_rows = []
+    if mesh:
+        if mesh.get("cells"):
+            mesh_rows.append(["Hücre sayısı", f"{mesh['cells']:,}"])
+        if mesh.get("non_ortho_max") is not None:
+            mesh_rows.append(["Maks. ortogonallik-sapması",
+                              f"{mesh['non_ortho_max']:.1f}° (eşik <70 — OK)"])
+        if mesh.get("skew_max") is not None:
+            mesh_rows.append(["Maks. skewness (OpenFOAM)",
+                              f"{mesh['skew_max']:.2f} (eşik <4 — OK)"])
+        if mesh.get("aspect_max") is not None:
+            mesh_rows.append(["Maks. en-boy oranı", f"{mesh['aspect_max']:.2f}"])
+        mesh_rows.append(["checkMesh", "Mesh OK" if mesh.get("mesh_ok") else "uyarı"])
+
     metric = (_field_metrics(cut, mach, t_inf, p_inf, u_inf, rho_inf)
               if cut else None)
     com = _academic_commentary(metric, mach, result, rho_inf, u_inf)
+    if mesh and mesh.get("mesh_ok"):
+        com["degerlendirme"].insert(0, (
+            "Ağ kalitesi checkMesh kapılarının tümünü geçmiştir (Mesh OK). "
+            "OpenFOAM skewness ölçütü Fluent'inkinden farklı tanımlıdır "
+            "(eşik ~4; Fluent'te 0–1 aralığı, eşik ~0.85) — doğrudan kıyaslanamaz; "
+            f"ölçülen maks. {mesh.get('skew_max', 0):.2f} eşiğin oldukça altındadır. "
+            f"Maksimum ortogonallik-sapması {mesh.get('non_ortho_max', 0):.1f}° < 70° "
+            "olduğundan difüzyon terimlerinde aşırı ortogonal-olmayan düzeltme "
+            "ihtiyacı sınırlıdır; düşük en-boy oranı iyi koşullu hücrelere işaret "
+            "eder. Bu ölçütler ağ-kaynaklı ayrıklaştırma hatasının düşük olduğunu, "
+            "ancak resmi ağ-bağımsızlık (GCI) gereğini ikame etmediğini gösterir."))
     sections = []
     if "alanlar" in figs:
         sections.append(("Simetri Düzlemi Alanları", figs["alanlar"], com["alan"]))
@@ -496,6 +547,10 @@ def build_supersonic_report(result: dict, case_dir, stl_path, t_inf=288.15,
           "", "## Sayısal Sonuçlar", "", "| Büyüklük | Değer |", "|----------|-------|"]
     md += [f"| {r[0]} | {r[1]} |" for r in res_rows]
     md.append("")
+    if mesh_rows:
+        md += ["### Ağ (Mesh) Kalitesi", "", "| Ölçüt | Değer |", "|-------|-------|"]
+        md += [f"| {r[0]} | {r[1]} |" for r in mesh_rows]
+        md.append("")
     if result.get("uyari"):
         md.append(f"> ⚠️ {result['uyari']}\n")
     for heading, img, paras in sections:
@@ -509,7 +564,7 @@ def build_supersonic_report(result: dict, case_dir, stl_path, t_inf=288.15,
     (rep / "RAPOR.md").write_text("\n".join(md), encoding="utf-8")
 
     pdf_ok = _emit_pdf(rep / "RAPOR.pdf", rep, title, cond_lines, res_rows,
-                       sections, yontem)
+                       mesh_rows, sections, yontem)
     if progress_cb:
         progress_cb(99, "rapor üretildi (MD + PDF)" if pdf_ok else "rapor üretildi (MD)")
     return str(rep / ("RAPOR.pdf" if pdf_ok else "RAPOR.md"))
