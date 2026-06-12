@@ -1,0 +1,293 @@
+"""
+Süpersonik CFD — shockFluid (yoğunluk-bazlı, Kurganov şok-yakalama).
+====================================================================
+Roketler için M>0.8 rejimi: foamRun -solver shockFluid (OF11). Basınç-bazlı
+fluid çözücüsünün soğuk-başlangıç kararsızlığı YOK — şoklar karakteristik
+yönde taşınır. Zaman-yürüyüşlü (CFL≤0.3 adaptif), inviscid-duvar (slip),
+serbest-akış süpersonik sınırlar. Sürükleme = basınç + dalga sürüklemesi
+(süpersonik küt/sivri cisimde baskın; skin-friction ihmal — ön-tasarım).
+
+Mesh: openfoam_runner snappy yardımcıları yeniden kullanılır.
+CLI: python supersonic_cfd.py model.stl --mach 2.0 --tip roket
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import re
+import shutil
+import subprocess
+from pathlib import Path
+
+import numpy as np
+import trimesh
+
+from analysis.openfoam_runner import (
+    OF_BASHRC,
+    WSL_DISTRO,
+    CFDCase,
+    _compute_domain,
+    _foam_header,
+    _write_block_mesh,
+    _write_decompose_par,
+    _write_snappy,
+    _write_surface_features,
+    windows_to_wsl_path,
+)
+
+GAMMA = 1.4
+R_AIR = 287.058
+MU_AIR = 1.8e-5
+PR = 0.72
+
+
+def sound_speed(t_k: float) -> float:
+    return math.sqrt(GAMMA * R_AIR * t_k)
+
+
+def _of(wsl_dir, cmd, timeout):
+    full = (f"export ParaView_TYPE=none && source {OF_BASHRC} && "
+            f"unset FOAM_SIGFPE && cd '{wsl_dir}' && {cmd}")
+    return subprocess.run(["wsl", "-d", WSL_DISTRO, "--", "bash", "-c", full],
+                          capture_output=True, text=True, timeout=timeout)
+
+
+def _write_shock_thermo(case_dir: Path):
+    cp = GAMMA * R_AIR / (GAMMA - 1)   # 1004.7
+    (case_dir / "constant" / "physicalProperties").write_text(
+        _foam_header("dictionary", "physicalProperties", "constant") +
+        "thermoType\n{\n    type hePsiThermo; mixture pureMixture;\n"
+        "    transport const; thermo hConst; equationOfState perfectGas;\n"
+        "    specie specie; energy sensibleInternalEnergy;\n}\n"
+        "mixture\n{\n"
+        "    specie         { molWeight 28.96; }\n"
+        f"    thermodynamics {{ Cp {cp:.2f}; Hf 0; }}\n"
+        f"    transport      {{ mu {MU_AIR:.3e}; Pr {PR}; }}\n}}\n")
+    (case_dir / "constant" / "momentumTransport").write_text(
+        _foam_header("dictionary", "momentumTransport", "constant") +
+        "simulationType laminar;\n")
+
+
+def _write_shock_fields(case_dir: Path, surf: str, mach: float,
+                        t_inf: float, p_inf: float):
+    a = sound_speed(t_inf)
+    u = mach * a
+    fs = ["inlet", "top", "bottom", "front", "back"]   # serbest-akış sınırları
+    def bf(lines):
+        return "boundaryField\n{\n" + "".join(lines) + "}\n"
+    # U: serbest akış sabit, outlet zeroGradient (süpersonik çıkış), duvar slip
+    ulines = [f"    {p} {{ type fixedValue; value uniform ({u:.4f} 0 0); }}\n" for p in fs]
+    ulines.append("    outlet { type zeroGradient; }\n")
+    ulines.append(f"    {surf} {{ type slip; }}\n")   # inviscid duvar
+    (case_dir / "0" / "U").write_text(
+        _foam_header("volVectorField", "U", "0") +
+        "dimensions [0 1 -1 0 0 0 0];\n"
+        f"internalField uniform ({u:.4f} 0 0);\n" + bf(ulines))
+    # T
+    tlines = [f"    {p} {{ type fixedValue; value uniform {t_inf}; }}\n" for p in fs]
+    tlines.append("    outlet { type zeroGradient; }\n")
+    tlines.append(f"    {surf} {{ type zeroGradient; }}\n")
+    (case_dir / "0" / "T").write_text(
+        _foam_header("volScalarField", "T", "0") +
+        "dimensions [0 0 0 1 0 0 0];\n"
+        f"internalField uniform {t_inf};\n" + bf(tlines))
+    # p
+    plines = [f"    {p} {{ type fixedValue; value uniform {p_inf}; }}\n" for p in fs]
+    plines.append("    outlet { type zeroGradient; }\n")
+    plines.append(f"    {surf} {{ type zeroGradient; }}\n")
+    (case_dir / "0" / "p").write_text(
+        _foam_header("volScalarField", "p", "0") +
+        "dimensions [1 -1 -2 0 0 0 0];\n"
+        f"internalField uniform {p_inf};\n" + bf(plines))
+    return u
+
+
+def _write_shock_system(case_dir: Path, surf: str, end_time: float,
+                        write_int: float, lref: float, u: float,
+                        rho_inf: float, sref: float):
+    (case_dir / "system" / "fvSchemes").write_text(
+        _foam_header("dictionary", "fvSchemes", "system") +
+        "fluxScheme Kurganov;\n"
+        "ddtSchemes { default Euler; }\n"
+        "gradSchemes { default Gauss linear; }\n"
+        "divSchemes { default none; }\n"
+        "laplacianSchemes { default Gauss linear corrected; }\n"
+        "interpolationSchemes\n{\n    default linear;\n"
+        "    reconstruct(rho) vanLeer;\n    reconstruct(U) vanLeerV;\n"
+        "    reconstruct(T) vanLeer;\n}\n"
+        "snGradSchemes { default corrected; }\n")
+    (case_dir / "system" / "fvSolution").write_text(
+        _foam_header("dictionary", "fvSolution", "system") +
+        "solvers\n{\n"
+        '    "(rho|rhoU|rhoE).*" { solver diagonal; }\n'
+        '    "U.*" { solver smoothSolver; smoother GaussSeidel; nSweeps 2;\n'
+        "            tolerance 1e-09; relTol 0.01; }\n"
+        '    "e.*" { solver smoothSolver; smoother GaussSeidel; nSweeps 2;\n'
+        "            tolerance 1e-10; relTol 0; }\n"
+        "}\nPIMPLE {}\n")
+    fc = (
+        "functions\n{\n    forceCoeffs1\n    {\n"
+        '        type forceCoeffs; libs ("libforces.so");\n'
+        "        writeControl timeStep; writeInterval 20;\n"
+        f"        patches ({surf});\n"
+        f"        rho rhoInf; rhoInf {rho_inf:.5f};\n"
+        "        liftDir (0 0 1); dragDir (1 0 0);\n"
+        "        CofR (0 0 0); pitchAxis (0 1 0);\n"
+        f"        magUInf {u:.4f}; lRef {lref:.6f}; Aref {sref:.8f};\n"
+        "    }\n}\n")
+    (case_dir / "system" / "controlDict").write_text(
+        _foam_header("dictionary", "controlDict", "system") +
+        "application foamRun; solver shockFluid;\n"
+        "startFrom startTime; startTime 0; stopAt endTime;\n"
+        f"endTime {end_time:.6e}; deltaT {end_time/4000:.3e};\n"
+        "writeControl adjustableRunTime;\n"
+        f"writeInterval {write_int:.6e};\n"
+        "purgeWrite 2; writeFormat ascii; writePrecision 7;\n"
+        "runTimeModifiable true; adjustTimeStep yes; maxCo 0.3;\n"
+        f"maxDeltaT {end_time/200:.3e};\n" + fc)
+
+
+def run_supersonic(stl_path, mach=2.0, vehicle_type="roket", quality="standart",
+                   t_inf=288.15, p_inf=101325.0, n_flow_pass=30,
+                   out_root="vehicle_runs", progress_cb=None) -> dict:
+    stl_path = Path(stl_path)
+    stem = stl_path.stem
+
+    def cb(p, m):
+        if progress_cb:
+            progress_cb(p, m)
+
+    m = trimesh.load(str(stl_path), force="mesh")
+    dims = (m.bounds[1] - m.bounds[0]).astype(float)
+    L = float(dims.max())
+    sref = math.pi * (max(dims[1], dims[2]) / 2) ** 2   # frontal (eksenel roket)
+    rho_inf = p_inf / (R_AIR * t_inf)
+    a = sound_speed(t_inf)
+    u = mach * a
+
+    run_dir = Path(out_root) / f"{stem}_M{mach:g}"
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    # ── Mesh: openfoam_runner yardımcılarıyla ──
+    div = {"hizli": 5, "standart": 7, "hassas": 9}[quality]
+    refmax = {"hizli": 2, "standart": 3, "hassas": 4}[quality]
+    case = CFDCase(name=f"{stem}_M{mach:g}", stl_path=stl_path, velocity=u,
+                   rho=rho_inf, domain_upstream=5.0, domain_downstream=12.0,
+                   domain_lateral=6.0, refinement_min=max(1, refmax - 1),
+                   refinement_max=refmax, bg_cell_size=L / div,
+                   max_global_cells={"hizli": 600_000, "standart": 1_500_000,
+                                     "hassas": 3_000_000}[quality],
+                   n_processors=1)
+    case_dir = (run_dir / case.name).resolve()
+    if case_dir.exists():
+        shutil.rmtree(case_dir)
+    (case_dir / "0").mkdir(parents=True)
+    (case_dir / "constant" / "triSurface").mkdir(parents=True)
+    (case_dir / "system").mkdir(parents=True)
+    surf = stem.replace(" ", "_")
+    shutil.copy(stl_path, case_dir / "constant" / "triSurface" / stl_path.name)
+    dmin, dmax, gmin, gmax = _compute_domain(stl_path, case)
+    cx, cy, cz = [(gmin[i] + gmax[i]) / 2 for i in range(3)]
+    inside_pt = (cx + L * 2.0, cy + L * 0.13, cz + L * 0.13)
+    _write_block_mesh(case_dir, dmin, dmax, case.bg_cell_size)
+    _write_snappy(case_dir, stl_path.name, surf, inside_pt, case)
+    _write_surface_features(case_dir, stl_path.name)
+    _write_decompose_par(case_dir, 1)
+
+    end_time = n_flow_pass * (L / u)         # N akış-geçiş süresi
+    _write_shock_thermo(case_dir)
+    _write_shock_fields(case_dir, surf, mach, t_inf, p_inf)
+    _write_shock_system(case_dir, surf, end_time, end_time / 10, L, u, rho_inf, sref)
+
+    wsl_dir = windows_to_wsl_path(case_dir)
+    for pct, msg, cmd, tmo in [
+            (10, "surfaceFeatures", "surfaceFeatures", 120),
+            (20, "blockMesh", "blockMesh", 120),
+            (45, "snappyHexMesh (şok-mesh)", "snappyHexMesh -overwrite", 2400),
+            (55, "checkMesh", "checkMesh", 300)]:
+        cb(pct, msg + "...")
+        r = _of(wsl_dir, cmd + f" > log.{cmd.split()[0]} 2>&1", tmo)
+        if cmd != "checkMesh" and r.returncode != 0:
+            return {"status": "FAILED", "asama": cmd, "case": str(case_dir),
+                    "error": (case_dir / f"log.{cmd.split()[0]}").read_text(errors="ignore")[-1500:]}
+
+    cb(70, f"shockFluid (M={mach}, zaman-yürüyüşü)...")
+    r = _of(wsl_dir, "foamRun > log.foamRun 2>&1", 7200)
+    log = (case_dir / "log.foamRun").read_text(errors="ignore")
+    if "FOAM FATAL" in log or r.returncode != 0:
+        return {"status": "FAILED", "asama": "shockFluid", "case": str(case_dir),
+                "error": log[-1500:]}
+
+    cb(92, "Cd ayrıştırılıyor...")
+    cd, cd_hist = _parse_cd(case_dir)
+    if cd is None:
+        return {"status": "FAILED", "error": "forceCoeffs okunamadı", "case": str(case_dir)}
+    drift = (abs(cd_hist[-1] - cd_hist[-max(2, len(cd_hist)//5)])
+             / (abs(cd_hist[-1]) + 1e-9) * 100) if len(cd_hist) >= 6 else None
+    out = {"status": "ok", "model": stem, "mach": mach, "U_ms": round(u, 1),
+           "rejim": "süpersonik" if mach > 1 else "transonik",
+           "S_ref_m2": round(sref, 6), "Cd": round(cd, 4),
+           "Cd_drift_pct": round(drift, 2) if drift else None,
+           "drag_N": round(cd * 0.5 * rho_inf * u**2 * sref, 2),
+           "case": str(case_dir),
+           "_not": ("shockFluid Euler-benzeri (inviscid duvar): basınç + dalga "
+                    "sürüklemesi; skin-friction yok (süpersonikte ikincil). Tek "
+                    "mesh — bağımsızlık gösterilmedi.")}
+    (run_dir / "supersonic.json").write_text(
+        json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
+    cb(100, f"Cd(M={mach}) = {cd:.3f}")
+    return out
+
+
+def _parse_cd(case_dir: Path):
+    cands = list((case_dir / "postProcessing" / "forceCoeffs1").glob("*/coefficient.dat"))
+    if not cands:
+        cands = list((case_dir / "postProcessing" / "forceCoeffs1").glob("*/forceCoeffs.dat"))
+    if not cands:
+        return None, []
+    cd_idx, hist = None, []
+    for line in cands[0].read_text().splitlines():
+        s = line.strip()
+        if not s:
+            continue
+        if s.startswith("#"):
+            if "Cd" in s:
+                parts = s.lstrip("#").split()
+                for i, p in enumerate(parts):
+                    if p == "Cd":
+                        cd_idx = i
+            continue
+        parts = s.split()
+        if cd_idx is not None and cd_idx < len(parts):
+            try:
+                hist.append(float(parts[cd_idx]))
+            except ValueError:
+                pass
+    if not hist:
+        return None, []
+    return float(np.mean(hist[-max(1, len(hist)//5):])), hist   # son %20 ortalama
+
+
+if __name__ == "__main__":
+    import sys
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    ap = argparse.ArgumentParser(description="Süpersonik CFD (shockFluid)")
+    ap.add_argument("model")
+    ap.add_argument("--mach", type=float, default=2.0)
+    ap.add_argument("--tip", default="roket")
+    ap.add_argument("--kalite", default="standart", choices=["hizli", "standart", "hassas"])
+    ap.add_argument("--gecis", type=int, default=30, help="akış-geçiş süresi sayısı")
+    args = ap.parse_args()
+
+    def _cb(p, msg):
+        print(f"[{p:3d}%] {msg}", flush=True)
+
+    r = run_supersonic(args.model, args.mach, args.tip, args.kalite,
+                       n_flow_pass=args.gecis, progress_cb=_cb)
+    if r["status"] == "ok":
+        print(f"\nM={r['mach']} ({r['U_ms']} m/s): Cd={r['Cd']} "
+              f"(drift {r['Cd_drift_pct']}%), drag={r['drag_N']} N")
+    else:
+        print(f"BASARISIZ [{r.get('asama','')}]: {r.get('error','')[-400:]}")

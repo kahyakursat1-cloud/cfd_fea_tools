@@ -114,6 +114,28 @@ class FEAWorker(QThread):
             self.failed.emit(str(e))
 
 
+class SupersonicWorker(QThread):
+    progress = Signal(int, str)
+    finished_ok = Signal(object)
+    failed = Signal(str)
+
+    def __init__(self, params: dict):
+        super().__init__()
+        self.params = params
+
+    def run(self):
+        try:
+            from supersonic_cfd import run_supersonic
+            out = run_supersonic(progress_cb=lambda p, m: self.progress.emit(p, m),
+                                 **self.params)
+            if out.get("status") == "ok":
+                self.finished_ok.emit(out)
+            else:
+                self.failed.emit(f"[{out.get('asama', '')}] {out.get('error', '')[-600:]}")
+        except Exception as e:
+            self.failed.emit(str(e))
+
+
 class PolarWorker(QThread):
     progress = Signal(int, str)
     finished_ok = Signal(object)
@@ -174,9 +196,20 @@ class AnalyzerWindow(QMainWindow):
         for key, p in VEHICLE_PRESETS.items():
             self.cmb_type.addItem(p["ad"], key)
         form.addRow("Araç tipi", self.cmb_type)
+
+        self.cmb_rejim = QComboBox()
+        self.cmb_rejim.addItem("Ses altı (incompressible)", "subsonik")
+        self.cmb_rejim.addItem("Ses üstü (shockFluid, M>0.8)", "supersonik")
+        self.cmb_rejim.currentIndexChanged.connect(self._rejim_changed)
+        form.addRow("Akış rejimi", self.cmb_rejim)
+
         self.spn_v = QDoubleSpinBox(); self.spn_v.setRange(0.5, 340); self.spn_v.setValue(30.0)
         self.spn_v.setSuffix(" m/s")
         form.addRow("Hız", self.spn_v)
+        self.spn_mach = QDoubleSpinBox(); self.spn_mach.setRange(0.8, 6.0)
+        self.spn_mach.setValue(2.0); self.spn_mach.setSingleStep(0.1)
+        self.spn_mach.setSuffix(" Mach"); self.spn_mach.setEnabled(False)
+        form.addRow("Mach (ses üstü)", self.spn_mach)
         self.spn_aoa = QDoubleSpinBox(); self.spn_aoa.setRange(-20, 20); self.spn_aoa.setValue(0.0)
         self.spn_aoa.setSuffix(" °")
         form.addRow("Hücum açısı", self.spn_aoa)
@@ -327,15 +360,25 @@ class AnalyzerWindow(QMainWindow):
         self.btn_run.setEnabled(True)
         self.btn_polar.setEnabled(True)
 
+    def _rejim_changed(self):
+        ust = self.cmb_rejim.currentData() == "supersonik"
+        self.spn_mach.setEnabled(ust)
+        self.spn_v.setEnabled(not ust)
+        # ses üstünde polar/FEA/duyarlılık akışı farklı; sadece temel CFD
+        self.spn_aoa.setEnabled(not ust)
+
     # ── Çalıştırma ──────────────────────────────────────────────────────────
     def _run(self):
         if not self.model_path:
+            return
+        if self.cmb_rejim.currentData() == "supersonik":
+            self._run_supersonic()
             return
         self.btn_run.setEnabled(False)
         self.btn_report.setEnabled(False)
         self.progress.setValue(0)
         self.log.clear()
-        self._log("Analiz başlatılıyor…")
+        self._log("Ses altı analiz başlatılıyor…")
         if self.cmb_nose.currentText()[1] == self.cmb_up.currentText()[1]:
             QMessageBox.warning(self, "Eksen hatası",
                                 "Burun ve üst eksenleri dik olmalı (farklı eksen seçin).")
@@ -359,6 +402,42 @@ class AnalyzerWindow(QMainWindow):
         self.worker.finished_ok.connect(self._on_done)
         self.worker.failed.connect(self._on_fail)
         self.worker.start()
+
+    def _run_supersonic(self):
+        self.btn_run.setEnabled(False)
+        self.btn_polar.setEnabled(False)
+        self.btn_report.setEnabled(False)
+        self.progress.setValue(0)
+        self.log.clear()
+        mach = self.spn_mach.value()
+        self._log(f"Ses üstü analiz (shockFluid) başlatılıyor — M={mach}…")
+        params = {
+            "stl_path": self.model_path,
+            "mach": mach,
+            "vehicle_type": self.cmb_type.currentData(),
+            "quality": self.cmb_quality.currentData(),
+        }
+        self.worker = SupersonicWorker(params)
+        self.worker.progress.connect(self._on_progress)
+        self.worker.finished_ok.connect(self._on_supersonic_done)
+        self.worker.failed.connect(self._on_fail)
+        self.worker.start()
+
+    def _on_supersonic_done(self, out: dict):
+        self.progress.setValue(100)
+        self._log(f"✅ Ses üstü tamamlandı — {out['rejim']}.")
+        self._set_metric("cd", f"{out['Cd']}")
+        self._set_metric("cl", "—")
+        self._set_metric("ld", f"M={out['mach']}")
+        self._set_metric("drag", f"{out['drag_N']} N")
+        self._set_metric("cells", "—")
+        d = out.get("Cd_drift_pct")
+        self._set_metric("verdict", f"drift {d}%" if d is not None else "✓")
+        self._log(f"Cd(M={out['mach']}) = {out['Cd']}  |  {out['U_ms']} m/s  |  "
+                  f"drag {out['drag_N']} N")
+        self._log(out.get("_not", ""))
+        self.btn_run.setEnabled(True)
+        self.btn_polar.setEnabled(True)
 
     def _run_polar(self):
         if not self.model_path:
