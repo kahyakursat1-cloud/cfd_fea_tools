@@ -4,6 +4,24 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-06-12d] feat | Transonik rejim + Fluent referans karşılaştırması
+
+**What:** Kullanıcının ANSYS Fluent referansı (Bel1.docx) transonik ~M0.74
+çıkınca, pipeline'a transonik yetenek eklendi.
+
+- **Transonik rejim (M<1.05):** shockFluid yoğunluk-bazlı olduğundan subsonic
+  de koşabilir; tek eksik subsonic-çıkış BC'siydi (zeroGradient yansıtıcı).
+  Artık tüm dış sınırlar **freestream** (akış yönüne göre oto in/outflow);
+  M≥1.05 süpersonik BC'leri değişmez. 6 birim test (rejim-bazlı BC seçimi).
+- **Gerçek roket M0.74 (252 m/s, Fluent koşulu):** Cd=0.140 yakınsadı (drift %0).
+- **Tam sürükleme eğrisi (transonik→süpersonik):** **0.140 (M0.74) → 0.128
+  (M1.2) → 0.053 (M2) → 0.025 (M3)**. Transonik en yüksek = **drag-divergence
+  (transonik sürükleme yükselişi)** doğru yakalandı, süpersonikte düşüyor.
+- **Fluent referansı (Bel1.docx):** ANSYS Fluent 2021 R2, ~3.4M hücre, M~0.74;
+  burun/tam-roket/kanatçık için niteliksel basınç+hız alanları (sayısal Cd
+  görüntülerde yok — birebir sayı karşılaştırması için Fluent Report değeri
+  gerekir).
+
 ## [2026-06-12c] feat | CAD mm→m oto-ölçek + gerçek STEP roketi uçtan uca
 
 **What:** Kullanıcının gerçek CAD roketi (STEP montajı) tam pipeline'dan geçti.
