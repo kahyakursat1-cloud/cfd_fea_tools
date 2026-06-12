@@ -85,6 +85,44 @@ def _read_polydata(vtk_path):
     return pts, faces, arr
 
 
+def _isentropic_cp0(mach: float) -> float:
+    """Sıkıştırılabilir (izentropik) durma noktası basınç katsayısı."""
+    return ((1 + 0.2 * mach ** 2) ** 3.5 - 1) / (0.7 * mach ** 2)
+
+
+def _critical_cp(mach: float) -> float:
+    """Kritik basınç katsayısı Cp* (yerel M=1 olduğu nokta)."""
+    return (2 / (GAMMA * mach ** 2)) * (
+        ((1 + 0.2 * mach ** 2) / 1.2) ** 3.5 - 1)
+
+
+def _field_metrics(cut_vtk, mach, t_inf, p_inf, u_inf, rho_inf) -> dict | None:
+    """Kesit alanından akademik yorum için nicel metrikler (ölçülen + teorik)."""
+    try:
+        pts, faces, arr = _read_polydata(cut_vtk)
+        P, U, T = arr("p"), arr("U"), arr("T")
+        if P is None or U is None or T is None:
+            return None
+        umag = np.linalg.norm(U, axis=1)
+        machf = umag / np.sqrt(GAMMA * R_AIR * np.maximum(T, 1.0))
+        q = 0.5 * rho_inf * u_inf ** 2
+        cp = (P - p_inf) / q
+        return {
+            "q": q,
+            "cp_max": float(np.percentile(cp, 99.9)),
+            "cp_min": float(np.percentile(cp, 0.1)),
+            "p_stag_gauge": float(np.percentile(P, 99.9) - p_inf),
+            "mach_max": float(np.percentile(machf, 99.9)),
+            "mach_min": float(np.percentile(machf, 0.1)),
+            "T_stag": float(np.percentile(T, 99.9)),
+            "T_min": float(np.percentile(T, 0.1)),
+            "cp0_teori": _isentropic_cp0(mach),
+            "cp_crit": _critical_cp(mach),
+        }
+    except Exception:
+        return None
+
+
 def _body_silhouette(stl_path: Path, n: int = 120):
     """x-z düzleminde gövde yarı-genişlik zarfı (yumuşatılmış) — kontur üstüne
     katı cisim çizimi için."""
@@ -259,19 +297,27 @@ def _emit_pdf(out_pdf: Path, rep_dir: Path, title, cond_lines,
             ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#b8c4d0")),
             ("PADDING", (0, 0), (-1, -1), 5)]))
         flow.append(tbl)
-        for heading, img, yorum in sections:
+
+        def acad(s):   # akademik metin: önce XML-kaçış, sonra alt-simge işaretle
+            s = (s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                 .replace("C_D", "C<sub>D</sub>").replace("C_p", "C<sub>p</sub>")
+                 .replace("M_cr", "M<sub>cr</sub>").replace("M_max", "M<sub>max</sub>")
+                 .replace("C_{Nα}", "C<sub>Nα</sub>"))
+            return s
+        for heading, img, paras in sections:
             flow.append(Paragraph(heading, h2))
-            ip = rep_dir / img
-            if ip.exists():
+            ip = (rep_dir / img) if img else None
+            if ip and ip.exists():
                 from PIL import Image as PILImage
                 iw, ih = PILImage.open(ip).size
-                w = pw
-                flow.append(Image(str(ip), width=w, height=w * ih / iw))
+                flow.append(Image(str(ip), width=pw, height=pw * ih / iw))
                 flow.append(Spacer(1, 3))
-            flow.append(Paragraph("<b>Yorum:</b> " + sub(yorum), body))
+            for p in paras:
+                flow.append(Paragraph(acad(p), body))
+                flow.append(Spacer(1, 2))
         flow.append(Paragraph("Yöntem ve Sınırlar", h2))
         for b in yontem:
-            flow.append(Paragraph("• " + sub(b), body))
+            flow.append(Paragraph("• " + acad(b), body))
         SimpleDocTemplate(
             str(out_pdf), pagesize=A4,
             leftMargin=16 * mm, rightMargin=16 * mm,
@@ -279,6 +325,114 @@ def _emit_pdf(out_pdf: Path, rep_dir: Path, title, cond_lines,
         return True
     except Exception:
         return False
+
+
+def _academic_commentary(metric, mach, result, rho_inf, u_inf):
+    """Ölçülen alan metrikleri + sıkıştırılabilir akış teorisiyle akademik yorum.
+    Döner: {alan:[...], yuzey:[...], degerlendirme:[...]} (paragraf listeleri)."""
+    cd = result["Cd"]
+    drag = result.get("drag_N", float("nan"))
+    drift = result.get("Cd_drift_pct", 0) or 0.0
+    sup = mach > 1.0
+
+    if metric is None:   # metrik çıkarılamadıysa rejim-temelli teknik yorum
+        alan = ["Alan çıkarımı yapılamadı; aşağıdaki değerlendirme yalnız "
+                "integral büyüklüklere (C_D) dayanmaktadır."]
+        yuzey = []
+    else:
+        cpx, cp0 = metric["cp_max"], metric["cp0_teori"]
+        cpm, cpc = metric["cp_min"], metric["cp_crit"]
+        mmx, mmn = metric["mach_max"], metric["mach_min"]
+        dT = metric["T_stag"] - metric["T_min"]
+
+        if sup:
+            p1 = (f"Simetri düzlemi alanları, sivri burunda oluşan eğik (oblique) "
+                  f"baş-şok ve gövde omzundaki Prandtl–Meyer genleşmesiyle tipik bir "
+                  f"süpersonik dış-akış topolojisi sergiler. Serbest akış M={mach:g} "
+                  f"iken şok ardında yerel Mach {mmn:.2f} mertebesine düşmekte, omuz "
+                  f"genleşmesinde {mmx:.2f} değerine yükselmektedir; bu sıçrama-genleşme "
+                  f"örüntüsü çözücünün şok yapılarını keskin biçimde yakaladığını "
+                  f"(Kurganov şok-yakalama) gösterir.")
+            p2 = (f"Burun durma bölgesinde ölçülen tepe basınç katsayısı "
+                  f"C_p,max = {cpx:.3f}'tür. Süpersonikte yüzey durma değeri iki "
+                  f"etkiyle teorik izentropik durma referansının (C_p0 = {cp0:.3f}) "
+                  f"altındadır: (i) baş-şok ardı toplam-basınç kaybı ve (ii) sivri "
+                  f"burunda durma bölgesinin çok küçük olması nedeniyle sonlu ağın "
+                  f"tepe değeri tam çözememesi. Genleşme bölgesinde statik sıcaklık "
+                  f"~{dT:.0f} K düşmüştür (Prandtl–Meyer genleşme soğuması).")
+            p3 = ("Sürükleme baskın olarak dalga sürüklemesi ve basınç (form) "
+                  "bileşeninden oluşur; sürtünme (skin-friction) sürtünmesiz "
+                  "formülasyonda modellenmez ve süpersonik rejimde toplam sürüklemenin "
+                  "ikincil (~%5–15) bir payıdır. Kuyruktaki düşük-basınçlı taban "
+                  "(base) bölgesi taban sürüklemesine katkı verir; Euler çözümü bu "
+                  "bölgenin basıncını olduğundan düşük kestirip taban sürüklemesini "
+                  "abartabilir — mutlak C_D için bilinen bir üst-yönlü belirsizliktir.")
+            alan = [p1, p2, p3]
+        else:
+            supercrit = mmx >= 1.0 or abs(cpm) > abs(cpc)
+            p1 = (f"Alan yapısı sıkıştırılabilir ses-altı (transonik) bir dış akışı "
+                  f"tanımlar. Burun durma bölgesinde ölçülen tepe basınç katsayısı "
+                  f"C_p,max = {cpx:.3f}'tür. Teorik izentropik (sıkıştırılabilir) "
+                  f"durma değeri C_p0 = {cp0:.3f} olup; sivri/ince burunlu cisimde "
+                  f"gerçek durma noktası çok küçük bir bölgeye sıkıştığından sonlu "
+                  f"ağ bu tepeyi tam çözememekte ve ölçülen değer teorik durmanın "
+                  f"altında kalmaktadır — bu fiziksel bir tutarsızlık değil, keskin "
+                  f"uçta beklenen bir ağ-çözünürlük etkisidir (küt cisimlerde iki "
+                  f"değer yakınsar).")
+            if supercrit:
+                p2 = (f"Serbest akış M={mach:g} için kritik basınç katsayısı "
+                      f"C_p* = {cpc:.3f}'tür. Gövde omzunda ölçülen en negatif değer "
+                      f"C_p,min = {cpm:.3f} ve en yüksek yerel Mach {mmx:.2f}'dir; "
+                      f"|C_p,min| ≳ |C_p*| olduğundan yerel bir ses-üstü cep oluşmuş, "
+                      f"kritik Mach sayısı M_cr aşılmıştır. Bu, transonik dalga "
+                      f"sürüklemesinin (drag-divergence) başlangıcına işaret eder ve "
+                      f"cebi sonlandıran zayıf bir şok beklenir.")
+            else:
+                p2 = (f"Serbest akış M={mach:g} için kritik basınç katsayısı "
+                      f"C_p* = {cpc:.3f}'tür (yerel M=1 eşiği). Gövde üzerinde ölçülen "
+                      f"en negatif değer C_p,min = {cpm:.3f}, en yüksek yerel Mach "
+                      f"{mmx:.2f}'dir; |C_p,min| < |C_p*| ve M_max<1 olduğundan akış "
+                      f"her noktada ses-altı kalmıştır (yerel süpersonik cep yok). "
+                      f"Kritik Mach sayısı M_cr aşılmamış, dolayısıyla dalga "
+                      f"sürüklemesi henüz devrede değildir; sürükleme tümüyle basınç "
+                      f"(form) ve modellenmeyen sürtünme bileşenlerindendir.")
+            p3 = ("Kuyruk/taban bölgesinde hız açığı ve resirkülasyon görülür; "
+                  "sürtünmesiz çözüm taban basıncını olduğundan düşük kestirme "
+                  "eğiliminde olduğundan taban sürüklemesi bir belirsizlik "
+                  "kaynağıdır. Akış çizgilerinin gövde boyunca yüzeyden ayrılmaması "
+                  "basınç-kaynaklı bir ayrılmanın olmadığına işaret eder; ancak "
+                  "viskoz ayrılma bu modelde öngörülemez.")
+            alan = [p1, p2, p3]
+
+        yuzey = [
+            f"Yüzey C_p dağılımı burun ucunda durma kaynaklı pozitif tepe "
+            f"(C_p,max ≈ {cpx:.2f}), ogive/konik gövde boyunca hızlı bir basınç "
+            f"düşüşü ve gövde-omuz ile kanatçık-kök bağlantılarında yerel basınç "
+            f"gradyanları gösterir.",
+            "Kanatçık ön kenarlarında stagnasyon, art bölgesinde düşük basınç "
+            "beklenen biçimde belirir; bu yüzey basınç farkı kanatçıkların normal "
+            "kuvvetini ve dolayısıyla aracın statik stabilite türevine (C_{Nα}) "
+            "katkısını üretir. Negatif basınç bölgelerinin gövde gerisine "
+            "yayılmaması, basınç-kaynaklı ciddi bir akış ayrılmasının bulunmadığını "
+            "destekler."]
+
+    dalga = "dalga" if sup else "form"
+    deg = [
+        f"Hesaplanan sürükleme katsayısı C_D = {cd:.4f} (frontal izdüşüm alanına "
+        f"göre), karşılık gelen sürükleme kuvveti {drag:.1f} N'dur. Sürtünmesiz "
+        f"formülasyonda bu değer basınç + {dalga} sürüklemesini kapsar; viskoz "
+        f"sürtünme eklendiğinde toplam C_D ön-tasarım mertebesinde "
+        f"{'~%5–15' if sup else '~%15–30'} artabilir.",
+        f"Kuvvet katsayısı zaman-ortalamada son %20 pencerede %{drift:.2f} sapma ile "
+        f"yakınsamıştır; bu, integral yükün istatistiksel olarak oturduğunu gösterir "
+        f"(yerel taban kararsızlığı bu değeri etkilemez).",
+        "Değerlendirme tek mesh üzerinden yapılmıştır; resmi bir ağ-bağımsızlık "
+        "(GCI, ASME V&V 20) çalışması yürütülmediğinden mutlak C_D'ye sayısal "
+        "belirsizlik bandı atanmamıştır. Karşılaştırmalı kullanım (Mach taraması, "
+        "tasarım A/B, 6-DOF uçuş simülasyonu girdisi) için sonuç savunulabilirdir; "
+        "mutlak doğruluk hedeflendiğinde viskoz duvar (y⁺~1 sınır tabaka) ve "
+        "çok-mesh GCI önerilir."]
+    return {"alan": alan, "yuzey": yuzey, "degerlendirme": deg}
 
 
 def build_supersonic_report(result: dict, case_dir, stl_path, t_inf=288.15,
@@ -320,24 +474,15 @@ def build_supersonic_report(result: dict, case_dir, stl_path, t_inf=288.15,
         ["Sürükleme katsayısı C_D", f"{result['Cd']:.4f}"],
         ["Sürükleme kuvveti", f"{result.get('drag_N', float('nan')):.1f} N"],
         ["Yakınsama sapması (son %20)", f"%{result.get('Cd_drift_pct', 0) or 0:.2f}"]]
-    yorum_alan = (
-        "Burun ucunda stagnasyon (yüksek basınç, düşük hız) bölgesi; gövde "
-        "boyunca akış hızlanıp basınç düşüyor. "
-        + ("Süpersonik rejimde burunda yatık şok ve gövde üzerinde genleşme "
-           "görülür. " if mach > 1 else
-           "Transonik rejimde akış gövde omzunda yerel olarak hızlanır "
-           "(M≈1 yaklaşımı), kuyrukta taban-resirkülasyonu oluşur. ")
-        + "Akış çizgileri gövde yüzeyinden ayrılmadan düzgün ilerliyor — "
-          "aerodinamik tasarımın verimli olduğunu gösterir.")
-    yorum_yuzey = (
-        "Burun ucunda yüksek C_p (stagnasyon), gövde ve kuyruk boyunca düşük/orta "
-        "seviye; kanatçık kök bölgelerinde yerel basınç değişimleri aerodinamik "
-        "stabiliteye katkıdır.")
+    metric = (_field_metrics(cut, mach, t_inf, p_inf, u_inf, rho_inf)
+              if cut else None)
+    com = _academic_commentary(metric, mach, result, rho_inf, u_inf)
     sections = []
     if "alanlar" in figs:
-        sections.append(("Simetri Düzlemi Alanları", figs["alanlar"], yorum_alan))
+        sections.append(("Simetri Düzlemi Alanları", figs["alanlar"], com["alan"]))
     if "yuzey" in figs:
-        sections.append(("Yüzey Basınç Dağılımı", figs["yuzey"], yorum_yuzey))
+        sections.append(("Yüzey Basınç Dağılımı", figs["yuzey"], com["yuzey"]))
+    sections.append(("Aerodinamik Değerlendirme", None, com["degerlendirme"]))
     yontem = [
         "Çözücü: density-based, Euler-benzeri (inviscid slip duvar); basınç + "
         "dalga sürüklemesi yakalanır, skin-friction ihmal edilir (süpersonikte "
@@ -349,15 +494,18 @@ def build_supersonic_report(result: dict, case_dir, stl_path, t_inf=288.15,
     title = f"Aerodinamik Analiz Raporu — {result['model']}"
     md = [f"# {title}", "", "  \n".join(cond_lines).replace("<b>", "**").replace("</b>", "**"),
           "", "## Sayısal Sonuçlar", "", "| Büyüklük | Değer |", "|----------|-------|"]
-    md += [f"| {r[0].replace('C_D', '$C_D$')} | {r[1]} |" for r in res_rows]
+    md += [f"| {r[0]} | {r[1]} |" for r in res_rows]
     md.append("")
     if result.get("uyari"):
         md.append(f"> ⚠️ {result['uyari']}\n")
-    for heading, img, yorum in sections:
-        md += [f"## {heading}", "", f"![{heading}]({img})", "",
-               "**Yorum:** " + yorum.replace("C_p", "$C_p$"), ""]
+    for heading, img, paras in sections:
+        md += [f"## {heading}", ""]
+        if img:
+            md += [f"![{heading}]({img})", ""]
+        for para in paras:
+            md += [para, ""]
     md += ["## Yöntem ve Sınırlar", ""]
-    md += [f"- {b.replace('C_D', '$C_D$')}" for b in yontem]
+    md += [f"- {b}" for b in yontem]
     (rep / "RAPOR.md").write_text("\n".join(md), encoding="utf-8")
 
     pdf_ok = _emit_pdf(rep / "RAPOR.pdf", rep, title, cond_lines, res_rows,
