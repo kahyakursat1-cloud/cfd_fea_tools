@@ -35,6 +35,7 @@ from analysis.openfoam_runner import (
     _write_surface_features,
     windows_to_wsl_path,
 )
+from vehicle_pipeline import _hull_projected_area
 
 GAMMA = 1.4
 R_AIR = 287.058
@@ -169,7 +170,7 @@ def run_supersonic(stl_path, mach=2.0, vehicle_type="roket", quality="standart",
     m = trimesh.load(str(stl_path), force="mesh")
     dims = (m.bounds[1] - m.bounds[0]).astype(float)
     L = float(dims.max())
-    sref = math.pi * (max(dims[1], dims[2]) / 2) ** 2   # frontal (eksenel roket)
+    sref = _hull_projected_area(m.vertices, 0)   # gerçek izdüşüm frontal (akış +x)
     rho_inf = p_inf / (R_AIR * t_inf)
     a = sound_speed(t_inf)
     u = mach * a
@@ -272,7 +273,7 @@ def run_mach_sweep(stl_path, machs=(0.8, 1.2, 2.0, 3.0), vehicle_type="roket",
     m = trimesh.load(str(stl_path), force="mesh")
     dims = (m.bounds[1] - m.bounds[0]).astype(float)
     L = float(dims.max())
-    sref = math.pi * (max(dims[1], dims[2]) / 2) ** 2
+    sref = _hull_projected_area(m.vertices, 0)   # gerçek izdüşüm frontal (akış +x)
     rho_inf = p_inf / (R_AIR * t_inf)
     a = sound_speed(t_inf)
 
