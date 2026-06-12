@@ -6,6 +6,7 @@ yorumlarla Markdown rapor. run_supersonic her tekil koşudan sonra çağırır.
 """
 from __future__ import annotations
 
+import math
 import subprocess
 from pathlib import Path
 
@@ -143,6 +144,26 @@ def _field_metrics(cut_vtk, mach, t_inf, p_inf, u_inf, rho_inf) -> dict | None:
         return None
 
 
+def _body_section_area(stl_path: Path) -> float | None:
+    """Gövde kesit alanı πd²/4 (kanatçık HARİÇ) — roket aerodinamiği konvansiyonel
+    referansı. Orta-gövde (x %30–70) yarıçapının 95. persentili gövde tüpü çapı."""
+    try:
+        m = trimesh.load(str(stl_path), force="mesh")
+        v = m.vertices
+        x0, x1 = float(m.bounds[0][0]), float(m.bounds[1][0])
+        cy = float((m.bounds[0][1] + m.bounds[1][1]) / 2)
+        cz = float((m.bounds[0][2] + m.bounds[1][2]) / 2)
+        lo, hi = x0 + 0.30 * (x1 - x0), x0 + 0.70 * (x1 - x0)
+        sel = v[(v[:, 0] >= lo) & (v[:, 0] <= hi)]
+        if len(sel) < 10:
+            return None
+        r = np.sqrt((sel[:, 1] - cy) ** 2 + (sel[:, 2] - cz) ** 2)
+        rb = float(np.percentile(r, 95))
+        return math.pi * rb ** 2
+    except Exception:
+        return None
+
+
 def _body_silhouette(stl_path: Path, n: int = 120):
     """x-z düzleminde gövde yarı-genişlik zarfı (yumuşatılmış) — kontur üstüne
     katı cisim çizimi için."""
@@ -193,16 +214,27 @@ def render_field_figure(vtk_path, stl_path, mach, t_inf, p_inf, out) -> bool:
             fig.colorbar(tp, ax=ax, shrink=0.9, pad=0.01)
             ax.fill_between(xbc, zc - env, zc + env, color="0.22", zorder=5, lw=0)
             if k == 1:
-                nx, nz = 240, 90
+                nx, nz = 200, 70
                 gx = np.linspace(xlo, xhi, nx); gz = np.linspace(zc - zhalf, zc + zhalf, nz)
                 GX, GZ = np.meshgrid(gx, gz)
                 Ux = griddata(pts[:, [0, 2]], U[:, 0], (GX, GZ), "linear")
                 Uz = griddata(pts[:, [0, 2]], U[:, 2], (GX, GZ), "linear")
-                ax.streamplot(GX, GZ, Ux, Uz, density=0.9, linewidth=0.35,
-                              color=(1, 1, 1, 0.55), arrowsize=0.5)
+                ax.streamplot(GX, GZ, Ux, Uz, density=0.55, linewidth=0.35,
+                              color=(1, 1, 1, 0.5), arrowsize=0.6)
             ax.set_xlim(xlo, xhi); ax.set_ylim(zc - zhalf, zc + zhalf)
             ax.set_aspect("equal"); ax.set_title(title, fontsize=9, loc="left")
             ax.set_xticks([]); ax.set_yticks([])
+            if k == 2:   # alt panele ölçek çubuğu + akış yönü
+                nice = next((s for s in (5, 2, 1, 0.5, 0.2, 0.1, 0.05)
+                             if s <= L / 3), 0.1)
+                x0b, y0b = xlo + 0.05 * L, zc - zhalf * 0.82
+                ax.plot([x0b, x0b + nice], [y0b, y0b], color="k", lw=2.2)
+                ax.text(x0b + nice / 2, y0b + zhalf * 0.06, f"{nice:g} m",
+                        ha="center", va="bottom", fontsize=8)
+                ax.annotate("akış U∞", xy=(xlo + 0.03 * L, zc + zhalf * 0.75),
+                            xytext=(xlo + 0.18 * L, zc + zhalf * 0.75),
+                            arrowprops={"arrowstyle": "<-", "color": "k", "lw": 1.1},
+                            fontsize=8, va="center")
         rejim = "Süpersonik" if mach > 1 else "Transonik"
         fig.suptitle(f"M={mach:g} {rejim} — Simetri Düzlemi Alanları "
                      "(OpenFOAM shockFluid)", fontsize=11)
@@ -323,9 +355,11 @@ def _emit_pdf(out_pdf: Path, rep_dir: Path, title, cond_lines,
             flow.append(Spacer(1, 5))
             flow.append(Paragraph("Ağ (Mesh) Kalitesi", h2))
             flow.append(styled_table(mesh_rows, ["Ölçüt", "Değer"]))
-        def acad(s):   # akademik metin: önce XML-kaçış, sonra alt-simge işaretle
-            s = (s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-                 .replace("C_D", "C<sub>D</sub>").replace("C_p", "C<sub>p</sub>")
+        import re
+        def acad(s):   # akademik metin: XML-kaçış -> **bold** -> alt-simge
+            s = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            s = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)
+            s = (s.replace("C_D", "C<sub>D</sub>").replace("C_p", "C<sub>p</sub>")
                  .replace("M_cr", "M<sub>cr</sub>").replace("M_max", "M<sub>max</sub>")
                  .replace("C_{Nα}", "C<sub>Nα</sub>"))
             return s
@@ -352,13 +386,14 @@ def _emit_pdf(out_pdf: Path, rep_dir: Path, title, cond_lines,
         return False
 
 
-def _academic_commentary(metric, mach, result, rho_inf, u_inf):
+def _academic_commentary(metric, mach, result, cd_body=None):
     """Ölçülen alan metrikleri + sıkıştırılabilir akış teorisiyle akademik yorum.
     Döner: {alan:[...], yuzey:[...], degerlendirme:[...]} (paragraf listeleri)."""
     cd = result["Cd"]
     drag = result.get("drag_N", float("nan"))
     drift = result.get("Cd_drift_pct", 0) or 0.0
     sup = mach > 1.0
+    ref2 = (f"; gövde-kesit alanına göre C_D ≈ {cd_body:.3f}" if cd_body else "")
 
     if metric is None:   # metrik çıkarılamadıysa rejim-temelli teknik yorum
         alan = ["Alan çıkarımı yapılamadı; aşağıdaki değerlendirme yalnız "
@@ -441,22 +476,40 @@ def _academic_commentary(metric, mach, result, rho_inf, u_inf):
             "yayılmaması, basınç-kaynaklı ciddi bir akış ayrılmasının bulunmadığını "
             "destekler."]
 
-    dalga = "dalga" if sup else "form"
-    deg = [
-        f"Hesaplanan sürükleme katsayısı C_D = {cd:.4f} (frontal izdüşüm alanına "
-        f"göre), karşılık gelen sürükleme kuvveti {drag:.1f} N'dur. Sürtünmesiz "
-        f"formülasyonda bu değer basınç + {dalga} sürüklemesini kapsar; viskoz "
-        f"sürtünme eklendiğinde toplam C_D ön-tasarım mertebesinde "
-        f"{'~%5–15' if sup else '~%15–30'} artabilir.",
-        f"Kuvvet katsayısı zaman-ortalamada son %20 pencerede %{drift:.2f} sapma ile "
-        f"yakınsamıştır; bu, integral yükün istatistiksel olarak oturduğunu gösterir "
-        f"(yerel taban kararsızlığı bu değeri etkilemez).",
-        "Değerlendirme tek mesh üzerinden yapılmıştır; resmi bir ağ-bağımsızlık "
-        "(GCI, ASME V&V 20) çalışması yürütülmediğinden mutlak C_D'ye sayısal "
-        "belirsizlik bandı atanmamıştır. Karşılaştırmalı kullanım (Mach taraması, "
-        "tasarım A/B, 6-DOF uçuş simülasyonu girdisi) için sonuç savunulabilirdir; "
-        "mutlak doğruluk hedeflendiğinde viskoz duvar (y⁺~1 sınır tabaka) ve "
-        "çok-mesh GCI önerilir."]
+    drift_txt = "< %0.1" if drift < 0.1 else f"%{drift:.1f}"
+    if sup:
+        deg = [
+            f"Hesaplanan sürükleme katsayısı C_D = {cd:.3f} (frontal izdüşüm alanına "
+            f"göre{ref2}), karşılık gelen sürükleme kuvveti {drag:.0f} N'dur. "
+            f"Süpersonikte sürükleme dalga + basınç sürüklemesinden oluşur ve bu "
+            f"bileşenler sürtünmesiz (Euler) çözücüde fiziksel olarak yakalanır; "
+            f"cilt-sürtünmesi modellenmez ve toplam sürüklemenin ikincil (~%5–15) bir "
+            f"payıdır. Bu nedenle süpersonik C_D, ön-tasarım için savunulabilir bir "
+            f"MUTLAK değerdir (taban-bölgesi belirsizliği saklı)."]
+    else:
+        deg = [
+            f"Hesaplanan sürükleme katsayısı C_D = {cd:.3f} (frontal izdüşüm alanına "
+            f"göre{ref2}), sürükleme kuvveti {drag:.0f} N'dur. **Önemli fiziksel "
+            f"sınır:** ses-altı (M<1) sürtünmesiz akışta kapalı bir cisim üzerindeki "
+            f"form sürüklemesi d'Alembert paradoksu gereği teorik olarak SIFIRA gider; "
+            f"dolayısıyla burada hesaplanan değer ağırlıkla kesik-taban/boattail "
+            f"ayrılması (taban sürüklemesi) ve şemanın sayısal dissipasyonundan "
+            f"doğar. Narin gövdede gerçek ses-altı sürüklemeyi DOMİNE eden viskoz "
+            f"cilt-sürtünmesi (toplamın ~%60–80'i) bu modelde hiç yer almaz.",
+            "Bu nedenle transonik C_D, bu çözücü için sürükleme eğrisinin EN "
+            "GÜVENİLMEZ noktasıdır; süpersonik noktalar (dalga sürüklemesi gerçek ve "
+            "inviscid-yakalanabilir) bilimsel olarak daha savunulabilirdir."]
+    deg.append(
+        f"Kuvvet katsayısı zaman-ortalamada son %20 pencerede {drift_txt} sapma ile "
+        f"oturmuştur; bu, integral yükün monitör düzeyinde yakınsadığını gösterir "
+        f"(çözüm doğruluğunu garanti etmez; tek mesh).")
+    deg.append(
+        "Mutlak C_D deneysel/literatür verisiyle DOĞRULANMAMIŞTIR ve resmi bir "
+        "ağ-bağımsızlık (GCI, ASME V&V 20) çalışması yapılmadığından belirsizlik "
+        "bandı atanmamıştır. Karşılaştırmalı kullanım (Mach taraması, tasarım A/B) "
+        "savunulabilir; 6-DOF uçuş simülasyonu için yalnız SÜPERSONİK trend "
+        "kullanılmalı, transonik mutlak değer yukarıdaki nedenle beslenmemelidir. "
+        "Mutlak doğruluk için viskoz duvar (kΩ-SST, y⁺~1) ve çok-mesh GCI gerekir.")
     return {"alan": alan, "yuzey": yuzey, "degerlendirme": deg}
 
 
@@ -489,16 +542,25 @@ def build_supersonic_report(result: dict, case_dir, stl_path, t_inf=288.15,
 
     rejim = "süpersonik" if mach > 1 else "transonik"
     q = 0.5 * rho_inf * u_inf ** 2
+    s_ref = result["S_ref_m2"]
+    s_body = _body_section_area(stl_path)
+    cd_body = (result["Cd"] * s_ref / s_body) if s_body else None
     cond_lines = [
         "<b>Çözücü:</b> OpenFOAM 11 shockFluid (Kurganov yoğunluk-bazlı şok-yakalama)",
         f"<b>Rejim:</b> {rejim} — M={mach:g} (U∞={u_inf:.1f} m/s)",
         f"<b>Serbest akış:</b> T∞={t_inf:.1f} K, p∞={p_inf:.0f} Pa, "
         f"ρ∞={rho_inf:.3f} kg/m³, q∞={q:.0f} Pa",
-        f"<b>Referans alan (izdüşüm frontal):</b> {result['S_ref_m2']:.5f} m²"]
+        f"<b>Referans alan:</b> izdüşüm frontal {s_ref:.5f} m²"
+        + (f" · gövde-kesit {s_body:.5f} m²" if s_body else "")]
+    drift_v = result.get("Cd_drift_pct", 0) or 0.0
     res_rows = [
-        ["Sürükleme katsayısı C_D", f"{result['Cd']:.4f}"],
-        ["Sürükleme kuvveti", f"{result.get('drag_N', float('nan')):.1f} N"],
-        ["Yakınsama sapması (son %20)", f"%{result.get('Cd_drift_pct', 0) or 0:.2f}"]]
+        ["Sürükleme katsayısı C_D (frontal ref.)", f"{result['Cd']:.3f}"]]
+    if cd_body:
+        res_rows.append(["C_D (gövde-kesit ref.)", f"{cd_body:.3f}"])
+    res_rows += [
+        ["Sürükleme kuvveti", f"{result.get('drag_N', float('nan')):.0f} N"],
+        ["Yakınsama sapması (son %20)",
+         "< %0.1" if drift_v < 0.1 else f"%{drift_v:.1f}"]]
     mesh = _mesh_metrics(case_dir)
     mesh_rows = []
     if mesh:
@@ -516,7 +578,7 @@ def build_supersonic_report(result: dict, case_dir, stl_path, t_inf=288.15,
 
     metric = (_field_metrics(cut, mach, t_inf, p_inf, u_inf, rho_inf)
               if cut else None)
-    com = _academic_commentary(metric, mach, result, rho_inf, u_inf)
+    com = _academic_commentary(metric, mach, result, cd_body)
     if mesh and mesh.get("mesh_ok"):
         com["degerlendirme"].insert(0, (
             "Ağ kalitesi checkMesh kapılarının tümünü geçmiştir (Mesh OK). "
