@@ -47,6 +47,40 @@ def sound_speed(t_k: float) -> float:
     return math.sqrt(GAMMA * R_AIR * t_k)
 
 
+def _quiescent_prepad() -> float:
+    """Durgun iç alan (U=0) kullanıldığında akışın girişten ~5L upstream
+    domaini geçip gövdeyi sarması için ek akış-geçiş süresi. Yoksa kısa
+    taramada (az geçiş) gövde akış görmeden koşu biter -> Cd≈0."""
+    return 7.0
+
+
+def _clean_times(case_dir: Path):
+    """0/constant/system dışındaki sayısal zaman + postProcessing dizinlerini sil."""
+    for d in case_dir.iterdir():
+        if d.is_dir() and d.name not in ("0", "constant", "system") \
+           and d.name.replace(".", "", 1).isdigit():
+            shutil.rmtree(d)
+    if (case_dir / "postProcessing").exists():
+        shutil.rmtree(case_dir / "postProcessing")
+
+
+def _neg_T_crash(log: str) -> bool:
+    """shockFluid küt-gövde impulsive başlangıç çökmesi: negatif sıcaklık abort."""
+    return "FOAM FATAL" in log and "Negative" in log and "temperature" in log
+
+
+def _run_shock(case_dir: Path, surf: str, mach: float, t_inf: float, p_inf: float,
+               n_flow_pass: float, L: float, u: float, rho_inf: float, sref: float,
+               quiescent: bool):
+    """Şok alanları+şemaları yaz, foamRun koş; (returncode, log) döner."""
+    et = (n_flow_pass + (_quiescent_prepad() if quiescent else 0.0)) * (L / u)
+    _clean_times(case_dir)
+    _write_shock_fields(case_dir, surf, mach, t_inf, p_inf, quiescent=quiescent)
+    _write_shock_system(case_dir, surf, et, et / 10, L, u, rho_inf, sref, mach)
+    r = _of(windows_to_wsl_path(case_dir), "foamRun > log.foamRun 2>&1", 7200)
+    return r, (case_dir / "log.foamRun").read_text(errors="ignore")
+
+
 def _of(wsl_dir, cmd, timeout):
     full = (f"export ParaView_TYPE=none && source {OF_BASHRC} && "
             f"unset FOAM_SIGFPE && cd '{wsl_dir}' && {cmd}")
@@ -71,7 +105,7 @@ def _write_shock_thermo(case_dir: Path):
 
 
 def _write_shock_fields(case_dir: Path, surf: str, mach: float,
-                        t_inf: float, p_inf: float):
+                        t_inf: float, p_inf: float, quiescent: bool = False):
     a = sound_speed(t_inf)
     u = mach * a
     fs = ["inlet", "top", "bottom", "front", "back"]   # serbest-akış sınırları
@@ -81,9 +115,10 @@ def _write_shock_fields(case_dir: Path, surf: str, mach: float,
     ulines = [f"    {p} {{ type fixedValue; value uniform ({u:.4f} 0 0); }}\n" for p in fs]
     ulines.append("    outlet { type zeroGradient; }\n")
     ulines.append(f"    {surf} {{ type slip; }}\n")   # inviscid duvar
-    # M>=2.5: durgun iç alan (U=0) -> bow-shock girişten kademeli yürür;
-    # impulsive üniform başlangıç güçlü genleşmede negatif T üretiyordu.
-    u_init = "(0 0 0)" if mach >= 2.5 else f"({u:.4f} 0 0)"
+    # quiescent=True: durgun iç alan (U=0) -> bow-shock girişten kademeli yürür
+    # (küt gövde impulsive freestream'de güçlü genleşmede negatif T üretir).
+    # Sivri gövdede gereksiz (yavaş-fill); auto-fallback ile sadece gerektiğinde.
+    u_init = "(0 0 0)" if quiescent else f"({u:.4f} 0 0)"
     (case_dir / "0" / "U").write_text(
         _foam_header("volVectorField", "U", "0") +
         "dimensions [0 1 -1 0 0 0 0];\n"
@@ -138,7 +173,7 @@ def _write_shock_system(case_dir: Path, surf: str, end_time: float,
     fc = (
         "functions\n{\n    forceCoeffs1\n    {\n"
         '        type forceCoeffs; libs ("libforces.so");\n'
-        "        writeControl timeStep; writeInterval 20;\n"
+        "        writeControl timeStep; writeInterval 10;\n"
         f"        patches ({surf});\n"
         f"        rho rhoInf; rhoInf {rho_inf:.5f};\n"
         "        liftDir (0 0 1); dragDir (1 0 0);\n"
@@ -204,10 +239,12 @@ def run_supersonic(stl_path, mach=2.0, vehicle_type="roket", quality="standart",
     _write_surface_features(case_dir, stl_path.name)
     _write_decompose_par(case_dir, 1)
 
-    end_time = n_flow_pass * (L / u)         # N akış-geçiş süresi
     _write_shock_thermo(case_dir)
+    # mesh araçları (surfaceFeatures/blockMesh) controlDict+fvSchemes ister;
+    # _run_shock bunları sonra seçilen başlangıçla üzerine yazar.
+    _et0 = n_flow_pass * (L / u)
     _write_shock_fields(case_dir, surf, mach, t_inf, p_inf)
-    _write_shock_system(case_dir, surf, end_time, end_time / 10, L, u, rho_inf, sref, mach)
+    _write_shock_system(case_dir, surf, _et0, _et0 / 10, L, u, rho_inf, sref, mach)
 
     wsl_dir = windows_to_wsl_path(case_dir)
     for pct, msg, cmd, tmo in [
@@ -221,9 +258,14 @@ def run_supersonic(stl_path, mach=2.0, vehicle_type="roket", quality="standart",
             return {"status": "FAILED", "asama": cmd, "case": str(case_dir),
                     "error": (case_dir / f"log.{cmd.split()[0]}").read_text(errors="ignore")[-1500:]}
 
-    cb(70, f"shockFluid (M={mach}, zaman-yürüyüşü)...")
-    r = _of(wsl_dir, "foamRun > log.foamRun 2>&1", 7200)
-    log = (case_dir / "log.foamRun").read_text(errors="ignore")
+    cb(70, f"shockFluid (M={mach}, freestream başlangıç)...")
+    r, log = _run_shock(case_dir, surf, mach, t_inf, p_inf, n_flow_pass,
+                        L, u, rho_inf, sref, quiescent=False)
+    if _neg_T_crash(log):
+        # Küt gövde: impulsive freestream negatif T -> durgun init + prepad ile yeniden
+        cb(72, "küt gövde algılandı, durgun başlangıçla yeniden...")
+        r, log = _run_shock(case_dir, surf, mach, t_inf, p_inf, n_flow_pass,
+                            L, u, rho_inf, sref, quiescent=True)
     base_artifact = ""
     if "FOAM FATAL" in log or r.returncode != 0:
         # Cd yakınsadıktan SONRA geç taban-çökmesi -> değeri kurtar, bayrakla
@@ -291,20 +333,13 @@ def run_mach_sweep(stl_path, machs=(0.8, 1.2, 2.0, 3.0), vehicle_type="roket",
         case_a = base_case.parent / f"{base_case.name}_m{mach:g}"
         if case_a.exists():
             shutil.rmtree(case_a)
-        # mesh + setup kopyala, zaman dizinlerini temizle
-        shutil.copytree(base_case, case_a)
-        for d in case_a.iterdir():
-            if d.is_dir() and d.name not in ("0", "constant", "system") \
-               and d.name.replace(".", "", 1).isdigit():
-                shutil.rmtree(d)
-        if (case_a / "postProcessing").exists():
-            shutil.rmtree(case_a / "postProcessing")
+        shutil.copytree(base_case, case_a)   # mesh + setup kopyala
         u = mach * a
-        end_time = n_flow_pass * (L / u)
-        _write_shock_fields(case_a, surf, mach, t_inf, p_inf)
-        _write_shock_system(case_a, surf, end_time, end_time / 10, L, u, rho_inf, sref, mach)
-        r = _of(windows_to_wsl_path(case_a), "foamRun > log.foamRun 2>&1", 7200)
-        log = (case_a / "log.foamRun").read_text(errors="ignore")
+        r, log = _run_shock(case_a, surf, mach, t_inf, p_inf, n_flow_pass,
+                            L, u, rho_inf, sref, quiescent=False)
+        if _neg_T_crash(log):   # küt gövde: durgun init + prepad ile yeniden
+            r, log = _run_shock(case_a, surf, mach, t_inf, p_inf, n_flow_pass,
+                                L, u, rho_inf, sref, quiescent=True)
         artifact = None
         if "FOAM FATAL" in log or r.returncode != 0:
             cdc, driftc, ok = _cd_converged(case_a)
