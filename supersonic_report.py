@@ -195,6 +195,92 @@ def render_surface_cp(vtk_path, u_inf, rho_inf, p_inf, out, max_faces=40000) -> 
         return False
 
 
+def _register_pdf_font():
+    """Türkçe (ş/ğ/ı) için matplotlib'in DejaVuSans'ını reportlab'a kaydet."""
+    import os
+
+    import matplotlib
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    fd = os.path.join(os.path.dirname(matplotlib.__file__),
+                      "mpl-data", "fonts", "ttf")
+    try:
+        pdfmetrics.registerFont(TTFont("DejaVu", os.path.join(fd, "DejaVuSans.ttf")))
+        pdfmetrics.registerFont(
+            TTFont("DejaVu-Bold", os.path.join(fd, "DejaVuSans-Bold.ttf")))
+        return "DejaVu", "DejaVu-Bold"
+    except Exception:
+        return "Helvetica", "Helvetica-Bold"
+
+
+def _emit_pdf(out_pdf: Path, rep_dir: Path, title, cond_lines,
+              res_rows, sections, yontem) -> bool:
+    """Yapılandırılmış içerikten profesyonel PDF (reportlab, A4, Türkçe font)."""
+    try:
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import ParagraphStyle
+        from reportlab.lib.units import mm
+        from reportlab.platypus import (
+            Image,
+            Paragraph,
+            SimpleDocTemplate,
+            Spacer,
+            Table,
+            TableStyle,
+        )
+        font, bold = _register_pdf_font()
+        pw = A4[0] - 32 * mm   # kullanılabilir genişlik
+        body = ParagraphStyle("body", fontName=font, fontSize=9.5, leading=13)
+        h1 = ParagraphStyle("h1", fontName=bold, fontSize=15, leading=19,
+                            spaceAfter=4, textColor=colors.HexColor("#1f4e79"))
+        h2 = ParagraphStyle("h2", fontName=bold, fontSize=11.5, leading=15,
+                            spaceBefore=8, spaceAfter=3,
+                            textColor=colors.HexColor("#1f4e79"))
+        def sub(s):   # C_D -> alt-simge (reportlab Paragraph <sub> destekler)
+            return s.replace("C_D", "C<sub>D</sub>").replace("C_p", "C<sub>p</sub>")
+        flow = [Paragraph(title, h1), Spacer(1, 3)]
+        for ln in cond_lines:
+            flow.append(Paragraph(sub(ln), body))
+        flow.append(Spacer(1, 6))
+        flow.append(Paragraph("Sayısal Sonuçlar", h2))
+        cell = ParagraphStyle("cell", fontName=font, fontSize=9.5, leading=12)
+        data = [["Büyüklük", "Değer"]] + [[Paragraph(sub(r[0]), cell), r[1]]
+                                          for r in res_rows]
+        tbl = Table(data, colWidths=[pw * 0.62, pw * 0.38])
+        tbl.setStyle(TableStyle([
+            ("FONTNAME", (0, 0), (-1, -1), font),
+            ("FONTNAME", (0, 0), (-1, 0), bold),
+            ("FONTSIZE", (0, 0), (-1, -1), 9.5),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f4e79")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1),
+             [colors.white, colors.HexColor("#eef3f8")]),
+            ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#b8c4d0")),
+            ("PADDING", (0, 0), (-1, -1), 5)]))
+        flow.append(tbl)
+        for heading, img, yorum in sections:
+            flow.append(Paragraph(heading, h2))
+            ip = rep_dir / img
+            if ip.exists():
+                from PIL import Image as PILImage
+                iw, ih = PILImage.open(ip).size
+                w = pw
+                flow.append(Image(str(ip), width=w, height=w * ih / iw))
+                flow.append(Spacer(1, 3))
+            flow.append(Paragraph("<b>Yorum:</b> " + sub(yorum), body))
+        flow.append(Paragraph("Yöntem ve Sınırlar", h2))
+        for b in yontem:
+            flow.append(Paragraph("• " + sub(b), body))
+        SimpleDocTemplate(
+            str(out_pdf), pagesize=A4,
+            leftMargin=16 * mm, rightMargin=16 * mm,
+            topMargin=14 * mm, bottomMargin=14 * mm).build(flow)
+        return True
+    except Exception:
+        return False
+
+
 def build_supersonic_report(result: dict, case_dir, stl_path, t_inf=288.15,
                             p_inf=101325.0, progress_cb=None) -> str | None:
     """Tekil shockFluid koşusundan alan figürleri + yorumlu Markdown rapor üretir.
@@ -224,59 +310,58 @@ def build_supersonic_report(result: dict, case_dir, stl_path, t_inf=288.15,
 
     rejim = "süpersonik" if mach > 1 else "transonik"
     q = 0.5 * rho_inf * u_inf ** 2
-    md = [f"# Aerodinamik Analiz Raporu — {result['model']}",
-          "",
-          "**Çözücü:** OpenFOAM 11 `shockFluid` (Kurganov yoğunluk-bazlı şok-yakalama)  ",
-          f"**Rejim:** {rejim} — M={mach:g} (U∞={u_inf:.1f} m/s)  ",
-          f"**Serbest akış:** T∞={t_inf:.1f} K, p∞={p_inf:.0f} Pa, "
-          f"ρ∞={rho_inf:.3f} kg/m³, q∞={q:.0f} Pa  ",
-          f"**Referans alan (izdüşüm frontal):** {result['S_ref_m2']:.5f} m²",
-          "",
-          "## Sayısal Sonuçlar",
-          "",
-          "| Büyüklük | Değer |",
-          "|----------|-------|",
-          f"| Sürükleme katsayısı $C_D$ | **{result['Cd']:.4f}** |",
-          f"| Sürükleme kuvveti | {result.get('drag_N', float('nan')):.1f} N |",
-          f"| Yakınsama sapması (son %20) | %{result.get('Cd_drift_pct', 0) or 0:.2f} |",
-          ""]
+    cond_lines = [
+        "<b>Çözücü:</b> OpenFOAM 11 shockFluid (Kurganov yoğunluk-bazlı şok-yakalama)",
+        f"<b>Rejim:</b> {rejim} — M={mach:g} (U∞={u_inf:.1f} m/s)",
+        f"<b>Serbest akış:</b> T∞={t_inf:.1f} K, p∞={p_inf:.0f} Pa, "
+        f"ρ∞={rho_inf:.3f} kg/m³, q∞={q:.0f} Pa",
+        f"<b>Referans alan (izdüşüm frontal):</b> {result['S_ref_m2']:.5f} m²"]
+    res_rows = [
+        ["Sürükleme katsayısı C_D", f"{result['Cd']:.4f}"],
+        ["Sürükleme kuvveti", f"{result.get('drag_N', float('nan')):.1f} N"],
+        ["Yakınsama sapması (son %20)", f"%{result.get('Cd_drift_pct', 0) or 0:.2f}"]]
+    yorum_alan = (
+        "Burun ucunda stagnasyon (yüksek basınç, düşük hız) bölgesi; gövde "
+        "boyunca akış hızlanıp basınç düşüyor. "
+        + ("Süpersonik rejimde burunda yatık şok ve gövde üzerinde genleşme "
+           "görülür. " if mach > 1 else
+           "Transonik rejimde akış gövde omzunda yerel olarak hızlanır "
+           "(M≈1 yaklaşımı), kuyrukta taban-resirkülasyonu oluşur. ")
+        + "Akış çizgileri gövde yüzeyinden ayrılmadan düzgün ilerliyor — "
+          "aerodinamik tasarımın verimli olduğunu gösterir.")
+    yorum_yuzey = (
+        "Burun ucunda yüksek C_p (stagnasyon), gövde ve kuyruk boyunca düşük/orta "
+        "seviye; kanatçık kök bölgelerinde yerel basınç değişimleri aerodinamik "
+        "stabiliteye katkıdır.")
+    sections = []
+    if "alanlar" in figs:
+        sections.append(("Simetri Düzlemi Alanları", figs["alanlar"], yorum_alan))
+    if "yuzey" in figs:
+        sections.append(("Yüzey Basınç Dağılımı", figs["yuzey"], yorum_yuzey))
+    yontem = [
+        "Çözücü: density-based, Euler-benzeri (inviscid slip duvar); basınç + "
+        "dalga sürüklemesi yakalanır, skin-friction ihmal edilir (süpersonikte "
+        "ikincil, ön-tasarım için savunulabilir).",
+        "Mutlak C_D izdüşüm-frontal referans alana göredir; gövde-kesit referansı "
+        "kullanılırsa ölçek farkı oluşur (trend ve kuvvet etkilenmez).",
+        "Tek mesh; resmi GCI (mesh bağımsızlığı) yapılmamıştır."]
+
+    title = f"Aerodinamik Analiz Raporu — {result['model']}"
+    md = [f"# {title}", "", "  \n".join(cond_lines).replace("<b>", "**").replace("</b>", "**"),
+          "", "## Sayısal Sonuçlar", "", "| Büyüklük | Değer |", "|----------|-------|"]
+    md += [f"| {r[0].replace('C_D', '$C_D$')} | {r[1]} |" for r in res_rows]
+    md.append("")
     if result.get("uyari"):
         md.append(f"> ⚠️ {result['uyari']}\n")
-
-    if "alanlar" in figs:
-        md += ["## Simetri Düzlemi Alanları",
-               "",
-               f"![Alanlar]({figs['alanlar']})",
-               "",
-               "**Yorum:** Burun ucunda stagnasyon (yüksek basınç, düşük hız) "
-               "bölgesi; gövde boyunca akış hızlanıp basınç düşüyor. "
-               + ("Süpersonik rejimde burunda yatık şok ve gövde üzerinde "
-                  "genleşme görülür. " if mach > 1 else
-                  "Transonik rejimde akış gövde omzunda yerel olarak hızlanır "
-                  "(M≈1 yaklaşımı), kuyrukta taban-resirkülasyonu oluşur. ")
-               + "Akış çizgileri gövde yüzeyinden ayrılmadan düzgün ilerliyor — "
-                 "aerodinamik tasarımın verimli olduğunu gösterir.",
-               ""]
-    if "yuzey" in figs:
-        md += ["## Yüzey Basınç Dağılımı",
-               "",
-               f"![Yüzey Cp]({figs['yuzey']})",
-               "",
-               "**Yorum:** Burun ucunda yüksek $C_p$ (stagnasyon), gövde ve "
-               "kuyruk boyunca düşük/orta seviye; kanatçık kök bölgelerinde "
-               "yerel basınç değişimleri aerodinamik stabiliteye katkıdır.",
-               ""]
-
-    md += ["## Yöntem ve Sınırlar",
-           "",
-           "- **Çözücü:** density-based, Euler-benzeri (inviscid slip duvar); "
-           "basınç + dalga sürüklemesi yakalanır, skin-friction ihmal edilir "
-           "(süpersonikte ikincil, ön-tasarım için savunulabilir).",
-           "- **Mutlak $C_D$** izdüşüm-frontal referans alana göredir; gövde-kesit "
-           "referansı kullanılırsa ölçek farkı oluşur (trend ve kuvvet etkilenmez).",
-           "- Tek mesh; resmi GCI (mesh bağımsızlığı) yapılmamıştır.",
-           ""]
+    for heading, img, yorum in sections:
+        md += [f"## {heading}", "", f"![{heading}]({img})", "",
+               "**Yorum:** " + yorum.replace("C_p", "$C_p$"), ""]
+    md += ["## Yöntem ve Sınırlar", ""]
+    md += [f"- {b.replace('C_D', '$C_D$')}" for b in yontem]
     (rep / "RAPOR.md").write_text("\n".join(md), encoding="utf-8")
+
+    pdf_ok = _emit_pdf(rep / "RAPOR.pdf", rep, title, cond_lines, res_rows,
+                       sections, yontem)
     if progress_cb:
-        progress_cb(99, "rapor üretildi")
-    return str(rep / "RAPOR.md")
+        progress_cb(99, "rapor üretildi (MD + PDF)" if pdf_ok else "rapor üretildi (MD)")
+    return str(rep / ("RAPOR.pdf" if pdf_ok else "RAPOR.md"))
