@@ -4,6 +4,22 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-06-12c] feat | CAD mm→m oto-ölçek + gerçek STEP roketi uçtan uca
+
+**What:** Kullanıcının gerçek CAD roketi (STEP montajı) tam pipeline'dan geçti.
+
+- **Otomatik birim ölçekleme:** CAD (STEP/IGES) konvansiyonel mm; çözücü metre
+  bekler. `prepare_geometry` artık Lmax>50 birim ise mm varsayıp ÷1000 ölçekler
+  ve işaretler (BİLSEM araçları 0.05–10 m). 2 birim test. Bu, "her türlü
+  geometri" için sessiz bir tuzaktı (2690 mm → 2690 m'lik roket).
+- **Gerçek STEP montajı (L=2.69m, gövde Ø0.124m, 21 ayrı katı, watertight
+  değil):** STEP→STL (gmsh) → onarım → oto mm→m → snappyHexMesh **336k hücre,
+  checkMesh OK** (sızdıran montaj yüzeyi dış-aero'da sorunsuz; snappy dış
+  yüzeyi locationInMesh ile kaldırıyor) → shockFluid.
+- **Cd-Mach (Aref=0.059 m² hull-frontal):** **0.1279 (M1.2) → 0.053 (M2) →
+  0.0251 (M3)**, hepsi yakınsamış (drift ≤%0.03), monoton azalan. Kullanıcı
+  CAD'inden hiçbir elle müdahale olmadan savunulabilir uçuş-sim. girdisi.
+
 ## [2026-06-12b] feat | Gerçek roket Cd-Mach + geometri-agnostik başlangıç
 
 **What:** Süpersonik yetenek gerçek roket geometrisi üzerinde doğrulandı ve

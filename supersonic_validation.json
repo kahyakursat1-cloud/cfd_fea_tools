@@ -25,5 +25,17 @@
     ],
     "not": "Sivri burun yatik (oblique) sok -> freestream impulsive baslangic cokmedi (kut kure aksine), hepsi yakinsadi. Cd kureden ~10x dusuk: ongoru dogrulandi. Monoton azalan = slender cisim dalga-suruklemesi M ile duser. Mutlak Cd hull-frontal Aref'e gore (govde-alanina gore ~5x yuksek olurdu); TREND = 6-DOF ucus sim. girdisi."
   },
+  "gercek_cad_step_roketi": {
+    "model": "kullanici STEP montaji (analiz icin v4): L=2.69m, govde cap 0.124m, kuyruk fini",
+    "kaynak_format": "STEP (mm, 21 ayri govde, watertight degil)",
+    "pipeline": "STEP->STL (gmsh) -> onarim -> oto mm->m olcek (÷1000) -> snappyHexMesh 336k hucre (checkMesh OK, sizdiran yuzey dis-aero'da sorunsuz) -> shockFluid",
+    "Aref_frontal_m2": 0.059005,
+    "cd_mach": [
+      {"mach": 1.2, "Cd": 0.1279, "drift_pct": 0.03},
+      {"mach": 2.0, "Cd": 0.053, "drift_pct": 0.0},
+      {"mach": 3.0, "Cd": 0.0251, "drift_pct": 0.0}
+    ],
+    "not": "Gercek kullanici CAD montaji uctan uca isledi. Cd-Mach 0.128->0.053->0.025 monoton azalan, hepsi yakinsamis (drift <=%0.03). Mutlak Cd inviscid+hull-Aref; TREND 6-DOF ucus sim. girdisi olarak savunulabilir."
+  },
   "degerlendirme": "shockFluid mimarisi calisiyor (abort yok, dusuk drift, fiziksel mertebe ve trend). Mutlak Cd deneysel ust banttan ~%15 yuksek: inviscid duvar (slip) base bolgesinde basinci fazla dusurup base-drag abartiyor (Euler cozumlerinin bilinen davranisi). Karsilastirmali kullanim (Mach taramasi, roket 6-DOF ucus simulasyonu girdisi, tasarim A/B) guvenilir; mutlak deger icin viskoz duvar + ince mesh gerekir. Gercek sivri-burunlu roket Cd kureden cok dusuk olur, mekanizma ayni."
 }
