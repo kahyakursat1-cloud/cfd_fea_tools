@@ -240,6 +240,109 @@ def run_supersonic(stl_path, mach=2.0, vehicle_type="roket", quality="standart",
     return out
 
 
+def run_mach_sweep(stl_path, machs=(0.8, 1.2, 2.0, 3.0), vehicle_type="roket",
+                   quality="standart", t_inf=288.15, p_inf=101325.0,
+                   n_flow_pass=30, out_root="vehicle_runs", progress_cb=None) -> dict:
+    """Cd-Mach eğrisi: ilk Mach tam pipeline (mesh üretir), sonrakiler aynı
+    mesh'i kopyalayıp yalnız 0/{p,T,U} + controlDict yeniden yazıp koşar."""
+    stl_path = Path(stl_path)
+    stem = stl_path.stem
+    machs = sorted(machs)
+
+    def cb(p, m):
+        if progress_cb:
+            progress_cb(p, m)
+
+    m = trimesh.load(str(stl_path), force="mesh")
+    dims = (m.bounds[1] - m.bounds[0]).astype(float)
+    L = float(dims.max())
+    sref = math.pi * (max(dims[1], dims[2]) / 2) ** 2
+    rho_inf = p_inf / (R_AIR * t_inf)
+    a = sound_speed(t_inf)
+
+    cb(2, f"İlk nokta M={machs[0]} (mesh bu koşuda üretilir)")
+    r0 = run_supersonic(stl_path, machs[0], vehicle_type, quality, t_inf, p_inf,
+                        n_flow_pass, out_root, progress_cb=None)
+    if r0["status"] != "ok":
+        return {"status": "FAILED", "error": r0.get("error"), "mach": machs[0]}
+    base_case = Path(r0["case"])
+    surf = stem.replace(" ", "_")
+    rows = [{"mach": machs[0], "Cd": r0["Cd"], "drift_pct": r0["Cd_drift_pct"]}]
+
+    for i, mach in enumerate(machs[1:], start=1):
+        cb(int(100 * i / len(machs)), f"M={mach} (mesh yeniden kullanılıyor)")
+        case_a = base_case.parent / f"{base_case.name}_m{mach:g}"
+        if case_a.exists():
+            shutil.rmtree(case_a)
+        # mesh + setup kopyala, zaman dizinlerini temizle
+        shutil.copytree(base_case, case_a)
+        for d in case_a.iterdir():
+            if d.is_dir() and d.name not in ("0", "constant", "system") \
+               and d.name.replace(".", "", 1).isdigit():
+                shutil.rmtree(d)
+        if (case_a / "postProcessing").exists():
+            shutil.rmtree(case_a / "postProcessing")
+        u = mach * a
+        end_time = n_flow_pass * (L / u)
+        _write_shock_fields(case_a, surf, mach, t_inf, p_inf)
+        _write_shock_system(case_a, surf, end_time, end_time / 10, L, u, rho_inf, sref)
+        r = _of(windows_to_wsl_path(case_a), "foamRun > log.foamRun 2>&1", 7200)
+        log = (case_a / "log.foamRun").read_text(errors="ignore")
+        if "FOAM FATAL" in log or r.returncode != 0:
+            rows.append({"mach": mach, "Cd": None, "durum": "failed"})
+            continue
+        cd, hist = _parse_cd(case_a)
+        drift = (abs(hist[-1] - hist[-max(2, len(hist)//5)]) / (abs(hist[-1]) + 1e-9) * 100
+                 if cd is not None and len(hist) >= 6 else None)
+        rows.append({"mach": mach, "Cd": round(cd, 4) if cd else None,
+                     "drift_pct": round(drift, 2) if drift else None})
+
+    out = {"status": "ok", "model": stem, "S_ref_m2": round(sref, 6),
+           "egri": rows, "case_dir": str(base_case.parent),
+           "_not": "shockFluid inviscid duvar; mutlak Cd inviscid base-drag "
+                   "nedeniyle yüksek olabilir, Cd-Mach TRENDİ güvenilir."}
+    run_dir = base_case.parent
+    (run_dir / "mach_sweep.json").write_text(
+        json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
+    _sweep_report(out, run_dir / "rapor_supersonik")
+    out["report"] = str(run_dir / "rapor_supersonik" / "MACH_SWEEP.md")
+    cb(100, "Cd-Mach taraması tamamlandı")
+    return out
+
+
+def _sweep_report(out, rep_dir: Path):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    rep_dir = Path(rep_dir)
+    (rep_dir / "figures").mkdir(parents=True, exist_ok=True)
+    ok = [r for r in out["egri"] if r.get("Cd") is not None]
+    if len(ok) >= 2:
+        ms = [r["mach"] for r in ok]
+        cds = [r["Cd"] for r in ok]
+        fig, ax = plt.subplots(figsize=(5, 3.2))
+        ax.plot(ms, cds, "o-", color="#1f4e79", mfc="white", ms=6, lw=1.4)
+        ax.axvline(1.0, ls=":", color="gray", lw=0.8)
+        ax.text(1.02, ax.get_ylim()[0], "M=1", fontsize=7, color="gray")
+        ax.set_xlabel("Mach"); ax.set_ylabel("$C_D$ (frontal)")
+        ax.set_title("Süpersonik Sürükleme Eğrisi (shockFluid)", fontsize=10)
+        ax.grid(alpha=0.3)
+        fig.tight_layout(); fig.savefig(rep_dir / "figures" / "cd_mach.png", dpi=200)
+        plt.close(fig)
+    md = [f"# Süpersonik Cd-Mach Taraması — {out['model']}",
+          f"\n**Referans alan (frontal):** {out['S_ref_m2']} m²  ",
+          "**Yöntem:** OpenFOAM 11 shockFluid (Kurganov yoğunluk-bazlı şok-yakalama)\n",
+          "| Mach | $C_D$ | drift % |", "|------|-------|---------|"]
+    for r in out["egri"]:
+        cd = r.get("Cd")
+        md.append(f"| {r['mach']} | {cd if cd is not None else '— (başarısız)'} | "
+                  f"{r.get('drift_pct', '—')} |")
+    md.append("\n![Cd-Mach](figures/cd_mach.png)\n")
+    md.append(f"> ⚠️ *{out['_not']} Skin-friction yok (süpersonikte ikincil); "
+              "transonik (M≈1) bölge en belirsiz. Tek mesh — GCI yapılmadı.*\n")
+    (rep_dir / "MACH_SWEEP.md").write_text("\n".join(md), encoding="utf-8")
+
+
 def _parse_cd(case_dir: Path):
     cands = list((case_dir / "postProcessing" / "forceCoeffs1").glob("*/coefficient.dat"))
     if not cands:
@@ -276,6 +379,8 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Süpersonik CFD (shockFluid)")
     ap.add_argument("model")
     ap.add_argument("--mach", type=float, default=2.0)
+    ap.add_argument("--tarama", type=float, nargs="+", default=None,
+                    help="Cd-Mach taraması için Mach listesi (örn. 0.8 1.2 2 3)")
     ap.add_argument("--tip", default="roket")
     ap.add_argument("--kalite", default="standart", choices=["hizli", "standart", "hassas"])
     ap.add_argument("--gecis", type=int, default=30, help="akış-geçiş süresi sayısı")
@@ -284,10 +389,20 @@ if __name__ == "__main__":
     def _cb(p, msg):
         print(f"[{p:3d}%] {msg}", flush=True)
 
-    r = run_supersonic(args.model, args.mach, args.tip, args.kalite,
-                       n_flow_pass=args.gecis, progress_cb=_cb)
-    if r["status"] == "ok":
-        print(f"\nM={r['mach']} ({r['U_ms']} m/s): Cd={r['Cd']} "
-              f"(drift {r['Cd_drift_pct']}%), drag={r['drag_N']} N")
+    if args.tarama:
+        r = run_mach_sweep(args.model, args.tarama, args.tip, args.kalite,
+                           n_flow_pass=args.gecis, progress_cb=_cb)
+        if r["status"] == "ok":
+            for row in r["egri"]:
+                print(f"  M={row['mach']}: Cd={row.get('Cd')}")
+            print("Rapor:", r["report"])
+        else:
+            print(f"BASARISIZ: {r.get('error','')}")
     else:
-        print(f"BASARISIZ [{r.get('asama','')}]: {r.get('error','')[-400:]}")
+        r = run_supersonic(args.model, args.mach, args.tip, args.kalite,
+                           n_flow_pass=args.gecis, progress_cb=_cb)
+        if r["status"] == "ok":
+            print(f"\nM={r['mach']} ({r['U_ms']} m/s): Cd={r['Cd']} "
+                  f"(drift {r['Cd_drift_pct']}%), drag={r['drag_N']} N")
+        else:
+            print(f"BASARISIZ [{r.get('asama','')}]: {r.get('error','')[-400:]}")

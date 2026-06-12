@@ -136,6 +136,28 @@ class SupersonicWorker(QThread):
             self.failed.emit(str(e))
 
 
+class MachSweepWorker(QThread):
+    progress = Signal(int, str)
+    finished_ok = Signal(object)
+    failed = Signal(str)
+
+    def __init__(self, params: dict):
+        super().__init__()
+        self.params = params
+
+    def run(self):
+        try:
+            from supersonic_cfd import run_mach_sweep
+            out = run_mach_sweep(progress_cb=lambda p, m: self.progress.emit(p, m),
+                                 **self.params)
+            if out.get("status") == "ok":
+                self.finished_ok.emit(out)
+            else:
+                self.failed.emit(out.get("error", "Mach taraması başarısız"))
+        except Exception as e:
+            self.failed.emit(str(e))
+
+
 class PolarWorker(QThread):
     progress = Signal(int, str)
     finished_ok = Signal(object)
@@ -254,6 +276,12 @@ class AnalyzerWindow(QMainWindow):
         self.btn_polar.setEnabled(False)
         self.btn_polar.clicked.connect(self._run_polar)
         pf.addRow(self.btn_polar)
+        self.edt_machs = QLineEdit("0.8, 1.2, 2.0, 3.0")
+        pf.addRow("Mach listesi", self.edt_machs)
+        self.btn_mach = QPushButton("🚀  Cd-MACH TARA (ses üstü)")
+        self.btn_mach.setEnabled(False)
+        self.btn_mach.clicked.connect(self._run_mach_sweep)
+        pf.addRow(self.btn_mach)
         left.addWidget(gb_polar)
 
         gb_fea = QGroupBox("Yapısal Kontrol (CFD basınçlarıyla)")
@@ -423,6 +451,47 @@ class AnalyzerWindow(QMainWindow):
         self.worker.failed.connect(self._on_fail)
         self.worker.start()
 
+    def _run_mach_sweep(self):
+        if not self.model_path:
+            return
+        try:
+            machs = [float(x) for x in self.edt_machs.text().replace(";", ",").split(",")
+                     if x.strip()]
+        except ValueError:
+            QMessageBox.warning(self, "Mach listesi", "Virgülle ayrılmış sayılar: 0.8, 1.2, 2, 3")
+            return
+        if len(machs) < 2:
+            QMessageBox.warning(self, "Mach listesi", "En az 2 Mach değeri gerekli.")
+            return
+        self.btn_run.setEnabled(False)
+        self.btn_polar.setEnabled(False)
+        self.btn_mach.setEnabled(False)
+        self.progress.setValue(0)
+        self.log.clear()
+        self._log(f"Cd-Mach taraması (shockFluid): M = {machs}")
+        self.worker = MachSweepWorker({
+            "stl_path": self.model_path,
+            "machs": machs,
+            "vehicle_type": self.cmb_type.currentData(),
+            "quality": self.cmb_quality.currentData(),
+        })
+        self.worker.progress.connect(self._on_progress)
+        self.worker.finished_ok.connect(self._on_mach_done)
+        self.worker.failed.connect(self._on_fail)
+        self.worker.start()
+
+    def _on_mach_done(self, out: dict):
+        self.progress.setValue(100)
+        self._log("✅ Cd-Mach taraması tamamlandı.")
+        for row in out["egri"]:
+            self._log(f"  M={row['mach']}: Cd={row.get('Cd')}")
+        self.last_result = type("R", (), {"report": out.get("report", "")})()
+        self.btn_report.setEnabled(bool(out.get("report")))
+        self.btn_run.setEnabled(True)
+        self.btn_polar.setEnabled(True)
+        if hasattr(self, "btn_mach"):
+            self.btn_mach.setEnabled(True)
+
     def _on_supersonic_done(self, out: dict):
         self.progress.setValue(100)
         self._log(f"✅ Ses üstü tamamlandı — {out['rejim']}.")
@@ -438,6 +507,7 @@ class AnalyzerWindow(QMainWindow):
         self._log(out.get("_not", ""))
         self.btn_run.setEnabled(True)
         self.btn_polar.setEnabled(True)
+        self.btn_mach.setEnabled(True)
 
     def _run_polar(self):
         if not self.model_path:
@@ -559,6 +629,8 @@ class AnalyzerWindow(QMainWindow):
         self._log("❌ HATA:\n" + err)
         self.btn_run.setEnabled(True)
         self.btn_polar.setEnabled(True)
+        if hasattr(self, "btn_mach"):
+            self.btn_mach.setEnabled(True)
         QMessageBox.critical(self, "Analiz başarısız",
                              "Detay için log panelini ve case dizinindeki "
                              "log.* dosyalarını inceleyin.")
