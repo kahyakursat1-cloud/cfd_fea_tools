@@ -1,0 +1,50 @@
+"""supersonic_cfd saf fonksiyonlari: ses hizi, prepad, rejim-bazli BC secimi."""
+import math
+
+import supersonic_cfd as s
+
+
+def test_sound_speed_sea_level():
+    a = s.sound_speed(288.15)
+    assert 340 < a < 341   # ~340.3 m/s
+
+
+def test_quiescent_prepad_positive():
+    assert s._quiescent_prepad() > 0   # akisin upstream'i gecmesi icin ek gecis
+
+
+def _write_fields(tmp_path, mach):
+    (tmp_path / "0").mkdir()
+    s._write_shock_fields(tmp_path, "govde", mach, 288.15, 101325.0)
+    return (tmp_path / "0" / "U").read_text(), (tmp_path / "0" / "p").read_text()
+
+
+def test_subsonic_uses_freestream_bc(tmp_path):
+    # M<1.05 transonik: dis sinirlar freestream (oto in/outflow), outlet de dahil
+    u_txt, p_txt = _write_fields(tmp_path, 0.74)
+    assert "freestreamVelocity" in u_txt
+    assert "freestreamPressure" in p_txt
+    assert "zeroGradient" not in u_txt.split("govde")[0]   # outlet zeroGradient YOK
+
+
+def test_supersonic_uses_fixed_inlet_zerograd_outlet(tmp_path):
+    # M>=1.05 supersonik: sabit-giris + zeroGradient-cikis (dogrulanmis yol)
+    u_txt, _ = _write_fields(tmp_path, 2.0)
+    assert "fixedValue" in u_txt
+    assert "outlet { type zeroGradient; }" in u_txt
+    assert "freestream" not in u_txt
+
+
+def test_quiescent_init_zeroes_internal_velocity(tmp_path):
+    (tmp_path / "0").mkdir()
+    s._write_shock_fields(tmp_path, "govde", 3.0, 288.15, 101325.0, quiescent=True)
+    u_txt = (tmp_path / "0" / "U").read_text()
+    assert "internalField uniform (0 0 0)" in u_txt
+
+
+def test_supersonic_init_uses_freestream_internal(tmp_path):
+    (tmp_path / "0").mkdir()
+    u = s._write_shock_fields(tmp_path, "govde", 3.0, 288.15, 101325.0, quiescent=False)
+    u_txt = (tmp_path / "0" / "U").read_text()
+    assert math.isclose(u, 3.0 * s.sound_speed(288.15), rel_tol=1e-6)
+    assert "internalField uniform (0 0 0)" not in u_txt

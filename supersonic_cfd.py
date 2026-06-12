@@ -108,33 +108,42 @@ def _write_shock_fields(case_dir: Path, surf: str, mach: float,
                         t_inf: float, p_inf: float, quiescent: bool = False):
     a = sound_speed(t_inf)
     u = mach * a
-    fs = ["inlet", "top", "bottom", "front", "back"]   # serbest-akış sınırları
+    # M<1.05 (transonik/subsonic): tüm dış sınırlar freestream — akış yönüne
+    # göre oto in/outflow, subsonic çıkışın yansıma/aşırı-belirtimini önler.
+    # M>=1.05 (süpersonik): sabit-giriş + zeroGradient-çıkış (doğrulanmış).
+    subsonic = mach < 1.05
     def bf(lines):
         return "boundaryField\n{\n" + "".join(lines) + "}\n"
-    # U: serbest akış sabit, outlet zeroGradient (süpersonik çıkış), duvar slip
-    ulines = [f"    {p} {{ type fixedValue; value uniform ({u:.4f} 0 0); }}\n" for p in fs]
-    ulines.append("    outlet { type zeroGradient; }\n")
+    if subsonic:
+        far = ["inlet", "top", "bottom", "front", "back", "outlet"]
+        ulines = [f"    {p} {{ type freestreamVelocity; "
+                  f"freestreamValue uniform ({u:.4f} 0 0); }}\n" for p in far]
+        tlines = [f"    {p} {{ type freestream; "
+                  f"freestreamValue uniform {t_inf}; }}\n" for p in far]
+        plines = [f"    {p} {{ type freestreamPressure; "
+                  f"freestreamValue uniform {p_inf}; }}\n" for p in far]
+    else:
+        fs = ["inlet", "top", "bottom", "front", "back"]
+        ulines = [f"    {p} {{ type fixedValue; value uniform ({u:.4f} 0 0); }}\n" for p in fs]
+        ulines.append("    outlet { type zeroGradient; }\n")
+        tlines = [f"    {p} {{ type fixedValue; value uniform {t_inf}; }}\n" for p in fs]
+        tlines.append("    outlet { type zeroGradient; }\n")
+        plines = [f"    {p} {{ type fixedValue; value uniform {p_inf}; }}\n" for p in fs]
+        plines.append("    outlet { type zeroGradient; }\n")
     ulines.append(f"    {surf} {{ type slip; }}\n")   # inviscid duvar
-    # quiescent=True: durgun iç alan (U=0) -> bow-shock girişten kademeli yürür
-    # (küt gövde impulsive freestream'de güçlü genleşmede negatif T üretir).
-    # Sivri gövdede gereksiz (yavaş-fill); auto-fallback ile sadece gerektiğinde.
+    tlines.append(f"    {surf} {{ type zeroGradient; }}\n")
+    plines.append(f"    {surf} {{ type zeroGradient; }}\n")
+    # quiescent=True: durgun iç alan (U=0); küt gövde impulsive freestream'de
+    # güçlü genleşmede negatif T -> auto-fallback sadece gerektiğinde tetikler.
     u_init = "(0 0 0)" if quiescent else f"({u:.4f} 0 0)"
     (case_dir / "0" / "U").write_text(
         _foam_header("volVectorField", "U", "0") +
         "dimensions [0 1 -1 0 0 0 0];\n"
         f"internalField uniform {u_init};\n" + bf(ulines))
-    # T
-    tlines = [f"    {p} {{ type fixedValue; value uniform {t_inf}; }}\n" for p in fs]
-    tlines.append("    outlet { type zeroGradient; }\n")
-    tlines.append(f"    {surf} {{ type zeroGradient; }}\n")
     (case_dir / "0" / "T").write_text(
         _foam_header("volScalarField", "T", "0") +
         "dimensions [0 0 0 1 0 0 0];\n"
         f"internalField uniform {t_inf};\n" + bf(tlines))
-    # p
-    plines = [f"    {p} {{ type fixedValue; value uniform {p_inf}; }}\n" for p in fs]
-    plines.append("    outlet { type zeroGradient; }\n")
-    plines.append(f"    {surf} {{ type zeroGradient; }}\n")
     (case_dir / "0" / "p").write_text(
         _foam_header("volScalarField", "p", "0") +
         "dimensions [1 -1 -2 0 0 0 0];\n"
