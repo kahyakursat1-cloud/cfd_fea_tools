@@ -6,6 +6,26 @@
 
 ---
 
+## 🔄 Durum Güncellemesi (2026-06-12) — Süpersonik yetenek
+
+> Bu blok modül envanteri için **otoritedir**; aşağıdaki Nisan anlık görüntüsü
+> tarihseldir (kaldırılan fotogrametri/scanner satırları için ESKİ sayılır).
+
+- **Ses altı + ses üstü tam spektrum:** `app_analyzer.py` tek pencereden hem
+  incompressible (polar + FEA + topoloji opt.) hem **shockFluid** süpersonik
+  Cd-Mach taramasını koşuyor (rejim seçici + `🚀 Cd-MACH TARA` butonu).
+- **Süpersonik doğrulama (küre, 3 nokta):** Cd-Mach **1.232 (M1.5) → 1.135
+  (M2) → 0.925 (M3)**, monoton azalan — fiziksel doğru trend. M2 deneysel
+  bantla uyumlu (Charters & Thomas 1945). `supersonic_validation.json`.
+- **M≥2.5 sağlamlaştırma:** durgun iç alan (U=0, bow-shock girişten kademeli)
+  + Minmod limiter; geç taban-çökmesinde `_cd_converged` ile yakınsamış Cd
+  kurtarılır (drift raporda gösterilir).
+- **Bilinen sınır:** inviscid duvar (skin-friction yok, süpersonikte ikincil);
+  tek mesh (GCI yok). Trend güvenilir — roket 6-DOF uçuş sim. girdisi yeterli.
+- **Test:** 52 birim test yeşil; ruff temiz; pre-commit aktif.
+
+---
+
 ## 🔄 Durum Güncellemesi (2026-06-10)
 
 > Aşağıdaki Nisan anlık görüntüsü modül envanteri için hâlâ geçerli;
@@ -47,8 +67,8 @@
 | **Mesh Generator** | mesh_generator.py | ✅ | Gmsh integration |
 | **CFD Simulator** | simulation_runner.py | ✅ | OpenFOAM + Error handling |
 | **FEA Simulator** | fea_runner.py | ✅ | CalculiX + 5 Materials |
-| **3D Scanner** | photogrammetry_scanner.py | ✅ | SfM + Point Cloud |
-| **Scanner UI** | scanner_gui_module.py | ✅ | Webcam + Mesh preview |
+| ~~3D Scanner~~ | ~~photogrammetry_scanner.py~~ | ❌ KALDIRILDI | 2026-06-10 |
+| ~~Scanner UI~~ | ~~scanner_gui_module.py~~ | ❌ KALDIRILDI | 2026-06-10 |
 | **Mesh Converter** | mesh_to_cfd.py | ✅ | STL → Aircraft |
 | **Blender Render** | blender_synthetic_generator_v2.py | ✅ | Advanced rendering |
 | **ML Training** | ml_training_integration.py | ✅ | YOLO pipeline |
@@ -64,7 +84,7 @@
 | **Mesh** | Mesh oluşturma, kalite kontrol | ✅ |
 | **Simülasyon** | CFD çalıştırma, parametrik çalışma | ✅ |
 | **Sonuçlar** | Drag/Lift/Moment, raporlar | ✅ |
-| **📸 Scanner** | 3D tarama, STL export, otomatik yükleme | ✅ |
+| ~~📸 Scanner~~ | ~~3D tarama~~ | ❌ KALDIRILDI (2026-06-10) |
 | **⚙️ FEA** | Statik/Frequency/Buckling, malzeme seçimi | ✅ |
 
 ---

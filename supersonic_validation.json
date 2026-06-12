@@ -1,8 +1,19 @@
 {
-  "vaka": "kure cap 0.1m, M=2.0 (U=680.6 m/s), shockFluid",
-  "Cd_sim": 1.1351,
-  "Cd_ref_bandi": [0.95, 1.05],
-  "kaynak": "Charters & Thomas 1945, supersonik kure deneyleri",
-  "drift_pct": 0.02,
-  "degerlendirme": "shockFluid mimarisi calisiyor (abort yok, drift %0.02 mukemmel yakinsama, fiziksel mertebe). Mutlak Cd deneysel ust banttan ~%15 yuksek: inviscid duvar (slip) base bolgesinde basinci fazla dusurup base-drag abartiyor (Euler cozumlerinin bilinen davranisi). Karsilastirmali kullanim (Mach taramasi, tasarim A/B) guvenilir; mutlak deger icin viskoz duvar + ince mesh gerekir. Gercek sivri-burunlu roket Cd kureden cok dusuk olur, mekanizma ayni."
+  "vaka": "kure cap 0.1m, shockFluid (Kurganov yogunluk-bazli sok-yakalama)",
+  "yontem": "OpenFOAM 11 shockFluid, inviscid duvar (slip), frontal Aref",
+  "tekil_dogrulama": {
+    "mach": 2.0,
+    "U_ms": 680.6,
+    "Cd_sim": 1.1351,
+    "Cd_ref_bandi": [0.95, 1.05],
+    "kaynak": "Charters & Thomas 1945, supersonik kure deneyleri",
+    "drift_pct": 0.02
+  },
+  "cd_mach_taramasi": [
+    {"mach": 1.5, "Cd": 1.232, "drift_pct": 0.01},
+    {"mach": 2.0, "Cd": 1.1351, "drift_pct": 0.02},
+    {"mach": 3.0, "Cd": 0.9251, "drift_pct": 5.31, "uyari": "gec taban-cokmesi; Cd yakinsamadan sonra alindi"}
+  ],
+  "trend_degerlendirme": "Cd-Mach 1.232 -> 1.135 -> 0.925 monoton azalan: supersonik kurede Cd'nin M ile dusup ~0.9 platosuna oturmasi beklenen fiziksel davranis. M3 robustlugu icin M>=2.5'te durgun ic alan (U=0, bow-shock girisden kademeli) + Minmod limiter + _cd_converged gec-cokme kurtarmasi eklendi.",
+  "degerlendirme": "shockFluid mimarisi calisiyor (abort yok, dusuk drift, fiziksel mertebe ve trend). Mutlak Cd deneysel ust banttan ~%15 yuksek: inviscid duvar (slip) base bolgesinde basinci fazla dusurup base-drag abartiyor (Euler cozumlerinin bilinen davranisi). Karsilastirmali kullanim (Mach taramasi, roket 6-DOF ucus simulasyonu girdisi, tasarim A/B) guvenilir; mutlak deger icin viskoz duvar + ince mesh gerekir. Gercek sivri-burunlu roket Cd kureden cok dusuk olur, mekanizma ayni."
 }

@@ -111,16 +111,18 @@ Detaylar: [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)
 ### Senaryo 1: Drone Aerodinamik Optimization
 
 ```
-1. Scanner Tab'ında drone tarayın (20 görüntü, 30 sn)
-   ↓ STL model oluşturulur
-2. Mesh Tab'ında mesh üretilir
-   ↓ OpenFOAM domain'i hazırlanır
-3. Simülasyon Tab'ında CFD çalıştırılır
-   ↓ Drag/Lift kuvvetleri hesaplanır
-4. Parametrik çalışma: kanat açıklığını (0.5 → 1.5 m) değiştir
-   ↓ 9 farklı konfigürasyon otomatik simüle edilir
-5. Sonuçlar Tab'ında optimal tasarım seçilir
+1. Drone katı modelini (STL/OBJ) Araç Analiz Stüdyosu'na bırakın
+   ↓ araca uygun mesh otomatik üretilir (prizma katmanları + y⁺ ölçümü)
+2. Rejim seçin: Ses altı (incompressible) → ANALİZ ET
+   ↓ Drag/Lift/Moment + Cp yüzey haritası + akış çizgileri
+3. POLAR TARA: hücum açısını (0 → 8°) tara
+   ↓ Cl-Cd polari otomatik üretilir
+4. FEA ÇALIŞTIR: CFD basınçlarıyla yapısal kontrol (gerilme + emniyet payı)
+5. Mühendis raporu (figür + yorum + uyarı + duyarlılık bandı) hazır
 ```
+
+> Roket için: rejimi **Ses üstü** seçip `🚀 Cd-MACH TARA` ile shockFluid
+> Cd-Mach eğrisini üretin (6-DOF uçuş sim. girdisi).
 
 **Beklenen sonuç:** Drag %15 azalma, Lift %8 artış
 
