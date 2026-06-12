@@ -99,6 +99,21 @@ tam 0/1 kutuplaşma için uzun koşu/p-continuation önerilir. 48 test.
   ayrı tuning maratonu; future-work. M>0.3'te varsayılan: sıkıştırılamaz
   koşar + AÇIK uyarı (Cd sistematik hatalı); deneysel yol CFD_COMPRESSIBLE=1.
 
+**Süpersonik CFD — shockFluid (roketler için):**
+- ✅ **B5'in doğru çözümü:** Basınç-bazlı `fluid` (eski B5, M>0.3'te abort) yerine
+  yoğunluk-bazlı **`shockFluid`** (Kurganov şok-yakalama, OF11). Soğuk-başlangıç
+  enerji kararsızlığı bu mimaride YOK — şoklar karakteristik yönde taşınır.
+  `supersonic_cfd.py`: snappy mesh + boyutlu hava + süpersonik serbest-akış BC +
+  inviscid duvar (slip) + CFL≤0.3 adaptif zaman-yürüyüş.
+- ✅ **GUI rejim seçici:** Ses altı (incompressible) / Ses üstü (shockFluid)
+  combo + Mach girişi; ANALİZ ET rejime göre doğru çözücüyü seçer.
+- 📊 **Doğrulama (küre M2):** Cd=1.135, drift %0.02 (kusursuz yakınsama).
+  Deneysel bant 0.95-1.05 (Charters & Thomas) — sonuç ~%15 yüksek: inviscid
+  base-drag fazla tahmini (Euler bilinen davranışı). DÜRÜST DURUM: mimari
+  çalışıyor + fiziksel mertebe; karşılaştırmalı (Mach taraması, A/B) güvenilir,
+  mutlak Cd için viskoz duvar + ince mesh future-work. Kayıt:
+  `vehicle_runs/supersonic_validation.json`. Eski basınç-bazlı yol deneysel kaldı.
+
 Test: 48 yeşil. Durum: SYSTEM_STATUS güncel.
 
 ---

@@ -1,0 +1,8 @@
+{
+  "vaka": "kure cap 0.1m, M=2.0 (U=680.6 m/s), shockFluid",
+  "Cd_sim": 1.1351,
+  "Cd_ref_bandi": [0.95, 1.05],
+  "kaynak": "Charters & Thomas 1945, supersonik kure deneyleri",
+  "drift_pct": 0.02,
+  "degerlendirme": "shockFluid mimarisi calisiyor (abort yok, drift %0.02 mukemmel yakinsama, fiziksel mertebe). Mutlak Cd deneysel ust banttan ~%15 yuksek: inviscid duvar (slip) base bolgesinde basinci fazla dusurup base-drag abartiyor (Euler cozumlerinin bilinen davranisi). Karsilastirmali kullanim (Mach taramasi, tasarim A/B) guvenilir; mutlak deger icin viskoz duvar + ince mesh gerekir. Gercek sivri-burunlu roket Cd kureden cok dusuk olur, mekanizma ayni."
+}
