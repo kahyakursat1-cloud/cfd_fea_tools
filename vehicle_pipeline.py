@@ -194,18 +194,23 @@ def estimate_thin_thickness(m: trimesh.Trimesh, samples: int = 200,
     """Yüzeyden örneklenmiş yerel et-kalınlığı kestirimi (normal boyunca ray).
     Kanat/fin gibi ince özellikleri bbox'tan çok daha iyi temsil eder; alt
     persentil alınır ki gövde kalınlığı inceyi maskelemesin. (max_sphere
-    kenar yakınında sistematik küçük verir — ray doğru semantik.)"""
+    kenar yakınında sistematik küçük verir — ray doğru semantik.)
+
+    Ray backend (rtree/embree) yoksa ya da ince plaka gibi durumlarda geçerli
+    örnek yetersiz kalırsa bbox en-ince-boyutuna düşülür — kaba ama güvenli."""
+    extents = (m.bounds[1] - m.bounds[0]).astype(float)
+    bbox_min = float(extents[extents > 0].min()) if np.any(extents > 0) else None
     try:
         pts, face_idx = trimesh.sample.sample_surface(m, samples)
         normals = m.face_normals[face_idx]
         th = trimesh.proximity.thickness(m, pts, normals=normals,
                                          method="ray")
         th = th[np.isfinite(th) & (th > 0)]
-        if len(th) < samples // 4:
-            return None
-        return float(np.percentile(th, percentile))
+        if len(th) >= samples // 4:
+            return float(np.percentile(th, percentile))
     except Exception:
-        return None
+        pass
+    return bbox_min
 
 
 def resolution_warning(lmax_m: float, bg_div: int, ref_max: int, min_dim_m: float,
