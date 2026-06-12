@@ -15,5 +15,15 @@
     {"mach": 3.0, "Cd": 0.9251, "drift_pct": 5.31, "uyari": "gec taban-cokmesi; Cd yakinsamadan sonra alindi"}
   ],
   "trend_degerlendirme": "Cd-Mach 1.232 -> 1.135 -> 0.925 monoton azalan: supersonik kurede Cd'nin M ile dusup ~0.9 platosuna oturmasi beklenen fiziksel davranis. M3 robustlugu icin M>=2.5'te durgun ic alan (U=0, bow-shock girisden kademeli) + Minmod limiter + _cd_converged gec-cokme kurtarmasi eklendi.",
+  "gercek_roket_uygulamasi": {
+    "model": "rockets/rocket.stl (sivri burun + kuyruk kanatcigi, L=0.4m)",
+    "Aref_frontal_m2": 0.002536,
+    "cd_mach": [
+      {"mach": 1.2, "Cd": 0.1527, "drift_pct": 0.03},
+      {"mach": 2.0, "Cd": 0.0662, "drift_pct": 0.0},
+      {"mach": 3.0, "Cd": 0.0326, "drift_pct": 0.38}
+    ],
+    "not": "Sivri burun yatik (oblique) sok -> freestream impulsive baslangic cokmedi (kut kure aksine), hepsi yakinsadi. Cd kureden ~10x dusuk: ongoru dogrulandi. Monoton azalan = slender cisim dalga-suruklemesi M ile duser. Mutlak Cd hull-frontal Aref'e gore (govde-alanina gore ~5x yuksek olurdu); TREND = 6-DOF ucus sim. girdisi."
+  },
   "degerlendirme": "shockFluid mimarisi calisiyor (abort yok, dusuk drift, fiziksel mertebe ve trend). Mutlak Cd deneysel ust banttan ~%15 yuksek: inviscid duvar (slip) base bolgesinde basinci fazla dusurup base-drag abartiyor (Euler cozumlerinin bilinen davranisi). Karsilastirmali kullanim (Mach taramasi, roket 6-DOF ucus simulasyonu girdisi, tasarim A/B) guvenilir; mutlak deger icin viskoz duvar + ince mesh gerekir. Gercek sivri-burunlu roket Cd kureden cok dusuk olur, mekanizma ayni."
 }

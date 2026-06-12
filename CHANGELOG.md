@@ -4,6 +4,26 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-06-12b] feat | Gerçek roket Cd-Mach + geometri-agnostik başlangıç
+
+**What:** Süpersonik yetenek gerçek roket geometrisi üzerinde doğrulandı ve
+başlangıç stratejisi geometriden bağımsız hale getirildi.
+
+- **Geometri-agnostik başlangıç (auto-fallback):** sabit "M≥2.5 durgun init"
+  kuralı küt gövde (küre) için gerekliydi ama sivri gövde (roket) için durgun
+  init akışın 5L upstream'i geçmesini bekletip kısa taramada **Cd=0** veriyordu.
+  Yeni mantık: önce freestream impulsive başlangıç (hızlı, <1 geçiş yakınsar);
+  yalnız **negatif-T çökmesi** olursa (küt gövde) durgun init + prepad ile
+  yeniden. Çözücü davranışı karar verir — geometri tespiti yok.
+- **Referans alan:** `max(bbox)` → gerçek izdüşüm frontal (`_hull_projected_area`,
+  subsonic yolla aynı). Kanatçıklı roket gibi geometrilerde fin açıklığı artık
+  Cd'yi yapay düşürmüyor. Küre değişmez (%0.5).
+- **Gerçek roket (`rockets/rocket.stl`, sivri burun + kuyruk fini, L=0.4m):**
+  Cd-Mach **0.1527 (M1.2) → 0.0662 (M2) → 0.0326 (M3)**, hepsi yakınsamış
+  (drift <%0.4), monoton azalan = slender cisim dalga-sürüklemesi düşüşü.
+  Sivri burun yatık şok → freestream çökmedi (küt küre aksine). Cd küreden
+  ~10× düşük — "gerçek roket Cd ≪ küre" öngörüsü doğrulandı.
+
 ## [2026-06-12] fix | Süpersonik Cd-Mach taraması — M3 sağlamlaştırma
 
 **What:** shockFluid Cd-Mach taraması artık M3'e kadar tam çalışıyor.
