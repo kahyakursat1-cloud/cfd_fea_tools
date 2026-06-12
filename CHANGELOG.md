@@ -4,6 +4,25 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-06-12] fix | Süpersonik Cd-Mach taraması — M3 sağlamlaştırma
+
+**What:** shockFluid Cd-Mach taraması artık M3'e kadar tam çalışıyor.
+
+- **Başlangıç sağlamlaştırma (M≥2.5):** impulsive üniform başlangıç güçlü
+  genleşmede negatif T → NaN üretiyordu (4 adımda patlama). Çözüm: durgun
+  iç alan (U=0, bow-shock girişten kademeli yürür) + Minmod reconstruction
+  + maxCo 0.2.
+- **Geç taban-çökmesi kurtarma:** inviscid near-vacuum wake yakınsama
+  *sonrası* çözücüyü düşürebiliyor. `_cd_converged` ile yeterli geçmişli
+  yakınsamış Cd kurtarılır; drift raporda gösterilir (şeffaflık > sahte
+  kesinlik).
+- **Doğrulama (küre, 3 nokta):** Cd-Mach **1.232 (M1.5) → 1.135 (M2) →
+  0.925 (M3)**, monoton azalan — süpersonik küre için fiziksel doğru trend.
+  M3 drift %5.31 bayrakli (inviscid taban yavaş oturur).
+- **Bilinen sınır:** mutlak Cd inviscid (skin-friction yok, süpersonikte
+  ikincil); tek mesh (GCI yok); transonik M≈1 en belirsiz bölge. Trend
+  güvenilir — roket 6-DOF uçuş simülasyonu girdisi için yeterli.
+
 ## [2026-06-11] feature | Faz 2 tamamlandı — "her türlü geometri" temeli
 
 **What:** Araç Analiz Stüdyosu'nun genelleme fazı: 5 maddenin tamamı ya
