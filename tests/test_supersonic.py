@@ -1,7 +1,11 @@
 """supersonic_cfd saf fonksiyonlari: ses hizi, prepad, rejim-bazli BC secimi."""
 import math
 
+import numpy as np
+import trimesh
+
 import supersonic_cfd as s
+import supersonic_report as sr
 
 
 def test_sound_speed_sea_level():
@@ -48,3 +52,21 @@ def test_supersonic_init_uses_freestream_internal(tmp_path):
     u_txt = (tmp_path / "0" / "U").read_text()
     assert math.isclose(u, 3.0 * s.sound_speed(288.15), rel_tol=1e-6)
     assert "internalField uniform (0 0 0)" not in u_txt
+
+
+def test_body_silhouette_captures_extent(tmp_path):
+    # 2m uzun, yariçap 0.1m gövde -> zarf ~0.1, x-ekseni 2m yayilir
+    box = trimesh.creation.cylinder(radius=0.1, height=2.0)
+    box.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [0, 1, 0]))
+    src = tmp_path / "govde.stl"
+    box.export(str(src))
+    xbc, zc, env = sr._body_silhouette(src)
+    assert (xbc.max() - xbc.min()) > 1.8           # x boyunca ~2 m
+    assert 0.05 < float(env.max()) < 0.15          # yariçap ~0.1 m
+
+
+def test_supersonic_report_helpers_importable():
+    # figür/rapor fonksiyonlari yüklenebilir (VTK/matplotlib yoksa bile import OK)
+    assert callable(sr.build_supersonic_report)
+    assert callable(sr.render_field_figure)
+    assert callable(sr.export_field_cutplane)

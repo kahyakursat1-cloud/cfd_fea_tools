@@ -304,6 +304,13 @@ def run_supersonic(stl_path, mach=2.0, vehicle_type="roket", quality="standart",
         out["uyari"] = base_artifact
     (run_dir / "supersonic.json").write_text(
         json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
+    try:   # alan figürleri + mühendis raporu (figür hatası Cd sonucunu düşürmez)
+        from supersonic_report import build_supersonic_report
+        rep = build_supersonic_report(out, case_dir, stl_path, t_inf, p_inf, progress_cb=cb)
+        if rep:
+            out["report"] = rep
+    except Exception:
+        pass
     cb(100, f"Cd(M={mach}) = {cd:.3f}")
     return out
 
