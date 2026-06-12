@@ -82,6 +82,9 @@ class CFDCase:
     n_layers: int = 0              # 0 = boundary layer eklenmesin (kararlılık için)
     first_layer_thickness: float | None = None  # m; None = göreli snappy varsayılanı
     propeller: dict | None = None  # {cap_m, area, Cp, Ct} — aktüatör disk (Froude)
+    compressible: bool = False     # True: foamRun -solver fluid (Mach>0.3 için)
+    t_inf: float = 288.15          # K
+    p_inf: float = 101325.0       # Pa (sıkışabilir yolda mutlak basınç)
     bg_cell_size: float | None = None  # None = otomatik (L/8)
     end_time: int = 300            # SIMPLE iterasyonu
     write_interval: int = 100
@@ -321,9 +324,10 @@ def _write_surface_features(case_dir: Path, stl_name: str) -> None:
 def _write_control_dict(case_dir: Path, case: CFDCase, surface_name: str,
                           lref: float) -> None:
     txt = _foam_header("dictionary", "controlDict", "system")
+    solver = "fluid" if case.compressible else "incompressibleFluid"
     txt += (
         "application     foamRun;\n"
-        "solver          incompressibleFluid;\n\n"
+        f"solver          {solver};\n\n"
         "startFrom       startTime;\n"
         "startTime       0;\n"
         "stopAt          endTime;\n"
@@ -359,6 +363,7 @@ def _write_control_dict(case_dir: Path, case: CFDCase, surface_name: str,
         f"        dragDir         ({fx} {fy} {fz});\n"
         "        CofR            (0 0 0);\n"
         "        pitchAxis       (0 1 0);\n"
+        f"        pRef            {case.p_inf if case.compressible else 0};\n"
         f"        magUInf         {case.velocity};\n"
         f"        lRef            {lref:.6f};\n"
         f"        Aref            {Aref:.6f};\n"
@@ -383,7 +388,15 @@ def _write_fv_schemes(case_dir: Path) -> None:
         "    div(phi,k)                              bounded Gauss upwind;\n"
         "    div(phi,omega)                          bounded Gauss upwind;\n"
         "    div(phi,nuTilda)                        bounded Gauss upwind;\n"
+        "    div(phi,e)                              bounded Gauss upwind;\n"
+        "    div(phi,h)                              bounded Gauss upwind;\n"
+        "    div(phi,K)                              bounded Gauss upwind;\n"
+        "    div(phi,Ekp)                            bounded Gauss upwind;\n"
+        "    div(phid,p)                             Gauss upwind;\n"
+        "    div(phi,(p|rho))                        Gauss upwind;\n"
+        "    div(meshPhi,p)                          Gauss linear;\n"
         "    div((nuEff*dev2(T(grad(U)))))           Gauss linear;\n"
+        "    div(((rho*nuEff)*dev2(T(grad(U)))))     Gauss linear;\n"
         "}\n\n"
         "laplacianSchemes { default Gauss linear corrected; }\n"
         "interpolationSchemes { default linear; }\n"
@@ -393,7 +406,7 @@ def _write_fv_schemes(case_dir: Path) -> None:
     (case_dir / "system" / "fvSchemes").write_text(txt)
 
 
-def _write_fv_solution(case_dir: Path) -> None:
+def _write_fv_solution(case_dir: Path, compressible: bool = False) -> None:
     txt = _foam_header("dictionary", "fvSolution", "system")
     txt += (
         "solvers\n{\n"
@@ -403,11 +416,14 @@ def _write_fv_solution(case_dir: Path) -> None:
         "        tolerance       1e-06;\n"
         "        relTol          0.1;\n"
         "    }\n"
-        "    \"(U|k|omega|nuTilda)\"\n    {\n"
+        "    \"(U|k|omega|nuTilda|e|h)\"\n    {\n"
         "        solver          smoothSolver;\n"
         "        smoother        symGaussSeidel;\n"
         "        tolerance       1e-06;\n"
         "        relTol          0.1;\n"
+        "    }\n"
+        "    rho\n    {\n"
+        "        solver          diagonal;\n"
         "    }\n"
         "}\n\n"
         "SIMPLE\n{\n"
@@ -419,10 +435,16 @@ def _write_fv_solution(case_dir: Path) -> None:
         "        \"(k|omega|nuTilda)\" 1e-4;\n"
         "    }\n"
         "}\n\n"
-        "relaxationFactors\n{\n"
-        "    fields { p 0.3; }\n"
-        "    equations { U 0.7; \"(k|omega|nuTilda)\" 0.7; }\n"
-        "}\n"
+        # Sıkışabilir soğuk-başlangıç kararsızlığı (T<0 abort) için düşük
+        # relaxation; sıkıştırılamaz yol hızlı kalır
+        + ("relaxationFactors\n{\n"
+           "    fields { p 0.2; rho 0.05; }\n"
+           "    equations { U 0.3; \"(k|omega|nuTilda)\" 0.3; \"(e|h)\" 0.3; }\n"
+           "}\n" if compressible else
+           "relaxationFactors\n{\n"
+           "    fields { p 0.3; }\n"
+           "    equations { U 0.7; \"(k|omega|nuTilda)\" 0.7; }\n"
+           "}\n")
     )
     (case_dir / "system" / "fvSolution").write_text(txt)
 
@@ -467,6 +489,84 @@ def _write_physical_properties(case_dir: Path, nu: float) -> None:
         f"nu              [0 2 -1 0 0 0 0] {nu};\n"
     )
     (case_dir / "constant" / "physicalProperties").write_text(txt)
+
+
+def _write_physical_properties_compressible(case_dir: Path, case: CFDCase) -> None:
+    """OF11 'fluid' çözücüsü: hePsiThermo + Sutherland hava."""
+    txt = _foam_header("dictionary", "physicalProperties", "constant")
+    txt += (
+        "thermoType\n{\n"
+        "    type            hePsiThermo;\n"
+        "    mixture         pureMixture;\n"
+        "    transport       sutherland;\n"
+        "    thermo          hConst;\n"
+        "    equationOfState perfectGas;\n"
+        "    specie          specie;\n"
+        "    energy          sensibleInternalEnergy;\n"
+        "}\n\n"
+        "mixture\n{\n"
+        "    specie         { molWeight 28.96; }\n"
+        "    thermodynamics { Cp 1005; Hf 0; }\n"
+        "    transport      { As 1.4792e-06; Ts 116; }\n"
+        "}\n"
+    )
+    (case_dir / "constant" / "physicalProperties").write_text(txt)
+
+
+def _write_field_T(case_dir: Path, case: CFDCase, surface_name: str) -> None:
+    t = case.t_inf
+    txt = _foam_header("volScalarField", "T", "0")
+    txt += (
+        "dimensions      [0 0 0 1 0 0 0];\n\n"
+        f"internalField   uniform {t};\n\n"
+        "boundaryField\n{\n"
+        f"    inlet   {{ type fixedValue; value uniform {t}; }}\n"
+        f"    outlet  {{ type inletOutlet; inletValue uniform {t}; value uniform {t}; }}\n"
+        "    top     { type zeroGradient; }\n"
+        "    bottom  { type zeroGradient; }\n"
+        "    front   { type zeroGradient; }\n"
+        "    back    { type zeroGradient; }\n"
+        f"    {surface_name} {{ type zeroGradient; }}\n"   # adyabatik duvar
+        "}\n"
+    )
+    (case_dir / "0" / "T").write_text(txt)
+
+
+def _write_field_alphat(case_dir: Path, surface_name: str) -> None:
+    txt = _foam_header("volScalarField", "alphat", "0")
+    txt += (
+        "dimensions      [1 -1 -1 0 0 0 0];\n\n"
+        "internalField   uniform 0;\n\n"
+        "boundaryField\n{\n"
+        "    inlet   { type calculated; value uniform 0; }\n"
+        "    outlet  { type calculated; value uniform 0; }\n"
+        "    top     { type calculated; value uniform 0; }\n"
+        "    bottom  { type calculated; value uniform 0; }\n"
+        "    front   { type calculated; value uniform 0; }\n"
+        "    back    { type calculated; value uniform 0; }\n"
+        f"    {surface_name} {{ type compressible::alphatWallFunction; value uniform 0; }}\n"
+        "}\n"
+    )
+    (case_dir / "0" / "alphat").write_text(txt)
+
+
+def _write_field_p_compressible(case_dir: Path, case: CFDCase, surface_name: str) -> None:
+    p = case.p_inf
+    txt = _foam_header("volScalarField", "p", "0")
+    txt += (
+        "dimensions      [1 -1 -2 0 0 0 0];\n\n"
+        f"internalField   uniform {p};\n\n"
+        "boundaryField\n{\n"
+        "    inlet   { type zeroGradient; }\n"
+        f"    outlet  {{ type fixedValue; value uniform {p}; }}\n"
+        "    top     { type slip; }\n"
+        "    bottom  { type slip; }\n"
+        "    front   { type slip; }\n"
+        "    back    { type slip; }\n"
+        f"    {surface_name} {{ type zeroGradient; }}\n"
+        "}\n"
+    )
+    (case_dir / "0" / "p").write_text(txt)
 
 
 # 0/ field dosyaları
@@ -607,16 +707,24 @@ def build_case(case: CFDCase, out_dir: Path) -> Path:
     lref = L
     _write_control_dict(case_dir, case, surface_name, lref)
     _write_fv_schemes(case_dir)
-    _write_fv_solution(case_dir)
+    _write_fv_solution(case_dir, case.compressible)
     n_proc = case.n_processors if case.n_processors > 0 else _default_processors()
     case.n_processors = n_proc  # downstream run_cfd için sabitle
     _write_decompose_par(case_dir, n_proc)
     _write_transport(case_dir, case.nu)
     _write_momentum(case_dir)
-    _write_physical_properties(case_dir, case.nu)
+    if case.compressible:
+        _write_physical_properties_compressible(case_dir, case)
+    else:
+        _write_physical_properties(case_dir, case.nu)
 
     _write_field_U(case_dir, case, surface_name)
-    _write_field_p(case_dir, surface_name)
+    if case.compressible:
+        _write_field_p_compressible(case_dir, case, surface_name)
+        _write_field_T(case_dir, case, surface_name)
+        _write_field_alphat(case_dir, surface_name)
+    else:
+        _write_field_p(case_dir, surface_name)
     _write_field_k(case_dir, case, surface_name)
     _write_field_omega(case_dir, case, surface_name, lref)
     _write_field_nut(case_dir, surface_name)
@@ -624,12 +732,22 @@ def build_case(case: CFDCase, out_dir: Path) -> Path:
     if case.propeller:
         _write_propeller(case_dir, case.propeller, gmin, gmax, cell_size)
 
+    if case.compressible:
+        # Negatif-T abort koruması: sıcaklığı fiziksel banta kıs (geçici
+        # ara-iterasyon taşmaları çözümü öldürmesin)
+        (case_dir / "constant" / "fvConstraints").write_text(
+            _foam_header("dictionary", "fvConstraints", "constant") +
+            "limitT\n{\n    type      limitTemperature;\n"
+            "    selectionMode all;\n    min       100;\n    max       1000;\n}\n")
+
     return case_dir
 
 
 def _write_propeller(case_dir: Path, prop: dict, gmin, gmax, bg_cell: float):
     """Burnun önünde silindirik cellSet (topoSetDict) + actuationDiskSource.
-    diskDir (+1 0 0): kaynak akışı İTER (pervane); upstreamPoint disk önünde."""
+    diskDir (-1 0 0): AMPİRİK doğrulama (küp testi) Usource'un ters
+    konvansiyonla girdiğini gösterdi — +x diskDir akışı YAVAŞLATTI
+    (sürükleme 16.5→11.6 N, türbin etkisi); pervane için dHat ters."""
     cap = prop["cap_m"]
     yc = float((gmin[1] + gmax[1]) / 2)
     zc = float((gmin[2] + gmax[2]) / 2)
@@ -650,7 +768,7 @@ def _write_propeller(case_dir: Path, prop: dict, gmin, gmax, bg_cell: float):
         "    type            actuationDiskSource;\n"
         "    select          cellSet;\n"
         "    cellSet         pervaneDisk;\n"
-        "    diskDir         (1 0 0);\n"
+        "    diskDir         (-1 0 0);\n"
         f"    Cp              {prop['Cp']};\n"
         f"    Ct              {prop['Ct']};\n"
         f"    diskArea        {prop['area']:.6f};\n"

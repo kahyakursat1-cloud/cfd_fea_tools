@@ -80,7 +80,26 @@ tam 0/1 kutuplaşma için uzun koşu/p-continuation önerilir. 48 test.
   max sehim + SF `yeniden_analiz` alanında — TO çıktısı artık kendi yapısal
   doğrulamasıyla gelir. Küp: 12 iterasyonda komplians −%31, yeniden-analiz ✓.
 
-Test: 45 yeşil. Durum: SYSTEM_STATUS güncel.
+**B4/B5 + C-frekans — fizik kapsamı genişletme:**
+- ✅ **B4 Pervane (aktüatör disk):** OF11 actuationDiskSource kaynak-koddan
+  doğrulandı; topoSetDict silindir cellSet + fvModels; CLI --itki/--cap.
+  **İşaret-konvansiyonu ampirik düzeltildi:** sezgisel diskDir=+x akışı
+  yavaşlatıyordu (türbin), pervane için -x doğru (küp sürükleme 16.5→20.4 N).
+  Froude sınırı τ≤0.25 guard. Rapor pervane satırı + dürüst not.
+- ✅ **C-frekans (modal):** vehicle_fea --analiz frekans (dolu+kabuk):
+  *FREQUENCY + .dat özdeğer parseri + rapor Bölüm 8 mod tablosu. Küp kabuğu
+  8 mod (126-267 Hz, fiziksel). Kaba STL modal için yetersizdi →
+  subdivide_to_size (kabuk statik de kazandı).
+- ⚠️ **B5 Sıkışabilir (M>0.3): DENEYSEL, varsayılan KAPALI.** Altyapı tam ve
+  doğru kuruluyor (foamRun -solver fluid: hePsiThermo + T/p_mutlak/alphat
+  alanları + enerji/akı şemaları, çözüm-tipine duyarlı relaxation, limitT).
+  3 kök neden kapandı (div(phi,(p|rho)) + enerji şemaları + soğuk-başlangıç
+  relaxation). KALAN: soğuk-başlangıçta enerji-türbülans eşlenik kararsızlığı
+  (T<0 abort, 2. iterasyon) — potentialFoam init/türbülans rampası gerektiren
+  ayrı tuning maratonu; future-work. M>0.3'te varsayılan: sıkıştırılamaz
+  koşar + AÇIK uyarı (Cd sistematik hatalı); deneysel yol CFD_COMPRESSIBLE=1.
+
+Test: 48 yeşil. Durum: SYSTEM_STATUS güncel.
 
 ---
 

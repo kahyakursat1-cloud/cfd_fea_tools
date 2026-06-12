@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import re
 import subprocess
 from dataclasses import asdict, dataclass
@@ -415,6 +416,16 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     prop = None
     if pervane_itki_n > 0 and pervane_cap_m > 0:
         prop = propeller_params(pervane_itki_n, pervane_cap_m, velocity, rho)
+
+    # Mach>0.3: sıkışabilir çözücü altyapısı mevcut (foamRun -solver fluid:
+    # thermo + T/p/rho/alphat alanları + akı şemaları) ama soğuk-başlangıç
+    # kararlılığı tuning gerektiriyor — DENEYSEL, varsayılan KAPALI.
+    mach = velocity / 340.0
+    compressible = mach > 0.3 and os.environ.get("CFD_COMPRESSIBLE") == "1"
+    if compressible:
+        rho = 101325.0 / (287.058 * 288.15)
+        if progress_cb:
+            progress_cb(3, f"Mach {mach:.2f} — DENEYSEL sıkışabilir çözücü (fluid)")
     case = CFDCase(
         name=stem,
         stl_path=stl_path,
@@ -433,6 +444,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         first_layer_thickness=(first_layer_height(velocity, geo["lmax_m"], yplus_target)
                                if n_layers > 0 else None),
         propeller=prop,
+        compressible=compressible,
         n_processors=n_processors,
     )
     res = run_cfd(case, run_dir, progress_callback=progress_cb)
@@ -494,10 +506,13 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     base.convergence = conv
 
     uyarilar = []
-    mach = velocity / 340.0
-    if mach > 0.3:
+    if compressible:
+        uyarilar.append(f"Mach {mach:.2f} > 0.3 — DENEYSEL sıkışabilir çözücü "
+                        "(soğuk-başlangıç kararlılığı tuning gerektirir)")
+    elif mach > 0.3:
         uyarilar.append(f"Mach {mach:.2f} > 0.3 — sıkıştırılamaz çözücü varsayımı "
-                        "ihlal; Cd sistematik hatalı olabilir (sıkışabilir çözücü gerekir)")
+                        "İHLAL; Cd sistematik hatalı. Sıkışabilir yol deneysel "
+                        "(CFD_COMPRESSIBLE=1 ile açılır, kararlılık garantisiz)")
     if not geo["su_gecirmez"]:
         uyarilar.append("STL su geçirmez değil — snappyHexMesh toleranslı ama "
                         "kapalı yüzey önerilir")
