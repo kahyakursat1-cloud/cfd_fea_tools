@@ -235,14 +235,18 @@ def run_supersonic(stl_path, mach=2.0, vehicle_type="roket", quality="standart",
     run_dir.mkdir(parents=True, exist_ok=True)
 
     # ── Mesh: openfoam_runner yardımcılarıyla ──
-    div = {"hizli": 5, "standart": 7, "hassas": 9}[quality]
-    refmax = {"hizli": 2, "standart": 3, "hassas": 4}[quality]
+    # gci_c/gci_f: GCI üçlüsü için sabit refmax'lı (=2) kaba/orta/ince ağlar
+    div = {"hizli": 5, "standart": 7, "hassas": 9,
+           "gci_c": 4.0, "gci_f": 6.5}[quality]
+    refmax = {"hizli": 2, "standart": 3, "hassas": 4,
+              "gci_c": 2, "gci_f": 2}[quality]
     case = CFDCase(name=f"{stem}_M{mach:g}", stl_path=stl_path, velocity=u,
                    rho=rho_inf, domain_upstream=5.0, domain_downstream=12.0,
                    domain_lateral=6.0, refinement_min=max(1, refmax - 1),
                    refinement_max=refmax, bg_cell_size=L / div,
                    max_global_cells={"hizli": 600_000, "standart": 1_500_000,
-                                     "hassas": 3_000_000}[quality],
+                                     "hassas": 3_000_000, "gci_c": 400_000,
+                                     "gci_f": 1_200_000}[quality],
                    n_processors=1)
     case_dir = (run_dir / case.name).resolve()
     if case_dir.exists():
