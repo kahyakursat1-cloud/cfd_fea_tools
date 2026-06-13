@@ -351,6 +351,7 @@ def run_mach_sweep(stl_path, machs=(0.8, 1.2, 2.0, 3.0), vehicle_type="roket",
     dims = (m.bounds[1] - m.bounds[0]).astype(float)
     L = float(dims.max())
     sref = _hull_projected_area(m.vertices, 0)   # gerçek izdüşüm frontal (akış +x)
+    s_wet = float(m.area)
     rho_inf = p_inf / (R_AIR * t_inf)
     a = sound_speed(t_inf)
 
@@ -361,7 +362,8 @@ def run_mach_sweep(stl_path, machs=(0.8, 1.2, 2.0, 3.0), vehicle_type="roket",
         return {"status": "FAILED", "error": r0.get("error"), "mach": machs[0]}
     base_case = Path(r0["case"])
     surf = stem.replace(" ", "_")
-    rows = [{"mach": machs[0], "Cd": r0["Cd"], "drift_pct": r0["Cd_drift_pct"]}]
+    rows = [{"mach": machs[0], "Cd": r0["Cd"], "Cd_surtunme": r0.get("Cd_surtunme"),
+             "Cd_toplam": r0.get("Cd_toplam"), "drift_pct": r0["Cd_drift_pct"]}]
 
     for i, mach in enumerate(machs[1:], start=1):
         cb(int(100 * i / len(machs)), f"M={mach} (mesh yeniden kullanılıyor)")
@@ -385,7 +387,10 @@ def run_mach_sweep(stl_path, machs=(0.8, 1.2, 2.0, 3.0), vehicle_type="roket",
         cd, hist = _parse_cd(case_a)
         drift = (abs(hist[-1] - hist[-max(2, len(hist)//5)]) / (abs(hist[-1]) + 1e-9) * 100
                  if cd is not None and len(hist) >= 6 else None)
+        cdf = friction_cd(u, L, s_wet, sref, mach, rho_inf) if cd is not None else None
         row = {"mach": mach, "Cd": round(cd, 4) if cd else None,
+               "Cd_surtunme": round(cdf, 4) if cdf else None,
+               "Cd_toplam": round(cd + cdf, 4) if cd is not None else None,
                "drift_pct": round(drift, 2) if drift else None}
         if artifact:
             row["uyari"] = artifact
@@ -413,28 +418,37 @@ def _sweep_report(out, rep_dir: Path):
     ok = [r for r in out["egri"] if r.get("Cd") is not None]
     if len(ok) >= 2:
         ms = [r["mach"] for r in ok]
-        cds = [r["Cd"] for r in ok]
+        cdp = [r["Cd"] for r in ok]
+        cdt = [r.get("Cd_toplam") or r["Cd"] for r in ok]
         fig, ax = plt.subplots(figsize=(5, 3.2))
-        ax.plot(ms, cds, "o-", color="#1f4e79", mfc="white", ms=6, lw=1.4)
+        ax.plot(ms, cdt, "o-", color="#b22222", mfc="white", ms=6, lw=1.6,
+                label="$C_D$ toplam (basınç+dalga+sürtünme)")
+        ax.plot(ms, cdp, "s--", color="#1f4e79", mfc="white", ms=5, lw=1.2,
+                label="$C_D$ basınç+dalga (CFD)")
         ax.axvline(1.0, ls=":", color="gray", lw=0.8)
         ax.text(1.02, ax.get_ylim()[0], "M=1", fontsize=7, color="gray")
         ax.set_xlabel("Mach"); ax.set_ylabel("$C_D$ (frontal)")
-        ax.set_title("Süpersonik Sürükleme Eğrisi (shockFluid)", fontsize=10)
-        ax.grid(alpha=0.3)
+        ax.set_title("Sürükleme Eğrisi — Component Buildup", fontsize=10)
+        ax.legend(fontsize=7); ax.grid(alpha=0.3)
         fig.tight_layout(); fig.savefig(rep_dir / "figures" / "cd_mach.png", dpi=200)
         plt.close(fig)
-    md = [f"# Süpersonik Cd-Mach Taraması — {out['model']}",
+    md = [f"# Sürükleme Eğrisi (Cd-Mach) — {out['model']}",
           f"\n**Referans alan (frontal):** {out['S_ref_m2']} m²  ",
-          "**Yöntem:** OpenFOAM 11 shockFluid (Kurganov yoğunluk-bazlı şok-yakalama)\n",
-          "| Mach | $C_D$ | drift % | not |", "|------|-------|---------|-----|"]
+          "**Yöntem:** shockFluid (basınç+dalga) + analitik türbülanslı "
+          "cilt-sürtünmesi (component buildup)\n",
+          "| Mach | $C_D$ basınç+dalga | $C_D$ sürtünme | $C_D$ toplam | drift % | not |",
+          "|------|------|------|------|------|-----|"]
     for r in out["egri"]:
         cd = r.get("Cd")
-        note = "geç taban-çökmesi (yakınsama sonrası)" if r.get("uyari") else ""
+        note = "geç taban-çökmesi" if r.get("uyari") else ""
         md.append(f"| {r['mach']} | {cd if cd is not None else '— (başarısız)'} | "
+                  f"{r.get('Cd_surtunme', '—')} | {r.get('Cd_toplam', '—')} | "
                   f"{r.get('drift_pct', '—')} | {note} |")
     md.append("\n![Cd-Mach](figures/cd_mach.png)\n")
-    md.append(f"> ⚠️ *{out['_not']} Skin-friction yok (süpersonikte ikincil); "
-              "transonik (M≈1) bölge en belirsiz. Tek mesh — GCI yapılmadı.*\n")
+    md.append("> ⚠️ *Basınç+dalga shockFluid inviscid (ses-altında taban+sayısal "
+              "artefakt içerir); sürtünme analitik (Schlichting, Mach-düzeltmeli). "
+              "Toplam ön-tasarım/uçuş-sim girdisi için savunulabilir; mutlak doğruluk "
+              "için viskoz-duvar CFD + GCI gerekir. Tek mesh.*\n")
     (rep_dir / "MACH_SWEEP.md").write_text("\n".join(md), encoding="utf-8")
 
 
