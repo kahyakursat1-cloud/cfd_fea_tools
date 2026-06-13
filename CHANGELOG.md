@@ -4,6 +4,23 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-06-13] feat | Drag component buildup — eksik cilt-sürtünmesi (hakem #1)
+
+**What:** Hakem incelemesinin en kritik bulgusu kapatıldı: inviscid shockFluid
+cilt-sürtünmesini atlıyordu (ses-altında baskın bileşen, d'Alembert).
+
+- **`friction_cd()`:** Schlichting türbülanslı düz-plaka Cf + Mach düzeltmesi;
+  ıslak alan (STL yüzeyi) ve S_ref ile normalize → C_D,sürtünme.
+- **Sürükleme artık component buildup:** C_D = basınç+dalga (CFD) + sürtünme
+  (analitik) = TOPLAM. Tekil koşu **ve** Cd-Mach taraması.
+- **Rapor:** bileşen ayrışması tablosu + çift referans (frontal/gövde-kesit);
+  yorum: ses-altında CFD-basınç d'Alembert nedeniyle artefakt/üst-sınır,
+  sürtünme fiziksel baskın; süpersonikte iki bileşen de güvenilir.
+- **Cd-Mach figürü:** çift eğri (toplam kırmızı + CFD basınç-dalga mavi).
+- **Ortaya çıkan fizik:** narin gövdede sürtünme yüksek Mach'ta baskın
+  (M3'te toplamın ~%65'i); dalga drag M ile düşer, sürtünme kalıcı.
+- Gerçek roket M0.74: 0.140 + 0.091 = **0.231** (frontal); sürtünme %39.
+
 ## [2026-06-12e] feat | ANSYS-tarzı alan figürleri + mühendis raporu (shockFluid)
 
 **What:** Süpersonik/transonik yol artık Fluent-CFD-Post tarzı profesyonel
