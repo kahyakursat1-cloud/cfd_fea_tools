@@ -47,6 +47,18 @@ def sound_speed(t_k: float) -> float:
     return math.sqrt(GAMMA * R_AIR * t_k)
 
 
+def friction_cd(u: float, lref: float, s_wet: float, s_ref: float, mach: float,
+                rho_inf: float, mu: float = MU_AIR) -> float:
+    """Türbülanslı düz-plaka cilt-sürtünmesi sürükleme katsayısı (component buildup).
+    Schlichting Cf = 0.455/(log10 Re)^2.58 + sıkıştırılabilirlik (Mach) düzeltmesi.
+    Inviscid shockFluid'in atladığı viskoz bileşeni analitik tamamlar; S_ref'e göre
+    normalize (CFD basınç/dalga C_D'siyle toplanabilir)."""
+    re_l = max(rho_inf * u * lref / mu, 1e4)
+    cf = 0.455 / (math.log10(re_l)) ** 2.58
+    cf /= (1.0 + 0.144 * mach ** 2) ** 0.65   # türbülanslı Cf Mach düzeltmesi
+    return cf * s_wet / s_ref
+
+
 def _quiescent_prepad() -> float:
     """Durgun iç alan (U=0) kullanıldığında akışın girişten ~5L upstream
     domaini geçip gövdeyi sarması için ek akış-geçiş süresi. Yoksa kısa
@@ -291,15 +303,22 @@ def run_supersonic(stl_path, mach=2.0, vehicle_type="roket", quality="standart",
         return {"status": "FAILED", "error": "forceCoeffs okunamadı", "case": str(case_dir)}
     drift = (abs(cd_hist[-1] - cd_hist[-max(2, len(cd_hist)//5)])
              / (abs(cd_hist[-1]) + 1e-9) * 100) if len(cd_hist) >= 6 else None
+    s_wet = float(m.area)                          # ıslak yüzey alanı (STL dış yüzeyi)
+    cd_fric = friction_cd(u, L, s_wet, sref, mach, rho_inf)
+    cd_total = cd + cd_fric                         # component buildup: basınç/dalga + sürtünme
     out = {"status": "ok", "model": stem, "mach": mach, "U_ms": round(u, 1),
            "rejim": "süpersonik" if mach > 1 else "transonik",
-           "S_ref_m2": round(sref, 6), "Cd": round(cd, 4),
+           "S_ref_m2": round(sref, 6), "S_wet_m2": round(s_wet, 5),
+           "Re": round(rho_inf * u * L / MU_AIR, 0),
+           "Cd": round(cd, 4),                      # CFD basınç + dalga (geriye-uyum)
+           "Cd_basinc_dalga": round(cd, 4),
+           "Cd_surtunme": round(cd_fric, 4),
+           "Cd_toplam": round(cd_total, 4),
            "Cd_drift_pct": round(drift, 2) if drift else None,
-           "drag_N": round(cd * 0.5 * rho_inf * u**2 * sref, 2),
+           "drag_N": round(cd_total * 0.5 * rho_inf * u**2 * sref, 2),
            "case": str(case_dir),
-           "_not": ("shockFluid Euler-benzeri (inviscid duvar): basınç + dalga "
-                    "sürüklemesi; skin-friction yok (süpersonikte ikincil). Tek "
-                    "mesh — bağımsızlık gösterilmedi.")}
+           "_not": ("shockFluid inviscid basınç+dalga sürüklemesi + analitik "
+                    "türbülanslı cilt-sürtünmesi (component buildup). Tek mesh.")}
     if base_artifact:
         out["uyari"] = base_artifact
     (run_dir / "supersonic.json").write_text(

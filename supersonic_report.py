@@ -454,8 +454,8 @@ def _academic_commentary(metric, mach, result, cd_body=None):
                       f"{mmx:.2f}'dir; |C_p,min| < |C_p*| ve M_max<1 olduğundan akış "
                       f"her noktada ses-altı kalmıştır (yerel süpersonik cep yok). "
                       f"Kritik Mach sayısı M_cr aşılmamış, dolayısıyla dalga "
-                      f"sürüklemesi henüz devrede değildir; sürükleme tümüyle basınç "
-                      f"(form) ve modellenmeyen sürtünme bileşenlerindendir.")
+                      f"sürüklemesi henüz devrede değildir (sürükleme bileşenleri "
+                      f"Aerodinamik Değerlendirme'de ayrıştırılmıştır).")
             p3 = ("Kuyruk/taban bölgesinde hız açığı ve resirkülasyon görülür; "
                   "sürtünmesiz çözüm taban basıncını olduğundan düşük kestirme "
                   "eğiliminde olduğundan taban sürüklemesi bir belirsizlik "
@@ -477,39 +477,43 @@ def _academic_commentary(metric, mach, result, cd_body=None):
             "destekler."]
 
     drift_txt = "< %0.1" if drift < 0.1 else f"%{drift:.1f}"
+    cd_p = result.get("Cd_basinc_dalga", cd)
+    cd_f = result.get("Cd_surtunme", 0.0)
+    cd_tot = result.get("Cd_toplam", cd)
+    f_pct = (cd_f / cd_tot * 100) if cd_tot else 0.0
+    deg = [
+        f"Toplam sürükleme **component buildup** ile iki bileşene ayrılmıştır: "
+        f"(i) CFD'den basınç + dalga sürüklemesi C_D,p = {cd_p:.3f}; (ii) analitik "
+        f"türbülanslı cilt-sürtünmesi C_D,f = {cd_f:.3f} (Schlichting düz-plaka, "
+        f"Mach-düzeltmeli). Tahmini toplam C_D = {cd_tot:.3f} (frontal{ref2}); "
+        f"sürtünme payı toplamın ~%{f_pct:.0f}'i, kuvvet {drag:.0f} N."]
     if sup:
-        deg = [
-            f"Hesaplanan sürükleme katsayısı C_D = {cd:.3f} (frontal izdüşüm alanına "
-            f"göre{ref2}), karşılık gelen sürükleme kuvveti {drag:.0f} N'dur. "
-            f"Süpersonikte sürükleme dalga + basınç sürüklemesinden oluşur ve bu "
-            f"bileşenler sürtünmesiz (Euler) çözücüde fiziksel olarak yakalanır; "
-            f"cilt-sürtünmesi modellenmez ve toplam sürüklemenin ikincil (~%5–15) bir "
-            f"payıdır. Bu nedenle süpersonik C_D, ön-tasarım için savunulabilir bir "
-            f"MUTLAK değerdir (taban-bölgesi belirsizliği saklı)."]
+        deg.append(
+            "Süpersonikte her iki bileşen de güvenilirdir: dalga sürüklemesi "
+            "sürtünmesiz çözücüde fiziksel olarak yakalanır, cilt-sürtünmesi ise "
+            "yüksek-Re düz-plaka korelasyonuyla (van Driest mertebesinde Mach "
+            "düzeltmeli) eklenir. Bu nedenle süpersonik C_D,toplam ön-tasarım için "
+            "savunulabilir bir MUTLAK değerdir (taban-bölgesi belirsizliği saklı).")
     else:
-        deg = [
-            f"Hesaplanan sürükleme katsayısı C_D = {cd:.3f} (frontal izdüşüm alanına "
-            f"göre{ref2}), sürükleme kuvveti {drag:.0f} N'dur. **Önemli fiziksel "
-            f"sınır:** ses-altı (M<1) sürtünmesiz akışta kapalı bir cisim üzerindeki "
-            f"form sürüklemesi d'Alembert paradoksu gereği teorik olarak SIFIRA gider; "
-            f"dolayısıyla burada hesaplanan değer ağırlıkla kesik-taban/boattail "
-            f"ayrılması (taban sürüklemesi) ve şemanın sayısal dissipasyonundan "
-            f"doğar. Narin gövdede gerçek ses-altı sürüklemeyi DOMİNE eden viskoz "
-            f"cilt-sürtünmesi (toplamın ~%60–80'i) bu modelde hiç yer almaz.",
-            "Bu nedenle transonik C_D, bu çözücü için sürükleme eğrisinin EN "
-            "GÜVENİLMEZ noktasıdır; süpersonik noktalar (dalga sürüklemesi gerçek ve "
-            "inviscid-yakalanabilir) bilimsel olarak daha savunulabilirdir."]
+        deg.append(
+            "**Önemli fiziksel sınır:** ses-altı (M<1) sürtünmesiz akışta kapalı "
+            "cisim form sürüklemesi d'Alembert paradoksu gereği ~0 olmalıdır; "
+            f"hesaplanan C_D,p = {cd_p:.3f} ise ağırlıkla kesik-taban/boattail "
+            "ayrılması ve sayısal dissipasyondan doğar — yani CFD basınç bileşeni "
+            "ses-altında bir ÜST-SINIR/artefakttır. Buna karşın eklenen cilt-"
+            f"sürtünmesi C_D,f = {cd_f:.3f}, narin gövdede gerçek ses-altı "
+            "sürüklemenin BASKIN ve fiziksel bileşenidir; bu rejimde tasarım kararı "
+            "C_D,f temelinde verilmelidir.")
     deg.append(
-        f"Kuvvet katsayısı zaman-ortalamada son %20 pencerede {drift_txt} sapma ile "
-        f"oturmuştur; bu, integral yükün monitör düzeyinde yakınsadığını gösterir "
-        f"(çözüm doğruluğunu garanti etmez; tek mesh).")
+        f"CFD basınç katsayısı zaman-ortalamada son %20 pencerede {drift_txt} sapma "
+        f"ile oturmuştur (monitör yakınsaması; çözüm doğruluğunu garanti etmez, tek "
+        f"mesh). Cilt-sürtünmesi bileşeni analitiktir, CFD yakınsamasından bağımsızdır.")
     deg.append(
-        "Mutlak C_D deneysel/literatür verisiyle DOĞRULANMAMIŞTIR ve resmi bir "
-        "ağ-bağımsızlık (GCI, ASME V&V 20) çalışması yapılmadığından belirsizlik "
-        "bandı atanmamıştır. Karşılaştırmalı kullanım (Mach taraması, tasarım A/B) "
-        "savunulabilir; 6-DOF uçuş simülasyonu için yalnız SÜPERSONİK trend "
-        "kullanılmalı, transonik mutlak değer yukarıdaki nedenle beslenmemelidir. "
-        "Mutlak doğruluk için viskoz duvar (kΩ-SST, y⁺~1) ve çok-mesh GCI gerekir.")
+        "Toplam C_D deneysel/literatür verisiyle DOĞRULANMAMIŞTIR ve resmi ağ-"
+        "bağımsızlık (GCI, ASME V&V 20) yapılmadığından belirsizlik bandı yoktur. "
+        "Mach taraması/tasarım A/B ve 6-DOF uçuş simülasyonu girdisi olarak "
+        "component-buildup C_D,toplam savunulabilirdir; en yüksek doğruluk için "
+        "viskoz-duvar (kΩ-SST, y⁺~1, prizma katman) CFD ve çok-mesh GCI gerekir.")
     return {"alan": alan, "yuzey": yuzey, "degerlendirme": deg}
 
 
@@ -544,22 +548,30 @@ def build_supersonic_report(result: dict, case_dir, stl_path, t_inf=288.15,
     q = 0.5 * rho_inf * u_inf ** 2
     s_ref = result["S_ref_m2"]
     s_body = _body_section_area(stl_path)
-    cd_body = (result["Cd"] * s_ref / s_body) if s_body else None
+    cd_p = result.get("Cd_basinc_dalga", result["Cd"])
+    cd_f = result.get("Cd_surtunme", 0.0)
+    cd_tot = result.get("Cd_toplam", cd_p)
+    cd_body = (cd_tot * s_ref / s_body) if s_body else None
     cond_lines = [
-        "<b>Çözücü:</b> OpenFOAM 11 shockFluid (Kurganov yoğunluk-bazlı şok-yakalama)",
-        f"<b>Rejim:</b> {rejim} — M={mach:g} (U∞={u_inf:.1f} m/s)",
+        "<b>Çözücü:</b> OpenFOAM 11 shockFluid (inviscid) + analitik cilt-sürtünmesi "
+        "(component buildup)",
+        f"<b>Rejim:</b> {rejim} — M={mach:g} (U∞={u_inf:.1f} m/s, "
+        f"Re={result.get('Re', 0):.2e})",
         f"<b>Serbest akış:</b> T∞={t_inf:.1f} K, p∞={p_inf:.0f} Pa, "
         f"ρ∞={rho_inf:.3f} kg/m³, q∞={q:.0f} Pa",
         f"<b>Referans alan:</b> izdüşüm frontal {s_ref:.5f} m²"
-        + (f" · gövde-kesit {s_body:.5f} m²" if s_body else "")]
+        + (f" · gövde-kesit {s_body:.5f} m²" if s_body else "")
+        + (f" · ıslak {result['S_wet_m2']:.4f} m²" if result.get("S_wet_m2") else "")]
     drift_v = result.get("Cd_drift_pct", 0) or 0.0
     res_rows = [
-        ["Sürükleme katsayısı C_D (frontal ref.)", f"{result['Cd']:.3f}"]]
+        ["C_D basınç+dalga (CFD)", f"{cd_p:.3f}"],
+        ["C_D cilt-sürtünmesi (analitik)", f"{cd_f:.3f}"],
+        ["C_D TOPLAM (frontal ref.)", f"{cd_tot:.3f}"]]
     if cd_body:
-        res_rows.append(["C_D (gövde-kesit ref.)", f"{cd_body:.3f}"])
+        res_rows.append(["C_D toplam (gövde-kesit ref.)", f"{cd_body:.3f}"])
     res_rows += [
-        ["Sürükleme kuvveti", f"{result.get('drag_N', float('nan')):.0f} N"],
-        ["Yakınsama sapması (son %20)",
+        ["Sürükleme kuvveti (toplam)", f"{result.get('drag_N', float('nan')):.0f} N"],
+        ["CFD yakınsama sapması (son %20)",
          "< %0.1" if drift_v < 0.1 else f"%{drift_v:.1f}"]]
     mesh = _mesh_metrics(case_dir)
     mesh_rows = []
@@ -597,12 +609,15 @@ def build_supersonic_report(result: dict, case_dir, stl_path, t_inf=288.15,
         sections.append(("Yüzey Basınç Dağılımı", figs["yuzey"], com["yuzey"]))
     sections.append(("Aerodinamik Değerlendirme", None, com["degerlendirme"]))
     yontem = [
-        "Çözücü: density-based, Euler-benzeri (inviscid slip duvar); basınç + "
-        "dalga sürüklemesi yakalanır, skin-friction ihmal edilir (süpersonikte "
-        "ikincil, ön-tasarım için savunulabilir).",
-        "Mutlak C_D izdüşüm-frontal referans alana göredir; gövde-kesit referansı "
-        "kullanılırsa ölçek farkı oluşur (trend ve kuvvet etkilenmez).",
-        "Tek mesh; resmi GCI (mesh bağımsızlığı) yapılmamıştır."]
+        "Sürükleme component buildup ile: basınç + dalga bileşeni shockFluid "
+        "density-based çözücüden (inviscid duvar), cilt-sürtünmesi bileşeni "
+        "Schlichting türbülanslı düz-plaka korelasyonundan (Mach-düzeltmeli) "
+        "analitik olarak. İki yöntemin birleşimi ön-tasarım için savunulabilirdir.",
+        "Cilt-sürtünmesi ıslak alanı STL dış-yüzey alanından alınır; su-geçirmez "
+        "olmayan montajlarda iç yüzeyler dahil olabileceğinden sürtünme bir "
+        "ÜST-tahmin olabilir.",
+        "C_D hem frontal-izdüşüm hem gövde-kesit referansına göre verilir; mutlak "
+        "değer deneysel olarak doğrulanmamış, tek mesh (resmi GCI yapılmamış)."]
 
     title = f"Aerodinamik Analiz Raporu — {result['model']}"
     md = [f"# {title}", "", "  \n".join(cond_lines).replace("<b>", "**").replace("</b>", "**"),

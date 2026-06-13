@@ -17,6 +17,17 @@ def test_quiescent_prepad_positive():
     assert s._quiescent_prepad() > 0   # akisin upstream'i gecmesi icin ek gecis
 
 
+def test_friction_cd_physical():
+    # tipik roket: pozitif, makul mertebe (0.01-0.2 frontal ref.)
+    cdf = s.friction_cd(252.0, 2.69, 2.4, 0.059, 0.74, 1.225)
+    assert 0.01 < cdf < 0.30
+    # Mach artinca Cf duser (sikistirilabilirlik); Re sabit
+    assert s.friction_cd(680.0, 2.69, 2.4, 0.059, 2.0, 1.225) < \
+           s.friction_cd(680.0, 2.69, 2.4, 0.059, 0.3, 1.225)
+    # islak alan artinca surtunme drag artar
+    assert s.friction_cd(252.0, 2.69, 4.0, 0.059, 0.74, 1.225) > cdf
+
+
 def _write_fields(tmp_path, mach):
     (tmp_path / "0").mkdir()
     s._write_shock_fields(tmp_path, "govde", mach, 288.15, 101325.0)
