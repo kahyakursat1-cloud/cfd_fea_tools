@@ -1,0 +1,44 @@
+"""auto_pilot sınıflandırma + konfigürasyon mantığı (sentetik geo dict ile)."""
+import math
+
+import auto_pilot as ap
+
+
+def _geo(L, W, H, planform=None, frontal=None, bodies=1, faces=5000):
+    fr = frontal if frontal is not None else math.pi * (min(W, H) / 2) ** 2
+    pf = planform if planform is not None else L * W
+    return {"boyutlar_m": [L, W, H], "lmax_m": max(L, W, H),
+            "on_alan_m2": fr, "planform_alan_m2": pf,
+            "govde_sayisi": bodies, "ucgen_sayisi": faces, "su_gecirmez": True}
+
+
+def test_classify_rocket():
+    g = _geo(2.5, 0.12, 0.12)            # ince, yuvarlak kesit
+    assert ap.classify_vehicle(g)["tip"] == "roket"
+
+
+def test_classify_wing_aircraft():
+    g = _geo(2.5, 1.2, 0.08, frontal=1.2 * 0.08)   # yassı + geniş
+    assert ap.classify_vehicle(g)["tip"] == "ucak"
+
+
+def test_classify_cube_is_generic():
+    g = _geo(0.5, 0.5, 0.5, frontal=0.25)          # küt, kompakt, tek gövde
+    assert ap.classify_vehicle(g)["tip"] == "genel"
+
+
+def test_classify_multikopter():
+    g = _geo(0.4, 0.38, 0.12, frontal=0.05, bodies=5)   # kompakt + çok kol
+    assert ap.classify_vehicle(g)["tip"] == "multikopter"
+
+
+def test_quality_scales_with_size():
+    assert ap._quality_for(5.0, 50_000) == "hizli"      # büyük geometri
+    assert ap._quality_for(0.2, 8_000) == "hassas"      # küçük/basit
+    assert ap._quality_for(1.0, 50_000) == "standart"
+
+
+def test_narrate_offline_template():
+    cfg = {"tip": "roket", "guven": 0.8, "plan": "süpersonik tarama", "gerekce": ["ince"]}
+    out = ap.narrate(cfg)
+    assert "roket" in out and isinstance(out, str)
