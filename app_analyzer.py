@@ -262,6 +262,14 @@ class AnalyzerWindow(QMainWindow):
         form.addRow("", self.chk_sens)
         left.addWidget(gb_cfg)
 
+        self.btn_auto = QPushButton("🤖  OTOMATİK ANALİZ (otopilot)")
+        self.btn_auto.setMinimumHeight(40)
+        self.btn_auto.setEnabled(False)
+        self.btn_auto.setToolTip("Geometriyi inceler, araç tipini ve tüm ayarları "
+                                 "seçer; planı gösterir, onayınızla koşar.")
+        self.btn_auto.clicked.connect(self._otomatik_analiz)
+        left.addWidget(self.btn_auto)
+
         self.btn_run = QPushButton("▶  ANALİZ ET")
         self.btn_run.setMinimumHeight(44)
         self.btn_run.setEnabled(False)
@@ -387,6 +395,51 @@ class AnalyzerWindow(QMainWindow):
             f"planform: {geo['planform_alan_m2']} m²{thin_s}   |   yüzey {wt}")
         self.btn_run.setEnabled(True)
         self.btn_polar.setEnabled(True)
+        self.btn_auto.setEnabled(True)
+        self.btn_mach.setEnabled(True)
+
+    def _set_combo(self, combo, data):
+        for i in range(combo.count()):
+            if combo.itemData(i) == data:
+                combo.setCurrentIndex(i)
+                return
+
+    def _otomatik_analiz(self):
+        if not self.model_path:
+            return
+        try:
+            import auto_pilot
+            cfg = auto_pilot.auto_configure(self.model_path)
+        except Exception as e:
+            QMessageBox.critical(self, "Otopilot", f"Sınıflandırma başarısız:\n{e}")
+            return
+        uy = ("\n\n⚠ " + "\n⚠ ".join(cfg["uyarilar"])) if cfg.get("uyarilar") else ""
+        ger = ("\n• " + "\n• ".join(cfg["gerekce"])) if cfg.get("gerekce") else ""
+        msg = (f"Araç tipi: {cfg['tip'].upper()}  (güven %{cfg['guven']*100:.0f})\n"
+               f"Gerekçe:{ger}\n\nÖnerilen plan:\n{cfg['plan']}{uy}\n\nBu planla koşulsun mu?")
+        if QMessageBox.question(self, "🤖 Otopilot — Öner + Onayla", msg) \
+                != QMessageBox.StandardButton.Yes:
+            return
+        # Ayarları otopilota göre kur, sonra uygun koşuyu tetikle
+        self._set_combo(self.cmb_type, cfg["tip"])
+        self._set_combo(self.cmb_quality, cfg["kalite"])
+        if cfg["rejim"] == "supersonic":
+            self._set_combo(self.cmb_rejim, "supersonik")
+            self._rejim_changed()
+            self.edt_machs.setText(", ".join(str(x) for x in cfg["mach_listesi"]))
+            self._log(f"🤖 Otopilot: {cfg['tip']} → Cd-Mach taraması başlatılıyor.")
+            self._run_mach_sweep()
+        elif cfg.get("analiz") == "polar":
+            self._set_combo(self.cmb_rejim, "subsonik"); self._rejim_changed()
+            self.spn_v.setValue(cfg.get("hiz_ms", 25.0))
+            self.edt_alphas.setText(", ".join(str(a) for a in cfg["aoa_listesi"]))
+            self._log(f"🤖 Otopilot: {cfg['tip']} → polar taraması başlatılıyor.")
+            self._run_polar()
+        else:
+            self._set_combo(self.cmb_rejim, "subsonik"); self._rejim_changed()
+            self.spn_v.setValue(cfg.get("hiz_ms", 20.0))
+            self._log(f"🤖 Otopilot: {cfg['tip']} → tekil ses-altı analiz başlatılıyor.")
+            self._run()
 
     def _rejim_changed(self):
         ust = self.cmb_rejim.currentData() == "supersonik"
