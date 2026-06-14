@@ -189,6 +189,7 @@ class AnalyzerWindow(QMainWindow):
         self.model_path: Path | None = None
         self.worker: AnalysisWorker | None = None
         self.last_result = None
+        self._pending_learn = None       # otopilot öğrenme vakası (koşu bitince kaydedilir)
         self._build_ui()
 
     # ── UI ──────────────────────────────────────────────────────────────────
@@ -420,7 +421,27 @@ class AnalyzerWindow(QMainWindow):
         if QMessageBox.question(self, "🤖 Otopilot — Öner + Onayla", msg) \
                 != QMessageBox.StandardButton.Yes:
             return
-        # Ayarları otopilota göre kur, sonra uygun koşuyu tetikle
+        # Öğrenme: tipi onayla/düzelt (etiket); düzeltilirse ayarlar yeniden kurulur
+        from PySide6.QtWidgets import QInputDialog
+
+        import auto_pilot
+        adlar = {"roket": "Roket", "ucak": "Uçak/İHA",
+                 "multikopter": "Multikopter", "genel": "Genel"}
+        secenekler = [adlar[t] for t in auto_pilot.TIPLER]
+        cur = list(auto_pilot.TIPLER).index(cfg["tip"])
+        sec, ok = QInputDialog.getItem(
+            self, "Tip onayı (öğrenme)",
+            "Otopilot bu tipi seçti. Doğruysa onaylayın, değilse düzeltin —\n"
+            "sistem bu geri bildirimden öğrenir:", secenekler, cur, False)
+        if not ok:
+            return
+        onayli = auto_pilot.TIPLER[secenekler.index(sec)]
+        if onayli != cfg["tip"]:
+            auto_pilot.apply_type_settings(cfg, onayli, cfg.get("viscous", False))
+            self._log(f"🤖 Tip düzeltildi: {cfg['kural_tip']} → {onayli} (öğrenildi).")
+        self._pending_learn = {"metrik": cfg["metrik"], "otopilot_tip": cfg.get("kural_tip"),
+                               "onayli_tip": onayli, "dosya": self.model_path.name}
+        # Ayarları (gerekirse düzeltilmiş) tipe göre kur, uygun koşuyu tetikle
         self._set_combo(self.cmb_type, cfg["tip"])
         self._set_combo(self.cmb_quality, cfg["kalite"])
         if cfg["rejim"] == "supersonic":
@@ -440,6 +461,27 @@ class AnalyzerWindow(QMainWindow):
             self.spn_v.setValue(cfg.get("hiz_ms", 20.0))
             self._log(f"🤖 Otopilot: {cfg['tip']} → tekil ses-altı analiz başlatılıyor.")
             self._run()
+
+    def _record_learning(self, result: dict | None):
+        """Analiz bitince bekleyen otopilot vakasını kütüphaneye kaydet (öğrenme)
+        ve aykırı C_D bayrağını logla."""
+        pend = getattr(self, "_pending_learn", None)
+        if not pend:
+            return
+        self._pending_learn = None
+        try:
+            import auto_pilot
+            auto_pilot.record_case(pend["metrik"], pend["otopilot_tip"],
+                                   pend["onayli_tip"], result, pend["dosya"])
+            n = len(auto_pilot._load_cases())
+            self._log(f"🧠 Öğrenme: vaka kaydedildi (kütüphane: {n}).")
+            if result:
+                flag = auto_pilot.cd_outlier(pend["onayli_tip"],
+                                             result.get("Cd_toplam"))
+                if flag:
+                    self._log(f"⚠ Aykırı sonuç: {flag}")
+        except Exception:
+            pass
 
     def _rejim_changed(self):
         ust = self.cmb_rejim.currentData() == "supersonik"
@@ -544,6 +586,7 @@ class AnalyzerWindow(QMainWindow):
         self.btn_polar.setEnabled(True)
         if hasattr(self, "btn_mach"):
             self.btn_mach.setEnabled(True)
+        self._record_learning(None)   # taramada tek Cd yok; tip etiketi kaydedilir
 
     def _on_supersonic_done(self, out: dict):
         self.progress.setValue(100)
@@ -561,6 +604,7 @@ class AnalyzerWindow(QMainWindow):
         self.btn_run.setEnabled(True)
         self.btn_polar.setEnabled(True)
         self.btn_mach.setEnabled(True)
+        self._record_learning(out)
 
     def _run_polar(self):
         if not self.model_path:
@@ -676,10 +720,12 @@ class AnalyzerWindow(QMainWindow):
         self.btn_report.setEnabled(bool(r.report))
         self.btn_run.setEnabled(True)
         self._log(f"Rapor: {r.report}")
+        self._record_learning({"Cd_toplam": getattr(r, "cd", None)})
 
     def _on_fail(self, err: str):
         self.progress.setValue(0)
         self._log("❌ HATA:\n" + err)
+        self._pending_learn = None   # başarısız koşudan öğrenme
         self.btn_run.setEnabled(True)
         self.btn_polar.setEnabled(True)
         if hasattr(self, "btn_mach"):

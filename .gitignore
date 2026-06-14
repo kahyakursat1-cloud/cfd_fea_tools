@@ -106,3 +106,4 @@ test_materials_export.csv
 # Construct2D: airfoil C-grid mesh üreteci. construct2d_bridge.py disk'ten
 # çağırır; kaynak ağacımıza dahil değil.
 Construct2D/
+auto_pilot_memory.jsonl

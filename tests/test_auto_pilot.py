@@ -42,3 +42,34 @@ def test_narrate_offline_template():
     cfg = {"tip": "roket", "guven": 0.8, "plan": "süpersonik tarama", "gerekce": ["ince"]}
     out = ap.narrate(cfg)
     assert "roket" in out and isinstance(out, str)
+
+
+def test_learned_vote_knn(tmp_path, monkeypatch):
+    monkeypatch.setattr(ap, "MEMORY", tmp_path / "mem.jsonl")
+    assert ap.learned_vote({"L_D": 11, "W_L": 0.06, "H_L": 0.05, "H_W": 1.0}) is None
+    for _ in range(10):
+        ap.record_case({"L_D": 12, "W_L": 0.05, "H_L": 0.05, "H_W": 1.0, "govde": 1},
+                       "roket", "roket", {"Cd_toplam": 0.2})
+    v = ap.learned_vote({"L_D": 11, "W_L": 0.06, "H_L": 0.05, "H_W": 0.95, "govde": 1})
+    assert v is not None and v["tip"] == "roket" and v["guven"] >= 0.6
+
+
+def test_learned_overrides_rule(tmp_path, monkeypatch):
+    # kural 'genel' der ama kütüphane güçlü 'multikopter' derse öğrenilen kazanır
+    monkeypatch.setattr(ap, "MEMORY", tmp_path / "mem.jsonl")
+    m = {"L_D": 1.2, "W_L": 0.7, "H_L": 0.25, "H_W": 0.35, "govde": 1}
+    for _ in range(10):
+        ap.record_case(m, "genel", "multikopter", {"Cd_toplam": 0.9})
+    g = {"boyutlar_m": [0.5, 0.42, 0.15], "on_alan_m2": 0.06,
+         "planform_alan_m2": 0.21, "govde_sayisi": 1, "ucgen_sayisi": 5000}
+    res = ap.classify_vehicle(g)
+    assert res.get("ogrenilen") is not None
+
+
+def test_cd_outlier_flags_anomaly(tmp_path, monkeypatch):
+    monkeypatch.setattr(ap, "MEMORY", tmp_path / "mem.jsonl")
+    for _ in range(6):
+        ap.record_case({"L_D": 12, "W_L": 0.05, "H_L": 0.05, "H_W": 1.0, "govde": 1},
+                       "roket", "roket", {"Cd_toplam": 0.2})
+    assert ap.cd_outlier("roket", 0.9) is not None      # aykırı
+    assert ap.cd_outlier("roket", 0.21) is None          # normal
