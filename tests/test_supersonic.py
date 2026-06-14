@@ -57,6 +57,31 @@ def test_quiescent_init_zeroes_internal_velocity(tmp_path):
     assert "internalField uniform (0 0 0)" in u_txt
 
 
+def test_viscous_writes_turbulence_fields(tmp_path):
+    (tmp_path / "0").mkdir()
+    s._write_shock_fields(tmp_path, "govde", 2.0, 288.15, 101325.0, viscous=True)
+    u_txt = (tmp_path / "0" / "U").read_text()
+    assert "noSlip" in u_txt and "slip;" not in u_txt.split("noSlip")[0][-20:]
+    assert (tmp_path / "0" / "k").exists()
+    assert (tmp_path / "0" / "omega").exists()
+    assert "kqRWallFunction" in (tmp_path / "0" / "k").read_text()
+    assert "nutkWallFunction" in (tmp_path / "0" / "nut").read_text()
+
+
+def test_inviscid_no_turbulence_fields(tmp_path):
+    (tmp_path / "0").mkdir()
+    s._write_shock_fields(tmp_path, "govde", 2.0, 288.15, 101325.0, viscous=False)
+    assert "slip" in (tmp_path / "0" / "U").read_text()
+    assert not (tmp_path / "0" / "k").exists()
+
+
+def test_viscous_thermo_is_RAS(tmp_path):
+    (tmp_path / "constant").mkdir()
+    s._write_shock_thermo(tmp_path, viscous=True)
+    assert "RAS" in (tmp_path / "constant" / "momentumTransport").read_text()
+    assert "kOmegaSST" in (tmp_path / "constant" / "momentumTransport").read_text()
+
+
 def test_supersonic_init_uses_freestream_internal(tmp_path):
     (tmp_path / "0").mkdir()
     u = s._write_shock_fields(tmp_path, "govde", 3.0, 288.15, 101325.0, quiescent=False)

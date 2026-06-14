@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import re
 import shutil
 import subprocess
@@ -83,12 +84,13 @@ def _neg_T_crash(log: str) -> bool:
 
 def _run_shock(case_dir: Path, surf: str, mach: float, t_inf: float, p_inf: float,
                n_flow_pass: float, L: float, u: float, rho_inf: float, sref: float,
-               quiescent: bool):
+               quiescent: bool, viscous: bool = False):
     """Şok alanları+şemaları yaz, foamRun koş; (returncode, log) döner."""
     et = (n_flow_pass + (_quiescent_prepad() if quiescent else 0.0)) * (L / u)
     _clean_times(case_dir)
-    _write_shock_fields(case_dir, surf, mach, t_inf, p_inf, quiescent=quiescent)
-    _write_shock_system(case_dir, surf, et, et / 10, L, u, rho_inf, sref, mach)
+    _write_shock_fields(case_dir, surf, mach, t_inf, p_inf, quiescent=quiescent,
+                        viscous=viscous)
+    _write_shock_system(case_dir, surf, et, et / 10, L, u, rho_inf, sref, mach, viscous)
     r = _of(windows_to_wsl_path(case_dir), "foamRun > log.foamRun 2>&1", 7200)
     return r, (case_dir / "log.foamRun").read_text(errors="ignore")
 
@@ -100,7 +102,7 @@ def _of(wsl_dir, cmd, timeout):
                           capture_output=True, text=True, timeout=timeout)
 
 
-def _write_shock_thermo(case_dir: Path):
+def _write_shock_thermo(case_dir: Path, viscous: bool = False):
     cp = GAMMA * R_AIR / (GAMMA - 1)   # 1004.7
     (case_dir / "constant" / "physicalProperties").write_text(
         _foam_header("dictionary", "physicalProperties", "constant") +
@@ -111,13 +113,55 @@ def _write_shock_thermo(case_dir: Path):
         "    specie         { molWeight 28.96; }\n"
         f"    thermodynamics {{ Cp {cp:.2f}; Hf 0; }}\n"
         f"    transport      {{ mu {MU_AIR:.3e}; Pr {PR}; }}\n}}\n")
-    (case_dir / "constant" / "momentumTransport").write_text(
-        _foam_header("dictionary", "momentumTransport", "constant") +
-        "simulationType laminar;\n")
+    if viscous:   # RAS kOmegaSST (yüksek-Re duvar fonksiyonları)
+        (case_dir / "constant" / "momentumTransport").write_text(
+            _foam_header("dictionary", "momentumTransport", "constant") +
+            "simulationType RAS;\n"
+            "RAS\n{\n    model kOmegaSST;\n    turbulence on;\n"
+            "    printCoeffs on;\n}\n")
+        (case_dir / "constant" / "thermophysicalTransport").write_text(
+            _foam_header("dictionary", "thermophysicalTransport", "constant") +
+            "RAS { model unityLewisEddyDiffusivity; Prt 0.85; }\n")
+    else:
+        (case_dir / "constant" / "momentumTransport").write_text(
+            _foam_header("dictionary", "momentumTransport", "constant") +
+            "simulationType laminar;\n")
+
+
+def _write_turb_fields(case_dir: Path, surf: str, far: list, u: float,
+                       t_inf: float, p_inf: float):
+    """RAS kOmegaSST alanları (k, omega, nut, alphat) — yüksek-Re duvar fonk."""
+    rho = p_inf / (R_AIR * t_inf)
+    nu = MU_AIR / rho
+    k_inf = max(1.5 * (0.02 * u) ** 2, 1e-4)        # I=%2 türbülans yoğunluğu
+    nut_inf = 10.0 * nu                              # μt/μ ≈ 10
+    omega_inf = k_inf / nut_inf
+    def bf(lines):
+        return "boundaryField\n{\n" + "".join(lines) + "}\n"
+    def field(name, dim, internal, far_bc, wall_bc):
+        lines = [f"    {p} {{ {far_bc} }}\n" for p in far]
+        lines.append(f"    {surf} {{ {wall_bc} }}\n")
+        (case_dir / "0" / name).write_text(
+            _foam_header("volScalarField", name, "0") +
+            f"dimensions [{dim}];\n"
+            f"internalField uniform {internal};\n" + bf(lines))
+    field("k", "0 2 -2 0 0 0 0", f"{k_inf:.5g}",
+          f"type inletOutlet; inletValue uniform {k_inf:.5g}; value uniform {k_inf:.5g};",
+          f"type kqRWallFunction; value uniform {k_inf:.5g};")
+    field("omega", "0 0 -1 0 0 0 0", f"{omega_inf:.5g}",
+          f"type inletOutlet; inletValue uniform {omega_inf:.5g}; value uniform {omega_inf:.5g};",
+          f"type omegaWallFunction; value uniform {omega_inf:.5g};")
+    field("nut", "0 2 -1 0 0 0 0", f"{nut_inf:.5g}",
+          "type calculated; value uniform 0;",
+          "type nutkWallFunction; value uniform 0;")
+    field("alphat", "1 -1 -1 0 0 0 0", "0",
+          "type calculated; value uniform 0;",
+          "type compressible::alphatWallFunction; Prt 0.85; value uniform 0;")
 
 
 def _write_shock_fields(case_dir: Path, surf: str, mach: float,
-                        t_inf: float, p_inf: float, quiescent: bool = False):
+                        t_inf: float, p_inf: float, quiescent: bool = False,
+                        viscous: bool = False):
     a = sound_speed(t_inf)
     u = mach * a
     # M<1.05 (transonik/subsonic): tüm dış sınırlar freestream — akış yönüne
@@ -142,7 +186,8 @@ def _write_shock_fields(case_dir: Path, surf: str, mach: float,
         tlines.append("    outlet { type zeroGradient; }\n")
         plines = [f"    {p} {{ type fixedValue; value uniform {p_inf}; }}\n" for p in fs]
         plines.append("    outlet { type zeroGradient; }\n")
-    ulines.append(f"    {surf} {{ type slip; }}\n")   # inviscid duvar
+    wall_u = "type noSlip;" if viscous else "type slip;"   # viskoz vs inviscid
+    ulines.append(f"    {surf} {{ {wall_u} }}\n")
     tlines.append(f"    {surf} {{ type zeroGradient; }}\n")
     plines.append(f"    {surf} {{ type zeroGradient; }}\n")
     # quiescent=True: durgun iç alan (U=0); küt gövde impulsive freestream'de
@@ -160,28 +205,40 @@ def _write_shock_fields(case_dir: Path, surf: str, mach: float,
         _foam_header("volScalarField", "p", "0") +
         "dimensions [1 -1 -2 0 0 0 0];\n"
         f"internalField uniform {p_inf};\n" + bf(plines))
+    if viscous:   # türbülans alanlarında TÜM dış sınırlar (outlet inletOutlet ile)
+        _write_turb_fields(case_dir, surf,
+                           ["inlet", "top", "bottom", "front", "back", "outlet"],
+                           u, t_inf, p_inf)
     return u
 
 
 def _write_shock_system(case_dir: Path, surf: str, end_time: float,
                         write_int: float, lref: float, u: float,
-                        rho_inf: float, sref: float, mach: float = 2.0):
+                        rho_inf: float, sref: float, mach: float = 2.0,
+                        viscous: bool = False):
     # Yüksek Mach'ta vanLeer başlangıç-darbesinde overshoot -> negatif T.
     # Minmod (en disipatif TVD limiter) + düşük maxCo ile sağlamlaştır.
     robust = mach >= 2.5
     lim, limV = ("Minmod", "MinmodV") if robust else ("vanLeer", "vanLeerV")
     maxco = 0.2 if robust else 0.3
+    turb_div = ("    div(phi,k) Gauss upwind;\n    div(phi,omega) Gauss upwind;\n"
+                if viscous else "")
     (case_dir / "system" / "fvSchemes").write_text(
         _foam_header("dictionary", "fvSchemes", "system") +
         "fluxScheme Kurganov;\n"
         "ddtSchemes { default Euler; }\n"
         "gradSchemes { default Gauss linear; }\n"
-        "divSchemes { default none; }\n"
+        "divSchemes\n{\n    default none;\n" + turb_div +
+        "    div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;\n}\n"
         "laplacianSchemes { default Gauss linear corrected; }\n"
         "interpolationSchemes\n{\n    default linear;\n"
         f"    reconstruct(rho) {lim};\n    reconstruct(U) {limV};\n"
         f"    reconstruct(T) {lim};\n}}\n"
-        "snGradSchemes { default corrected; }\n")
+        "snGradSchemes { default corrected; }\n"
+        + ("wallDist { method meshWave; }\n" if viscous else ""))
+    turb_solver = ('    "(k|omega).*" { solver smoothSolver; smoother GaussSeidel;\n'
+                   "            nSweeps 1; tolerance 1e-08; relTol 0.1; }\n"
+                   if viscous else "")
     (case_dir / "system" / "fvSolution").write_text(
         _foam_header("dictionary", "fvSolution", "system") +
         "solvers\n{\n"
@@ -189,7 +246,7 @@ def _write_shock_system(case_dir: Path, surf: str, end_time: float,
         '    "U.*" { solver smoothSolver; smoother GaussSeidel; nSweeps 2;\n'
         "            tolerance 1e-09; relTol 0.01; }\n"
         '    "e.*" { solver smoothSolver; smoother GaussSeidel; nSweeps 2;\n'
-        "            tolerance 1e-10; relTol 0; }\n"
+        "            tolerance 1e-10; relTol 0; }\n" + turb_solver +
         "}\nPIMPLE {}\n")
     fc = (
         "functions\n{\n    forceCoeffs1\n    {\n"
@@ -223,6 +280,7 @@ def run_supersonic(stl_path, mach=2.0, vehicle_type="roket", quality="standart",
         if progress_cb:
             progress_cb(p, m)
 
+    viscous = os.environ.get("CFD_VISCOUS") == "1"   # viskoz duvar (RAS kΩ-SST)
     m = trimesh.load(str(stl_path), force="mesh")
     dims = (m.bounds[1] - m.bounds[0]).astype(float)
     L = float(dims.max())
@@ -264,12 +322,12 @@ def run_supersonic(stl_path, mach=2.0, vehicle_type="roket", quality="standart",
     _write_surface_features(case_dir, stl_path.name)
     _write_decompose_par(case_dir, 1)
 
-    _write_shock_thermo(case_dir)
+    _write_shock_thermo(case_dir, viscous=viscous)
     # mesh araçları (surfaceFeatures/blockMesh) controlDict+fvSchemes ister;
     # _run_shock bunları sonra seçilen başlangıçla üzerine yazar.
     _et0 = n_flow_pass * (L / u)
-    _write_shock_fields(case_dir, surf, mach, t_inf, p_inf)
-    _write_shock_system(case_dir, surf, _et0, _et0 / 10, L, u, rho_inf, sref, mach)
+    _write_shock_fields(case_dir, surf, mach, t_inf, p_inf, viscous=viscous)
+    _write_shock_system(case_dir, surf, _et0, _et0 / 10, L, u, rho_inf, sref, mach, viscous)
 
     wsl_dir = windows_to_wsl_path(case_dir)
     for pct, msg, cmd, tmo in [
@@ -283,14 +341,15 @@ def run_supersonic(stl_path, mach=2.0, vehicle_type="roket", quality="standart",
             return {"status": "FAILED", "asama": cmd, "case": str(case_dir),
                     "error": (case_dir / f"log.{cmd.split()[0]}").read_text(errors="ignore")[-1500:]}
 
-    cb(70, f"shockFluid (M={mach}, freestream başlangıç)...")
+    visc = "viskoz (kΩ-SST)" if viscous else "inviscid"
+    cb(70, f"shockFluid (M={mach}, {visc}, freestream başlangıç)...")
     r, log = _run_shock(case_dir, surf, mach, t_inf, p_inf, n_flow_pass,
-                        L, u, rho_inf, sref, quiescent=False)
+                        L, u, rho_inf, sref, quiescent=False, viscous=viscous)
     if _neg_T_crash(log):
         # Küt gövde: impulsive freestream negatif T -> durgun init + prepad ile yeniden
         cb(72, "küt gövde algılandı, durgun başlangıçla yeniden...")
         r, log = _run_shock(case_dir, surf, mach, t_inf, p_inf, n_flow_pass,
-                            L, u, rho_inf, sref, quiescent=True)
+                            L, u, rho_inf, sref, quiescent=True, viscous=viscous)
     base_artifact = ""
     if "FOAM FATAL" in log or r.returncode != 0:
         # Cd yakınsadıktan SONRA geç taban-çökmesi -> değeri kurtar, bayrakla
@@ -308,16 +367,20 @@ def run_supersonic(stl_path, mach=2.0, vehicle_type="roket", quality="standart",
     drift = (abs(cd_hist[-1] - cd_hist[-max(2, len(cd_hist)//5)])
              / (abs(cd_hist[-1]) + 1e-9) * 100) if len(cd_hist) >= 6 else None
     s_wet = float(m.area)                          # ıslak yüzey alanı (STL dış yüzeyi)
-    cd_fric = friction_cd(u, L, s_wet, sref, mach, rho_inf)
-    cd_total = cd + cd_fric                         # component buildup: basınç/dalga + sürtünme
+    # Viskoz: no-slip duvar sürtünmeyi ÇÖZER -> CFD Cd zaten toplam (analitik EKLEME).
+    # İnviscid: sürtünme yok -> analitik component-buildup ile eklenir.
+    cd_fric = 0.0 if viscous else friction_cd(u, L, s_wet, sref, mach, rho_inf)
+    cd_total = cd + cd_fric
     out = {"status": "ok", "model": stem, "mach": mach, "U_ms": round(u, 1),
            "rejim": "süpersonik" if mach > 1 else "transonik",
+           "duvar": "viskoz (kΩ-SST)" if viscous else "inviscid (slip)",
            "S_ref_m2": round(sref, 6), "S_wet_m2": round(s_wet, 5),
            "Re": round(rho_inf * u * L / MU_AIR, 0),
-           "Cd": round(cd, 4),                      # CFD basınç + dalga (geriye-uyum)
+           "Cd": round(cd, 4),
            "Cd_basinc_dalga": round(cd, 4),
            "Cd_surtunme": round(cd_fric, 4),
            "Cd_toplam": round(cd_total, 4),
+           "viskoz": viscous,
            "Cd_drift_pct": round(drift, 2) if drift else None,
            "drag_N": round(cd_total * 0.5 * rho_inf * u**2 * sref, 2),
            "case": str(case_dir),

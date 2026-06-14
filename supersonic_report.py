@@ -501,6 +501,22 @@ def _academic_commentary(metric, mach, result, cd_body=None):
     cd_f = result.get("Cd_surtunme", 0.0)
     cd_tot = result.get("Cd_toplam", cd)
     f_pct = (cd_f / cd_tot * 100) if cd_tot else 0.0
+    if result.get("viskoz"):   # viskoz: sürtünme CFD'de çözülür (buildup yok)
+        deg = [
+            f"Sürükleme, RAS kΩ-SST viskoz-duvar (no-slip) çözümünden tek parça "
+            f"olarak elde edilmiştir: C_D = {cd_tot:.3f} (frontal{ref2}), kuvvet "
+            f"{drag:.0f} N. Basınç + dalga + cilt-sürtünmesi bileşenlerinin tümü "
+            f"çözücüde fiziksel olarak çözülür (analitik buildup gerekmez).",
+            f"CFD katsayısı son %20 pencerede {drift_txt} sapma ile yakınsamıştır. "
+            "Yüksek-Re duvar fonksiyonları kullanıldığından (prizma katmansız ağ) "
+            "cilt-sürtünmesi ve taban basıncı yaklaşık temsil edilir; y⁺~1 prizma "
+            "katman ince ağ ile mutlak doğruluk artar. Viskoz duvarın temel "
+            "kazanımı: taban-bölgesi STABİL (inviscid çözümün çöktüğü yerde temiz "
+            "yakınsama) ve sürtünme fiziksel olarak çözülür.",
+            "Toplam C_D deneysel/literatür verisiyle henüz doğrulanmamış; viskoz "
+            "yol artık taban kararlılığı sağladığından çok-mesh GCI bu yolda "
+            "mümkündür (açık gelecek-iş)."]
+        return {"alan": alan, "yuzey": yuzey, "degerlendirme": deg}
     deg = [
         f"Toplam sürükleme **component buildup** ile iki bileşene ayrılmıştır: "
         f"(i) CFD'den basınç + dalga sürüklemesi C_D,p = {cd_p:.3f}; (ii) analitik "
@@ -671,13 +687,18 @@ def build_supersonic_report(result: dict, case_dir, stl_path, t_inf=288.15,
     q = 0.5 * rho_inf * u_inf ** 2
     s_ref = result["S_ref_m2"]
     s_body = _body_section_area(stl_path)
+    viscous = bool(result.get("viskoz"))
     cd_p = result.get("Cd_basinc_dalga", result["Cd"])
     cd_f = result.get("Cd_surtunme", 0.0)
     cd_tot = result.get("Cd_toplam", cd_p)
     cd_body = (cd_tot * s_ref / s_body) if s_body else None
+    solver_line = ("<b>Çözücü:</b> OpenFOAM 11 shockFluid + RAS kΩ-SST viskoz duvar "
+                   "(no-slip, yüksek-Re duvar fonksiyonları) — sürtünme çözücüde çözülür"
+                   if viscous else
+                   "<b>Çözücü:</b> OpenFOAM 11 shockFluid (inviscid) + analitik "
+                   "cilt-sürtünmesi (component buildup)")
     cond_lines = [
-        "<b>Çözücü:</b> OpenFOAM 11 shockFluid (inviscid) + analitik cilt-sürtünmesi "
-        "(component buildup)",
+        solver_line,
         f"<b>Rejim:</b> {rejim} — M={mach:g} (U∞={u_inf:.1f} m/s, "
         f"Re={result.get('Re', 0):.2e})",
         f"<b>Serbest akış:</b> T∞={t_inf:.1f} K, p∞={p_inf:.0f} Pa, "
@@ -686,12 +707,16 @@ def build_supersonic_report(result: dict, case_dir, stl_path, t_inf=288.15,
         + (f" · gövde-kesit {s_body:.5f} m²" if s_body else "")
         + (f" · ıslak {result['S_wet_m2']:.4f} m²" if result.get("S_wet_m2") else "")]
     drift_v = result.get("Cd_drift_pct", 0) or 0.0
-    res_rows = [
-        ["C_D basınç+dalga (CFD)", f"{cd_p:.3f}"],
-        ["C_D cilt-sürtünmesi (analitik)", f"{cd_f:.3f}"],
-        ["C_D TOPLAM (frontal ref.)", f"{cd_tot:.3f}"]]
+    if viscous:
+        res_rows = [["C_D (viskoz CFD, basınç+dalga+sürtünme)", f"{cd_tot:.3f}"]]
+    else:
+        res_rows = [
+            ["C_D basınç+dalga (CFD)", f"{cd_p:.3f}"],
+            ["C_D cilt-sürtünmesi (analitik)", f"{cd_f:.3f}"],
+            ["C_D TOPLAM (frontal ref.)", f"{cd_tot:.3f}"]]
     if cd_body:
-        res_rows.append(["C_D toplam (gövde-kesit ref.)", f"{cd_body:.3f}"])
+        res_rows.append(["C_D (gövde-kesit ref.)" if viscous
+                         else "C_D toplam (gövde-kesit ref.)", f"{cd_body:.3f}"])
     res_rows += [
         ["Sürükleme kuvveti (toplam)", f"{result.get('drag_N', float('nan')):.0f} N"],
         ["CFD yakınsama sapması (son %20)",
