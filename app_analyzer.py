@@ -440,7 +440,8 @@ class AnalyzerWindow(QMainWindow):
             auto_pilot.apply_type_settings(cfg, onayli, cfg.get("viscous", False))
             self._log(f"🤖 Tip düzeltildi: {cfg['kural_tip']} → {onayli} (öğrenildi).")
         self._pending_learn = {"metrik": cfg["metrik"], "otopilot_tip": cfg.get("kural_tip"),
-                               "onayli_tip": onayli, "dosya": self.model_path.name}
+                               "onayli_tip": onayli, "dosya": self.model_path.name,
+                               "cfg": dict(cfg)}
         # Ayarları (gerekirse düzeltilmiş) tipe göre kur, uygun koşuyu tetikle
         self._set_combo(self.cmb_type, cfg["tip"])
         self._set_combo(self.cmb_quality, cfg["kalite"])
@@ -475,11 +476,10 @@ class AnalyzerWindow(QMainWindow):
                                    pend["onayli_tip"], result, pend["dosya"])
             n = len(auto_pilot._load_cases())
             self._log(f"🧠 Öğrenme: vaka kaydedildi (kütüphane: {n}).")
-            if result:
-                flag = auto_pilot.cd_outlier(pend["onayli_tip"],
-                                             result.get("Cd_toplam"))
-                if flag:
-                    self._log(f"⚠ Aykırı sonuç: {flag}")
+            cfg = dict(pend.get("cfg") or {})
+            cfg["tip"] = pend["onayli_tip"]
+            yorum = auto_pilot.narrate(cfg, result if isinstance(result, dict) else None)
+            self._log("🧑‍⚖️ Hakem değerlendirmesi:\n" + yorum)
         except Exception:
             pass
 

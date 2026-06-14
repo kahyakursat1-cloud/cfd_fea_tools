@@ -17,6 +17,9 @@ from pathlib import Path
 from vehicle_pipeline import inspect_geometry, prepare_geometry
 
 # ── Öğrenme: büyüyen vaka kütüphanesi (instance-based / k-NN) ────────────────
+# SEED: uzman (hakem) etiketli kanonik taban — uygulamayla birlikte gelir (commit'li).
+# MEMORY: çalışma-zamanı öğrenmesi — kullanıcı onayladıkça büyür (gitignore'da).
+SEED = Path(__file__).parent / "auto_pilot_seed.jsonl"
 MEMORY = Path(__file__).parent / "auto_pilot_memory.jsonl"
 MIN_CASES = 8        # bu sayıdan az onaylı vaka varken yalnız kural-tabanlı
 TIPLER = ("roket", "ucak", "multikopter", "genel")
@@ -41,16 +44,18 @@ def record_case(metrik: dict, otopilot_tip: str, onayli_tip: str,
 
 
 def _load_cases() -> list:
-    if not MEMORY.exists():
-        return []
+    """Uzman-etiketli SEED tabanı + çalışma-zamanı MEMORY birleştirilir."""
     out = []
-    for line in MEMORY.read_text(encoding="utf-8").splitlines():
-        try:
-            c = json.loads(line)
-            if c.get("onayli_tip") and c.get("metrik"):
-                out.append(c)
-        except Exception:
-            pass
+    for src in (SEED, MEMORY):
+        if not src.exists():
+            continue
+        for line in src.read_text(encoding="utf-8").splitlines():
+            try:
+                c = json.loads(line)
+                if c.get("onayli_tip") and c.get("metrik"):
+                    out.append(c)
+            except Exception:
+                pass
     return out
 
 
@@ -220,25 +225,67 @@ def apply_type_settings(cfg: dict, tip: str, dogrulama_modu: bool = False) -> di
 
 
 def narrate(config: dict, result: dict | None = None) -> str:
-    """LLM yorumcu (opsiyonel). ANTHROPIC_API_KEY varsa Claude ile doğal-dil
-    yorum; yoksa yapılandırılmış şablon fallback (her zaman çalışır, çevrimdışı)."""
+    """HAKEM-seviyesi çevrimdışı yorumcu (API gerektirmez): otopilot kararını ve
+    sonucu eleştirel/nicel değerlendirir — güven, öğrenme-kanıtı, rejim uygunluğu,
+    sonuç makullüğü, V&V çekinceleri. ANTHROPIC_API_KEY varsa LLM ile zenginleştirir."""
     import os
-    base = (f"Otopilot bu geometriyi '{config['tip']}' olarak sınıflandırdı "
-            f"(güven %{config.get('guven', 0)*100:.0f}; {', '.join(config.get('gerekce', [])) or '—'}). "
-            f"Seçilen plan: {config.get('plan', '')}")
+    tip = config["tip"]
+    conf = config.get("guven", 0)
+    sat = [f"Sınıflandırma: '{tip}' (güven %{conf*100:.0f}). "
+           f"Gerekçe: {', '.join(config.get('gerekce', [])) or '—'}."]
+
+    # 1) Güven ve öğrenme-kanıtı eleştirisi (hakem bakışı)
+    lv = config.get("ogrenilen")
+    if lv and config.get("kural_tip") and lv["tip"] != config.get("kural_tip"):
+        sat.append(f"⚠ Kural '{config['kural_tip']}' derken öğrenilen kütüphane "
+                   f"({lv['kutuphane']} vaka) %{lv['guven']*100:.0f} ile '{lv['tip']}' "
+                   f"dedi ve geçersiz kıldı; benzer onaylı vakalara dayandığından "
+                   f"daha güvenilir, yine de gözle doğrulayın.")
+    elif lv:
+        sat.append(f"Öğrenilen kütüphane ({lv['kutuphane']} vaka) kuralı destekliyor "
+                   f"(%{lv['guven']*100:.0f}) — sağlam sınıflandırma.")
+    if conf < 0.45:
+        sat.append("DÜŞÜK GÜVEN: geometri sınır bir durumda; planı elle gözden geçirin "
+                   "veya tipi düzeltin (öğrenmeyi de besler).")
+
+    # 2) Rejim/yöntem uygunluğu
+    if tip == "roket":
+        sat.append("Süpersonik Cd-Mach taraması doğru tercih (roketler M>1 uçar); "
+                   "ancak inviscid+analitik-sürtünme YAKLAŞIK — mutlak Cd değil TREND "
+                   "savunulabilir, mutlak değer için viskoz-duvar gerekir.")
+    elif tip == "ucak":
+        sat.append("Ses-altı polar (Cl-Cd) doğru; kaldırma-ilgili referans (planform) "
+                   "kullanılmalı. Yüksek hücum açılarında ayrılma/stall RANS ile "
+                   "yaklaşık, çekinceyle yorumlayın.")
+    elif tip == "multikopter":
+        sat.append("Ses-altı tekil analiz makul; pervane indüklemesi modellenmediğinden "
+                   "gerçek itki-altı akıştan farklı olabilir (aktüatör-disk opsiyonu).")
+    else:
+        sat.append("Tip belirsiz → muhafazakâr ses-altı; sonuç yön-gösterici, "
+                   "kritik karar için tipi netleştirin.")
+
+    # 3) Sonuç değerlendirmesi + aykırılık + V&V
     if result and result.get("Cd_toplam") is not None:
-        base += f" Sonuç: C_D≈{result['Cd_toplam']:.3f}."
+        cd = result["Cd_toplam"]
+        sat.append(f"Sonuç: C_D≈{cd:.3f}.")
+        flag = cd_outlier(tip, cd)
+        if flag:
+            sat.append("⚠ " + flag)
+        else:
+            sat.append("Sonuç bu tipteki geçmiş vakalarla tutarlı (aykırılık yok).")
+        sat.append("V&V: çözücü küre deneyiyle doğrulanmış; tek mesh (GCI yok) → "
+                   "mutlak değere belirsizlik bandı atanmamıştır.")
+
+    base = " ".join(sat)
     if not os.environ.get("ANTHROPIC_API_KEY"):
-        return base + " [Şablon yorum — doğal-dil yorum için ANTHROPIC_API_KEY tanımlayın.]"
+        return base
     try:
         import anthropic
-        client = anthropic.Anthropic()
-        msg = client.messages.create(
+        msg = anthropic.Anthropic().messages.create(
             model="claude-opus-4-8", max_tokens=400,
             messages=[{"role": "user", "content":
-                       "Bir CFD otopilotunun kararını ve sonucunu bir havacılık "
-                       "mühendisi gibi 3-4 cümlede yorumla (Türkçe, nicel, eleştirel):\n"
-                       + base + f"\nKonfig: {config}\nSonuç: {result}"}])
+                       "Şu hakem değerlendirmesini akıcı 3-4 cümleye getir (Türkçe, "
+                       "nicel, eleştirel ton koru):\n" + base}])
         return msg.content[0].text
     except Exception:
-        return base + " [LLM çağrısı başarısız; şablon yoruma düşüldü.]"
+        return base

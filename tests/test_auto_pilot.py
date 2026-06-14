@@ -38,13 +38,26 @@ def test_quality_scales_with_size():
     assert ap._quality_for(1.0, 50_000) == "standart"
 
 
-def test_narrate_offline_template():
-    cfg = {"tip": "roket", "guven": 0.8, "plan": "süpersonik tarama", "gerekce": ["ince"]}
-    out = ap.narrate(cfg)
-    assert "roket" in out and isinstance(out, str)
+def test_narrate_referee_offline(monkeypatch):
+    # API anahtarı olmadan bile hakem-seviyesi eleştirel yorum (çevrimdışı)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    cfg = {"tip": "roket", "guven": 0.8, "kural_tip": "roket",
+           "plan": "süpersonik tarama", "gerekce": ["ince"]}
+    out = ap.narrate(cfg, {"Cd_toplam": 0.23})
+    assert "roket" in out and "V&V" in out and "C_D" in out      # eleştirel öğeler
+    assert "API" not in out                                      # şablon değil, hakem
+
+
+def test_seed_library_loaded():
+    # uzman-etiketli seed tabanı yüklenir (eğitim aktif)
+    cases = ap._load_cases()
+    assert len(cases) >= ap.MIN_CASES
+    tipler = {c["onayli_tip"] for c in cases}
+    assert {"roket", "ucak", "genel"}.issubset(tipler)
 
 
 def test_learned_vote_knn(tmp_path, monkeypatch):
+    monkeypatch.setattr(ap, "SEED", tmp_path / "seed.jsonl")
     monkeypatch.setattr(ap, "MEMORY", tmp_path / "mem.jsonl")
     assert ap.learned_vote({"L_D": 11, "W_L": 0.06, "H_L": 0.05, "H_W": 1.0}) is None
     for _ in range(10):
@@ -56,6 +69,7 @@ def test_learned_vote_knn(tmp_path, monkeypatch):
 
 def test_learned_overrides_rule(tmp_path, monkeypatch):
     # kural 'genel' der ama kütüphane güçlü 'multikopter' derse öğrenilen kazanır
+    monkeypatch.setattr(ap, "SEED", tmp_path / "seed.jsonl")
     monkeypatch.setattr(ap, "MEMORY", tmp_path / "mem.jsonl")
     m = {"L_D": 1.2, "W_L": 0.7, "H_L": 0.25, "H_W": 0.35, "govde": 1}
     for _ in range(10):
@@ -67,6 +81,7 @@ def test_learned_overrides_rule(tmp_path, monkeypatch):
 
 
 def test_cd_outlier_flags_anomaly(tmp_path, monkeypatch):
+    monkeypatch.setattr(ap, "SEED", tmp_path / "seed.jsonl")
     monkeypatch.setattr(ap, "MEMORY", tmp_path / "mem.jsonl")
     for _ in range(6):
         ap.record_case({"L_D": 12, "W_L": 0.05, "H_L": 0.05, "H_W": 1.0, "govde": 1},
