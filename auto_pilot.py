@@ -26,10 +26,15 @@ TIPLER = ("roket", "ucak", "multikopter", "genel")
 
 
 def _features(metrik: dict) -> list:
-    """k-NN için normalize özellik vektörü (hepsi ~[0,1])."""
-    return [min(metrik.get("L_D", 0), 30) / 30, metrik.get("W_L", 0),
-            metrik.get("H_L", 0), metrik.get("H_W", 0),
-            min(metrik.get("govde", 1), 8) / 8]
+    """k-NN için AĞIRLIKLI normalize özellik vektörü (her özellik √w ile ölçeklenir,
+    Öklid mesafesi ağırlıklı olur). Ağırlıklar fizikseldir: yassılık (H/L) ve
+    incelik (L/D) sınıfı en çok ayırır; W/L belirsizdir (delta W/L≈1 ama yassı)."""
+    w = {"L_D": 1.3, "W_L": 0.6, "H_L": 2.0, "H_W": 1.5, "govde": 0.7}
+    f = [min(metrik.get("L_D", 0), 30) / 30, metrik.get("W_L", 0),
+         metrik.get("H_L", 0), metrik.get("H_W", 0),
+         min(metrik.get("govde", 1), 8) / 8]
+    sw = [w["L_D"], w["W_L"], w["H_L"], w["H_W"], w["govde"]]
+    return [fi * (wi ** 0.5) for fi, wi in zip(f, sw)]
 
 
 def record_case(metrik: dict, otopilot_tip: str, onayli_tip: str,

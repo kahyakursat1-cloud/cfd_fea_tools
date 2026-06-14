@@ -25,6 +25,7 @@ def _x_axis(m):
 
 
 def _metrik(mesh, name):
+    trimesh.repair.fix_normals(mesh)   # tutarlı sarım/normaller (elle kurulan delta dahil)
     p = os.path.join(TMP, f"{name}.stl")
     mesh.export(p)
     return ap.classify_vehicle(inspect_geometry(p))["metrik"]
