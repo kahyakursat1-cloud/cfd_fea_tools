@@ -538,31 +538,40 @@ def _academic_commentary(metric, mach, result, cd_body=None):
 
 
 def _read_solver_gci():
-    """supersonic_validation.json'dan shockFluid GCI bandını oku (varsa)."""
+    """supersonic_validation.json'dan GEÇERLİ shockFluid GCI bandını oku.
+    Yalnız asimptotik (monoton, p makul, GCI<%5) bir bandı döndürür; aksi
+    halde None (sonuçsuz verification dürüstçe bildirilir)."""
     try:
         import json
         d = json.loads((Path(__file__).parent / "supersonic_validation.json")
                        .read_text(encoding="utf-8"))
-        return d.get("solver_gci")
+        g = d.get("solver_gci")
+        if not g:
+            return None
+        valid = (g.get("monotonic") and g.get("p_in_range")
+                 and 0 < (g.get("gci_fine_pct") or 1e9) < 5.0)
+        return g if valid else None
     except Exception:
         return None
 
 
 def _abstract(result, mach, rejim, cd_tot, f_pct):
     g = _read_solver_gci()
-    gci_txt = (f"ince-ağ GCI ≈ %{g['gci_fine_pct']:.1f}" if g and g.get("gci_fine_pct")
-               else "kanonik küre üzerinde nicelenmiştir")
+    vv_txt = (f"çözücü süpersonik küre deneyiyle (Charters & Thomas, 1945) "
+              f"doğrulanmış, ayrıklaştırma belirsizliği üç-ağ GCI ile ince-ağ "
+              f"≈%{g['gci_fine_pct']:.1f} olarak nicelenmiştir"
+              if g and g.get("gci_fine_pct") else
+              "çözücü süpersonik küre deneyiyle (Charters & Thomas, 1945) "
+              "doğrulanmıştır; resmi çok-ağ GCI bandı açık bir gelecek-iş kalemidir")
     return (
         f"Bu rapor, {result['model']} geometrisinin M={mach:g} ({rejim}) koşulundaki "
         f"dış-akış aerodinamiğini OpenFOAM 11 shockFluid (Kurganov yoğunluk-bazlı "
         f"şok-yakalama) çözücüsüyle sunar. Sürükleme, component-buildup yaklaşımıyla "
         f"CFD basınç+dalga bileşeni ve analitik türbülanslı cilt-sürtünmesi "
         f"bileşeninden oluşturulmuştur. Toplam sürükleme katsayısı C_D = {cd_tot:.3f} "
-        f"(frontal referans), cilt-sürtünmesi toplamın ~%{f_pct:.0f}'idir. Çözücü "
-        f"süpersonik küre deneyiyle (Charters & Thomas, 1945) doğrulanmış; "
-        f"ayrıklaştırma belirsizliği üç-ağ GCI ile ({gci_txt}). Sonuçlar ön-tasarım "
-        f"ve 6-DOF uçuş-simülasyonu girdisi için savunulabilir; mutlak doğruluk için "
-        f"viskoz-duvar (kΩ-SST, y⁺~1) CFD önerilir.")
+        f"(frontal referans), cilt-sürtünmesi toplamın ~%{f_pct:.0f}'idir. Geçerleme: "
+        f"{vv_txt}. Sonuçlar ön-tasarım ve 6-DOF uçuş-simülasyonu girdisi için "
+        f"savunulabilir; mutlak doğruluk için viskoz-duvar (kΩ-SST, y⁺~1) CFD önerilir.")
 
 
 def _vv_section(result, mach):
@@ -583,9 +592,14 @@ def _vv_section(result, mach):
                + f". shockFluid ayrıklaştırma belirsizliği ~%{g['gci_fine_pct']:.1f} "
                f"mertebesindedir.")
     else:
-        ver = ("**Geçerleme (verification):** shockFluid ayrıklaştırma belirsizliği için "
-               "kanonik küre üzerinde üç-ağ GCI çalışması yürütülmektedir; bu geometriye "
-               "özgü çok-mesh GCI rapor kapsamında yapılmamıştır (tek mesh).")
+        ver = ("**Geçerleme (verification):** Kanonik küre üzerinde üç-ağ GCI denemesi "
+               "yapılmış ancak sürtünmesiz küt-taban bölgesinin kararlılık güçlüğü ve "
+               "sınırlı iterasyon bütçesi nedeniyle dizi monoton/asimptotik aralığa "
+               "girmemiş; bu nedenle resmi bir GCI belirsizlik bandı raporlanmamıştır "
+               "(dürüst V&V: sonuçsuz verification gizlenmez). Üretim ağının "
+               "ayrıklaştırma hatası, düşük checkMesh skewness/ortogonallik-sapması "
+               "ölçütleriyle niteliksel olarak sınırlıdır; converged çok-mesh GCI "
+               "açık bir gelecek-iş kalemidir.")
     fric = (f"**Cilt-sürtünmesi bileşeni:** Schlichting türbülanslı düz-plaka "
             f"korelasyonu C_f = 0.455/(log₁₀Re)^2.58, Re = {result.get('Re', 0):.2e}, "
             f"sıkıştırılabilirlik (Mach) düzeltmeli — ön-tasarım drag-buildup "

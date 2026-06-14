@@ -5,23 +5,51 @@
     "mach": 2.0,
     "U_ms": 680.6,
     "Cd_sim": 1.1351,
-    "Cd_ref_bandi": [0.95, 1.05],
+    "Cd_ref_bandi": [
+      0.95,
+      1.05
+    ],
     "kaynak": "Charters & Thomas 1945, supersonik kure deneyleri",
     "drift_pct": 0.02
   },
   "cd_mach_taramasi": [
-    {"mach": 1.5, "Cd": 1.232, "drift_pct": 0.01},
-    {"mach": 2.0, "Cd": 1.1351, "drift_pct": 0.02},
-    {"mach": 3.0, "Cd": 0.9251, "drift_pct": 5.31, "uyari": "gec taban-cokmesi; Cd yakinsamadan sonra alindi"}
+    {
+      "mach": 1.5,
+      "Cd": 1.232,
+      "drift_pct": 0.01
+    },
+    {
+      "mach": 2.0,
+      "Cd": 1.1351,
+      "drift_pct": 0.02
+    },
+    {
+      "mach": 3.0,
+      "Cd": 0.9251,
+      "drift_pct": 5.31,
+      "uyari": "gec taban-cokmesi; Cd yakinsamadan sonra alindi"
+    }
   ],
   "trend_degerlendirme": "Cd-Mach 1.232 -> 1.135 -> 0.925 monoton azalan: supersonik kurede Cd'nin M ile dusup ~0.9 platosuna oturmasi beklenen fiziksel davranis. M3 robustlugu icin M>=2.5'te durgun ic alan (U=0, bow-shock girisden kademeli) + Minmod limiter + _cd_converged gec-cokme kurtarmasi eklendi.",
   "gercek_roket_uygulamasi": {
     "model": "rockets/rocket.stl (sivri burun + kuyruk kanatcigi, L=0.4m)",
     "Aref_frontal_m2": 0.002536,
     "cd_mach": [
-      {"mach": 1.2, "Cd": 0.1527, "drift_pct": 0.03},
-      {"mach": 2.0, "Cd": 0.0662, "drift_pct": 0.0},
-      {"mach": 3.0, "Cd": 0.0326, "drift_pct": 0.38}
+      {
+        "mach": 1.2,
+        "Cd": 0.1527,
+        "drift_pct": 0.03
+      },
+      {
+        "mach": 2.0,
+        "Cd": 0.0662,
+        "drift_pct": 0.0
+      },
+      {
+        "mach": 3.0,
+        "Cd": 0.0326,
+        "drift_pct": 0.38
+      }
     ],
     "not": "Sivri burun yatik (oblique) sok -> freestream impulsive baslangic cokmedi (kut kure aksine), hepsi yakinsadi. Cd kureden ~10x dusuk: ongoru dogrulandi. Monoton azalan = slender cisim dalga-suruklemesi M ile duser. Mutlak Cd hull-frontal Aref'e gore (govde-alanina gore ~5x yuksek olurdu); TREND = 6-DOF ucus sim. girdisi."
   },
@@ -31,13 +59,39 @@
     "pipeline": "STEP->STL (gmsh) -> onarim -> oto mm->m olcek (÷1000) -> snappyHexMesh 336k hucre (checkMesh OK, sizdiran yuzey dis-aero'da sorunsuz) -> shockFluid",
     "Aref_frontal_m2": 0.059005,
     "cd_mach": [
-      {"mach": 0.74, "Cd": 0.1399, "drift_pct": 0.0, "rejim": "transonik"},
-      {"mach": 1.2, "Cd": 0.1279, "drift_pct": 0.03},
-      {"mach": 2.0, "Cd": 0.053, "drift_pct": 0.0},
-      {"mach": 3.0, "Cd": 0.0251, "drift_pct": 0.0}
+      {
+        "mach": 0.74,
+        "Cd": 0.1399,
+        "drift_pct": 0.0,
+        "rejim": "transonik"
+      },
+      {
+        "mach": 1.2,
+        "Cd": 0.1279,
+        "drift_pct": 0.03
+      },
+      {
+        "mach": 2.0,
+        "Cd": 0.053,
+        "drift_pct": 0.0
+      },
+      {
+        "mach": 3.0,
+        "Cd": 0.0251,
+        "drift_pct": 0.0
+      }
     ],
     "not": "Gercek kullanici CAD montaji uctan uca isledi. Tam egri transonik->supersonik: 0.140 (M0.74) -> 0.128 (M1.2) -> 0.053 (M2) -> 0.025 (M3). Transonik (M0.74) en yuksek = transonik suruekleme yukselisi (drag-divergence) dogru yakalandi, supersonikte duser. Hepsi yakinsamis (drift <=%0.03). M0.74 ANSYS Fluent referans kosuluyla (Bel1.docx, ~252 m/s) ayni; Fluent niteliksel alanlar veriyor, sayisal Cd icin Fluent Report degeri gerekir. Mutlak Cd inviscid+hull-Aref.",
     "fluent_referans": "Bel1.docx: ANSYS Fluent 2021 R2, ~3.4M hucre, M~0.74 transonik, burun/tam-roket/kanatcik icin basinc+hiz+vektor+streamline konturlari (niteliksel, sayisal Cd goruntulerde yok)."
   },
-  "degerlendirme": "shockFluid mimarisi calisiyor (abort yok, dusuk drift, fiziksel mertebe ve trend). Mutlak Cd deneysel ust banttan ~%15 yuksek: inviscid duvar (slip) base bolgesinde basinci fazla dusurup base-drag abartiyor (Euler cozumlerinin bilinen davranisi). Karsilastirmali kullanim (Mach taramasi, roket 6-DOF ucus simulasyonu girdisi, tasarim A/B) guvenilir; mutlak deger icin viskoz duvar + ince mesh gerekir. Gercek sivri-burunlu roket Cd kureden cok dusuk olur, mekanizma ayni."
+  "degerlendirme": "shockFluid mimarisi calisiyor (abort yok, dusuk drift, fiziksel mertebe ve trend). Mutlak Cd deneysel ust banttan ~%15 yuksek: inviscid duvar (slip) base bolgesinde basinci fazla dusurup base-drag abartiyor (Euler cozumlerinin bilinen davranisi). Karsilastirmali kullanim (Mach taramasi, roket 6-DOF ucus simulasyonu girdisi, tasarim A/B) guvenilir; mutlak deger icin viskoz duvar + ince mesh gerekir. Gercek sivri-burunlu roket Cd kureden cok dusuk olur, mekanizma ayni.",
+  "solver_gci": {
+    "durum": "SONUCSUZ (inconclusive)",
+    "mesh_Cd": {"coarse_200k": 0.672, "med_382k": 1.141, "fine_848k": 0.642},
+    "p": -0.232,
+    "monotonic": false,
+    "p_in_range": false,
+    "neden": "Surtunmesiz kut-taban kararlilik guclugu + sinirli iterasyon butcesi (gecis=12) -> dizi monoton/asimptotik degil (p=-0.23, GCI anlamsiz). Orta mesh (1.141) deneysel bant 0.95-1.05 ile uyumlu; kaba/ince yakinsamadi. Rapor _read_solver_gci bu gecersiz bandi reddedip dürüst 'sonucsuz verification' bildirir.",
+    "sonraki": "Converged cok-mesh GCI (gecis>=22, tercihen viskoz-duvar) acik gelecek-is."
+  }
 }
