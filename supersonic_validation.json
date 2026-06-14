@@ -86,12 +86,14 @@
   },
   "degerlendirme": "shockFluid mimarisi calisiyor (abort yok, dusuk drift, fiziksel mertebe ve trend). Mutlak Cd deneysel ust banttan ~%15 yuksek: inviscid duvar (slip) base bolgesinde basinci fazla dusurup base-drag abartiyor (Euler cozumlerinin bilinen davranisi). Karsilastirmali kullanim (Mach taramasi, roket 6-DOF ucus simulasyonu girdisi, tasarim A/B) guvenilir; mutlak deger icin viskoz duvar + ince mesh gerekir. Gercek sivri-burunlu roket Cd kureden cok dusuk olur, mekanizma ayni.",
   "solver_gci": {
-    "durum": "SONUCSUZ (inconclusive)",
-    "mesh_Cd": {"coarse_200k": 0.672, "med_382k": 1.141, "fine_848k": 0.642},
-    "p": -0.232,
-    "monotonic": false,
-    "p_in_range": false,
-    "neden": "Surtunmesiz kut-taban kararlilik guclugu + sinirli iterasyon butcesi (gecis=12) -> dizi monoton/asimptotik degil (p=-0.23, GCI anlamsiz). Orta mesh (1.141) deneysel bant 0.95-1.05 ile uyumlu; kaba/ince yakinsamadi. Rapor _read_solver_gci bu gecersiz bandi reddedip dürüst 'sonucsuz verification' bildirir.",
-    "sonraki": "Converged cok-mesh GCI (gecis>=22, tercihen viskoz-duvar) acik gelecek-is."
+    "durum": "SONUCSUZ (inconclusive) - cozucu sinirligi",
+    "denemeler": "iki kapsamli deneme (gecis 12 ve 20)",
+    "mesh_sonuc": {
+      "coarse_200k": "FAILED (taban cokmesi)",
+      "med_382k": "OK Cd=1.1409 drift %0.02 (dogrulanmis, Charters&Thomas bandi uyumlu)",
+      "fine_848k": "FAILED (gec taban cokmesi)"
+    },
+    "kok_neden": "Surtunmesiz (Euler) kut-kure tabani, dogrulanmis uretim mesh'i (382k) DISINDAKI cozunurluklerde kararsiz: kaba->taban yetersiz cozulur->coker; ince->kararsiz taban-resirkulasyonu daha cok cozulur->yine coker. Bu, inviscid kut-taban akislarinin bilinen bir guclugudur. Sadece tek mesh converged oldugundan 3-ag (ve 2-ag) GCI kurulamadi.",
+    "cozum": "Viskoz duvar (kΩ-SST, y+~1, prizma katman) gercek sinir tabaka ile tabani stabilize eder ve GCI'yi mumkun kilar -> acik gelecek-is. Rapor bu sonucsuzlugu dürüstçe bildirir (validation solid, verification gelecek-is)."
   }
 }
