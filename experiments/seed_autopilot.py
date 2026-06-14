@@ -82,6 +82,16 @@ _bt = trimesh.util.concatenate([
     _x_axis(trimesh.creation.cylinder(radius=0.07, height=1.5)),
     _x_axis(trimesh.creation.cone(radius=0.07, height=0.25)).apply_translation((0.85, 0, 0))])
 add(_bt, "rok_boattail", "roket")
+# çok-kademeli: iki farklı çaplı silindir (kademeli gövde)
+_ms = trimesh.util.concatenate([
+    _x_axis(trimesh.creation.cylinder(radius=0.09, height=0.9)).apply_translation((-0.45, 0, 0)),
+    _x_axis(trimesh.creation.cylinder(radius=0.06, height=1.0)).apply_translation((0.5, 0, 0))])
+add(_ms, "rok_2kademe", "roket")
+add(_x_axis(trimesh.creation.cylinder(radius=0.12, height=1.2)), "rok_sisman_LD5", "roket")
+add(_x_axis(trimesh.creation.cylinder(radius=0.035, height=2.0)), "rok_LD28", "roket")
+add(_x_axis(trimesh.creation.capsule(radius=0.08, height=1.0)), "rok_kapsul_burun", "roket")
+add(_fins(_x_axis(trimesh.creation.cylinder(radius=0.06, height=1.3)), 0.06, -0.55, 0.18),
+    "rok_buyukfin", "roket")
 
 # ── UÇAK/KANAT: yassı (H küçük), geniş; dikdörtgen/sivri/delta/süpürme/gövdeli ─
 add(trimesh.creation.box(extents=(0.9, 1.8, 0.06)), "uca_AR2", "ucak")
@@ -109,13 +119,27 @@ _dv2 = np.array([[0, 0, -.02], [1.4, .6, -.02], [1.4, -.6, -.02],
 add(trimesh.Trimesh(vertices=_dv2, faces=_df), "uca_delta2", "ucak")
 # düşük-açıklık trapez kanat (yassı, W/L~1.3)
 add(trimesh.creation.box(extents=(1.0, 1.3, 0.05)), "uca_trapez", "ucak")
+# yüksek-açıklık planör kanadı (AR~8)
+add(trimesh.creation.box(extents=(0.3, 2.4, 0.035)), "uca_planor_AR8", "ucak")
+# uçan kanat (düşük-açıklık, harmanlanmış yassı)
+add(trimesh.creation.box(extents=(1.2, 1.7, 0.09)), "uca_ucankanat", "ucak")
+# kanard: ana kanat + küçük ön kanat
+_cn = trimesh.util.concatenate([
+    trimesh.creation.box(extents=(0.6, 1.8, 0.05)),
+    trimesh.creation.box(extents=(0.25, 0.7, 0.04)).apply_translation((0.7, 0, 0))])
+add(_cn, "uca_kanard", "ucak")
+# NOT: biplan eklenmedi — kanatlar arası boşluk bbox'ı "yassı" göstermiyor;
+# bbox-metrik tabanlı sınıflandırıcı için temsili kötü bir kanonik örnek.
 
-# ── MULTIKOPTER: kompakt + çok kollu (quad/hexa/octo, X ve +) ────────────────
+# ── MULTIKOPTER: kompakt + çok kollu (quad/hexa/octo/tri, X ve +) ────────────
 add(_rotor(0.25, 4), "mlt_quad1", "multikopter")
 add(_rotor(0.30, 4), "mlt_quad2", "multikopter")
 add(_rotor(0.22, 4, arm_w=0.05), "mlt_quad_ince", "multikopter")
 add(_rotor(0.28, 6), "mlt_hexa", "multikopter")
 add(_rotor(0.32, 8), "mlt_octo", "multikopter")
+add(_rotor(0.26, 3), "mlt_tri", "multikopter")
+add(_rotor(0.40, 4, arm_w=0.09), "mlt_buyuk", "multikopter")
+add(_rotor(0.16, 4, arm_w=0.04), "mlt_racing", "multikopter")
 
 # ── GENEL: küt/bluff (küre/küp/elipsoid/kısa silindir) ───────────────────────
 add(trimesh.creation.box(extents=(0.5, 0.5, 0.5)), "gen_kup", "genel")
@@ -125,6 +149,18 @@ _elip = trimesh.creation.icosphere(subdivisions=3, radius=0.25)
 _elip.apply_scale([1.8, 1.0, 1.0])           # prolat ama L/D~1.8 (slender değil)
 add(_elip, "gen_elipsoid", "genel")
 add(trimesh.creation.box(extents=(0.6, 0.5, 0.4)), "gen_kutu", "genel")
+# kapsül (küt yuvarlak, L/D~2 — slender değil)
+add(_x_axis(trimesh.creation.capsule(radius=0.18, height=0.25)), "gen_kapsul", "genel")
+# gözyaşı/bluff prolat (L/D~2.2 — slender değil, küt)
+_tear = trimesh.creation.icosphere(subdivisions=3, radius=0.22)
+_tear.apply_scale([2.2, 1.0, 1.0])
+add(_tear, "gen_gozyasi", "genel")
+# hafif basık elipsoid — küt (aşırı yassı değil, multikopterle karışmasın)
+_obl = trimesh.creation.icosphere(subdivisions=3, radius=0.3)
+_obl.apply_scale([1.0, 1.0, 0.7])
+add(_obl, "gen_oblat", "genel")
+# kısa-geniş silindir (varil)
+add(trimesh.creation.cylinder(radius=0.25, height=0.45), "gen_varil", "genel")
 
 ap.SEED.write_text("\n".join(json.dumps(c, ensure_ascii=False) for c in cases) + "\n",
                    encoding="utf-8")
