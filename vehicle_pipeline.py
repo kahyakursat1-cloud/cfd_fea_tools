@@ -109,9 +109,14 @@ def prepare_geometry(path, out_dir: Path, progress_cb=None) -> tuple[Path, dict]
 
     before_wt = bool(m.is_watertight)
     n_face0 = len(m.faces)
-    m.process(validate=True)                    # tekil nokta birleştirme + dejenere üçgen temizliği
-    if len(m.faces) != n_face0:
-        info["onarimlar"].append(f"dejenere/yinelenen üçgen temizliği ({n_face0}→{len(m.faces)})")
+    try:
+        m.process(validate=True)                # tekil nokta birleştirme + dejenere üçgen temizliği
+        if len(m.faces) != n_face0:
+            info["onarimlar"].append(f"dejenere/yinelenen üçgen temizliği ({n_face0}→{len(m.faces)})")
+    except Exception:
+        # trimesh fix_winding bazı çok-parçalı/tutarsız sarımlı mesh'lerde çöker;
+        # onarımı atla, ham mesh ile devam et (analiz yine de koşar).
+        info["onarimlar"].append("uyarı: tam topoloji onarımı atlandı (sarım tutarsız)")
     try:
         trimesh.repair.fix_normals(m)
         info["onarimlar"].append("normal/sarım onarımı")
