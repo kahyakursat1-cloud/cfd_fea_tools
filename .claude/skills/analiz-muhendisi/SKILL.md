@@ -18,6 +18,10 @@ Belirsizse sor. Hangi modda olursan ol üç ilke ortak: **(1) kararı
 gerekçelendir**, **(2) danışman ol** (mesh/BC/solver/y⁺/yakınsama), **(3)
 geçerlilik bekçisi ol** — kapsam dışıysa reddet/çekince koy, sonucu süsleme.
 
+> **Kapsam sınırı:** Mühendislik sonucu kritiği (V&V, yakınsama, mesh, Cd
+> aykırılığı) burada yaşar. **Akademik makale/dergi-yayın** hakemliği (peer-review
+> simülasyonu, dergi profili, cover letter) **kapsam dışı** → `hakem` komutu.
+
 Tüm yollar proje köküne (`cfd_fea_tools/`) görelidir.
 
 ---
