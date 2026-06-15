@@ -69,8 +69,29 @@ def test_hybrid_subtypes_in_library_and_preset():
     assert cfg["rejim"] == "subsonic" and cfg.get("aoa_listesi")
 
 
+def test_real_seed_anchors_loaded():
+    # internet-CAD gerçek-dünya çapaları kütüphaneye karışır (gerçek oranlar)
+    cases = ap._load_cases()
+    real = [c for c in cases if c["dosya"].startswith("real:")]
+    assert real, "gerçek-dünya çapaları yüklenmeli"
+    assert all(c["kaynak"].startswith("internet-CAD") for c in real)
+    # roket çapası mevcut (bbox tavanı uçak↔kaldırıcı gövdede; roket temiz ayrışır)
+    assert any(c["onayli_tip"] == "roket" for c in real)
+    assert all(c["metrik"].get("planform_frontal") is not None for c in real)
+
+
+def test_planform_frontal_in_features():
+    # planform/frontal ayırt edici boyut olarak k-NN vektöründe yer alır
+    a = ap._features({"L_D": 2.2, "W_L": 0.7, "H_L": 0.25, "H_W": 0.4,
+                      "planform_frontal": 2.7, "govde": 1})
+    b = ap._features({"L_D": 2.2, "W_L": 0.7, "H_L": 0.25, "H_W": 0.4,
+                      "planform_frontal": 4.0, "govde": 1})
+    assert a != b and len(a) == 6           # pf farkı vektörü değiştirir
+
+
 def test_learned_vote_knn(tmp_path, monkeypatch):
     monkeypatch.setattr(ap, "SEED", tmp_path / "seed.jsonl")
+    monkeypatch.setattr(ap, "REAL_SEED", tmp_path / "real.jsonl")
     monkeypatch.setattr(ap, "MEMORY", tmp_path / "mem.jsonl")
     assert ap.learned_vote({"L_D": 11, "W_L": 0.06, "H_L": 0.05, "H_W": 1.0}) is None
     for _ in range(10):
@@ -83,6 +104,7 @@ def test_learned_vote_knn(tmp_path, monkeypatch):
 def test_learned_overrides_rule(tmp_path, monkeypatch):
     # kural 'genel' der ama kütüphane güçlü 'multikopter' derse öğrenilen kazanır
     monkeypatch.setattr(ap, "SEED", tmp_path / "seed.jsonl")
+    monkeypatch.setattr(ap, "REAL_SEED", tmp_path / "real.jsonl")
     monkeypatch.setattr(ap, "MEMORY", tmp_path / "mem.jsonl")
     m = {"L_D": 1.2, "W_L": 0.7, "H_L": 0.25, "H_W": 0.35, "govde": 1}
     for _ in range(10):
@@ -95,6 +117,7 @@ def test_learned_overrides_rule(tmp_path, monkeypatch):
 
 def test_cd_outlier_flags_anomaly(tmp_path, monkeypatch):
     monkeypatch.setattr(ap, "SEED", tmp_path / "seed.jsonl")
+    monkeypatch.setattr(ap, "REAL_SEED", tmp_path / "real.jsonl")
     monkeypatch.setattr(ap, "MEMORY", tmp_path / "mem.jsonl")
     for _ in range(6):
         ap.record_case({"L_D": 12, "W_L": 0.05, "H_L": 0.05, "H_W": 1.0, "govde": 1},

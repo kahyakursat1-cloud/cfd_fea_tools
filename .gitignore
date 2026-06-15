@@ -107,3 +107,8 @@ test_materials_export.csv
 # çağırır; kaynak ağacımıza dahil değil.
 Construct2D/
 auto_pilot_memory.jsonl
+
+# ─── İndirilen gerçek-dünya CAD modelleri (üçüncü-taraf STL, MB boyutlu) ───
+# experiments/ingest_real.py URL'lerden indirir; yalnız türetilen metrikler
+# (auto_pilot_real_seed.jsonl, 6 sayı/model) commit'lenir, STL'ler değil.
+experiments/real_geo/

@@ -20,6 +20,9 @@ from vehicle_pipeline import inspect_geometry, prepare_geometry
 # SEED: uzman (hakem) etiketli kanonik taban — uygulamayla birlikte gelir (commit'li).
 # MEMORY: çalışma-zamanı öğrenmesi — kullanıcı onayladıkça büyür (gitignore'da).
 SEED = Path(__file__).parent / "auto_pilot_seed.jsonl"
+# REAL_SEED: internetten indirilen gerçek CAD modellerinin hakem-etiketli
+# metrikleri (gerçek-dünya oranları; sentetik idealize plakaların açığını kapatır).
+REAL_SEED = Path(__file__).parent / "auto_pilot_real_seed.jsonl"
 MEMORY = Path(__file__).parent / "auto_pilot_memory.jsonl"
 MIN_CASES = 8        # bu sayıdan az onaylı vaka varken yalnız kural-tabanlı
 # Temel tipler (kural+k-NN) + hibrit alt-tipler (yalnız k-NN ile öğrenilir).
@@ -35,11 +38,14 @@ def _features(metrik: dict) -> list:
     """k-NN için AĞIRLIKLI normalize özellik vektörü (her özellik √w ile ölçeklenir,
     Öklid mesafesi ağırlıklı olur). Ağırlıklar fizikseldir: yassılık (H/L) ve
     incelik (L/D) sınıfı en çok ayırır; W/L belirsizdir (delta W/L≈1 ama yassı)."""
-    w = {"L_D": 1.3, "W_L": 0.6, "H_L": 2.0, "H_W": 1.5, "govde": 0.7}
+    # planform/frontal: kanat (planform»frontal) ile küt/kaldırıcı gövdeyi ayırır;
+    # gerçek-dünya CAD'lerinde gövdeli uçağı kaldırıcı gövdeden kısmen ayrıştırır.
+    w = {"L_D": 1.3, "W_L": 0.6, "H_L": 2.0, "H_W": 1.5, "govde": 0.7, "pf": 1.2}
     f = [min(metrik.get("L_D", 0), 30) / 30, metrik.get("W_L", 0),
          metrik.get("H_L", 0), metrik.get("H_W", 0),
-         min(metrik.get("govde", 1), 8) / 8]
-    sw = [w["L_D"], w["W_L"], w["H_L"], w["H_W"], w["govde"]]
+         min(metrik.get("govde", 1), 8) / 8,
+         min(metrik.get("planform_frontal", 0), 20) / 20]
+    sw = [w["L_D"], w["W_L"], w["H_L"], w["H_W"], w["govde"], w["pf"]]
     return [fi * (wi ** 0.5) for fi, wi in zip(f, sw)]
 
 
@@ -57,7 +63,7 @@ def record_case(metrik: dict, otopilot_tip: str, onayli_tip: str,
 def _load_cases() -> list:
     """Uzman-etiketli SEED tabanı + çalışma-zamanı MEMORY birleştirilir."""
     out = []
-    for src in (SEED, MEMORY):
+    for src in (SEED, REAL_SEED, MEMORY):
         if not src.exists():
             continue
         for line in src.read_text(encoding="utf-8").splitlines():
