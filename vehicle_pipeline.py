@@ -179,6 +179,32 @@ def _hull_projected_area(vertices: np.ndarray, drop_axis: int) -> float:
         return float((mx[0]-mn[0]) * (mx[1]-mn[1]))
 
 
+def _thin_flatness(m: trimesh.Trimesh, nb: int = 12) -> float:
+    """Açıklık (en-uzun eksen) boyunca yerel yassılık profilinin alt-yüzdeliği:
+    her dilimde kalınlık(en-ince eksen)/kiriş(orta eksen). İnce kaldırma yüzeyi
+    (kanat) düşük (~0.1), kalın harmanlanmış/küt gövde yüksek (~0.4–1.0) verir.
+    Yönelimden bağımsız (eksenler ekstent'e göre sıralanır)."""
+    mm = m
+    while len(mm.vertices) < 400:          # düşük-poligon (box) → yoğunlaştır
+        mm = mm.subdivide()
+    V = np.asarray(mm.vertices, float)
+    V = V - V.mean(0)
+    order = np.argsort(V.max(0) - V.min(0))           # küçük→büyük eksen
+    a_long, a_mid, a_thin = order[2], order[1], order[0]
+    y = V[:, a_long]
+    edges = np.linspace(y.min(), y.max(), nb + 1)
+    flat = []
+    for i in range(nb):
+        sel = (y >= edges[i]) & (y < edges[i + 1])
+        if int(sel.sum()) < 5:
+            continue
+        chord = float(np.ptp(V[sel, a_mid]))
+        thick = float(np.ptp(V[sel, a_thin]))
+        if chord > 1e-9:
+            flat.append(thick / chord)
+    return float(np.percentile(flat, 20)) if flat else 1.0
+
+
 def inspect_geometry(stl_path: Path) -> dict:
     m = trimesh.load(str(stl_path), force="mesh")
     if not isinstance(m, trimesh.Trimesh):
@@ -194,6 +220,7 @@ def inspect_geometry(stl_path: Path) -> dict:
         "on_alan_m2": round(_hull_projected_area(m.vertices, 0), 5),     # akış +x
         "planform_alan_m2": round(_hull_projected_area(m.vertices, 2), 5),  # üstten
         "ince_kalinlik_m": (lambda t: round(t, 5) if t else None)(estimate_thin_thickness(m)),
+        "ince_yassilik": round(_thin_flatness(m), 4),    # kanat-inceliği (bbox-üstü)
     }
 
 

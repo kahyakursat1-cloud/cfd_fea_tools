@@ -40,12 +40,17 @@ def _features(metrik: dict) -> list:
     incelik (L/D) sınıfı en çok ayırır; W/L belirsizdir (delta W/L≈1 ama yassı)."""
     # planform/frontal: kanat (planform»frontal) ile küt/kaldırıcı gövdeyi ayırır;
     # gerçek-dünya CAD'lerinde gövdeli uçağı kaldırıcı gövdeden kısmen ayrıştırır.
-    w = {"L_D": 1.3, "W_L": 0.6, "H_L": 2.0, "H_W": 1.5, "govde": 0.7, "pf": 1.2}
+    # ince_yassilik (bbox-üstü): kanat-inceliği; gövdeli uçağı kaldırıcı/küt
+    # gövdeden ayırmada bbox oranlarının yetmediği yerde ek sinyal.
+    w = {"L_D": 1.3, "W_L": 0.6, "H_L": 2.0, "H_W": 1.5, "govde": 0.7,
+         "pf": 1.2, "yass": 1.4}
+    iy = metrik.get("ince_yassilik")
     f = [min(metrik.get("L_D", 0), 30) / 30, metrik.get("W_L", 0),
          metrik.get("H_L", 0), metrik.get("H_W", 0),
          min(metrik.get("govde", 1), 8) / 8,
-         min(metrik.get("planform_frontal", 0), 20) / 20]
-    sw = [w["L_D"], w["W_L"], w["H_L"], w["H_W"], w["govde"], w["pf"]]
+         min(metrik.get("planform_frontal", 0), 20) / 20,
+         min(iy if iy is not None else 1.0, 1.0)]
+    sw = [w["L_D"], w["W_L"], w["H_L"], w["H_W"], w["govde"], w["pf"], w["yass"]]
     return [fi * (wi ** 0.5) for fi, wi in zip(f, sw)]
 
 
@@ -143,7 +148,8 @@ def classify_vehicle(geo: dict) -> dict:
     conf = score[vtype] / total if total else 0.3
     metrik = {"L_D": round(slender, 2), "W_L": round(span_ratio, 2),
               "H_L": round(compact, 2), "H_W": round(flatness, 2),
-              "planform_frontal": round(planform_ratio, 2), "govde": bodies}
+              "planform_frontal": round(planform_ratio, 2), "govde": bodies,
+              "ince_yassilik": geo.get("ince_yassilik")}
     out = {"tip": vtype, "guven": round(conf, 2), "metrik": metrik,
            "gerekce": reasons, "kural_tip": vtype}
     # Öğrenme: birikmiş kütüphane yeterliyse k-NN oyunu harmanla

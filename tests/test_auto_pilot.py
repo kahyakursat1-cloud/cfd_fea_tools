@@ -86,7 +86,18 @@ def test_planform_frontal_in_features():
                       "planform_frontal": 2.7, "govde": 1})
     b = ap._features({"L_D": 2.2, "W_L": 0.7, "H_L": 0.25, "H_W": 0.4,
                       "planform_frontal": 4.0, "govde": 1})
-    assert a != b and len(a) == 6           # pf farkı vektörü değiştirir
+    assert a != b and len(a) == 7           # pf farkı vektörü değiştirir
+
+
+def test_thin_flatness_in_features():
+    # bbox-üstü kanat-inceliği özelliği: ince kanat (0.1) ≠ kalın gövde (0.45)
+    base = {"L_D": 2.2, "W_L": 0.7, "H_L": 0.25, "H_W": 0.4,
+            "planform_frontal": 3.0, "govde": 1}
+    wing = ap._features({**base, "ince_yassilik": 0.10})
+    body = ap._features({**base, "ince_yassilik": 0.45})
+    assert wing != body
+    # eksik (None) → güvenli varsayılan (küt=1.0), çökmez
+    assert len(ap._features({**base, "ince_yassilik": None})) == 7
 
 
 def test_learned_vote_knn(tmp_path, monkeypatch):
