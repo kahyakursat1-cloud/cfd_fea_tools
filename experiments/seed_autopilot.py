@@ -78,6 +78,27 @@ def _tiltrotor(span=1.6, fuse=0.8, pod=0.18):
     return trimesh.util.concatenate(parts)
 
 
+def _quadplane(span=1.6, chord=0.4, boom=0.5):
+    """Sabit-kanat VTOL (quadplane): yatay kanat + 4 DAĞITIK dikey rotor podu
+    (tilt-rotorun 2 uç-podundan farklı: ön/arka booma dağılmış 4 rotor)."""
+    parts = [trimesh.creation.box(extents=(chord, span, 0.05))]
+    for sx in (1, -1):
+        for sy in (1, -1):
+            p = trimesh.creation.cylinder(radius=0.05, height=0.24)   # belirgin dikey rotor podu
+            p.apply_translation((sx * boom, sy * span * 0.30, 0))
+            parts.append(p)
+    return trimesh.util.concatenate(parts)
+
+
+def _lifting_body(L=1.4, W=0.8, H=0.35):
+    """Kaldırıcı gövde / uzay-uçağı: kalın harmanlanmış gövde (ayrık ince kanat
+    YOK). İmza: orta yassılık (H/L~0.25), geniş (W/L~0.55), L/D~2-3 — roket
+    (yuvarlak) ile kanat (çok ince) arasında, ikisinden de ayrı."""
+    body = trimesh.creation.icosphere(subdivisions=3, radius=0.5)
+    body.apply_scale([L, W, H])          # elipsoid -> kaldırıcı gövde oranları
+    return body
+
+
 cases = []
 
 
@@ -204,6 +225,22 @@ add(_tiltrotor(1.4, 0.7, 0.16), "tr_kucuk", "tilt_rotor")
 add(_tiltrotor(1.8, 0.9, 0.20), "tr_v22", "tilt_rotor")
 add(_tiltrotor(1.5, 0.75, 0.24), "tr_uzunpod", "tilt_rotor")
 add(_tiltrotor(1.7, 0.85, 0.18), "tr_genis", "tilt_rotor")
+
+# ── HİBRİT: SABİT-KANAT VTOL / QUADPLANE (kanat + 4 dağıtık rotor) ───────────
+add(_quadplane(1.6, 0.40, 0.50), "qp_orta", "kanatli_vtol")
+add(_quadplane(1.8, 0.45, 0.55), "qp_buyuk", "kanatli_vtol")
+add(_quadplane(1.4, 0.35, 0.45), "qp_kucuk", "kanatli_vtol")
+add(_quadplane(2.0, 0.50, 0.60), "qp_uzun", "kanatli_vtol")
+add(_quadplane(1.5, 0.38, 0.48), "qp_kompakt", "kanatli_vtol")
+add(_quadplane(1.7, 0.42, 0.52), "qp_genis", "kanatli_vtol")
+
+# ── HİBRİT: KALDIRICI GÖVDE / UZAY-UÇAĞI (kalın harmanlanmış gövde) ──────────
+add(_lifting_body(1.4, 0.8, 0.35), "lg_orta", "kaldirici_govde")
+add(_lifting_body(1.6, 0.9, 0.40), "lg_buyuk", "kaldirici_govde")
+add(_lifting_body(1.2, 0.7, 0.30), "lg_kucuk", "kaldirici_govde")
+add(_lifting_body(1.8, 1.0, 0.42), "lg_uzun", "kaldirici_govde")
+add(_lifting_body(1.5, 0.75, 0.38), "lg_dar", "kaldirici_govde")
+add(_lifting_body(1.3, 0.85, 0.32), "lg_yassi", "kaldirici_govde")
 
 ap.SEED.write_text("\n".join(json.dumps(c, ensure_ascii=False) for c in cases) + "\n",
                    encoding="utf-8")

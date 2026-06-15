@@ -427,7 +427,9 @@ class AnalyzerWindow(QMainWindow):
         import auto_pilot
         adlar = {"roket": "Roket", "ucak": "Uçak/İHA",
                  "multikopter": "Multikopter", "genel": "Genel",
-                 "kanatli_roket": "Kanatlı Roket/Füze", "tilt_rotor": "Tilt-Rotor/VTOL"}
+                 "kanatli_roket": "Kanatlı Roket/Füze", "tilt_rotor": "Tilt-Rotor/VTOL",
+                 "kanatli_vtol": "Sabit-kanat VTOL (quadplane)",
+                 "kaldirici_govde": "Kaldırıcı Gövde / Uzay-uçağı"}
         secenekler = [adlar[t] for t in auto_pilot.TIPLER]
         cur = list(auto_pilot.TIPLER).index(cfg["tip"])
         sec, ok = QInputDialog.getItem(
