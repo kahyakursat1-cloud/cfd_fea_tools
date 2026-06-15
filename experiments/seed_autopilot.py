@@ -137,6 +137,18 @@ add(_x_axis(trimesh.creation.cylinder(radius=0.035, height=2.0)), "rok_LD28", "r
 add(_x_axis(trimesh.creation.capsule(radius=0.08, height=1.0)), "rok_kapsul_burun", "roket")
 add(_fins(_x_axis(trimesh.creation.cylinder(radius=0.06, height=1.3)), 0.06, -0.55, 0.18),
     "rok_buyukfin", "roket")
+# yoğunlaştırma: ara L/D'ler, 3-fin, konik-burunlu gövde, çok-şişman
+add(_x_axis(trimesh.creation.cylinder(radius=0.06, height=1.4)), "rok_LD12", "roket")
+add(_x_axis(trimesh.creation.cylinder(radius=0.045, height=2.3)), "rok_LD25", "roket")
+add(_fins(_x_axis(trimesh.creation.cylinder(radius=0.06, height=1.5)), 0.06, -0.62, 0.12, n=3),
+    "rok_3fin", "roket")
+# konik burun + silindir gövde (sivri uçlu roket)
+_cn_rok = trimesh.util.concatenate([
+    _x_axis(trimesh.creation.cylinder(radius=0.07, height=1.4)).apply_translation((-0.3, 0, 0)),
+    _x_axis(trimesh.creation.cone(radius=0.07, height=0.5)).apply_translation((0.95, 0, 0))])
+add(_cn_rok, "rok_konikburun", "roket")
+add(_x_axis(trimesh.creation.cylinder(radius=0.13, height=1.0)), "rok_sisman_LD4", "roket")
+add(_x_axis(trimesh.creation.capsule(radius=0.05, height=1.7)), "rok_ogive_uzun", "roket")
 
 # ── UÇAK/KANAT: yassı (H küçük), geniş; dikdörtgen/sivri/delta/süpürme/gövdeli ─
 add(trimesh.creation.box(extents=(0.9, 1.8, 0.06)), "uca_AR2", "ucak")
@@ -174,6 +186,26 @@ _cn = trimesh.util.concatenate([
     trimesh.creation.box(extents=(0.6, 1.8, 0.05)),
     trimesh.creation.box(extents=(0.25, 0.7, 0.04)).apply_translation((0.7, 0, 0))])
 add(_cn, "uca_kanard", "ucak")
+# yoğunlaştırma: ara AR'ler, taper, T-kuyruk, daha keskin süpürme
+add(trimesh.creation.box(extents=(0.7, 1.6, 0.06)), "uca_AR3", "ucak")
+add(trimesh.creation.box(extents=(0.35, 2.6, 0.04)), "uca_AR7", "ucak")
+# konik/taper kanat (kök geniş, uç dar) — elle trapez plaka
+_tp = np.array([[-.35, 0, -.025], [.35, 0, -.025], [.12, 1.2, -.025], [-.12, 1.2, -.025],
+                [.12, -1.2, -.025], [-.12, -1.2, -.025],
+                [-.35, 0, .025], [.35, 0, .025], [.12, 1.2, .025], [-.12, 1.2, .025],
+                [.12, -1.2, .025], [-.12, -1.2, .025]])
+_tpf = [[0, 1, 2], [0, 2, 3], [0, 4, 1], [0, 5, 4], [6, 8, 7], [6, 9, 8],
+        [6, 7, 10], [6, 10, 11], [0, 3, 9], [0, 9, 6], [1, 7, 8], [1, 8, 2],
+        [0, 6, 11], [0, 11, 5], [1, 4, 10], [1, 10, 7]]
+add(trimesh.Trimesh(vertices=_tp, faces=_tpf), "uca_taper", "ucak")
+# T-kuyruk: ana kanat + arkada küçük yatay stabilizatör (yassı kalır)
+_tt = trimesh.util.concatenate([
+    trimesh.creation.box(extents=(0.5, 2.0, 0.05)),
+    trimesh.creation.box(extents=(0.25, 0.8, 0.04)).apply_translation((-0.6, 0, 0))])
+add(_tt, "uca_tkuyruk", "ucak")
+_sw2 = trimesh.creation.box(extents=(0.65, 1.9, 0.05))
+_sw2.apply_transform(trimesh.transformations.rotation_matrix(np.deg2rad(35), [0, 0, 1]))
+add(_sw2, "uca_supurme35", "ucak")
 # NOT: biplan eklenmedi — kanatlar arası boşluk bbox'ı "yassı" göstermiyor;
 # bbox-metrik tabanlı sınıflandırıcı için temsili kötü bir kanonik örnek.
 
@@ -186,6 +218,12 @@ add(_rotor(0.32, 8), "mlt_octo", "multikopter")
 add(_rotor(0.26, 3), "mlt_tri", "multikopter")
 add(_rotor(0.40, 4, arm_w=0.09), "mlt_buyuk", "multikopter")
 add(_rotor(0.16, 4, arm_w=0.04), "mlt_racing", "multikopter")
+# yoğunlaştırma: Y6, daha çok kol/açıklık, ara boyutlar
+add(_rotor(0.27, 3, arm_w=0.08), "mlt_y6", "multikopter")
+add(_rotor(0.34, 6, arm_w=0.07), "mlt_hexa_genis", "multikopter")
+add(_rotor(0.20, 4, arm_w=0.05), "mlt_quad_kucuk", "multikopter")
+add(_rotor(0.36, 8, arm_w=0.08), "mlt_octo_buyuk", "multikopter")
+add(_rotor(0.24, 6, arm_w=0.05), "mlt_hexa_ince", "multikopter")
 
 # ── GENEL: küt/bluff (küre/küp/elipsoid/kısa silindir) ───────────────────────
 add(trimesh.creation.box(extents=(0.5, 0.5, 0.5)), "gen_kup", "genel")
@@ -207,6 +245,14 @@ _obl.apply_scale([1.0, 1.0, 0.7])
 add(_obl, "gen_oblat", "genel")
 # kısa-geniş silindir (varil)
 add(trimesh.creation.cylinder(radius=0.25, height=0.45), "gen_varil", "genel")
+# yoğunlaştırma: yarım küre, küt koni, dik silindir, büyük top
+_yk = trimesh.creation.icosphere(subdivisions=3, radius=0.3)
+_yk.apply_scale([1.0, 1.0, 0.55])            # basık yarımküre-benzeri kubbe
+add(_yk, "gen_kubbe", "genel")
+add(_x_axis(trimesh.creation.cone(radius=0.28, height=0.5)), "gen_kutkoni", "genel")
+add(trimesh.creation.cylinder(radius=0.18, height=0.50), "gen_dik_silindir", "genel")
+add(trimesh.creation.icosphere(subdivisions=3, radius=0.35), "gen_buyuk_kure", "genel")
+add(trimesh.creation.box(extents=(0.45, 0.55, 0.5)), "gen_blok", "genel")
 
 # ── HİBRİT: KANATLI ROKET/FÜZE — gövde-BASKIN + ORTA kanat (füze gibi) ───────
 # (kanatlar gövdeyi gölgelemeyecek kadar küçük; yuvarlak çekirdek H/W'de görünür,
@@ -217,6 +263,9 @@ add(_winged_rocket(1.4, 0.06, 0.34, -0.1), "kr_kucuk", "kanatli_roket")
 add(_winged_rocket(2.2, 0.08, 0.42, 0.3), "kr_uzun", "kanatli_roket")
 add(_winged_rocket(1.5, 0.06, 0.38, 0.1), "kr_seyir", "kanatli_roket")
 add(_winged_rocket(1.7, 0.07, 0.48, 0.0), "kr_genis", "kanatli_roket")
+add(_winged_rocket(2.0, 0.075, 0.38, -0.2), "kr_uzun_darkanat", "kanatli_roket")
+add(_winged_rocket(1.3, 0.055, 0.36, 0.15), "kr_kisa", "kanatli_roket")
+add(_winged_rocket(1.9, 0.08, 0.50, 0.25), "kr_genis_uzun", "kanatli_roket")
 
 # ── HİBRİT: TILT-ROTOR / VTOL (kanat + eksenel gövde + dikey rotor podları) ──
 add(_tiltrotor(1.6, 0.8, 0.18), "tr_orta", "tilt_rotor")
@@ -225,6 +274,9 @@ add(_tiltrotor(1.4, 0.7, 0.16), "tr_kucuk", "tilt_rotor")
 add(_tiltrotor(1.8, 0.9, 0.20), "tr_v22", "tilt_rotor")
 add(_tiltrotor(1.5, 0.75, 0.24), "tr_uzunpod", "tilt_rotor")
 add(_tiltrotor(1.7, 0.85, 0.18), "tr_genis", "tilt_rotor")
+add(_tiltrotor(2.2, 1.1, 0.20), "tr_buyukacik", "tilt_rotor")
+add(_tiltrotor(1.6, 0.8, 0.26), "tr_uzunpod2", "tilt_rotor")
+add(_tiltrotor(1.45, 0.72, 0.18), "tr_kompakt", "tilt_rotor")
 
 # ── HİBRİT: SABİT-KANAT VTOL / QUADPLANE (kanat + 4 dağıtık rotor) ───────────
 add(_quadplane(1.6, 0.40, 0.50), "qp_orta", "kanatli_vtol")
@@ -233,6 +285,9 @@ add(_quadplane(1.4, 0.35, 0.45), "qp_kucuk", "kanatli_vtol")
 add(_quadplane(2.0, 0.50, 0.60), "qp_uzun", "kanatli_vtol")
 add(_quadplane(1.5, 0.38, 0.48), "qp_kompakt", "kanatli_vtol")
 add(_quadplane(1.7, 0.42, 0.52), "qp_genis", "kanatli_vtol")
+add(_quadplane(1.9, 0.48, 0.58), "qp_buyukacik", "kanatli_vtol")
+add(_quadplane(1.5, 0.36, 0.44), "qp_dar", "kanatli_vtol")
+add(_quadplane(1.65, 0.44, 0.54), "qp_orta2", "kanatli_vtol")
 
 # ── HİBRİT: KALDIRICI GÖVDE / UZAY-UÇAĞI (kalın harmanlanmış gövde) ──────────
 add(_lifting_body(1.4, 0.8, 0.35), "lg_orta", "kaldirici_govde")
@@ -241,6 +296,9 @@ add(_lifting_body(1.2, 0.7, 0.30), "lg_kucuk", "kaldirici_govde")
 add(_lifting_body(1.8, 1.0, 0.42), "lg_uzun", "kaldirici_govde")
 add(_lifting_body(1.5, 0.75, 0.38), "lg_dar", "kaldirici_govde")
 add(_lifting_body(1.3, 0.85, 0.32), "lg_yassi", "kaldirici_govde")
+add(_lifting_body(1.7, 0.85, 0.36), "lg_uzun_dar", "kaldirici_govde")
+add(_lifting_body(1.45, 0.95, 0.40), "lg_genis", "kaldirici_govde")
+add(_lifting_body(1.55, 0.8, 0.34), "lg_orta2", "kaldirici_govde")
 
 ap.SEED.write_text("\n".join(json.dumps(c, ensure_ascii=False) for c in cases) + "\n",
                    encoding="utf-8")
