@@ -56,6 +56,19 @@ def test_seed_library_loaded():
     assert {"roket", "ucak", "genel"}.issubset(tipler)
 
 
+def test_hybrid_subtypes_in_library_and_preset():
+    # hibrit alt-tipler seed'de var ve CFD preset'ine eşlenir
+    tipler = {c["onayli_tip"] for c in ap._load_cases()}
+    assert "kanatli_roket" in tipler and "tilt_rotor" in tipler
+    assert ap.PRESET_MAP["kanatli_roket"] == "roket"      # füze → süpersonik roket preset
+    assert ap.PRESET_MAP["tilt_rotor"] == "ucak"          # VTOL → kaldırma-ilgili
+    cfg = {"kalite": "standart", "guven": 0.7}
+    ap.apply_type_settings(cfg, "kanatli_roket")
+    assert cfg["rejim"] == "supersonic" and cfg["vehicle_preset"] == "roket"
+    ap.apply_type_settings(cfg, "tilt_rotor")
+    assert cfg["rejim"] == "subsonic" and cfg.get("aoa_listesi")
+
+
 def test_learned_vote_knn(tmp_path, monkeypatch):
     monkeypatch.setattr(ap, "SEED", tmp_path / "seed.jsonl")
     monkeypatch.setattr(ap, "MEMORY", tmp_path / "mem.jsonl")

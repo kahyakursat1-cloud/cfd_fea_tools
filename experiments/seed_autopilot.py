@@ -54,6 +54,30 @@ def _rotor(arm, n=4, arm_w=0.07):
     return trimesh.util.concatenate(parts)
 
 
+def _winged_rocket(L=1.6, r=0.06, span=0.6, x_wing=0.0):
+    """Kanatlı roket/füze: ince yuvarlak gövde + yatay kanat + kuyruk fini.
+    İmza: slender (roket) AMA yatay kanat -> H/W<1, planform yüksek (HİBRİT)."""
+    body = _x_axis(trimesh.creation.cylinder(radius=r, height=L))
+    wing = trimesh.creation.box(extents=(0.28 * span, span, 0.025))
+    wing.apply_translation((x_wing, 0, 0))
+    tail = trimesh.creation.box(extents=(0.18 * span, 0.45 * span, 0.02))
+    tail.apply_translation((-0.42 * L, 0, 0))
+    return trimesh.util.concatenate([body, wing, tail])
+
+
+def _tiltrotor(span=1.6, fuse=0.8, pod=0.18):
+    """Tilt-rotor/VTOL: yatay kanat + eksenel gövde + 2 dikey rotor podu.
+    İmza: kanat-baskın AMA podlar dikey-boyut ekler (H/L artar) + çok gövde."""
+    wing = trimesh.creation.box(extents=(0.38, span, 0.06))
+    body = _x_axis(trimesh.creation.cylinder(radius=0.06, height=fuse))
+    parts = [wing, body]
+    for s in (1, -1):
+        p = trimesh.creation.cylinder(radius=0.05, height=pod)
+        p.apply_translation((0.05, s * span * 0.45, 0))   # kanat ucunda dikey pod
+        parts.append(p)
+    return trimesh.util.concatenate(parts)
+
+
 cases = []
 
 
@@ -119,8 +143,9 @@ _dv2 = np.array([[0, 0, -.02], [1.4, .6, -.02], [1.4, -.6, -.02],
 add(trimesh.Trimesh(vertices=_dv2, faces=_df), "uca_delta2", "ucak")
 # düşük-açıklık trapez kanat (yassı, W/L~1.3)
 add(trimesh.creation.box(extents=(1.0, 1.3, 0.05)), "uca_trapez", "ucak")
-# yüksek-açıklık planör kanadı (AR~8)
-add(trimesh.creation.box(extents=(0.3, 2.4, 0.035)), "uca_planor_AR8", "ucak")
+# NOT: çıplak AR8 plank eklenmedi — aşırı dar (W/L≈0.12) çıplak kanat,
+# yana yatmış slender gövdeye benzer (bbox-metrik sınırı); AR6 yüksek-açıklığı
+# zaten temsil ediyor. Gerçek planörün gövdesi vardır (uca_govdeli kapsıyor).
 # uçan kanat (düşük-açıklık, harmanlanmış yassı)
 add(trimesh.creation.box(extents=(1.2, 1.7, 0.09)), "uca_ucankanat", "ucak")
 # kanard: ana kanat + küçük ön kanat
@@ -161,6 +186,24 @@ _obl.apply_scale([1.0, 1.0, 0.7])
 add(_obl, "gen_oblat", "genel")
 # kısa-geniş silindir (varil)
 add(trimesh.creation.cylinder(radius=0.25, height=0.45), "gen_varil", "genel")
+
+# ── HİBRİT: KANATLI ROKET/FÜZE — gövde-BASKIN + ORTA kanat (füze gibi) ───────
+# (kanatlar gövdeyi gölgelemeyecek kadar küçük; yuvarlak çekirdek H/W'de görünür,
+#  böylece açıklık-baskın yüksek-AR kanattan ayrılır)
+add(_winged_rocket(1.6, 0.06, 0.40, 0.0), "kr_orta", "kanatli_roket")
+add(_winged_rocket(1.8, 0.07, 0.45, 0.2), "kr_buyukkanat", "kanatli_roket")
+add(_winged_rocket(1.4, 0.06, 0.34, -0.1), "kr_kucuk", "kanatli_roket")
+add(_winged_rocket(2.2, 0.08, 0.42, 0.3), "kr_uzun", "kanatli_roket")
+add(_winged_rocket(1.5, 0.06, 0.38, 0.1), "kr_seyir", "kanatli_roket")
+add(_winged_rocket(1.7, 0.07, 0.48, 0.0), "kr_genis", "kanatli_roket")
+
+# ── HİBRİT: TILT-ROTOR / VTOL (kanat + eksenel gövde + dikey rotor podları) ──
+add(_tiltrotor(1.6, 0.8, 0.18), "tr_orta", "tilt_rotor")
+add(_tiltrotor(2.0, 1.0, 0.22), "tr_buyuk", "tilt_rotor")
+add(_tiltrotor(1.4, 0.7, 0.16), "tr_kucuk", "tilt_rotor")
+add(_tiltrotor(1.8, 0.9, 0.20), "tr_v22", "tilt_rotor")
+add(_tiltrotor(1.5, 0.75, 0.24), "tr_uzunpod", "tilt_rotor")
+add(_tiltrotor(1.7, 0.85, 0.18), "tr_genis", "tilt_rotor")
 
 ap.SEED.write_text("\n".join(json.dumps(c, ensure_ascii=False) for c in cases) + "\n",
                    encoding="utf-8")

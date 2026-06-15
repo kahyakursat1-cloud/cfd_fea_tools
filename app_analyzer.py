@@ -426,7 +426,8 @@ class AnalyzerWindow(QMainWindow):
 
         import auto_pilot
         adlar = {"roket": "Roket", "ucak": "Uçak/İHA",
-                 "multikopter": "Multikopter", "genel": "Genel"}
+                 "multikopter": "Multikopter", "genel": "Genel",
+                 "kanatli_roket": "Kanatlı Roket/Füze", "tilt_rotor": "Tilt-Rotor/VTOL"}
         secenekler = [adlar[t] for t in auto_pilot.TIPLER]
         cur = list(auto_pilot.TIPLER).index(cfg["tip"])
         sec, ok = QInputDialog.getItem(
@@ -442,8 +443,9 @@ class AnalyzerWindow(QMainWindow):
         self._pending_learn = {"metrik": cfg["metrik"], "otopilot_tip": cfg.get("kural_tip"),
                                "onayli_tip": onayli, "dosya": self.model_path.name,
                                "cfg": dict(cfg)}
-        # Ayarları (gerekirse düzeltilmiş) tipe göre kur, uygun koşuyu tetikle
-        self._set_combo(self.cmb_type, cfg["tip"])
+        # Ayarları (gerekirse düzeltilmiş) tipe göre kur, uygun koşuyu tetikle.
+        # Hibrit tipler CFD preset'ine (vehicle_preset) eşlenir.
+        self._set_combo(self.cmb_type, cfg.get("vehicle_preset", cfg["tip"]))
         self._set_combo(self.cmb_quality, cfg["kalite"])
         if cfg["rejim"] == "supersonic":
             self._set_combo(self.cmb_rejim, "supersonik")

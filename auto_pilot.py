@@ -22,7 +22,11 @@ from vehicle_pipeline import inspect_geometry, prepare_geometry
 SEED = Path(__file__).parent / "auto_pilot_seed.jsonl"
 MEMORY = Path(__file__).parent / "auto_pilot_memory.jsonl"
 MIN_CASES = 8        # bu sayıdan az onaylı vaka varken yalnız kural-tabanlı
-TIPLER = ("roket", "ucak", "multikopter", "genel")
+# Temel tipler (kural+k-NN) + hibrit alt-tipler (yalnız k-NN ile öğrenilir).
+TIPLER = ("roket", "ucak", "multikopter", "genel", "kanatli_roket", "tilt_rotor")
+# Sınıflandırma tipi -> CFD preset (vehicle_pipeline.VEHICLE_PRESETS anahtarı)
+PRESET_MAP = {"roket": "roket", "ucak": "ucak", "multikopter": "multikopter",
+              "genel": "genel", "kanatli_roket": "roket", "tilt_rotor": "ucak"}
 
 
 def _features(metrik: dict) -> list:
@@ -202,6 +206,7 @@ def apply_type_settings(cfg: dict, tip: str, dogrulama_modu: bool = False) -> di
     """Verilen araç tipine göre analiz ayarlarını (rejim/Mach/hız/AoA) + planı kur.
     auto_configure VE kullanıcı tip düzeltmesi bu eşlemeyi kullanır."""
     cfg["tip"] = tip
+    cfg["vehicle_preset"] = PRESET_MAP.get(tip, "genel")   # CFD preset (GUI/pipeline)
     q = cfg.get("kalite", "standart")
     gv = f"%{cfg.get('guven', 0) * 100:.0f}"
     # önceki tipe ait anahtarları temizle
@@ -213,11 +218,25 @@ def apply_type_settings(cfg: dict, tip: str, dogrulama_modu: bool = False) -> di
         cfg["plan"] = (f"Roket (güven {gv}) → süpersonik Cd-Mach taraması "
                        f"M={cfg['mach_listesi']}, {q} mesh, "
                        f"{'viskoz kΩ-SST' if dogrulama_modu else 'inviscid + analitik sürtünme'}.")
+    elif tip == "kanatli_roket":
+        cfg.update(rejim="supersonic", mach_listesi=[0.8, 1.2, 2.0, 3.0],
+                   viscous=dogrulama_modu, analiz="cd_mach")
+        cfg["plan"] = (f"Kanatlı roket/füze (güven {gv}) → süpersonik Cd-Mach "
+                       f"M={cfg['mach_listesi']}, {q} mesh. HİBRİT: gövde roket gibi "
+                       f"(dalga sürüklemesi) AMA kanatlar kaldırma/manevra üretir; "
+                       f"sürükleme eğrisi geçerli, kaldırma için ek polar gerekebilir.")
     elif tip == "ucak":
         cfg.update(rejim="subsonic", hiz_ms=25.0, aoa_listesi=[0, 2, 4, 6, 8],
                    analiz="polar")
         cfg["plan"] = (f"Sabit-kanat (güven {gv}) → ses-altı polar tarama "
                        f"AoA={cfg['aoa_listesi']}°, U∞=25 m/s, {q} mesh (kaldırma-ilgili).")
+    elif tip == "tilt_rotor":
+        cfg.update(rejim="subsonic", hiz_ms=22.0, aoa_listesi=[0, 2, 4, 6, 8],
+                   analiz="polar")
+        cfg["plan"] = (f"Tilt-rotor/VTOL (güven {gv}) → ses-altı polar (yatay uçuş) "
+                       f"AoA={cfg['aoa_listesi']}°, U∞=22 m/s, {q} mesh. HİBRİT: kanat "
+                       f"kaldırması + rotor itkisi; bu analiz YATAY-uçuş aerodinamiğidir, "
+                       f"dikey/geçiş rejimi (pervane indüklemesi) ayrı ele alınmalı.")
     elif tip == "multikopter":
         cfg.update(rejim="subsonic", hiz_ms=12.0, analiz="tekil")
         cfg["plan"] = (f"Multikopter (güven {gv}) → ses-altı tekil analiz "
