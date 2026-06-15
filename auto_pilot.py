@@ -54,15 +54,50 @@ def _features(metrik: dict) -> list:
     return [fi * (wi ** 0.5) for fi, wi in zip(f, sw)]
 
 
+def referee_gate(metrik: dict, vtype: str, result: dict | None) -> dict:
+    """Hakem (analiz-mühendisi) hükmünü ÖĞRENME KAPISINA çevirir: bir koşunun
+    Cd'si güvenilir bir çapa mı, yoksa şüpheli mi? Şüpheli Cd kütüphaneye temiz
+    çapa olarak GİRMEZ (yalnız tip etiketi öğrenilir) — kötü sonuç kirletmesin.
+    Döner: {cd_guvenilir, suspect, gerekce[]}."""
+    r = result or {}
+    cd = r.get("Cd_toplam")
+    nedenler = []
+    if r.get("status") == "FAILED":
+        nedenler.append("koşu başarısız (status=FAILED)")
+    if cd is None:
+        nedenler.append("Cd yok")
+    elif cd <= 0 or cd > 5.0:
+        nedenler.append(f"fiziksel olmayan Cd={cd}")
+    drift = r.get("Cd_drift_pct")
+    if drift is not None and abs(drift) > 5.0:
+        nedenler.append(f"zayıf yakınsama (Cd drift %{abs(drift):.1f} > %5)")
+    if cd is not None and cd > 0:
+        flag = cd_outlier(vtype, cd)        # geçmiş dağılıma göre aykırılık
+        if flag:
+            nedenler.append("aykırı: " + flag)
+    cd_guvenilir = (cd is not None) and not nedenler
+    return {"cd_guvenilir": cd_guvenilir, "suspect": bool(nedenler), "gerekce": nedenler}
+
+
 def record_case(metrik: dict, otopilot_tip: str, onayli_tip: str,
-                result: dict | None = None, dosya: str = "") -> None:
-    """Onaylanan/düzeltilen analizi kütüphaneye ekle (öğrenme sinyali)."""
+                result: dict | None = None, dosya: str = "") -> dict:
+    """Onaylanan/düzeltilen analizi kütüphaneye ekle (öğrenme sinyali).
+    Hakem-kapısı: Cd yalnız GÜVENİLİRSE temiz çapa olur; şüpheliyse cd_toplam=None
+    yazılır (tip yine öğrenilir) + suspect bayrağı/gerekçe saklanır. Gate döner."""
+    gate = referee_gate(metrik, onayli_tip, result)
+    cd_raw = (result or {}).get("Cd_toplam")
     rec = {"ts": time.strftime("%Y-%m-%d %H:%M"), "dosya": dosya, "metrik": metrik,
            "otopilot_tip": otopilot_tip, "onayli_tip": onayli_tip,
-           "cd_toplam": (result or {}).get("Cd_toplam"),
+           "cd_toplam": cd_raw if gate["cd_guvenilir"] else None,
            "rejim": (result or {}).get("rejim")}
+    if gate["suspect"]:
+        rec["suspect"] = True
+        rec["suspect_neden"] = "; ".join(gate["gerekce"])
+        if cd_raw is not None:
+            rec["cd_ham"] = cd_raw           # şeffaflık: ham değer saklanır, çapa değil
     with open(MEMORY, "a", encoding="utf-8") as f:
         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    return gate
 
 
 def _load_cases() -> list:

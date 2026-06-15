@@ -476,10 +476,15 @@ class AnalyzerWindow(QMainWindow):
         self._pending_learn = None
         try:
             import auto_pilot
-            auto_pilot.record_case(pend["metrik"], pend["otopilot_tip"],
-                                   pend["onayli_tip"], result, pend["dosya"])
+            gate = auto_pilot.record_case(pend["metrik"], pend["otopilot_tip"],
+                                          pend["onayli_tip"], result, pend["dosya"])
             n = len(auto_pilot._load_cases())
-            self._log(f"🧠 Öğrenme: vaka kaydedildi (kütüphane: {n}).")
+            if gate.get("suspect"):
+                # hakem-kapısı: tip etiketi öğrenildi ama Cd güvenilmez → çapa değil
+                self._log(f"🧠 Öğrenme: tip etiketi kaydedildi; C_D ŞÜPHELİ, çapa "
+                          f"alınmadı (kütüphane: {n}). Neden: {'; '.join(gate.get('gerekce', []))}")
+            else:
+                self._log(f"🧠 Öğrenme: vaka + güvenilir C_D çapası kaydedildi (kütüphane: {n}).")
             cfg = dict(pend.get("cfg") or {})
             cfg["tip"] = pend["onayli_tip"]
             yorum = auto_pilot.narrate(cfg, result if isinstance(result, dict) else None)

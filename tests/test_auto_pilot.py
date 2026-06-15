@@ -126,6 +126,27 @@ def test_learned_overrides_rule(tmp_path, monkeypatch):
     assert res.get("ogrenilen") is not None
 
 
+def test_referee_gate_blocks_bad_cd(tmp_path, monkeypatch):
+    # hakem-kapısı: zayıf yakınsama / fiziksel-olmayan / aykırı Cd temiz çapa OLMAZ
+    monkeypatch.setattr(ap, "SEED", tmp_path / "seed.jsonl")
+    monkeypatch.setattr(ap, "REAL_SEED", tmp_path / "real.jsonl")
+    monkeypatch.setattr(ap, "MEMORY", tmp_path / "mem.jsonl")
+    m = {"L_D": 12, "W_L": 0.05, "H_L": 0.05, "H_W": 1.0, "govde": 1}
+    # temiz koşu → güvenilir çapa
+    g_ok = ap.record_case(m, "roket", "roket", {"Cd_toplam": 0.22, "Cd_drift_pct": 1.0})
+    assert g_ok["cd_guvenilir"] and not g_ok["suspect"]
+    # zayıf yakınsama (drift %12) → şüpheli, çapa değil
+    g_drift = ap.record_case(m, "roket", "roket", {"Cd_toplam": 0.3, "Cd_drift_pct": 12.0})
+    assert g_drift["suspect"] and not g_drift["cd_guvenilir"]
+    # fiziksel olmayan Cd → şüpheli
+    assert ap.record_case(m, "roket", "roket", {"Cd_toplam": -0.1})["suspect"]
+    # şüpheli vakalar cd_toplam=None yazılır → temiz Cd dağılımına girmez
+    cds = [c.get("cd_toplam") for c in ap._load_cases() if c.get("cd_toplam")]
+    assert cds == [0.22]                 # yalnız güvenilir koşu çapa oldu
+    # tip etiketi yine de öğrenildi (şüpheli vakalar da kütüphanede, metrik+tip)
+    assert len(ap._load_cases()) == 3
+
+
 def test_cd_outlier_flags_anomaly(tmp_path, monkeypatch):
     monkeypatch.setattr(ap, "SEED", tmp_path / "seed.jsonl")
     monkeypatch.setattr(ap, "REAL_SEED", tmp_path / "real.jsonl")
