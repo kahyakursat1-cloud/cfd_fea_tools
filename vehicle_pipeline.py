@@ -84,6 +84,29 @@ def convert_cad_to_stl(cad_path: Path, out_stl: Path) -> Path:
     return out_stl
 
 
+def canonicalize_axial(m: trimesh.Trimesh):
+    """Belirgin EKSENEL cismi (roket/füze: bir uzun eksen + YUVARLAK kesit)
+    uçuş yönüne hizalar — uzun eksen→+x, ince eksen→+z. run_supersonic uzun-ekseni
+    ≈+x ve frontal'i +x izdüşümü varsayar; dikey/yan modellenen roketi düzeltir.
+
+    Yassı/kanat (kesit yuvarlak değil) ve küt cisimlere DOKUNMAZ — onlar zaten
+    doğru sınıflanır ve ses-altı yolu nose_axis parametresini kullanır (çift-dönme
+    riski yok). Döner: (mesh, açıklama|None)."""
+    ext = (m.bounds[1] - m.bounds[0]).astype(float)
+    order = np.argsort(ext)                       # küçük→büyük eksen indeksi
+    e_thin, e_mid, e_long = ext[order[0]], ext[order[1]], ext[order[2]]
+    # eksenel imza: belirgin uzun eksen (e_long»e_mid) + yuvarlak kesit (e_mid≈e_thin)
+    if not (e_long >= 2.0 * e_mid and e_mid <= 1.7 * e_thin):
+        return m, None
+    long_axis = int(order[2])
+    if long_axis == 0:
+        return m, None                            # zaten +x hizalı
+    axis = [0, 1, 0] if long_axis == 2 else [0, 0, 1]   # z→x: y-ekseni; y→x: z-ekseni
+    out = m.copy()
+    out.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, axis))
+    return out, f"eksenel hizalama: uzun eksen {'xyz'[long_axis]}→x (uçuş yönü)"
+
+
 def prepare_geometry(path, out_dir: Path, progress_cb=None) -> tuple[Path, dict]:
     """Her formatı analiz-hazır tek STL'e indirger: CAD dönüşümü, çok-gövde
     birleştirme, normal/sarım onarımı, delik kapatma. Onarım kaydı döner."""
@@ -130,6 +153,12 @@ def prepare_geometry(path, out_dir: Path, progress_cb=None) -> tuple[Path, dict]
             pass
     info["su_gecirmez_once"] = before_wt
     info["su_gecirmez_sonra"] = bool(m.is_watertight)
+
+    # Yönelim: eksenel cismi (roket/füze) uçuş yönüne hizala (uzun eksen→+x).
+    m, _orient = canonicalize_axial(m)
+    if _orient:
+        info["onarimlar"].append(_orient)
+        info["yonelim"] = _orient
 
     # Birim sezgisi: CAD (STEP/IGES) konvansiyonel mm; çözücü metre bekler.
     # BİLSEM araçları (roket/İHA/dron) 0.05–10 m; >50 birim => mm, ÷1000.

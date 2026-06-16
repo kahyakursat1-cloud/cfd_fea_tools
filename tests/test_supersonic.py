@@ -122,6 +122,25 @@ def test_mesh_metrics_parses_checkmesh(tmp_path):
     assert mm["mesh_ok"] is True
 
 
+def test_canonicalize_axial_orients_rocket():
+    import trimesh
+
+    from vehicle_pipeline import canonicalize_axial
+    # dikey modellenen roket (uzun eksen z) → +x'e hizalanır, ince kesit y/z'de
+    rok_z = trimesh.creation.cylinder(radius=0.05, height=1.6)
+    out, note = canonicalize_axial(rok_z)
+    ext = (out.bounds[1] - out.bounds[0])
+    assert ext[0] > 1.5 and ext[1] < 0.2 and ext[2] < 0.2   # uzun eksen artık x
+    assert note and "x" in note
+    # yassı kanat (yuvarlak kesit değil) → DOKUNULMAZ (None)
+    wing = trimesh.creation.box(extents=(0.5, 2.0, 0.05))
+    assert canonicalize_axial(wing)[1] is None
+    # zaten +x hizalı roket → no-op
+    rok_x = trimesh.creation.cylinder(radius=0.05, height=1.6)
+    rok_x.apply_transform(trimesh.transformations.rotation_matrix(math.pi / 2, [0, 1, 0]))
+    assert canonicalize_axial(rok_x)[1] is None
+
+
 def test_cp_theory_values():
     # M0.74 transonik: durma Cp0>1 (sıkıştırılabilirlik), kritik Cp*<0
     assert sr._isentropic_cp0(0.74) > 1.0
