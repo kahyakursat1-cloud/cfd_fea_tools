@@ -31,8 +31,6 @@ def run_construct2d(airfoil_dat: str, work: Path, name: str,
   nsrf = {nsrf}
   radi = {radi}
   nwke = {nwke}
-  tele = 1.15
-  bunc = 1.15
   fdst = 1.0
   fwkl = 1.0
   fwki = 10.0
@@ -55,11 +53,16 @@ def run_construct2d(airfoil_dat: str, work: Path, name: str,
   dpln = 0.1
 /
 """
-    (work / f"{name}_settings.nml").write_text(nml)
+    # Construct2D ayarları YALNIZCA 'grid_options.in' dosyasından okur (menu.f90:98);
+    # yanlış ad → tüm namelist (radi/topo/jmax) yok sayılır → hep default far-field.
+    (work / "grid_options.in").write_text(nml)
     p = str(work.resolve())
     wsl = f"/mnt/{p[0].lower()}{p[2:].replace(chr(92), '/')}"
     binp = "/mnt/" + str(C2D_BIN.resolve())[0].lower() + str(C2D_BIN.resolve())[2:].replace("\\", "/")
-    cmd = (f'wsl bash -c "cd {wsl} && printf \'GRID\\nSMTH\\nQUIT\\n\' | '
+    # GRID -> alt-menü; SMTH (smoothed yüzey grid) -> stp1 elliptic smoothing ->
+    # "perform more steps (y/n)?" -> n (final smoothing'e geç) -> QUIT.
+    # Eski dizi 'GRID SMTH QUIT' idi: "n" cevabı eksik -> prompt QUIT'i reddedip EOF.
+    cmd = (f'wsl bash -c "cd {wsl} && printf \'GRID\\nSMTH\\nn\\nQUIT\\n\' | '
            f'{binp} {name}.dat > log.c2d 2>&1"')
     subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=600)
     p3d = work / f"{name}.p3d"
