@@ -38,6 +38,17 @@ def test_quality_scales_with_size():
     assert ap._quality_for(1.0, 50_000) == "standart"
 
 
+def test_supersonic_quality_is_coarser():
+    # süpersonik shockFluid explicit/deltaT-limitli → kaba mesh (intractable olmasın)
+    # ses-altı standart kalan geometri, süpersonikte hizli'ye düşer
+    assert ap._quality_for(2.34, 720, "supersonic") == "hizli"   # rocket_tvc vakası
+    assert ap._quality_for(1.0, 50_000, "supersonic") == "hizli"
+    assert ap._quality_for(0.3, 8_000, "supersonic") == "standart"  # çok küçük: makul
+    assert ap._regime_for_tip("roket") == "supersonic"
+    assert ap._regime_for_tip("kaldirici_govde") == "supersonic"
+    assert ap._regime_for_tip("ucak") == "subsonic"
+
+
 def test_narrate_referee_offline(monkeypatch):
     # API anahtarı olmadan bile hakem-seviyesi eleştirel yorum (çevrimdışı)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)

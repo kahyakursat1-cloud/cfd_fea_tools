@@ -201,12 +201,26 @@ def classify_vehicle(geo: dict) -> dict:
     return out
 
 
-def _quality_for(lmax_m: float, faces: int) -> str:
-    """Boyut + üçgen sayısına göre mesh kalitesi (büyük/karmaşık → daha kaba)."""
+# Süpersonik (yoğunluk-bazlı shockFluid) tipler — explicit, deltaT-limitli çözücü.
+SUPERSONIC_TIPLER = {"roket", "kanatli_roket", "kaldirici_govde"}
+
+
+def _regime_for_tip(tip: str) -> str:
+    return "supersonic" if tip in SUPERSONIC_TIPLER else "subsonic"
+
+
+def _quality_for(lmax_m: float, faces: int, regime: str = "subsonic") -> str:
+    """Boyut + üçgen sayısı + REJİME göre mesh kalitesi. Süpersonik shockFluid
+    explicit/deltaT-limitli: küçük hücre → küçük deltaT → maliyet patlar (~1M hücre
+    saatler sürer). Bu yüzden süpersonikte hücre bütçesi çok daha düşük tutulur."""
+    if regime == "supersonic":
+        if lmax_m < 0.4 and faces < 15_000:
+            return "standart"     # çok küçük/basit: süpersonikte bile makul
+        return "hizli"            # aksi halde kaba mesh — yoksa intractable
     if lmax_m > 3.0 or faces > 200_000:
-        return "hizli"        # büyük/ağır geometri → hücre bütçesini koru
+        return "hizli"            # büyük/ağır geometri → hücre bütçesini koru
     if lmax_m < 0.5 and faces < 20_000:
-        return "hassas"       # küçük/basit → ince çözebiliriz
+        return "hassas"           # küçük/basit → ince çözebiliriz
     return "standart"
 
 
@@ -220,7 +234,8 @@ def auto_configure(stl_path, out_dir="vehicle_runs/_autoprep",
     cls = classify_vehicle(geo)
     tip = cls["tip"]
     lmax = geo["lmax_m"]
-    quality = _quality_for(lmax, geo.get("ucgen_sayisi", 0))
+    regime = _regime_for_tip(tip)
+    quality = _quality_for(lmax, geo.get("ucgen_sayisi", 0), regime)
 
     cfg = {"stl": str(prep), "tip": tip, "kalite": quality,
            "guven": cls["guven"], "metrik": cls["metrik"],
@@ -231,6 +246,12 @@ def auto_configure(stl_path, out_dir="vehicle_runs/_autoprep",
     apply_type_settings(cfg, tip, dogrulama_modu)
 
     uyarilar = []
+    if regime == "supersonic" and lmax > 1.0:
+        uyarilar.append(
+            f"MALİYET: süpersonik shockFluid explicit/deltaT-limitli; Lmax≈{lmax:.1f} m "
+            f"geometride tek nokta saatler sürebilir (~1M hücrede gün mertebesi). "
+            f"Mesh '{quality}' seçildi (kaba). Trend için inviscid yeterli; mutlak Cd "
+            f"veya yakınsamış sonuç için gece-boyu/HPC bütçesi planlayın.")
     if not geo.get("su_gecirmez"):
         uyarilar.append("Geometri su-geçirmez değil; dış-aero için sorun değil ama "
                         "ıslak alan (sürtünme) bir üst-tahmin olabilir.")
