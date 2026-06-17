@@ -614,6 +614,14 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     rw = resolution_warning(geo["lmax_m"], q["bg_div"], case.refinement_max, thin)
     if rw:
         uyarilar.append(rw)
+    # Mesh-kalite uyarısı (reject zaten run_cfd'de elendi; warn-seviyesini yüzeye çıkar)
+    no_max, sk_max = meshq.get("non_ortho_max"), meshq.get("skew_max")
+    if no_max is not None and no_max > NONORTHO_LIMIT:
+        uyarilar.append(f"Mesh non-ortogonallik {no_max:.0f}° > {NONORTHO_LIMIT:.0f} eşiği "
+                        "— gradyan/Cd doğruluğu sınırda (mesh iyileştir)")
+    if sk_max is not None and sk_max > SKEW_LIMIT:
+        uyarilar.append(f"Mesh skewness {sk_max:.1f} > {SKEW_LIMIT:.0f} eşiği "
+                        "— yerel hata kaynağı (mesh iyileştir)")
     if prop:
         base.pervane = prop
         if prop.get("uyari"):
