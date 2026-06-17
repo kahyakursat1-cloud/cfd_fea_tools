@@ -354,13 +354,15 @@ def run_topopt(run_dir, material="aluminum_6061", constraint="y_min",
             nid_to_idx = {int(n): i for i, n in enumerate(frd.node_ids)}
             idx = [nid_to_idx[int(n) + 1] for n in solid_nodes
                    if int(n) + 1 in nid_to_idx]
-            vm_solid = float(vm[idx].max()) / 1e6 if vm is not None and idx else None
-            yld = mat.yield_strength
+            # TO geometrisi jagged/sivri köşeli → tepe von Mises büyük olasılıkla
+            # TEKİLLİK. Tekillik-dayanıklı değerlendirme (vehicle_fea ile aynı).
+            from vehicle_fea import _stress_assessment
+            vm_subset = vm[idx] if (vm is not None and idx) else None
+            sa = _stress_assessment(vm_subset, mat.yield_strength) or {}
             reanaliz = {
                 "max_sehim_mm": round(float(disp.max()) * 1000, 4) if disp is not None else None,
-                "max_vm_kati_MPa": round(vm_solid, 3) if vm_solid else None,
-                "emniyet_faktoru": (round(yld / vm_solid, 2)
-                                    if vm_solid and yld else None),
+                "max_vm_kati_MPa": sa.get("max_von_mises_MPa"),    # geri-uyum alias
+                **sa,
             }
     except Exception as e:
         reanaliz = {"hata": str(e)[:200]}
