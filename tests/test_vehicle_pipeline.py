@@ -7,12 +7,24 @@ from vehicle_pipeline import (
     MESH_QUALITY,
     VEHICLE_PRESETS,
     _hull_projected_area,
+    farfield_domain,
     orientation_matrix,
     parse_checkmesh,
     parse_residuals,
     prepare_geometry,
     resolution_warning,
 )
+
+
+def test_farfield_lift_aware_domain():
+    # Taşıyıcı cisim (ucak) far-field'i küt/eksenelden daha geniş (yanal+upstream)
+    ucak = farfield_domain(VEHICLE_PRESETS["ucak"], alpha_deg=0.0)
+    roket = farfield_domain(VEHICLE_PRESETS["roket"], alpha_deg=0.0)
+    assert ucak[0] >= 7.0 and ucak[2] >= 7.0          # upstream + lateral büyütüldü
+    assert roket == VEHICLE_PRESETS["roket"]["domain"]  # lift_relevant değil → değişmez
+    # Yüksek alfada (güçlü lift) yanal daha da geniş
+    ucak_hi = farfield_domain(VEHICLE_PRESETS["ucak"], alpha_deg=10.0)
+    assert ucak_hi[2] >= ucak[2] and ucak_hi[2] >= 9.0
 
 
 def test_presets_complete_and_consistent():

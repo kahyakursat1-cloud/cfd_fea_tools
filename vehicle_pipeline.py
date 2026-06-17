@@ -57,6 +57,25 @@ MESH_QUALITY = {
     "hassas":   {"end_time": 800, "ref_bump": 1,  "max_cells": 2_500_000, "bg_div": 9},
 }
 
+def farfield_domain(preset: dict, alpha_deg: float = 0.0) -> tuple[float, float, float]:
+    """Far-field domain çarpanları (upstream, downstream, lateral) — rejim/geometri-bilinçli.
+
+    Taşıyıcı (lift_relevant) cisimde sirkülasyon-kaynaklı basınç alanı yanal/yukarı YAVAŞ
+    söner; yakın sınır basınç-drag'i orantısız bozar (bu oturumun far-field dersi; literatür:
+    ses-altı RANS best-practice ≥ büyük domain). Bu yüzden lifting cisimde domain ölçülü
+    büyütülür; yüksek |α|'da (daha çok lift) yanal biraz daha. Küt/eksenel cisim değişmez.
+
+    MALİYET: lifting domain ~%50-100 daha çok taban hücre (hacim ∝ up·lat²). max_cells +
+    bg_div sınırlar; yine de aircraft koşusu bir kademe ağırlaşır — doğruluk/maliyet takası.
+    """
+    up, down, lat = preset["domain"]
+    if preset.get("lift_relevant"):
+        up, down, lat = max(up, 7.0), max(down, 18.0), max(lat, 7.0)
+        if abs(alpha_deg) >= 8.0:          # güçlü lift → daha geniş yan/üst
+            lat = max(lat, 9.0)
+    return (up, down, lat)
+
+
 RESIDUAL_TARGET = 1e-4   # proje kuralı: yakınsama kriteri
 NONORTHO_LIMIT = 70.0
 SKEW_LIMIT = 4.0
@@ -487,6 +506,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     a = math.radians(alpha_deg)
     rmin, rmax = preset["refinement"]
     bump = q["ref_bump"]
+    _dom = farfield_domain(preset, alpha_deg)   # lift-bilinçli far-field
     prop = None
     if pervane_itki_n > 0 and pervane_cap_m > 0:
         prop = propeller_params(pervane_itki_n, pervane_cap_m, velocity, rho)
@@ -506,9 +526,9 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         velocity=velocity,
         flow_direction=(math.cos(a), 0.0, math.sin(a)),
         rho=rho,
-        domain_upstream=preset["domain"][0],
-        domain_downstream=preset["domain"][1],
-        domain_lateral=preset["domain"][2],
+        domain_upstream=_dom[0],
+        domain_downstream=_dom[1],
+        domain_lateral=_dom[2],
         refinement_min=max(1, rmin + bump),
         refinement_max=max(1, rmax + bump),
         end_time=q["end_time"],
@@ -626,9 +646,9 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         coarse = CFDCase(
             name=f"{stem}_kaba", stl_path=stl_path, velocity=velocity,
             flow_direction=(math.cos(a), 0.0, math.sin(a)), rho=rho,
-            domain_upstream=preset["domain"][0],
-            domain_downstream=preset["domain"][1],
-            domain_lateral=preset["domain"][2],
+            domain_upstream=_dom[0],
+            domain_downstream=_dom[1],
+            domain_lateral=_dom[2],
             refinement_min=max(1, rmin + bump - 1),
             refinement_max=max(1, rmax + bump - 1),
             end_time=MESH_QUALITY["hizli"]["end_time"],

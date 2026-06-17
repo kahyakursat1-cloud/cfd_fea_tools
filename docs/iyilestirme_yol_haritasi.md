@@ -59,10 +59,13 @@ Domain/far-field otomatik boyutlama (aşağı) + 1.1 gate ile birlikte GCI'ı ot
 **Neden:** ASME V&V 20: discretization belirsizliği adım-adım. **Emek:** Orta-yüksek.
 **Not:** Airfoil drag GCI ayrı zor problem ([[airfoil-drag-gci-acik]]); önce 3B araç-Cd GCI'a odaklan.
 
-### 2.3 🟡 Far-field / domain otomatik boyutlama
-**Ne:** Domain çarpanlarını geometriye + rejime göre seç; **ses-altı lifting cisimde
-domain'i ≥50-100c yap** (yoksa basınç-drag hatası — bu oturumun far-field dersi). **Neden:**
-Yakın sınır drag'i orantısız bozar. **Emek:** Düşük-orta.
+### 2.3 ✅ Far-field / domain otomatik boyutlama — `farfield_domain()`
+**Yapıldı:** Domain çarpanları geometri-bilinçli. **Taşıyıcı (lift_relevant) cisimde** upstream/
+lateral büyütülür (5→7), yüksek |α|'da yanal daha da (→9); küt/eksenel değişmez. Sirkülasyon-
+kaynaklı basınç alanı yanal yavaş söner → yakın sınır pressure-drag'i bozar (oturum dersi).
+Birim-testli. **Dürüstlük:** lifting koşusu ~%50-100 daha çok taban hücre (hacim ∝ up·lat²) —
+doğruluk/maliyet takası docstring'de; max_cells + bg_div sınırlar. Mutlak kazanç koşuyla
+ölçülmedi (best-practice gerekçeli varsayılan, spekülatif değil).
 
 ### 2.4 🟢 Drag-çıkarımı: far-field/iz momentum-açığı (yüzey-entegrasyona ek)
 **Ne:** Yüzey-entegrasyon drag'i ~1.5 mertebe + TE-duyarlı; far-field/iz yöntemi 2.
