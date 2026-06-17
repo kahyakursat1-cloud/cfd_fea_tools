@@ -80,6 +80,29 @@ Far-field 500c + far-field-drag + ince aile → Cd'nin **0.0092'ye (tam-türbül
 yakınsaması** ve geçerli bir GCI bandı beklenir. Maliyet: 4–5 ince 2B mesh × (steady simpleFoam,
 2-aşama SST→LM) ≈ saatler (2B olduğu için 3B süpersonikten çok daha ucuz; gece-boyu yeterli).
 
+## 5b. Ampirik kampanya sonucu (2026-06-17) — dürüst kapanış
+
+Far-field hipotezini ampirik doğrulamak için ~3 saat / ~20 deneme yapıldı. **Bir
+gerçek kazanım, bir açık blocker:**
+
+**Kazanım — `construct2d_bridge` latent bug'ı düzeltildi (commit'li):** Bridge,
+`radi/topo/jmax` parametrelerini **hiç uygulamıyordu** (namelist yanlış dosya adına
+yazılıyordu, geçersiz değişkenler içeriyordu, interaktif dizi eksikti). Yani projedeki
+TÜM önceki Construct2D çağrıları sessizce default mesh üretmiş. Artık radi=40/200/500
+→ far-field 40/200/500c doğru uygulanıyor. Çalışan O-grid→CFD hattı: `experiments/
+exp_c2d_run.py` (profesyonel grid + plain freestream + `T.setup`).
+
+**Blocker — mesh kalitesi:** İstenen çözünürlükte (jmax=150) Construct2D O-grid
+nonOrtho≈90 üretiyor (elliptic smoothing yakınsamıyor, RMS~0.03) → çözücü diverjyor.
+Smoothing/çözünürlük tuning'i her seferinde başka bir duvar açtı. Bespoke C-grid
+(`cgrid_elliptic`) ise AR-patlaması/lift-bozulması; OF11 nonuniform-freestream BC
+bozuk (PV-BC yolu da kapalı).
+
+**Verdikt:** Airfoil **drag GCI**'ı asimptotik aralığa sokmak, bu donanım+tooling
+ile bir araştırma-seviyesi V&V kampanyası (proper grid generator + far-field BC +
+ince aile + günler). Teşhis (far-field, literatürle kesin) **deliverable**; ampirik
+GCI **gelecek iş**. Lift zaten doğrulanmış (Cl~0.41-0.45, ref 0.44); drag GCI açık.
+
 ## 6. Kaynaklar
 
 1. NASA Turbulence Modeling Resource — NACA0012 validation & grid family (turbmodels.larc.nasa.gov).

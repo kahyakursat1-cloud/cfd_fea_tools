@@ -22,7 +22,8 @@ C2D_BIN = C2D_DIR / "construct2d"
 
 def run_construct2d(airfoil_dat: str, work: Path, name: str,
                     jmax=100, ypls=1.0, recd=3.4e6, radi=15.0,
-                    nsrf=250, nwke=50, topo="OGRD", slvr="ELLP") -> Path:
+                    nsrf=250, nwke=50, topo="OGRD", slvr="ELLP",
+                    stp1=1000, stp2=200) -> Path:
     """Construct2D'yi batch calistir (.nml + GRID/SMTH/QUIT). .p3d dondur."""
     work.mkdir(parents=True, exist_ok=True)
     dat = work / f"{name}.dat"
@@ -42,8 +43,8 @@ def run_construct2d(airfoil_dat: str, work: Path, name: str,
   topo = '{topo}'
   ypls = {ypls}
   recd = {recd}
-  stp1 = 1000
-  stp2 = 200
+  stp1 = {stp1}
+  stp2 = {stp2}
   funi = 0.20
   asmt = 20
 /
