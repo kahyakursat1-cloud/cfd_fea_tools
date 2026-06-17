@@ -103,6 +103,35 @@ def _mechanism_check(max_disp_mm, lmax_m, fixed_n, total_n) -> str | None:
     return None
 
 
+def _stress_assessment(vm_field, yield_mpa: float) -> dict | None:
+    """Tekillik-dayanıklı gerilme özeti. Sivri iç köşede tepe von Mises bir
+    TEKİLLİK'tir (mesh inceldikçe ıraksar) → SF'yi yapay düşürüp yanlış 'güvensiz'
+    verdicti verir. Tepeyle birlikte 99. yüzdelik 'temsili' değeri + oranı raporla;
+    yüksek oran = lokalize tekillik/konsantrasyon (fillet veya mesh-yakınsamayla teyit)."""
+    if vm_field is None or len(vm_field) == 0:
+        return None
+    vm = np.asarray(vm_field, float) / 1e6                 # Pa → MPa
+    peak = float(vm.max())
+    repr_ = float(np.percentile(vm, 99.0))                 # tekillik-robust temsili
+    ratio = peak / repr_ if repr_ > 0 else None
+    singular = bool(ratio and ratio > 2.5)                 # tepe » kütle → hotspot
+
+    def _sf(s):
+        return round(yield_mpa / s, 2) if (s and s > 0 and yield_mpa > 0) else None
+    note = ("Gerilme alanı düzgün; lokalize tekillik yok (tepe ≈ temsili)."
+            if not singular else
+            f"⚠ Lokalize gerilme tepesi (tepe/temsili≈{ratio:.1f}×): büyük olasılıkla "
+            "sivri-köşe TEKİLLİĞİ — tepe-SF muhafazakâr ARTEFAKT olabilir. Fillet ekleyin "
+            "ya da mesh-yakınsamayla teyit edin; karar için temsili-SF'yi dikkate alın.")
+    return {"max_von_mises_MPa": round(peak, 3),
+            "temsili_von_mises_MPa": round(repr_, 3),
+            "tepe_temsili_orani": round(ratio, 2) if ratio else None,
+            "tekillik_suphesi": singular,
+            "emniyet_faktoru": _sf(peak),                  # muhafazakâr (tepe)
+            "emniyet_faktoru_temsili": _sf(repr_),         # tekillik-robust
+            "_gerilme_notu": note}
+
+
 def _material(key: str) -> FEAMaterial:
     m = MATERIAL_LIBRARY[key]   # youngs_modulus MPa, yield MPa
     return FEAMaterial.from_gpa(m.name, m.youngs_modulus / 1000.0,
@@ -311,19 +340,18 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
         disp = frd.displacement_magnitude()
         vm = frd.von_mises()
         max_disp_mm = float(disp.max()) * 1000 if disp is not None else None
-        max_vm_mpa = float(vm.max()) / 1e6 if vm is not None else None
-        sf = (mat.yield_strength_pa / 1e6 / max_vm_mpa) if (max_vm_mpa and
-              mat.yield_strength_pa > 0) else None
         lmax = float((m.bounds[1] - m.bounds[0]).max())
         mech = _mechanism_check(max_disp_mm, lmax, len(fixed), len(m.vertices))
+        sa = _stress_assessment(vm, mat.yield_strength_pa / 1e6) or {}
+        if mech:   # mekanizma → emniyet faktörü anlamsız
+            sa = {**sa, "emniyet_faktoru": None, "emniyet_faktoru_temsili": None}
         out = {"status": "ok", "model": f"kabuk (t={shell_thickness_mm} mm)",
                "malzeme": mat.name, "mesnet": desc,
                "dugum": int(len(m.vertices)), "eleman": int(len(m.faces)),
                "sabit_dugum": int(len(fixed)),
                "toplam_kuvvet_N": mp["toplam_kuvvet_N"],
                "max_sehim_mm": round(max_disp_mm, 4) if max_disp_mm else None,
-               "max_von_mises_MPa": round(max_vm_mpa, 3) if max_vm_mpa else None,
-               "emniyet_faktoru": (None if mech else (round(sf, 2) if sf else None)),
+               **sa,
                "gecersiz": mech,
                "_not": ("Üniform kalınlıklı kabuk: spar/kaburga/iç yapı yok — "
                         "gerçek yapıdan ESNEK taraftadır (sehim üst-sınır eğilimli); "
@@ -396,18 +424,16 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
     disp = frd.displacement_magnitude()
     vm = frd.von_mises()
     max_disp_mm = float(disp.max()) * 1000 if disp is not None else None
-    max_vm_mpa = float(vm.max()) / 1e6 if vm is not None else None
-    sf = (mat.yield_strength_pa / 1e6 / max_vm_mpa) if (max_vm_mpa and
-          mat.yield_strength_pa > 0) else None
-
     mech = _mechanism_check(max_disp_mm, lmax, len(fixed), tet.num_nodes)
+    sa = _stress_assessment(vm, mat.yield_strength_pa / 1e6) or {}
+    if mech:
+        sa = {**sa, "emniyet_faktoru": None, "emniyet_faktoru_temsili": None}
     out = {"status": "ok", "model": "dolu katı", "malzeme": mat.name, "mesnet": desc,
            "dugum": tet.num_nodes, "eleman": tet.num_tets,
            "sabit_dugum": int(len(fixed)),
            "toplam_kuvvet_N": mp["toplam_kuvvet_N"],
            "max_sehim_mm": round(max_disp_mm, 4) if max_disp_mm else None,
-           "max_von_mises_MPa": round(max_vm_mpa, 3) if max_vm_mpa else None,
-           "emniyet_faktoru": (None if mech else (round(sf, 2) if sf else None)),
+           **sa,
            "gecersiz": mech,
            "_not": "Dolu-katı varsayımı: sehim alt-sınır, gerilme yük-yolu "
                    "göstergesi; kabuk/iç yapı modellenmedi."}
@@ -442,15 +468,28 @@ def _append_report(run_dir: Path, out: dict):
     rapor = run_dir / "rapor" / "RAPOR.md"
     if not rapor.exists():
         return
-    sf = out.get("emniyet_faktoru")
+    sf = out.get("emniyet_faktoru")                  # tepe (muhafazakâr)
+    sf_t = out.get("emniyet_faktoru_temsili")        # temsili (tekillik-robust)
+    singular = out.get("tekillik_suphesi")
     sf_s = (">1000" if sf and sf > 1000 else str(sf))
     if out.get("gecersiz"):
         verdict = "❌ GEÇERSİZ (mekanizma)"
-        sf_s = "—"
     else:
-        verdict = ("✅ güvenli" if sf and sf >= 1.5 else
-                   "⚠️ marjinal (SF<1.5)" if sf and sf >= 1.0 else
-                   "❌ yetersiz (SF<1)" if sf else "—")
+        # Tekillik şüphesinde karar TEMSİLİ-SF'ye dayanır (tepe artefakt olabilir).
+        sfk = sf_t if (singular and sf_t) else sf
+        verdict = ("✅ güvenli" if sfk and sfk >= 1.5 else
+                   "⚠️ marjinal (SF<1.5)" if sfk and sfk >= 1.0 else
+                   "❌ yetersiz (SF<1)" if sfk else "—")
+        if singular:
+            verdict += " *(tepe tekilliği → temsili-SF'ye göre)*"
+    vm_line = f"- Max von Mises: **{out['max_von_mises_MPa']} MPa** (tepe)"
+    if singular:
+        vm_line += (f", temsili %99: **{out['temsili_von_mises_MPa']} MPa** "
+                    f"(tepe/temsili {out['tepe_temsili_orani']}×)")
+    sf_line = f"- Emniyet faktörü: tepe **{sf_s}**"
+    if singular and sf_t:
+        sf_line += f", temsili **{sf_t}**"
+    sf_line += f" → {verdict}"
     md = ["\n## 7. Yapısal Kontrol (FEA — CFD basınçlarıyla)\n",
           f"- Model: **{out.get('model', 'dolu katı')}**  ",
           f"- Malzeme: **{out['malzeme']}**, mesnet: {out['mesnet']}  ",
@@ -458,8 +497,8 @@ def _append_report(run_dir: Path, out: dict):
           f"({out['sabit_dugum']} sabit düğüm)  ",
           f"- Aktarılan toplam kuvvet: {out['toplam_kuvvet_N']} N  ",
           f"- Max sehim: **{out['max_sehim_mm']} mm**  ",
-          f"- Max von Mises: **{out['max_von_mises_MPa']} MPa** → "
-          f"Emniyet faktörü: **{sf_s}** {verdict}\n",
+          vm_line + "  ", sf_line + "\n",
+          (f"> ⚠️ *{out['_gerilme_notu']}*\n" if singular and not out.get("gecersiz") else ""),
           (f"> ❌ *{out['gecersiz']}*\n" if out.get("gecersiz") else
            f"> ⚠️ *{out['_not']}*\n")]
     txt = rapor.read_text(encoding="utf-8")
