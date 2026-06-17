@@ -820,6 +820,34 @@ def _wsl_run(wsl_dir: str, command: str, timeout: int) -> subprocess.CompletedPr
     )
 
 
+# Uzun-koşan OF binary'leri: timeout/iptal'de WSL-içi orphan bırakmamak için
+# (Windows-tarafı wsl.exe öldürmek WSL-içi süreç ağacını öldürmüyordu → orphan,
+# aynı case'de çakışma, 50× yavaşlama — bu oturumun pahalı dersi).
+_OF_BINS = ("foamRun", "snappyHexMesh", "blockMesh", "simpleFoam", "potentialFoam",
+            "surfaceFeatures", "mpirun", "decomposePar", "reconstructPar")
+
+
+def _wrap_timeout(command: str, tmo: int) -> tuple[str, list[str]]:
+    """Komutta OF binary varsa WSL-içi GNU timeout ile sar (orphan-önleme).
+    Döndür: (sarılmış_komut, kill_edilecek_binary_listesi)."""
+    bins = [b for b in _OF_BINS if b in command]
+    if not bins:
+        return command, []
+    return f"timeout -k 10 -s TERM {max(tmo - 20, 30)} {command}", bins
+
+
+def _wsl_kill(patterns) -> None:
+    """WSL-içi orphan OF süreçlerini öldür (pkill -9 -f)."""
+    if not patterns:
+        return
+    cmd = "; ".join(f"pkill -9 -f {p} 2>/dev/null" for p in patterns) + "; true"
+    try:
+        subprocess.run(["wsl", "-d", WSL_DISTRO, "--", "bash", "-c", cmd],
+                       capture_output=True, text=True, timeout=30)
+    except Exception:
+        pass
+
+
 def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
              progress_callback=None) -> CFDResult:
     """Case'i kur, mesh'i üret, çöz, sonuçları parse et."""
@@ -833,10 +861,14 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
               tmo: int) -> subprocess.CompletedProcess | None:
         if progress_callback:
             progress_callback(percent, msg)
+        # WSL-içi GNU timeout ile sar: süre aşılırsa WSL kendi süreç ağacını öldürür
+        # (Windows-tarafı tmo backstop, biraz daha yüksek). Orphan'ı kökten önler.
+        wrapped, bins = _wrap_timeout(command, tmo)
         try:
-            r = _wsl_run(wsl_dir, command + f" > {log_name} 2>&1", timeout=tmo)
+            r = _wsl_run(wsl_dir, wrapped + f" > {log_name} 2>&1", timeout=tmo)
         except subprocess.TimeoutExpired as e:
             all_stderr.append(f"TIMEOUT in {log_name}: {e}")
+            _wsl_kill(bins)            # Windows-tarafı aşımı: WSL orphan'larını öldür
             return None
         log_files.append(case_dir / log_name)
         all_stdout.append(f"--- {log_name} ---\n{r.stdout}")

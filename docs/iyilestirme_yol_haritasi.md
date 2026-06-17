@@ -32,11 +32,13 @@ de ve KOŞMA. **Neden:** Bu oturumun en büyük zaman kaybı; diverjans hep köt
 erken bitir (sabit iterasyona kadar koşma). **Neden:** rocket_tvc 2 saat NaN'a koştu;
 clean_rocket gereğinden çok iterasyon. **Emek:** Düşük. (`_cd_converged` çekirdeği var.)
 
-### 1.3 🔴 Süreç-yaşamdöngüsü sağlamlığı
-**Ne:** WSL solver'ı çağıran Python orchestrator iptal edilince **tüm süreç ağacını**
-öldür (pkill foamRun python'u öldürmüyordu → orphan, aynı case'de çakışma, 50× yavaşlama).
-Process-group / job-object ile yönet. **Neden:** Bu oturumda "49 dk'da 542 iter" hayaleti
-buydu. **Emek:** Düşük.
+### 1.3 ✅ Süreç-yaşamdöngüsü sağlamlığı — `_wrap_timeout` + `_wsl_kill`
+**Yapıldı:** Uzun OF adımları (foamRun/snappy/mpirun…) **WSL-içi GNU `timeout -k 10 -s TERM`**
+ile sarılır → süre aşımında WSL kendi süreç ağacını öldürür (Windows-tarafı wsl.exe öldürmek
+WSL-içi ağacı bırakıyordu → orphan, 50× yavaşlama). Ayrıca Windows-tarafı `TimeoutExpired`'da
+`_wsl_kill` ilgili binary'leri `pkill -9 -f` ile temizler (kemer+askı). Birim-testli
+(`test_openfoam_runner`). **Not:** süpersonik yol (`supersonic_cfd`) benzer korumayı ister
+(ayrı kontrol).
 
 ### 1.4 🟡 Maliyet/süre tahmini + ön-uyarı
 **Ne:** Mesh boyutu + rejim + çözücüden tahmini wall-time hesapla; "bu koşu ~X saat,
