@@ -52,3 +52,20 @@ def test_stress_assessment_singularity():
     assert b["emniyet_faktoru"] < 1.0            # tepe → yanlış 'yetersiz'
     assert b["emniyet_faktoru_temsili"] > 2.0    # temsili → doğru 'güvenli'
     assert _stress_assessment(None, 290.0) is None
+
+
+def test_fea_validation_inp_structure():
+    """Ankastre kiriş doğrulama .inp'i: düğüm/eleman yapısı (ccx çalıştırmadan,
+    saf-mantık). Tam analitik doğrulama: experiments/fea_validation.py."""
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "experiments"))
+    import fea_validation as fv
+    out = Path(__file__).resolve().parent.parent / "_fea_val_test.inp"
+    fv.write_inp(out)
+    txt = out.read_text()
+    assert "*ELEMENT, TYPE=C3D8I" in txt
+    assert "*BOUNDARY" in txt and "*CLOAD" in txt
+    assert (fv.nx + 1) * (fv.ny + 1) * (fv.nz + 1) == 625    # düğüm sayısı
+    assert fv.delta_an > 0 and fv.sigma_an > 0               # analitik pozitif
+    out.unlink()
