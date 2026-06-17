@@ -1,0 +1,23 @@
+{
+  "vaka": "Statik aeroelastik burulma diverjansı — partisyonlu FSI doğrulama",
+  "yontem": "1B burulma FE (GJ) ↔ quasi-steady thin-airfoil aero, sabit-nokta iterasyonu. Kapalı-form: q_div=(π/2L)²GJ/(c·e·CLα). ccx/CFD YOK.",
+  "parametre": {
+    "GJ_Nm2": 10000.0,
+    "L_m": 2.0,
+    "c_m": 1.0,
+    "e_m": 0.1,
+    "CLalpha": "2π",
+    "alpha0_deg": 2.0,
+    "n_eleman": 40
+  },
+  "q_div_analitik_Pa": 9817.48,
+  "q_div_FE_Pa": 9818.74,
+  "q_div_hata_pct": 0.013,
+  "tip_twist_hata_pct_0p5qdiv": 0.013,
+  "fsi_yakinsama": {
+    "q_0.95_qdiv": true,
+    "q_1.05_qdiv": false
+  },
+  "sonuc": "GECTI — partisyonlu FSI q_div'i %0.01 yakaladı, sec-büyütmeyi izledi, diverjans eşiğini doğru tespit etti.",
+  "_not": "Birim test: test_fsi_aeroelastic. Figür: fsi_divergence.png. Üretim: python experiments/fsi_divergence.py"
+}
