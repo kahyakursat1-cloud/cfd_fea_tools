@@ -371,6 +371,16 @@ def run_topopt(run_dir, material="aluminum_6061", constraint="y_min",
     _write_rho_vtk(out_dir / "rho.vtk", P, tets, rho)
     stl_ok = _threshold_stl(out_dir / "tasarim.stl", P, tets, rho)
 
+    # Üretilebilirlik (3D-baskı): overhang + en-iyi build-yönü + min-üye
+    uretilebilirlik = None
+    if stl_ok:
+        try:
+            from manufacturability import assess_manufacturability
+            dm = trimesh.load(str(out_dir / "tasarim.stl"), force="mesh")
+            uretilebilirlik = assess_manufacturability(dm, rmin_m=rmin)
+        except Exception as e:
+            uretilebilirlik = {"hata": str(e)[:200]}
+
     fig, ax1 = plt.subplots(figsize=(5, 3))
     ax1.plot([h["iter"] for h in hist], [h["komplians"] for h in hist],
              "o-", color="#1f4e79")
@@ -394,6 +404,7 @@ def run_topopt(run_dir, material="aluminum_6061", constraint="y_min",
            "agirliklar": [round(float(w), 3) for w in wts],
            "tasarim_stl": str(out_dir / "tasarim.stl") if stl_ok else None,
            "rho_vtk": str(out_dir / "rho.vtk"), "yeniden_analiz": reanaliz,
+           "uretilebilirlik": uretilebilirlik,
            "gecmis": hist,
            "_not": ("Tek yük durumu, lineer statik, komplians min. Burkulma/"
                     "yorulma kısıtı yok — ön-tasarım. Dış kabuk pasif-katı.")}

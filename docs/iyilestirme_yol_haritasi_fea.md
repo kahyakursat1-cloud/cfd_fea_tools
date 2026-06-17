@@ -48,11 +48,14 @@ gerilme. **Emek:** Düşük-orta.
 
 ## 2. Topoloji optimizasyonu — üretilebilir + güvenli sonuç
 
-### 2.1 🔴 Üretilebilirlik kısıtları (3D-baskı) — BİLSEM için doğrudan değer
-**Sorun:** Optimize parça basılamıyorsa işe yaramaz. **Ne:** TO formülasyonuna (a)
-**overhang açısı** kısıtı (destek-yapısız basılabilirlik), (b) **min üye boyutu** (ince-duvar
-basılamaz), (c) **build-orientation** + simetri. **Neden:** Atölyede gerçekten basılabilen
-optimize parça. **Emek:** Orta-yüksek. **Kullanım-değeri en yüksek madde.**
+### 2.1 ✅ Üretilebilirlik DEĞERLENDİRMESİ (3D-baskı) — `manufacturability.py`
+**Yapıldı (değerlendirme+danışman):** TO sonucu STL'i için (a) **overhang alanı** (45° kriteri,
+build-plakası hariç), (b) **build-yönü önerisi** (6 eksenden overhang'i en azaltan), (c) **min-üye**
+(filtre yarıçapı rmin vs nozzle×2 basılabilir eşik). `run_topopt` çıktısına `uretilebilirlik`
+alanı eklendi; verdict ✅/⚠️/❌. Saf-geometri, koşusuz, birim-testli. **Kapsam-dürüstlüğü:**
+bu ENFORCE değil DEĞERLENDİRİR (mesh_quality_gate felsefesi) — pratik değerin çoğunu verir
+(öğrenci destek/yönelim ihtiyacını görür). **Kalan (derin):** in-loop Langelaar AM-filtresi
+(tet-mesh'te kırılgan, ayrı doğrulama ister) — gerçek kısıt-enforce isteyince.
 
 ### 2.2 🔴 SIMP filtresi (checkerboard + mesh-bağımlılık)
 **Sorun:** Ham SIMP checkerboard + mesh-bağımlı + blurry sınır üretir. **Ne:** **Yoğunluk/
