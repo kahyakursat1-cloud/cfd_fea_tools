@@ -1,16 +1,37 @@
 {
-  "vaka": "Mesh-GCI kampanyası (KISMİ) — clean_rocket.stl (tip=roket, V=30 m/s, α=0)",
-  "durum": "2/3 seviye başarılı; 'hassas' (≈2.5M hücre) foamRun laptop bütçesini aştı",
+  "vaka": "Mesh-GCI kampanyası — clean_rocket.stl (tip=roket, V=30.0, α=0.0)",
   "seviyeler": [
-    {"seviye": "hizli", "cd": 1.36782, "cells": 342647, "sure_dk": 5},
-    {"seviye": "standart", "cd": 0.47547, "cells": 931937, "sure_dk": 22}
+    {
+      "seviye": "hizli",
+      "cd": 0.27457,
+      "cells": 342938
+    },
+    {
+      "seviye": "standart",
+      "cd": 0.20433,
+      "cells": 931959
+    },
+    {
+      "seviye": "hassas",
+      "cd": 0.15398,
+      "cells": 1981524
+    }
   ],
-  "basarisiz_seviye": "hassas",
-  "bulgular": {
-    "asimptotik_degil": "Cd kaba→orta 1.368→0.475 (%65 düşüş) — iki kaba seviye asimptotik aralıkta DEĞİL; clean_rocket merdiven/çap-çözünürlük sorunu (memory: supersonik-mutlak-cd-intractable). 3-nokta GCI bu geometride bu donanımda anlamlı çıkmaz.",
-    "orphan_onleme_URETIMDE_DOGRULANDI": "hassas foamRun ~50 dk sonra WSL-içi timeout ile TEMİZ öldü (rocket_tvc'deki 2h hang değil); koşu sonrası WSL'de orphan foamRun/mpirun KALMADI (pgrep boş). Bu seansın 1.3 orphan-önleme fix'inin gerçek-koşuda kanıtı.",
-    "diverjans_bekcisi": "Başarılı seviyeler temiz Cd verdi (NaN/inf yok); diverjans bekçisi devrede."
+  "gci": {
+    "p": 1.324,
+    "f_exact": 0.026523,
+    "gci_fine_pct": 103.4689,
+    "gci_med_pct": 77.4767,
+    "asymptotic": 1.863,
+    "monotonic": true,
+    "p_in_range": true
   },
-  "sonuc": "Pipeline 2/3 seviyede çalıştı; ince seviye donanım-sınırlı (dürüst). GCI verdict'i bu non-asimptotik dizide 'asimptotik aralıkta değil' derdi — doğru. Tractable 3-nokta için: daha düşük max_cells ile 3 hafif seviye ya da çap-çözünürlüğü kolay (daha küt/küçük) temiz geometri.",
-  "_not": "Üretim: python experiments/mesh_gci_campaign.py <stl>. Kısmi-kayıt artık seviye başarısız olsa da yazılır."
+  "verdict": "⚠️ Mesh bağımsızlığı GÖSTERİLEMEDİ: GCI=103.4689% ≥ 5.0%",
+  "sure_dk": 48.5,
+  "yorum": {
+    "geometri_fix": "weld_axial_segments ile clean_rocket tek-gövdeye kaynatıldı (önce 3 kopuk parça → Cd çöp 1.37). Artık Cd FİZİKSEL + MONOTON (0.275→0.204→0.154; p=1.324 makul, monotonic=True) — kopuk geometrinin kaosu gitti.",
+    "mesh_bagimsizlik": "GCI=%103, asimptotik oran=1.86 (≈1 değil) → Cd her kademede ~%25 düşüyor; 2M hücre bile ince roketin (0.08m çap) sınır-tabakasını/eğriliğini çözmüyor. Richardson f_exact=0.0265 GÜVENİLMEZ (asimptotik aralık dışı). GCI verdict'i yakınsamamış cevabı DOĞRU işaretledi (ASME V&V 20 işlevi).",
+    "sonuc": "Geometri-fix DOĞRULANDI (fiziksel+monoton Cd); mesh-bağımsız mutlak Cd bu donanımda erişilemez (ince-cisim çözünürlüğü)."
+  },
+  "_not": "ASME V&V 20 discretization belirsizliği. h∝N^(-1/3). compute_gci çekirdeği."
 }
