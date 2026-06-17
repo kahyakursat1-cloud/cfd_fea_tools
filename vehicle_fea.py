@@ -510,6 +510,8 @@ def _append_report(run_dir: Path, out: dict):
           f"- Mesh: {out['dugum']:,} düğüm / {out['eleman']:,} tet "
           f"({out['sabit_dugum']} sabit düğüm)  ",
           f"- Aktarılan toplam kuvvet: {out['toplam_kuvvet_N']} N  ",
+          (f"- Yük durumu: aero-basınç + **{out['g_yuk_n']:g}g** manevra eylemsizliği  "
+           if out.get("g_yuk_n") else "- Yük durumu: yalnız aero-basınç  "),
           f"- Max sehim: **{out['max_sehim_mm']} mm**  ",
           vm_line + "  ", sf_line + "\n",
           (f"> ⚠️ *{out['_gerilme_notu']}*\n" if singular and not out.get("gecersiz") else ""),

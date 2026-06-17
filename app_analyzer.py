@@ -312,6 +312,11 @@ class AnalyzerWindow(QMainWindow):
         self.spn_thick = QDoubleSpinBox(); self.spn_thick.setRange(0.2, 20.0)
         self.spn_thick.setValue(2.0); self.spn_thick.setSuffix(" mm")
         ff.addRow("Kabuk kalınlığı", self.spn_thick)
+        self.spn_gyuk = QDoubleSpinBox(); self.spn_gyuk.setRange(0.0, 10.0)
+        self.spn_gyuk.setValue(0.0); self.spn_gyuk.setSuffix(" g")
+        self.spn_gyuk.setToolTip("Manevra yük faktörü n: CFD basıncına ek n·g eylemsizlik "
+                                 "(gövde) yükü. 0 = yalnız aero-basınç. FlightEnvelope n_max ile.")
+        ff.addRow("Manevra g-yükü", self.spn_gyuk)
         self.btn_fea = QPushButton("🛠  FEA ÇALIŞTIR")
         self.btn_fea.setEnabled(False)
         self.btn_fea.clicked.connect(self._run_fea)
@@ -683,6 +688,7 @@ class AnalyzerWindow(QMainWindow):
             "constraint": self.cmb_fix.currentData(),
             "model": self.cmb_femodel.currentData(),
             "shell_thickness_mm": self.spn_thick.value(),
+            "g_yuk": self.spn_gyuk.value(),
         })
         self.worker.progress.connect(self._on_progress)
         self.worker.finished_ok.connect(self._on_fea_done)

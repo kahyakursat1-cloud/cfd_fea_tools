@@ -440,5 +440,10 @@ if __name__ == "__main__":
     if r["status"] == "ok":
         print(f"\nC: {r['komplians_ilk']:.4e} -> {r['komplians_son']:.4e}  "
               f"hacim: {r['hacim_son']:.3f}  STL: {r['tasarim_stl']}")
+        u = r.get("uretilebilirlik") or {}
+        if u.get("overhang_verdict"):
+            print(f"3D-baski: overhang %{u['overhang_orani']*100:.0f} "
+                  f"({u['overhang_verdict']}); onerilen yon {u['onerilen_yon']}; "
+                  f"{u.get('min_uye_verdict', '')}")
     else:
         print("BASARISIZ:", r.get("error", ""))
