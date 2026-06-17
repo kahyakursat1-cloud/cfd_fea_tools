@@ -37,8 +37,8 @@ clean_rocket gereğinden çok iterasyon. **Emek:** Düşük. (`_cd_converged` ç
 ile sarılır → süre aşımında WSL kendi süreç ağacını öldürür (Windows-tarafı wsl.exe öldürmek
 WSL-içi ağacı bırakıyordu → orphan, 50× yavaşlama). Ayrıca Windows-tarafı `TimeoutExpired`'da
 `_wsl_kill` ilgili binary'leri `pkill -9 -f` ile temizler (kemer+askı). Birim-testli
-(`test_openfoam_runner`). **Not:** süpersonik yol (`supersonic_cfd`) benzer korumayı ister
-(ayrı kontrol).
+(`test_openfoam_runner`). **Süpersonik yol da kapsandı** (`supersonic_cfd._shock_solve`:
+WSL-içi timeout sarma + Windows-backstop pkill — rocket_tvc 2h timeout'un yaşandığı yer).
 
 ### 1.4 🟡 Maliyet/süre tahmini + ön-uyarı
 **Ne:** Mesh boyutu + rejim + çözücüden tahmini wall-time hesapla; "bu koşu ~X saat,

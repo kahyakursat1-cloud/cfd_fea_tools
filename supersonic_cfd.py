@@ -91,8 +91,18 @@ def _run_shock(case_dir: Path, surf: str, mach: float, t_inf: float, p_inf: floa
     _write_shock_fields(case_dir, surf, mach, t_inf, p_inf, quiescent=quiescent,
                         viscous=viscous)
     _write_shock_system(case_dir, surf, et, et / 10, L, u, rho_inf, sref, mach, viscous)
-    r = _of(windows_to_wsl_path(case_dir), "foamRun > log.foamRun 2>&1", 7200)
-    return r, (case_dir / "log.foamRun").read_text(errors="ignore")
+    # Orphan-önleme: WSL-içi timeout ile sar (süre aşımında WSL kendi ağacını öldürür);
+    # Windows-tarafı TimeoutExpired backstop'unda da pkill (rocket_tvc 2h timeout dersi).
+    from analysis.openfoam_runner import _wsl_kill
+    solve = f"timeout -k 15 -s TERM {max(7200 - 60, 60)} foamRun > log.foamRun 2>&1"
+    log = case_dir / "log.foamRun"
+    try:
+        r = _of(windows_to_wsl_path(case_dir), solve, 7200)
+    except subprocess.TimeoutExpired:
+        _wsl_kill(["foamRun", "mpirun"])
+        r = subprocess.CompletedProcess(args="foamRun", returncode=124,
+                                        stdout="", stderr="TIMEOUT")
+    return r, (log.read_text(errors="ignore") if log.exists() else "TIMEOUT")
 
 
 def _of(wsl_dir, cmd, timeout):
