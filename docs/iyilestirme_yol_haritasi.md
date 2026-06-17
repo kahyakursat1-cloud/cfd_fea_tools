@@ -6,6 +6,11 @@
 Öncelik: 🔴 yüksek-ROI/düşük-emek · 🟡 orta · 🟢 ileri/düşük-öncelik.
 Her madde: **ne / neden / emek**.
 
+> **Durum (2026-06-17):** ✅ **1.1 mesh-kalite ön-geçidi** (`mesh_quality_gate`,
+> süpersonik+ses-altı yola bağlı), ✅ **1.4 süre/maliyet bandı** (`_runtime_band`)
+> tamamlandı. Kalan maddeler ya **çözücü-koşusu** ister (2.1 validation suite,
+> 2.2 GCI — makine dinleniyor) ya da **derin özellik** (2.3/2.4 far-field, mesh-adapt).
+
 ---
 
 ## 1. Boşa koşuyu önle — "akıllı kapılar" (en yüksek ROI)

@@ -5,6 +5,13 @@
 
 Öncelik: 🔴 yüksek-ROI · 🟡 orta · 🟢 ileri. **Not:** BİLSEM 3D-baskı yaptığından, TO-üretilebilirlik ve gerçek-yük maddeleri CFD'den bile doğrudan değerli.
 
+> **Durum (2026-06-17):** ✅ **1.1 gerilme-tekilliği bekçisi** (`_stress_assessment`,
+> kabuk+dolu-katı+TO-final, tekillik-robust SF). Kontrol kazanımı: **2.2 SIMP
+> filtresi zaten var** (`_sens_filter`), **1.3 eleman C3D10** (hourglass yok →
+> moot), **2.3 TO yeniden-analizi zaten var** (artık tekillik-dayanıklı). Kalan
+> maddeler ya **çözücü-koşusu** ister (1.2 mesh-yakınsama, 4.2 validation suite)
+> ya da **derin özellik** (2.1 overhang/üretilebilirlik kısıtı, FSI).
+
 ---
 
 ## 1. Sonuç DOĞRULUĞU — her SF iddiasını savunulabilir yap (en kritik)
