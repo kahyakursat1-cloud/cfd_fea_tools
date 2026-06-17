@@ -158,6 +158,41 @@ def _foam_header(class_: str, object_: str, location: str = "") -> str:
     )
 
 
+def mesh_quality_gate(checkmesh_text: str) -> dict:
+    """checkMesh çıktısını çöz + ÇÖZÜCÜ-ÖNCESİ verdict: 'ok' / 'warn' / 'reject'.
+    Kötü mesh çözücüde saatlerce diverjyor/timeout'a uğruyor; bunu ÖNCEDEN yakala.
+    Eşikler proje konvansiyonu (CLAUDE.md: nonOrtho<70, skew<4) + diverjans deneyimi.
+    Döner: {verdict, reasons[], non_ortho_max, skew_max, aspect_max, negatif_hacim}."""
+    import re as _re
+
+    def g(pat):
+        m = _re.search(pat, checkmesh_text)
+        return float(m.group(1)) if m else None
+    non_ortho = g(r"non-orthogonality Max:\s*([\d.]+)")
+    skew = g(r"Max skewness\s*=\s*([\d.eE+]+)")
+    aspect = g(r"Max aspect ratio\s*[=:]?\s*([\d.eE+]+)")
+    neg_vol = "negative volume" in checkmesh_text.lower()
+    reasons, verdict = [], "ok"
+    # REJECT: çözücü neredeyse kesin patlar
+    if neg_vol:
+        reasons.append("negatif hacimli hücre (mesh bozuk)"); verdict = "reject"
+    if non_ortho is not None and non_ortho >= 75:
+        reasons.append(f"aşırı non-ortogonallik ({non_ortho:.0f}°≥75)"); verdict = "reject"
+    if skew is not None and skew >= 6:
+        reasons.append(f"aşırı skewness ({skew:.1f}≥6)"); verdict = "reject"
+    # WARN: sınırda; koşabilir ama dikkat
+    if verdict != "reject":
+        if non_ortho is not None and 70 <= non_ortho < 75:
+            reasons.append(f"yüksek non-ortogonallik ({non_ortho:.0f}°, eşik 70)"); verdict = "warn"
+        if skew is not None and 4 <= skew < 6:
+            reasons.append(f"yüksek skewness ({skew:.1f}, eşik 4)"); verdict = "warn"
+        if aspect is not None and aspect > 1e5:
+            reasons.append(f"çok yüksek aspect ratio ({aspect:.0e})"); verdict = "warn"
+    return {"verdict": verdict, "reasons": reasons, "non_ortho_max": non_ortho,
+            "skew_max": skew, "aspect_max": aspect, "negatif_hacim": neg_vol,
+            "mesh_ok": "Mesh OK" in checkmesh_text}
+
+
 # ---------------------------------------------------------------------------
 # Dictionary yazıcılar
 # ---------------------------------------------------------------------------
@@ -836,6 +871,18 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
 
     # 4) checkMesh (uyarılar normal, başarısızlık değil)
     _step(55, "checkMesh...", "checkMesh", "log.checkMesh", 300)
+
+    # 4-gate) Mesh-kalite ön-geçidi: reject-kalite mesh'i ÇÖZÜCÜDEN ÖNCE ele
+    # (negatif hacim / aşırı non-ortho-skew → çözücü saatlerce diverjyor/timeout).
+    cm = case_dir / "log.checkMesh"
+    if cm.exists():
+        mq = mesh_quality_gate(cm.read_text(errors="ignore"))
+        if mq["verdict"] == "reject":
+            all_stderr.append("Mesh kalitesiz, çözücüye GÖNDERİLMEDİ: "
+                              + "; ".join(mq["reasons"]))
+            return CFDResult(case_dir=case_dir, success=False, return_code=-2,
+                             stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
+                             log_files=log_files)
 
     # 4b) topoSet (varsa — pervane diski cellSet'i vb.)
     if (case_dir / "system" / "topoSetDict").exists():

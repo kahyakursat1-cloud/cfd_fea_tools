@@ -341,6 +341,18 @@ def run_supersonic(stl_path, mach=2.0, vehicle_type="roket", quality="standart",
             return {"status": "FAILED", "asama": cmd, "case": str(case_dir),
                     "error": (case_dir / f"log.{cmd.split()[0]}").read_text(errors="ignore")[-1500:]}
 
+    # Mesh-kalite ön-geçidi: kötü mesh'i ÇÖZÜCÜDEN ÖNCE ele (saatlik diverjans/timeout önle)
+    from analysis.openfoam_runner import mesh_quality_gate
+    mq = mesh_quality_gate((case_dir / "log.checkMesh").read_text(errors="ignore"))
+    if mq["verdict"] == "reject":
+        return {"status": "FAILED", "asama": "mesh-kalite", "case": str(case_dir),
+                "error": ("Mesh kalitesiz, çözücüye GÖNDERİLMEDİ: " + "; ".join(mq["reasons"])
+                          + ". Daha kaba kalite ya da geometri-onarım deneyin "
+                          "(çözücüye gönderilse saatlerce diverjyordu)."),
+                "mesh_kalite": mq}
+    if mq["verdict"] == "warn":
+        cb(56, "⚠ mesh kalitesi sınırda: " + "; ".join(mq["reasons"]) + " — yine de koşuluyor.")
+
     visc = "viskoz (kΩ-SST)" if viscous else "inviscid"
     cb(70, f"shockFluid (M={mach}, {visc}, freestream başlangıç)...")
     r, log = _run_shock(case_dir, surf, mach, t_inf, p_inf, n_flow_pass,

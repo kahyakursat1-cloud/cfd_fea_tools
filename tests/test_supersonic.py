@@ -147,3 +147,24 @@ def test_cp_theory_values():
     assert sr._critical_cp(0.74) < 0.0
     # M2 süpersonik: durma referansı daha yüksek
     assert sr._isentropic_cp0(2.0) > sr._isentropic_cp0(0.74)
+
+
+def test_mesh_quality_gate():
+    """Mesh-kalite ön-geçidi: kötü mesh çözücüden ÖNCE reddedilir (bu oturumun
+    nonOrtho-90 diverjansı artık anında yakalanır)."""
+    from analysis.openfoam_runner import mesh_quality_gate
+    iyi = ("Max aspect ratio = 3.85 OK.\n"
+           "Mesh non-orthogonality Max: 46.3 average: 0.95\n"
+           "Max skewness = 1.83 OK.\nMesh OK.\n")
+    assert mesh_quality_gate(iyi)["verdict"] == "ok"
+    # bu oturumun bozuk C2D O-grid'i: nonOrtho ~90 -> reject
+    kotu = ("Mesh non-orthogonality Max: 90.07 average: 7.0\n"
+            "Max skewness = 1.6\nFailed 1 mesh checks.\n")
+    assert mesh_quality_gate(kotu)["verdict"] == "reject"
+    # negatif hacim -> reject
+    neg = "***Zero or negative cell volume detected. Number of negative volume cells: 58\n"
+    assert mesh_quality_gate(neg)["verdict"] == "reject"
+    # sınırda nonOrtho 72 -> warn
+    sinir = ("Mesh non-orthogonality Max: 72.0 average: 5.0\n"
+             "Max skewness = 2.0 OK.\nMesh OK.\n")
+    assert mesh_quality_gate(sinir)["verdict"] == "warn"
