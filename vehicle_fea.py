@@ -256,8 +256,10 @@ def _cload_lines(node_forces: dict) -> str:
 
 def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
                          rho=1.225, model="dolu", shell_thickness_mm=2.0,
-                         analysis="statik", n_modes=8,
+                         analysis="statik", n_modes=8, g_yuk=0.0,
                          progress_cb=None) -> dict:
+    """g_yuk: manevra yük faktörü n (≠0 → CFD basıncına ek n·g eylemsizlik gövde-
+    kuvveti, -z; FlightEnvelope.n_max ile beslenebilir). 0 = sadece aero-basınç."""
     run_dir = Path(run_dir)
 
     def cb(p, m):
@@ -414,7 +416,12 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
                    fixed_bcs=[FixedBC(node_ids=fixed)], analysis_type="STATIC")
     inp = write_inp(case, run_dir / "fea")
     txt = inp.read_text(encoding="utf-8")
-    txt = txt.replace("*STATIC", "*STATIC\n" + _cload_lines(mp["node_forces"]), 1)
+    inject = _cload_lines(mp["node_forces"])
+    if g_yuk:                                   # manevra g-yükü: n·g eylemsizlik (-z)
+        dz = -1.0 if g_yuk >= 0 else 1.0
+        inject += (f"\n*DLOAD\nEALL, GRAV, {abs(g_yuk) * 9.81:.6e}, "
+                   f"0.0, 0.0, {dz:.1f}")
+    txt = txt.replace("*STATIC", "*STATIC\n" + inject, 1)
     inp.write_text(txt, encoding="utf-8")
     ccx = run_ccx(inp, timeout=3600)
     if not ccx.success:
@@ -433,11 +440,14 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
            "dugum": tet.num_nodes, "eleman": tet.num_tets,
            "sabit_dugum": int(len(fixed)),
            "toplam_kuvvet_N": mp["toplam_kuvvet_N"],
+           "g_yuk_n": g_yuk or None,
            "max_sehim_mm": round(max_disp_mm, 4) if max_disp_mm else None,
            **sa,
            "gecersiz": mech,
-           "_not": "Dolu-katı varsayımı: sehim alt-sınır, gerilme yük-yolu "
-                   "göstergesi; kabuk/iç yapı modellenmedi."}
+           "_not": ("Dolu-katı varsayımı: sehim alt-sınır, gerilme yük-yolu "
+                    "göstergesi; kabuk/iç yapı modellenmedi."
+                    + (f" Yük: aero-basınç + {g_yuk:g}g eylemsizlik." if g_yuk
+                       else " Yük: yalnız aero-basınç."))}
     (run_dir / "fea_sonuc.json").write_text(json.dumps(out, indent=2, ensure_ascii=False),
                                             encoding="utf-8")
     _append_report(run_dir, out)

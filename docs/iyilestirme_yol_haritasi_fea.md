@@ -76,10 +76,13 @@ parçada SF'yi doğrula (1.1/1.2 ile). **Neden:** Doğrulanmamış TO = güvensi
 
 ## 3. Yükler & kapsam — gerçekçi yapısal senaryo
 
-### 3.1 🟡 Aero-ötesi yükler
-**Sorun:** Şu an yük ~CFD basıncı. Gerçek yapı: **manevra g-yükü, kalkış/iniş, nokta-yük
-(montaj), termal, atalet**. **Ne:** Yük-durumu kütüphanesi (g-load, landing, thrust-mount) +
-çoklu-yük zarfı (polar çoklu-yük var → genişlet). **Neden:** Aero-basınç tek başına yetersiz.
+### 3.1 🟡 Aero-ötesi yükler — kısmen ✅ (manevra g-yükü)
+**Yapıldı:** **Eylemsizlik gövde-kuvveti** (`GravityLoad` → CalculiX `*DLOAD GRAV`, calculix_writer);
+`run_structural_check(g_yuk=n)` ile CFD basıncına ek **n·g manevra yükü** (FlightEnvelope.n_max
+besler). Doğrulandı: öz-ağırlık çubuk σ=ρgL %4.8, δ %0.2 (`fea_validation_grav.py`). Yük-uygulama
+üçlüsü tamam: kuvvet (kiriş/delik) + basınç (silindir) + **gövde (g-yükü)**. **Kalan:** nokta-yük
+(thrust-mount/montaj — `ForceLoad` zaten var, sadece UI-bağlama), termal (*DLOAD/*TEMPERATURE), iniş.
+**Sorun (kalan):** çoklu-yük zarfı polar'da var → g-yük durumlarını da zarfa kat.
 **Emek:** Orta.
 
 ### 3.2 🟡 FSI olgunlaştırma (esnek yapı)

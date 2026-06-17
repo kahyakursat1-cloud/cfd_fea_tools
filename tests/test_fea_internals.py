@@ -97,3 +97,39 @@ def test_fea_validation_cyl_analytic():
                                          / (fc.R_OUT ** 2 - fc.R_IN ** 2)) == fc.SIG_THETA
     assert fc.SIG_THETA > 15 * fc.P                           # r/t≈20 → σθ≈20p
     assert fc.SIG_VM_AN > 0 and pytest.approx(-fc.P) == fc.SIG_R
+
+
+def test_gravity_load_writes_dload_grav(tmp_path):
+    """GravityLoad → write_inp '*DLOAD / EALL, GRAV, accel, gx,gy,gz' yazar (g-yükü yolu)."""
+    import numpy as np
+
+    from analysis.calculix_writer import (
+        FEACase,
+        FEAMaterial,
+        FixedBC,
+        GravityLoad,
+        write_inp,
+    )
+    from analysis.tet_mesher import TetMesh
+    pts = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1.0]])
+    mesh = TetMesh(points=pts, tets=np.array([[0, 1, 2, 3]]),
+                   surface_tris=np.zeros((0, 3), int), msh_path=tmp_path / "x.msh",
+                   element_type="C3D4")
+    case = FEACase(name="g", mesh=mesh, material=FEAMaterial("m", 1e9, 0.3, 1000.0),
+                   fixed_bcs=[FixedBC(np.array([1]))],
+                   gravity_loads=[GravityLoad(3.8 * 9.81, (0, 0, -1.0))],
+                   analysis_type="STATIC")
+    txt = write_inp(case, tmp_path).read_text(encoding="utf-8")
+    assert "*DLOAD" in txt and "EALL, GRAV" in txt
+    assert "3.72780" in txt and "0.000000, 0.000000, -1.000000" in txt  # 3.8*9.81
+
+
+def test_fea_validation_grav_analytic():
+    """Öz-ağırlık çubuk analitiği. Tam V&V: experiments/fea_validation_grav.py
+    (ccx koşar, σ %4.8 / δ %0.2 — GÖVDE-KUVVETİ yolunu doğrular)."""
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "experiments"))
+    import fea_validation_grav as fg
+    assert pytest.approx(fg.RHO * fg.G * fg.LZ) == fg.SIG_MAX_AN
+    assert pytest.approx(fg.RHO * fg.G * fg.LZ ** 2 / (2 * fg.E)) == fg.DELTA_AN

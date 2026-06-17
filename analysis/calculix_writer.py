@@ -71,6 +71,15 @@ class ForceLoad:
 
 
 @dataclass
+class GravityLoad:
+    """Tüm yapıya eylemsizlik gövde-kuvveti (CalculiX *DLOAD, GRAV).
+    Manevra g-yükü için accel = n·9.81 (n = yük faktörü). Yoğunluk *DENSITY'den."""
+    accel_m_s2: float                       # ivme büyüklüğü (örn. 3.8*9.81)
+    direction: tuple = (0.0, 0.0, -1.0)     # yön (birim vektör; yer-çekimi -z)
+    name: str = "GRAV"
+
+
+@dataclass
 class FEACase:
     """Tam bir FEA çalışması."""
     name: str
@@ -79,6 +88,7 @@ class FEACase:
     fixed_bcs: list[FixedBC] = field(default_factory=list)
     pressure_loads: list[PressureLoad] = field(default_factory=list)
     force_loads: list[ForceLoad] = field(default_factory=list)
+    gravity_loads: list[GravityLoad] = field(default_factory=list)
     analysis_type: str = "STATIC"   # STATIC, FREQUENCY, BUCKLE
     num_modes: int = 10              # FREQUENCY/BUCKLE için
 
@@ -221,6 +231,15 @@ def write_inp(case: FEACase, output_dir: Path) -> Path:
             if abs(val) < 1e-12:
                 continue
             lines.append(f"{node_id}, {dof}, {val:.6e}")
+
+    # Eylemsizlik gövde-kuvveti (g-yükü) — *DLOAD GRAV (yoğunluk *DENSITY'den)
+    if case.gravity_loads and case.analysis_type.upper() == "STATIC":
+        lines.append("*DLOAD")
+        for gl in case.gravity_loads:
+            d = np.asarray(gl.direction, dtype=np.float64)
+            d = d / (np.linalg.norm(d) + 1e-30)
+            lines.append(f"EALL, GRAV, {gl.accel_m_s2:.6e}, "
+                         f"{d[0]:.6f}, {d[1]:.6f}, {d[2]:.6f}")
 
     # Çıktı talepleri
     lines.append("*NODE FILE")
