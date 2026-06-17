@@ -116,3 +116,4 @@ auto_pilot_memory.jsonl
 # experiments/ingest_real.py URL'lerden indirir; yalnız türetilen metrikler
 # (auto_pilot_real_seed.jsonl, 6 sayı/model) commit'lenir, STL'ler değil.
 experiments/real_geo/
+stress_topopt_lbracket.png

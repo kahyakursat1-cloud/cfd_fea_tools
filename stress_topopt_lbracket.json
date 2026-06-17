@@ -1,0 +1,11 @@
+{
+  "vaka": "L-bracket stress-temelli TO (kompliyans-min vs gerilme-min, aynı hacim)",
+  "yontem": "2D plane-stress Q4 SIMP, P-norm(P=8.0) von Mises, qp-relaks(q=0.5), adjoint duyarlılık (FD-kontrollü), OC. ccx/CFD YOK — kendi-içinde.",
+  "grid": 48,
+  "volfrac": 0.4,
+  "peak_eta_vm_compliance": 2.6778,
+  "peak_eta_vm_stress": 2.482,
+  "tepe_azalma_pct": 7.3,
+  "sonuc": "GECTI — gerilme-min tepe von Mises'i düşürdü (reentrant köşe yuvarlandı).",
+  "_not": "Doğrulama #1 (adjoint gradyanı FD ile ~1e-7): test_stress_topopt2d. Üretim: python experiments/stress_topopt_lbracket.py. Figür: stress_topopt_lbracket.png"
+}

@@ -70,10 +70,15 @@ mesh-bağımsız, yorumlanabilir tasarım. **Emek:** Orta. (vehicle_topopt'ta fi
 yoğunluk → eşikle temiz geometri çıkar → yeniden-mesh → **yeniden FEA** → gerçek basılacak
 parçada SF'yi doğrula (1.1/1.2 ile). **Neden:** Doğrulanmamış TO = güvensiz. **Emek:** Orta.
 
-### 2.4 🟡 TO objektif/kısıt genişletme
-**Ne:** Frekans-kısıtlı TO (flutter/rezonans kaçınma — modal zaten var), termal+yapısal
-çok-fizik, gerilme-kısıtlı TO (sadece compliance değil). **Neden:** Gerçek tasarım hedefleri.
-**Emek:** Yüksek.
+### 2.4 ◐ TO objektif/kısıt genişletme — gerilme-temelli TO ✅ (`stress_topopt2d.py`)
+**Yapıldı (gerilme-temelli):** Kendi-içinde 2D plane-stress stress-aware TO — P-norm von
+Mises agregasyonu, **qp-relaksasyon** (tekillik önleme), **adjoint duyarlılık**. İki katmanlı
+doğrulama: (1) **adjoint gradyanı sonlu-farkla ~1e-7 uyumlu** (gerilme-TO'nun en kritik
+doğrulaması; `test_stress_topopt2d`), (2) **L-bracket benchmark**: gerilme-min tepe von
+Mises'i kompliyans-min'e göre **%7.3 düşürdü** (reentrant köşe yuvarlandı — literatür sonucu;
+`stress_topopt_lbracket.json`). ccx/CFD YOK → hızlı, kendi-içinde, eğitsel. **Kapsam:** demonstratör/
+çekirdek (mevcut ccx-tabanlı `vehicle_topopt`'a adjoint-stress bağlamak ayrı iş — ccx kara-kutu
+adjoint zor). **Kalan:** frekans-kısıtlı TO (modal var → kısıt bağla), termal+yapısal çok-fizik.
 
 ---
 
