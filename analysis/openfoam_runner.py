@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import math
 import os
+import re
 import shutil
 import subprocess
 from dataclasses import dataclass, field
@@ -827,6 +828,20 @@ _OF_BINS = ("foamRun", "snappyHexMesh", "blockMesh", "simpleFoam", "potentialFoa
             "surfaceFeatures", "mpirun", "decomposePar", "reconstructPar")
 
 
+def divergence_in_log(log_text: str) -> str | None:
+    """foamRun logunda KESİN diverjans imzası ara (NaN/inf residual, FPE, solver crash).
+    Çözücü timeout'a kadar koşup NaN üretse returncode 0 olabilir → garbage'ı yakala.
+    'bounding k/omega' gibi NORMAL mesajları kasıtlı dışlar (yanlış-pozitif önleme)."""
+    low = log_text.lower()
+    if re.search(r"initial residual\s*=\s*[-+]?(nan|inf)\b", low):
+        return "residual NaN/inf (diverjans)"
+    if "floating point exception" in low:
+        return "floating point exception (diverjans)"
+    if re.search(r"#0\s+foam::error", low):
+        return "solver crash (Foam::error)"
+    return None
+
+
 def _wrap_timeout(command: str, tmo: int) -> tuple[str, list[str]]:
     """Komutta OF binary varsa WSL-içi GNU timeout ile sar (orphan-önleme).
     Döndür: (sarılmış_komut, kill_edilecek_binary_listesi)."""
@@ -963,6 +978,17 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
         if r is None or r.returncode != 0:
             return CFDResult(case_dir=case_dir, success=False,
                              return_code=-1 if r is None else r.returncode,
+                             stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
+                             log_files=log_files)
+
+    # Diverjans bekçisi: solver returncode 0 olsa bile NaN/inf üretmiş olabilir
+    # (timeout'a kadar koşup ıraksar). Garbage sonucu BAŞARILI sayma.
+    solver_log = case_dir / "log.foamRun"
+    if solver_log.exists():
+        diverg = divergence_in_log(solver_log.read_text(errors="ignore"))
+        if diverg:
+            all_stderr.append(f"DIVERJANS: {diverg} — sonuç güvenilmez")
+            return CFDResult(case_dir=case_dir, success=False, return_code=-2,
                              stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
                              log_files=log_files)
 

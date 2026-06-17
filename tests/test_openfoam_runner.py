@@ -1,5 +1,25 @@
-"""openfoam_runner orphan-önleme yardımcıları — saf-mantık (WSL çağırmadan)."""
-from analysis.openfoam_runner import _OF_BINS, _wrap_timeout, _wsl_kill
+"""openfoam_runner orphan-önleme + diverjans bekçisi — saf-mantık (WSL çağırmadan)."""
+from analysis.openfoam_runner import (
+    _OF_BINS,
+    _wrap_timeout,
+    _wsl_kill,
+    divergence_in_log,
+)
+
+
+def test_divergence_detector_catches_nan():
+    assert divergence_in_log("Solving for Ux, Initial residual = nan, Final") is not None
+    assert divergence_in_log("Initial residual = inf") is not None
+    assert "exception" in (divergence_in_log("forrtl: Floating point exception") or "")
+    assert divergence_in_log("#0  Foam::error::printStack") is not None
+
+
+def test_divergence_detector_ignores_normal_log():
+    # 'bounding' normal mesajdir; saglikli yakinsama diverjans DEGIL → yanlis-pozitif yok
+    ok = ("bounding k, min: 0 max: 12 average: 3\n"
+          "Solving for Ux, Initial residual = 0.0012, Final residual = 1e-7\n"
+          "Solving for omega, Initial residual = 3.4e-05\n")
+    assert divergence_in_log(ok) is None
 
 
 def test_wrap_timeout_wraps_solver():

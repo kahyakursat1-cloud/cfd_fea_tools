@@ -26,11 +26,13 @@ ve yeniden mesh'le, (b) olmuyorsa kullanıcıya net "mesh kalitesiz, çözüm g�
 de ve KOŞMA. **Neden:** Bu oturumun en büyük zaman kaybı; diverjans hep kötü mesh'tendi.
 **Emek:** Düşük-orta. (mesh_quality parse zaten var; gate + auto-coarsen ekle.)
 
-### 1.2 🔴 Erken-abort + yakınsama bazlı durdurma
-**Ne:** Solver loglarını canlı izle; NaN/negatif-T/diverjans görülürse **anında durdur**
-(7200s timeout'u bekleme). Yakınsamayı residual<1e-4 + Cd-drift<%0.5 ile tespit edip
-erken bitir (sabit iterasyona kadar koşma). **Neden:** rocket_tvc 2 saat NaN'a koştu;
-clean_rocket gereğinden çok iterasyon. **Emek:** Düşük. (`_cd_converged` çekirdeği var.)
+### 1.2 ◐ Erken-abort + yakınsama bazlı durdurma — kısmen ✅ (diverjans bekçisi)
+**Yapıldı (güvenli yarı):** `divergence_in_log` — solver returncode 0 olsa bile log'da
+**NaN/inf residual, FPE, Foam::error** varsa sonuç BAŞARISIZ (garbage'ı sessizce güvenme;
+'bounding' gibi normal mesajları kasıtlı dışlar, yanlış-pozitif yok). run_cfd'ye bağlı,
+birim-testli. **Kalan (canlı erken-abort):** solver'ı canlı izleyip diverjansta ANINDA
+kesme (wall-time tasarrufu) — sağlıklı koşuyu yanlış-öldürme riski + ancak canlı-koşuyla
+doğrulanır; 1.3'ün WSL-timeout bounding'i en-kötü süreyi zaten sınırladığından düşük öncelik.
 
 ### 1.3 ✅ Süreç-yaşamdöngüsü sağlamlığı — `_wrap_timeout` + `_wsl_kill`
 **Yapıldı:** Uzun OF adımları (foamRun/snappy/mpirun…) **WSL-içi GNU `timeout -k 10 -s TERM`**
