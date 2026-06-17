@@ -120,9 +120,10 @@ def _stress_assessment(vm_field, yield_mpa: float) -> dict | None:
         return round(yield_mpa / s, 2) if (s and s > 0 and yield_mpa > 0) else None
     note = ("Gerilme alanı düzgün; lokalize tekillik yok (tepe ≈ temsili)."
             if not singular else
-            f"⚠ Lokalize gerilme tepesi (tepe/temsili≈{ratio:.1f}×): büyük olasılıkla "
-            "sivri-köşe TEKİLLİĞİ — tepe-SF muhafazakâr ARTEFAKT olabilir. Fillet ekleyin "
-            "ya da mesh-yakınsamayla teyit edin; karar için temsili-SF'yi dikkate alın.")
+            f"⚠ Lokalize gerilme tepesi (tepe/temsili≈{ratio:.1f}×): sivri-köşe TEKİLLİĞİ "
+            "(sahte, mesh inceldikçe ıraksar) VEYA gerçek konsantrasyon (delik/fillet) "
+            "olabilir — tek-mesh ayıramaz. Karar muhafazakâr tepe-SF'de kalır; sivri köşe "
+            "ise fillet ekleyip ya da mesh-yakınsamayla teyit edin (gerçek SF temsiliye yakın).")
     return {"max_von_mises_MPa": round(peak, 3),
             "temsili_von_mises_MPa": round(repr_, 3),
             "tepe_temsili_orani": round(ratio, 2) if ratio else None,
@@ -475,13 +476,16 @@ def _append_report(run_dir: Path, out: dict):
     if out.get("gecersiz"):
         verdict = "❌ GEÇERSİZ (mekanizma)"
     else:
-        # Tekillik şüphesinde karar TEMSİLİ-SF'ye dayanır (tepe artefakt olabilir).
-        sfk = sf_t if (singular and sf_t) else sf
-        verdict = ("✅ güvenli" if sfk and sfk >= 1.5 else
-                   "⚠️ marjinal (SF<1.5)" if sfk and sfk >= 1.0 else
-                   "❌ yetersiz (SF<1)" if sfk else "—")
-        if singular:
-            verdict += " *(tepe tekilliği → temsili-SF'ye göre)*"
+        # Verdict MUHAFAZAKÂR (tepe-SF). Tekillik şüphesinde temsili-SF BİLGİ olarak
+        # gösterilir ama karar tepeye dayanır: tek-mesh tekilliği (sivri köşe, sahte)
+        # gerçek konsantrasyondan (delik/fillet, Kt gerçek) AYIRAMAZ; temsiliye geçmek
+        # gerçek konsantrasyonda SAHTE-GÜVENLİ olurdu. Güvenli taraf = tepe.
+        verdict = ("✅ güvenli" if sf and sf >= 1.5 else
+                   "⚠️ marjinal (SF<1.5)" if sf and sf >= 1.0 else
+                   "❌ yetersiz (SF<1)" if sf else "—")
+        if singular and sf_t:
+            verdict += (f" — ⚠ tepe tekillik OLABİLİR (sivri köşeyse gerçek SF≈{sf_t}; "
+                        "fillet ya da mesh-yakınsamayla teyit edin)")
     vm_line = f"- Max von Mises: **{out['max_von_mises_MPa']} MPa** (tepe)"
     if singular:
         vm_line += (f", temsili %99: **{out['temsili_von_mises_MPa']} MPa** "
