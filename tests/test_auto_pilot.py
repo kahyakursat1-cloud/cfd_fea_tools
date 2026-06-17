@@ -167,3 +167,10 @@ def test_cd_outlier_flags_anomaly(tmp_path, monkeypatch):
                        "roket", "roket", {"Cd_toplam": 0.2})
     assert ap.cd_outlier("roket", 0.9) is not None      # aykırı
     assert ap.cd_outlier("roket", 0.21) is None          # normal
+
+
+def test_runtime_band():
+    # çözücü-öncesi kaba süre bandı: süpersonik büyük → uzun; ses-altı küçük-hızlı → kısa
+    assert "uzun" in ap._runtime_band("supersonic", "hizli", 2.0)
+    assert ap._runtime_band("subsonic", "hizli", 0.6) == "hızlı (<15 dk)"
+    assert "uzun" in ap._runtime_band("subsonic", "hassas", 0.3)   # hassas → ağır

@@ -224,6 +224,19 @@ def _quality_for(lmax_m: float, faces: int, regime: str = "subsonic") -> str:
     return "standart"
 
 
+def _runtime_band(regime: str, quality: str, lmax_m: float) -> str:
+    """Çözücü-ÖNCESİ kaba wall-time bandı (hücre sayısı henüz bilinmez; rejim+
+    kalite+boyut sezgisi). Kullanıcı uzun koşuyu bilerek başlatsın (öner+onayla).
+    Mesh-kalite geçidiyle eşleşir: geçit kötü mesh'i eler, bu uzun koşuyu uyarır."""
+    if regime == "supersonic":           # explicit shockFluid — pahalı
+        return "uzun (saatler–gün)" if lmax_m > 1.0 else "orta (≈30–90 dk)"
+    if quality == "hassas" or lmax_m > 3.0:
+        return "orta–uzun (≈30–90 dk)"
+    if quality == "hizli" and lmax_m < 1.0:
+        return "hızlı (<15 dk)"
+    return "orta (≈15–45 dk)"
+
+
 def auto_configure(stl_path, out_dir="vehicle_runs/_autoprep",
                    dogrulama_modu: bool = False) -> dict:
     """Geometriyi hazırla + sınıflandır + TÜM analiz ayarlarını seç.
@@ -245,7 +258,11 @@ def auto_configure(stl_path, out_dir="vehicle_runs/_autoprep",
 
     apply_type_settings(cfg, tip, dogrulama_modu)
 
+    cfg["tahmini_sure"] = _runtime_band(regime, quality, lmax)
     uyarilar = []
+    if regime != "supersonic" and ("uzun" in cfg["tahmini_sure"]):
+        uyarilar.append(f"Tahmini koşu süresi: {cfg['tahmini_sure']} (bu donanımda "
+                        "kaba; uzunsa 'hizli' kalite ya da gece-boyu düşünün).")
     if regime == "supersonic" and lmax > 1.0:
         uyarilar.append(
             f"MALİYET: süpersonik shockFluid explicit/deltaT-limitli; Lmax≈{lmax:.1f} m "
