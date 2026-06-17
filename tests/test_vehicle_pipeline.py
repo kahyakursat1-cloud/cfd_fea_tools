@@ -16,6 +16,27 @@ from vehicle_pipeline import (
 )
 
 
+def test_weld_axial_segments_coaxial_gap():
+    # İki eş-eksenli aynı-kesit gövde + boşluk (kopuk roket) → tek watertight cisme kaynar
+    from vehicle_pipeline import weld_axial_segments
+    b1 = trimesh.creation.box((0.15, 0.08, 0.08)); b1.apply_translation((-0.125, 0, 0))
+    b2 = trimesh.creation.box((0.15, 0.08, 0.08)); b2.apply_translation((0.125, 0, 0))
+    m = trimesh.util.concatenate([b1, b2])                  # boşluk x∈[-0.05,0.05]
+    assert len(m.split(only_watertight=False)) == 2
+    welded, note = weld_axial_segments(m)
+    assert note is not None and welded.is_watertight and welded.body_count == 1
+
+
+def test_weld_leaves_lateral_assembly_untouched():
+    # Yanal-yayılı montaj (gövde + geniş kanat) → guard reddeder, DOKUNULMAZ
+    from vehicle_pipeline import weld_axial_segments
+    body = trimesh.creation.box((0.8, 0.06, 0.06)).subdivide()   # ana gövde (çok yüz)
+    wing = trimesh.creation.box((0.2, 0.40, 0.02))               # yanal kanat (büyük kesit)
+    m = trimesh.util.concatenate([body, wing])
+    _, note = weld_axial_segments(m)
+    assert note is None
+
+
 def test_farfield_lift_aware_domain():
     # Taşıyıcı cisim (ucak) far-field'i küt/eksenelden daha geniş (yanal+upstream)
     ucak = farfield_domain(VEHICLE_PRESETS["ucak"], alpha_deg=0.0)

@@ -126,6 +126,47 @@ def canonicalize_axial(m: trimesh.Trimesh):
     return out, f"eksenel hizalama: uzun eksen {'xyz'[long_axis]}→x (uçuş yönü)"
 
 
+def weld_axial_segments(m: trimesh.Trimesh):
+    """KOPUK ama EŞ-EKSENLİ (aynı kesit, tek eksen boyunca dizili, aralarında BOŞLUK)
+    gövdeleri tek watertight cisme birleştirir — konveks-zarf köprüleme. Roket/füze
+    exploded/kopuk-ihraç artefaktını onarır (akış boşluklardan geçip Cd'yi bozuyordu).
+
+    MUHAFAZAKÂR GUARD — yalnız EŞ-MERKEZLİ + BENZER-KESİT (koaksiyel silindir) segmentlere
+    uygular. Yanal-yayılı çok-gövde (kanat/kontrol-yüzeyi montajı: a320/f16) ya da finli
+    roket (yanal çıkıntı) GUARD'ı geçemez → DOKUNULMAZ (konveks-zarf onları bozardı).
+    Döner: (mesh, açıklama|None)."""
+    try:
+        parts = m.split(only_watertight=False)
+    except Exception:
+        return m, None
+    if len(parts) < 2:
+        return m, None
+    ext = (m.bounds[1] - m.bounds[0]).astype(float)
+    long_ax = int(np.argmax(ext))
+    minor = [a for a in range(3) if a != long_ax]
+    ref = max(parts, key=lambda p: len(p.faces))            # ana gövde referans
+    for p in parts:
+        for ax in minor:
+            rc = (ref.bounds[0][ax] + ref.bounds[1][ax]) / 2
+            pc = (p.bounds[0][ax] + p.bounds[1][ax]) / 2
+            rext = ref.bounds[1][ax] - ref.bounds[0][ax]
+            pext = p.bounds[1][ax] - p.bounds[0][ax]
+            # eş-merkez (merkez kayması < %25 çap) + benzer kesit (extent oranı < 1.6)
+            if abs(pc - rc) > 0.25 * rext or not (1 / 1.6 < pext / max(rext, 1e-9) < 1.6):
+                return m, None
+    welded = m.convex_hull                                   # boşlukları köprüler
+    if not welded.is_watertight:
+        return m, None
+    welded = welded.subdivide().subdivide()                 # CFD-dostu yüzey
+    try:
+        trimesh.smoothing.filter_taubin(welded, iterations=2)
+        welded.fix_normals()
+    except Exception:
+        pass
+    return welded, (f"{len(parts)} kopuk eş-eksenli segment → tek watertight cisme "
+                    "kaynatıldı (konveks-zarf köprüleme; exploded/kopuk-ihraç onarımı)")
+
+
 def prepare_geometry(path, out_dir: Path, progress_cb=None) -> tuple[Path, dict]:
     """Her formatı analiz-hazır tek STL'e indirger: CAD dönüşümü, çok-gövde
     birleştirme, normal/sarım onarımı, delik kapatma. Onarım kaydı döner."""
@@ -171,6 +212,13 @@ def prepare_geometry(path, out_dir: Path, progress_cb=None) -> tuple[Path, dict]
         except Exception:
             pass
     info["su_gecirmez_once"] = before_wt
+
+    # Kopuk eş-eksenli segmentleri kaynat (roket exploded/kopuk-ihraç → tek cisim).
+    # Akış boşluklardan geçip Cd'yi bozuyordu; muhafazakâr guard montajlara dokunmaz.
+    m, _weld = weld_axial_segments(m)
+    if _weld:
+        info["onarimlar"].append(_weld)
+        info["kaynak_birlestirme"] = _weld
     info["su_gecirmez_sonra"] = bool(m.is_watertight)
 
     # Yönelim: eksenel cismi (roket/füze) uçuş yönüne hizala (uzun eksen→+x).
