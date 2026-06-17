@@ -69,3 +69,17 @@ def test_fea_validation_inp_structure():
     assert (fv.nx + 1) * (fv.ny + 1) * (fv.nz + 1) == 625    # düğüm sayısı
     assert fv.delta_an > 0 and fv.sigma_an > 0               # analitik pozitif
     out.unlink()
+
+
+def test_fea_validation_hole_analytic():
+    """Delikli-plaka Kt analitiği (Heywood). Tam V&V: experiments/fea_validation_hole.py
+    (ccx koşar, %1.7). Burada yalnız kapalı-form ilişkiler — gmsh/ccx çalıştırmadan."""
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "experiments"))
+    import fea_validation_hole as fh
+    assert pytest.approx(0.2) == fh.DW
+    assert pytest.approx(2 + 0.8 ** 3) == fh.KT_NET           # Heywood net-kesit
+    assert pytest.approx(fh.KT_NET / (1 - fh.DW)) == fh.KT_GROSS
+    assert 3.0 < fh.KT_GROSS < 3.3                            # delik için fiziksel aralık
+    assert fh.SIG_MAX_AN > fh.SIG_GROSS                       # konsantrasyon > brüt
