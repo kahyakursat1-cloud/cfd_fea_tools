@@ -13,10 +13,13 @@
 > Son ikisi ÜRETİM hattını koşturur (gmsh C3D10 node-ordering → write_inp → ccx → frd);
 > silindir özellikle **`PressureLoad`→nodal dönüşümünü** doğrular — CFD-basınç→FEA
 > kuplajının dayandığı kod. Delik, bekçinin gerçek-konsantrasyonu-tekillikten-ayırmasını
-> da kanıtlar (tepe/temsili=1.49×, bayrak YOK). Kontrol kazanımı: **2.2 SIMP filtresi zaten var** (`_sens_filter`),
-> **1.3 eleman C3D10** (hourglass yok → moot), **2.3 TO yeniden-analizi zaten var**.
-> Kalan: ya **çözücü-koşusu** (1.2 gerilme mesh-yakınsama) ya da **derin özellik**
-> (2.1 overhang/üretilebilirlik kısıtı, FSI).
+> da kanıtlar (tepe/temsili=1.49×, bayrak YOK). ✅ **1.2 gerilme mesh-GCI** (delik tepe-vM
+> yakınsadı, %0.34 yayılım). ✅ **2.1 üretilebilirlik değerlendirmesi** (`manufacturability.py`:
+> overhang+yön+min-üye). ✅ **3.1 manevra g-yükü** (`GravityLoad`→*DLOAD GRAV, öz-ağırlık %4.8
+> doğrulandı → yük üçlüsü: kuvvet+basınç+gövde). ◐ **4.1** mevcut verdict'le karşılandı.
+> Kontrol kazanımı: 2.2 SIMP filtresi + 1.3 C3D10 + 2.3 TO-reanaliz ZATEN var. Kalan: **derin/
+> çok-oturumluk** (2.4 gerilme/frekans-kısıtlı TO, 3.2 iteratif FSI, 3.3 yorulma/kompozit) —
+> araştırma-düzeyi.
 
 ---
 
@@ -97,11 +100,14 @@ yapıları çevrimsel yük + kompozit görür. **Emek:** Yüksek.
 
 ## 4. FEA otopilotu (CFD otopilotunun yapısal karşılığı)
 
-### 4.1 🟡 FEA auto-config + hakem-kapısı
-**Ne:** Geometri+rejimden otomatik: malzeme (materials.json), yük-durumu, eleman tipi/mesh,
-SF/burkulma verdicti. **FEA referee gate:** gerilme yakınsadı mı / tekillik-artefaktı mı →
-sonucu şartlandır (CFD `referee_gate`'in eşi). **Neden:** Tek-tık güvenilir yapısal analiz +
-"kötü sonuç öğrenilmez" tutarlılığı. **Emek:** Orta. (CFD otopilot mimarisi yeniden-kullanılır.)
+### 4.1 ◐ FEA auto-config + hakem-kapısı — büyük ölçüde KARŞILANDI
+**Mevcut hakem-kapısı:** Yapısal sonuç güveni zaten şartlandırılıyor — `_mechanism_check`
+(mesnetsiz mekanizma → `gecersiz`), `_stress_assessment` (tekillik şüphesi → muhafazakâr
+tepe-SF + uyarı), 1.2 gerilme-GCI (yakınsama). CFD `referee_gate`'in yapısal eşi: kötü
+sonuç güvenilmez işaretlenir. **Fark (CFD'den):** FEA'da öğrenme-döngüsü YOK → "çapa
+kaydetme" kavramı uygulanmaz; bu yüzden ayrı bir gate-modülü gereksiz (sadelik). **Kalan
+(düşük öncelik):** geometri+rejimden tam auto-config (malzeme/yük/eleman otomatik seçimi) —
+şu an kullanıcı `run_structural_check` parametreleriyle seçiyor (öner-onayla yeterli).
 
 ### 4.2 🟡 FEA validation suite (commit'li)
 **Ne:** Kapalı-form referanslı vakalar: ankastre kiriş (sehim/gerilme), delikli-plaka (Kt

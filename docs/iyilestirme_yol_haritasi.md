@@ -6,10 +6,12 @@
 Öncelik: 🔴 yüksek-ROI/düşük-emek · 🟡 orta · 🟢 ileri/düşük-öncelik.
 Her madde: **ne / neden / emek**.
 
-> **Durum (2026-06-17):** ✅ **1.1 mesh-kalite ön-geçidi** (`mesh_quality_gate`,
-> süpersonik+ses-altı yola bağlı), ✅ **1.4 süre/maliyet bandı** (`_runtime_band`)
-> tamamlandı. Kalan maddeler ya **çözücü-koşusu** ister (2.1 validation suite,
-> 2.2 GCI — makine dinleniyor) ya da **derin özellik** (2.3/2.4 far-field, mesh-adapt).
+> **Durum (2026-06-17):** "Boşa koşuyu önle" sprinti TAMAM — ✅ **1.1 mesh-kalite geçidi**,
+> ✅ **1.2 diverjans bekçisi** (NaN/inf → BAŞARISIZ; canlı erken-abort dürüstçe ertelendi),
+> ✅ **1.3 orphan-önleme** (WSL-timeout sarma + pkill; ses-altı+süpersonik), ✅ **1.4 süre/maliyet
+> bandı**, ✅ **2.3 lift-bilinçli far-field**. Kalan: **çözücü-koşusu/derin** (2.1 validation
+> sistematik, 2.2 GCI-oto, 2.4 wake-drag, 2.5 y⁺-oto-düzelt, 3.x bbox-tavanı) — laptopta
+> ağır ya da çok-oturumluk; öner-onayla + MEMORY ile yönetilir.
 
 ---
 
@@ -42,10 +44,11 @@ WSL-içi ağacı bırakıyordu → orphan, 50× yavaşlama). Ayrıca Windows-tar
 (`test_openfoam_runner`). **Süpersonik yol da kapsandı** (`supersonic_cfd._shock_solve`:
 WSL-içi timeout sarma + Windows-backstop pkill — rocket_tvc 2h timeout'un yaşandığı yer).
 
-### 1.4 🟡 Maliyet/süre tahmini + ön-uyarı
-**Ne:** Mesh boyutu + rejim + çözücüden tahmini wall-time hesapla; "bu koşu ~X saat,
-gece-boyu/HPC öner" de (süpersonik için kısmen var → genelleştir). **Neden:** Öner-onayla
-felsefesiyle uyumlu; kullanıcı pahalı koşuyu bilerek başlatır. **Emek:** Düşük.
+### 1.4 ✅ Maliyet/süre tahmini + ön-uyarı — `_runtime_band` (zaten var)
+**Mevcut:** `auto_pilot._runtime_band(regime, quality, lmax)` çözücü-öncesi kaba wall-time
+bandı verir (ses-altı + süpersonik); `auto_configure` bunu `tahmini_sure` + pahalı-koşu
+uyarısı olarak sunar (öner-onayla felsefesi). Birim-testli (`test_runtime_band`). Kontrol-
+kazanımı: yeni kod gerekmedi.
 
 ---
 
