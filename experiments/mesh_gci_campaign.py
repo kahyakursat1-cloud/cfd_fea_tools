@@ -44,7 +44,21 @@ def main():
             progress_cb=lambda p, m, _l=lvl: _log(f"  [{_l}] {p}% {m}"))
         cells = (r.mesh or {}).get("cells")
         if r.cd is None or not cells:
-            _log(f"!!! Seviye '{lvl}' başarısız (cd={r.cd}, cells={cells}) — kampanya durdu")
+            # Seviye başarısız (ör. ince mesh laptop bütçesini aştı → WSL-timeout temiz
+            # öldürdü). BAŞARILI seviyeleri KAYBETME: kısmi kayıt yaz + dürüstçe bitir.
+            _log(f"!!! Seviye '{lvl}' başarısız (cd={r.cd}, cells={cells}) — "
+                 f"{len(runs)}/{len(LEVELS)} seviye tamam, kısmi kayıt yazılıyor")
+            partial = {
+                "vaka": f"Mesh-GCI kampanyası (KISMİ) — {Path(args.stl).name}",
+                "durum": f"{len(runs)}/{len(LEVELS)} seviye başarılı; '{lvl}' başarısız",
+                "seviyeler": runs,
+                "basarisiz_seviye": lvl,
+                "not": ("İnce seviye laptop foamRun bütçesini aşmış olabilir (orphan-önleme "
+                        "WSL-timeout ile temiz öldürür). 3-nokta GCI için tüm seviyeler "
+                        "tractable olmalı (daha düşük max_cells ya da daha küçük/temiz geometri)."),
+            }
+            (HERE.parent / args.out).write_text(
+                json.dumps(partial, indent=2, ensure_ascii=False), encoding="utf-8")
             return 1
         runs.append({"seviye": lvl, "cd": float(r.cd), "cells": int(cells)})
         _log(f"=== '{lvl}' bitti: Cd={r.cd:.5f}, hücre={cells:,} "

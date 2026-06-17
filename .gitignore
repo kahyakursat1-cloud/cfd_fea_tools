@@ -118,3 +118,4 @@ auto_pilot_memory.jsonl
 experiments/real_geo/
 stress_topopt_lbracket.png
 fsi_divergence.png
+mesh_gci_campaign.log
