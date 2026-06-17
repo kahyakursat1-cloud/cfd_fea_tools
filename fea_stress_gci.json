@@ -1,0 +1,38 @@
+{
+  "vaka": "Delikli-plaka tepe von Mises — FEA gerilme GCI (3 mesh)",
+  "yontem": "C3D10, delik-çevresi h=R/{4,6,9} sabit r=1.5; tepe vM Richardson",
+  "seviyeler": [
+    {
+      "h_mm": 2.5,
+      "dugum": 5153,
+      "sigma_tepe_MPa": 159.167,
+      "tepe_temsili": 1.57
+    },
+    {
+      "h_mm": 1.6667,
+      "dugum": 12185,
+      "sigma_tepe_MPa": 159.71,
+      "tepe_temsili": 1.49
+    },
+    {
+      "h_mm": 1.1111,
+      "dugum": 32222,
+      "sigma_tepe_MPa": 159.401,
+      "tepe_temsili": 1.61
+    }
+  ],
+  "gci": {
+    "p": 1.389,
+    "f_exact": 158.992449,
+    "gci_fine_pct": 0.3205,
+    "gci_med_pct": 0.5619,
+    "asymptotic": 1.0019,
+    "monotonic": false,
+    "p_in_range": true
+  },
+  "strict_gci_verdict": "⚠️ Mesh bağımsızlığı GÖSTERİLEMEDİ: yakinsamamis/salinimli dizi",
+  "tepe_yayilim_pct": 0.341,
+  "fiziksel_sonuc": "✅ Tepe gerilme YAKINSADI (gerçek konsantrasyon, tekillik DEĞİL): 6× düğümde yayılım %0.34, GCI_ince %0.32. Tekillik olsaydı tepe ıraksardı.",
+  "analitik_Kt_MPa": 157.0,
+  "_not": "Tepe vM 6× düğümde <%1 oynar → gerçek konsantrasyon YAKINSAK (tekillik DEĞİL; o ıraksardı). Strict-GCI 'salınımlı' diyebilir çünkü değer gürültü-tabanında. Üretim: python experiments/fea_stress_gci.py"
+}

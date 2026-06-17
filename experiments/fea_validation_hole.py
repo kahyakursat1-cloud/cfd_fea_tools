@@ -40,7 +40,9 @@ SIG_MAX_AN = KT_NET * SIG_NET                    # analitik tepe gerilme
 KT_GROSS = SIG_MAX_AN / SIG_GROSS                # brüt-kesit Kt (~Peterson)
 
 
-def build_mesh(work: Path) -> TetMesh:
+def build_mesh(work: Path, vin_div: float = 6.0, tag: str = "plate_hole") -> TetMesh:
+    """Delikli-plaka mesh'i. vin_div: delik-çevresi eleman boyu = R/vin_div
+    (büyük → ince mesh). GCI için bu yerel boyut h-temsilcisidir."""
     gmsh.initialize()
     try:
         gmsh.option.setNumber("General.Terminal", 0)
@@ -54,7 +56,7 @@ def build_mesh(work: Path) -> TetMesh:
         gmsh.model.mesh.field.setNumber(fld, "XCenter", 0.0)
         gmsh.model.mesh.field.setNumber(fld, "YCenter", 0.0)
         gmsh.model.mesh.field.setNumber(fld, "ZCenter", T / 2)
-        gmsh.model.mesh.field.setNumber(fld, "VIn", R / 6)
+        gmsh.model.mesh.field.setNumber(fld, "VIn", R / vin_div)
         gmsh.model.mesh.field.setNumber(fld, "VOut", R * 1.2)
         gmsh.model.mesh.field.setAsBackgroundMesh(fld)
         for opt in ("MeshSizeExtendFromBoundary", "MeshSizeFromPoints",
@@ -65,7 +67,7 @@ def build_mesh(work: Path) -> TetMesh:
         gmsh.option.setNumber("Mesh.HighOrderOptimize", 1)
         gmsh.option.setNumber("Mesh.MshFileVersion", 2.2)
         gmsh.model.mesh.generate(3)
-        msh = work / "plate_hole.msh"
+        msh = work / f"{tag}.msh"
         gmsh.write(str(msh))
     finally:
         gmsh.finalize()
@@ -77,23 +79,19 @@ def build_mesh(work: Path) -> TetMesh:
                    msh_path=msh, element_type="C3D10")
 
 
-def main():
-    work = HERE.parent / "_fea_val_hole"
-    work.mkdir(exist_ok=True)
-    print(f"Analitik: Kt_net={KT_NET:.3f}, Kt_brüt={KT_GROSS:.3f}, "
-          f"σ_tepe={SIG_MAX_AN / 1e6:.1f} MPa (σ_brüt={SIG_GROSS / 1e6:.0f})", flush=True)
-    mesh = build_mesh(work)
-    print(f"Mesh: {mesh.num_nodes:,} düğüm, {mesh.num_tets:,} C3D10", flush=True)
-
+def run_case(work: Path, vin_div: float = 6.0) -> dict | None:
+    """Verilen mesh-inceliğinde delikli-plakayı koş; tepe vM + meta döndür.
+    GCI scripti farklı vin_div'lerle çağırır."""
+    tag = f"ph{int(round(vin_div))}"
+    mesh = build_mesh(work, vin_div, tag)
     pts = mesh.points
     tol = 1e-7
     def plane(ax, val):
         return np.where(np.abs(pts[:, ax] - val) < tol)[0] + 1   # 1-indexed
     nx0, ny0, nz0, nxa = plane(0, 0), plane(1, 0), plane(2, 0), plane(0, A)
-
     mat = FEAMaterial("AL", E, NU, RHO, yield_strength_pa=SY)
     case = FEACase(
-        name="plate_hole", mesh=mesh, material=mat,
+        name=tag, mesh=mesh, material=mat,
         fixed_bcs=[FixedBC(nx0, "SYMX", 1, 1), FixedBC(ny0, "SYMY", 2, 2),
                    FixedBC(nz0, "SYMZ", 3, 3)],
         force_loads=[ForceLoad(nxa, (1.0, 0.0, 0.0), SIG_GROSS * B * T, "TENS")],
@@ -101,23 +99,33 @@ def main():
     inp = write_inp(case, work)
     ccx = run_ccx(inp, timeout=900)
     if not ccx.success:
-        print("CCX FAILED:", (ccx.stderr or ccx.stdout or "")[-400:]); return 1
-
+        return None
     frd = parse_frd(ccx.frd_path)
     vm = frd.von_mises()
     if vm is None:
-        print("von Mises okunamadı"); return 1
-    peak = float(vm.max()) / 1e6
-    err = abs(peak - SIG_MAX_AN / 1e6) / (SIG_MAX_AN / 1e6) * 100
-    # tepe konumu (delik kenarı y≈R, x≈0 beklenir)
+        return None
     loc = pts[int(np.argmax(vm))]
-    sa = _stress_assessment(vm, SY / 1e6)
+    return {"h": R / vin_div, "peak_MPa": float(vm.max()) / 1e6,
+            "nodes": mesh.num_nodes, "sa": _stress_assessment(vm, SY / 1e6),
+            "loc_mm": (loc * 1e3).tolist()}
+
+
+def main():
+    work = HERE.parent / "_fea_val_hole"
+    work.mkdir(exist_ok=True)
+    print(f"Analitik: Kt_net={KT_NET:.3f}, Kt_brüt={KT_GROSS:.3f}, "
+          f"σ_tepe={SIG_MAX_AN / 1e6:.1f} MPa (σ_brüt={SIG_GROSS / 1e6:.0f})", flush=True)
+    r = run_case(work, 6.0)
+    if r is None:
+        print("CCX FAILED"); return 1
+    peak, sa, loc = r["peak_MPa"], r["sa"], r["loc_mm"]
+    err = abs(peak - SIG_MAX_AN / 1e6) / (SIG_MAX_AN / 1e6) * 100
+    print(f"Mesh: {r['nodes']:,} düğüm", flush=True)
     print(f"FEM: σ_tepe={peak:.1f} MPa (hata %{err:.1f}); konum (x,y,z)="
-          f"({loc[0] * 1e3:.1f},{loc[1] * 1e3:.1f},{loc[2] * 1e3:.1f}) mm", flush=True)
+          f"({loc[0]:.1f},{loc[1]:.1f},{loc[2]:.1f}) mm", flush=True)
     print(f"_stress_assessment: tepe/temsili={sa['tepe_temsili_orani']}× , "
           f"tekillik_süphesi={sa['tekillik_suphesi']} (delik düzgün eğri → False beklenir)",
           flush=True)
-
     ok = err < 15
     print("SONUC:", "✅ GECTI (Kt analitik ile uyumlu)" if ok else "⚠ tolerans disi",
           flush=True)

@@ -30,11 +30,13 @@ Mises"i körlemesine okumak → tekillik-artefaktı → **yanlış SF / yanlış
 köşe için "fillet ekle" öner. **Neden:** Her yapısal verdictin dürüstlüğü buna bağlı.
 **Emek:** Orta. **Bu, yapısal tarafın 'mutlak Cd' dürüstlük-meselesidir.**
 
-### 1.2 🔴 Gerilme mesh-bağımsızlığı (FEA "GCI"si)
-**Ne:** CFD-GCI'nin yapısal karşılığı — gerilme en mesh-duyarlı niceliktir (integrasyon
-noktalarında doğru, konsantrasyonda küçük eleman ister). ≥3 mesh seviyesinde max-gerilme
-yakınsamasını raporla; yakınsamayan tekillik (1.1) ile ayır. **Neden:** SF ancak mesh-bağımsızsa
-savunulabilir. **Emek:** Orta. (`compute_gci` çekirdeği gerilmeye de uygulanabilir.)
+### 1.2 ✅ Gerilme mesh-bağımsızlığı (FEA "GCI"si) — `experiments/fea_stress_gci.py`
+**Yapıldı:** Delikli-plaka tepe von Mises'i 3 mesh (h=R/{4,6,9}, sabit r=1.5) üzerinde
+`compute_gci` ile. Sonuç: tepe 6× düğümde **<%0.34 yayılım**, GCI_ince **%0.32**, Richardson
+158.99 MPa (Heywood'dan **%1.3**) → tepe YAKINSADI = **gerçek konsantrasyon, tekillik DEĞİL**
+(tekillik ıraksardı). Strict-GCI 'salınımlı' diyor (değer gürültü-tabanında) → `fiziksel_sonuc`
+ile dürüstçe ayrıldı; mesh'i 'yeşil GCI' için ayarlamadık (airfoil-GCI dersi). 1.1 ile birlikte
+**her SF iddiası artık mesh-bağımsızlığıyla savunulabilir.** Kayıt: `fea_stress_gci.json`.
 
 ### 1.3 🟡 Eleman tipi/kalitesi — C3D8R hourglass riski
 **Sorun:** Varsayılan **C3D8R** (reduced-integration) hourglass (sıfır-enerji modu) üretir →
