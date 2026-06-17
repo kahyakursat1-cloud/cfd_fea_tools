@@ -83,3 +83,17 @@ def test_fea_validation_hole_analytic():
     assert pytest.approx(fh.KT_NET / (1 - fh.DW)) == fh.KT_GROSS
     assert 3.0 < fh.KT_GROSS < 3.3                            # delik için fiziksel aralık
     assert fh.SIG_MAX_AN > fh.SIG_GROSS                       # konsantrasyon > brüt
+
+
+def test_fea_validation_cyl_analytic():
+    """Basınçlı silindir hoop analitiği (Lamé). Tam V&V: experiments/fea_validation_cyl.py
+    (ccx koşar, %7.2 — BASINÇ yolunu doğrular). Burada yalnız kapalı-form."""
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "experiments"))
+    import fea_validation_cyl as fc
+    # Lamé iç-yüzey hoop > basınç (ince cidar r/t≈20 → büyük çarpan)
+    assert pytest.approx(fc.P * (fc.R_IN ** 2 + fc.R_OUT ** 2)
+                                         / (fc.R_OUT ** 2 - fc.R_IN ** 2)) == fc.SIG_THETA
+    assert fc.SIG_THETA > 15 * fc.P                           # r/t≈20 → σθ≈20p
+    assert fc.SIG_VM_AN > 0 and pytest.approx(-fc.P) == fc.SIG_R

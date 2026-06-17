@@ -1,0 +1,12 @@
+{
+  "vaka": "İç-basınçlı silindir, hoop gerilmesi — Lamé kalın-cidar kapalı-form",
+  "yontem": "ÜRETİM BASINÇ yolu: PressureLoad → üçgen-basınç→nodal kuvvet (calculix_writer) → ccx → frd. Çeyrek-açı + yarı-boy simetri, iç yüzeye p=1 MPa.",
+  "geometri": {"r_ic_m": 0.100, "r_dis_m": 0.105, "Lz_m": 0.040, "r_t": 20,
+               "p_MPa": 1.0, "E_Pa": 7.0e10, "nu": 0.33},
+  "analitik": {"sigma_theta_MPa": 20.51, "sigma_r_MPa": -1.0, "vM_MPa": 21.03,
+               "formul": "Lamé: sigma_theta(r_ic)=p(r_ic^2+r_dis^2)/(r_dis^2-r_ic^2); vM=√(σθ²−σθσr+σr²)"},
+  "fem": {"vM_tepe_MPa": 22.55, "hata_pct": 7.2, "dugum": 21975, "eleman_C3D10": 12176,
+          "ic_yuzey_ucgen": 2618, "tepe_temsili_orani": 1.04},
+  "sonuc": "GECTI — Lamé ile %7.2. Doğrular: ÜRETİMin BASINÇ yükü yolu (PressureLoad→nodal, CFD-basınç→FEA kuplajının dayandığı kod). Hata payı üçgen-basıncın köşe-only eşit-bölünmesinden (quadratic ara-düğüm yüklenmez) — kabul edilebilir/dürüst.",
+  "_not": "Üretim: python experiments/fea_validation_cyl.py. Suite: fea_validation.json (kiriş, kuvvet), fea_validation_hole.json (Kt, kuvvet), bu (hoop, BASINÇ)."
+}

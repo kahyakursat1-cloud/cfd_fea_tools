@@ -41,6 +41,7 @@ test_cfd_run/
 test_fea_run/
 _fea_val/
 _fea_val_hole/
+_fea_val_cyl/
 rocket_cfd_case/
 rocket_fin/
 structural_assessment/
