@@ -72,14 +72,66 @@ def gen_kanatli_roket(rng, R=0.04):
     return trimesh.util.concatenate([body, *fins]), "kanatli_roket"
 
 
+# Çeşitli NACA 4-haneli profiller (simetrik + kamburlu) — airfoil-kesitli gerçekçi kanat
+NACA_KATALOG = ("0009", "0012", "0015", "0018", "1408", "2412", "2415",
+                "4412", "4415", "6409", "23012", "63012")
+
+
+def naca4(code, n=70):
+    """NACA 4-haneli airfoil dış-hat koordinatları (kapalı döngü, kiriş 0–1)."""
+    code = code[-4:]
+    m, p, t = int(code[0]) / 100, int(code[1]) / 10, int(code[2:]) / 100
+    beta = np.linspace(0, np.pi, n)
+    x = (1 - np.cos(beta)) / 2                          # kosinüs aralık (TE sıklaştırma)
+    yt = 5 * t * (0.2969 * np.sqrt(x) - 0.1260 * x - 0.3516 * x**2
+                  + 0.2843 * x**3 - 0.1015 * x**4)
+    if p == 0:
+        yc = np.zeros_like(x); dyc = np.zeros_like(x)
+    else:
+        yc = np.where(x < p, m / p**2 * (2 * p * x - x**2),
+                      m / (1 - p)**2 * ((1 - 2 * p) + 2 * p * x - x**2))
+        dyc = np.where(x < p, 2 * m / p**2 * (p - x), 2 * m / (1 - p)**2 * (p - x))
+    th = np.arctan(dyc)
+    xu, yu = x - yt * np.sin(th), yc + yt * np.cos(th)
+    xl, yl = x + yt * np.sin(th), yc - yt * np.cos(th)
+    X = np.concatenate([xu[::-1], xl[1:]])
+    Y = np.concatenate([yu[::-1], yl[1:]])
+    return np.column_stack([X, Y])
+
+
+def _naca_wing(code, chord, span, taper=1.0):
+    """NACA profilini kök→uç loft ederek (taper'lı) 3B watertight kanat — kiriş→x,
+    açıklık→y, kalınlık→z. shapely'siz elle örgü (bağımlılık yok)."""
+    af = naca4(code)                                          # (N,2): (kiriş, kalınlık)
+    n = len(af)
+    root = np.column_stack([af[:, 0] * chord, np.full(n, -span / 2), af[:, 1] * chord])
+    tc = chord * taper
+    tip = np.column_stack([af[:, 0] * tc, np.full(n, span / 2), af[:, 1] * tc])
+    verts = np.vstack([root, tip])
+    faces = []
+    for i in range(n):                                       # kök↔uç şerit (quad→2 üçgen)
+        j = (i + 1) % n
+        faces += [[i, j, n + j], [i, n + j, n + i]]
+    rc = len(verts); verts = np.vstack([verts, root.mean(0)])    # kök kapağı (yelpaze)
+    faces += [[rc, (i + 1) % n, i] for i in range(n)]
+    tcv = len(verts); verts = np.vstack([verts, tip.mean(0)])    # uç kapağı
+    faces += [[tcv, n + i, n + (i + 1) % n] for i in range(n)]
+    w = trimesh.Trimesh(vertices=verts, faces=faces, process=True)
+    w.fix_normals()
+    return w
+
+
 def gen_ucak(rng, L=0.6):
     R = L * rng.uniform(0.035, 0.06)
     fus = trimesh.creation.cylinder(radius=R, height=L * rng.uniform(0.8, 0.95))
     fus.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [0, 1, 0]))
     span = rng.uniform(0.5, 0.95) * L
-    wing = trimesh.creation.box((L * rng.uniform(0.13, 0.2), span, L * 0.018))
-    wing.apply_translation((L * rng.uniform(-0.05, 0.15), 0, 0))
-    tail = trimesh.creation.box((L * 0.1, span * rng.uniform(0.3, 0.5), L * 0.016))
+    chord = L * rng.uniform(0.13, 0.20)
+    code = NACA_KATALOG[rng.integers(0, len(NACA_KATALOG))]   # farklı NACA modeli
+    wing = _naca_wing(code, chord, span, taper=rng.uniform(0.45, 1.0))
+    wing.apply_translation((L * rng.uniform(-0.05, 0.12), 0, 0))
+    tcode = NACA_KATALOG[rng.integers(0, 4)]                  # kuyruk: ince simetrik
+    tail = _naca_wing(tcode, chord * 0.55, span * rng.uniform(0.3, 0.5))
     tail.apply_translation((-L * 0.4, 0, 0))
     return trimesh.util.concatenate([fus, wing, tail]), "ucak"
 
