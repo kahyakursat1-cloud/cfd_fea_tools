@@ -1,7 +1,18 @@
 """auto_pilot sınıflandırma + konfigürasyon mantığı (sentetik geo dict ile)."""
 import math
 
+import pytest
+
 import auto_pilot as ap
+
+
+@pytest.fixture
+def empty_lib(tmp_path, monkeypatch):
+    """Öğrenme kütüphanesini boş izole et → KURAL sınıflandırması deterministik test edilir
+    (canlı-birikmiş kütüphaneye bağımlı olmasın; öğrenilen-override ayrı testlerde)."""
+    monkeypatch.setattr(ap, "SEED", tmp_path / "s.jsonl")
+    monkeypatch.setattr(ap, "REAL_SEED", tmp_path / "r.jsonl")
+    monkeypatch.setattr(ap, "MEMORY", tmp_path / "m.jsonl")
 
 
 def _geo(L, W, H, planform=None, frontal=None, bodies=1, faces=5000):
@@ -12,22 +23,22 @@ def _geo(L, W, H, planform=None, frontal=None, bodies=1, faces=5000):
             "govde_sayisi": bodies, "ucgen_sayisi": faces, "su_gecirmez": True}
 
 
-def test_classify_rocket():
+def test_classify_rocket(empty_lib):
     g = _geo(2.5, 0.12, 0.12)            # ince, yuvarlak kesit
     assert ap.classify_vehicle(g)["tip"] == "roket"
 
 
-def test_classify_wing_aircraft():
+def test_classify_wing_aircraft(empty_lib):
     g = _geo(2.5, 1.2, 0.08, frontal=1.2 * 0.08)   # yassı + geniş
     assert ap.classify_vehicle(g)["tip"] == "ucak"
 
 
-def test_classify_cube_is_generic():
+def test_classify_cube_is_generic(empty_lib):
     g = _geo(0.5, 0.5, 0.5, frontal=0.25)          # küt, kompakt, tek gövde
     assert ap.classify_vehicle(g)["tip"] == "genel"
 
 
-def test_classify_multikopter():
+def test_classify_multikopter(empty_lib):
     g = _geo(0.4, 0.38, 0.12, frontal=0.05, bodies=5)   # kompakt + çok kol
     assert ap.classify_vehicle(g)["tip"] == "multikopter"
 
@@ -156,6 +167,32 @@ def test_referee_gate_blocks_bad_cd(tmp_path, monkeypatch):
     assert cds == [0.22]                 # yalnız güvenilir koşu çapa oldu
     # tip etiketi yine de öğrenildi (şüpheli vakalar da kütüphanede, metrik+tip)
     assert len(ap._load_cases()) == 3
+
+
+def test_cd_predict_declines_thin_data(tmp_path, monkeypatch):
+    # Geometri-farkında Cd-tahmini: <min_support vaka → şeffaf REDDET (sahte güven yok)
+    monkeypatch.setattr(ap, "SEED", tmp_path / "seed.jsonl")
+    monkeypatch.setattr(ap, "REAL_SEED", tmp_path / "real.jsonl")
+    monkeypatch.setattr(ap, "MEMORY", tmp_path / "mem.jsonl")
+    m = {"L_D": 8, "W_L": 0.1, "H_L": 0.1, "H_W": 1.0, "govde": 1}
+    for _ in range(3):                       # 3 < min_support(5)
+        ap.record_case(m, "roket", "roket", {"Cd_toplam": 0.4, "Cd_drift_pct": 1.0})
+    assert ap.cd_predict(m, "roket") is None
+
+
+def test_cd_predict_and_prior_check(tmp_path, monkeypatch):
+    monkeypatch.setattr(ap, "SEED", tmp_path / "seed.jsonl")
+    monkeypatch.setattr(ap, "REAL_SEED", tmp_path / "real.jsonl")
+    monkeypatch.setattr(ap, "MEMORY", tmp_path / "mem.jsonl")
+    for i in range(8):                       # 8 benzer roket, Cd≈0.40–0.47
+        m = {"L_D": 8 + i * 0.1, "W_L": 0.08, "H_L": 0.08, "H_W": 1.0, "govde": 1}
+        ap.record_case(m, "roket", "roket", {"Cd_toplam": 0.40 + 0.01 * i, "Cd_drift_pct": 1.0})
+    q = {"L_D": 8.3, "W_L": 0.08, "H_L": 0.08, "H_W": 1.0, "govde": 1}
+    pred = ap.cd_predict(q, "roket")
+    assert pred is not None and pred["n_destek"] == 8
+    assert 0.35 < pred["cd_tahmin"] < 0.50        # komşu Cd'lerin makul ortalaması
+    assert ap.cd_prior_check(q, "roket", 0.43) is None   # tutarlı → bayrak yok
+    assert ap.cd_prior_check(q, "roket", 2.5) is not None  # bariz sapma → bayrak
 
 
 def test_cd_outlier_flags_anomaly(tmp_path, monkeypatch):

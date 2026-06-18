@@ -147,6 +147,46 @@ def cd_outlier(vtype: str, cd: float) -> str | None:
     return None
 
 
+def cd_predict(metrik: dict, vtype: str, k: int = 5, min_support: int = 5) -> dict | None:
+    """Geometri-farkında Cd ön-kestirimi: aynı-tip kütüphane vakalarından feature-uzayında
+    k-en-yakın komşunun MESAFE-AĞIRLIKLI Cd ortalaması + BELİRSİZLİK (komşu yayılımı).
+    Veri ince (n<min_support) ise şeffaf REDDEDER (None) — sahte güven vermez.
+    cd_outlier'ın tip-ortalamasına göre geometri-duyarlı (instance-tabanlı surrogate)."""
+    cases = [c for c in _load_cases()
+             if c.get("onayli_tip") == vtype and c.get("cd_toplam") is not None]
+    if len(cases) < min_support:
+        return None
+    fv = _features(metrik)
+    def d2(c):
+        return sum((a - b) ** 2 for a, b in zip(fv, _features(c["metrik"])))
+    knn = sorted(cases, key=d2)[:min(k, len(cases))]
+    w = [1.0 / (d2(c) ** 0.5 + 1e-6) for c in knn]
+    cds = [c["cd_toplam"] for c in knn]
+    wsum = sum(w) or 1.0
+    cd_hat = sum(wi * ci for wi, ci in zip(w, cds)) / wsum
+    unc = (sum(wi * (ci - cd_hat) ** 2 for wi, ci in zip(w, cds)) / wsum) ** 0.5
+    rel_unc = unc / (abs(cd_hat) + 1e-6)
+    guven = round(min(1.0, len(cases) / 15.0) / (1.0 + rel_unc), 2)
+    return {"cd_tahmin": round(cd_hat, 4), "belirsizlik": round(unc, 4),
+            "n_destek": len(cases), "komsu": len(knn), "guven": guven}
+
+
+def cd_prior_check(metrik: dict, vtype: str, cd: float) -> str | None:
+    """CFD Cd'sini geometri-farkında ön-kestirimle karşılaştır (referee için). Belirgin
+    sapma → kontrol bayrağı. cd_outlier'dan (tip-ortalama) daha sıkı/geometri-duyarlı."""
+    if cd is None:
+        return None
+    pred = cd_predict(metrik, vtype)
+    if not pred or pred["guven"] < 0.3:
+        return None
+    band = max(pred["belirsizlik"], 0.15 * abs(pred["cd_tahmin"]))
+    if abs(cd - pred["cd_tahmin"]) > 3 * band:
+        return (f"C_D={cd:.3f}, benzer {pred['n_destek']} geometrinin öğrenilen "
+                f"ön-kestiriminden ({pred['cd_tahmin']:.3f}±{pred['belirsizlik']:.3f}) "
+                f"belirgin sapıyor — geometri/mesh/ayar kontrolü önerilir.")
+    return None
+
+
 def classify_vehicle(geo: dict) -> dict:
     """inspect_geometry çıktısından araç tipi (roket/uçak/multikopter/genel).
     Skorlama: her tip için kanıt toplar, en yüksek skoru seçer, güven döner."""
@@ -394,6 +434,15 @@ def narrate(config: dict, result: dict | None = None) -> str:
         cd = result["Cd_toplam"]
         sat.append(f"Sonuç: C_D≈{cd:.3f}.")
         flag = cd_outlier(tip, cd)
+        # Geometri-farkında öğrenilen ön-kestirim (KABA prior; medyan ~%42 hata,
+        # veri arttıkça iyileşir; precise surrogate DEĞİL — bilgilendirici).
+        pred = cd_predict(config.get("metrik", {}), tip)
+        if pred and pred["guven"] >= 0.3:
+            sat.append(f"Öğrenilen ön-kestirim ({pred['n_destek']} benzer geometri): "
+                       f"C_D≈{pred['cd_tahmin']:.3f}±{pred['belirsizlik']:.3f} (kaba prior).")
+            pflag = cd_prior_check(config.get("metrik", {}), tip, cd)
+            if pflag:
+                sat.append("⚠ " + pflag)
         if flag:
             sat.append("⚠ " + flag)
         else:
