@@ -37,12 +37,13 @@ Cd-drift <0.003 → solver **orphan-güvenli öldürülür** (1.3'ün `_wsl_kill
 (OF.org 11'de runTimeControl yok). **Doğrulandı:** clean_rocket hizli 200→120 iter (%40 az),
 Cd ÖZDEŞ (0.275→0.2746). **Not:** Paralel (mpirun) yol bu WSL2'de bozuk → seri yolda kazanç.
 
-### 1.2-not 🔴 Parallel CFD (mpirun) — bu WSL2'de BOZUK (config ile çözülemez)
-**Bulgu:** `mpirun -np 1 hostname` bile sıfır-çıktıyla asılıyor → Open MPI 4.1.2'nin bu WSL2'de
-temel launch arızası. Denenenler (hepsi başarısız): btl transport, oob loopback, plm isolated,
-TMPDIR/tmpfs, hwloc-disable, debug. OF11 sistem Open MPI'sine (`openmpi-system`) bağlı; paketli
-alternatif yok. **Çözüm flag DEĞİL → invaziv**: MPI reinstall ya da OF'u MPICH'e karşı yeniden
-derleme (sudo + çalışan kurulumu riske atar) → **kullanıcı kararı**. Parallel ~4-6× kazanç sunardı.
+### 1.2-not ✅ Parallel CFD (mpirun) — ONARILDI (`HWLOC_COMPONENTS=-gl`)
+**Kök neden (strace):** `mpirun -np 1` bile `connect(127.0.0.1:6001)`'de asılıyordu — hwloc'un
+**GL bileşeni** GPU-topolojisi için X-sunucusuna (DISPLAY=:0 WSLg) bağlanıp süresiz donuyordu.
+**Çözüm:** `OF_ENV_PREFIX`'e `export HWLOC_COMPONENTS=-gl` (reinstall GEREKMEDİ). + `_default_processors`
+→ fiziksel çekirdek (4; WSL 8-mantıksal/4-fiziksel, OpenMPI fiziksel'i slot sayar) + `--oversubscribe`
++ erken-durdurma parallel'e genellendi. **Doğrulandı:** 4-çekirdek paralel + 129-iter erken-stop,
+Cd özdeş. Solver-ağır seviyelerde (standart/hassas) ~3-4× hız.
 
 ### 1.3 ✅ Süreç-yaşamdöngüsü sağlamlığı — `_wrap_timeout` + `_wsl_kill`
 **Yapıldı:** Uzun OF adımları (foamRun/snappy/mpirun…) **WSL-içi GNU `timeout -k 10 -s TERM`**
