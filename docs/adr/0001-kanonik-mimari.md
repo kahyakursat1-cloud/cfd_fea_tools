@@ -51,7 +51,26 @@ birleştirme, OpenFOAM/CalculiX olmadan doğrulanamayacağı için yüksek riskl
 - ✅ `main.py` (yetim) **silindi** (2026-06-03). Sıfır fonksiyonel referanstı;
    halefi `app_parametric.py`. Gerekirse git geçmişinden geri alınabilir.
 
+## REVİZYON 2 (2026-06-18) — ARAÇ STACK'İ (4. katman) eklendi
+
+ADR 2026-06-03'te yazıldı; o tarihten sonra **birincil kullanıcı-yüzü katman** inşa edildi
+ve bu ADR'de yoktu. Güncel kanonik durum:
+
+| Katman | Modüller | Rol |
+|--------|----------|-----|
+| **#4 — araç (BİRİNCİL, kullanıcı-yüzü)** | `vehicle_pipeline.py`, `auto_pilot.py`, `vehicle_fea.py`, `vehicle_topopt.py`, `supersonic_cfd.py`, `vehicle_polar.py`, `app_analyzer.py` (GUI), `farfield_drag.py`, `manufacturability.py` | Keyfi STL → otopilot sınıflandırma+öğrenme → mesh → CFD/FEA → rapor. **#3 `analysis/` motorunu kullanır.** |
+| #3 — analysis (genel motor) | `analysis/` | #4'ün altyapısı; doğrudan da kullanılır |
+| #1 — pipeline (uçak 2D V&V) | `simulation_runner`, `fea_runner`, kök `report_generator`, `pipeline.py`, `app_parametric.py` | Airfoil/küre V&V, GCI kampanyaları (ayrı değer) |
+| #2 — solvers/post_processing | `solvers/`, `post_processing/` | İkincil wrapper + PDF rapor |
+
+**Güncel karar:** Yeni araç-analizi geliştirmesi **#4 üzerinden** (bu seansın tüm işi:
+gerilme-TO, FSI, far-field, parallel-CFD fix, batch-öğrenme orada). #1 2D-V&V için korunur
+(airfoil GCI suite). #2/#3 değişmedi. **Mass-deletion hâlâ İPTAL** (REVİZYON-1 gerekçesi geçerli).
+
+**Giriş noktaları (güncel):** `app_analyzer.py` (araç GUI, #4) + `app_parametric.py` (2D V&V GUI, #1)
++ `pipeline.py` (V&V CLI) + `experiments/batch_learn.py` (toplu öğrenme).
+
 ## Notlar
 
-Karakterizasyon + regresyon testleri (`tests/`) üç katmanın çekirdek fiziğini ve
-post-processing matematiğini dondurur — 28 test, golden değerler dahil.
+Karakterizasyon + regresyon testleri (`tests/`) dört katmanın çekirdek fiziğini ve
+post-processing matematiğini dondurur — 118 test (golden değerler + araç-stack V&V dahil).
