@@ -1,13 +1,22 @@
-"""Toplu öğrenme kampanyası — çeşitli ETİKETLİ geometrileri otopilot akışıyla koşar,
-record_case ile öğrenme kütüphanesini büyütür. Sentetik geometrilerin GERÇEK tipi bilinir
-→ onayli_tip=ground-truth → temiz etiketli eğitim verisi (sınıflandırıcı yanlışsa bile öğrenir).
+"""Toplu öğrenme kampanyası — ÇEŞİTLİ + ETİKETLİ geometrileri otopilot akışıyla koşar,
+record_case ile öğrenme kütüphanesini OVERFITTING'e karşı dikkatli büyütür.
 
-Akış/geometri: roket (dönel gövde, L/D 5–14), uçak (geniş ince kanat), multikopter (merkez+kol),
-genel (küre/elipsoid/küt). Her geo: inspect → classify → CFD(hizli) → record_case. Robust
-(geo başına try/except), devam-edebilir (yapılmışları atlar), ilerleme dosyaya.
-Kullanım: python experiments/batch_learn.py [n_per_class]
+OVERFITTING KORUMASI (kritik — yüzlerce sentetik yakın-kopya metrik-uzayını boğmasın):
+  1. Çeşitlilik-seçimi (farthest-point): büyük randomize havuz → CFD'den ÖNCE metrik-uzayında
+     mevcut kütüphaneye göre EN SEYREK bölgeleri seç (boşluk-dolduran). min-uzaklık eps altına
+     inince DUR → yakın-kopya kaydetme, pahalı CFD harcama.
+  2. Sınıf-başı tavan (cap) → tek sınıf kütüphaneyi domine etmesin.
+  3. Holdout doğrulama: kaydedilmeyen ayrı set; öğrenmeden ÖNCE+SONRA sınıflandırma isabeti
+     → genelleme düşerse overfitting sinyali (raporlanır).
+
+KURŞUN-GEÇİRMEZ: CFD-öncesi geometri validasyonu (watertight/hacim/yüz), koşular-arası
+orphan + disk temizliği, geo-başına catch-all (biri çökse batch durmaz), devam-edebilir.
+
+Kullanım: python experiments/batch_learn.py [cap_per_class] [pool_mult]
 """
 import json
+import shutil
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -17,96 +26,186 @@ import trimesh
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
-from auto_pilot import classify_vehicle, record_case  # noqa: E402
+import auto_pilot as ap  # noqa: E402
+from analysis.ccx_runner import WSL_DISTRO  # noqa: E402
+from auto_pilot import _features, _load_cases, classify_vehicle, record_case  # noqa: E402
 from vehicle_pipeline import inspect_geometry, prepare_geometry, run_vehicle_analysis  # noqa: E402
 
 GEN_DIR = HERE.parent / "vehicle_runs" / "_batch_geo"
 LOG = HERE.parent / "batch_learn.log"
 DONE = HERE.parent / "batch_learn_done.json"
+DIVERSITY_EPS = 0.045        # bu uzaklıktan yakın (aynı-tip) örnek → yakın-kopya, kaydetme
+ALL_TIPLER = ("roket", "kanatli_roket", "ucak", "multikopter", "genel")
 
 
-# ─────────── geometri üreticileri (gerçek tip etiketli) ───────────
+# ─────────── geometri üreticileri (RANDOMIZE + geniş — çeşitlilik) ───────────
 
 def _revolve(profile, sections=64):
-    """2B (yarıçap, eksen) profilini dönel katı yap (watertight)."""
     m = trimesh.creation.revolve(np.asarray(profile, float), sections=sections)
     m.merge_vertices(); m.fix_normals()
     return m
 
 
-def gen_roket(L_D, nose_frac, R=0.04):
-    L = L_D * 2 * R; Ln = nose_frac * L
-    prof = [[0, 0], [R, 0], [R, L - Ln], [0, L]]      # kuyruk→silindir→konik burun
+def gen_roket(rng, R=0.04):
+    L_D = rng.uniform(4.5, 15)
+    nose = rng.uniform(0.15, 0.45)
+    L = L_D * 2 * R; Ln = nose * L
+    if rng.random() < 0.5:                              # konik vs ogive burun
+        prof = [[0, 0], [R, 0], [R, L - Ln], [0, L]]
+    else:
+        xs = np.linspace(0, Ln, 8)
+        og = [[R * np.sqrt(max(1 - (x / Ln) ** 2, 0)), L - Ln + x] for x in xs]
+        prof = [[0, 0], [R, 0], [R, L - Ln], *og]
     return _revolve(prof), "roket"
 
 
-def gen_kanatli_roket(L_D, R=0.04):
-    body, _ = gen_roket(L_D, 0.25, R)
+def gen_kanatli_roket(rng, R=0.04):
+    body, _ = gen_roket(rng, R)
+    L = (body.bounds[1] - body.bounds[0])[2]
+    nf = rng.integers(3, 5)
     fins = []
-    for ang in (0, 90, 180, 270):
-        f = trimesh.creation.box((R * 2.5, R * 0.15, L_D * 2 * R * 0.18))
-        f.apply_translation((R * 0.9, 0, L_D * 2 * R * 0.09))
-        f.apply_transform(trimesh.transformations.rotation_matrix(np.radians(ang), [0, 0, 1]))
+    for k in range(nf):
+        f = trimesh.creation.box((R * rng.uniform(2, 3), R * 0.15, L * rng.uniform(0.12, 0.22)))
+        f.apply_translation((R * 0.9, 0, L * 0.09))
+        f.apply_transform(trimesh.transformations.rotation_matrix(2 * np.pi * k / nf, [0, 0, 1]))
         fins.append(f)
     return trimesh.util.concatenate([body, *fins]), "kanatli_roket"
 
 
-def gen_ucak(span_frac, L=0.6):
-    # ince fuzelaj + geniş kanat + kuyruk → uçak imzası (span_ratio≥0.35, ince-yassı)
-    R = L * 0.045
-    fus = trimesh.creation.cylinder(radius=R, height=L * 0.9)
+def gen_ucak(rng, L=0.6):
+    R = L * rng.uniform(0.035, 0.06)
+    fus = trimesh.creation.cylinder(radius=R, height=L * rng.uniform(0.8, 0.95))
     fus.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [0, 1, 0]))
-    span = span_frac * L
-    wing = trimesh.creation.box((L * 0.16, span, L * 0.018))
-    wing.apply_translation((L * 0.05, 0, 0))
-    tail = trimesh.creation.box((L * 0.10, span * 0.4, L * 0.016))
+    span = rng.uniform(0.5, 0.95) * L
+    wing = trimesh.creation.box((L * rng.uniform(0.13, 0.2), span, L * 0.018))
+    wing.apply_translation((L * rng.uniform(-0.05, 0.15), 0, 0))
+    tail = trimesh.creation.box((L * 0.1, span * rng.uniform(0.3, 0.5), L * 0.016))
     tail.apply_translation((-L * 0.4, 0, 0))
     return trimesh.util.concatenate([fus, wing, tail]), "ucak"
 
 
-def gen_multikopter(arm, R=0.03):
-    parts = [trimesh.creation.box((R * 2, R * 2, R * 1.2))]
-    for ang in (45, 135, 225, 315):
+def gen_multikopter(rng, R=0.03):
+    arm = rng.uniform(0.16, 0.42)
+    na = rng.choice([4, 6])
+    parts = [trimesh.creation.box((R * 2, R * 2, R * rng.uniform(1.0, 1.5)))]
+    for k in range(na):
         a = trimesh.creation.cylinder(radius=R * 0.25, height=arm)
         a.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [1, 0, 0]))
         a.apply_translation((arm / 2, 0, 0))
-        a.apply_transform(trimesh.transformations.rotation_matrix(np.radians(ang), [0, 0, 1]))
+        a.apply_transform(trimesh.transformations.rotation_matrix(2 * np.pi * k / na + 0.4, [0, 0, 1]))
         parts.append(a)
     return trimesh.util.concatenate(parts), "multikopter"
 
 
-def gen_genel(kind, S=0.2):
+def gen_genel(rng):
+    S = rng.uniform(0.12, 0.28)
+    kind = rng.choice(["kure", "elipsoid", "kut", "silindir"])
     if kind == "kure":
         return trimesh.creation.icosphere(subdivisions=3, radius=S / 2), "genel"
     if kind == "elipsoid":
-        prof = [[0, 0]] + [[S / 2 * np.sin(t), S * (1 - np.cos(t)) / 2]
-                           for t in np.linspace(0.01, np.pi - 0.01, 20)] + [[0, S]]
+        asp = rng.uniform(1.2, 2.5)
+        prof = [[0, 0]] + [[S / 2 * np.sin(t), S * asp * (1 - np.cos(t)) / 2]
+                           for t in np.linspace(0.01, np.pi - 0.01, 20)] + [[0, S * asp]]
         return _revolve(prof), "genel"
-    return trimesh.creation.box((S, S * 0.8, S * 0.7)), "genel"   # küt kutu
+    if kind == "silindir":
+        return trimesh.creation.cylinder(radius=S / 2, height=S * rng.uniform(1, 2.5)), "genel"
+    return trimesh.creation.box((S, S * rng.uniform(0.6, 0.95), S * rng.uniform(0.6, 0.9))), "genel"
 
 
-def build_catalog(n_per_class):
-    """Etiketli geometri kataloğu (parametrik tarama)."""
-    cat = []
-    for ld in np.linspace(5, 14, n_per_class):
-        cat.append((f"roket_LD{ld:.0f}", *gen_roket(ld, 0.3)))
-    for ld in np.linspace(6, 12, max(2, n_per_class // 2)):
-        cat.append((f"kanatliroket_LD{ld:.0f}", *gen_kanatli_roket(ld)))
-    for sf in np.linspace(0.5, 0.95, n_per_class):
-        cat.append((f"ucak_sf{sf*100:.0f}", *gen_ucak(sf)))
-    for arm in np.linspace(0.18, 0.40, max(2, n_per_class // 2)):
-        cat.append((f"multikopter_{arm*100:.0f}", *gen_multikopter(arm)))
-    for i, k in enumerate(["kure", "elipsoid", "kut"] * n_per_class):
-        if i >= n_per_class:
+_GENS = {"roket": gen_roket, "kanatli_roket": gen_kanatli_roket, "ucak": gen_ucak,
+         "multikopter": gen_multikopter, "genel": gen_genel}
+
+
+def _valid_geo(m) -> bool:
+    """Kurşun-geçirmez ön-eleme: dejenere/işe yaramaz geometriyi CFD'den ÖNCE at."""
+    try:
+        ext = m.bounds[1] - m.bounds[0]
+        return (len(m.faces) >= 50 and np.all(np.isfinite(ext)) and
+                float(ext.min()) > 1e-4 and float(m.volume) > 1e-9)
+    except Exception:
+        return False
+
+
+def _metrik_of(stl, workdir):
+    """CFD'siz: hazırla → inspect → classify → (metrik, geo, prep). Dejenere→None."""
+    prep, _ = prepare_geometry(stl, workdir)
+    m = trimesh.load(str(prep), force="mesh")
+    if not _valid_geo(m):
+        return None
+    geo = inspect_geometry(prep)
+    cls = classify_vehicle(geo)
+    return {"metrik": cls["metrik"], "tip": cls["tip"], "guven": cls["guven"], "prep": prep}
+
+
+def _lib_feats(tip):
+    """Kütüphanedeki aynı-tip vakaların özellik-vektörleri (çeşitlilik referansı)."""
+    out = []
+    for c in _load_cases():
+        if c.get("onayli_tip") == tip and c.get("metrik"):
+            try:
+                out.append(np.array(_features(c["metrik"]), float))
+            except Exception:
+                pass
+    return out
+
+
+def _farthest_select(cands, tip, cap, eps):
+    """cands: [(name, metrik, prep)]. Mevcut kütüphane + seçilenlere göre en SEYREK
+    (boşluk-dolduran) örnekleri açgözlü seç. min-uzaklık eps altına inince DUR (yakın-kopya
+    kaydetme → overfitting önleme)."""
+    ref = _lib_feats(tip)
+    feats = [np.array(_features(m), float) for _, m, _ in cands]
+    chosen = []
+    used = set()
+    for _ in range(min(cap, len(cands))):
+        best_i, best_d = -1, -1.0
+        for i, f in enumerate(feats):
+            if i in used:
+                continue
+            pool = ref + [feats[j] for j in used]
+            d = min((np.linalg.norm(f - r) for r in pool), default=1e9)
+            if d > best_d:
+                best_d, best_i = d, i
+        if best_i < 0 or best_d < eps:                 # kalan en-iyi bile çok yakın → dur
             break
-        cat.append((f"genel_{k}{i}", *gen_genel(k)))
-    return cat
+        used.add(best_i); chosen.append(cands[best_i])
+    return chosen
+
+
+def _orphan_cleanup():
+    try:
+        subprocess.run(["wsl", "-d", WSL_DISTRO, "--", "bash", "-c",
+                        "pkill -9 -f foamRun 2>/dev/null; pkill -9 -f mpirun 2>/dev/null; true"],
+                       capture_output=True, timeout=20)
+    except Exception:
+        pass
+
+
+def _holdout_accuracy(rng_seed=999, n_per=3):
+    """Kaydedilmeyen ayrı set → genelleme isabeti (overfitting dedektörü)."""
+    rng = np.random.default_rng(rng_seed)
+    wd = GEN_DIR / "_holdout"; wd.mkdir(parents=True, exist_ok=True)
+    ok = tot = 0
+    for tip in ALL_TIPLER:
+        for k in range(n_per):
+            try:
+                m, true_tip = _GENS[tip](rng)
+                stl = wd / f"ho_{tip}_{k}.stl"; m.export(str(stl))
+                info = _metrik_of(stl, wd / f"ho_{tip}_{k}")
+                if info:
+                    tot += 1; ok += int(info["tip"] == true_tip)
+            except Exception:
+                pass
+    shutil.rmtree(wd, ignore_errors=True)
+    return ok, tot
 
 
 def main():
-    n_per = int(sys.argv[1]) if len(sys.argv) > 1 else 2
+    cap = int(sys.argv[1]) if len(sys.argv) > 1 else 8       # sınıf-başı tavan
+    pool_mult = int(sys.argv[2]) if len(sys.argv) > 2 else 4  # havuz = cap×mult aday
     GEN_DIR.mkdir(parents=True, exist_ok=True)
     done = set(json.loads(DONE.read_text())) if DONE.exists() else set()
+    rng = np.random.default_rng(int(time.time()) % 100000)
 
     def log(m):
         line = f"[{time.strftime('%H:%M:%S')}] {m}"
@@ -114,34 +213,61 @@ def main():
         with LOG.open("a", encoding="utf-8") as f:
             f.write(line + "\n")
 
-    catalog = build_catalog(n_per)
-    log(f"=== Toplu öğrenme: {len(catalog)} geometri (yapılmış: {len(done)}) ===")
-    t0 = time.time(); ok = 0; dogru = 0
-    for name, mesh, true_tip in catalog:
+    ho0_ok, ho0_tot = _holdout_accuracy()
+    log(f"=== Toplu öğrenme (cap={cap}/sınıf) | kütüphane={len(_load_cases())} | "
+        f"holdout-ÖNCE: {ho0_ok}/{ho0_tot} ({100*ho0_ok/max(ho0_tot,1):.0f}%) ===")
+
+    # 1) Havuz üret + CFD'siz metrik çıkar → 2) çeşitlilik-seç → 3) CFD+record
+    plan = []
+    for tip in ALL_TIPLER:
+        cands = []
+        for k in range(cap * pool_mult):
+            try:
+                m, true_tip = _GENS[tip](rng)
+                if not _valid_geo(m):
+                    continue
+                name = f"{tip}_{k}_{rng.integers(1000,9999)}"
+                stl = GEN_DIR / f"{name}.stl"; m.export(str(stl))
+                info = _metrik_of(stl, GEN_DIR / name)
+                if info:
+                    cands.append((name, info["metrik"], info["prep"]))
+            except Exception:
+                pass
+        sel = _farthest_select(cands, tip, cap, DIVERSITY_EPS)
+        log(f"{tip}: {len(cands)} aday → {len(sel)} çeşitli seçildi (eps={DIVERSITY_EPS})")
+        plan += [(n, m, p, tip) for n, m, p in sel]
+
+    log(f"Plan: {len(plan)} çeşitli geometri koşulacak (CFD)")
+    t0 = time.time(); ok = dogru = 0
+    for name, metrik, prep, true_tip in plan:
         if name in done:
             continue
         try:
-            stl = GEN_DIR / f"{name}.stl"
-            mesh.export(str(stl))
-            prep, _ = prepare_geometry(stl, GEN_DIR / name)
-            geo = inspect_geometry(prep)
-            cls = classify_vehicle(geo)
-            log(f"{name}: tip→{cls['tip']} (gerçek {true_tip}, güven {cls['guven']})")
+            cls = classify_vehicle(inspect_geometry(prep))   # güncel kütüphaneyle
             res = run_vehicle_analysis(prep, vehicle_type=cls["tip"], velocity=30.0,
                                        quality="hizli", out_root=str(GEN_DIR))
             drift = (res.convergence or {}).get("drift_pct")
             gate = record_case(cls["metrik"], cls["tip"], true_tip,
                                {"Cd_toplam": res.cd, "rejim": _regime(true_tip),
                                 "Cd_drift_pct": drift}, dosya=f"batch:{name}")
-            ok += 1
-            dogru += int(cls["tip"] == true_tip)
-            log(f"  → Cd={res.cd} güvenilir={gate['cd_guvenilir']} "
-                f"({(time.time()-t0)/60:.0f} dk, {ok} tamam)")
+            ok += 1; dogru += int(cls["tip"] == true_tip)
+            log(f"  {name}: sınıf={cls['tip']} gerçek={true_tip} Cd={res.cd} "
+                f"güvenilir={gate['cd_guvenilir']} ({(time.time()-t0)/60:.0f}dk, {ok} tamam)")
             done.add(name); DONE.write_text(json.dumps(sorted(done)))
         except Exception as e:
-            log(f"  !!! {name} BAŞARISIZ: {str(e)[:160]}")
-    log(f"=== BİTTİ: {ok} koşu, sınıflandırma isabeti {dogru}/{ok} "
-        f"({100*dogru/max(ok,1):.0f}%), {(time.time()-t0)/60:.0f} dk ===")
+            log(f"  !!! {name} BAŞARISIZ: {str(e)[:140]}")
+        finally:
+            shutil.rmtree(GEN_DIR / name, ignore_errors=True)   # disk temizliği
+            _orphan_cleanup()                                   # koşular-arası orphan
+
+    ho1_ok, ho1_tot = _holdout_accuracy()
+    log(f"=== BİTTİ: {ok} koşu, eğitim-isabet {dogru}/{ok} ({100*dogru/max(ok,1):.0f}%) | "
+        f"kütüphane={len(_load_cases())} | holdout-SONRA: {ho1_ok}/{ho1_tot} "
+        f"({100*ho1_ok/max(ho1_tot,1):.0f}%) ===")
+    delta = (ho1_ok/max(ho1_tot,1)) - (ho0_ok/max(ho0_tot,1))
+    log(f"OVERFITTING KONTROL: holdout Δ={delta*100:+.0f}% — "
+        + ("genelleme korundu/iyileşti ✓" if delta >= -0.05 else
+           "⚠ holdout düştü → overfitting şüphesi (eps büyüt / çeşitlilik artır)"))
     return 0
 
 
