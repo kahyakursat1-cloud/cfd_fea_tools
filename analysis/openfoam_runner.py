@@ -27,6 +27,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -913,6 +914,41 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
             all_stderr.append(f"--- {log_name} stderr ---\n{r.stderr}")
         return r
 
+    def _foam_serial_early_stop(tmo: int, window: int = 50, tol: float = 0.003) -> int:
+        """foamRun'ı arka planda koş; coefficient.dat'tan Cd'yi canlı izle; son `window`
+        iterasyonda Cd-drifti `tol`un altına inince solver'ı orphan-güvenli öldür (erken
+        yakınsama). Döner: returncode (0=ok/erken-yakınsama, !=0=hata/timeout)."""
+        if progress_callback:
+            progress_callback(70, "foamRun (seri SIMPLE, Cd-yakınsama izlemeli)...")
+        wrapped, bins = _wrap_timeout("foamRun", tmo)
+        full = f"{OF_ENV_PREFIX}cd '{wsl_dir}' && {wrapped} > log.foamRun 2>&1"
+        proc = subprocess.Popen(["wsl", "-d", WSL_DISTRO, "--", "bash", "-c", full],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        t0 = time.time(); early = False; n_iter = 0
+        while proc.poll() is None:
+            time.sleep(12)
+            try:
+                hist = parse_force_coeffs(case_dir)[3]
+            except Exception:
+                hist = []
+            n_iter = len(hist)
+            if n_iter >= 2 * window:
+                cds = [h[1] for h in hist[-window:]]
+                drift = abs(cds[-1] - cds[0]) / (abs(cds[-1]) + 1e-12)
+                if drift < tol:
+                    _wsl_kill(bins); early = True
+                    break
+            if time.time() - t0 > tmo:
+                _wsl_kill(bins); break
+        try:
+            proc.wait(timeout=30)
+        except Exception:
+            pass
+        log_files.append(case_dir / "log.foamRun")
+        if early and progress_callback:
+            progress_callback(72, f"Cd yakınsadı ({n_iter} iter, drift<{tol}) — erken durdu")
+        return 0 if (early or proc.returncode == 0) else (proc.returncode or -1)
+
     # 1) surfaceFeatures
     r = _step(10, "surfaceFeatures...", "surfaceFeatures", "log.surfaceFeatures", 120)
     if r is None or r.returncode != 0:
@@ -995,11 +1031,12 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
                              log_files=log_files)
         _step(95, "reconstructPar...", "reconstructPar", "log.reconstructPar", 600)
     else:
-        r = _step(70, "foamRun (seri SIMPLE)...",
-                  "foamRun", "log.foamRun", max(timeout - 600, 600))
-        if r is None or r.returncode != 0:
-            return CFDResult(case_dir=case_dir, success=False,
-                             return_code=-1 if r is None else r.returncode,
+        # Seri foamRun + CANLI Cd-yakınsama erken-durdurması: residualControl (1e-4)
+        # çoğu kaba case'de plato yaptığından tetiklenmez → end_time'a kadar boşa koşar.
+        # Cd (mühendislik niceliği) bir pencerede sabitlenince solver'ı temiz öldür → CPU.
+        rc = _foam_serial_early_stop(max(timeout - 600, 600))
+        if rc != 0:
+            return CFDResult(case_dir=case_dir, success=False, return_code=rc,
                              stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
                              log_files=log_files)
 
