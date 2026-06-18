@@ -35,7 +35,8 @@ GEN_DIR = HERE.parent / "vehicle_runs" / "_batch_geo"
 LOG = HERE.parent / "batch_learn.log"
 DONE = HERE.parent / "batch_learn_done.json"
 DIVERSITY_EPS = 0.045        # bu uzaklıktan yakın (aynı-tip) örnek → yakın-kopya, kaydetme
-ALL_TIPLER = ("roket", "kanatli_roket", "ucak", "multikopter", "genel")
+ALL_TIPLER = ("roket", "kanatli_roket", "ucak", "multikopter", "genel",
+              "tilt_rotor", "kanatli_vtol", "kaldirici_govde")
 
 
 # ─────────── geometri üreticileri (RANDOMIZE + geniş — çeşitlilik) ───────────
@@ -62,13 +63,16 @@ def gen_roket(rng, R=0.04):
 def gen_kanatli_roket(rng, R=0.04):
     body, _ = gen_roket(rng, R)
     L = (body.bounds[1] - body.bounds[0])[2]
-    nf = rng.integers(3, 5)
+    nf = int(rng.integers(3, 5))
+    fcode = NACA_KATALOG[rng.integers(0, 4)]               # ince SİMETRİK fin profili
     fins = []
     for k in range(nf):
-        f = trimesh.creation.box((R * rng.uniform(2, 3), R * 0.15, L * rng.uniform(0.12, 0.22)))
-        f.apply_translation((R * 0.9, 0, L * 0.09))
-        f.apply_transform(trimesh.transformations.rotation_matrix(2 * np.pi * k / nf, [0, 0, 1]))
-        fins.append(f)
+        fin = _naca_wing(fcode, chord=R * rng.uniform(2.0, 3.0), span=R * rng.uniform(1.5, 2.5))
+        # airfoil kanat (kiriş→x, açıklık→y, kalınlık→z); fin radyal dışa, eksen z
+        fin.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [1, 0, 0]))
+        fin.apply_translation((0, 0, L * 0.10))           # gövde aft, radyal dışa (y→z sonrası)
+        fin.apply_transform(trimesh.transformations.rotation_matrix(2 * np.pi * k / nf, [0, 0, 1]))
+        fins.append(fin)
     return trimesh.util.concatenate([body, *fins]), "kanatli_roket"
 
 
@@ -164,8 +168,52 @@ def gen_genel(rng):
     return trimesh.creation.box((S, S * rng.uniform(0.6, 0.95), S * rng.uniform(0.6, 0.9))), "genel"
 
 
+def gen_tilt_rotor(rng, L=0.5):
+    """Eğimli-rotor: fuzelaj + NACA kanat + kanat-ucu rotor nacelle'leri."""
+    R = L * 0.05
+    fus = trimesh.creation.cylinder(radius=R, height=L * 0.8)
+    fus.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [0, 1, 0]))
+    span = rng.uniform(0.6, 0.9) * L
+    chord = L * rng.uniform(0.14, 0.20)
+    wing = _naca_wing(NACA_KATALOG[rng.integers(0, len(NACA_KATALOG))], chord, span,
+                      taper=rng.uniform(0.6, 0.9))
+    parts = [fus, wing]
+    for sgn in (-1, 1):                                    # kanat-ucu nacelle (rotor podu)
+        pod = trimesh.creation.cylinder(radius=R * 0.8, height=chord * 1.3)
+        pod.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [0, 1, 0]))
+        pod.apply_translation((0, sgn * span / 2 * 0.92, 0))
+        parts.append(pod)
+    return trimesh.util.concatenate(parts), "tilt_rotor"
+
+
+def gen_kanatli_vtol(rng, L=0.5):
+    """Kanatlı-VTOL: NACA kanat + merkez gövde + dikey kaldırma fanları (duct)."""
+    R = L * 0.06
+    body = trimesh.creation.box((L * 0.5, R * 2, R * 2))
+    span = rng.uniform(0.6, 0.95) * L
+    wing = _naca_wing(NACA_KATALOG[rng.integers(0, len(NACA_KATALOG))], L * 0.16, span,
+                      taper=rng.uniform(0.5, 0.9))
+    parts = [body, wing]
+    for fx in (L * 0.12, -L * 0.12):                       # dikey kaldırma fanları
+        for fy in (span * 0.28, -span * 0.28):
+            d = trimesh.creation.cylinder(radius=R * 0.6, height=R * 0.9)
+            d.apply_translation((fx, fy, 0))
+            parts.append(d)
+    return trimesh.util.concatenate(parts), "kanatli_vtol"
+
+
+def gen_kaldirici_govde(rng, L=0.5):
+    """Kaldırıcı-gövde: kalın geniş NACA-kesitli harmanlanmış gövde (ince kanat DEĞİL)."""
+    code = ("0015", "0018", "4415", "23015")[rng.integers(0, 4)]   # kalın profil
+    chord = L * rng.uniform(0.6, 0.95)                     # büyük kiriş (gövde-benzeri)
+    span = L * rng.uniform(0.45, 0.8)                      # orta açıklık (küt, ince değil)
+    return _naca_wing(code, chord, span, taper=rng.uniform(0.4, 0.7)), "kaldirici_govde"
+
+
 _GENS = {"roket": gen_roket, "kanatli_roket": gen_kanatli_roket, "ucak": gen_ucak,
-         "multikopter": gen_multikopter, "genel": gen_genel}
+         "multikopter": gen_multikopter, "genel": gen_genel,
+         "tilt_rotor": gen_tilt_rotor, "kanatli_vtol": gen_kanatli_vtol,
+         "kaldirici_govde": gen_kaldirici_govde}
 
 
 def _valid_geo(m) -> bool:
@@ -296,7 +344,10 @@ def main():
             continue
         try:
             cls = classify_vehicle(inspect_geometry(prep))   # güncel kütüphaneyle
-            res = run_vehicle_analysis(prep, vehicle_type=cls["tip"], velocity=30.0,
+            # CFD preset'i: hibrit tip (kanatli_roket/tilt_rotor…) VEHICLE_PRESETS'te yok →
+            # PRESET_MAP ile base preset'e eşle (KeyError önle — kurşun-geçirmez).
+            cfd_tip = ap.PRESET_MAP.get(cls["tip"], "genel")
+            res = run_vehicle_analysis(prep, vehicle_type=cfd_tip, velocity=30.0,
                                        quality="hizli", out_root=str(GEN_DIR))
             drift = (res.convergence or {}).get("drift_pct")
             gate = record_case(cls["metrik"], cls["tip"], true_tip,
