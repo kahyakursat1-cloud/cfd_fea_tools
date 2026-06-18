@@ -119,3 +119,6 @@ experiments/real_geo/
 stress_topopt_lbracket.png
 fsi_divergence.png
 mesh_gci_campaign.log
+vehicle_runs/_batch_geo/
+batch_learn.log
+batch_learn_done.json
