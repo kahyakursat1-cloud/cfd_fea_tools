@@ -306,6 +306,24 @@ def _thin_flatness(m: trimesh.Trimesh, nb: int = 12) -> float:
     return float(np.percentile(flat, 20)) if flat else 1.0
 
 
+def _radial_solidity(m: trimesh.Trimesh) -> float:
+    """Üst-görünüm (en-ince eksene dik) DOLULUK: siluet-alanı / konveks-zarf-alanı.
+    Radyal-kollu cisim (multikopter: gövde+ince kollar, aralarda boşluk) DÜŞÜK (~0.2);
+    sürekli yüzey (kanat/küt gövde) YÜKSEK (~0.5–1.0). 'Radyal-simetri/spoke' ayırt edici —
+    multikopter↔kanat bbox-örtüşmesini çözer (govde dejenere olduğunda bile çalışır)."""
+    ext = m.bounds[1] - m.bounds[0]
+    keep = [i for i in range(3) if i != int(np.argmin(ext))]
+    V2 = np.asarray(m.vertices, float)[:, keep]
+    tris = V2[m.faces]
+    a, b = tris[:, 1] - tris[:, 0], tris[:, 2] - tris[:, 0]
+    sil = 0.5 * float(np.abs(a[:, 0] * b[:, 1] - a[:, 1] * b[:, 0]).sum()) * 0.5  # ~2-katman
+    try:
+        hull = float(ConvexHull(V2).volume)              # 2B'de volume = alan
+    except Exception:
+        return 1.0
+    return round(min(sil / hull, 1.0), 4) if hull > 1e-12 else 1.0
+
+
 def inspect_geometry(stl_path: Path) -> dict:
     m = trimesh.load(str(stl_path), force="mesh")
     if not isinstance(m, trimesh.Trimesh):
@@ -322,6 +340,7 @@ def inspect_geometry(stl_path: Path) -> dict:
         "planform_alan_m2": round(_hull_projected_area(m.vertices, 2), 5),  # üstten
         "ince_kalinlik_m": (lambda t: round(t, 5) if t else None)(estimate_thin_thickness(m)),
         "ince_yassilik": round(_thin_flatness(m), 4),    # kanat-inceliği (bbox-üstü)
+        "radyal_doluluk": _radial_solidity(m),           # spoke↔sürekli (multikopter ayrımı)
     }
 
 

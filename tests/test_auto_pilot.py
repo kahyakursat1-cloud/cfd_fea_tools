@@ -15,12 +15,35 @@ def empty_lib(tmp_path, monkeypatch):
     monkeypatch.setattr(ap, "MEMORY", tmp_path / "m.jsonl")
 
 
-def _geo(L, W, H, planform=None, frontal=None, bodies=1, faces=5000):
+def _geo(L, W, H, planform=None, frontal=None, bodies=1, faces=5000, sol=1.0):
     fr = frontal if frontal is not None else math.pi * (min(W, H) / 2) ** 2
     pf = planform if planform is not None else L * W
     return {"boyutlar_m": [L, W, H], "lmax_m": max(L, W, H),
-            "on_alan_m2": fr, "planform_alan_m2": pf,
+            "on_alan_m2": fr, "planform_alan_m2": pf, "radyal_doluluk": sol,
             "govde_sayisi": bodies, "ucgen_sayisi": faces, "su_gecirmez": True}
+
+
+def test_radial_solidity_separates_multikopter(empty_lib):
+    # RADYAL-SİMETRİ: kompakt+geniş cisim, DÜŞÜK solidity (spoke-kollu) → multikopter
+    # (bodies=1 olsa bile — sentetik bağlı-kollu modelde govde dejenere); YÜKSEK → değil
+    mk = _geo(0.4, 0.38, 0.15, frontal=0.05, bodies=1, sol=0.25)
+    assert ap.classify_vehicle(mk)["tip"] == "multikopter"
+    # aynı bbox ama SÜREKLİ yüzey (yüksek solidity) → multikopter DEĞİL (küt/genel)
+    blunt = _geo(0.4, 0.38, 0.15, frontal=0.05, bodies=1, sol=0.95)
+    assert ap.classify_vehicle(blunt)["tip"] != "multikopter"
+
+
+def test_solidity_veto_blocks_wrong_multikopter(monkeypatch, tmp_path):
+    # FİZİK-VETO: öğrenilen kütüphane 'multikopter' dese de SÜREKLİ yüzey (yüksek solidity)
+    # multikopter OLAMAZ → override engellenir (eski-anchor solidity taşımasa bile)
+    monkeypatch.setattr(ap, "SEED", tmp_path / "s.jsonl")
+    monkeypatch.setattr(ap, "REAL_SEED", tmp_path / "r.jsonl")
+    monkeypatch.setattr(ap, "MEMORY", tmp_path / "m.jsonl")
+    m = {"L_D": 7, "W_L": 0.5, "H_L": 0.03, "H_W": 0.07, "govde": 1}   # kanat metriği
+    for _ in range(10):
+        ap.record_case(m, "multikopter", "multikopter", {"Cd_toplam": 0.3})
+    g = _geo(2.5, 1.2, 0.08, frontal=1.2 * 0.08, sol=0.95)            # sürekli kanat
+    assert ap.classify_vehicle(g)["tip"] == "ucak"                    # veto → multikopter değil
 
 
 def test_classify_rocket(empty_lib):
@@ -108,7 +131,7 @@ def test_planform_frontal_in_features():
                       "planform_frontal": 2.7, "govde": 1})
     b = ap._features({"L_D": 2.2, "W_L": 0.7, "H_L": 0.25, "H_W": 0.4,
                       "planform_frontal": 4.0, "govde": 1})
-    assert a != b and len(a) == 7           # pf farkı vektörü değiştirir
+    assert a != b and len(a) == 8           # pf farkı vektörü değiştirir
 
 
 def test_thin_flatness_in_features():
@@ -119,7 +142,7 @@ def test_thin_flatness_in_features():
     body = ap._features({**base, "ince_yassilik": 0.45})
     assert wing != body
     # eksik (None) → güvenli varsayılan (küt=1.0), çökmez
-    assert len(ap._features({**base, "ince_yassilik": None})) == 7
+    assert len(ap._features({**base, "ince_yassilik": None})) == 8
 
 
 def test_learned_vote_knn(tmp_path, monkeypatch):

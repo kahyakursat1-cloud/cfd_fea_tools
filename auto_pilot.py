@@ -42,15 +42,19 @@ def _features(metrik: dict) -> list:
     # gerçek-dünya CAD'lerinde gövdeli uçağı kaldırıcı gövdeden kısmen ayrıştırır.
     # ince_yassilik (bbox-üstü): kanat-inceliği; gövdeli uçağı kaldırıcı/küt
     # gövdeden ayırmada bbox oranlarının yetmediği yerde ek sinyal.
+    # radyal_doluluk (üst-görünüm spoke↔sürekli): multikopter↔kanat bbox-örtüşmesini
+    # çözen güçlü ayırt edici; eski-anchorda yoksa 1.0 (sürekli) varsayılır.
     w = {"L_D": 1.3, "W_L": 0.6, "H_L": 2.0, "H_W": 1.5, "govde": 0.7,
-         "pf": 1.2, "yass": 1.4}
+         "pf": 1.2, "yass": 1.4, "dol": 1.5}
     iy = metrik.get("ince_yassilik")
+    dol = metrik.get("radyal_doluluk")
     f = [min(metrik.get("L_D", 0), 30) / 30, metrik.get("W_L", 0),
          metrik.get("H_L", 0), metrik.get("H_W", 0),
          min(metrik.get("govde", 1), 8) / 8,
          min(metrik.get("planform_frontal", 0), 20) / 20,
-         min(iy if iy is not None else 1.0, 1.0)]
-    sw = [w["L_D"], w["W_L"], w["H_L"], w["H_W"], w["govde"], w["pf"], w["yass"]]
+         min(iy if iy is not None else 1.0, 1.0),
+         dol if dol is not None else 1.0]
+    sw = [w["L_D"], w["W_L"], w["H_L"], w["H_W"], w["govde"], w["pf"], w["yass"], w["dol"]]
     return [fi * (wi ** 0.5) for fi, wi in zip(f, sw)]
 
 
@@ -202,6 +206,7 @@ def classify_vehicle(geo: dict) -> dict:
     flatness = H / max(W, 1e-6)                        # H/W: ~1 yuvarlak, «1 yassı
     compact = H / max(L, 1e-6)
     planform_ratio = planform / frontal
+    solidity = geo.get("radyal_doluluk", 1.0)         # üst-görünüm doluluk (spoke↔sürekli)
 
     score = {"roket": 0.0, "ucak": 0.0, "multikopter": 0.0, "genel": 0.3}
     reasons = []
@@ -213,10 +218,11 @@ def classify_vehicle(geo: dict) -> dict:
     if compact < 0.2 and span_ratio >= 0.35:
         score["ucak"] += (0.2 - compact) * 3 + span_ratio
         reasons.append(f"ince-yassı (H/L≈{compact:.2f}) ve geniş (W/L≈{span_ratio:.2f}) → kaldırma yüzeyi")
-    # Multikopter: kompakt + geniş + çok-gövdeli (kollar)
-    if compact >= 0.3 and span_ratio >= 0.55 and slender < 4 and bodies >= 2:
-        score["multikopter"] += compact + 0.5
-        reasons.append(f"kompakt (H/L≈{compact:.2f}), çok-gövde ({bodies} kol)")
+    # Multikopter: kompakt + geniş + RADYAL-KOLLU (düşük solidity = spoke; bağlı-kollu
+    # modelde bodies=1 olabilir → solidity bodies'ten daha güvenilir ayırt edici)
+    if compact >= 0.3 and span_ratio >= 0.55 and slender < 4 and (bodies >= 2 or solidity < 0.45):
+        score["multikopter"] += compact + 0.5 + (0.5 if solidity < 0.45 else 0)
+        reasons.append(f"kompakt (H/L≈{compact:.2f}), radyal-kollu (doluluk≈{solidity:.2f})")
 
     vtype = max(score, key=score.get)
     total = sum(v for v in score.values() if v > 0)
@@ -224,14 +230,18 @@ def classify_vehicle(geo: dict) -> dict:
     metrik = {"L_D": round(slender, 2), "W_L": round(span_ratio, 2),
               "H_L": round(compact, 2), "H_W": round(flatness, 2),
               "planform_frontal": round(planform_ratio, 2), "govde": bodies,
-              "ince_yassilik": geo.get("ince_yassilik")}
+              "ince_yassilik": geo.get("ince_yassilik"),
+              "radyal_doluluk": round(solidity, 3)}
     out = {"tip": vtype, "guven": round(conf, 2), "metrik": metrik,
            "gerekce": reasons, "kural_tip": vtype}
     # Öğrenme: birikmiş kütüphane yeterliyse k-NN oyunu harmanla
     lv = learned_vote(metrik)
     if lv:
         out["ogrenilen"] = lv
-        if lv["guven"] >= 0.6 and lv["tip"] != vtype:
+        # FİZİK-VETO: sürekli yüzey (yüksek solidity) multikopter OLAMAZ (spoke-kollu değil)
+        # → eski-anchorlar bu özelliği taşımasa da yanlış 'multikopter' override'ı engellenir.
+        veto = (lv["tip"] == "multikopter" and solidity > 0.55)
+        if lv["guven"] >= 0.6 and lv["tip"] != vtype and not veto:
             # öğrenilen kanıt güçlü ve kuraldan farklı -> öğrenileni öne al
             out["tip"] = lv["tip"]
             out["gerekce"] = (reasons + [f"öğrenilen kütüphane ({lv['kutuphane']} vaka): "
