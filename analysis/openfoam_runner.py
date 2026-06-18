@@ -36,20 +36,29 @@ import trimesh
 
 
 def _default_processors() -> int:
-    """WSL'in gerçekten gördüğü çekirdek sayısı (Windows host değil).
+    """CFD için optimal MPI rank sayısı = FİZİKSEL çekirdek (Windows host değil, WSL).
 
-    .wslconfig 'processors=' sınırı varsa onu yansıtır.
+    Open MPI fiziksel çekirdeği 'slot' sayar; mantıksal (hyperthread) sayısı verirsek
+    'not enough slots' hatası. Ayrıca CFD bellek-bant sınırlı → hyperthread ~fayda yok.
+    `lscpu -p=Core` benzersiz çekirdek = fiziksel. .wslconfig sınırını da yansıtır.
     """
     try:
         r = subprocess.run(
-            ["wsl", "-d", "Ubuntu-22.04", "--", "nproc"],
+            ["wsl", "-d", "Ubuntu-22.04", "--", "bash", "-c",
+             "lscpu -p=Core 2>/dev/null | grep -v '^#' | sort -u | wc -l"],
             capture_output=True, text=True, timeout=15,
         )
         n = int(r.stdout.strip())
-        # Çok büyük olursa belleği zorlar; pratik tavan 8
-        return max(1, min(n, 8))
+        if n < 1:
+            raise ValueError
+        return max(1, min(n, 8))           # pratik tavan 8 (bellek koruması)
     except Exception:
-        return max(1, (os.cpu_count() or 4) // 2)
+        try:
+            r = subprocess.run(["wsl", "-d", "Ubuntu-22.04", "--", "nproc"],
+                               capture_output=True, text=True, timeout=15)
+            return max(1, min(int(r.stdout.strip()) // 2, 8))   # mantıksal/2 ≈ fiziksel
+        except Exception:
+            return max(1, (os.cpu_count() or 4) // 2)
 
 from .ccx_runner import WSL_DISTRO, windows_to_wsl_path  # noqa: E402
 
@@ -58,10 +67,14 @@ OF_BASHRC = "/opt/openfoam11/etc/bashrc"
 # ParaView'sız environment (headless WSL'de pvserver --version takılabiliyor).
 # vader single-copy: WSL'de CMA (process_vm_readv) engelli — OpenMPI paylaşımlı
 # bellek aktarımı süresiz asılıyor; bilinen çözüm mekanizmayı kapatmak.
+# HWLOC_COMPONENTS=-gl: KRİTİK — hwloc'un GL bileşeni GPU-topolojisi için X-sunucusuna
+# (127.0.0.1:6001, DISPLAY=:0 WSLg) bağlanıp SÜRESİZ asılıyordu → mpirun -np 1 bile
+# launch'ta donuyordu (strace ile bulundu). GL'i kapatınca parallel mpirun ÇALIŞIR.
 # unset FOAM_SIGFPE: bashrc boş-tanımlı export ediyor, .org sigFpe varlık-bazlı.
 OF_ENV_PREFIX = (
     "export ParaView_TYPE=none && "
     "export OMPI_MCA_btl_vader_single_copy_mechanism=none && "
+    "export HWLOC_COMPONENTS=-gl && "
     f"source {OF_BASHRC} && unset FOAM_SIGFPE && "
 )
 
@@ -914,13 +927,14 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
             all_stderr.append(f"--- {log_name} stderr ---\n{r.stderr}")
         return r
 
-    def _foam_serial_early_stop(tmo: int, window: int = 50, tol: float = 0.003) -> int:
-        """foamRun'ı arka planda koş; coefficient.dat'tan Cd'yi canlı izle; son `window`
-        iterasyonda Cd-drifti `tol`un altına inince solver'ı orphan-güvenli öldür (erken
-        yakınsama). Döner: returncode (0=ok/erken-yakınsama, !=0=hata/timeout)."""
+    def _foam_run_early_stop(command: str, tmo: int, msg: str,
+                             window: int = 50, tol: float = 0.003) -> int:
+        """foamRun'ı (seri ya da `mpirun ... -parallel`) arka planda koş; coefficient.dat'tan
+        Cd'yi canlı izle; son `window` iterasyonda Cd-drifti `tol`un altına inince solver'ı
+        orphan-güvenli öldür (erken yakınsama). Döner: returncode (0=ok, !=0=hata/timeout)."""
         if progress_callback:
-            progress_callback(70, "foamRun (seri SIMPLE, Cd-yakınsama izlemeli)...")
-        wrapped, bins = _wrap_timeout("foamRun", tmo)
+            progress_callback(70, msg)
+        wrapped, bins = _wrap_timeout(command, tmo)
         full = f"{OF_ENV_PREFIX}cd '{wsl_dir}' && {wrapped} > log.foamRun 2>&1"
         proc = subprocess.Popen(["wsl", "-d", WSL_DISTRO, "--", "bash", "-c", full],
                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -1021,20 +1035,22 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
                              return_code=-1 if r is None else r.returncode,
                              stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
                              log_files=log_files)
-        r = _step(70, "foamRun (paralel SIMPLE)...",
-                  f"mpirun -np {n} foamRun -parallel", "log.foamRun",
-                  max(timeout - 600, 600))
-        if r is None or r.returncode != 0:
-            return CFDResult(case_dir=case_dir, success=False,
-                             return_code=-1 if r is None else r.returncode,
+        # Paralel foamRun + CANLI Cd-yakınsama erken-durdurma (4 çekirdek × erken-stop)
+        rc = _foam_run_early_stop(
+            f"mpirun --oversubscribe -np {n} foamRun -parallel",
+            max(timeout - 600, 600), f"foamRun (paralel SIMPLE, {n} çekirdek, Cd-izlemeli)...")
+        if rc != 0:
+            return CFDResult(case_dir=case_dir, success=False, return_code=rc,
                              stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
                              log_files=log_files)
-        _step(95, "reconstructPar...", "reconstructPar", "log.reconstructPar", 600)
+        _step(95, "reconstructPar...", "reconstructPar -latestTime",
+              "log.reconstructPar", 600)
     else:
         # Seri foamRun + CANLI Cd-yakınsama erken-durdurması: residualControl (1e-4)
         # çoğu kaba case'de plato yaptığından tetiklenmez → end_time'a kadar boşa koşar.
         # Cd (mühendislik niceliği) bir pencerede sabitlenince solver'ı temiz öldür → CPU.
-        rc = _foam_serial_early_stop(max(timeout - 600, 600))
+        rc = _foam_run_early_stop("foamRun", max(timeout - 600, 600),
+                                  "foamRun (seri SIMPLE, Cd-yakınsama izlemeli)...")
         if rc != 0:
             return CFDResult(case_dir=case_dir, success=False, return_code=rc,
                              stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
