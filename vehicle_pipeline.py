@@ -511,6 +511,7 @@ class VehicleAnalysisResult:
     aref_m2: float | None = None
     aref_mode: str = ""
     cd: float | None = None
+    cd_wake: float | None = None        # far-field iz-momentum Cd (2.-mertebe çapraz-kontrol)
     cl: float | None = None
     ld: float | None = None
     cda_m2: float | None = None
@@ -647,7 +648,25 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     base.mesh = meshq
     base.convergence = conv
 
+    # Far-field iz-momentum Cd (2.-mertebe). Tek mesh'te yüzey-Cd ile UYUŞMASI yakınsama
+    # göstergesi (3-mesh GCI'nin ucuz vekili); AYRIŞMASI az-çözünürlük flag'i.
+    cd_wake = None
+    try:
+        from farfield_drag import compute_case_wake_drag
+        w = compute_case_wake_drag(case_dir, U_inf=velocity, A_ref=aref, rho=rho)
+        if w and w.get("Cd") is not None:
+            cd_wake = round(w["Cd"], 5)
+            base.cd_wake = cd_wake
+    except Exception:
+        pass
+
     uyarilar = []
+    if cd_wake is not None and cd:
+        fark = abs(cd - cd_wake) / abs(cd) * 100
+        if fark > 12:
+            uyarilar.append(f"Yüzey-Cd ({cd:.3f}) ile iz-momentum Cd ({cd_wake:.3f}) "
+                            f"%{fark:.0f} ayrışıyor → mesh az-çözünür/yakınsamamış olabilir "
+                            "(çapraz-kontrol; uyum yakınsama göstergesi)")
     if compressible:
         uyarilar.append(f"Mach {mach:.2f} > 0.3 — DENEYSEL sıkışabilir çözücü "
                         "(soğuk-başlangıç kararlılığı tuning gerektirir)")

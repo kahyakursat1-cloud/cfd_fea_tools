@@ -358,7 +358,7 @@ def _write_surface_features(case_dir: Path, stl_name: str) -> None:
 
 
 def _write_control_dict(case_dir: Path, case: CFDCase, surface_name: str,
-                          lref: float) -> None:
+                          lref: float, wake_x: float | None = None) -> None:
     txt = _foam_header("dictionary", "controlDict", "system")
     solver = "fluid" if case.compressible else "incompressibleFluid"
     txt += (
@@ -404,8 +404,28 @@ def _write_control_dict(case_dir: Path, case: CFDCase, surface_name: str,
         f"        lRef            {lref:.6f};\n"
         f"        Aref            {Aref:.6f};\n"
         "    }\n"
-        "}\n"
     )
+    # İz-düzlemi örnekleme (far-field momentum-açığı drag için U,p) — akış-dik kesit
+    if wake_x is not None:
+        txt += (
+            "    wakePlane\n    {\n"
+            "        type            surfaces;\n"
+            "        libs            (\"libsampling.so\");\n"
+            "        writeControl    writeTime;\n"
+            "        surfaceFormat   vtk;\n"
+            "        fields          (p U);\n"
+            "        interpolationScheme cellPoint;\n"
+            "        surfaces\n        (\n"
+            "            wake\n            {\n"
+            "                type        cutPlane;\n"
+            "                planeType   pointAndNormal;\n"
+            f"                point       ({wake_x:.6f} 0 0);\n"
+            "                normal      (1 0 0);\n"
+            "                interpolate true;\n"
+            "            }\n        );\n"
+            "    }\n"
+        )
+    txt += "}\n"
     (case_dir / "system" / "controlDict").write_text(txt)
 
 
@@ -741,7 +761,9 @@ def build_case(case: CFDCase, out_dir: Path) -> Path:
     _write_snappy(case_dir, stl_name, surface_name, inside_pt, case)
     _write_surface_features(case_dir, stl_name)
     lref = L
-    _write_control_dict(case_dir, case, surface_name, lref)
+    # İz-düzlemi: gövde arkası 2 boy (uzak-iz basınç toparlanması), domain içinde
+    wake_x = float(gmax[0] + 2.0 * lref)
+    _write_control_dict(case_dir, case, surface_name, lref, wake_x=wake_x)
     _write_fv_schemes(case_dir)
     _write_fv_solution(case_dir, case.compressible)
     n_proc = case.n_processors if case.n_processors > 0 else _default_processors()
