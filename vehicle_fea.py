@@ -133,10 +133,18 @@ def _stress_assessment(vm_field, yield_mpa: float) -> dict | None:
             "_gerilme_notu": note}
 
 
+# Termal genleşme katsayıları (1/K) — malzeme adından sezgi (CTE literatür değerleri)
+_CTE = {"alum": 23e-6, "alüm": 23e-6, "steel": 12e-6, "çelik": 12e-6,
+        "titan": 8.6e-6, "carbon": 2e-6, "karbon": 2e-6}
+
+
 def _material(key: str) -> FEAMaterial:
     m = MATERIAL_LIBRARY[key]   # youngs_modulus MPa, yield MPa
+    alpha = next((v for k, v in _CTE.items() if k in key.lower() or k in m.name.lower()),
+                 12e-6)         # bilinmeyen → çelik benzeri varsayılan
     return FEAMaterial.from_gpa(m.name, m.youngs_modulus / 1000.0,
-                                m.poisson_ratio, m.density, m.yield_strength)
+                                m.poisson_ratio, m.density, m.yield_strength,
+                                alpha_per_k=alpha)
 
 
 def _map_pressure_to_tet(vtk_patch, tet, rho=1.225) -> dict:
@@ -256,10 +264,12 @@ def _cload_lines(node_forces: dict) -> str:
 
 def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
                          rho=1.225, model="dolu", shell_thickness_mm=2.0,
-                         analysis="statik", n_modes=8, g_yuk=0.0,
-                         progress_cb=None) -> dict:
+                         analysis="statik", n_modes=8, g_yuk=0.0, itki_n=0.0,
+                         delta_t=0.0, progress_cb=None) -> dict:
     """g_yuk: manevra yük faktörü n (≠0 → CFD basıncına ek n·g eylemsizlik gövde-
-    kuvveti, -z; FlightEnvelope.n_max ile beslenebilir). 0 = sadece aero-basınç."""
+    kuvveti, -z; FlightEnvelope.n_max ile beslenebilir). 0 = sadece aero-basınç.
+    itki_n: motor itkisi (N); ≠0 → aft (kuyruk, min-x) patch'ine +x dağıtık nokta-yük.
+    delta_t: üniform sıcaklık değişimi (K); ≠0 → termal genleşme gerilmesi (α malzemeden)."""
     run_dir = Path(run_dir)
 
     def cb(p, m):
@@ -413,7 +423,8 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
 
     cb(40, f"CalculiX statik çözüm ({tet.num_nodes:,} düğüm)...")
     case = FEACase(name="yapisal_kontrol", mesh=tet, material=mat,
-                   fixed_bcs=[FixedBC(node_ids=fixed)], analysis_type="STATIC")
+                   fixed_bcs=[FixedBC(node_ids=fixed)], analysis_type="STATIC",
+                   delta_t=delta_t)
     inp = write_inp(case, run_dir / "fea")
     txt = inp.read_text(encoding="utf-8")
     inject = _cload_lines(mp["node_forces"])
@@ -421,6 +432,12 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
         dz = -1.0 if g_yuk >= 0 else 1.0
         inject += (f"\n*DLOAD\nEALL, GRAV, {abs(g_yuk) * 9.81:.6e}, "
                    f"0.0, 0.0, {dz:.1f}")
+    if itki_n:                                  # motor itkisi: aft (min-x) patch'e +x dağıtık
+        xc = tet.points[:, 0]
+        aft = np.where(xc < xc.min() + 0.03 * (xc.max() - xc.min()))[0] + 1
+        if len(aft):
+            fper = itki_n / len(aft)
+            inject += "\n*CLOAD\n" + "\n".join(f"{int(n)}, 1, {fper:.6e}" for n in aft)
     txt = txt.replace("*STATIC", "*STATIC\n" + inject, 1)
     inp.write_text(txt, encoding="utf-8")
     ccx = run_ccx(inp, timeout=3600)
@@ -441,6 +458,8 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
            "sabit_dugum": int(len(fixed)),
            "toplam_kuvvet_N": mp["toplam_kuvvet_N"],
            "g_yuk_n": g_yuk or None,
+           "itki_n": itki_n or None,
+           "delta_t_k": delta_t or None,
            "max_sehim_mm": round(max_disp_mm, 4) if max_disp_mm else None,
            **sa,
            "gecersiz": mech,
@@ -512,6 +531,9 @@ def _append_report(run_dir: Path, out: dict):
           f"- Aktarılan toplam kuvvet: {out['toplam_kuvvet_N']} N  ",
           (f"- Yük durumu: aero-basınç + **{out['g_yuk_n']:g}g** manevra eylemsizliği  "
            if out.get("g_yuk_n") else "- Yük durumu: yalnız aero-basınç  "),
+          (f"- Motor itkisi (aft): **{out['itki_n']:g} N** (+x)  " if out.get("itki_n") else ""),
+          (f"- Termal: **ΔT={out['delta_t_k']:g} K** (α·ΔT genleşme gerilmesi)  "
+           if out.get("delta_t_k") else ""),
           f"- Max sehim: **{out['max_sehim_mm']} mm**  ",
           vm_line + "  ", sf_line + "\n",
           (f"> ⚠️ *{out['_gerilme_notu']}*\n" if singular and not out.get("gecersiz") else ""),

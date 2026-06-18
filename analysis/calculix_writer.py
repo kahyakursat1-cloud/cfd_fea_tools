@@ -31,16 +31,18 @@ class FEAMaterial:
     poisson_ratio: float
     density_kg_m3: float
     yield_strength_pa: float = 0.0  # post-process için
+    thermal_expansion_per_k: float = 0.0   # α (1/K); >0 ise termal genleşme etkin
 
     @classmethod
     def from_gpa(cls, name: str, e_gpa: float, nu: float, rho: float,
-                 yield_mpa: float = 0.0) -> FEAMaterial:
+                 yield_mpa: float = 0.0, alpha_per_k: float = 0.0) -> FEAMaterial:
         return cls(
             name=name,
             youngs_modulus_pa=e_gpa * 1e9,
             poisson_ratio=nu,
             density_kg_m3=rho,
             yield_strength_pa=yield_mpa * 1e6,
+            thermal_expansion_per_k=alpha_per_k,
         )
 
 
@@ -91,6 +93,7 @@ class FEACase:
     gravity_loads: list[GravityLoad] = field(default_factory=list)
     analysis_type: str = "STATIC"   # STATIC, FREQUENCY, BUCKLE
     num_modes: int = 10              # FREQUENCY/BUCKLE için
+    delta_t: float = 0.0             # üniform sıcaklık değişimi (K); termal gerilme için
 
 
 def write_inp(case: FEACase, output_dir: Path) -> Path:
@@ -140,8 +143,15 @@ def write_inp(case: FEACase, output_dir: Path) -> Path:
     lines.append(f"{mat.youngs_modulus_pa:.6e}, {mat.poisson_ratio:.4f}")
     lines.append("*DENSITY")
     lines.append(f"{mat.density_kg_m3:.6e}")
+    thermal = mat.thermal_expansion_per_k > 0 and abs(case.delta_t) > 0
+    if thermal:
+        lines.append("*EXPANSION, ZERO=0")
+        lines.append(f"{mat.thermal_expansion_per_k:.6e}")
     lines.append("**")
     lines.append(f"*SOLID SECTION, ELSET=EALL, MATERIAL={mat.name}")
+    if thermal:                                   # referans sıcaklık 0 → ΔT uygulanacak
+        lines.append("*INITIAL CONDITIONS, TYPE=TEMPERATURE")
+        lines.append("NALL, 0.0")
     lines.append("**")
 
     # ─── BC NODE SETLERİ ───
@@ -240,6 +250,11 @@ def write_inp(case: FEACase, output_dir: Path) -> Path:
             d = d / (np.linalg.norm(d) + 1e-30)
             lines.append(f"EALL, GRAV, {gl.accel_m_s2:.6e}, "
                          f"{d[0]:.6f}, {d[1]:.6f}, {d[2]:.6f}")
+
+    # Termal yük: üniform ΔT → α·ΔT termal strain (engellenirse termal gerilme)
+    if thermal and case.analysis_type.upper() == "STATIC":
+        lines.append("*TEMPERATURE")
+        lines.append(f"NALL, {case.delta_t:.6e}")
 
     # Çıktı talepleri
     lines.append("*NODE FILE")

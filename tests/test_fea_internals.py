@@ -133,3 +133,35 @@ def test_fea_validation_grav_analytic():
     import fea_validation_grav as fg
     assert pytest.approx(fg.RHO * fg.G * fg.LZ) == fg.SIG_MAX_AN
     assert pytest.approx(fg.RHO * fg.G * fg.LZ ** 2 / (2 * fg.E)) == fg.DELTA_AN
+
+
+def test_thermal_card_written(tmp_path):
+    """delta_t + α → write_inp '*EXPANSION' ve '*TEMPERATURE' yazar (termal yolu)."""
+    import numpy as np
+
+    from analysis.calculix_writer import FEACase, FEAMaterial, FixedBC, write_inp
+    from analysis.tet_mesher import TetMesh
+    pts = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1.0]])
+    mesh = TetMesh(points=pts, tets=np.array([[0, 1, 2, 3]]),
+                   surface_tris=np.zeros((0, 3), int), msh_path=tmp_path / "x.msh",
+                   element_type="C3D4")
+    mat = FEAMaterial.from_gpa("AL", 70, 0.3, 2700.0, alpha_per_k=23e-6)
+    case = FEACase(name="t", mesh=mesh, material=mat,
+                   fixed_bcs=[FixedBC(np.array([1]))], analysis_type="STATIC", delta_t=50.0)
+    txt = write_inp(case, tmp_path).read_text(encoding="utf-8")
+    assert "*EXPANSION" in txt and "2.300000e-05" in txt
+    assert "*TEMPERATURE" in txt and "NALL, 5.000000e+01" in txt
+    # delta_t=0 → termal kart YOK
+    case2 = FEACase(name="t2", mesh=mesh, material=mat,
+                    fixed_bcs=[FixedBC(np.array([1]))], analysis_type="STATIC")
+    assert "*TEMPERATURE" not in write_inp(case2, tmp_path).read_text(encoding="utf-8")
+
+
+def test_fea_validation_thermal_analytic():
+    """Termal gerilme çubuk analitiği σ=E·α·ΔT. Tam V&V: fea_validation_thermal.py
+    (ccx koşar, %0.0 — TERMAL yolunu doğrular)."""
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "experiments"))
+    import fea_validation_thermal as ft
+    assert pytest.approx(ft.E * ft.ALPHA * ft.DT) == ft.SIG_AN

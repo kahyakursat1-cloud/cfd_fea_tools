@@ -122,3 +122,4 @@ mesh_gci_campaign.log
 vehicle_runs/_batch_geo/
 batch_learn.log
 batch_learn_done.json
+_fea_val_thermal/

@@ -1,0 +1,9 @@
+{
+  "vaka": "Termal gerilme — engellenmiş genleşme çubuğu, kapalı-form (σ=E·α·ΔT)",
+  "yontem": "ÜRETİM TERMAL yolu: *EXPANSION (α) + *INITIAL CONDITIONS TEMPERATURE + *TEMPERATURE (CalculiX termo-elastik). İki-ucu eksenel-sabit çubuk, yanal serbest → tek-eksenli.",
+  "geometri": {"L_m": 1.0, "kesit_m": 0.05, "E_Pa": 7.0e10, "nu": 0.3, "alpha_per_K": 23e-6, "dT_K": 50},
+  "analitik": {"sigma_MPa": 80.5, "formul": "σ=E·α·ΔT (ısınınca, eksenel engelliyse basınç)"},
+  "fem": {"sigma_medyan_MPa": 80.50, "hata_pct": 0.0},
+  "sonuc": "GECTI — %0.0. Doğrular: ÜRETİMin TERMAL yük-mekanizması (*EXPANSION+*TEMPERATURE). Yük-uygulama DÖRTLÜSÜ tamam: kuvvet (kiriş/delik), basınç (silindir), gövde (g-yük/öz-ağırlık), TERMAL (bu). vehicle_fea run_structural_check(delta_t=ΔT) ile araç FEA'sına bağlı.",
+  "_not": "Üretim: python experiments/fea_validation_thermal.py. Suite: fea_validation*.json (5 kanonik V&V)."
+}
