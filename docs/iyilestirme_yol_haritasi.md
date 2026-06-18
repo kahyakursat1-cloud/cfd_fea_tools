@@ -74,9 +74,14 @@ Birim-testli. **Dürüstlük:** lifting koşusu ~%50-100 daha çok taban hücre 
 doğruluk/maliyet takası docstring'de; max_cells + bg_div sınırlar. Mutlak kazanç koşuyla
 ölçülmedi (best-practice gerekçeli varsayılan, spekülatif değil).
 
-### 2.4 🟢 Drag-çıkarımı: far-field/iz momentum-açığı (yüzey-entegrasyona ek)
-**Ne:** Yüzey-entegrasyon drag'i ~1.5 mertebe + TE-duyarlı; far-field/iz yöntemi 2.
-mertebe. İkisini de raporla. **Neden:** GCI'a asimptotik girmenin doğrudan yolu. **Emek:** Orta.
+### 2.4 ✅ Drag-çıkarımı: far-field/iz momentum-açığı — `farfield_drag.py`
+**Yapıldı:** İz-momentum drag (D=ρ∫u_x(U−u_x)dA+∫(p∞−p)dA, **iz-maskeli** — serbest-akış
+gürültüsü atılır). OF11 cutPlane örnekleme (gövde arkası 2 boy). Gaussian-iz analitik **%1.1**
+doğrulandı. `run_vehicle_analysis` artık **Cd_wake**'i de raporlar: yüzey-Cd ile UYUŞMASI
+tek-mesh **yakınsama göstergesi** (3-mesh GCI'nin ucuz vekili), >%12 ayrışması az-çözünürlük
+uyarısı. **Dürüst not:** clean_rocket kaba-mesh'te %18 ayrık (eşik-duyarlı) → ince roket izi
+(%0.7 açık) az-çözünür; far-field DE aynı çözünürlük duvarında. AMA bu ayrışma tam da
+çapraz-kontrolün işaretlediği şey (GCI=%103 ile tutarlı). İyi-çözünür case'de 2.-mertebe avantaj.
 
 ### 2.5 🟡 Prizma katman + y⁺ otomasyonu olgunlaştır
 **Ne:** y⁺-hedefli ilk-hücre + katman sayısı zaten var; **gerçekleşen y⁺'ı ölç, hedef
