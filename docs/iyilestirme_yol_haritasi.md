@@ -28,13 +28,21 @@ ve yeniden mesh'le, (b) olmuyorsa kullanıcıya net "mesh kalitesiz, çözüm g�
 de ve KOŞMA. **Neden:** Bu oturumun en büyük zaman kaybı; diverjans hep kötü mesh'tendi.
 **Emek:** Düşük-orta. (mesh_quality parse zaten var; gate + auto-coarsen ekle.)
 
-### 1.2 ◐ Erken-abort + yakınsama bazlı durdurma — kısmen ✅ (diverjans bekçisi)
-**Yapıldı (güvenli yarı):** `divergence_in_log` — solver returncode 0 olsa bile log'da
-**NaN/inf residual, FPE, Foam::error** varsa sonuç BAŞARISIZ (garbage'ı sessizce güvenme;
-'bounding' gibi normal mesajları kasıtlı dışlar, yanlış-pozitif yok). run_cfd'ye bağlı,
-birim-testli. **Kalan (canlı erken-abort):** solver'ı canlı izleyip diverjansta ANINDA
-kesme (wall-time tasarrufu) — sağlıklı koşuyu yanlış-öldürme riski + ancak canlı-koşuyla
-doğrulanır; 1.3'ün WSL-timeout bounding'i en-kötü süreyi zaten sınırladığından düşük öncelik.
+### 1.2 ✅ Erken-abort + yakınsama bazlı durdurma — `divergence_in_log` + `_foam_serial_early_stop`
+**Yapıldı:** (a) Diverjans bekçisi `divergence_in_log` — NaN/inf/FPE/Foam::error → BAŞARISIZ
+(garbage'ı güvenme). (b) **Cd-YAKINSAMA ERKEN-DURDURMA**: residualControl (1e-4) çoğu kaba
+case'de plato → tetiklenmez → solver `end_time`'a kadar boşa koşardı. Artık foamRun arka
+planda, `coefficient.dat`'tan **Cd canlı izlenir** (case /mnt/d → Windows'tan); son 50 iterde
+Cd-drift <0.003 → solver **orphan-güvenli öldürülür** (1.3'ün `_wsl_kill`'i). OF-sürüm-bağımsız
+(OF.org 11'de runTimeControl yok). **Doğrulandı:** clean_rocket hizli 200→120 iter (%40 az),
+Cd ÖZDEŞ (0.275→0.2746). **Not:** Paralel (mpirun) yol bu WSL2'de bozuk → seri yolda kazanç.
+
+### 1.2-not 🔴 Parallel CFD (mpirun) — bu WSL2'de BOZUK (config ile çözülemez)
+**Bulgu:** `mpirun -np 1 hostname` bile sıfır-çıktıyla asılıyor → Open MPI 4.1.2'nin bu WSL2'de
+temel launch arızası. Denenenler (hepsi başarısız): btl transport, oob loopback, plm isolated,
+TMPDIR/tmpfs, hwloc-disable, debug. OF11 sistem Open MPI'sine (`openmpi-system`) bağlı; paketli
+alternatif yok. **Çözüm flag DEĞİL → invaziv**: MPI reinstall ya da OF'u MPICH'e karşı yeniden
+derleme (sudo + çalışan kurulumu riske atar) → **kullanıcı kararı**. Parallel ~4-6× kazanç sunardı.
 
 ### 1.3 ✅ Süreç-yaşamdöngüsü sağlamlığı — `_wrap_timeout` + `_wsl_kill`
 **Yapıldı:** Uzun OF adımları (foamRun/snappy/mpirun…) **WSL-içi GNU `timeout -k 10 -s TERM`**
