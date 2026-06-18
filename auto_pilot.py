@@ -444,8 +444,8 @@ def narrate(config: dict, result: dict | None = None) -> str:
         cd = result["Cd_toplam"]
         sat.append(f"Sonuç: C_D≈{cd:.3f}.")
         flag = cd_outlier(tip, cd)
-        # Geometri-farkında öğrenilen ön-kestirim (KABA prior; medyan ~%42 hata,
-        # veri arttıkça iyileşir; precise surrogate DEĞİL — bilgilendirici).
+        # Geometri-farkında öğrenilen ön-kestirim (KABA prior; LOO medyan-hata veriyle
+        # düşüyor: 64-vaka %42 → 241-vaka %28; precise surrogate DEĞİL — bilgilendirici).
         pred = cd_predict(config.get("metrik", {}), tip)
         if pred and pred["guven"] >= 0.3:
             sat.append(f"Öğrenilen ön-kestirim ({pred['n_destek']} benzer geometri): "
