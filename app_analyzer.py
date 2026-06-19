@@ -317,6 +317,16 @@ class AnalyzerWindow(QMainWindow):
         self.spn_gyuk.setToolTip("Manevra yük faktörü n: CFD basıncına ek n·g eylemsizlik "
                                  "(gövde) yükü. 0 = yalnız aero-basınç. FlightEnvelope n_max ile.")
         ff.addRow("Manevra g-yükü", self.spn_gyuk)
+        self.spn_itki = QDoubleSpinBox(); self.spn_itki.setRange(0.0, 1e6)
+        self.spn_itki.setValue(0.0); self.spn_itki.setSuffix(" N")
+        self.spn_itki.setToolTip("Motor itkisi: aft (kuyruk) patch'ine +x dağıtık nokta-yük "
+                                 "(thrust-mount). 0 = yok.")
+        ff.addRow("Motor itkisi", self.spn_itki)
+        self.spn_dt = QDoubleSpinBox(); self.spn_dt.setRange(-500.0, 500.0)
+        self.spn_dt.setValue(0.0); self.spn_dt.setSuffix(" K")
+        self.spn_dt.setToolTip("Üniform sıcaklık değişimi ΔT: termal genleşme gerilmesi "
+                               "(α·ΔT, malzeme CTE'sinden). 0 = izotermal.")
+        ff.addRow("Termal ΔT", self.spn_dt)
         self.btn_fea = QPushButton("🛠  FEA ÇALIŞTIR")
         self.btn_fea.setEnabled(False)
         self.btn_fea.clicked.connect(self._run_fea)
@@ -689,6 +699,8 @@ class AnalyzerWindow(QMainWindow):
             "model": self.cmb_femodel.currentData(),
             "shell_thickness_mm": self.spn_thick.value(),
             "g_yuk": self.spn_gyuk.value(),
+            "itki_n": self.spn_itki.value(),
+            "delta_t": self.spn_dt.value(),
         })
         self.worker.progress.connect(self._on_progress)
         self.worker.finished_ok.connect(self._on_fea_done)
