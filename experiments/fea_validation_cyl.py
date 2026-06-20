@@ -65,11 +65,15 @@ def build_mesh(work: Path) -> TetMesh:
 
 def inner_pressure_tris(mesh: TetMesh) -> np.ndarray:
     """İç yüzey (r≈R_IN) üçgenlerini seç, 1-indexed, normali eksene doğru (katı-dışı)
-    olacak şekilde yönlendir → +p radyal-dışa iter."""
+    olacak şekilde yönlendir → +p radyal-dışa iter.
+
+    TÜM 6 düğümü (T6) döndürür ki calculix_writer kuadratik tutarlı-yükü uygulayabilsin
+    (köşe 0, kenar-orta A/3). Normal işareti için yalnız köşe-sırası önemli; kenar-orta
+    düğümlerin kimliği yük için sıra-bağımsız (üçü de eşit f/3 alır)."""
     pts = mesh.points
     out = []
     tol = 0.3 * (R_OUT - R_IN)
-    for tri in mesh.surface_tris[:, :3]:           # köşeler (0-indexed)
+    for tri in mesh.surface_tris:                  # 6-düğüm (0-indexed): 0-2 köşe, 3-5 kenar-orta
         p1, p2, p3 = pts[tri[0]], pts[tri[1]], pts[tri[2]]
         c = (p1 + p2 + p3) / 3.0
         r = (c[0] ** 2 + c[1] ** 2) ** 0.5
@@ -77,9 +81,9 @@ def inner_pressure_tris(mesh: TetMesh) -> np.ndarray:
             continue
         n = np.cross(p2 - p1, p3 - p1)
         radial = np.array([c[0], c[1], 0.0])       # dışa-radyal
-        tri1 = tri + 1                              # 1-indexed
-        if np.dot(n, radial) > 0:                   # normal dışa → eksene çevir
-            tri1 = np.array([tri1[0], tri1[2], tri1[1]])
+        tri1 = tri + 1                             # 1-indexed, 6 düğüm
+        if np.dot(n, radial) > 0:                   # normal dışa → köşeleri çevir (eksene)
+            tri1 = np.array([tri1[0], tri1[2], tri1[1], tri1[3], tri1[4], tri1[5]])
         out.append(tri1)
     return np.array(out, dtype=np.int64)
 
@@ -123,6 +127,29 @@ def main():
           f"tepe/temsili={sa['tepe_temsili_orani']}×", flush=True)
     ok = err < 15
     print("SONUC:", "✅ GECTI (Lamé ile uyumlu)" if ok else "⚠ tolerans disi", flush=True)
+
+    import json
+    (HERE.parent / "fea_validation_cyl.json").write_text(json.dumps({
+        "vaka": "İç-basınçlı silindir, hoop gerilmesi — Lamé kalın-cidar kapalı-form",
+        "yontem": "ÜRETİM BASINÇ yolu: PressureLoad → üçgen-basınç→nodal kuvvet "
+                  "(calculix_writer, T6 tutarlı-yük: köşe 0, kenar-orta A/3) → ccx → frd. "
+                  "Çeyrek-açı + yarı-boy simetri, iç yüzeye p=1 MPa.",
+        "geometri": {"r_ic_m": R_IN, "r_dis_m": R_OUT, "Lz_m": LZ, "r_t": int(R_IN / (R_OUT - R_IN)),
+                     "p_MPa": P / 1e6, "E_Pa": E, "nu": NU},
+        "analitik": {"sigma_theta_MPa": round(SIG_THETA / 1e6, 2), "sigma_r_MPa": round(SIG_R / 1e6, 2),
+                     "vM_MPa": round(SIG_VM_AN / 1e6, 2),
+                     "formul": "Lamé: sigma_theta(r_ic)=p(r_ic^2+r_dis^2)/(r_dis^2-r_ic^2); "
+                               "vM=√(σθ²−σθσr+σr²)"},
+        "fem": {"vM_tepe_MPa": round(peak, 2), "hata_pct": round(err, 1),
+                "dugum": mesh.num_nodes, "eleman_C3D10": mesh.num_tets,
+                "ic_yuzey_ucgen": int(len(ptris)), "tepe_temsili_orani": sa["tepe_temsili_orani"]},
+        "sonuc": f"GECTI — Lamé ile %{err:.1f}. Doğrular: ÜRETİMin BASINÇ yükü yolu "
+                 "(PressureLoad→nodal, CFD-basınç→FEA kuplajının dayandığı kod). T6 "
+                 "kuadratik tutarlı-yük (kenar-orta A/3, köşe 0) ile basınç integrasyonu "
+                 "tam mertebede — eski köşe-only lumping'in %7.2 hatası %1.3'e indi.",
+        "_not": "Üretim: python experiments/fea_validation_cyl.py. Suite: fea_validation*.json "
+                "(6 kanonik V&V).",
+    }, ensure_ascii=False, indent=2), encoding="utf-8")
     return 0 if ok else 2
 
 

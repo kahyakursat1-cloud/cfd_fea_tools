@@ -159,7 +159,9 @@ def _map_pressure_to_tet(vtk_patch, tet, rho=1.225) -> dict:
     cfd_centers = np.array([points[list(poly)].mean(axis=0) for poly in polys])
     p_pa = p_poly * rho
 
-    tris = tet.surface_tris[:, :3]              # C3D10'da ilk 3 = köşe
+    full_tris = tet.surface_tris                # (K,3) C3D4 / (K,6) C3D10
+    tris = full_tris[:, :3]                      # köşeler: alan/normal/merkez bunlardan
+    quadratic = full_tris.shape[1] >= 6
     P = tet.points
     v1 = P[tris[:, 1]] - P[tris[:, 0]]
     v2 = P[tris[:, 2]] - P[tris[:, 0]]
@@ -176,10 +178,13 @@ def _map_pressure_to_tet(vtk_patch, tet, rho=1.225) -> dict:
     dF = (-p_pa[nearest][:, None]) * normals * areas[:, None]
     total = dF.sum(axis=0)
 
+    # Tutarlı nodal yük: T3 (C3D4) → köşe A/3; T6 (C3D10) → kenar-orta A/3, köşe 0
+    # (kuadratik şekil-fonksiyonu integrali; bkz. calculix_writer basınç yolu).
+    load_nodes = full_tris[:, 3:6] if quadratic else tris
     node_forces = np.zeros_like(P)
     for fi in range(len(tris)):
         share = dF[fi] / 3.0
-        for nid in tris[fi]:
+        for nid in load_nodes[fi]:
             node_forces[nid] += share
     forces = {int(i + 1): tuple(node_forces[i]) for i in range(len(P))
               if np.linalg.norm(node_forces[i]) > 1e-9}
@@ -379,8 +384,12 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
     lmax = float((m.bounds[1] - m.bounds[0]).max())
     thin = sonuc.get("geometry", {}).get("ince_kalinlik_m") or lmax / 30
     target = float(np.clip(thin / 2.0, lmax / 80, lmax / 20))
+    # C3D10 (quadratic): kanonik FEA V&V'si C3D10 ile %0–4.8 doğrulandı; linear C3D4
+    # bükülmede aşırı katıdır (sehimi düşük tahmin) — doğrulanmış doğruluğun üretime
+    # transferi için ikinci-mertebe. Maliyet: çözüm birkaç kat ağır (büyük mesh'te
+    # target_size'ı iri tutmak gerekebilir). Basınç eşlemesi T6-duyarlı (yukarıda).
     tet = generate_tet_mesh(m, target_size=target, output_dir=run_dir / "fea",
-                            second_order=False,
+                            second_order=True,
                             progress_callback=lambda p, s: cb(5 + p // 5, s))
 
     if analysis == "statik":
@@ -455,6 +464,7 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
         sa = {**sa, "emniyet_faktoru": None, "emniyet_faktoru_temsili": None}
     out = {"status": "ok", "model": "dolu katı", "malzeme": mat.name, "mesnet": desc,
            "dugum": tet.num_nodes, "eleman": tet.num_tets,
+           "eleman_tipi": tet.element_type,
            "sabit_dugum": int(len(fixed)),
            "toplam_kuvvet_N": mp["toplam_kuvvet_N"],
            "g_yuk_n": g_yuk or None,
@@ -523,11 +533,16 @@ def _append_report(run_dir: Path, out: dict):
     if singular and sf_t:
         sf_line += f", temsili **{sf_t}**"
     sf_line += f" → {verdict}"
-    md = ["\n## 7. Yapısal Kontrol (FEA — CFD basınçlarıyla)\n",
-          f"- Model: **{out.get('model', 'dolu katı')}**  ",
+    md = ["\n## 7. Yapısal Kontrol (FEA — CFD basınçlarıyla)\n"]
+    # Geçerlilik-zarfı banner'ı: FEA sayıları da CFD gibi belirsizlik-sınıfı alır
+    # (temsili gerilme/SF DOĞRULANMIŞ; tekillik tepesi EĞİLİM). Mekanizmada anlamsız.
+    if not out.get("gecersiz"):
+        from validity_envelope import banner_md, classify_fea
+        md.append(banner_md(classify_fea(has_singularity=bool(singular))))
+    md += [f"- Model: **{out.get('model', 'dolu katı')}**  ",
           f"- Malzeme: **{out['malzeme']}**, mesnet: {out['mesnet']}  ",
-          f"- Mesh: {out['dugum']:,} düğüm / {out['eleman']:,} tet "
-          f"({out['sabit_dugum']} sabit düğüm)  ",
+          f"- Mesh: {out['dugum']:,} düğüm / {out['eleman']:,} "
+          f"{out.get('eleman_tipi', 'tet')} ({out['sabit_dugum']} sabit düğüm)  ",
           f"- Aktarılan toplam kuvvet: {out['toplam_kuvvet_N']} N  ",
           (f"- Yük durumu: aero-basınç + **{out['g_yuk_n']:g}g** manevra eylemsizliği  "
            if out.get("g_yuk_n") else "- Yük durumu: yalnız aero-basınç  "),

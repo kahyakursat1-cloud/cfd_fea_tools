@@ -12,6 +12,8 @@ from pathlib import Path
 import matplotlib
 import numpy as np
 
+from constants import NONORTHO_LIMIT, SKEW_LIMIT  # tek kaynak (constants.py)
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -20,9 +22,6 @@ plt.rcParams.update({
     "font.size": 9, "axes.grid": True, "grid.alpha": 0.3,
     "axes.linewidth": 0.8,
 })
-
-NONORTHO_LIMIT = 70.0
-SKEW_LIMIT = 4.0
 
 TYPE_COMMENT = {
     "ucak": ("Sabit kanatlı araçta birincil metrikler C_L, C_D ve L/D'dir. "
@@ -265,6 +264,19 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
           "Bu koşu o doğrulanmış yöntemle üretildi.  ",
           "\n---\n"]
 
+    # ── Okula-güvenli geçerlilik-zarfı banner'ı (EN BAŞTA — öğrenci verdict'i İLK görsün) ──
+    from validity_envelope import ALPHA_VALID_DEG, banner_md, classify_cfd, overall_class
+    _mds = getattr(r, "mesh_duyarlilik", None) or {}
+    _verdicts = classify_cfd(r.vehicle_type, r.alpha_deg, Ma,
+                             has_gci_band=False, band_pct=_mds.get("fark_pct"))
+    md.append(banner_md(_verdicts))
+    md.append("---\n")
+    try:
+        r.validity = {"sinif": overall_class(_verdicts),
+                      "kalemler": [(v.quantity, v.klass, v.design_safe) for v in _verdicts]}
+    except Exception:
+        pass
+
     # 1. Geometri
     md.append("## 1. Geometri\n")
     dims = geo["boyutlar_m"]
@@ -424,8 +436,12 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
     md.append("## 6. Geçerlilik Sınırları (V&V)\n")
     md.append("- Tek mesh, tek koşu: **mesh bağımsızlığı gösterilmedi** — kritik "
               "kararlar öncesi en az 3 seviyeli GCI çalışması gerekir (proje kuralı).  ")
+    md.append(f"- **Taşıma (C_L) yalnız bağlı akışta doğrulanmış: |α| ≤ {ALPHA_VALID_DEG:.0f}°** "
+              "(NACA0012'de Ladson'a karşı ≤%8). Üstünde 2D RANS taşımayı **~%45 DÜŞÜK** "
+              "tahmin eder (α=10/12°'de ölçüldü, erken stall) — bu açılarda sayı tasarımda "
+              "kullanılmaz, yalnız 'stall başlıyor' sezgisi.  ")
     md.append("- RANS kOmegaSST: bağlı akışta güvenilir; masif ayrılma/stall "
-              "bölgesinde ±%15-20 belirsizlik.  ")
+              "bölgesinde sonuç fiziksel değil.  ")
     md.append("- Prizma katmansız duvar: mutlak sürtünme sürüklemesi yaklaşık; "
               "karşılaştırmalı (tasarım A vs B) kullanım daha güvenilir.  ")
     md.append("- Pervane/itki, dönen parça ve aeroelastik etkiler modellenmedi.\n")

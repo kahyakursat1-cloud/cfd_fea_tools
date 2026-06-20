@@ -155,19 +155,14 @@ def write_inp(case: FEACase, output_dir: Path) -> Path:
     lines.append("**")
 
     # ─── BC NODE SETLERİ ───
+    # NSET adlarını yerel sözlükte tut (dataclass'a attribute enjekte etme — case
+    # yeniden kullanılır/deepcopy edilirse kaybolur ve frozen dataclass'ta patlar).
+    bc_nset: dict[int, str] = {}
     for i, bc in enumerate(case.fixed_bcs, start=1):
         nset_name = f"{bc.name}_{i}"
         lines.append(f"*NSET, NSET={nset_name}")
         _write_id_list(lines, bc.node_ids)
-        bc._nset_name = nset_name  # type: ignore
-    lines.append("**")
-
-    # ─── LOAD NODE SETLERİ (force) ───
-    for i, fl in enumerate(case.force_loads, start=1):
-        nset_name = f"{fl.name}_{i}"
-        lines.append(f"*NSET, NSET={nset_name}")
-        _write_id_list(lines, fl.node_ids)
-        fl._nset_name = nset_name  # type: ignore
+        bc_nset[id(bc)] = nset_name
     lines.append("**")
 
     # ─── PRESSURE: yüzey üçgenlerini element + face olarak yazmamız gerek.
@@ -177,9 +172,13 @@ def write_inp(case: FEACase, output_dir: Path) -> Path:
     for pl in case.pressure_loads:
         tris = pl.face_node_ids
         if tris.shape[1] >= 3:
-            # 3 köşeyi al (quadratic tri ise ilk 3 köşe)
-            corners = tris[:, :3]
-            for tri in corners:
+            # Tutarlı (consistent) nodal yük ∫N·p dA:
+            #   T3 (3 düğüm): her köşe A/3.
+            #   T6 (6 düğüm, C3D10 yüzeyi): üniform basınçta KÖŞELER 0, kenar-orta
+            #   düğümler A/3 (kuadratik şekil-fonksiyonu integrali). Yükü köşeye
+            #   koymak quadratic'i 1. mertebeye düşürür (cyl V&V'deki %7.2 hatanın kaynağı).
+            quadratic = tris.shape[1] >= 6
+            for tri in tris:
                 p1 = mesh.points[tri[0] - 1]
                 p2 = mesh.points[tri[1] - 1]
                 p3 = mesh.points[tri[2] - 1]
@@ -194,7 +193,8 @@ def write_inp(case: FEACase, output_dir: Path) -> Path:
                 # Pressure: yüzeye doğru = -normal yönünde kuvvet
                 f_total = -pl.pressure_pa * area * n_unit  # (3,) Newton
                 f_per_node = f_total / 3.0
-                for n in tri:
+                load_nodes = tri[3:6] if quadratic else tri[:3]  # T6→kenar-orta, T3→köşe
+                for n in load_nodes:
                     for axis in (0, 1, 2):
                         key = (int(n), axis + 1)  # CalculiX DOF: 1=x,2=y,3=z
                         nodal_force_accumulator[key] = (
@@ -230,12 +230,13 @@ def write_inp(case: FEACase, output_dir: Path) -> Path:
 
     # BC'ler
     for bc in case.fixed_bcs:
-        nset = getattr(bc, "_nset_name", bc.name)
+        nset = bc_nset.get(id(bc), bc.name)
         lines.append("*BOUNDARY")
         lines.append(f"{nset}, {bc.dof_start}, {bc.dof_end}, 0.0")
 
     # Konsantre yükler (tüm pressure + force toplamları)
-    if nodal_force_accumulator and case.analysis_type.upper() == "STATIC":
+    # BUCKLE: referans yük adımın içinde verilir; özdeğer × bu yük = kritik yük.
+    if nodal_force_accumulator and case.analysis_type.upper() in ("STATIC", "BUCKLE"):
         lines.append("*CLOAD")
         for (node_id, dof), val in sorted(nodal_force_accumulator.items()):
             if abs(val) < 1e-12:

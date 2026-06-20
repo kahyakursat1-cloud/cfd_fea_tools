@@ -29,6 +29,7 @@ TOL_CD_PCT = 15.0    # NACA0012 Cd validation (RANS, bagli akis)
 TOL_CL_PCT = 5.0     # NACA0012 Cl validation
 TOL_CL_ABS = 0.01    # |Cl_ref| ~ 0 durumunda mutlak kriter (yuzde anlamsiz)
 TOL_FEA_PCT = 5.0    # analitik kiris sehimi
+TOL_FEA_SUITE_PCT = 8.0   # kanonik FEA V&V suite (en kotu ~%4.8 ozagirlik kok-konsantrasyonu)
 GCI_PASS_PCT = 5.0
 P_RANGE = (0.5, 3.0)  # gozlemlenen mertebe makul araligi (teorik ~2)
 
@@ -60,6 +61,24 @@ def compute_gci(h_coarse, h_med, h_fine, f_coarse, f_med, f_fine, Fs=1.25):
         "monotonic": monotonic,
         "p_in_range": P_RANGE[0] <= p <= P_RANGE[1],
     }
+
+
+def _fea_val_error_pct(d):
+    """fea_validation*.json şemalarından en kötü 'hata_pct'yi çıkar (şema-bağımsız:
+    sehim/gerilme/analitik/fem altında farklı yerlerde durur). Recursive tarama."""
+    worst = None
+    stack = [d]
+    while stack:
+        o = stack.pop()
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if k.endswith("hata_pct") and isinstance(v, (int, float)):
+                    worst = v if worst is None else max(worst, v)
+                else:
+                    stack.append(v)
+        elif isinstance(o, list):
+            stack.extend(o)
+    return worst
 
 
 def gci_verdict(gci):
@@ -221,12 +240,14 @@ def fig_polar(polar, out_path):
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7, 3))
     ax1.plot(a, cl, "o-", color="#1f4e79", mfc="white", ms=5, lw=1.3)
-    clmax_i = int(np.argmax(cl))
-    ax1.plot(a[clmax_i], cl[clmax_i], "rs", ms=7,
-             label=f"$CL_{{max}}$={cl[clmax_i]:.2f} @ {a[clmax_i]}°")
+    # CFD'nin GÖRÜNÜR Cl tepesi — bu CLmax DEĞİL (steady-RANS stall'da ~%45 düşük;
+    # gerçek CLmax yalnız deneysel referanstan, bkz. validity_envelope.analyze_polar_envelope).
+    peak_i = int(np.argmax(cl))
+    ax1.plot(a[peak_i], cl[peak_i], "rs", ms=7,
+             label=f"Görünür tepe $C_L$={cl[peak_i]:.2f} @ {a[peak_i]}° (≠$CL_{{max}}$)")
     ax1.set_xlabel("Hücum açısı α (°)")
     ax1.set_ylabel("$C_L$")
-    ax1.set_title("Kaldırma Eğrisi (stall)", fontsize=9)
+    ax1.set_title("Kaldırma Eğrisi (RANS görünür tepe — CLmax değil)", fontsize=9)
     ax1.legend(fontsize=7)
 
     ax2.plot(cd, cl, "o-", color="#2e7d32", mfc="white", ms=5, lw=1.3)
@@ -236,7 +257,7 @@ def fig_polar(polar, out_path):
     fig.tight_layout()
     fig.savefig(out_path)
     plt.close(fig)
-    return {"clmax": cl[clmax_i], "alpha_stall": a[clmax_i]}
+    return {"cfd_peak_cl": cl[peak_i], "alpha_peak": a[peak_i]}
 
 
 def _cl_pass(r):
@@ -294,7 +315,8 @@ class VVReport:
     def build(self, mesh_indep=None, validation=None, envelope=None,
               fea=None, coupling=None, mesh_quality=None, polar=None,
               vspaero=None, rocket=None, rocket_fin=None, rocket_cfd=None,
-              airfoil_gci=None, transition=None, project="MiniHawk İHA"):
+              airfoil_gci=None, transition=None, fea_validations=None,
+              project="MiniHawk İHA"):
         md = ["# CFD/FEA Doğrulama ve Validation Raporu",
               f"\n**Proje:** {project}  ",
               f"**Tarih:** {datetime.now():%Y-%m-%d %H:%M}  ",
@@ -421,6 +443,37 @@ class VVReport:
                       f"(|Cl_ref|≈0 için |ΔCl| ≤ {TOL_CL_ABS}), FEA ≤ %{TOL_FEA_PCT:.0f}.*\n")
             md.append("![Validation](figures/validation.png)\n")
 
+        # 2b. FEA cozucu V&V suite — kanonik analitik dogrulamalar (gercek ccx kosulari)
+        if fea_validations:
+            md.append("## 2b. FEA Çözücü V&V Suite (Kanonik Analitik Doğrulamalar)\n")
+            md.append("Üretim FEA hattının (gmsh → calculix_writer → ccx → frd-parse) her "
+                      "yük mekanizması, bağımsız kapalı-form çözümle ayrı ayrı doğrulanır.\n")
+            md.append("| Kanonik Vaka | Doğrulanan yol | Hata | Durum |")
+            md.append("|--------------|----------------|------|-------|")
+            worst_all, n_pass = 0.0, 0
+            for fv in fea_validations:
+                vaka = fv.get("vaka", "?")
+                err = _fea_val_error_pct(fv)
+                passed = "GECTI" in (fv.get("sonuc", "") or "")
+                n_pass += int(passed)
+                if err is not None:
+                    worst_all = max(worst_all, err)
+                err_s = f"%{err:.1f}" if err is not None else "—"
+                formul = (fv.get("analitik") or {}).get("formul") \
+                    or (fv.get("sehim") or {}).get("formul") or "—"
+                md.append(f"| {vaka} | `{formul}` | {err_s} | {'✅' if passed else '⚠️'} |")
+            md.append(f"\n*{n_pass}/{len(fea_validations)} vaka geçti; en kötü hata "
+                      f"%{worst_all:.1f} (suite kabul eşiği %{TOL_FEA_SUITE_PCT:.0f}). "
+                      "Doğrulanan mekanizmalar: uç-yük/sehim (kiriş), gerilme-konsantrasyonu "
+                      "(delik Kt), iç-basınç (silindir hoop), gövde-kuvveti (öz-ağırlık / "
+                      "manevra g-yükü), termal (engellenmiş genleşme), stabilite (Euler "
+                      "burkulması). Bu mekanizmalar araç-FEA'sının ve CFD→FEA kuplajının "
+                      "dayandığı kod yollarıdır.*\n")
+            md.append("> ℹ️ *Bu suite üretim FEA **kod yollarını** doğrular (V&V), tasarım "
+                      "marjı vermez. Burkulma vakasındaki λ₁, keyfi referans yüke göre "
+                      "özdeğerdir — gerçek tasarım marjı için araç-FEA'sındaki fiili "
+                      "basınç/eksenel yük kullanılır.*\n")
+
         # 3. Yapisal yuk zarfi
         if envelope:
             fig_vn_diagram(envelope, self.out / "figures" / "vn_diagram.png")
@@ -476,13 +529,14 @@ class VVReport:
             for r in sorted([p for p in polar if p.get("Cl") is not None],
                             key=lambda x: x["alpha"]):
                 md.append(f"| {r['alpha']} | {r['Cl']} | {r['Cd']} | {r.get('LD','-')} |")
-            if st:
-                md.append(f"\n**CLmax = {st['clmax']} @ α={st['alpha_stall']}°** "
-                          f"(stall başlangıcı)\n")
             md.append("![Polar](figures/polar.png)\n")
-            md.append("> ⚠️ *RANS (kOmegaSST) stall tahmininde ±2-3° açı ve ±%15 "
-                      "CLmax belirsizliği taşır; ayrılmış akış için DES/LES veya "
-                      "rüzgar tüneli referansı önerilir.*\n")
+            # DÜRÜST çalışma-zarfı: CLmax'ı steady-RANS'tan TÜRETME (stall'da ~%45 düşük —
+            # NACA0012'de α=10/12°'de ölçüldü). Stall-onset yalnız zarf-sınırı sinyali;
+            # CLmax ancak DENEYSEL referanstan verilir (3D araç için tanımlı değilse VERİLMEZ).
+            from validity_envelope import analyze_polar_envelope, polar_envelope_md
+            _pp = [p for p in polar if p.get("Cl") is not None]
+            if _pp:
+                md.append(polar_envelope_md(analyze_polar_envelope(_pp, clmax_ref=None)))
 
         # 7. VSPAERO VLM çapraz-doğrulama
         if vspaero:
@@ -649,10 +703,19 @@ if __name__ == "__main__":
     airfoil_gci = _load("gci_airfoil.json")
     transition  = _load("transition_results.json")
 
+    # Kanonik FEA V&V suite — fea_validation*.json (kiriş, delik, silindir, gravite,
+    # termal, burkulma). Mantıklı sıra: ana kiriş önce, ötekiler ada göre.
+    fea_validations = []
+    for f in sorted(base.glob("fea_validation*.json")):
+        d = json.loads(f.read_text(encoding="utf-8-sig"))
+        if isinstance(d, dict) and d.get("vaka"):
+            fea_validations.append(d)
+
     rep = VVReport("./report")
     path = rep.build(mesh_indep=mesh_indep, validation=validation,
                      envelope=env, fea=fea, coupling=coupling,
                      mesh_quality=mesh_quality, polar=polar, vspaero=vspaero,
                      rocket=rocket, rocket_fin=rocket_fin, rocket_cfd=rocket_cfd,
-                     airfoil_gci=airfoil_gci, transition=transition)
+                     airfoil_gci=airfoil_gci, transition=transition,
+                     fea_validations=fea_validations)
     print(f"Rapor olusturuldu: {path}")

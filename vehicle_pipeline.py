@@ -24,6 +24,7 @@ import trimesh
 from scipy.spatial import ConvexHull
 
 from analysis.openfoam_runner import CFDCase, run_cfd
+from constants import NONORTHO_LIMIT, RESIDUAL_TARGET, SKEW_LIMIT
 
 VEHICLE_PRESETS = {
     "ucak": {
@@ -76,9 +77,7 @@ def farfield_domain(preset: dict, alpha_deg: float = 0.0) -> tuple[float, float,
     return (up, down, lat)
 
 
-RESIDUAL_TARGET = 1e-4   # proje kuralı: yakınsama kriteri
-NONORTHO_LIMIT = 70.0
-SKEW_LIMIT = 4.0
+# Mesh kalite / yakınsama eşikleri: constants.py (tek kaynak — yukarıda import edildi).
 DRIFT_LIMIT_PCT = 2.0    # son %20 pencerede |dCd|/Cd
 
 
@@ -546,6 +545,7 @@ class VehicleAnalysisResult:
     case_dir: str = ""
     report: str = ""
     error: str = ""
+    validity: dict | None = None    # geçerlilik-zarfı verdict'i (okula-güvenli kapı)
 
 
 def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg=0.0,
