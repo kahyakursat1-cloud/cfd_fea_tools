@@ -165,3 +165,43 @@ def test_fea_validation_thermal_analytic():
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "experiments"))
     import fea_validation_thermal as ft
     assert pytest.approx(ft.E * ft.ALPHA * ft.DT) == ft.SIG_AN
+
+
+def test_buckle_step_writes_cload(tmp_path):
+    """BUCKLE analizi → write_inp '*BUCKLE' + referans '*CLOAD' yazar (stabilite yolu).
+    Statik dışı adımda da yük adımın içinde olmalı: özdeğer × bu yük = kritik yük."""
+    import numpy as np
+
+    from analysis.calculix_writer import (
+        FEACase,
+        FEAMaterial,
+        FixedBC,
+        ForceLoad,
+        write_inp,
+    )
+    from analysis.tet_mesher import TetMesh
+    pts = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1.0]])
+    mesh = TetMesh(points=pts, tets=np.array([[0, 1, 2, 3]]),
+                   surface_tris=np.zeros((0, 3), int), msh_path=tmp_path / "x.msh",
+                   element_type="C3D4")
+    case = FEACase(name="b", mesh=mesh, material=FEAMaterial("m", 70e9, 0.3, 2700.0),
+                   fixed_bcs=[FixedBC(np.array([1]))],
+                   force_loads=[ForceLoad(np.array([4]), (0, 0, -1.0), 1000.0)],
+                   analysis_type="BUCKLE", num_modes=4)
+    txt = write_inp(case, tmp_path).read_text(encoding="utf-8")
+    assert "*BUCKLE" in txt and "*CLOAD" in txt          # referans yük adım içinde
+    assert "4, 3, -1.000000e+03" in txt                  # düğüm 4, z-DOF, -1000 N
+
+
+def test_fea_validation_buckling_analytic():
+    """Euler kolon burkulması P_cr=π²EI/(KL)². Tam V&V: fea_validation_buckling.py
+    (ccx koşar, %0.2 — STABİLİTE/BUCKLE yolunu doğrular)."""
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "experiments"))
+    import fea_validation_buckling as fb
+    assert pytest.approx(fb.B ** 4 / 12.0) == fb.I_SEC                  # kare kesit atalet
+    import numpy as np
+    assert pytest.approx(np.pi ** 2 * fb.E * fb.I_SEC
+                         / (fb.K_EFF * fb.L) ** 2) == fb.P_CR_AN
+    assert fb.P_CR_AN > 0 and fb.L / fb.B > 10                          # narin kolon

@@ -1,0 +1,30 @@
+{
+  "vaka": "Eksenel kolon burkulması — Euler kapalı-form (ankastre-serbest, K=2)",
+  "yontem": "ÜRETİM BUCKLE yolu: *BUCKLE + referans *CLOAD → özdeğer λ; P_cr=λ·P_ref. Lineer-elastik stabilite (geometrik-rijitlik özdeğer problemi).",
+  "geometri": {
+    "L_m": 0.5,
+    "kesit_m": 0.02,
+    "narinlik_L_b": 25.0,
+    "E_Pa": 70000000000.0,
+    "I_m4": 1.3333333333333334e-08,
+    "K_eff": 2.0,
+    "P_ref_N": 1000.0
+  },
+  "analitik": {
+    "P_cr_N": 9211.6,
+    "formul": "P_cr=π²EI/(KL)²"
+  },
+  "fem": {
+    "lambda_1": 9.2274,
+    "P_cr_N": 9227.4,
+    "hata_pct": 0.2,
+    "ilk4_lambda": [
+      9.2274,
+      9.2276,
+      82.1997,
+      82.205
+    ]
+  },
+  "sonuc": "GECTI — %0.2. Doğrular: ÜRETİMin STABİLİTE (burkulma) yolu — statik dörtlüye ek 5. mekanizma. Havacılık karşılığı: deri-paneli/spar-başlığı/lüle-gövdesi göçmesi.",
+  "_not": "Üretim: python experiments/fea_validation_buckling.py. Suite: fea_validation*.json (artık 6 kanonik V&V)."
+}
