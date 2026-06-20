@@ -316,7 +316,7 @@ class VVReport:
               fea=None, coupling=None, mesh_quality=None, polar=None,
               vspaero=None, rocket=None, rocket_fin=None, rocket_cfd=None,
               airfoil_gci=None, transition=None, fea_validations=None,
-              project="MiniHawk İHA"):
+              fea_stress_gci=None, project="MiniHawk İHA"):
         md = ["# CFD/FEA Doğrulama ve Validation Raporu",
               f"\n**Proje:** {project}  ",
               f"**Tarih:** {datetime.now():%Y-%m-%d %H:%M}  ",
@@ -473,6 +473,33 @@ class VVReport:
                       "marjı vermez. Burkulma vakasındaki λ₁, keyfi referans yüke göre "
                       "özdeğerdir — gerçek tasarım marjı için araç-FEA'sındaki fiili "
                       "basınç/eksenel yük kullanılır.*\n")
+
+        # 2c. FEA gerilme mesh-yakınsaması (SOLUTION verification — code-verification'a ek)
+        if fea_stress_gci:
+            g = fea_stress_gci
+            gci = g.get("gci", {})
+            an = g.get("analitik_Kt_MPa")
+            fex = gci.get("f_exact")
+            dev = abs(fex - an) / an * 100 if (an and fex) else None
+            md.append("## 2c. FEA Gerilme Mesh-Yakınsaması (Solution Verification, GCI)\n")
+            md.append("Code-verification (2b) çözücü yolunu doğrular; bu bölüm en mesh-"
+                      "duyarlı niceliğin (tepe gerilme) **mesh-bağımsız** olduğunu gösterir "
+                      "— emniyet faktörü ancak bu durumda savunulabilir.\n")
+            md.append(f"*{g.get('vaka', '')} — {g.get('yontem', '')}*\n")
+            md.append("| h (mm) | Düğüm | σ_tepe (MPa) | tepe/temsili |")
+            md.append("|--------|-------|--------------|--------------|")
+            for lv in g.get("seviyeler", []):
+                md.append(f"| {lv['h_mm']} | {lv['dugum']:,} | {lv['sigma_tepe_MPa']} | "
+                          f"{lv['tepe_temsili']} |")
+            md.append(f"\n- **Gözlemlenen mertebe** p = {gci.get('p')}  ")
+            md.append(f"- **Richardson** σ = {fex:.2f} MPa"
+                      + (f" (Heywood analitiğine %{dev:.1f})  " if dev is not None else "  "))
+            md.append(f"- **GCI (ince)** = {gci.get('gci_fine_pct')}%, "
+                      f"tepe-değer yayılımı (6× düğüm) = %{g.get('tepe_yayilim_pct')}  ")
+            md.append(f"\n> {g.get('fiziksel_sonuc', '')}\n")
+            md.append(f"> *Strict-GCI: {g.get('strict_gci_verdict', '')} — değer <%1 gürültü-"
+                      "tabanında salınır (monoton değil ama yakınsamış); fiziksel hüküm "
+                      "yayılım+analitik-sapmaya dayanır.*\n")
 
         # 3. Yapisal yuk zarfi
         if envelope:
@@ -711,11 +738,13 @@ if __name__ == "__main__":
         if isinstance(d, dict) and d.get("vaka"):
             fea_validations.append(d)
 
+    fea_stress_gci = _load("fea_stress_gci.json")   # FEA solution-verification (GCI)
+
     rep = VVReport("./report")
     path = rep.build(mesh_indep=mesh_indep, validation=validation,
                      envelope=env, fea=fea, coupling=coupling,
                      mesh_quality=mesh_quality, polar=polar, vspaero=vspaero,
                      rocket=rocket, rocket_fin=rocket_fin, rocket_cfd=rocket_cfd,
                      airfoil_gci=airfoil_gci, transition=transition,
-                     fea_validations=fea_validations)
+                     fea_validations=fea_validations, fea_stress_gci=fea_stress_gci)
     print(f"Rapor olusturuldu: {path}")
