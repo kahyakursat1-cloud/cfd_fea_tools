@@ -1,0 +1,13 @@
+{
+  "vaka": "3D L-bracket stress-temelli TO (kompliyans-min vs gerilme-min, aynı hacim)",
+  "yontem": "3D H8 SIMP, P-norm(P=12.0) von Mises (6 bileşen), qp-relaks(q=0.5), adjoint duyarlılık (FD-kontrollü), OC. ccx/CFD YOK — kendi-içinde Python.",
+  "grid": "24x24x4",
+  "volfrac": 0.4,
+  "ndof": 9375,
+  "peak_eta_vm_compliance": 0.788,
+  "peak_eta_vm_stress": 0.762,
+  "tepe_azalma_pct": 3.3,
+  "warm_start": "kompliyans-tasarımından (Le 2010; OC stress'te tek-başına salınır)",
+  "sonuc": "GECTI — 3D gerilme-min tepe von Mises'i düşürdü (kompliyans-körlüğü 3D'de de gerilme-farkındalıkla giderilebilir).",
+  "_not": "Motor: stress_topopt3d (adjoint gradyanı FD-doğrulanmış <1e-4, test_stress_topopt3d — gerilme-TO'nun KRİTİK verification'ı). 2D eşi %7.3; 3D azalma daha ölçülü (kaba köşe + extrude seyreltme + OC'nin MMA'ya göre stress-TO zayıflığı) ama YÖN doğru ve adjoint kesin. Üretim notu: vehicle_topopt SADECE kompliyans → yüksek-gerilme tasarım; bu motor gerilme-farkındalığı 3D'ye taşır. Tam üretim-kalitesi için MMA + penal/P-continuation + ince grid önerilir."
+}
