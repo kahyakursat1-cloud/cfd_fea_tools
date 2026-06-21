@@ -193,7 +193,11 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
             node_forces[nid] += share
 
     total_F_node = node_forces.sum(axis=0)
-    conservation_err = np.linalg.norm(total_F_node - total_F) / (np.linalg.norm(total_F) + 1e-30)
+    # Korunum: yeniden-dağıtım sum(F_dugum)==sum(F_yuzey). Normalleştirme NET kuvvete
+    # DEGIL throughput'a (yuzey-kuvvet buyukluk toplami) — simetrik yukte net≈0 olsa da
+    # metrik anlamli kalir (aksi halde 0'a bolup sahte-buyuk verir).
+    throughput = float(np.linalg.norm(dF_face, axis=1).sum())
+    conservation_err = np.linalg.norm(total_F_node - total_F) / (throughput + 1e-30)
 
     forces = {int(i + 1): tuple(node_forces[i])
               for i in range(len(fea_nodes)) if np.linalg.norm(node_forces[i]) > 1e-9}
