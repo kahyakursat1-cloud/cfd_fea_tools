@@ -30,9 +30,8 @@ class IntegrationTestSuite:
             "simulation_runner",
             "fea_runner",
             "mesh_to_cfd",
-            "blender_synthetic_generator",
             "app_parametric",
-        ]
+        ]  # NOT: görüntü-işleme (blender/YOLO) ayrı kod-tabanına taşındı (../goruntu_isleme)
 
         all_ok = True
         for module_name in modules:
