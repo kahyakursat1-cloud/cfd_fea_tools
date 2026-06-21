@@ -1,0 +1,10 @@
+{
+  "durum": "xfine_basarisiz_NaN_diverjans",
+  "mesh": "bespoke C-grid xfine n_air=442 n_wake=132 nj=221 = 156026 hücre",
+  "np": 4,
+  "ariza": "stage-0 foamRun (1.-mertebe upwind warmup, kOmegaSST) ANINDA NaN'a diverjdi (Initial/Final residual = nan). decomposePar + potentialFoam OK; çözüm patladı.",
+  "kok_neden": "Bespoke cgrid_elliptic xfine çözünürlükte mesh kalitesi bozuluyor (finding'in uyardığı AR-patlaması/kalite). Düşük seviyelerde (base/mid/fine) çalışıyordu; 156k'da elliptik smoothing yetersiz → çözücü patlıyor.",
+  "islemci_notu": "NP=4 kullanıldı (P-core'ların yarısı); arıza işlemci-kaynaklı DEĞİL, mesh-kaynaklı. Bu makinede optimal CFD NP=8 (8 fiziksel P-core).",
+  "sonuc": "Bespoke C-grid yolu xfine'da çıkmaz. ÇÖZÜM: NASA TMR gridleri (indirildi, tmr_grids/; 449×129 dönüştü checkMesh nonOrtho 52° — bespoke ~90°→diverjyordu). TMR-grid + plot3dToFoam + SST (α=0/10, NP=8) tam GCI'ın doğru yolu. Bkz. docs/airfoil_drag_gci_arastirma.md §7.",
+  "_temizlik": "Takılı foamRun/mpirun (NaN, %99.8 CPU) ve driver öldürüldü 2026-06-20."
+}

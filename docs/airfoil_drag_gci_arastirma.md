@@ -103,6 +103,63 @@ ile bir araştırma-seviyesi V&V kampanyası (proper grid generator + far-field 
 ince aile + günler). Teşhis (far-field, literatürle kesin) **deliverable**; ampirik
 GCI **gelecek iş**. Lift zaten doğrulanmış (Cl~0.41-0.45, ref 0.44); drag GCI açık.
 
+## 7. Literatür-sonrası KESİN çözüm yolu (2026-06-20 — kapsamlı tarama)
+
+Geniş literatür taraması iki şeyi netleştirdi: (a) bespoke mesh-üretim blocker'ını **tamamen
+atlayan** bir yol var, (b) önceki teşhis far-field'i **aşırı-ağırlıklandırmıştı**.
+
+### 7.1 ⭐ Mesh blocker'ının kesin çözümü: NASA TMR gridleri + `plot3dToFoam`
+NASA Turbulence Modeling Resource **indirilebilir kanonik NACA0012 gridleri** yayınlar
+(PLOT3D, C-grid, **far-field ~500c**, y⁺<1): 113×33 → 225×65 → 449×129 → 897×257 →
+1793×513 — geometrik aile, GCI için BİREBİR tasarlanmış [1,8]. OpenFOAM'ın yerleşik
+**`plot3dToFoam`** aracı bunları doğrudan OpenFOAM mesh'ine çevirir [9]. Yani:
+**kendi grid'imizi üretmeye gerek YOK** — Construct2D nonOrtho≈90 ve bespoke C-grid
+AR-patlaması blocker'larının tamamı düşer. Doğrulanmış grid + 500c far-field + bilinen
+referans = tek hamlede asimptotik-aralık.
+
+### 7.2 Far-field hatası ∝ Cl² — teşhisin yeniden çerçevelenmesi (kritik)
+Domain-boyu drag hatası **Cl² ile ölçeklenir**: `Cd∞ ≈ Cd − 0.0205·Cl²/A` (A = kiriş
+cinsinden domain) [10]. α=10° (Cl≈1.09) için ölçülen [10]:
+
+| Domain | Cd (düz BC) | Δ | Cd (Point-Vortex BC) | Δ |
+|--------|-------------|---|----------------------|---|
+| 500c | 0.01219 | — | — | — |
+| 100c | 0.01239 | +%1.6 | — | — |
+| 30c  | 0.01294 | +%6.2 | 0.01215 | %0.0 |
+| 10c  | 0.01449 | +%19 | 0.01216 | %0.0 |
+
+**Sonuç:** Bizim GCI'ımız **α=4°'de (Cl≈0.44)**. Cl² ölçeklemesiyle far-field hatası
+α=10°'un ~%19'unun ~1/6'sı ≈ **15c'de yalnız ~%2-3, ~0.0003 mutlak** — yani bizim
+**+%42 drag fazlamızın baskın nedeni far-field DEĞİL.** Geriye kalan baskın hata:
+mesh-çözünürlüğü (asimptotik-altı), bespoke C-grid kalitesi ve geçiş-modeli grid-
+duyarlılığı. (Bölüm 3.1 far-field'i birincil saymıştı — α=10° literatürüne dayanıyordu;
+α=4° düşük-Cl'de bu ikincil.)
+
+### 7.3 Küçük-domain isteyene: Lagally-Filon / Point-Vortex BC
+500c grid istemiyorsak, **point-vortex (lift) + point-source (drag)** far-field
+düzeltmesi domain-hatasını neredeyse sıfırlar: PVBC ile **10c bile** 500c'yi 0.0003
+içinde verir (18× domain küçültme) [4,10]. Form: aerodinamik-merkeze Biot-Savart
+point-vortex (Γ = ½U∞·c·Cl) + yüksek-drag'da point-source; çıkış basınç düzeltmesi
+p = −ρU∞·u. OF11'de özel `freestream` türevi BC gerekir (bizim eski denememizde bu
+BC bozuktu — ama TMR-grid yolu bunu GEREKSİZ kılar).
+
+### 7.4 Önerilen kesin protokol (tractable, gece-boyu)
+1. **TMR PLOT3D ailesini indir** (449×129, 897×257, 1793×513) → `plot3dToFoam` → 3 OpenFOAM case.
+2. **TAM-TÜRBÜLANS SST** koş (geçiş KAPALI — grid-stabil/tekrarlanabilir), TMR koşulu
+   M=0.15 (≈sıkışmaz), Re=6×10⁶, **α=0°** (Cl=0 → lift-kaynaklı domain hatası SIFIR,
+   en temiz drag-yakınsama) ve **α=10°** (TMR referansı var).
+3. **GCI(449/897/1793)** + TMR referansına kıyas. Referans-hedefler (TMR benchmark,
+   site digit'lerini teyit et) [1,8]: SA α=0° **Cd≈0.0081**, α=10° **Cl≈1.091, Cd≈0.0123**;
+   SST yakın (~%3 drag içinde). Kodlar-arası yayılım drag'de ~%4 → bizim hedef bandımız.
+4. **Geçiş (kΩ-SST-LM)** AYRI doğrulama: α=4°, Ladson serbest-geçiş Cd≈0.0064'e karşı —
+   tam-türbülans GCI'ıyla KARIŞTIRMA.
+
+### 7.5 Çalışan gece-işiyle ilişki
+Şu an koşan bespoke C-grid xfine (156k), KENDİ kurulumumuzun mesh-asimptotikliğini
+test eder — bilgilendirici ama literatür, **TMR-grid yolunun** kesin/otoriter sonuç
+için daha güvenilir olduğunu söylüyor (doğrulanmış grid + bilinen referans). xfine
+bitince TMR-grid kampanyası mantıklı bir sonraki adımdır (4 çekirdek boşalınca).
+
 ## 6. Kaynaklar
 
 1. NASA Turbulence Modeling Resource — NACA0012 validation & grid family (turbmodels.larc.nasa.gov).
@@ -114,3 +171,11 @@ GCI **gelecek iş**. Lift zaten doğrulanmış (Cl~0.41-0.45, ref 0.44); drag GC
 6. OpenFOAM resmi NACA0012 doğrulaması — Family II 449×129, Re=6e6, Ladson kıyas.
 7. Celik et al. (2008), *Procedure for Estimation and Reporting of Uncertainty Due to Discretization
    in CFD Applications*, J. Fluids Eng. 130(7) — GCI + asimptotik aralık.
+8. NASA TMR — NACA0012 Grids (turbmodels.larc.nasa.gov/naca0012_grids.html; site nasa.gov'a
+   taşındı 2026): PLOT3D C-grid ailesi 113×33→1793×513, far-field ~500c, y⁺<1; 897×257
+   ana doğrulama grid'i, 7 kod drag'de ~%4 içinde uyumlu (Re=6e6, α=0/10/15).
+9. OpenFOAM `plot3dToFoam` — yapısal PLOT3D grid'i OpenFOAM polyMesh'e çevirir
+   (theansweris27.com/2d-naca-0012-airfoil-validation: TMR grid → OpenFOAM doğrulaması).
+10. *Some effects of domain size and boundary conditions on the accuracy of airfoil
+    simulations* (PMC10921552, 2024) — domain-boyu drag tablosu (α=10°: 30c→%6.2, 10c→%19),
+    `Cd∞≈Cd−0.0205·Cl²/A`, point-vortex BC ile 10c→%0 (18× domain küçültme).

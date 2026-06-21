@@ -123,3 +123,13 @@ vehicle_runs/_batch_geo/
 batch_learn.log
 batch_learn_done.json
 _fea_val_thermal/
+
+# ─── TMR drag GCI: NASA gridleri (124MB, indirilebilir naca0012-grids.zip) + case'ler ───
+# Scriptler (tmr_cfd/*.py) commit'lenir; gridler ve çözülmüş case'ler (mesh/processor/
+# postProcessing) türetilmiş/büyük veridir — tmr_gci_verdict.json sonucu taşır.
+tmr_grids/
+tmr_cfd/n0012_*/
+# ccx çalışma artefaktları (FEA element-order, bespoke xfine)
+_fea_elem_order/
+gci_cgridP_smoke.json
+gci_cgridP_xfine.json

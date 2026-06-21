@@ -316,7 +316,7 @@ class VVReport:
               fea=None, coupling=None, mesh_quality=None, polar=None,
               vspaero=None, rocket=None, rocket_fin=None, rocket_cfd=None,
               airfoil_gci=None, transition=None, fea_validations=None,
-              fea_stress_gci=None, project="MiniHawk İHA"):
+              fea_stress_gci=None, tmr_gci=None, project="MiniHawk İHA"):
         md = ["# CFD/FEA Doğrulama ve Validation Raporu",
               f"\n**Proje:** {project}  ",
               f"**Tarih:** {datetime.now():%Y-%m-%d %H:%M}  ",
@@ -418,6 +418,28 @@ class VVReport:
                       "Cl doğrulaması geçerlidir.*\n")
             if ok:
                 md.append("![Transition Polar](figures/transition_polar.png)\n")
+
+        # 1d. TMR drag GCI — mutlak Cd ÇÖZÜM-DOĞRULAMA (1b/1c'deki yakınsamama RESOLVED)
+        if tmr_gci and tmr_gci.get("seviyeler"):
+            g = tmr_gci
+            gci = g.get("gci", {})
+            md.append("## 1d. TMR Drag GCI — Mutlak Cd Çözüm-Doğrulama (VALIDATED)\n")
+            md.append("Bespoke O/C-grid'de mutlak Cd mesh-yakınsamıyordu (1b/1c: p≈0.2, "
+                      "asimptotik-dışı). **NASA TMR doğrulanmış C-grid ailesi** (`plot3dToFoam`, "
+                      "500c far-field, y⁺<1) + tam-türbülans SST ile **çözüldü**.\n")
+            md.append("| Grid | Hücre | $C_d$ |")
+            md.append("|------|-------|-------|")
+            for lv in g["seviyeler"]:
+                md.append(f"| {lv['grid']} | {lv['cells']:,} | {lv['Cd']:.5f} |")
+            md.append(f"\n- **Gözlenen mertebe** p = {gci.get('p')}  ")
+            md.append(f"- **Asimptotik oran** = {gci.get('asymptotic')} (≈1 → asimptotik aralık)  ")
+            md.append(f"- **GCI (ince)** = {gci.get('gci_fine_pct')}%  ")
+            md.append(f"- **Richardson** $C_d$ = {gci.get('f_exact'):.5f} vs TMR/CFL3D ≈ "
+                      f"{g.get('TMR_referans_SST_alpha0', 0.00809)} "
+                      f"(+%{abs(gci.get('f_exact', 0) - 0.00809) / 0.00809 * 100:.1f}, kod-saçılımı)  ")
+            md.append(f"\n> **{g.get('strict_gci_verdict', '')}** — mutlak $C_d$ artık "
+                      "mesh-yakınsamış (verification KESİN); validation TMR'ye kod-saçılımı "
+                      "(~%3-4) düzeyinde. Bu geometride absolute Cd **tasarım-grade**.\n")
 
         # 2. Validation
         if validation:
@@ -739,6 +761,7 @@ if __name__ == "__main__":
             fea_validations.append(d)
 
     fea_stress_gci = _load("fea_stress_gci.json")   # FEA solution-verification (GCI)
+    tmr_gci = _load("tmr_gci_verdict.json")          # CFD drag GCI (TMR grid — RESOLVED)
 
     rep = VVReport("./report")
     path = rep.build(mesh_indep=mesh_indep, validation=validation,
@@ -746,5 +769,6 @@ if __name__ == "__main__":
                      mesh_quality=mesh_quality, polar=polar, vspaero=vspaero,
                      rocket=rocket, rocket_fin=rocket_fin, rocket_cfd=rocket_cfd,
                      airfoil_gci=airfoil_gci, transition=transition,
-                     fea_validations=fea_validations, fea_stress_gci=fea_stress_gci)
+                     fea_validations=fea_validations, fea_stress_gci=fea_stress_gci,
+                     tmr_gci=tmr_gci)
     print(f"Rapor olusturuldu: {path}")

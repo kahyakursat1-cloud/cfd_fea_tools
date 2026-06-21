@@ -1,0 +1,21 @@
+{
+  "konu": "Airfoil drag yakınsaması — O-grid patolojisi ve C-grid çözümü (DÜRÜST sonuç)",
+  "tarih": "2026-06-19",
+  "ozet": "O-grid'de Cd mesh-yakınsamıyordu (kaba seviyede NEGATİF basınç-drag, gözlenen mertebe p≈0.2 — topoloji özelliği, model değil). Wake-kümeleyen C-grid bu patolojiyi ÇÖZER: Cd pozitif, monoton, yakınsayan. Topoloji-fix GÖSTERİLDİ.",
+  "ogrid_5seviye": {
+    "Cd_levels": [-0.00359, -0.00059, 0.00639, 0.00868, 0.01085],
+    "cells": [20000, 33800, 57800, 96800, 163592],
+    "gozlenen_mertebe_p": 0.2,
+    "durum": "asimptotik aralık DIŞI; negatif basınç-drag (fiziksel değil); GCI raporlanmaz → trend-grade"
+  },
+  "cgrid_3seviye_LM": {
+    "Cd": {"base": 0.00165, "mid": 0.01194, "fine": 0.01306},
+    "Cl": {"base": 0.5488, "mid": 0.4274, "fine": 0.4159},
+    "cells": {"base": 32000, "mid": 54080, "fine": 92480},
+    "mid_fine_degisim_pct": 8.6,
+    "durum": "POZİTİF + MONOTON + yakınsıyor (O-grid'in tersi). base/mid/fine GCI p=8.27 (base çok kaba → asimptotik değil)."
+  },
+  "sonuc_DURUST": "C-grid topoloji-fix'i KANITLANDI (asıl bilimsel nugget). Ancak TAM 3-seviye asimptotik GCI için ~156k hücre xfine seviyesi gerekti ve bu laptopta compute-bound: seri ~40h; paralel 8-rank AŞIRI-BÖLÜNME (19.5k hücre/rank → GAMG iletişim-bağımlı, NEGATİF ölçekleme, ~60h). Temiz GCI sayısı bu donanımda pratik değil → BULUTA ertelendi (grant Docker/cloud yönü).",
+  "rapor_dili": "Cd mutlak değer trend-grade. C-grid, O-grid'in topoloji-kaynaklı yakınsamama patolojisini giderir (pozitif/monoton/yakınsayan, mid→fine %8.6); tam asimptotik 3-seviye GCI compute-bound (bulut işi).",
+  "kaynak": "gci_airfoil.json (O-grid), gci_cgrid_{base,mid,fine}.json (C-grid)"
+}
