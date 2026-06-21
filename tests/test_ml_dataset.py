@@ -8,12 +8,30 @@ import json
 
 import pytest
 
-from ml_training_integration import DatasetPreparator
+from ml_training_integration import DatasetPreparator, MLTrainer
 
 
 def _meta(path, renders):
     path.write_text(json.dumps({"renders": renders}))
     return str(path)
+
+
+def test_trainer_honest_failure_no_fabricated_metrics(monkeypatch, tmp_path):
+    """DÜRÜSTLÜK: ultralytics yok/eğitim hatasında SAHTE metrik (eski 0.92 mAP) DÖNMEZ —
+    status=FAILED, results=None. Uygulamanın V&V-dürüstlük ilkesi ML'e de uygulanır."""
+    import sys
+    import types
+    fake = types.ModuleType("ultralytics")
+    class _YOLO:                                       # noqa: N801
+        def __init__(self, *a, **k):
+            raise RuntimeError("test: ultralytics yok")
+    fake.YOLO = _YOLO
+    monkeypatch.setitem(sys.modules, "ultralytics", fake)
+    r = MLTrainer().train_model(str(tmp_path / "data.yaml"))
+    assert r["status"] == "FAILED" and r["results"] is None and "error" in r
+    ev = MLTrainer().evaluate_model(str(tmp_path / "data.yaml"))
+    assert ev["status"] == "FAILED" and ev["map50"] is None
+    assert MLTrainer().export_model("onnx") is None    # sahte yol değil
 
 
 def test_uses_real_bbox_and_class(tmp_path):

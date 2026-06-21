@@ -264,22 +264,19 @@ class MLTrainer:
             return self.training_results
 
         except Exception as e:
-            print(f"\n⚠️  Eğitim hatası: {str(e)}")
-
-            # Simüle edilmiş sonuçlar
+            print(f"\n❌ Eğitim başarısız: {str(e)}")
+            # DÜRÜSTLÜK: başarısız/eksik eğitim SAHTE metrik DÖNDÜRMEZ. Uygulamanın V&V
+            # ilkesi (doğrulanmamış sayı doğrulanmış gibi gösterilmez) ML'e de uygulanır —
+            # eski 'SIMULATED' dalı uydurma 0.92 mAP veriyordu (gerçek başarısızlığı maskeler).
             self.training_results = {
-                "status": "SIMULATED",
+                "status": "FAILED",
                 "model": self.config.model,
                 "epochs": self.config.epochs,
-                "results": {
-                    "best_fitness": 0.85,
-                    "map50": 0.92,
-                    "map50_95": 0.78
-                },
+                "error": str(e),
+                "results": None,
                 "timestamp": datetime.now().isoformat(),
-                "note": "Eğitim simüle edilmiştir (ultralytics kurulu değil)"
+                "note": "ultralytics kurulu değil VEYA eğitim hatası — GERÇEK metrik YOK.",
             }
-
             return self.training_results
 
     def evaluate_model(self, test_data_yaml: str) -> dict:
@@ -309,18 +306,15 @@ class MLTrainer:
             return metrics
 
         except Exception as e:
-            print(f"\n⚠️  Değerlendirme hatası: {str(e)}")
-
-            # Simüle edilmiş metrikler
+            print(f"\n❌ Değerlendirme başarısız: {str(e)}")
+            # DÜRÜSTLÜK: sahte metrik döndürmez (eski hali 0.92/0.78/0.95/0.89 uyduruyordu).
             return {
-                "map50": 0.92,
-                "map50_95": 0.78,
-                "precision": 0.95,
-                "recall": 0.89,
-                "note": "Değerlendirme simüle edilmiştir"
+                "status": "FAILED", "error": str(e),
+                "map50": None, "map50_95": None, "precision": None, "recall": None,
+                "note": "Gerçek değerlendirme yapılamadı (ultralytics/model yok) — metrik YOK.",
             }
 
-    def export_model(self, format_type: str = "onnx") -> str:
+    def export_model(self, format_type: str = "onnx") -> str | None:
         """Eğitilmiş modeli dışa aktar"""
         print(f"\n📦 Model {format_type.upper()}'e dışa aktarılıyor...")
 
@@ -341,8 +335,8 @@ class MLTrainer:
             return str(export_path)
 
         except Exception as e:
-            print(f"⚠️  Dışa aktarma hatası: {str(e)}")
-            return f"runs/detect/train/weights/best.{format_type}"
+            print(f"❌ Dışa aktarma başarısız: {str(e)}")
+            return None   # DÜRÜSTLÜK: var-olmayan dosyaya sahte yol döndürme
 
 
 # ─────────────────────────────────────────────────────────────────────────────
