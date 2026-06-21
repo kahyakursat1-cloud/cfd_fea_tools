@@ -24,13 +24,10 @@
 - [OPENFOAM_REHBERI.md](OPENFOAM_REHBERI.md) — OpenFOAM setup & usage
 - [CALCULIX_REHBERI.md](CALCULIX_REHBERI.md) — CalculiX FEA guide
 
-### Workflow Guides
-- [BLENDER_BACKGROUNDS_GUIDE.md](BLENDER_BACKGROUNDS_GUIDE.md) — Background image setup
-- [ADVANCED_DATASET_WORKFLOW.md](ADVANCED_DATASET_WORKFLOW.md) — Full ML training pipeline
-
-### GPU & Optimization
-- [RTX4060_OPTIMIZATION.md](RTX4060_OPTIMIZATION.md) — Blender v2 RTX 4060 settings
-- [YOLO_RTX4060_MEMORY.md](YOLO_RTX4060_MEMORY.md) — YOLOv11 memory analysis & tuning
+### Görüntü-işleme (AYRILDI)
+Blender sentetik-veri + YOLO eğitimi + RTX4060/Blender GPU rehberleri **2026-06-21'de
+ayrı kod-tabanına taşındı** → `../goruntu_isleme/` (BLENDER_BACKGROUNDS, ADVANCED_DATASET,
+YOLO_RTX4060_MEMORY, RTX4060_OPTIMIZATION).
 
 ---
 
@@ -43,16 +40,7 @@ PARAMETRIK_ANALIZ_REHBERI
 OPENFOAM_REHBERI
 ```
 
-**ML Pipeline:**
-```
-BLENDER_BACKGROUNDS_GUIDE
-  ↓ (generates dataset for)
-ADVANCED_DATASET_WORKFLOW
-  ↓ (trains)
-YOLO_RTX4060_MEMORY
-  ↓ (optimized with)
-RTX4060_OPTIMIZATION
-```
+**ML/Görüntü-işleme Pipeline:** → ayrı kod-tabanı `../goruntu_isleme/` (bkz. README).
 
 **Setup:**
 ```
@@ -75,11 +63,7 @@ sources/SOURCES_INDEX
 | ACADEMIC_REFERENCES.md | Reference | 2026-04-07 | 12+ | 45 KB |
 | OPENFOAM_REHBERI.md | How-To | 2026-03-15 | 3 | 12 KB |
 | CALCULIX_REHBERI.md | How-To | 2026-03-15 | 2 | 10 KB |
-| RTX4060_OPTIMIZATION.md | Optimization | 2026-03-20 | 2 | 14 KB |
-| YOLO_RTX4060_MEMORY.md | Reference | 2026-03-20 | 3 | 16 KB |
-| ADVANCED_DATASET_WORKFLOW.md | Workflow | 2026-04-06 | 4 | 18 KB |
 | PARAMETRIK_ANALIZ_REHBERI.md | How-To | 2026-03-10 | 2 | 8 KB |
-| BLENDER_BACKGROUNDS_GUIDE.md | How-To | 2026-03-18 | 1 | 7 KB |
 | docs/archive/IMPLEMENTATION_SUMMARY.md | Overview (arşiv) | 2026-04-01 | - | 20 KB |
 | README_TR.md | Quick-Start | 2026-03-01 | 1 | 6 KB |
 | INSTALLATION_GUIDE.md | Setup | 2026-03-05 | 2 | 11 KB |
@@ -97,15 +81,8 @@ sources/SOURCES_INDEX
 - [CALCULIX_REHBERI.md](CALCULIX_REHBERI.md) — Solver guide
 - [ACADEMIC_REFERENCES.md](ACADEMIC_REFERENCES.md#2-fea-analizi) — Theory (Elasticity, Galerkin)
 
-### ML & YOLOv11
-- [ADVANCED_DATASET_WORKFLOW.md](ADVANCED_DATASET_WORKFLOW.md) — Full training pipeline
-- [YOLO_RTX4060_MEMORY.md](YOLO_RTX4060_MEMORY.md) — Memory optimization
-- [ACADEMIC_REFERENCES.md](ACADEMIC_REFERENCES.md#4-yapay-zeka-ve-makine-öğrenmesi) — Theory (CNN, YOLOv11)
-
-### Blender & Synthetic Data
-- [BLENDER_BACKGROUNDS_GUIDE.md](BLENDER_BACKGROUNDS_GUIDE.md) — Background setup
-- [RTX4060_OPTIMIZATION.md](RTX4060_OPTIMIZATION.md) — GPU optimization
-- [ADVANCED_DATASET_WORKFLOW.md](ADVANCED_DATASET_WORKFLOW.md) — Full pipeline
+### ML / Görüntü-işleme (YOLOv11 + Blender) — AYRILDI
+→ Ayrı kod-tabanı `../goruntu_isleme/` (2026-06-21). Teori: ACADEMIC_REFERENCES.md#4.
 
 ### Parametric Design
 - [PARAMETRIK_ANALIZ_REHBERI.md](PARAMETRIK_ANALIZ_REHBERI.md) — Optimization studies
@@ -128,10 +105,8 @@ sources/SOURCES_INDEX
 2. [PARAMETRIK_ANALIZ_REHBERI.md](PARAMETRIK_ANALIZ_REHBERI.md) — Optimization
 3. [ACADEMIC_REFERENCES.md#1-cfd-analizi](ACADEMIC_REFERENCES.md) — Theory
 
-### For ML Practitioners
-1. [BLENDER_BACKGROUNDS_GUIDE.md](BLENDER_BACKGROUNDS_GUIDE.md) — Data prep
-2. [ADVANCED_DATASET_WORKFLOW.md](ADVANCED_DATASET_WORKFLOW.md) — Full pipeline
-3. [YOLO_RTX4060_MEMORY.md](YOLO_RTX4060_MEMORY.md) — Hardware optimization
+### For ML Practitioners (Görüntü-işleme)
+→ Ayrı kod-tabanı `../goruntu_isleme/` (Blender sentetik-veri → YOLO; bkz. README).
 
 ### For Researchers
 1. [ACADEMIC_REFERENCES.md](ACADEMIC_REFERENCES.md) — Theory & citations (start here)
