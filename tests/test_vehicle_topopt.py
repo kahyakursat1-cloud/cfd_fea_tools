@@ -2,7 +2,17 @@
 (ccx/CFD çalıştırmaz). Tek test-boşluğu olan modül (ADR-4 araç katmanı)."""
 import numpy as np
 
-from vehicle_topopt import RHO_MIN, _oc_update, _sens_filter, _tet_volumes
+from vehicle_topopt import RHO_MIN, _oc_update, _sens_filter, _stress_gate, _tet_volumes
+
+
+def test_stress_gate_branches():
+    """#2: kompliyans-körlük stres-kapısı — 4 dal (güvenli/marjinal/akma/değerlendirilemedi)."""
+    assert _stress_gate({"emniyet_faktoru_temsili": 2.4})["durum"] == "güvenli"
+    assert _stress_gate({"emniyet_faktoru_temsili": 1.2})["durum"] == "marjinal"
+    akma = _stress_gate({"emniyet_faktoru_temsili": 0.7})
+    assert akma["durum"] == "akma_asildi" and "stress_topopt" in akma["mesaj"]
+    assert _stress_gate({})["durum"] == "değerlendirilemedi"
+    assert _stress_gate({"emniyet_faktoru": 2.0})["durum"] == "güvenli"   # temsili yoksa tepe-SF
 
 
 def test_tet_volumes_unit_tet():

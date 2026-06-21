@@ -60,26 +60,43 @@ def main():
             (HERE.parent / args.out).write_text(
                 json.dumps(partial, indent=2, ensure_ascii=False), encoding="utf-8")
             return 1
-        runs.append({"seviye": lvl, "cd": float(r.cd), "cells": int(cells)})
-        _log(f"=== '{lvl}' bitti: Cd={r.cd:.5f}, hücre={cells:,} "
+        cdw = getattr(r, "cd_wake", None)
+        runs.append({"seviye": lvl, "cd": float(r.cd), "cells": int(cells),
+                     "cd_wake": (float(cdw) if cdw is not None else None)})
+        _log(f"=== '{lvl}' bitti: Cd_yüzey={r.cd:.5f}, Cd_wake={cdw}, hücre={cells:,} "
              f"(toplam {(time.time()-t0)/60:.0f} dk) ===")
 
     # h-temsilcisi: 3B → h ∝ N^(-1/3) (kaba büyük h, ince küçük h)
     h = [run["cells"] ** (-1 / 3) for run in runs]    # [kaba, orta, ince]
     f = [run["cd"] for run in runs]
     gci = compute_gci(h[0], h[1], h[2], f[0], f[1], f[2])
+    # #1: İKİNCİ-MERTEBE wake-momentum Cd'sinin GCI'ı — yüzey-entegrasyon (1. mertebe,
+    # GCI=%103 kaynağı) yakınsamazken bu YAKINSAMALI (asimptotik). 3 seviyede de wake-Cd
+    # varsa hesapla; karşılaştırma "hangisi tasarım-grade" hükmünü verir.
+    gci_wake, verdict_wake = None, None
+    if all(run.get("cd_wake") is not None for run in runs):
+        fw = [run["cd_wake"] for run in runs]
+        gci_wake = compute_gci(h[0], h[1], h[2], fw[0], fw[1], fw[2])
+        verdict_wake = gci_verdict(gci_wake) if gci_wake else "GCI hesaplanamadı"
     rec = {
         "vaka": f"Mesh-GCI kampanyası — {Path(args.stl).name} (tip={args.tip}, "
                 f"V={args.hiz}, α={args.alpha})",
         "seviyeler": runs,
-        "gci": gci,
-        "verdict": gci_verdict(gci) if gci else "GCI hesaplanamadı (özdeş Cd?)",
+        "gci_yuzey": gci,
+        "verdict_yuzey": gci_verdict(gci) if gci else "GCI hesaplanamadı (özdeş Cd?)",
+        "gci_wake": gci_wake,
+        "verdict_wake": verdict_wake,
+        "karsilastirma": (
+            "wake-momentum (2. mertebe) yüzey-entegrasyona (1. mertebe) göre GCI'ı; "
+            "wake yakınsayıp yüzey yakınsamıyorsa 3D Cd için TASARIM-GRADE değer wake-Cd'dir."
+            if gci_wake else "wake-Cd 3 seviyede yok (wakePlane VTK eksik) — yalnız yüzey-GCI."),
         "sure_dk": round((time.time() - t0) / 60, 1),
-        "_not": "ASME V&V 20 discretization belirsizliği. h∝N^(-1/3). compute_gci çekirdeği.",
+        "_not": "ASME V&V 20 discretization belirsizliği. h∝N^(-1/3). compute_gci çekirdeği. "
+                "Çift-GCI (yüzey vs wake) — #1 3D-Cd tasarım-grade hedefi.",
     }
     (HERE.parent / args.out).write_text(json.dumps(rec, indent=2, ensure_ascii=False),
                                         encoding="utf-8")
-    _log(f"BİTTİ: {rec['verdict']}  →  {args.out}")
+    _log(f"BİTTİ: yüzey-GCI={rec['verdict_yuzey']} | wake-GCI={rec['verdict_wake']}  →  {args.out}")
     return 0
 
 

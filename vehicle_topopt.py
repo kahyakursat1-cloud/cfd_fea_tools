@@ -37,6 +37,30 @@ from vehicle_fea import CONSTRAINT_PRESETS, _map_pressure_to_tet
 RHO_MIN = 0.05
 
 
+def _stress_gate(sa: dict) -> dict:
+    """Kompliyans-OPTIMAL tasarımın STRES kapısı (#2: kompliyans-körlüğünü açık flag'le).
+    vehicle_topopt kompliyans minimize eder — düşük-kompliyans ama yüksek-gerilme (akma
+    aşan) tasarım üretebilir. Bu kapı final tasarımı yeniden-analizden gelen emniyet
+    faktörüyle hükme bağlar; akma aşılırsa gerilme-farkında TO'ya (adjoint-doğrulanmış
+    stress_topopt2d/3d) yönlendirir. Tekillik-robust temsili-SF kullanılır (TO geometrisi
+    jagged → tepe büyük olasılıkla sahte tekillik)."""
+    sf = sa.get("emniyet_faktoru_temsili") or sa.get("emniyet_faktoru")
+    if sf is None:
+        return {"durum": "değerlendirilemedi", "SF": None,
+                "mesaj": "Stres okunamadı (mesh/çözüm); kompliyans-min stresi GARANTİ ETMEZ."}
+    if sf >= 1.5:
+        return {"durum": "güvenli", "SF": sf,
+                "mesaj": f"✅ Kompliyans-optimal tasarım stres-güvenli (SF_temsili={sf}≥1.5)."}
+    if sf >= 1.0:
+        return {"durum": "marjinal", "SF": sf,
+                "mesaj": f"⚠️ Marjinal (1≤SF={sf}<1.5). Kompliyans-min stresi KONTROL ETMEZ — "
+                         "hacim/yük zarfını doğrula; gerekirse gerilme-farkında TO."}
+    return {"durum": "akma_asildi", "SF": sf,
+            "mesaj": f"🔴 AKMA AŞILDI (SF={sf}<1). Tasarım kompliyans-OPTIMAL ama stres-GÜVENSİZ "
+                     "— tam da kompliyans-körlüğü. Çözüm: hacim oranını artır VEYA gerilme-"
+                     "farkında TO (stress_topopt2d/3d, adjoint-FD-doğrulanmış)."}
+
+
 # ───────────────────────── yardımcılar ─────────────────────────
 
 def _tet_volumes(P, tets):
@@ -363,6 +387,7 @@ def run_topopt(run_dir, material="aluminum_6061", constraint="y_min",
                 "max_sehim_mm": round(float(disp.max()) * 1000, 4) if disp is not None else None,
                 "max_vm_kati_MPa": sa.get("max_von_mises_MPa"),    # geri-uyum alias
                 **sa,
+                "stres_kapisi": _stress_gate(sa),                  # #2: kompliyans-körlük gate
             }
     except Exception as e:
         reanaliz = {"hata": str(e)[:200]}
