@@ -99,7 +99,9 @@ W("system/fvSolution",
   "  \"(U|k|omega)\"{ solver smoothSolver; smoother symGaussSeidel; tolerance 1e-9; relTol 0.01; nSweeps 2; }\n"
   "}\n"
   "SIMPLE{ nNonOrthogonalCorrectors 2; consistent yes;\n"
-  "  residualControl{ p 1e-6; U 1e-6; \"(k|omega)\" 1e-6; } }\n"
+  # residual 1e-7: 1e-6'da KUVVET henüz platoya oturmuyor (özellikle α≥10 stall-yakını);
+  # residual-yakınsama ≠ kuvvet-yakınsama. Sıkı eşik kuvveti oturtur (Cl/Cd drift→0).
+  "  residualControl{ p 1e-7; U 1e-7; \"(k|omega)\" 1e-7; } }\n"
   "relaxationFactors{ equations{ U 0.7; \"(k|omega)\" 0.7; } fields{ p 0.3; } }\n")
 
 print(f"Case kuruldu: {case} | α={alpha}° Re={Re:.1e} ν={nu:.4e} | "
