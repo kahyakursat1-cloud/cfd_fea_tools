@@ -2,6 +2,8 @@
 
 **Teknofest 2026 — İleri Otonom Sistemler**
 
+> ℹ️ **Görüntü-işleme AYRILDI (2026-06-21):** Blender sentetik-veri + YOLO tespit katmanı ayrı kod-tabanına taşındı → `../goruntu_isleme/`. Aşağıdaki Blender/YOLO/dataset/RTX4060 bölümleri artık o depoda; burada **tarihsel/stale**.
+
 Sabit kanat roket, drone, İHA ve uçak tasarımları için **3D model → CFD/FEA → ML** entegre sistem.
 
 ---

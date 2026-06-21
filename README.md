@@ -22,8 +22,7 @@ python -m venv .venv
 
 pip install -e .                  # çekirdek: headless CFD/FEA pipeline
 pip install -e ".[gui]"           # + PySide6 arayüzleri (launcher.py)
-pip install -e ".[ml]"            # + YOLO/PyTorch dataset eğitimi
-pip install -e ".[gui,scan,ml,viz]"   # tam sistem
+pip install -e ".[gui,viz]"       # tam sistem (görüntü-işleme/YOLO → ../goruntu_isleme/)
 ```
 
 **Harici araçlar** (Python paketi değil): OpenFOAM 11 (CFD), CalculiX `ccx` 2.21

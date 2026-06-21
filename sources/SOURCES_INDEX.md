@@ -1,5 +1,7 @@
 # Akademik Kaynaklar — Merkezi Rehber
 
+> ℹ️ **Not (2026-06-21):** YOLO/CNN/sentetik-veri (görüntü-işleme) kaynakları artık ayrı kod-tabanına aittir → `../goruntu_isleme/`. Buradaki ML/görü atıfları o depoyla ilgilidir.
+
 **Konumu:** `D:\bilsem_beyin\cfd_fea_tools\sources\`  
 **Tarih:** 2026-04-07  
 **Durum:** ✅ Merkezileştirilmiş ve organize

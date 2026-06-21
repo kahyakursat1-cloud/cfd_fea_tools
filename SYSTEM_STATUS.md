@@ -1,5 +1,7 @@
 # 🎯 Sistem Durumu — HAZIR (Production Ready)
 
+> ℹ️ **Görüntü-işleme AYRILDI (2026-06-21):** Blender/YOLO katmanı → `../goruntu_isleme/`. Bu durum-belgesi (2026-04-07) birleşik sistemi anlatır; Blender/YOLO/dataset bölümleri artık o depoda — burada **tarihsel**. Güncel CFD/FEA durumu: git log + report/VV_report.md.
+
 **Proje:** TEKNOFEST 2026 — İleri Otonom Sistemler  
 **Tarih:** 2026-04-07  
 **Durum:** ✅ **TAMAMLANDI & ÜRETIM HAZIR**

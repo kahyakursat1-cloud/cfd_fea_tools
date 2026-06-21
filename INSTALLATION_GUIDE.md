@@ -1,5 +1,7 @@
 # Kurulum Rehberi — CFD/FEA Parametrik Analiz Sistemi
 
+> ℹ️ **Görüntü-işleme AYRILDI (2026-06-21):** Blender/YOLO sentetik-veri katmanı → `../goruntu_isleme/`. Bu rehberdeki Blender/ultralytics/YOLO kurulum adımları artık o depoya aittir (orada kendi README'si var); CFD/FEA kurulumu burada geçerli.
+
 **Versiyon:** 1.0  
 **Tarih:** 2026-04-07  
 **Platform:** Windows, Linux, macOS  
