@@ -1,0 +1,67 @@
+{
+  "vaka": "Eleman-mertebesi: C3D4 vs C3D10 ankastre kiriş bükülmesi (Euler-Bernoulli)",
+  "analitik_delta_mm": 9.143,
+  "geometri": {
+    "L_m": 1.0,
+    "kesit_m": 0.05,
+    "narinlik": 20.0,
+    "E_Pa": 70000000000.0,
+    "P_N": 1000.0
+  },
+  "kosular": [
+    {
+      "eleman": "C3D4",
+      "h_m": 0.05,
+      "dugum": 169,
+      "eleman_sayisi": 405,
+      "delta_mm": 3.8581,
+      "hata_pct": -57.8
+    },
+    {
+      "eleman": "C3D4",
+      "h_m": 0.03333333333333333,
+      "dugum": 260,
+      "eleman_sayisi": 573,
+      "delta_mm": 4.0302,
+      "hata_pct": -55.9
+    },
+    {
+      "eleman": "C3D4",
+      "h_m": 0.025,
+      "dugum": 353,
+      "eleman_sayisi": 824,
+      "delta_mm": 5.0018,
+      "hata_pct": -45.3
+    },
+    {
+      "eleman": "C3D10",
+      "h_m": 0.05,
+      "dugum": 906,
+      "eleman_sayisi": 405,
+      "delta_mm": 9.0952,
+      "hata_pct": -0.5
+    },
+    {
+      "eleman": "C3D10",
+      "h_m": 0.03333333333333333,
+      "dugum": 1350,
+      "eleman_sayisi": 573,
+      "delta_mm": 9.1038,
+      "hata_pct": -0.4
+    },
+    {
+      "eleman": "C3D10",
+      "h_m": 0.025,
+      "dugum": 1875,
+      "eleman_sayisi": 824,
+      "delta_mm": 9.1154,
+      "hata_pct": -0.3
+    }
+  ],
+  "ozet": {
+    "C3D4_en_kati_hata_pct": -57.8,
+    "C3D10_en_iyi_hata_pct": 0.3,
+    "yorum": "C3D4 (linear, ÜRETİM default) sehimi %58'a kadar DÜŞÜK tahmin (shear-locking → aşırı katı); C3D10 (V&V) analitiğe %0.3. Düşük sehim GÜVENSİZ yöndedir (gerçek deformasyon daha büyük). Sonuç: üretim FEA'sı bükülme-baskın yüklerde C3D10 kullanmalı — özellikle ince kabuk/kanat-spar gibi narin yapılarda."
+  },
+  "_not": "Üretim: python experiments/fea_element_order.py. Bağlam: vehicle_fea generate_tet_mesh(second_order=False) → C3D4; bu script C3D10'a geçiş gerekçesi."
+}
