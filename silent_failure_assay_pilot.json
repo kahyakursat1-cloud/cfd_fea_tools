@@ -1,0 +1,182 @@
+{
+  "tau": 0.03,
+  "n": 14,
+  "confusion": {
+    "TP": 5,
+    "FP": 2,
+    "TN": 4,
+    "FN": 3,
+    "sensitivity": 0.625,
+    "specificity": 0.6666666666666666,
+    "prevalence": 0.5714285714285714
+  },
+  "roc_tau_sweep": [
+    {
+      "tau": 0.02,
+      "sensitivity": 0.625,
+      "specificity": 0.6666666666666666
+    },
+    {
+      "tau": 0.03,
+      "sensitivity": 0.625,
+      "specificity": 0.6666666666666666
+    },
+    {
+      "tau": 0.05,
+      "sensitivity": 0.8,
+      "specificity": 0.6666666666666666
+    },
+    {
+      "tau": 0.1,
+      "sensitivity": 0.75,
+      "specificity": 0.6
+    },
+    {
+      "tau": 0.15,
+      "sensitivity": 0.6666666666666666,
+      "specificity": 0.5454545454545454
+    }
+  ],
+  "corpus": [
+    {
+      "case": "cantilever",
+      "knob": "C3D8I, 24x4x4",
+      "q": "deflection",
+      "naive": 9.051,
+      "truth": 9.143,
+      "flagged": false,
+      "gclass": "design",
+      "src": "fea_validation.json"
+    },
+    {
+      "case": "cantilever",
+      "knob": "C3D8I",
+      "q": "stress",
+      "naive": 49.8,
+      "truth": 48.0,
+      "flagged": false,
+      "gclass": "design",
+      "src": "fea_validation.json"
+    },
+    {
+      "case": "thick-cylinder",
+      "knob": "C3D10 consistent-load (FIX)",
+      "q": "hoop",
+      "naive": 21.31,
+      "truth": 21.03,
+      "flagged": false,
+      "gclass": "design",
+      "src": "fea_validation_cyl.json"
+    },
+    {
+      "case": "thick-cylinder",
+      "knob": "corner-lumping (DEFECT)",
+      "q": "hoop",
+      "naive": 22.55,
+      "truth": 21.03,
+      "flagged": true,
+      "gclass": "verification-caught",
+      "src": "paper §3 / Lamé"
+    },
+    {
+      "case": "plate-hole",
+      "knob": "C3D10 gmsh",
+      "q": "Kt-stress",
+      "naive": 159.7,
+      "truth": 157.0,
+      "flagged": false,
+      "gclass": "design",
+      "src": "fea_validation_hole.json"
+    },
+    {
+      "case": "buckling",
+      "knob": "*BUCKLE C3D10",
+      "q": "P_cr",
+      "naive": 9227.4,
+      "truth": 9211.6,
+      "flagged": false,
+      "gclass": "design",
+      "src": "fea_validation_buckling.json"
+    },
+    {
+      "case": "plate-hole-GCI",
+      "knob": "3-mesh non-monotonic",
+      "q": "peak-vM",
+      "naive": 159.4,
+      "truth": 157.0,
+      "flagged": true,
+      "gclass": "trend(GCI-withheld)",
+      "src": "fea_stress_gci.json"
+    },
+    {
+      "case": "naca0012-drag",
+      "knob": "bespoke O-grid (non-asymptotic)",
+      "q": "Cd",
+      "naive": 0.0131,
+      "truth": 0.0089,
+      "flagged": true,
+      "gclass": "trend(p~0.2)",
+      "src": "gci_airfoil.json"
+    },
+    {
+      "case": "naca0012-drag",
+      "knob": "TMR grids a=0 (asymptotic)",
+      "q": "Cd",
+      "naive": 0.00837,
+      "truth": 0.00809,
+      "flagged": false,
+      "gclass": "design(GCI1.71%)",
+      "src": "tmr_gci_verdict.json"
+    },
+    {
+      "case": "naca0012-lift",
+      "knob": "a=10 residual-stopped",
+      "q": "Cl",
+      "naive": 1.031,
+      "truth": 1.078,
+      "flagged": true,
+      "gclass": "trend(not-force-conv)",
+      "src": "oturum/tmr a=10"
+    },
+    {
+      "case": "naca0012-lift",
+      "knob": "a=10 force-plateau",
+      "q": "Cl",
+      "naive": 1.0644,
+      "truth": 1.078,
+      "flagged": true,
+      "gclass": "trend(GCI-withheld)",
+      "src": "tmr_gci_verdict_a10.json"
+    },
+    {
+      "case": "naca0012-lift",
+      "knob": "a=12 stall (2D RANS)",
+      "q": "Cl",
+      "naive": 0.82,
+      "truth": 1.49,
+      "flagged": true,
+      "gclass": "out-of-envelope",
+      "src": "transition_results / Ladson"
+    },
+    {
+      "case": "sphere-M2",
+      "knob": "shockFluid inviscid",
+      "q": "Cd",
+      "naive": 1.135,
+      "truth": 1.0,
+      "flagged": true,
+      "gclass": "trend(inviscid~15%)",
+      "src": "supersonic_validation.json"
+    },
+    {
+      "case": "rocket-finned",
+      "knob": "blunt-box fins (geometry)",
+      "q": "Cd",
+      "naive": 1.007,
+      "truth": 0.617,
+      "flagged": false,
+      "gclass": "design(no-guard)",
+      "src": "oturum rocket-fin/OpenRocket"
+    }
+  ]
+}
