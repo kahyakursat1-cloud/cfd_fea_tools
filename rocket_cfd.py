@@ -8,6 +8,7 @@ Sabit-kanat OpenFOAM yolunun roket karsiligi.
 """
 
 import math
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -84,9 +85,11 @@ def build_rocket_stl(path: str):
     body = trimesh.Trimesh(vertices=np.array(verts), faces=np.array(faces), process=True)
 
     # Finler: aft'ta dikdortgen plakalar, N_FINS adet 120 derece
+    # ROCKET_NOFINS=1 → finsiz gövde (fin basınç-drag katkısını izole etmek için V&V).
     fin_x0 = NOSE_LEN + BODY_LEN - FIN_ROOT
     meshes = [body]
-    for k in range(N_FINS):
+    n_fins = 0 if os.environ.get("ROCKET_NOFINS") else N_FINS
+    for k in range(n_fins):
         ang = 2*math.pi*k/N_FINS
         # fin yerel: x[root], y[thickness], z[span] -> sonra dondur
         fin = trimesh.creation.box(extents=[FIN_ROOT, FIN_THICK, FIN_SPAN])
@@ -152,8 +155,8 @@ meshQualityControls {{ maxNonOrtho 70; maxBoundarySkewness 20; maxInternalSkewne
 writeFlags ( ); mergeTolerance 1e-6;
 """)
     (case_dir/"system"/"controlDict").write_text(f"""FoamFile{{ version 2.0; format ascii; class dictionary; object controlDict; }}
-application foamRun; startFrom startTime; startTime 0; endTime 400;
-deltaT 1; writeInterval 400; purgeWrite 2; writeFormat binary; runTimeModifiable true;
+application foamRun; startFrom startTime; startTime 0; endTime 600;
+deltaT 1; writeInterval 600; purgeWrite 2; writeFormat binary; runTimeModifiable true;
 functions {{ forces {{ type forces; libs ("libforces.so"); writeControl timeStep; writeInterval 50;
   patches ("rocket"); rho rhoInf; rhoInf {RHO}; pRef 0; CofR (0 0 0); }} }}
 """)
@@ -169,6 +172,9 @@ wallDist{ method meshWave; }""")
     (case_dir/"system"/"fvSolution").write_text("""FoamFile{ version 2.0; format ascii; class dictionary; object fvSolution; }
 solvers{ p{ solver GAMG; tolerance 1e-7; relTol 0.05; smoother GaussSeidel; nCellsInCoarsestLevel 20; }
   "(U|k|omega)"{ solver smoothSolver; smoother symGaussSeidel; tolerance 1e-8; relTol 0.05; } }
+# Not: residualControl bu küt-taban roketinde 1e-6'ya inMEZ (iz salınımı → taban ~5e-5);
+# ama eksenel KUVVET (Cd) iter ~500'de konverje olur → endTime 600 force-yeterli (force-plateau
+# mantığı). residual yalnız erken-çıkış için gevşek tutulur.
 SIMPLE{ nNonOrthogonalCorrectors 2; consistent yes; residualControl{ p 1e-5; U 1e-5; } }
 relaxationFactors{ equations{ U 0.7; k 0.5; omega 0.5; } fields{ p 0.3; } }""")
     (case_dir/"constant").mkdir(exist_ok=True)
@@ -218,12 +224,16 @@ boundaryField{{ inlet{{type calculated; value uniform {nut0:.6e};}} outlet{{type
         return {"status": "FAILED", "step": "forces"}
     lines = [l for l in ff[0].read_text().splitlines() if l.strip() and not l.startswith("#")]
     nums = re.findall(r'[-+]?\d+\.?\d*[eE]?[-+]?\d*', lines[-1])
-    Fx = float(nums[1]) + float(nums[4])   # Fpx + Fvx (eksenel = drag)
+    Fpx, Fvx = float(nums[1]), float(nums[4])   # basınç + viskoz eksenel bileşen
+    Fx = Fpx + Fvx                              # toplam eksenel = drag
     q = 0.5*RHO*V_FLIGHT**2
     cd = Fx/(q*S_REF)
+    # V&V-yorumlanabilirlik: Cd kırılımı. friction ∝ S_wet/S_ref (ince gövde ~56 → yüksek ama
+    # fiziksel); OpenRocket/Barrowman ile fark genelde BASINÇ-drag'ında (fin+küt-taban modeli).
     return {"status": "SUCCESS", "drag_N": round(Fx, 5),
-            "Cd_cfd": round(cd, 4), "V_ms": V_FLIGHT, "S_ref_m2": round(S_REF, 6),
-            "q_Pa": round(q, 2)}
+            "Cd_cfd": round(cd, 4), "Cd_pressure": round(Fpx/(q*S_REF), 4),
+            "Cd_friction": round(Fvx/(q*S_REF), 4),
+            "V_ms": V_FLIGHT, "S_ref_m2": round(S_REF, 6), "q_Pa": round(q, 2)}
 
 
 if __name__ == "__main__":

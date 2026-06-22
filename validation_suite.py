@@ -436,7 +436,7 @@ mergeTolerance 1e-6;
         (case_dir / "system" / "controlDict").write_text(f"""FoamFile
 {{ version 2.0; format ascii; class dictionary; object controlDict; }}
 application foamRun;
-startFrom startTime; startTime 0; endTime 1000;
+startFrom startTime; startTime 0; endTime 2000;
 deltaT 1; writeInterval 100; purgeWrite 3; writeFormat binary;
 runTimeModifiable true;
 functions
@@ -479,7 +479,9 @@ solvers
                     tolerance 1e-7; relTol 0.01; }
 }
 SIMPLE { nNonOrthogonalCorrectors 1; consistent yes;
-         residualControl { p 1e-5; U 1e-5; "(k|omega)" 1e-5; } }
+         # residual≠kuvvet: 1e-5 gevşekti (kuvvet platoya oturmadan durur). 1e-7 = TMR'de
+         # doğrulanan seviye (α=0/düşük-α için yeterli; yüksek-α polar için force-plateau ideal).
+         residualControl { p 1e-7; U 1e-7; "(k|omega)" 1e-7; } }
 relaxationFactors { equations { U 0.7; k 0.5; omega 0.5; } fields { p 0.3; } }
 """)
 
