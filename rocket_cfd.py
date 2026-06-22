@@ -89,14 +89,22 @@ def build_rocket_stl(path: str):
     fin_x0 = NOSE_LEN + BODY_LEN - FIN_ROOT
     meshes = [body]
     n_fins = 0 if os.environ.get("ROCKET_NOFINS") else N_FINS
+    # Çift-kama (diamond) kesit: LE/TE sivri, orta-kord FIN_THICK. Küt-kutu plakaya göre
+    # kenar-ayrılması/form-drag'ı ÇOK daha düşük (V&V: küt-kutu CFD Cd'yi ~%60 şişiriyordu,
+    # finsiz gövde OpenRocket'le %9; airfoiled fin Barrowman'a yakınsar).
+    x0, xm, x1 = fin_x0, fin_x0 + FIN_ROOT/2, fin_x0 + FIN_ROOT
+    zr, zt, ht = RADIUS, RADIUS + FIN_SPAN, FIN_THICK/2
+    fv = [[x0, 0, zr], [xm, ht, zr], [x1, 0, zr], [xm, -ht, zr],
+          [x0, 0, zt], [xm, ht, zt], [x1, 0, zt], [xm, -ht, zt]]
+    ff = [[0, 2, 1], [0, 3, 2], [4, 5, 6], [4, 6, 7],          # kök + uç kapağı
+          [0, 1, 5], [0, 5, 4], [1, 2, 6], [1, 6, 5],          # yan yüzeyler
+          [2, 3, 7], [2, 7, 6], [3, 0, 4], [3, 4, 7]]
     for k in range(n_fins):
         ang = 2*math.pi*k/N_FINS
-        # fin yerel: x[root], y[thickness], z[span] -> sonra dondur
-        fin = trimesh.creation.box(extents=[FIN_ROOT, FIN_THICK, FIN_SPAN])
-        # merkezle: x ortasi fin_x0+root/2, z ortasi RADIUS+span/2
-        fin.apply_translation([fin_x0 + FIN_ROOT/2, 0, RADIUS + FIN_SPAN/2])
-        R = trimesh.transformations.rotation_matrix(ang, [1, 0, 0])
-        fin.apply_transform(R)
+        fin = trimesh.Trimesh(vertices=np.array(fv, dtype=float), faces=np.array(ff),
+                              process=True)
+        fin.fix_normals()                          # dışa-dönük normaller (snappy doğru tarafı mesh'lesin)
+        fin.apply_transform(trimesh.transformations.rotation_matrix(ang, [1, 0, 0]))
         meshes.append(fin)
 
     rocket = trimesh.util.concatenate(meshes)
