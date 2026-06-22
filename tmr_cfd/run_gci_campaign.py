@@ -9,9 +9,17 @@ import subprocess
 import sys
 from pathlib import Path
 
+try:                                            # cp1254 (TR Windows) stdout α/° patlamasın
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except (AttributeError, ValueError):
+    pass
+
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
+sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT))
+from force_plateau import _read_force, forcecoeffs_dat, relative_drift  # noqa: E402
+
 from report_generator import compute_gci, gci_verdict  # noqa: E402
 
 ALPHA = sys.argv[1] if len(sys.argv) > 1 else "0"
@@ -23,12 +31,12 @@ TMR_REF = {"0": (0.0, 0.00809), "10": (1.0778, 0.01236)}
 LEVELS = [
     ("449", GRIDS / "n0012_449-129.p3dfmt", HERE / f"n0012_449{SUF}", 57344, "12000"),
     ("897", GRIDS / "n0012_897-257.p3dfmt", HERE / f"n0012_897{SUF}", 229376, "15000"),
-    ("1793", GRIDS / "n0012_1793-513.p3dfmt", HERE / f"n0012_1793{SUF}", 917504, "20000"),
+    ("1793", GRIDS / "n0012_1793-513.p3dfmt", HERE / f"n0012_1793{SUF}", 917504, "40000"),
 ]
 
 
 def _force(case: Path, col: int):
-    f = case / "postProcessing" / "forceCoeffs" / "0" / "forceCoeffs.dat"
+    f = forcecoeffs_dat(case)
     if not f.exists():
         return None
     rows = [ln for ln in f.read_text().splitlines() if ln.strip() and not ln.startswith("#")]
@@ -43,12 +51,27 @@ def cl_of(case):
     return _force(case, 3)
 
 
+def _plateaued(case, window=10, tol=1.5e-3) -> bool:
+    """Seviye kuvvet-platosuna oturmuş mu (Cd & Cl son-pencere drift < tol)? Yalnız bunu
+    atla; yarım-yakınsamış (forceCoeffs var ama drift büyük) case build_and_run ile RESUME
+    olur (silmeden kaldığı yerden devam). residual≠kuvvet sahte-skip'i önler."""
+    _, cds, cls = _read_force(forcecoeffs_dat(case))
+    if len(cds) < window:
+        return False
+    cl_win = cls[-window:]
+    lifting = abs(sum(cl_win) / len(cl_win)) > 0.05      # α=0 Cl≈0 → Cl kapısını atla
+    d_cl = relative_drift(cl_win) if lifting else 0.0
+    return relative_drift(cds[-window:]) < tol and d_cl < tol
+
+
 def main():
+    print(f"[izleme] canlı monitör: python tmr_cfd/monitor_campaign.py {ALPHA}", flush=True)
     for lbl, grid, case, _, end in LEVELS:
-        if cd_of(case) is not None:                 # zaten çözülmüş seviyeyi atla
-            print(f"[{lbl}] mevcut, atlanıyor (Cd={cd_of(case):.5f})", flush=True)
+        if _plateaued(case):                        # yalnız PLATO yapmış seviyeyi atla
+            print(f"[{lbl}] plato, atlanıyor (Cd={cd_of(case):.5f} Cl={cl_of(case):.5f})", flush=True)
             continue
-        print(f"=== {lbl} (α={ALPHA}) koşuluyor ===", flush=True)
+        action = "RESUME" if (case / "processor0").is_dir() else "koşuluyor"
+        print(f"=== {lbl} (α={ALPHA}) {action} ===", flush=True)
         subprocess.run([sys.executable, str(HERE / "build_and_run.py"),
                         str(grid), str(case), ALPHA, end, "8"], check=False)
 

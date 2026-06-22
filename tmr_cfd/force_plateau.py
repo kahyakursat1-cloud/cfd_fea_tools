@@ -8,6 +8,7 @@ yes) temiz durur. OpenFOAM runTimeControl'a Python alternatifi (syntax-bağıms�
 
 Kullanım (koşan case'e iliştir, arka plan): python tmr_cfd/force_plateau.py <case_dir>
 """
+import re
 import sys
 import time
 from pathlib import Path
@@ -23,8 +24,25 @@ def relative_drift(vals) -> float:
     return (max(vals) - min(vals)) / (abs(m) + 1e-30)
 
 
+def forcecoeffs_dat(case) -> Path:
+    """En güncel forceCoeffs çıktı dosyası. RESUME'da (startFrom latestTime) functionObject
+    yeni <startTime> alt-dizini açar (postProcessing/forceCoeffs/<t>/); en büyük numaralıyı
+    döndür — devam eden koşunun verisi orada. Tek "0" varsa onu döndürür (geriye-uyumlu)."""
+    base = Path(case) / "postProcessing" / "forceCoeffs"
+    if not base.is_dir():
+        return base / "0" / "forceCoeffs.dat"
+    subs = [d for d in base.iterdir() if d.is_dir() and d.name.replace(".", "", 1).isdigit()]
+    if not subs:
+        return base / "0" / "forceCoeffs.dat"
+    return max(subs, key=lambda d: float(d.name)) / "forceCoeffs.dat"
+
+
 def _read_force(fdat: Path):
-    """forceCoeffs.dat → (iters, Cd_list, Cl_list). Sütun: Time Cm Cd Cl ..."""
+    """İki formatı da okur → (iters, drag, lift):
+    • forceCoeffs.dat (skaler): sütun Time Cm Cd Cl → drag=Cd, lift=Cl.
+    • forces.dat (vektör): `t ((Fpx..)(Fvx..)) ..` → drag=Fpx+Fvx (eksenel), lift=0
+      (katsayı yok; relative-drift ölçek-bağımsız olduğundan plato tespiti yine geçerli,
+      eksenel cisim non-lifting → Cd-kapısı). rocket_cfd/transition_polar bunu kullanabilir."""
     if not fdat.exists():
         return [], [], []
     its, cds, cls = [], [], []
@@ -32,12 +50,21 @@ def _read_force(fdat: Path):
         ln = ln.strip()
         if not ln or ln.startswith("#"):
             continue
-        p = ln.split()
-        if len(p) >= 4:
-            try:
-                its.append(float(p[0])); cds.append(float(p[2])); cls.append(float(p[3]))
-            except ValueError:
-                pass
+        if "(" in ln:                           # forces.dat (kuvvet vektörü) formatı
+            nums = re.findall(r"[-+]?\d+\.?\d*[eE]?[-+]?\d*", ln)
+            if len(nums) >= 5:
+                try:
+                    its.append(float(nums[0])); cds.append(float(nums[1]) + float(nums[4]))
+                    cls.append(0.0)
+                except ValueError:
+                    pass
+        else:                                   # forceCoeffs.dat (skaler) formatı
+            p = ln.split()
+            if len(p) >= 4:
+                try:
+                    its.append(float(p[0])); cds.append(float(p[2])); cls.append(float(p[3]))
+                except ValueError:
+                    pass
     return its, cds, cls
 
 
@@ -46,19 +73,23 @@ def monitor(case_dir, window=10, tol=1.5e-3, poll=20.0, min_rows=12, timeout=Non
     `stopAt writeNow` yaz. window satır = window×writeInterval iter (varsayılan 50 → 500 iter).
     Döner: {durum, iters, Cd, Cl, drift_cd, drift_cl}."""
     case = Path(case_dir)
-    fdat = case / "postProcessing" / "forceCoeffs" / "0" / "forceCoeffs.dat"
     cdict = case / "system" / "controlDict"
     t0 = time.time()
     while True:
         if timeout and time.time() - t0 > timeout:
             return {"durum": "timeout"}
+        fdat = forcecoeffs_dat(case)            # RESUME'da yeni alt-dizini yakala (her poll)
         its, cds, cls = _read_force(fdat)
         if len(cds) >= max(min_rows, window):
             d_cd = relative_drift(cds[-window:])
             cl_win = cls[-window:]
             lifting = abs(sum(cl_win) / len(cl_win)) > 0.05    # α=0'da Cl≈0 → Cl gate'i atla
             d_cl = relative_drift(cl_win) if lifting else 0.0
-            if d_cd < tol and d_cl < tol:
+            # Plato BİRİNCİL nicelik üzerinden: lifting'de Cl (Cd açıda gürültülü/ikincil,
+            # küçük mutlak Cd → relative-drift şişer), α=0'da Cd. Yavaş-creep eden ince
+            # grid'in sahte-platosunu önler (Cl asimptotu varmadan d_cd<tol olabiliyordu).
+            converged = (d_cl < tol) if lifting else (d_cd < tol)
+            if converged:
                 txt = cdict.read_text()
                 if "stopAt writeNow" not in txt:
                     cdict.write_text(txt.replace("stopAt endTime;", "stopAt writeNow;"))

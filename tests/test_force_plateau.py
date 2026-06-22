@@ -4,7 +4,34 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tmr_cfd"))
-from force_plateau import monitor, relative_drift  # noqa: E402
+from force_plateau import _read_force, forcecoeffs_dat, monitor, relative_drift  # noqa: E402
+
+
+def test_read_force_handles_both_formats(tmp_path):
+    """_read_force hem forceCoeffs (skaler) hem forces.dat (vektör) okur."""
+    fc = tmp_path / "forceCoeffs.dat"
+    fc.write_text("# Time Cm Cd Cl\n100\t0.01\t0.0082\t0.44\n150\t0.01\t0.0081\t0.45\n")
+    its, drag, lift = _read_force(fc)
+    assert its == [100.0, 150.0] and abs(drag[0] - 0.0082) < 1e-9 and abs(lift[1] - 0.45) < 1e-9
+    fv = tmp_path / "forces.dat"          # vektör: drag = Fpx + Fvx (nums[1]+nums[4])
+    fv.write_text("# Time forces\n"
+                  "100\t((0.19 -1e-4 3e-3) (0.09 1e-5 -3e-5)) ((1e-6 0 0)(0 0 0))\n"
+                  "150\t((0.20 0 0) (0.10 0 0)) ((0 0 0)(0 0 0))\n")
+    its, drag, lift = _read_force(fv)
+    assert its == [100.0, 150.0]
+    assert abs(drag[0] - 0.28) < 1e-6 and abs(drag[1] - 0.30) < 1e-6   # Fpx+Fvx
+    assert lift == [0.0, 0.0]                                          # eksenel → non-lifting
+
+
+def test_forcecoeffs_dat_picks_latest_subdir(tmp_path):
+    """RESUME: en büyük numaralı <startTime> alt-dizinini seçer (0 ve 20000 varsa → 20000)."""
+    base = tmp_path / "postProcessing" / "forceCoeffs"
+    (base / "0").mkdir(parents=True)
+    assert forcecoeffs_dat(tmp_path) == base / "0" / "forceCoeffs.dat"   # tek dizin
+    (base / "20000").mkdir()
+    assert forcecoeffs_dat(tmp_path) == base / "20000" / "forceCoeffs.dat"   # resume devamı
+    # postProcessing yoksa geriye-uyumlu "0" yolu
+    assert forcecoeffs_dat(tmp_path / "yok").name == "forceCoeffs.dat"
 
 
 def test_relative_drift():

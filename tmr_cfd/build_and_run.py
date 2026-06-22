@@ -9,6 +9,11 @@ from pathlib import Path
 
 import numpy as np
 
+try:                                            # cp1254 (TR Windows) stdout α/° patlamasın
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except (AttributeError, ValueError):
+    pass
+
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from inspect_patches import read_boundary, read_faces, read_points  # noqa: E402
@@ -70,7 +75,54 @@ def classify_and_createpatch(case: Path):
     (case / "system" / "createPatchDict").write_text(dct)
 
 
+def _resumable(case: Path) -> bool:
+    """Decompose edilmiş çözüm var mı (processor0'da time>0)? Varsa rebuild yerine devam et —
+    yarı-yakınsamış case'i silmeden force-plateau'ya kadar koştur (compute israfını önler)."""
+    p0 = case / "processor0"
+    if not p0.is_dir():
+        return False
+    return any(d.is_dir() and d.name.replace(".", "", 1).isdigit() and float(d.name) > 0
+               for d in p0.iterdir())
+
+
+def _solve_report(cu):
+    """foamRun -parallel'i arka planda koş + force_plateau ile izle (Cd/Cl drift<tol →
+    stopAt writeNow), sonra forceCoeffs son satırı raporla. Build ve resume yolları paylaşır."""
+    from force_plateau import forcecoeffs_dat, monitor
+    # RESUME yarış-koşulu: eski log.run "End" ile biter; foamRun truncate etmeden monitör
+    # okursa anında "kosu_bitti" döner → sil, böylece "End" yalnız YENİ koşu bitince görünür.
+    (CASE / "log.run").unlink(missing_ok=True)
+    solve = (f'wsl bash -c "{ENV} && cd {cu} && '
+             f'mpirun --oversubscribe -np {NP} foamRun -solver incompressibleFluid -parallel '
+             f'>log.run 2>&1"')
+    proc = subprocess.Popen(solve, shell=True)
+    pl = monitor(CASE, window=10, tol=1.5e-3, poll=20.0, timeout=36000)
+    print(f"[{CASE.name}] force-plateau: {pl}", flush=True)
+    proc.wait()
+    fdat = forcecoeffs_dat(CASE)
+    if fdat.exists():
+        last = [ln for ln in fdat.read_text().splitlines() if ln.strip() and not ln.startswith("#")][-1]
+        cols = last.split()
+        print(f"[{CASE.name}] BİTTİ: Cd={cols[2]} Cl={cols[3]} (iter {cols[0]})", flush=True)
+    else:
+        print(f"[{CASE.name}] forceCoeffs YOK — log.run son:", flush=True)
+        print((CASE / "log.run").read_text(errors="ignore")[-400:], flush=True)
+    return 0
+
+
 def main():
+    cu = to_unix(CASE)
+    if _resumable(CASE):
+        print(f"[{CASE.name}] RESUME — mevcut çözümden devam (rebuild yok)...", flush=True)
+        # dict'leri tazele (residual 1e-9 + stopAt endTime, force-plateau uyumlu); startFrom
+        # latestTime processor çözümünden devam eder, processor alanlarına dokunulmaz.
+        subprocess.run([sys.executable, str(HERE / "setup_case.py"), str(CASE), ALPHA, "6e6", END],
+                       check=True)
+        return _solve_report(cu)
+    return _full_build_and_solve(cu)
+
+
+def _full_build_and_solve(cu):
     CASE.mkdir(parents=True, exist_ok=True)
     (CASE / "system").mkdir(exist_ok=True)
     # plot3dToFoam minimal controlDict gerektirir
@@ -78,7 +130,6 @@ def main():
         "FoamFile{version 2.0;format ascii;class dictionary;object controlDict;}\n"
         "application foamRun; startFrom startTime; startTime 0; stopAt endTime;\n"
         "endTime 1; deltaT 1; writeControl timeStep; writeInterval 1;\n")
-    cu = to_unix(CASE)
     print(f"[{CASE.name}] plot3dToFoam...", flush=True)
     r = wsl(cu, f"plot3dToFoam -noBlank {to_unix(GRID)}")
     if "End" not in r.stdout:
@@ -99,18 +150,11 @@ def main():
     (CASE / "system" / "decomposeParDict").write_text(
         f"FoamFile{{version 2.0;format ascii;class dictionary;object decomposeParDict;}}\n"
         f"numberOfSubdomains {NP};\nmethod scotch;\n")
-    print(f"[{CASE.name}] decompose + foamRun NP={NP}...", flush=True)
+    print(f"[{CASE.name}] decompose + foamRun NP={NP} (force-plateau izlemeli)...", flush=True)
     wsl(cu, "decomposePar -force >log.decomp 2>&1")
-    r = wsl(cu, f"mpirun --oversubscribe -np {NP} foamRun -solver incompressibleFluid -parallel >log.run 2>&1")
-    fdat = CASE / "postProcessing" / "forceCoeffs" / "0" / "forceCoeffs.dat"
-    if fdat.exists():
-        last = [ln for ln in fdat.read_text().splitlines() if ln.strip() and not ln.startswith("#")][-1]
-        cols = last.split()
-        print(f"[{CASE.name}] BİTTİ: Cd={cols[2]} Cl={cols[3]} (iter {cols[0]})", flush=True)
-    else:
-        print(f"[{CASE.name}] forceCoeffs YOK — log.run son:", flush=True)
-        print((CASE / "log.run").read_text(errors="ignore")[-400:], flush=True)
-    return 0
+    # residual≠kuvvet: foamRun'u arka planda koş, force_plateau ile izle → Cd/Cl platoya
+    # oturunca controlDict'e stopAt writeNow yaz (runTimeModifiable). residual 1e-9 backstop.
+    return _solve_report(cu)
 
 
 if __name__ == "__main__":
