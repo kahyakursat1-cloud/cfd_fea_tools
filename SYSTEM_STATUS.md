@@ -72,8 +72,8 @@
 | ~~3D Scanner~~ | ~~photogrammetry_scanner.py~~ | ❌ KALDIRILDI | 2026-06-10 |
 | ~~Scanner UI~~ | ~~scanner_gui_module.py~~ | ❌ KALDIRILDI | 2026-06-10 |
 | **Mesh Converter** | mesh_to_cfd.py | ✅ | STL → Aircraft |
-| **Blender Render** | blender_synthetic_generator_v2.py | ✅ | Advanced rendering |
-| **ML Training** | ml_training_integration.py | ✅ | YOLO pipeline |
+| ~~Blender Render~~ | ~~blender_synthetic_generator_v2.py~~ | ➡️ TAŞINDI | `../goruntu_isleme/` (2026-06-21) |
+| ~~ML Training~~ | ~~ml_training_integration.py~~ | ➡️ TAŞINDI | `../goruntu_isleme/` (2026-06-21) |
 | **Main GUI** | app_parametric.py | ✅ | 6 functional tabs |
 
 ---

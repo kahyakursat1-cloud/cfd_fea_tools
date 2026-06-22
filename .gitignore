@@ -43,6 +43,7 @@ _fea_val/
 _fea_val_hole/
 _fea_val_cyl/
 _fea_val_grav/
+_fea_val_buckling/
 rocket_cfd_case/
 rocket_fin/
 structural_assessment/
@@ -133,3 +134,14 @@ tmr_cfd/n0012_*/
 _fea_elem_order/
 gci_cgridP_smoke.json
 gci_cgridP_xfine.json
+
+# ─── Kök dizine bırakılan büyük ikili belgeler (kaynak değil) ─────────────
+# Word belgeleri (Bel*.docx — teklif/makale taslakları k220\paper'a ait) ve
+# arşivler kazara 'git add -A' ile commit'lenmesin. Kaynak ağacımıza dahil değil.
+*.rar
+*.docx
+*.zip
+
+# ─── Araç/oturum yerel dosyaları ──────────────────────────────────────────
+.agents/
+.claude/launch.json
