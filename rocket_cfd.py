@@ -169,12 +169,11 @@ divSchemes{ default none; div(phi,U) bounded Gauss linearUpwindV grad(U);
 laplacianSchemes{ default Gauss linear corrected; }
 interpolationSchemes{ default linear; } snGradSchemes{ default corrected; }
 wallDist{ method meshWave; }""")
+    # residualControl bu küt-taban roketinde 1e-6'ya inmez (iz salınımı → taban ~5e-5); ama
+    # eksenel KUVVET (Cd) iter ~500'de konverje → endTime 600 force-yeterli. residual gevşek backstop.
     (case_dir/"system"/"fvSolution").write_text("""FoamFile{ version 2.0; format ascii; class dictionary; object fvSolution; }
 solvers{ p{ solver GAMG; tolerance 1e-7; relTol 0.05; smoother GaussSeidel; nCellsInCoarsestLevel 20; }
   "(U|k|omega)"{ solver smoothSolver; smoother symGaussSeidel; tolerance 1e-8; relTol 0.05; } }
-# Not: residualControl bu küt-taban roketinde 1e-6'ya inMEZ (iz salınımı → taban ~5e-5);
-# ama eksenel KUVVET (Cd) iter ~500'de konverje olur → endTime 600 force-yeterli (force-plateau
-# mantığı). residual yalnız erken-çıkış için gevşek tutulur.
 SIMPLE{ nNonOrthogonalCorrectors 2; consistent yes; residualControl{ p 1e-5; U 1e-5; } }
 relaxationFactors{ equations{ U 0.7; k 0.5; omega 0.5; } fields{ p 0.3; } }""")
     (case_dir/"constant").mkdir(exist_ok=True)

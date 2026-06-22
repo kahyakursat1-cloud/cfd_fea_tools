@@ -479,8 +479,8 @@ solvers
                     tolerance 1e-7; relTol 0.01; }
 }
 SIMPLE { nNonOrthogonalCorrectors 1; consistent yes;
-         # residual≠kuvvet: 1e-5 gevşekti (kuvvet platoya oturmadan durur). 1e-7 = TMR'de
-         # doğrulanan seviye (α=0/düşük-α için yeterli; yüksek-α polar için force-plateau ideal).
+         // residual!=kuvvet: 1e-5 gevsekti (kuvvet platoya oturmadan durur). 1e-7 = TMR'de
+         // dogrulanan seviye (dusuk-alpha icin yeterli; yuksek-alpha polar icin force-plateau ideal).
          residualControl { p 1e-7; U 1e-7; "(k|omega)" 1e-7; } }
 relaxationFactors { equations { U 0.7; k 0.5; omega 0.5; } fields { p 0.3; } }
 """)

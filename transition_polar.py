@@ -188,8 +188,8 @@ solvers{ p{ solver GAMG; tolerance 1e-7; relTol 0.05; smoother GaussSeidel;
   nCellsInCoarsestLevel 20; }
   "(U|k|omega|gammaInt|ReThetat)"{ solver smoothSolver; smoother symGaussSeidel; tolerance 1e-8; relTol 0.05; nSweeps 2; } }
 SIMPLE{ nNonOrthogonalCorrectors 6; consistent yes;
-  # residual≠kuvvet: 1e-5→1e-6 (kuvvet daha çok platoya oturur). Yüksek-α polar
-  # noktalarında force-plateau ideal; bu eşik sıkılaştırma düşük-riskli ara çözüm.
+  // residual!=kuvvet: 1e-5->1e-6 (kuvvet daha cok platoya oturur). Yuksek-alpha polar
+  // noktalarinda force-plateau ideal; bu esik sikilastirma dusuk-riskli ara cozum.
   residualControl{ p 1e-6; U 1e-6; "(k|omega)" 1e-6; } }
 relaxationFactors{ equations{ U 0.3; k 0.2; omega 0.2; gammaInt 0.2; ReThetat 0.2; } fields{ p 0.15; } }""")
 
