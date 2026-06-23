@@ -4,3 +4,4 @@
 {"case": "naca0012-Ladson", "alpha": 4, "density": "coarse", "n_prof": 120, "n_norm": 40, "Cl_sim": 0.4735, "Cd_sim": 0.01471, "Cl_ref": 0.452, "Cd_ref": 0.0092, "Cl_err_pct": 4.7, "Cd_err_pct": 59.9, "error": null}
 {"case": "naca0012-Ladson", "alpha": 4, "density": "mid", "n_prof": 200, "n_norm": 80, "Cl_sim": 0.4533, "Cd_sim": 0.00899, "Cl_ref": 0.452, "Cd_ref": 0.0092, "Cl_err_pct": 0.3, "Cd_err_pct": 2.2, "error": null}
 {"case": "naca0012-Ladson", "alpha": 4, "density": "fine", "n_prof": 320, "n_norm": 110, "Cl_sim": null, "Cd_sim": null, "Cl_ref": null, "Cd_ref": null, "Cl_err_pct": null, "Cd_err_pct": null, "error": null}
+{"case": "naca0012-Ladson", "alpha": 4, "density": "fine", "n_prof": 320, "n_norm": 110, "Cl_sim": null, "Cd_sim": null, "Cl_ref": null, "Cd_ref": null, "Cl_err_pct": null, "Cd_err_pct": null, "error": null}

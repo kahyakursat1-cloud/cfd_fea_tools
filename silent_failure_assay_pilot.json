@@ -4,41 +4,41 @@
     "Cl": 0.05,
     "stress": 0.1
   },
-  "n": 27,
+  "n": 29,
   "confusion_per_q": {
-    "TP": 8,
+    "TP": 9,
     "FP": 4,
     "TN": 14,
-    "FN": 1,
-    "sensitivity": 0.8888888888888888,
+    "FN": 2,
+    "sensitivity": 0.8181818181818182,
     "specificity": 0.7777777777777778,
-    "prevalence": 0.3333333333333333
+    "prevalence": 0.3793103448275862
   },
   "roc_global_tau_sweep": [
     {
       "tau": 0.02,
-      "sensitivity": 0.625,
+      "sensitivity": 0.6111111111111112,
       "specificity": 0.8181818181818182
     },
     {
       "tau": 0.03,
-      "sensitivity": 0.6428571428571429,
+      "sensitivity": 0.625,
       "specificity": 0.7692307692307693
     },
     {
       "tau": 0.05,
-      "sensitivity": 0.8,
+      "sensitivity": 0.75,
       "specificity": 0.7647058823529411
     },
     {
       "tau": 0.1,
-      "sensitivity": 0.875,
+      "sensitivity": 0.8,
       "specificity": 0.7368421052631579
     },
     {
       "tau": 0.15,
-      "sensitivity": 0.8571428571428571,
-      "specificity": 0.7
+      "sensitivity": 0.875,
+      "specificity": 0.7142857142857143
     }
   ],
   "corpus": [
@@ -311,6 +311,26 @@
       "flagged": false,
       "gclass": "design(attached)",
       "src": "cfd_mesh_sweep.jsonl"
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a4 Cd fine",
+      "q": "Cd",
+      "naive": 0.02097,
+      "truth": 0.0092,
+      "flagged": true,
+      "gclass": "trend(non-monotonik)",
+      "src": "a4_fine_gentle"
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a4 Cl fine",
+      "q": "Cl",
+      "naive": 0.4036,
+      "truth": 0.452,
+      "flagged": false,
+      "gclass": "design(attached)",
+      "src": "a4_fine_gentle"
     }
   ]
 }

@@ -58,6 +58,10 @@ CORPUS = [
     _c("naca-Ladson", "a4 Cd mid", "Cd", 0.00899, 0.0092, True, "trend(no-GCI)", "cfd_mesh_sweep.jsonl"),
     _c("naca-Ladson", "a4 Cl coarse", "Cl", 0.4735, 0.452, False, "design(attached)", "cfd_mesh_sweep.jsonl"),
     _c("naca-Ladson", "a4 Cl mid", "Cl", 0.4533, 0.452, False, "design(attached)", "cfd_mesh_sweep.jsonl"),
+    # a4 fine (force_gentle ile yakınsadı): O-grid NON-MONOTONIK — fine mid'den KÖTÜ.
+    # Cd flagged (trend); Cl design(attached)→guard mesh-kontrol etmiyor → FN (kör-nokta).
+    _c("naca-Ladson", "a4 Cd fine", "Cd", 0.02097, 0.0092, True, "trend(non-monotonik)", "a4_fine_gentle"),
+    _c("naca-Ladson", "a4 Cl fine", "Cl", 0.4036, 0.452, False, "design(attached)", "a4_fine_gentle"),
 ]
 
 # Per-nicelik τ (literatür-temelli: drag DPW-saçılımı ~%10-15, lift Ladson-bandı ~%5, stress

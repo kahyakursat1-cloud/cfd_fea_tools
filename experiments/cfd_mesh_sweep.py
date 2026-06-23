@@ -16,31 +16,51 @@ from validation_suite import NACA0012Validation  # noqa: E402
 
 # (etiket, n_prof profil-nokta, n_norm duvar-normal hücre)
 DENSITIES = [("coarse", 120, 40), ("mid", 200, 80), ("fine", 320, 110)]
-ALPHAS = [0, 4]
+ALPHAS = [0, 4, 8]
+
+
+def _done_tags(out: Path) -> set:
+    """jsonl'de zaten tamamlanmış (hatasız) (alpha,density) — resume: tekrar koşma."""
+    done = set()
+    if out.exists():
+        for ln in out.read_text(encoding="utf-8").splitlines():
+            if not ln.strip():
+                continue
+            d = json.loads(ln)
+            if not d.get("error") and d.get("Cd_sim") is not None:
+                done.add((d["alpha"], d["density"]))
+    return done
 
 
 def main():
     work = HERE.parent / "cfd_mesh_sweep_cases"
     work.mkdir(exist_ok=True)
     out = HERE.parent / "cfd_mesh_sweep.jsonl"
-    out.write_text("", encoding="utf-8")
+    done = _done_tags(out)                          # append + skip-existing (resume)
     rows = []
     for alpha in ALPHAS:
         for label, nprof, nnorm in DENSITIES:
             tag = f"a{alpha}_{label}"
+            if (alpha, label) in done:
+                print(f"=== {tag} zaten var, atlanıyor ===", flush=True)
+                continue
             print(f"=== {tag} (n_prof={nprof}, n_norm={nnorm}) ===", flush=True)
             v = NACA0012Validation(str(work / tag))
             v.n_prof, v.n_norm = nprof, nnorm
+            v.force_gentle = (label == "fine")          # ince mesh: nazik scheme/relax (yakınsama)
             try:
                 r = v.run(alpha)
             except Exception as e:
                 r = {"error": str(e)[-200:]}
+            # status==FAILED'i de hata say + step/log yakala (önceki driver bunu kaçırdı)
+            err = r.get("error") or (f"{r.get('status')}@{r.get('step')}"
+                                     if r.get("status") == "FAILED" else None)
             cell = {"case": "naca0012-Ladson", "alpha": alpha, "density": label,
                     "n_prof": nprof, "n_norm": nnorm,
                     "Cl_sim": r.get("Cl_sim"), "Cd_sim": r.get("Cd_sim"),
                     "Cl_ref": r.get("Cl_ref"), "Cd_ref": r.get("Cd_ref"),
                     "Cl_err_pct": r.get("Cl_err_pct"), "Cd_err_pct": r.get("Cd_err_pct"),
-                    "error": r.get("error")}
+                    "error": err}
             rows.append(cell)
             with out.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(cell, ensure_ascii=False) + "\n")

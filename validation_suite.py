@@ -642,8 +642,10 @@ functions
     }}
 }}
 """)
-        # Yuksek AoA icin daha konservatif scheme ve relaxation
-        is_high_aoa = alpha_deg >= 6
+        # Yuksek AoA icin daha konservatif scheme ve relaxation. force_gentle (attribute,
+        # default yok) ince mesh + orta-AoA gibi yakinsamasi zor durumlar icin ayni nazik
+        # ayarlari acar (a4_fine: ince O-grid + alpha=4 -> sirkulasyon, default relax diverjyor).
+        is_high_aoa = alpha_deg >= 6 or getattr(self, "force_gentle", False)
         div_U = "bounded Gauss upwind" if is_high_aoa else "bounded Gauss linearUpwindV grad(U)"
         relax_U = 0.5 if is_high_aoa else 0.6
         relax_k = 0.3 if is_high_aoa else 0.4
