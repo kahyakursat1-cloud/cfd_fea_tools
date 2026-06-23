@@ -134,7 +134,8 @@ tmr_cfd/n0012_*/
 _fea_elem_order/
 gci_cgridP_smoke.json
 gci_cgridP_xfine.json
-supersonic_slender_result.json    # standalone demo çıktısı (V&V verdikti değil)
+# standalone demo çıktısı (V&V verdikti değil)
+supersonic_slender_result.json
 
 # ─── Kök dizine bırakılan büyük ikili belgeler (kaynak değil) ─────────────
 # Word belgeleri (Bel*.docx — teklif/makale taslakları k220\paper'a ait) ve
