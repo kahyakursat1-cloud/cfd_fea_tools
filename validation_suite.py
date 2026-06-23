@@ -121,7 +121,7 @@ class NACA0012Validation:
         n_normal = getattr(self, "n_norm", 80)    # cells wall-normal
         grading  = getattr(self, "grading", 500)  # grading=500 → y+≈400, non-ortho<65° (kararlı). Yüksek grading LE/TE'de bozuyor.
         W        = 0.1      # span (2D: 1 cell, empty patches)
-        R        = 20.0     # outer radius (chord lengths)
+        R        = getattr(self, "R_far", 20.0)   # dis yaricap (kiriş); yuksek-alpha lift icin buyut (∝Cl² far-field hatasi)
         cx, cz   = 0.25, 0.0  # reference centroid
 
         profile = self._ogrid_profile(n)
@@ -214,6 +214,23 @@ vertices
         nut_wall = getattr(self, "nut_wall", "nutkWallFunction")
         k_wall   = getattr(self, "k_wall", "kqRWallFunction")
 
+        # freestream_bc (attribute, default False): dis sinir karakteristik external-aero BC
+        # (freestream/freestreamPressure -> yerel-akiya gore auto inflow/outflow). Yuksek-alpha'da
+        # fixedValue+uniform over-constrained olup lift-indukli sirkulasyonu temsil edemiyor ->
+        # diverjans (arXiv:2411.13077). freestream BC bu instabiliteyi giderir; alpha=0/4'te
+        # fixedValue ile ayni sonucu vermeli (default False -> validated yol degismez).
+        fs = getattr(self, "freestream_bc", False)
+        if fs:
+            ff_U     = f"farfield {{ type freestream; freestreamValue uniform ({Ux} 0 {Uz}); }}"
+            ff_p     = "farfield { type freestreamPressure; freestreamValue uniform 0; }"
+            ff_k     = f"farfield {{ type inletOutlet; inletValue uniform {k0:.6e}; value uniform {k0:.6e}; }}"
+            ff_omega = f"farfield {{ type inletOutlet; inletValue uniform {omega0:.4f}; value uniform {omega0:.4f}; }}"
+        else:
+            ff_U     = f"farfield {{ type fixedValue; value uniform ({Ux} 0 {Uz}); }}"
+            ff_p     = "farfield { type fixedValue; value uniform 0; }"
+            ff_k     = f"farfield {{ type fixedValue; value uniform {k0:.6e}; }}"
+            ff_omega = f"farfield {{ type fixedValue; value uniform {omega0:.4f}; }}"
+
         zero = case_dir / "0"
         zero.mkdir(exist_ok=True)
 
@@ -224,22 +241,22 @@ internalField uniform ({Ux} 0 {Uz});
 boundaryField
 {{
     airfoil  {{ type noSlip; }}
-    farfield {{ type fixedValue; value uniform ({Ux} 0 {Uz}); }}
+    {ff_U}
     front    {{ type empty; }}
     back     {{ type empty; }}
 }}
 """)
-        (zero / "p").write_text("""FoamFile
-{ version 2.0; format ascii; class volScalarField; object p; }
+        (zero / "p").write_text(f"""FoamFile
+{{ version 2.0; format ascii; class volScalarField; object p; }}
 dimensions [0 2 -2 0 0 0 0];
 internalField uniform 0;
 boundaryField
-{
-    airfoil  { type zeroGradient; }
-    farfield { type fixedValue; value uniform 0; }
-    front    { type empty; }
-    back     { type empty; }
-}
+{{
+    airfoil  {{ type zeroGradient; }}
+    {ff_p}
+    front    {{ type empty; }}
+    back     {{ type empty; }}
+}}
 """)
         (zero / "k").write_text(f"""FoamFile
 {{ version 2.0; format ascii; class volScalarField; object k; }}
@@ -248,7 +265,7 @@ internalField uniform {k0:.6e};
 boundaryField
 {{
     airfoil  {{ type {k_wall}; value uniform {k0:.6e}; }}
-    farfield {{ type fixedValue; value uniform {k0:.6e}; }}
+    {ff_k}
     front    {{ type empty; }}
     back     {{ type empty; }}
 }}
@@ -260,7 +277,7 @@ internalField uniform {omega0:.4f};
 boundaryField
 {{
     airfoil  {{ type omegaWallFunction; value uniform {omega0:.4f}; }}
-    farfield {{ type fixedValue; value uniform {omega0:.4f}; }}
+    {ff_omega}
     front    {{ type empty; }}
     back     {{ type empty; }}
 }}
