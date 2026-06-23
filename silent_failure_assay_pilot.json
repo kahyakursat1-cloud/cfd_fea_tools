@@ -1,44 +1,44 @@
 {
   "tau_by_q": {
-    "Cd": 0.05,
-    "Cl": 0.03,
+    "Cd": 0.1,
+    "Cl": 0.05,
     "stress": 0.1
   },
-  "n": 20,
+  "n": 27,
   "confusion_per_q": {
-    "TP": 5,
-    "FP": 2,
-    "TN": 12,
+    "TP": 8,
+    "FP": 4,
+    "TN": 14,
     "FN": 1,
-    "sensitivity": 0.8333333333333334,
-    "specificity": 0.8571428571428571,
-    "prevalence": 0.3
+    "sensitivity": 0.8888888888888888,
+    "specificity": 0.7777777777777778,
+    "prevalence": 0.3333333333333333
   },
   "roc_global_tau_sweep": [
     {
       "tau": 0.02,
-      "sensitivity": 0.5,
-      "specificity": 0.8
-    },
-    {
-      "tau": 0.03,
-      "sensitivity": 0.5555555555555556,
+      "sensitivity": 0.625,
       "specificity": 0.8181818181818182
     },
     {
+      "tau": 0.03,
+      "sensitivity": 0.6428571428571429,
+      "specificity": 0.7692307692307693
+    },
+    {
       "tau": 0.05,
-      "sensitivity": 0.6666666666666666,
-      "specificity": 0.7857142857142857
+      "sensitivity": 0.8,
+      "specificity": 0.7647058823529411
     },
     {
       "tau": 0.1,
-      "sensitivity": 0.75,
-      "specificity": 0.75
+      "sensitivity": 0.875,
+      "specificity": 0.7368421052631579
     },
     {
       "tau": 0.15,
-      "sensitivity": 0.6666666666666666,
-      "specificity": 0.7058823529411765
+      "sensitivity": 0.8571428571428571,
+      "specificity": 0.7
     }
   ],
   "corpus": [
@@ -241,6 +241,76 @@
       "flagged": false,
       "gclass": "design",
       "src": "fea_knob_sweep.jsonl"
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a0 Cd coarse",
+      "q": "Cd",
+      "naive": 0.01357,
+      "truth": 0.0082,
+      "flagged": true,
+      "gclass": "trend(no-GCI)",
+      "src": "cfd_mesh_sweep.jsonl"
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a0 Cd mid",
+      "q": "Cd",
+      "naive": 0.01096,
+      "truth": 0.0082,
+      "flagged": true,
+      "gclass": "trend(no-GCI)",
+      "src": "cfd_mesh_sweep.jsonl"
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a0 Cd fine",
+      "q": "Cd",
+      "naive": 0.01042,
+      "truth": 0.0082,
+      "flagged": true,
+      "gclass": "trend(non-asymp)",
+      "src": "cfd_mesh_sweep.jsonl"
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a4 Cd coarse",
+      "q": "Cd",
+      "naive": 0.01471,
+      "truth": 0.0092,
+      "flagged": true,
+      "gclass": "trend(no-GCI)",
+      "src": "cfd_mesh_sweep.jsonl"
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a4 Cd mid",
+      "q": "Cd",
+      "naive": 0.00899,
+      "truth": 0.0092,
+      "flagged": true,
+      "gclass": "trend(no-GCI)",
+      "src": "cfd_mesh_sweep.jsonl"
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a4 Cl coarse",
+      "q": "Cl",
+      "naive": 0.4735,
+      "truth": 0.452,
+      "flagged": false,
+      "gclass": "design(attached)",
+      "src": "cfd_mesh_sweep.jsonl"
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a4 Cl mid",
+      "q": "Cl",
+      "naive": 0.4533,
+      "truth": 0.452,
+      "flagged": false,
+      "gclass": "design(attached)",
+      "src": "cfd_mesh_sweep.jsonl"
     }
   ]
 }

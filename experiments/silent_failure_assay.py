@@ -49,11 +49,20 @@ CORPUS = [
     _c("cyl-Lame", "C3D10-coarse", "stress", 21.34, 21.03, False, "design", "fea_knob_sweep.jsonl"),
     _c("cyl-Lame", "C3D10-mid", "stress", 21.3, 21.03, False, "design", "fea_knob_sweep.jsonl"),
     _c("cyl-Lame", "C3D10-fine", "stress", 21.29, 21.03, False, "design", "fea_knob_sweep.jsonl"),
+    # ── CFD mesh-density × AoA taraması (truth = Ladson; drag flagged=trend no-GCI-band,
+    #    lift attached α≤8 → validity_envelope DESIGN, mesh-bağımsız) ──
+    _c("naca-Ladson", "a0 Cd coarse", "Cd", 0.01357, 0.0082, True, "trend(no-GCI)", "cfd_mesh_sweep.jsonl"),
+    _c("naca-Ladson", "a0 Cd mid", "Cd", 0.01096, 0.0082, True, "trend(no-GCI)", "cfd_mesh_sweep.jsonl"),
+    _c("naca-Ladson", "a0 Cd fine", "Cd", 0.01042, 0.0082, True, "trend(non-asymp)", "cfd_mesh_sweep.jsonl"),
+    _c("naca-Ladson", "a4 Cd coarse", "Cd", 0.01471, 0.0092, True, "trend(no-GCI)", "cfd_mesh_sweep.jsonl"),
+    _c("naca-Ladson", "a4 Cd mid", "Cd", 0.00899, 0.0092, True, "trend(no-GCI)", "cfd_mesh_sweep.jsonl"),
+    _c("naca-Ladson", "a4 Cl coarse", "Cl", 0.4735, 0.452, False, "design(attached)", "cfd_mesh_sweep.jsonl"),
+    _c("naca-Ladson", "a4 Cl mid", "Cl", 0.4533, 0.452, False, "design(attached)", "cfd_mesh_sweep.jsonl"),
 ]
 
-# Per-nicelik τ (pilot + FEA taraması gösterdi: tek-global-τ suboptimal — drag lift/stress'ten
-# daha gevşek tolerans alır; stress mühendislik-kabul ~%10-15).
-TAU_BY_Q = {"Cd": 0.05, "Cl": 0.03, "stress": 0.10}
+# Per-nicelik τ (literatür-temelli: drag DPW-saçılımı ~%10-15, lift Ladson-bandı ~%5, stress
+# mühendislik-kabul ~%10). Tek-global-τ suboptimal (pilot+FEA+CFD gösterdi).
+TAU_BY_Q = {"Cd": 0.10, "Cl": 0.05, "stress": 0.10}
 
 
 def classify(cell, tau, per_q=False):
