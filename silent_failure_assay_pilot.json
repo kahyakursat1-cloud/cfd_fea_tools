@@ -1,40 +1,44 @@
 {
-  "tau": 0.03,
-  "n": 14,
-  "confusion": {
+  "tau_by_q": {
+    "Cd": 0.05,
+    "Cl": 0.03,
+    "stress": 0.1
+  },
+  "n": 20,
+  "confusion_per_q": {
     "TP": 5,
     "FP": 2,
-    "TN": 4,
-    "FN": 3,
-    "sensitivity": 0.625,
-    "specificity": 0.6666666666666666,
-    "prevalence": 0.5714285714285714
+    "TN": 12,
+    "FN": 1,
+    "sensitivity": 0.8333333333333334,
+    "specificity": 0.8571428571428571,
+    "prevalence": 0.3
   },
-  "roc_tau_sweep": [
+  "roc_global_tau_sweep": [
     {
       "tau": 0.02,
-      "sensitivity": 0.625,
-      "specificity": 0.6666666666666666
+      "sensitivity": 0.5,
+      "specificity": 0.8
     },
     {
       "tau": 0.03,
-      "sensitivity": 0.625,
-      "specificity": 0.6666666666666666
+      "sensitivity": 0.5555555555555556,
+      "specificity": 0.8181818181818182
     },
     {
       "tau": 0.05,
-      "sensitivity": 0.8,
-      "specificity": 0.6666666666666666
+      "sensitivity": 0.6666666666666666,
+      "specificity": 0.7857142857142857
     },
     {
       "tau": 0.1,
       "sensitivity": 0.75,
-      "specificity": 0.6
+      "specificity": 0.75
     },
     {
       "tau": 0.15,
       "sensitivity": 0.6666666666666666,
-      "specificity": 0.5454545454545454
+      "specificity": 0.7058823529411765
     }
   ],
   "corpus": [
@@ -177,6 +181,66 @@
       "flagged": false,
       "gclass": "design(no-guard)",
       "src": "oturum rocket-fin/OpenRocket"
+    },
+    {
+      "case": "cyl-Lame",
+      "knob": "C3D4-coarse",
+      "q": "stress",
+      "naive": 22.3,
+      "truth": 21.03,
+      "flagged": false,
+      "gclass": "design(wd1.03)",
+      "src": "fea_knob_sweep.jsonl"
+    },
+    {
+      "case": "cyl-Lame",
+      "knob": "C3D4-mid",
+      "q": "stress",
+      "naive": 21.57,
+      "truth": 21.03,
+      "flagged": false,
+      "gclass": "design",
+      "src": "fea_knob_sweep.jsonl"
+    },
+    {
+      "case": "cyl-Lame",
+      "knob": "C3D4-fine",
+      "q": "stress",
+      "naive": 21.41,
+      "truth": 21.03,
+      "flagged": false,
+      "gclass": "design",
+      "src": "fea_knob_sweep.jsonl"
+    },
+    {
+      "case": "cyl-Lame",
+      "knob": "C3D10-coarse",
+      "q": "stress",
+      "naive": 21.34,
+      "truth": 21.03,
+      "flagged": false,
+      "gclass": "design",
+      "src": "fea_knob_sweep.jsonl"
+    },
+    {
+      "case": "cyl-Lame",
+      "knob": "C3D10-mid",
+      "q": "stress",
+      "naive": 21.3,
+      "truth": 21.03,
+      "flagged": false,
+      "gclass": "design",
+      "src": "fea_knob_sweep.jsonl"
+    },
+    {
+      "case": "cyl-Lame",
+      "knob": "C3D10-fine",
+      "q": "stress",
+      "naive": 21.29,
+      "truth": 21.03,
+      "flagged": false,
+      "gclass": "design",
+      "src": "fea_knob_sweep.jsonl"
     }
   ]
 }

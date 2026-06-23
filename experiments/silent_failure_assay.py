@@ -42,14 +42,26 @@ CORPUS = [
     # ── Süpersonik (truth = Charters–Thomas / OpenRocket) ──
     _c("sphere-M2", "shockFluid inviscid", "Cd", 1.135, 1.00, True, "trend(inviscid~15%)", "supersonic_validation.json"),
     _c("rocket-finned", "blunt-box fins (geometry)", "Cd", 1.007, 0.617, False, "design(no-guard)", "oturum rocket-fin/OpenRocket"),
+    # ── FEA element-order × mesh taraması (truth = Lamé 21.03; flagged = watchdog>2.5) ──
+    _c("cyl-Lame", "C3D4-coarse", "stress", 22.3, 21.03, False, "design(wd1.03)", "fea_knob_sweep.jsonl"),
+    _c("cyl-Lame", "C3D4-mid", "stress", 21.57, 21.03, False, "design", "fea_knob_sweep.jsonl"),
+    _c("cyl-Lame", "C3D4-fine", "stress", 21.41, 21.03, False, "design", "fea_knob_sweep.jsonl"),
+    _c("cyl-Lame", "C3D10-coarse", "stress", 21.34, 21.03, False, "design", "fea_knob_sweep.jsonl"),
+    _c("cyl-Lame", "C3D10-mid", "stress", 21.3, 21.03, False, "design", "fea_knob_sweep.jsonl"),
+    _c("cyl-Lame", "C3D10-fine", "stress", 21.29, 21.03, False, "design", "fea_knob_sweep.jsonl"),
 ]
 
+# Per-nicelik τ (pilot + FEA taraması gösterdi: tek-global-τ suboptimal — drag lift/stress'ten
+# daha gevşek tolerans alır; stress mühendislik-kabul ~%10-15).
+TAU_BY_Q = {"Cd": 0.05, "Cl": 0.03, "stress": 0.10}
 
-def classify(cell, tau):
-    """Bir hücreyi TP/FP/TN/FN'e ata. silent = |naive−truth|/|truth| > tau (yanlış-ama-uyarısız);
-    caught = guard design-grade vermedi (flagged)."""
+
+def classify(cell, tau, per_q=False):
+    """Bir hücreyi TP/FP/TN/FN'e ata. silent = |naive−truth|/|truth| > τ (yanlış-ama-uyarısız);
+    caught = guard design-grade vermedi (flagged). per_q=True → niceliğe-özel τ (TAU_BY_Q)."""
     err = abs(cell["naive"] - cell["truth"]) / abs(cell["truth"])
-    silent = err > tau
+    t = TAU_BY_Q.get(cell.get("q"), tau) if per_q else tau
+    silent = err > t
     caught = cell["flagged"]
     if silent and caught:
         return "TP", err
@@ -60,10 +72,10 @@ def classify(cell, tau):
     return "TN", err
 
 
-def confusion(corpus, tau):
+def confusion(corpus, tau, per_q=False):
     c = {"TP": 0, "FP": 0, "TN": 0, "FN": 0}
     for cell in corpus:
-        lab, _ = classify(cell, tau)
+        lab, _ = classify(cell, tau, per_q)
         c[lab] += 1
     tp, fp, tn, fn = c["TP"], c["FP"], c["TN"], c["FN"]
     sens = tp / (tp + fn) if (tp + fn) else None
@@ -74,28 +86,29 @@ def confusion(corpus, tau):
 
 def main():
     tau = next((float(sys.argv[i + 1]) for i, a in enumerate(sys.argv) if a == "--tau"), 0.05)
-    print(f"=== Silent-failure assay (PILOT, n={len(CORPUS)}, τ={tau:.0%}) ===")
-    res = confusion(CORPUS, tau)
-    print(f"  TP={res['TP']} FP={res['FP']} TN={res['TN']} FN={res['FN']}")
-    print(f"  sensitivity (recall) = {res['sensitivity']:.2f}  "
-          f"specificity = {res['specificity']:.2f}  prevalence = {res['prevalence']:.2f}")
-    # per-hücre liste
+    print(f"=== Silent-failure assay (PILOT, n={len(CORPUS)}) ===")
+    # HEADLINE: niceliğe-özel τ (refined kriter)
+    res = confusion(CORPUS, tau, per_q=True)
+    print(f"  [per-nicelik τ {TAU_BY_Q}] TP={res['TP']} FP={res['FP']} TN={res['TN']} FN={res['FN']}")
+    print(f"  sensitivity={res['sensitivity']:.2f}  specificity={res['specificity']:.2f}  "
+          f"prevalence={res['prevalence']:.2f}")
     print("  --- hücreler ---")
     for cell in CORPUS:
-        lab, err = classify(cell, tau)
-        print(f"   [{lab}] {cell['case']:16s} {cell['knob']:32s} err={err:5.1%} "
+        lab, err = classify(cell, tau, per_q=True)
+        print(f"   [{lab}] {cell['case']:14s} {cell['knob']:32s} err={err:5.1%} "
               f"guard={cell['gclass']}")
-    # mini-ROC: τ tara
+    # mini-ROC: GLOBAL-τ tara (per-nicelik'i MOTİVE eden tek-τ tradeoff'u)
     roc = [{"tau": t, **{k: confusion(CORPUS, t)[k] for k in ("sensitivity", "specificity")}}
            for t in (0.02, 0.03, 0.05, 0.10, 0.15)]
     out = ROOT / "silent_failure_assay_pilot.json"
-    out.write_text(json.dumps({"tau": tau, "n": len(CORPUS), "confusion": res,
-                               "roc_tau_sweep": roc, "corpus": CORPUS}, indent=2,
+    out.write_text(json.dumps({"tau_by_q": TAU_BY_Q, "n": len(CORPUS), "confusion_per_q": res,
+                               "roc_global_tau_sweep": roc, "corpus": CORPUS}, indent=2,
                               ensure_ascii=False), encoding="utf-8")
     print(f"\n  YAZILDI {out.name}")
-    print("  NOT: PILOT — küratör korpus (gerçek V&V çıktıları); tam sistematik tarama sonraki faz.")
-    print("  Dürüst bulgu: FN=rocket-fin (geometri-fidelity, otomatik guard YOK); "
-          "FP=non-asimptotik-ama-referans-yakın (guard konservatif).")
+    print("  NOT: PILOT — küratör korpus + FEA element-order taraması (gerçek V&V çıktıları); "
+          "tam sistematik tarama sonraki faz.")
+    print("  Dürüst bulgular: FN=rocket-fin (geometri-fidelity, otomatik guard YOK); "
+          "FEA element-order MEMBRANE'de sessiz-hata DEĞİL (bending'de olur); per-nicelik τ gerekli.")
     return 0
 
 
