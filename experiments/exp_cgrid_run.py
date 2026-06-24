@@ -19,10 +19,12 @@ from cgrid_elliptic import build_cgrid, write_polymesh_cgrid
 
 alpha=4; rho,V,nu,chord=1.225,50.0,1.48e-5,1.0
 lbl,na,nw,njj,s1_end,s2_end=(sys.argv[1],int(sys.argv[2]),int(sys.argv[3]),int(sys.argv[4]),int(sys.argv[5]),int(sys.argv[6])) if len(sys.argv)>6 else ("base",200,60,100,3000,6000)
+R_dom=float(sys.argv[7]) if len(sys.argv)>7 else 15.0       # far-field yarıçapı (kiriş)
+L_wk =float(sys.argv[8]) if len(sys.argv)>8 else 20.0       # wake uzunluğu (kiriş)
 case=Path(f"gci_cg_{lbl}")
 if case.exists(): shutil.rmtree(case)
 (case/"system").mkdir(parents=True,exist_ok=True)
-X,Y,I,nj,nwk=build_cgrid(n_air=na,n_wake=nw,nj=njj)
+X,Y,I,nj,nwk=build_cgrid(n_air=na,n_wake=nw,nj=njj,R=R_dom,L_wake=L_wk)
 npts,nf,ncell,nint=write_polymesh_cgrid(case,X,Y,I,nj,nwk)
 print(f"{lbl}: {ncell} hucre",flush=True)
 

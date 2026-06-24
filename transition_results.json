@@ -1,6 +1,6 @@
 {
-  "_not": "Duzeltilmis zincirle (kapali-TE O-grid 260x130, alan kopyalama, unset FOAM_SIGFPE) kOmegaSSTLM gercekten kosuldu. Cl guvenilir; Cd bu cozunurlukte mesh-bagimsiz DEGIL (bkz. gci_airfoil.json: 260x130 asimptotik aralik disi, alpha=4 Cd negatif bu yuzden) — Cd kiyasi bilgilendirme amaclidir.",
-  "model": "kOmegaSSTLM, 2-asamali SST→LM baslatma",
+  "_not": "Duzeltilmis zincirle (kapali-TE O-grid 260x130, alan kopyalama, unset FOAM_SIGFPE) kOmegaSSTLM gercekten kosuldu. Cl guvenilir; Cd bu cozunurlukte mesh-bagimsiz DEGIL (bkz. gci_airfoil.json: 260x130 asimptotik aralik disi, alpha=4 Cd negatif bu yuzden) \u2014 Cd kiyasi bilgilendirme amaclidir.",
+  "model": "kOmegaSSTLM, 2-asamali SST\u2192LM baslatma",
   "mesh": "260x130 kapali-TE eliptik O-grid",
   "0": {
     "Cl": -0.0006,
@@ -25,5 +25,21 @@
     "Cd_ref_free": 0.0095,
     "errCl": 7.8,
     "errCd": 79.1
+  },
+  "10": {
+    "Cl": 0.5819,
+    "Cd": 0.05224,
+    "Cl_ref": 1.0586,
+    "Cd_ref_free": 0.0119,
+    "errCl": 45.0,
+    "errCd": 339.0
+  },
+  "12": {
+    "Cl": 0.6568,
+    "Cd": 0.09285,
+    "Cl_ref": 1.22,
+    "Cd_ref_free": 0.014,
+    "errCl": 46.1,
+    "errCd": 563.2
   }
 }

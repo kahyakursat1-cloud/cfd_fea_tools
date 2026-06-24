@@ -1,0 +1,41 @@
+{
+  "vaka": "TMR NACA0012 Cl GCI (α=8°, tam-türbülans SST)",
+  "kaynak": "NASA TMR PLOT3D C-grid + plot3dToFoam + SST, Re=6e6",
+  "birincil_nicelik": "Cl",
+  "TMR_referans": {
+    "Cl": 0.862,
+    "Cd": 0.0132
+  },
+  "seviyeler": [
+    {
+      "grid": "449",
+      "cells": 57344,
+      "Cd": 0.01056682,
+      "Cl": 0.8666561
+    },
+    {
+      "grid": "897",
+      "cells": 229376,
+      "Cd": 0.01072826,
+      "Cl": 0.864959
+    },
+    {
+      "grid": "1793",
+      "cells": 917504,
+      "Cd": 0.01098698,
+      "Cl": 0.8556046
+    }
+  ],
+  "gci": {
+    "p": -2.463,
+    "f_exact": 0.867032,
+    "gci_fine_pct": -1.6695,
+    "gci_med_pct": -0.2996,
+    "asymptotic": 1.0109,
+    "monotonic": true,
+    "p_in_range": false
+  },
+  "strict_gci_verdict": "⚠️ Mesh bağımsızlığı GÖSTERİLEMEDİ: p=-2.463 makul aralik (0.5, 3.0) disi — asimptotik aralikta degil",
+  "Cl_richardson": 0.867032,
+  "sonuc": "Cl_richardson=0.86703 vs TMR 0.862 (%0.6). p=-2.463, GCI_ince=-1.6695%, asimptotik=1.0109. Asimptotik+TMR-uyumu varsa TASARIM-GRADE."
+}

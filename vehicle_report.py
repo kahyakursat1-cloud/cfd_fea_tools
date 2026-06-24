@@ -352,7 +352,12 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
     md.append("## 4. Aerodinamik Sonuçlar\n")
     # Cd belirsizlik-bandı SATIR-İÇİ (VKI-savunulabilir: çıplak sayı değil, bandıyla)
     mds = getattr(r, "mesh_duyarlilik", None) or {}
-    if mds.get("fark_pct") is not None:
+    unc = getattr(r, "belirsizlik", None) or {}
+    if unc.get("u_toplam_pct") is not None:
+        cd_band = (f"±%{unc['u_toplam_pct']} birleşik U "
+                   f"(sayısal %{unc.get('u_sayisal_pct') if unc.get('u_sayisal_pct') is not None else '—'} "
+                   f"⊕ model %{unc.get('u_model_pct')})")
+    elif mds.get("fark_pct") is not None:
         cd_band = f"±%{mds['fark_pct']} (2-mesh duyarlılık bandı)"
     else:
         cd_band = "tek-mesh → **TREND-düzeyi** (mesh-bağımsızlığı GÖSTERİLMEDİ; mutlak değer için 3-mesh GCI)"
@@ -394,15 +399,24 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
             md.append(f"> ⚠️ **UYARI:** {u}\n")
     md_s = getattr(r, "mesh_duyarlilik", None)
     if md_s:
-        if "fark_pct" in md_s:
+        if md_s.get("gci"):                              # 3-mesh Richardson GCI
+            g = md_s["gci"]
+            tbl = " · ".join(f"{lv['ad']}({lv['cells']}): {lv['Cd']}" for lv in md_s.get("seviyeler", []))
+            md.append(f"**Mesh-bağımsızlık (3-mesh GCI, Celik 2008):** {tbl}  ")
+            md.append(f"Richardson $C_D$={g['f_exact']} · gözlemlenen mertebe p={g['p']} · "
+                      f"GCI_ince=**%{g['gci_fine_pct']}** · asimptotik-oran={g.get('asymptotic')}  ")
+            md.append(f"→ {md_s.get('verdikt')}\n")
+        elif "fark_pct" in md_s:                         # 2-mesh vekil-bant (3. seviye düştü)
             band = md_s["fark_pct"]
-            ok = band < 10
-            md.append(f"**Mesh duyarlılık bandı:** kaba seviye $C_D$={md_s['kaba_cd']} → "
-                      f"iki-seviye farkı **±%{band}** "
-                      f"{'✅ (<%10 — sonuç bu bantla savunulabilir)' if ok else '⚠️ (≥%10 — daha ince mesh önerilir)'}  ")
-            md.append(f"*{md_s['yorum']}*\n")
+            md.append(f"**Mesh duyarlılık (2-seviye vekil):** ±%{band} "
+                      f"{'✅' if band < 10 else '⚠️ (≥%10 — daha ince mesh)'}  ")
+            md.append(f"*{md_s.get('yorum','')}*\n")
         else:
             md.append(f"**Mesh duyarlılık:** {md_s.get('durum')}\n")
+    if unc.get("rapor"):
+        md.append(f"\n**Belirsizlik (ASME V&V 20):** {unc['rapor']}  ")
+        md.append(f"*Model belirsizliği kaynağı: {unc.get('model_kaynak')}; "
+                  f"duvar-çözünür={unc.get('duvar_cozunur')}.*\n")
 
     # 5. Mühendis yorumu
     md.append("## 5. Mühendislik Değerlendirmesi\n")

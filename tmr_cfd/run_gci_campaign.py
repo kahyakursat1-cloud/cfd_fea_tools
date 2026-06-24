@@ -26,7 +26,7 @@ ALPHA = sys.argv[1] if len(sys.argv) > 1 else "0"
 SUF = "" if ALPHA in ("0", "0.0") else f"_a{ALPHA}"
 GRIDS = ROOT / "tmr_grids"
 # TMR/CFL3D referans (SST, M=0.15, Re=6e6): α → (Cl_ref, Cd_ref)
-TMR_REF = {"0": (0.0, 0.00809), "10": (1.0778, 0.01236)}
+TMR_REF = {"0": (0.0, 0.00809), "8": (0.862, 0.0132), "10": (1.0778, 0.01236)}  # α=8: Ladson Re=3e6 (lift ~Re-bağımsız)
 # (etiket, grid, case, hücre, endTime)
 LEVELS = [
     ("449", GRIDS / "n0012_449-129.p3dfmt", HERE / f"n0012_449{SUF}", 57344, "12000"),

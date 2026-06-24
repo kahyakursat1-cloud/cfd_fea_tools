@@ -35,7 +35,7 @@ def ctrl(case,model,end):
     sf="startTime" if model=="kOmegaSST" else "latestTime"
     (case/"system"/"controlDict").write_text(f'FoamFile{{version 2.0;format ascii;class dictionary;object controlDict;}}\napplication foamRun; startFrom {sf}; startTime 0; stopAt endTime; endTime {end}; deltaT 1; writeControl timeStep; writeInterval {end}; purgeWrite 1; writeFormat binary;\nfunctions{{ forces{{ type forces; libs ("libforces.so"); writeControl timeStep; writeInterval 100; patches ("airfoil"); rho rhoInf; rhoInf {rho}; pRef 0; CofR (0.25 0 0); }} }}')
 
-ref_free={0:(0.0,0.0055),4:(0.44,0.0064),8:(0.85,0.0095)}
+ref_free={0:(0.0,0.0055),4:(0.44,0.0064),8:(0.85,0.0095),10:(1.0586,0.0119),12:(1.22,0.0140)}
 
 # import yan-etkisi yok: exp_gci_final setup/ctrl'u yeniden kullanmak icin import ediyor
 if __name__=="__main__":
@@ -81,4 +81,7 @@ if __name__=="__main__":
         results[alpha]={"Cl":round(Cl,4),"Cd":round(Cd,5),"Cl_ref":clf,"Cd_ref_free":cdf,
                         "errCl":round(ecl,1),"errCd":round(ecd,1)}
         print(f"alpha={alpha}: Cd={Cd:.5f} (free-ref {cdf}, err={ecd:.0f}%)  Cl={Cl:.4f} (ref {clf}, err={ecl:.0f}%)",flush=True)
-    Path("transition_results.json").write_text(json.dumps(results,indent=2))
+    out=Path("transition_results.json")
+    merged=json.loads(out.read_text()) if out.exists() else {}
+    merged.update({str(k):v for k,v in results.items()})   # mevcut 0/4/8'i koru
+    out.write_text(json.dumps(merged,indent=2))

@@ -15,6 +15,7 @@ orphan + disk temizliği, geo-başına catch-all (biri çökse batch durmaz), de
 Kullanım: python experiments/batch_learn.py [cap_per_class] [pool_mult]
 """
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -31,9 +32,14 @@ from analysis.ccx_runner import WSL_DISTRO  # noqa: E402
 from auto_pilot import _features, _load_cases, classify_vehicle, record_case  # noqa: E402
 from vehicle_pipeline import inspect_geometry, prepare_geometry, run_vehicle_analysis  # noqa: E402
 
-GEN_DIR = HERE.parent / "vehicle_runs" / "_batch_geo"
-LOG = HERE.parent / "batch_learn.log"
-DONE = HERE.parent / "batch_learn_done.json"
+# İzolasyon: env ile ayrı bellek/done/dizine yönlendirilebilir (ör. yüksek-kalite gece koşusu
+# mevcut hizli-kalite DB'yi kirletmesin). Varsayılan = orijinal yollar.
+_TAG = os.environ.get("BATCH_TAG", "")
+GEN_DIR = HERE.parent / "vehicle_runs" / (f"_batch_geo{('_'+_TAG) if _TAG else ''}")
+LOG = HERE.parent / f"batch_learn{('_'+_TAG) if _TAG else ''}.log"
+DONE = HERE.parent / f"batch_learn_done{('_'+_TAG) if _TAG else ''}.json"
+if _TAG:                                      # izole bellek dosyası (record_case ap.MEMORY'ye yazar)
+    ap.MEMORY = HERE.parent / f"auto_pilot_memory_{_TAG}.jsonl"
 DIVERSITY_EPS = 0.045        # bu uzaklıktan yakın (aynı-tip) örnek → yakın-kopya, kaydetme
 ALL_TIPLER = ("roket", "kanatli_roket", "ucak", "multikopter", "genel",
               "tilt_rotor", "kanatli_vtol", "kaldirici_govde")
@@ -303,6 +309,7 @@ def _holdout_accuracy(rng_seed=999, n_per=3):
 def main():
     cap = int(sys.argv[1]) if len(sys.argv) > 1 else 8       # sınıf-başı tavan
     pool_mult = int(sys.argv[2]) if len(sys.argv) > 2 else 4  # havuz = cap×mult aday
+    quality = sys.argv[3] if len(sys.argv) > 3 else "hizli"  # CFD mesh kalitesi (hassas=duvar-çözünür)
     GEN_DIR.mkdir(parents=True, exist_ok=True)
     done = set(json.loads(DONE.read_text())) if DONE.exists() else set()
     rng = np.random.default_rng(int(time.time()) % 100000)
@@ -314,7 +321,8 @@ def main():
             f.write(line + "\n")
 
     ho0_ok, ho0_tot = _holdout_accuracy()
-    log(f"=== Toplu öğrenme (cap={cap}/sınıf) | kütüphane={len(_load_cases())} | "
+    log(f"=== Toplu öğrenme (cap={cap}/sınıf, kalite={quality}, tag={_TAG or '-'}, "
+        f"bellek={ap.MEMORY.name}) | kütüphane={len(_load_cases())} | "
         f"holdout-ÖNCE: {ho0_ok}/{ho0_tot} ({100*ho0_ok/max(ho0_tot,1):.0f}%) ===")
 
     # 1) Havuz üret + CFD'siz metrik çıkar → 2) çeşitlilik-seç → 3) CFD+record
@@ -337,18 +345,21 @@ def main():
         log(f"{tip}: {len(cands)} aday → {len(sel)} çeşitli seçildi (eps={DIVERSITY_EPS})")
         plan += [(n, m, p, tip) for n, m, p in sel]
 
-    log(f"Plan: {len(plan)} çeşitli geometri koşulacak (CFD)")
+    max_min = float(os.environ.get("BATCH_MAX_MIN", "0"))    # >0 ise süre limiti (gece koşusu güvenli durur)
+    log(f"Plan: {len(plan)} çeşitli geometri koşulacak (CFD)" + (f" | süre-limiti {max_min:.0f}dk" if max_min else ""))
     t0 = time.time(); ok = dogru = 0
     for name, metrik, prep, true_tip in plan:
         if name in done:
             continue
+        if max_min and (time.time() - t0) / 60 > max_min:
+            log(f"süre-limiti {max_min:.0f}dk aşıldı — {ok} koşudan sonra güvenle durduruluyor"); break
         try:
             cls = classify_vehicle(inspect_geometry(prep))   # güncel kütüphaneyle
             # CFD preset'i: hibrit tip (kanatli_roket/tilt_rotor…) VEHICLE_PRESETS'te yok →
             # PRESET_MAP ile base preset'e eşle (KeyError önle — kurşun-geçirmez).
             cfd_tip = ap.PRESET_MAP.get(cls["tip"], "genel")
             res = run_vehicle_analysis(prep, vehicle_type=cfd_tip, velocity=30.0,
-                                       quality="hizli", out_root=str(GEN_DIR))
+                                       quality=quality, out_root=str(GEN_DIR))
             drift = (res.convergence or {}).get("drift_pct")
             gate = record_case(cls["metrik"], cls["tip"], true_tip,
                                {"Cd_toplam": res.cd, "rejim": _regime(true_tip),

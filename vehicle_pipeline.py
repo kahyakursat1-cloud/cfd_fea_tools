@@ -52,10 +52,13 @@ VEHICLE_PRESETS = {
 # bg_div: arka-plan hucresi = L/bg_div. maxGlobalCells yalniz refinement'i
 # sinirlar; domain ~21Lx11Lx11L oldugundan taban mesh = 2541*bg_div^3 hucre —
 # tavani asil delen buydu (L/8 otomatigi tek basina ~1.3M taban uretiyordu).
+# n_layers/yplus_target: "hassas" varsayılan olarak DUVAR-ÇÖZÜNÜR (y⁺≲1 + prizma katman)
+# → sürtünme sürüklemesi duvar-fonksiyonu sınırından çıkar (SST low-Re; 10-15 katman önerisi).
+# hizli/standart duvar-fonksiyonunda kalır (hız). Çağıran n_layers>0 verirse override eder.
 MESH_QUALITY = {
-    "hizli":    {"end_time": 200, "ref_bump": -1, "max_cells": 400_000,   "bg_div": 5},
-    "standart": {"end_time": 400, "ref_bump": 0,  "max_cells": 1_200_000, "bg_div": 7},
-    "hassas":   {"end_time": 800, "ref_bump": 1,  "max_cells": 2_500_000, "bg_div": 9},
+    "hizli":    {"end_time": 200, "ref_bump": -1, "max_cells": 400_000,   "bg_div": 5, "n_layers": 0,  "yplus_target": 30.0},
+    "standart": {"end_time": 400, "ref_bump": 0,  "max_cells": 1_200_000, "bg_div": 7, "n_layers": 0,  "yplus_target": 30.0},
+    "hassas":   {"end_time": 800, "ref_bump": 1,  "max_cells": 2_500_000, "bg_div": 9, "n_layers": 12, "yplus_target": 1.0},
 }
 
 def farfield_domain(preset: dict, alpha_deg: float = 0.0) -> tuple[float, float, float]:
@@ -534,6 +537,8 @@ class VehicleAnalysisResult:
     ld: float | None = None
     cda_m2: float | None = None
     drag_N: float | None = None
+    cd_richardson: float | None = None  # 3-mesh GCI Richardson ekstrapolasyonu (mesh→0)
+    belirsizlik: dict | None = None      # birleşik UQ: U_toplam = √(U_sayısal² + U_model²)
     mesh: dict | None = None
     convergence: dict | None = None
     uyarilar: list = None
@@ -559,6 +564,9 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     stem = stl_path.stem
     preset = VEHICLE_PRESETS[vehicle_type]
     q = MESH_QUALITY[quality]
+    if n_layers == 0 and q.get("n_layers", 0) > 0:      # kalite-preset'i duvar-çözünür istiyor (çağıran override etmedi)
+        n_layers = q["n_layers"]
+        yplus_target = q.get("yplus_target", yplus_target)
 
     run_dir = Path(out_root) / stem
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -733,35 +741,65 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                         "sürüklemesi duvar fonksiyonu sınırında; katman sayısını artırın")
     base.uyarilar = uyarilar
 
-    # Opsiyonel mesh duyarlılık kontrolü: ayni analiz kaba seviyede, fark = belirsizlik bandi
+    # Opsiyonel mesh-bağımsızlık: aynı analizi 2 daha kaba seviyede koş → 3-mesh Richardson
+    # GCI (Celik 2008, Fs=1.25). Sonuç: Cd ± GCI% + asimptotik-mi verdikti = sayısal belirsizlik.
+    u_num_pct = None
     if mesh_sensitivity:
-        if progress_cb:
-            progress_cb(80, "Mesh duyarlılık koşusu (kaba seviye)…")
-        coarse = CFDCase(
-            name=f"{stem}_kaba", stl_path=stl_path, velocity=velocity,
-            flow_direction=(math.cos(a), 0.0, math.sin(a)), rho=rho,
-            domain_upstream=_dom[0],
-            domain_downstream=_dom[1],
-            domain_lateral=_dom[2],
-            refinement_min=max(1, rmin + bump - 1),
-            refinement_max=max(1, rmax + bump - 1),
-            end_time=MESH_QUALITY["hizli"]["end_time"],
-            max_global_cells=q["max_cells"],
-            bg_cell_size=geo["lmax_m"] / max(3, q["bg_div"] - 2),
-            n_processors=n_processors,
-        )
-        res2 = run_cfd(coarse, run_dir, progress_callback=None)
-        if res2.success and res2.cd is not None:
-            cd2 = res2.cd * scale
-            delta_pct = abs(cd - cd2) / (abs(cd) + 1e-12) * 100
-            base.mesh_duyarlilik = {
-                "kaba_cd": round(cd2, 5),
-                "fark_pct": round(delta_pct, 1),
-                "yorum": ("iki-seviye farkı sayısal belirsizlik bandı olarak kullanılır; "
-                          "GCI yerine geçmez ama tek-mesh iddiasını niceler"),
-            }
+        from report_generator import compute_gci, gci_verdict
+        cells_fine = (meshq or {}).get("cells")
+        levels = [{"ad": "ince", "cells": cells_fine, "Cd": cd}] if cells_fine else []
+        for ad, dref, ddiv, et in (("orta", 1, 2, q["end_time"]),
+                                   ("kaba", 2, 4, MESH_QUALITY["hizli"]["end_time"])):
+            if progress_cb:
+                progress_cb(80, f"Mesh-bağımsızlık: {ad} seviye koşusu…")
+            lvl = CFDCase(
+                name=f"{stem}_{ad}", stl_path=stl_path, velocity=velocity,
+                flow_direction=(math.cos(a), 0.0, math.sin(a)), rho=rho,
+                domain_upstream=_dom[0], domain_downstream=_dom[1], domain_lateral=_dom[2],
+                refinement_min=max(1, rmin + bump - dref),
+                refinement_max=max(1, rmax + bump - dref),
+                end_time=et, max_global_cells=q["max_cells"],
+                bg_cell_size=geo["lmax_m"] / max(3, q["bg_div"] - ddiv),
+                n_layers=n_layers, first_layer_thickness=case.first_layer_thickness,
+                n_processors=n_processors,
+            )
+            r = run_cfd(lvl, run_dir, progress_callback=None)
+            mq = parse_checkmesh(r.case_dir / "log.checkMesh") if r.success else {}
+            if r.success and r.cd is not None and mq.get("cells"):
+                levels.append({"ad": ad, "cells": mq["cells"], "Cd": round(r.cd * scale, 5)})
+        levels = [lv for lv in levels if lv.get("cells")]
+        levels.sort(key=lambda lv: lv["cells"])              # kaba→ince
+        if len(levels) >= 3:
+            f3, f2, f1 = levels[-3], levels[-2], levels[-1]
+            def h(lv):                                       # 3B temsili hücre boyu
+                return lv["cells"] ** (-1.0 / 3.0)
+            gci = compute_gci(h(f3), h(f2), h(f1), f3["Cd"], f2["Cd"], f1["Cd"])
+            base.mesh_duyarlilik = {"seviyeler": levels, "gci": gci,
+                                    "verdikt": gci_verdict(gci) if gci else "hesaplanamadı"}
+            if gci:
+                u_num_pct = gci["gci_fine_pct"]
+                base.cd_richardson = gci["f_exact"]
+        elif len(levels) == 2:                               # 3. seviye düştü → 2-mesh vekil-bant
+            d = abs(levels[-1]["Cd"] - levels[0]["Cd"]) / (abs(levels[-1]["Cd"]) + 1e-12) * 100
+            u_num_pct = round(d, 1)
+            base.mesh_duyarlilik = {"seviyeler": levels, "fark_pct": u_num_pct,
+                                    "yorum": "yalnız 2 seviye tamamlandı — vekil bant, GCI değil"}
         else:
-            base.mesh_duyarlilik = {"durum": "kaba koşu başarısız — bant hesaplanamadı"}
+            base.mesh_duyarlilik = {"durum": "yetersiz seviye — bant hesaplanamadı"}
+
+    # Birleşik belirsizlik (ASME V&V 20): U_total = √(U_sayısal² + U_model²)
+    from validation_anchors import combine_uncertainty, model_uncertainty_pct, regime_of
+    wall_resolved = n_layers > 0 and (yp is None or yp.get("ort", 99) < 5)
+    mu = model_uncertainty_pct(regime_of(vehicle_type, preset), wall_resolved)
+    u_total = combine_uncertainty(u_num_pct, mu["u_model_pct"])
+    base.belirsizlik = {
+        "u_sayisal_pct": u_num_pct,
+        "u_model_pct": mu["u_model_pct"], "model_kaynak": mu["kaynak"],
+        "u_toplam_pct": u_total, "duvar_cozunur": wall_resolved,
+        "rapor": (f"Cd = {cd:.4f} ± {u_total:.1f}% "
+                  f"(sayısal {u_num_pct if u_num_pct is not None else '—'}% ⊕ model {mu['u_model_pct']}%)"
+                  if u_total is not None else "belirsizlik hesaplanamadı"),
+    }
 
     (run_dir / "sonuc.json").write_text(json.dumps(asdict(base), indent=2, ensure_ascii=False), encoding="utf-8")
 
