@@ -59,6 +59,10 @@ MESH_QUALITY = {
     "hizli":    {"end_time": 200, "ref_bump": -1, "max_cells": 400_000,   "bg_div": 5, "n_layers": 0,  "yplus_target": 30.0},
     "standart": {"end_time": 400, "ref_bump": 0,  "max_cells": 1_200_000, "bg_div": 7, "n_layers": 0,  "yplus_target": 30.0},
     "hassas":   {"end_time": 800, "ref_bump": 1,  "max_cells": 2_500_000, "bg_div": 9, "n_layers": 12, "yplus_target": 1.0},
+    # hassas_nl: hassas yoğunluk/yakınsama AMA katmansız — ince kanat firar-kenarı gibi
+    # prizma-katmanın güvenle örülemediği geometriler için (y+ orta/duvar-fonksiyonu kalır;
+    # label kalitesi mesh-yoğunluğu + yakınsamadan gelir). Thin-feature CAE standart yedek.
+    "hassas_nl": {"end_time": 800, "ref_bump": 1, "max_cells": 2_500_000, "bg_div": 9, "n_layers": 0, "yplus_target": 30.0},
 }
 
 def farfield_domain(preset: dict, alpha_deg: float = 0.0) -> tuple[float, float, float]:

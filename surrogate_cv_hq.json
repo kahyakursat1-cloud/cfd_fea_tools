@@ -1,0 +1,105 @@
+{
+  "n_vaka": 192,
+  "n_cd_capa": 65,
+  "tip_siniflama": {
+    "genel_dogruluk": 0.948,
+    "tip_basina_dogruluk": {
+      "roket": 1.0,
+      "ucak": 0.923,
+      "multikopter": 0.926,
+      "genel": 1.0,
+      "kanatli_roket": 0.842,
+      "tilt_rotor": 1.0,
+      "kanatli_vtol": 0.944,
+      "kaldirici_govde": 0.944
+    },
+    "confusion": {
+      "roket": {
+        "roket": 30
+      },
+      "ucak": {
+        "ucak": 36,
+        "kaldirici_govde": 1,
+        "tilt_rotor": 2
+      },
+      "multikopter": {
+        "multikopter": 25,
+        "kanatli_vtol": 1,
+        "tilt_rotor": 1
+      },
+      "genel": {
+        "genel": 23
+      },
+      "kanatli_roket": {
+        "kanatli_roket": 16,
+        "kaldirici_govde": 1,
+        "genel": 1,
+        "roket": 1
+      },
+      "tilt_rotor": {
+        "tilt_rotor": 18
+      },
+      "kanatli_vtol": {
+        "kanatli_vtol": 17,
+        "multikopter": 1
+      },
+      "kaldirici_govde": {
+        "kaldirici_govde": 17,
+        "multikopter": 1
+      }
+    }
+  },
+  "cd_kestirim": {
+    "genel_mape_pct": 175.1,
+    "tip_basina": {
+      "roket": {
+        "n": 7,
+        "mape_pct": 1.4,
+        "medyan_hata_pct": 1.0,
+        "max_hata_pct": 3.8
+      },
+      "kanatli_roket": {
+        "n": 9,
+        "mape_pct": 20.8,
+        "medyan_hata_pct": 16.2,
+        "max_hata_pct": 45.2
+      },
+      "ucak": {
+        "n": 7,
+        "mape_pct": 172.3,
+        "medyan_hata_pct": 131.5,
+        "max_hata_pct": 363.2
+      },
+      "multikopter": {
+        "n": 11,
+        "mape_pct": 656.9,
+        "medyan_hata_pct": 33.0,
+        "max_hata_pct": 3669.9
+      },
+      "genel": {
+        "n": 9,
+        "mape_pct": 150.6,
+        "medyan_hata_pct": 52.5,
+        "max_hata_pct": 610.4
+      },
+      "tilt_rotor": {
+        "n": 9,
+        "mape_pct": 34.9,
+        "medyan_hata_pct": 31.9,
+        "max_hata_pct": 73.9
+      },
+      "kanatli_vtol": {
+        "n": 8,
+        "mape_pct": 25.9,
+        "medyan_hata_pct": 30.8,
+        "max_hata_pct": 51.7
+      },
+      "kaldirici_govde": {
+        "n": 5,
+        "durum": "yetersiz destek (CV atlandı)"
+      }
+    }
+  },
+  "belirsizlik_kalibrasyon_pearson": 0.419,
+  "yorum": "LOO: kütüphane kendi içinde ne kadar tutarlı. Cd-MAPE düşük + kalibrasyon pozitif ise sürrogat öğreniyor. Bu MUTLAK doğruluk DEĞİL — etiketler üreten CFD kalitesiyle (hizli→y⁺ yüksek) tavanlı; mutlak için validate_pipeline."
+}

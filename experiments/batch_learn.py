@@ -310,6 +310,9 @@ def main():
     cap = int(sys.argv[1]) if len(sys.argv) > 1 else 8       # sınıf-başı tavan
     pool_mult = int(sys.argv[2]) if len(sys.argv) > 2 else 4  # havuz = cap×mult aday
     quality = sys.argv[3] if len(sys.argv) > 3 else "hizli"  # CFD mesh kalitesi (hassas=duvar-çözünür)
+    # BATCH_TIPLER env: yalnız bu tipleri koş (finisher eksik-tip hedeflemesi; dolu tipi tekrarlama)
+    _sel = os.environ.get("BATCH_TIPLER", "")
+    TIPLER = tuple(t for t in ALL_TIPLER if t in _sel.split(",")) if _sel else ALL_TIPLER
     GEN_DIR.mkdir(parents=True, exist_ok=True)
     done = set(json.loads(DONE.read_text())) if DONE.exists() else set()
     rng = np.random.default_rng(int(time.time()) % 100000)
@@ -327,7 +330,7 @@ def main():
 
     # 1) Havuz üret + CFD'siz metrik çıkar → 2) çeşitlilik-seç → 3) CFD+record
     plan = []
-    for tip in ALL_TIPLER:
+    for tip in TIPLER:
         cands = []
         for k in range(cap * pool_mult):
             try:
