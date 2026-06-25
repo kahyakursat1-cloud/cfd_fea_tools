@@ -147,3 +147,4 @@ supersonic_slender_result.json
 # ─── Araç/oturum yerel dosyaları ──────────────────────────────────────────
 .agents/
 .claude/launch.json
+validation_anchors_runs/

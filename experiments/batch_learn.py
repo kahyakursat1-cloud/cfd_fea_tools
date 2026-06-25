@@ -374,7 +374,8 @@ def main():
         except Exception as e:
             log(f"  !!! {name} BAŞARISIZ: {str(e)[:140]}")
         finally:
-            shutil.rmtree(GEN_DIR / name, ignore_errors=True)   # disk temizliği
+            shutil.rmtree(GEN_DIR / name, ignore_errors=True)            # disk temizliği
+            shutil.rmtree(GEN_DIR / f"{name}_prep", ignore_errors=True)  # case dizini _prep ekli (asıl ağır veri)
             _orphan_cleanup()                                   # koşular-arası orphan
 
     ho1_ok, ho1_tot = _holdout_accuracy()

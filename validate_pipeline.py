@@ -39,7 +39,19 @@ def _run_anchor(name: str, velocity: float, out_root: str) -> dict | None:
                              quality="hassas", mesh_sensitivity=True, out_root=out_root)
     if r.status != "ok" or r.cd is None:
         return {"durum": "koşu başarısız", "hata": r.error[:300]}
-    cd_pred = r.cd_richardson or r.cd
+    # GUARD: mesh-bağımsızlığı GÖSTERİLEMEDİYSE bu çapayı banda yazma (dürüst V&V — yakınsamamış
+    # koşu doğrulanmış band üretemez). Richardson non-asimptotikte negatif/çöp verebilir →
+    # cd_richardson yerine en-ince cd kullan; asimptotik değilse anchor'ı REDDET.
+    md = r.mesh_duyarlilik or {}
+    gci = md.get("gci") or {}
+    asymptotic = gci.get("asymptotic")
+    converged = bool(gci) and gci.get("monotonic") and gci.get("p_in_range") \
+        and gci.get("gci_fine_pct", 1e9) < 5.0 and asymptotic is not None and 0.5 <= asymptotic <= 2.0
+    cd_pred = r.cd_richardson if (converged and r.cd_richardson and r.cd_richardson > 0) else r.cd
+    if not converged or cd_pred is None or cd_pred <= 0:
+        return {"durum": "REDDEDİLDİ — mesh-bağımsızlığı gösterilemedi (banda yazılmaz)",
+                "regime": spec["regime"], "Cd_ref": spec["Cd"], "Cd_ince": r.cd,
+                "verdikt": md.get("verdikt"), "kaynak_ref": spec["ref"]}
     err = abs(cd_pred - spec["Cd"]) / spec["Cd"] * 100
     return {"regime": spec["regime"], "Cd_ref": spec["Cd"], "Cd_pipeline": round(cd_pred, 5),
             "hata_pct": round(err, 2), "u_sayisal_pct": (r.belirsizlik or {}).get("u_sayisal_pct"),
