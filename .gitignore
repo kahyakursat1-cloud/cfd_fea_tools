@@ -148,3 +148,6 @@ supersonic_slender_result.json
 .agents/
 .claude/launch.json
 validation_anchors_runs/
+_doe_runs/
+_doe_tmp/
+design_explore_*.json

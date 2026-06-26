@@ -54,7 +54,11 @@ def test_presets_complete_and_consistent():
         assert len(p["domain"]) == 3
         rmin, rmax = p["refinement"]
         assert rmin <= rmax
-    assert set(MESH_QUALITY) == {"hizli", "standart", "hassas"}
+    assert set(MESH_QUALITY) == {"hizli", "standart", "hassas", "hassas_nl"}
+    for q in MESH_QUALITY.values():           # her kalite tutarlı anahtar setine sahip
+        assert {"end_time", "ref_bump", "max_cells", "bg_div", "n_layers", "yplus_target"} <= set(q)
+    assert MESH_QUALITY["hassas_nl"]["n_layers"] == 0      # katmansız (ince-kanat güvenli)
+    assert MESH_QUALITY["hassas"]["n_layers"] > 0          # duvar-çözünür
 
 
 def test_hull_projected_area_unit_cube():
