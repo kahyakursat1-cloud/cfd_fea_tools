@@ -326,6 +326,68 @@ class KosularDialog(QDialog):
             self.det.setPlainText("Seçili koşunun raporu yok/bulunamadı.")
 
 
+class KuyrukDialog(QDialog):
+    """İş kuyruğu görünümü: bekleyen/koşan/biten işler + worker başlat (ayrık süreç —
+    GUI kapansa da kuyruk koşar; kilit dosyası ikinci worker'ı engeller)."""
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setWindowTitle("🗂 İş Kuyruğu")
+        self.resize(820, 420)
+        lay = QVBoxLayout(self)
+        self.tbl = QTableWidget(0, 6)
+        self.tbl.setHorizontalHeaderLabels(["Durum", "ID", "Model", "Tip", "Kalite", "Sonuç"])
+        self.tbl.setEditTriggers(QTableWidget.NoEditTriggers)
+        lay.addWidget(self.tbl, 1)
+        row = QHBoxLayout()
+        btn_worker = QPushButton("▶ Worker Başlat")
+        btn_worker.setToolTip("Bekleyen işleri sırayla koşan ayrık süreç başlatır; "
+                              "zaten koşuyorsa kilit nedeniyle ikinci başlamaz.")
+        btn_worker.clicked.connect(self._worker_baslat)
+        row.addWidget(btn_worker)
+        btn_yenile = QPushButton("⟳ Yenile")
+        btn_yenile.clicked.connect(self._yenile)
+        row.addWidget(btn_yenile)
+        btn_temizle = QPushButton("🧹 Bitenleri temizle")
+        btn_temizle.clicked.connect(self._temizle)
+        row.addWidget(btn_temizle)
+        row.addStretch(1)
+        btn_close = QPushButton("Kapat")
+        btn_close.clicked.connect(self.accept)
+        row.addWidget(btn_close)
+        lay.addLayout(row)
+        self._yenile()
+
+    def _yenile(self):
+        import kuyruk
+        isler = kuyruk.listele()
+        self.tbl.setRowCount(len(isler))
+        for i, is_ in enumerate(isler):
+            p = is_["params"]
+            son = is_.get("sonuc") or {}
+            hucre = [is_["durum"], is_["id"], Path(p["stl_path"]).name,
+                     str(p.get("vehicle_type", "")), str(p.get("quality", "")),
+                     (f"Cd={son.get('cd')} ±%{son.get('u_pct')}" if son.get("cd") is not None
+                      else (son.get("hata", "") or "")[:60])]
+            for j, v in enumerate(hucre):
+                self.tbl.setItem(i, j, QTableWidgetItem(v))
+        self.tbl.resizeColumnsToContents()
+
+    def _worker_baslat(self):
+        from PySide6.QtCore import QProcess
+        ok = QProcess.startDetached(sys.executable,
+                                    [str(Path(__file__).parent / "kuyruk.py"), "calis"],
+                                    str(Path(__file__).parent))
+        QMessageBox.information(self, "Kuyruk",
+                                "Worker ayrık süreç olarak başlatıldı." if ok
+                                else "Worker başlatılamadı.")
+
+    def _temizle(self):
+        import kuyruk
+        kuyruk.temizle()
+        self._yenile()
+
+
 class AnalyzerWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -422,6 +484,19 @@ class AnalyzerWindow(QMainWindow):
         self.btn_run.setEnabled(False)
         self.btn_run.clicked.connect(self._run)
         left.addWidget(self.btn_run)
+
+        hq = QHBoxLayout()
+        self.btn_queue_add = QPushButton("➕ Kuyruğa Ekle")
+        self.btn_queue_add.setEnabled(False)
+        self.btn_queue_add.setToolTip("Bu formdaki ayarlarla işi kuyruğa yaz — hemen koşmaz; "
+                                      "worker sırayla koşar (5 varyant + yemeğe git).")
+        self.btn_queue_add.clicked.connect(self._kuyruga_ekle)
+        hq.addWidget(self.btn_queue_add)
+        btn_queue = QPushButton("🗂 Kuyruk")
+        btn_queue.setToolTip("Kuyruk görünümü: bekleyen/koşan/biten işler + worker başlat.")
+        btn_queue.clicked.connect(lambda: KuyrukDialog(self).exec())
+        hq.addWidget(btn_queue)
+        left.addLayout(hq)
 
         self.btn_yolculuk = QPushButton("🎓  REHBERLİ MOD (adım adım öğren)")
         self.btn_yolculuk.setEnabled(False)
@@ -573,6 +648,28 @@ class AnalyzerWindow(QMainWindow):
         self.btn_auto.setEnabled(True)
         self.btn_mach.setEnabled(True)
         self.btn_yolculuk.setEnabled(True)
+        self.btn_queue_add.setEnabled(True)
+
+    def _kuyruga_ekle(self):
+        if not self.model_path:
+            return
+        import kuyruk
+        is_ = kuyruk.ekle({
+            "stl_path": str(self.model_path),
+            "vehicle_type": self.cmb_type.currentData(),
+            "velocity": self.spn_v.value(),
+            "alpha_deg": self.spn_aoa.value(),
+            "quality": self.cmb_quality.currentData(),
+            "n_processors": self.spn_proc.value(),
+            "nose_axis": self.cmb_nose.currentText(),
+            "up_axis": self.cmb_up.currentText(),
+            "mesh_sensitivity": self.chk_sens.isChecked(),
+            "n_layers": self.spn_layers.value(),
+            "yplus_target": self.spn_yplus.value(),
+        })
+        n = sum(1 for i in kuyruk.listele() if i["durum"] == "bekliyor")
+        self._log(f"🗂 Kuyruğa eklendi: {is_['id']} ({self.model_path.name}) — "
+                  f"bekleyen iş: {n}. Worker için: Kuyruk → Worker Başlat.")
 
     def _open_yolculuk(self):
         tip = self.cmb_type.currentData()
