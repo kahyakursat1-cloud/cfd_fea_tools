@@ -67,21 +67,22 @@ def disk_body() -> trimesh.Trimesh:
 # Hız seçimi çapanın Re bandına oturur: Ahmed 40 m/s → Re_L≈2.8e6 (Meile 2011);
 # küp/disk keskin-kenarlı, Re-duyarsız → varsayılan hız.
 _GEOM = {
-    # cube: y⁺-hedef 1 katmanları keskin kenarda KISMÎ çöküyordu (ölçülen y⁺=68) →
-    # katmansız hassas_nl (v4'te Cd tekrarlanabilir oldu ama dizi mixed kaldı) + v5:
-    # yakın-iz kutusu (ayrılma-bölgesi çözünürlüğü — mixed dizinin kalan şüphelisi).
-    # Kutu bütçesi: 0.2×0.14×0.14 m³ @ L2 (2.8mm) ≈ 180k hücre (tavan 2.5M içinde).
+    # cube v6 bulgusu (v5 dizisi 0.961→1.018→1.053→0.916): orta seviye Hoerner'a OTURDU;
+    # ince seviye 2.14M hücreyle 2.5M TAVANINA çarpıp bütçe-kesilmişti → mesh ailesinin
+    # sistematik üyesi değil (GCI/LSR varsayımı kırılır). Tavan 4M'e çıkarıldı.
     "cube": (lambda: trimesh.creation.box(extents=(0.1, 0.1, 0.1)), "genel",
-             {"quality": "hassas_nl",
+             {"quality": "hassas_nl", "max_cells": 4_000_000,
               "refinement_regions": [
                   {"ad": "izBolgesi", "min": (0.05, -0.07, -0.07),
                    "max": (0.25, 0.07, 0.07), "level": 2}]}),
     "disk": (disk_body, "genel", {}),
-    # ahmed: katmanlar y⁺=30 hedefiyle DE örülmedi (v4: y⁺=5238; ilk-katman/yüzey-hücresi
-    # ~0.01 — snappy kalınlık-kısıtı). v5: bütçe gövde-altı boşluğa + yakın-ize yığılır:
-    # gap kutusu L4 (7.3mm → 50mm boşlukta ~7 hücre) ≈160k, iz kutusu L3 ≈85k.
+    # ahmed v6 bulgusu: bölge kutuları HACMİ inceltti ama YÜZEY seviyesine dokunmuyor —
+    # y⁺ 5237'de sabit kaldı, katmanlar yine örülmedi; kaba seviyeler platoda (p=0.05).
+    # ref_bump +1 → yüzey (3,4): hücre 7.3→3.6mm, ilk-katman oranı 0.02→0.04 (örülebilir
+    # kenar); tavan 3M (yüzey-kabuk + bölgeler için bütçe payı).
     "ahmed_25": (ahmed_body, "genel", {"velocity": 40.0, "ground_clearance": 0.05,
                                        "n_layers": 8, "yplus_target": 30.0,
+                                       "ref_bump": 1, "max_cells": 3_000_000,
                                        "refinement_regions": [
                                            {"ad": "altBosluk", "min": (-0.05, -0.22, -0.051),
                                             "max": (1.10, 0.22, 0.07), "level": 4},
@@ -131,7 +132,8 @@ def _run_anchor(name: str, velocity: float, out_root: str) -> dict | None:
                              yplus_target=kw.get("yplus_target", 30.0),
                              mesh_sensitivity=True, mesh_levels=4,
                              out_root=out_root, ground_clearance=kw.get("ground_clearance"),
-                             refinement_regions=kw.get("refinement_regions"))
+                             refinement_regions=kw.get("refinement_regions"),
+                             max_cells=kw.get("max_cells"), ref_bump=kw.get("ref_bump", 0))
     if r.status != "ok" or r.cd is None:
         return {"durum": "koşu başarısız", "hata": r.error[-400:]}   # kuyruk: asıl hata sonda
     # GUARD (dürüst V&V): mesh-bağımsızlık kanıtı olmadan banda yazılmaz. Kanıt yolu iki:

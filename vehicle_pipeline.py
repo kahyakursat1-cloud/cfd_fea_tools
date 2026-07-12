@@ -586,6 +586,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                          mesh_sensitivity=False, n_layers=0, yplus_target=30.0,
                          pervane_itki_n=0.0, pervane_cap_m=0.0,
                          ground_clearance=None, mesh_levels=3, refinement_regions=None,
+                         max_cells=None, ref_bump=0,
                          progress_cb=None) -> VehicleAnalysisResult:
     stl_path = Path(stl_path)
     stem = stl_path.stem
@@ -609,7 +610,8 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
 
     a = math.radians(alpha_deg)
     rmin, rmax = preset["refinement"]
-    bump = q["ref_bump"]
+    bump = q["ref_bump"] + ref_bump             # ref_bump: çağıran-özel ek yüzey seviyesi
+    q_max = max_cells or q["max_cells"]         # max_cells: hücre tavanı override
     _dom = farfield_domain(preset, alpha_deg)   # lift-bilinçli far-field
     ground_clearance = auto_ground_clearance(preset, geo["boyutlar_m"][2], ground_clearance)
     prop = None
@@ -637,7 +639,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         refinement_min=max(1, rmin + bump),
         refinement_max=max(1, rmax + bump),
         end_time=q["end_time"],
-        max_global_cells=q["max_cells"],
+        max_global_cells=q_max,
         bg_cell_size=geo["lmax_m"] / q["bg_div"],
         n_layers=n_layers,
         first_layer_thickness=(first_layer_height(velocity, geo["lmax_m"], yplus_target)
@@ -801,7 +803,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                 domain_upstream=_dom[0], domain_downstream=_dom[1], domain_lateral=_dom[2],
                 refinement_min=max(1, rmin + bump - dref),
                 refinement_max=max(1, rmax + bump - dref),
-                end_time=et, max_global_cells=q["max_cells"],
+                end_time=et, max_global_cells=q_max,
                 bg_cell_size=geo["lmax_m"] / max(3, q["bg_div"] - ddiv),
                 n_layers=n_layers, first_layer_thickness=case.first_layer_thickness,
                 n_processors=n_processors, ground_clearance=ground_clearance,
