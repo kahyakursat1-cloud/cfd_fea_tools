@@ -36,6 +36,8 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QSpinBox,
+    QTableWidget,
+    QTableWidgetItem,
     QTextBrowser,
     QVBoxLayout,
     QWidget,
@@ -253,6 +255,77 @@ class YolculukDialog(QDialog):
             self.lst.setCurrentRow(row + 1)
 
 
+class KosularDialog(QDialog):
+    """Koşu geçmişi: tüm sonuc.json'lar tek tabloda; 2 satır seç → A/B karşılaştırma
+    (Δ% + belirsizlik-bandına göre ayırt-edilebilirlik hükmü — kosu_gecmisi.py)."""
+
+    _KOL = [("ad", "Koşu"), ("tip", "Tip"), ("kalite", "Kalite"), ("hiz", "V"),
+            ("alpha", "α"), ("cd", "Cd"), ("u_pct", "±U%"), ("cl", "Cl"),
+            ("cells", "Hücre"), ("status", "Durum")]
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        import kosu_gecmisi
+        self._kg = kosu_gecmisi
+        self.setWindowTitle("📂 Koşu Geçmişi")
+        self.resize(980, 560)
+        lay = QVBoxLayout(self)
+        self.kayitlar = kosu_gecmisi.tara()
+        self.tbl = QTableWidget(len(self.kayitlar), len(self._KOL))
+        self.tbl.setHorizontalHeaderLabels([b for _, b in self._KOL])
+        self.tbl.setSelectionBehavior(QTableWidget.SelectRows)
+        self.tbl.setEditTriggers(QTableWidget.NoEditTriggers)
+        for i, k in enumerate(self.kayitlar):
+            for j, (a, _) in enumerate(self._KOL):
+                v = k.get(a)
+                self.tbl.setItem(i, j, QTableWidgetItem("" if v is None else str(v)))
+        self.tbl.resizeColumnsToContents()
+        lay.addWidget(self.tbl, 2)
+        self.det = QTextBrowser()
+        lay.addWidget(self.det, 1)
+        row = QHBoxLayout()
+        btn_cmp = QPushButton("⇄ Seçili İKİ koşuyu karşılaştır")
+        btn_cmp.clicked.connect(self._karsilastir)
+        row.addWidget(btn_cmp)
+        btn_rapor = QPushButton("📄 Raporu Aç")
+        btn_rapor.clicked.connect(self._rapor_ac)
+        row.addWidget(btn_rapor)
+        row.addStretch(1)
+        btn_close = QPushButton("Kapat")
+        btn_close.clicked.connect(self.accept)
+        row.addWidget(btn_close)
+        lay.addLayout(row)
+
+    def _secili(self) -> list[dict]:
+        rows = sorted({i.row() for i in self.tbl.selectedIndexes()})
+        return [self.kayitlar[r] for r in rows]
+
+    def _karsilastir(self):
+        sec = self._secili()
+        if len(sec) != 2:
+            self.det.setPlainText("Karşılaştırma için tam İKİ satır seçin (Ctrl+tık).")
+            return
+        c = self._kg.karsilastir(sec[0], sec[1])
+        md = [f"## {c['A']}  ⇄  {c['B']}", "", "| Metrik | A | B | Δ% |", "|---|---|---|---|"]
+        for s in c["satirlar"]:
+            md.append(f"| {s['metrik']} | {s['A']} | {s['B']} | "
+                      f"{s['delta_pct'] if s['delta_pct'] is not None else '—'} |")
+        ay = c.get("ayirt_edilebilirlik")
+        if ay:
+            md += ["", f"**Ayırt-edilebilirlik:** ΔCd %{ay['dCd_pct']} vs band(RSS) "
+                       f"%{ay['band_rss_pct']} → **{ay['hukum']}**"]
+        for u in c["uyarilar"]:
+            md.append(f"\n> ⚠️ {u}")
+        self.det.setMarkdown("\n".join(md))
+
+    def _rapor_ac(self):
+        sec = self._secili()
+        if sec and sec[0].get("rapor") and Path(sec[0]["rapor"]).exists():
+            os.startfile(sec[0]["rapor"])
+        else:
+            self.det.setPlainText("Seçili koşunun raporu yok/bulunamadı.")
+
+
 class AnalyzerWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -440,7 +513,12 @@ class AnalyzerWindow(QMainWindow):
         self.btn_report = QPushButton("📄  Raporu Aç")
         self.btn_report.setEnabled(False)
         self.btn_report.clicked.connect(self._open_report)
-        grid.addWidget(self.btn_report, 2, 0, 1, 3)
+        grid.addWidget(self.btn_report, 2, 0, 1, 2)
+        btn_kosular = QPushButton("📂  Koşular")
+        btn_kosular.setToolTip("Tüm koşu geçmişi: tablo + A/B karşılaştırma "
+                               "(belirsizlik-bandına göre ayırt-edilebilirlik hükmüyle).")
+        btn_kosular.clicked.connect(lambda: KosularDialog(self).exec())
+        grid.addWidget(btn_kosular, 2, 2)
         right.addWidget(gb_res, 1)
 
         layout.addLayout(left, 1)
