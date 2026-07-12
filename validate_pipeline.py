@@ -63,6 +63,32 @@ def disk_body() -> trimesh.Trimesh:
     return m
 
 
+def naca0012_wing(ar: float = 6.0, chord: float = 0.15, n: int = 80) -> trimesh.Trimesh:
+    """Dikdörtgen NACA0012 kanat (AR=6): LIFTING-rejim çapası. Kesit analitik kalınlık
+    formülünden (kapalı-TE katsayısı -0.1036), açıklık boyunca ekstrüzyon + uçlarda
+    merkez-fan kapak (kesit yıldız-şekilli → geçerli). Kiriş x, açıklık y, kalınlık z
+    (akış-çerçevesi); Re_c = 3e5 @ 30 m/s."""
+    xs = 0.5 * (1 - np.cos(np.linspace(0.0, math.pi, n)))
+    t = 5 * 0.12 * (0.2969 * np.sqrt(xs) - 0.1260 * xs - 0.3516 * xs ** 2
+                    + 0.2843 * xs ** 3 - 0.1036 * xs ** 4)
+    ust = np.column_stack([xs, t])
+    alt = np.column_stack([xs, -t])[::-1]
+    prof = np.vstack([ust, alt[1:-1]]) * chord
+    N = len(prof)
+    span = ar * chord
+    v0 = np.column_stack([prof[:, 0], np.full(N, -span / 2), prof[:, 1]])
+    v1 = np.column_stack([prof[:, 0], np.full(N, +span / 2), prof[:, 1]])
+    verts = np.vstack([v0, v1, v0.mean(0), v1.mean(0)])
+    faces = []
+    for i in range(N):
+        j = (i + 1) % N
+        faces += [[i, j, N + i], [j, N + j, N + i]]      # yan yüzeyler
+        faces += [[2 * N, j, i], [2 * N + 1, N + i, N + j]]  # uç kapakları (fan)
+    m = trimesh.Trimesh(vertices=verts, faces=np.asarray(faces), process=True)
+    m.fix_normals()
+    return m
+
+
 # çapa → (geometri üreteci, pipeline araç-tipi, koşu-parametreleri).
 # Hız seçimi çapanın Re bandına oturur: Ahmed 40 m/s → Re_L≈2.8e6 (Meile 2011);
 # küp/disk keskin-kenarlı, Re-duyarsız → varsayılan hız.
@@ -88,6 +114,10 @@ _GEOM = {
                                             "max": (1.10, 0.22, 0.07), "level": 4},
                                            {"ad": "yakinIz", "min": (1.04, -0.30, -0.051),
                                             "max": (2.10, 0.30, 0.35), "level": 3}]}),
+    # LIFTING çapası: ince-kanat katman güvenle örülmez (hq dersi) → hassas_nl;
+    # yüzey-Cd yakınsamazsa wake yolu (iz-momentum) kanıt verebilir (_accept hiyerarşisi).
+    "naca0012_wing_ar6": (naca0012_wing, "ucak",
+                          {"alpha_deg": 4.0, "quality": "hassas_nl"}),
 }
 
 # Koşulamayan çapalar — gerekçesiyle (dürüst V&V: setup-uyumsuz koşu validasyon değildir).
@@ -104,16 +134,29 @@ _SKIP_REASON = {
 LSR_U_MAX_PCT = 15.0
 
 
-def _accept(gci: dict, lsr: dict | None, cd_richardson, cd_fine):
-    """Çapa kabul kararı: (kabul_mü, cd_pred, yontem). Öncelik: asimptotik 3-mesh GCI;
-    yoksa LSR bandı yeterince darsa (U<%15) LSR-ekstrapolasyonu; yoksa RED."""
-    asy = gci.get("asymptotic") if gci else None
-    gci_ok = bool(gci) and gci.get("monotonic") and gci.get("p_in_range") \
-        and gci.get("gci_fine_pct", 1e9) < 5.0 and asy is not None and 0.5 <= asy <= 2.0
-    if gci_ok and cd_richardson and cd_richardson > 0:
+def _gci_asimptotik(gci: dict | None) -> bool:
+    if not gci:
+        return False
+    asy = gci.get("asymptotic")
+    return bool(gci.get("monotonic") and gci.get("p_in_range")
+                and gci.get("gci_fine_pct", 1e9) < 5.0
+                and asy is not None and 0.5 <= asy <= 2.0)
+
+
+def _accept(gci: dict, lsr: dict | None, cd_richardson, cd_fine, wake: dict | None = None):
+    """Çapa kabul kararı: (kabul_mü, cd_pred, yontem). Hiyerarşi: yüzey-GCI asimptotik >
+    wake-GCI asimptotik (iz-momentum 2. mertebe — yüzey entegrasyonu çökerken drag kanıtı
+    verebilir) > yüzey-LSR dar (U<%15) > wake-LSR dar; hiçbiri yoksa RED."""
+    if _gci_asimptotik(gci) and cd_richardson and cd_richardson > 0:
         return True, cd_richardson, "GCI (3-mesh, asimptotik)"
+    wgci = (wake or {}).get("gci") or {}
+    if _gci_asimptotik(wgci) and wgci.get("f_exact", 0) > 0:
+        return True, wgci["f_exact"], "wake-GCI (iz-momentum, asimptotik)"
     if lsr and lsr.get("u_pct", 1e9) < LSR_U_MAX_PCT and lsr.get("f_exact", 0) > 0:
         return True, lsr["f_exact"], f"LSR ({lsr['n']}-seviye, U=%{lsr['u_pct']})"
+    wlsr = (wake or {}).get("lsr")
+    if wlsr and wlsr.get("u_pct", 1e9) < LSR_U_MAX_PCT and wlsr.get("f_exact", 0) > 0:
+        return True, wlsr["f_exact"], f"wake-LSR ({wlsr['n']}-seviye, U=%{wlsr['u_pct']})"
     return False, cd_fine, None
 
 
@@ -127,6 +170,7 @@ def _run_anchor(name: str, velocity: float, out_root: str) -> dict | None:
     stl.parent.mkdir(parents=True, exist_ok=True)
     gen().export(stl)
     r = run_vehicle_analysis(str(stl), vehicle_type=vtype, velocity=v,
+                             alpha_deg=kw.get("alpha_deg", 0.0),
                              quality=kw.get("quality", "hassas"),
                              n_layers=kw.get("n_layers", 0),
                              yplus_target=kw.get("yplus_target", 30.0),
@@ -141,7 +185,7 @@ def _run_anchor(name: str, velocity: float, out_root: str) -> dict | None:
     # yoksa çapa model hatasını ayırt edemez).
     md = r.mesh_duyarlilik or {}
     converged, cd_pred, yontem = _accept(md.get("gci") or {}, md.get("lsr"),
-                                         r.cd_richardson, r.cd)
+                                         r.cd_richardson, r.cd, md.get("wake"))
     if not converged or cd_pred is None or cd_pred <= 0:
         return {"durum": "REDDEDİLDİ — mesh-bağımsızlığı gösterilemedi (banda yazılmaz)",
                 "regime": spec["regime"], "Cd_ref": spec["Cd"], "Cd_ince": r.cd,

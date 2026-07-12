@@ -850,7 +850,14 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
             mq = parse_checkmesh(r.case_dir / "log.checkMesh") if r.success else {}
             if r.success and r.cd is not None and mq.get("cells"):
                 cd_lvl = trailing_mean([h[1] for h in r.forces_history], r.cd)
-                levels.append({"ad": ad, "cells": mq["cells"], "Cd": round(cd_lvl * scale, 5)})
+                lv_rec = {"ad": ad, "cells": mq["cells"], "Cd": round(cd_lvl * scale, 5)}
+                try:
+                    w = compute_case_wake_drag(r.case_dir, U_inf=velocity, A_ref=aref, rho=rho)
+                    if w and w.get("Cd") is not None:
+                        lv_rec["Cd_wake"] = round(w["Cd"], 5)
+                except Exception:
+                    pass
+                levels.append(lv_rec)
         levels = [lv for lv in levels if lv.get("cells")]
         levels.sort(key=lambda lv: lv["cells"])              # kaba→ince
         def h(lv):                                           # 3B temsili hücre boyu
@@ -864,13 +871,37 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                    if len(levels) >= 4 else None)
             if lsr:
                 base.mesh_duyarlilik["lsr"] = lsr
-            # U_sayısal seçimi: asimptotik GCI > LSR bandı > ham GCI (etiketiyle)
+            # İz-momentum (wake) yolu: 2. mertebe, TE/yüzey-çözünürlüğüne az duyarlı —
+            # roket bulgusu: yüzey-GCI çökerken yüzey↔iz %2.7'ye kapanıyordu. Yüzey yolu
+            # kanıt veremezse drag kanıtı buradan gelebilir.
+            wake_lv = [lv for lv in levels if lv.get("Cd_wake") is not None]
+            gci_w = lsr_w = None
+            if len(wake_lv) >= 3:
+                w3, w2, w1 = wake_lv[-3], wake_lv[-2], wake_lv[-1]
+                gci_w = compute_gci(h(w3), h(w2), h(w1),
+                                    w3["Cd_wake"], w2["Cd_wake"], w1["Cd_wake"])
+                lsr_w = (least_squares_gci([h(lv) for lv in wake_lv],
+                                           [lv["Cd_wake"] for lv in wake_lv])
+                         if len(wake_lv) >= 4 else None)
+                base.mesh_duyarlilik["wake"] = {
+                    "gci": gci_w, "lsr": lsr_w,
+                    "verdikt": gci_verdict(gci_w) if gci_w else "hesaplanamadı"}
+            wake_ok = gci_w and str(base.mesh_duyarlilik["wake"]["verdikt"]).startswith("✅")
+            # U_sayısal hiyerarşisi: yüzey-GCI✅ > wake-GCI✅ > yüzey-LSR > wake-LSR > ham GCI
             if gci and str(base.mesh_duyarlilik["verdikt"]).startswith("✅"):
                 u_num_pct, u_kaynak = gci["gci_fine_pct"], "GCI (3-mesh, asimptotik)"
                 base.cd_richardson = gci["f_exact"]
+            elif wake_ok:
+                u_num_pct = gci_w["gci_fine_pct"]
+                u_kaynak = "wake-GCI (iz-momentum, 2. mertebe, asimptotik)"
+                base.cd_richardson = gci_w["f_exact"]
             elif lsr:
                 u_num_pct, u_kaynak = lsr["u_pct"], f"LSR ({lsr['n']}-seviye; {lsr['kural']})"
                 base.cd_richardson = lsr["f_exact"]
+            elif lsr_w:
+                u_num_pct = lsr_w["u_pct"]
+                u_kaynak = f"wake-LSR ({lsr_w['n']}-seviye; {lsr_w['kural']})"
+                base.cd_richardson = lsr_w["f_exact"]
             elif gci:
                 u_num_pct = gci["gci_fine_pct"]
                 u_kaynak = "GCI (asimptotik DEĞİL — band güvenilirliği düşük)"

@@ -41,6 +41,13 @@ ANCHORS = {
         "Cd": 1.17, "regime": "bluff", "Re": ">1e3 (keskin-kenar, Re-duyarsız)",
         "aref": "frontal", "ref": "Hoerner, Fluid-Dynamic Drag (1965)",
     },
+    "naca0012_wing_ar6": {
+        "Cd": 0.020, "regime": "lifting", "Re": "3e5 (c=0.15 m, 30 m/s), α=4°",
+        "aref": "planform",
+        "ref": ("YARI-ANALİTİK (±%15): türbülanslı profil Cd0≈0.014 (düz-plaka Cf "
+                "+ form) + lifting-line CDi=CL²/(πeAR), CL≈0.32, e≈0.9 — Anderson; "
+                "deneysel tekil referans yok, band ölçümü bu belirsizlikle etiketli"),
+    },
 }
 
 # Rejim × duvar-çözünürlüğü → RANS-SST tipik model belirsizliği (%, 1σ mertebesi).
