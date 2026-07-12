@@ -9,6 +9,7 @@ Set-Location $root
 $py = "C:\Python314\python.exe"
 $log = Join-Path $root "kampanya_lsr.log"
 $env:PYTHONIOENCODING = "utf-8"
+$env:CFD_EXT4 = "1"   # cozum WSL ext4'te kosar (drvfs paralel-yazim cokmesine karsi) + hiz
 
 Add-Type -MemberDefinition '[DllImport("kernel32.dll")] public static extern uint SetThreadExecutionState(uint esFlags);' -Name KA2 -Namespace Win32
 [Win32.KA2]::SetThreadExecutionState([uint32]2147483649) | Out-Null
