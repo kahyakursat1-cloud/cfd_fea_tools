@@ -203,6 +203,13 @@ def profil_seviye() -> str:
     return _seviye_from(_profil_yukle())
 
 
+def profil() -> dict:
+    """Güncel öğrenci profili + hesaplanmış seviye (GUI/CLI için tek nokta)."""
+    p = _profil_yukle()
+    p["seviye"] = _seviye_from(p)
+    return p
+
+
 if __name__ == "__main__":
     import argparse
     import sys
@@ -225,9 +232,7 @@ if __name__ == "__main__":
             if a["ders_md"]:
                 print(a["ders_md"])
     elif args.komut == "durum":
-        p = _profil_yukle()
-        p["seviye"] = _seviye_from(p)
-        print(json.dumps(p, indent=2, ensure_ascii=False))
+        print(json.dumps(profil(), indent=2, ensure_ascii=False))
     else:
         if not args.arg:
             sys.exit("tamamla için adım adı gerekli")

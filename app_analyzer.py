@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QComboBox,
+    QDialog,
     QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
@@ -28,12 +29,14 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QListWidget,
     QMainWindow,
     QMessageBox,
     QPlainTextEdit,
     QProgressBar,
     QPushButton,
     QSpinBox,
+    QTextBrowser,
     QVBoxLayout,
     QWidget,
 )
@@ -180,6 +183,76 @@ class PolarWorker(QThread):
             self.failed.emit(str(e))
 
 
+class YolculukDialog(QDialog):
+    """Rehberli Mod: adım adım analiz-mühendisliği yolculuğu (yolculuk.py).
+    Sol liste = adımlar; sağ panel = yap/kontrol-sorusu/ipucu + seviyeli ders bloğu.
+    Sorular cevap-anahtarsızdır (öz-açıklama); 'tamamladım' öğrenci profilini ilerletir,
+    seviye şeffaf kuralla atlar (BYF→ÖYG→PROJE)."""
+
+    def __init__(self, parent, tip: str, analiz: str | None):
+        super().__init__(parent)
+        import yolculuk
+        self._yol = yolculuk
+        self.setWindowTitle("🎓 Rehberli Mod — Analiz Yolculuğu")
+        self.resize(880, 540)
+        self.plan = yolculuk.plan({"tip": tip, "analiz": analiz})
+        lay = QVBoxLayout(self)
+        self.lbl_seviye = QLabel()
+        lay.addWidget(self.lbl_seviye)
+        mid = QHBoxLayout()
+        self.lst = QListWidget()
+        for a in self.plan:
+            self.lst.addItem(a["baslik"])
+        self.lst.currentRowChanged.connect(self._show_step)
+        mid.addWidget(self.lst, 1)
+        self.det = QTextBrowser()
+        self.det.setOpenExternalLinks(False)
+        mid.addWidget(self.det, 2)
+        lay.addLayout(mid, 1)
+        row = QHBoxLayout()
+        self.btn_done = QPushButton("✓ Bu adımı tamamladım")
+        self.btn_done.setToolTip("Kontrol sorusunu kendi kelimelerinle cevapladıysan işaretle "
+                                 "— profil ilerler, seviye kuralla atlar.")
+        self.btn_done.clicked.connect(self._tamamla)
+        row.addWidget(self.btn_done)
+        row.addStretch(1)
+        btn_close = QPushButton("Kapat")
+        btn_close.clicked.connect(self.accept)
+        row.addWidget(btn_close)
+        lay.addLayout(row)
+        self._refresh_seviye()
+        self.lst.setCurrentRow(0)
+
+    def _refresh_seviye(self):
+        p = self._yol.profil()
+        self.lbl_seviye.setText(
+            f"Öğrenci seviyesi: {p['seviye'].upper()}   |   tamamlanmış analiz: "
+            f"{p.get('analiz_sayisi', 0)}   (ÖYG ≥{self._yol.ESIK_OYG} analiz; "
+            f"PROJE ≥{self._yol.ESIK_PROJE} + GCI + savunma)")
+
+    def _show_step(self, row: int):
+        if row < 0:
+            return
+        a = self.plan[row]
+        md = [f"## {a['baslik']}", "", f"**Yap:** {a['yapilacak']}", "",
+              f"**Kontrol sorusu:** {a['soru']}", "", f"*İpucu: {a['ipucu']}*"]
+        if a["ders_md"]:
+            md += ["", "---", "", a["ders_md"]]
+        self.det.setMarkdown("\n".join(md))
+
+    def _tamamla(self):
+        row = self.lst.currentRow()
+        if row < 0:
+            return
+        self._yol.adim_tamamla(self.plan[row]["ad"])
+        item = self.lst.item(row)
+        if not item.text().startswith("✓"):
+            item.setText("✓ " + item.text())
+        self._refresh_seviye()
+        if row + 1 < self.lst.count():
+            self.lst.setCurrentRow(row + 1)
+
+
 class AnalyzerWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -276,6 +349,14 @@ class AnalyzerWindow(QMainWindow):
         self.btn_run.setEnabled(False)
         self.btn_run.clicked.connect(self._run)
         left.addWidget(self.btn_run)
+
+        self.btn_yolculuk = QPushButton("🎓  REHBERLİ MOD (adım adım öğren)")
+        self.btn_yolculuk.setEnabled(False)
+        self.btn_yolculuk.setToolTip(
+            "Analiz-mühendisi yolculuğu: her adımda ne yapılacağı, NEDENİ ve bir kontrol "
+            "sorusu. Adımları tamamladıkça profiliniz BYF→ÖYG→PROJE seviye atlar.")
+        self.btn_yolculuk.clicked.connect(self._open_yolculuk)
+        left.addWidget(self.btn_yolculuk)
 
         gb_polar = QGroupBox("Polar Taraması (opsiyonel)")
         pf = QFormLayout(gb_polar)
@@ -413,6 +494,12 @@ class AnalyzerWindow(QMainWindow):
         self.btn_polar.setEnabled(True)
         self.btn_auto.setEnabled(True)
         self.btn_mach.setEnabled(True)
+        self.btn_yolculuk.setEnabled(True)
+
+    def _open_yolculuk(self):
+        tip = self.cmb_type.currentData()
+        analiz = "polar" if VEHICLE_PRESETS.get(tip, {}).get("lift_relevant") else None
+        YolculukDialog(self, tip, analiz).exec()
 
     def _set_combo(self, combo, data):
         for i in range(combo.count()):
