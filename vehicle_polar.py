@@ -25,24 +25,30 @@ import numpy as np
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+from analysis.ccx_runner import windows_to_wsl_path
 from analysis.openfoam_runner import (
+    _wrap_timeout,
     _write_control_dict,
     _write_field_U,
+    _wsl_kill,
+    _wsl_run,
     parse_force_coeffs,
 )
-from vehicle_pipeline import run_vehicle_analysis
+from vehicle_pipeline import run_vehicle_analysis, trailing_mean
 
 plt.rcParams.update({"figure.dpi": 300, "savefig.dpi": 300, "font.size": 9,
                      "axes.grid": True, "grid.alpha": 0.3})
 
 
 def _wsl_solve(case_dir: Path, timeout=7200):
-    p = str(Path(case_dir).resolve())
-    wsl = "/mnt/" + p[0].lower() + p[2:].replace("\\", "/")
-    return subprocess.run(
-        f'wsl bash -c "export ParaView_TYPE=none && source /opt/openfoam11/etc/bashrc && '
-        f'unset FOAM_SIGFPE && cd {wsl} && foamRun > log.foamRun 2>&1"',
-        shell=True, capture_output=True, text=True, timeout=timeout)
+    wrapped, bins = _wrap_timeout("foamRun", timeout)
+    try:
+        return _wsl_run(windows_to_wsl_path(case_dir),
+                        wrapped + " > log.foamRun 2>&1", timeout=timeout + 60)
+    except subprocess.TimeoutExpired:
+        _wsl_kill(bins)
+        return subprocess.CompletedProcess(args="foamRun", returncode=-1,
+                                           stdout="", stderr="TIMEOUT")
 
 
 def run_polar(stl_path, vehicle_type="ucak", velocity=25.0, alphas=(-4, 0, 4, 8),
@@ -68,7 +74,8 @@ def run_polar(stl_path, vehicle_type="ucak", velocity=25.0, alphas=(-4, 0, 4, 8)
     scale = (r0.geometry["lmax_m"] ** 2) / r0.aref_m2   # forceCoeffs Aref=lref^2 -> gercek Aref
     rows = [{"alpha": alphas[0], "Cl": r0.cl, "Cd": r0.cd,
              "Cm": None, "yplus_ort": (r0.sinir_tabaka or {}).get("yplus", {}).get("ort")}]
-    cd0, cl0, cm0, _ = parse_force_coeffs(base_case)
+    cd0, cl0, cm0, _hist0 = parse_force_coeffs(base_case)
+    cm0 = trailing_mean([h[3] for h in _hist0], cm0)
     rows[0]["Cm"] = round(cm0 * scale, 5) if cm0 is not None and math.isfinite(cm0) else None
 
     class _C:  # _write_field_U/_write_control_dict'in ihtiyaç duyduğu alanlar
@@ -99,6 +106,9 @@ def run_polar(stl_path, vehicle_type="ucak", velocity=25.0, alphas=(-4, 0, 4, 8)
         c.flow_direction = (math.cos(a), 0.0, math.sin(a))
         c.rho = 1.225
         c.turbulence_intensity = 0.01
+        c.compressible = False
+        c.p_inf = 101325.0
+        c.ground_clearance = None
         import re as _re
         m_end = _re.search(r"^endTime\s+(\d+)\s*;", (base_case / "system" / "controlDict").read_text(), _re.M)
         c.end_time = int(m_end.group(1)) if m_end else 400
@@ -107,6 +117,9 @@ def run_polar(stl_path, vehicle_type="ucak", velocity=25.0, alphas=(-4, 0, 4, 8)
         _write_control_dict(case_a, c, surface, lref)
         r = _wsl_solve(case_a)
         cd, cl, cm, _hist = parse_force_coeffs(case_a)
+        cd = trailing_mean([h[1] for h in _hist], cd)
+        cl = trailing_mean([h[2] for h in _hist], cl)
+        cm = trailing_mean([h[3] for h in _hist], cm)
         ok = r.returncode == 0 and cd is not None and math.isfinite(cd) and abs(cd * scale) < 5
         rows.append({"alpha": a_deg,
                      "Cl": round(cl * scale, 5) if ok and cl is not None else None,

@@ -112,6 +112,17 @@ test_materials_export.csv
 # çağırır; kaynak ağacımıza dahil değil.
 Construct2D/
 auto_pilot_memory.jsonl
+# Çalışma-zamanı öğrenme kütüphaneleri (harvest yeniden üretir) + öğrenci profili
+mesh_memory.jsonl
+gci_memory.jsonl
+ogrenci_profili.json
+# Kampanya orkestratör logları (validation_band.json ÜRÜNDÜR, commit edilir)
+overnight_*.log
+overnight_*.err.log
+overnight_summary.json
+kampanya_lsr*.log
+kampanya_lsr*.err
+kampanya_lsr_summary.json
 
 # ─── İndirilen gerçek-dünya CAD modelleri (üçüncü-taraf STL, MB boyutlu) ───
 # experiments/ingest_real.py URL'lerden indirir; yalnız türetilen metrikler

@@ -98,11 +98,8 @@ def load_geometry(path: str | Path,
     else:
         mesh = trimesh.load(str(path), force="mesh")
         if not isinstance(mesh, trimesh.Trimesh):
-            # Scene gelmişse birleştir
-            if hasattr(mesh, "dump"):
-                mesh = trimesh.util.concatenate(tuple(mesh.dump().geometry.values()))
-            else:
-                raise ValueError(f"Geometri Trimesh'e dönüştürülemedi: {path}")
+            # force="mesh" Scene'i zaten birleştirir; buraya düşmek format hatasıdır
+            raise ValueError(f"Geometri Trimesh'e dönüştürülemedi: {path}")
 
     if len(mesh.faces) == 0:
         raise ValueError(f"Geometri boş (üçgen yok): {path}")

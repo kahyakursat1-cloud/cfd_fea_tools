@@ -54,6 +54,33 @@ def test_presets_complete_and_consistent():
         assert len(p["domain"]) == 3
         rmin, rmax = p["refinement"]
         assert rmin <= rmax
+    # auto_pilot'un her tipi bir CFD preset'ine inmeli (hibritler dahil)
+    from auto_pilot import PRESET_MAP, TIPLER
+    assert set(TIPLER) == set(PRESET_MAP)
+    assert set(PRESET_MAP.values()) <= set(VEHICLE_PRESETS)
+
+
+def test_trailing_mean_cuts_stopping_noise():
+    import math
+
+    from vehicle_pipeline import trailing_mean
+    # Plato ~0.5 + son-iterasyonda durdurma-sapması (0.31): ortalama platoyu korur
+    vals = [0.5 - 0.2 * math.exp(-i / 10) for i in range(80)] + [0.31]
+    m = trailing_mean(vals, fallback=0.31)
+    assert abs(m - 0.5) < 0.02                               # plato korunur
+    assert abs(m - 0.5) < abs(vals[-1] - 0.5)                # son-değer sapmasını yumuşatır
+    assert trailing_mean([0.3] * 100, 99.0) == pytest.approx(0.3)
+    assert trailing_mean([0.3] * 5, fallback=1.23) == 1.23   # kısa tarihçe → fallback
+    assert trailing_mean([float("nan")] * 30, 0.5) == 0.5    # NaN'lar elenir → fallback
+
+
+def test_car_preset_auto_ground_clearance():
+    from vehicle_pipeline import auto_ground_clearance
+    araba = VEHICLE_PRESETS["araba"]
+    assert araba["ground"] and araba["aref_mode"] == "frontal"
+    assert auto_ground_clearance(araba, height_m=1.4, ground_clearance=None) == 0.238
+    assert auto_ground_clearance(araba, 1.4, 0.05) == 0.05            # kullanıcı öncelikli
+    assert auto_ground_clearance(VEHICLE_PRESETS["ucak"], 1.4, None) is None  # serbest-akış
     assert set(MESH_QUALITY) == {"hizli", "standart", "hassas", "hassas_nl"}
     for q in MESH_QUALITY.values():           # her kalite tutarlı anahtar setine sahip
         assert {"end_time", "ref_bump", "max_cells", "bg_div", "n_layers", "yplus_target"} <= set(q)

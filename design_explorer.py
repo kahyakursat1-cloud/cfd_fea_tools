@@ -110,27 +110,20 @@ def make_revolve_stl(params: dict, out: Path):
 
 
 def evaluate_surrogate(params: dict) -> DesignPoint:
-    """Hızlı önizleme: geometri → metrik → kNN cd_predict (CFD'siz, güvenilmez prior)."""
+    """Hızlı önizleme: geometri → metrik → kNN cd_predict (CFD'siz, güvenilmez prior).
+    Metrik, kNN kütüphanesinin (seed/memory) kayıt formatıyla AYNI tanımdan
+    (classify_vehicle) üretilir — farklı tanım feature-uzayını kaydırır."""
     import auto_pilot as ap
     from vehicle_pipeline import inspect_geometry
     stl = HERE / "_doe_tmp" / "cand.stl"
     make_revolve_stl(params, stl)
-    metrik = inspect_geometry(str(stl)).get("_metrik") or _metrik_fallback(str(stl))
+    metrik = ap.classify_vehicle(inspect_geometry(str(stl)))["metrik"]
     pred = ap.cd_predict(metrik, "roket") if metrik else None
     if not pred:
         return DesignPoint(params, {}, source="surrogate", gecerli=False, not_="surrogat desteği yok")
     return DesignPoint(params, {"cd": pred["cd_tahmin"]},
                        {"cd_pct": round((1 - pred["guven"]) * 100, 1)},
                        source="surrogate")
-
-
-def _metrik_fallback(stl):
-    from vehicle_pipeline import inspect_geometry
-    g = inspect_geometry(stl)
-    b = g["boyutlar_m"]; L = g["lmax_m"]
-    return {"L_D": L / max(min(b), 1e-6), "W_L": b[1] / L, "H_L": b[2] / L,
-            "H_W": b[2] / max(b[1], 1e-6), "planform_frontal": g.get("planform_alan_m2", 0) /
-            max(g.get("on_alan_m2", 1e-6), 1e-6), "govde": 1, "ince_yassilik": 1.0}
 
 
 def evaluate_cfd(params: dict, velocity: float = 30.0) -> DesignPoint:

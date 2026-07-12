@@ -42,6 +42,61 @@ def test_anchors_have_required_fields():
         assert a["Cd"] > 0 and a["regime"] in ("lifting", "bluff") and a["ref"]
 
 
+def test_geom_generators_match_anchors():
+    import validate_pipeline as vpl
+    for name, (gen, vtype, kw) in vpl._GEOM.items():
+        assert name in va.ANCHORS                # üreteci olan her çapa tanımlı olmalı
+        assert callable(gen) and isinstance(kw, dict)
+
+
+def test_disk_body_faces_flow():
+    import validate_pipeline as vpl
+    m = vpl.disk_body()
+    ext = m.bounds[1] - m.bounds[0]
+    assert abs(ext[0] - 0.01) < 1e-6              # kalınlık akış (+x) yönünde
+    assert abs(ext[1] - 0.1) < 1e-3 and abs(ext[2] - 0.1) < 1e-3
+    assert m.is_watertight
+
+
+def test_accept_gate_gci_lsr_priority():
+    import validate_pipeline as vpl
+    gci_ok = {"monotonic": True, "p_in_range": True, "gci_fine_pct": 2.0, "asymptotic": 1.02}
+    ok, cd, yontem = vpl._accept(gci_ok, None, 0.30, 0.31)
+    assert ok and cd == 0.30 and "GCI" in yontem                 # asimptotik GCI birincil
+    gci_bad = {"monotonic": True, "p_in_range": False, "gci_fine_pct": 80.0, "asymptotic": 5.0}
+    lsr_dar = {"n": 4, "u_pct": 9.0, "f_exact": 0.29, "kural": "standart", "guvenilir": True}
+    ok, cd, yontem = vpl._accept(gci_bad, lsr_dar, -0.8, 0.31)
+    assert ok and cd == 0.29 and "LSR" in yontem                 # GCI düştü → dar LSR bandı
+    lsr_genis = {"n": 4, "u_pct": 60.0, "f_exact": 0.29, "kural": "salınımlı", "guvenilir": False}
+    ok, cd, yontem = vpl._accept(gci_bad, lsr_genis, -0.8, 0.31)
+    assert not ok and yontem is None                             # geniş band validasyon yapamaz
+    ok, _, _ = vpl._accept({}, None, None, 0.31)
+    assert not ok                                                # kanıt yok → RED
+
+
+def test_sphere_skipped_with_honest_reason():
+    import validate_pipeline as vpl
+    assert "sphere" not in vpl._GEOM and "sphere" in vpl._SKIP_REASON
+    assert "GEÇİŞ" in vpl._SKIP_REASON["sphere"]                 # gerekçe kayıtlı
+
+
+def test_ahmed_body_dimensions():
+    import validate_pipeline as vpl
+    m = vpl.ahmed_body()
+    ext = m.bounds[1] - m.bounds[0]
+    assert abs(ext[0] - 1.044) < 1e-6            # SAE standart uzunluk
+    assert abs(ext[1] - 0.389) < 1e-6            # genişlik
+    assert abs(ext[2] - 0.288) < 1e-6            # yükseklik
+    assert m.is_watertight and m.is_convex
+    # arka slant: x=L tabanında üst köşe H - 0.222·sin25° ≈ 0.1942'de olmalı
+    rear = m.vertices[m.vertices[:, 0] > 1.044 - 1e-6]
+    assert abs(rear[:, 2].max() - (0.288 - 0.222 * 0.42262)) < 1e-3
+    # frontal alan ~ W·H (yuvarlatma köşe payı düşer): 0.10–0.112 m² bandı
+    from vehicle_pipeline import _hull_projected_area
+    af = _hull_projected_area(m.vertices, 0)
+    assert 0.100 < af < 0.113
+
+
 def test_hassas_quality_is_wall_resolved():
     from vehicle_pipeline import MESH_QUALITY
     assert MESH_QUALITY["hassas"]["n_layers"] >= 10

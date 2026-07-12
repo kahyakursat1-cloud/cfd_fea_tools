@@ -1,8 +1,12 @@
 """openfoam_runner orphan-önleme + diverjans bekçisi — saf-mantık (WSL çağırmadan)."""
+import trimesh
+
 from analysis.openfoam_runner import (
     _OF_BINS,
+    CFDCase,
     _wrap_timeout,
     _wsl_kill,
+    build_case,
     divergence_in_log,
 )
 
@@ -45,3 +49,31 @@ def test_wsl_kill_safe_on_empty():
     # boş liste no-op; istisna fırlatmaz
     assert _wsl_kill([]) is None
     assert "mpirun" in _OF_BINS and "foamRun" in _OF_BINS
+
+
+def _box_case(tmp_path, **kw):
+    stl = tmp_path / "kutu.stl"
+    trimesh.creation.box(extents=(0.2, 0.1, 0.1)).export(stl)
+    return CFDCase(name="kutu", stl_path=stl, n_processors=1, **kw)
+
+
+def test_build_case_free_air_bottom_slip(tmp_path):
+    case_dir = build_case(_box_case(tmp_path), tmp_path / "out")
+    assert "bottom    { type patch;" in (case_dir / "system" / "blockMeshDict").read_text()
+    assert "bottom  { type slip; }" in (case_dir / "0" / "U").read_text()
+
+
+def test_build_case_ground_plane(tmp_path):
+    # Ahmed-tipi zemin: taban wall + noSlip + duvar fonksiyonları; domain tabanı clearance'ta
+    case_dir = build_case(_box_case(tmp_path, ground_clearance=0.02), tmp_path / "out")
+    bm = (case_dir / "system" / "blockMeshDict").read_text()
+    assert "bottom    { type wall;" in bm
+    import re
+    zs = [float(m.split()[2]) for m in
+          re.findall(r"\(\s*([-\d.eE+]+\s+[-\d.eE+]+\s+[-\d.eE+]+)\s*\)", bm)]
+    assert abs(min(zs) - (-0.05 - 0.02)) < 1e-6   # gövde zmin=-0.05, clearance 0.02
+    assert "bottom  { type noSlip; }" in (case_dir / "0" / "U").read_text()
+    assert "kqRWallFunction" in (case_dir / "0" / "k").read_text().split("bottom")[1][:60]
+    assert "omegaWallFunction" in (case_dir / "0" / "omega").read_text().split("bottom")[1][:60]
+    assert "nutUSpaldingWallFunction" in (case_dir / "0" / "nut").read_text().split("bottom")[1][:60]
+    assert "zeroGradient" in (case_dir / "0" / "p").read_text().split("bottom")[1][:60]

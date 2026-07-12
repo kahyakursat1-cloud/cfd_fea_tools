@@ -15,7 +15,6 @@ import json
 import math
 import os
 import re
-import subprocess
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -23,7 +22,8 @@ import numpy as np
 import trimesh
 from scipy.spatial import ConvexHull
 
-from analysis.openfoam_runner import CFDCase, run_cfd
+from analysis.ccx_runner import windows_to_wsl_path
+from analysis.openfoam_runner import CFDCase, _wsl_run, run_cfd
 from constants import NONORTHO_LIMIT, RESIDUAL_TARGET, SKEW_LIMIT
 
 VEHICLE_PRESETS = {
@@ -42,12 +42,29 @@ VEHICLE_PRESETS = {
         "refinement": (2, 3), "domain": (5.0, 12.0, 5.0),
         "aref_mode": "frontal", "lift_relevant": False,
     },
+    "araba": {
+        "ad": "Kara Aracı (otomobil / verimlilik aracı)",
+        "refinement": (2, 3), "domain": (5.0, 15.0, 5.0),
+        "aref_mode": "frontal", "lift_relevant": False,
+        "ground": True,   # zemin-etkili: taban = noSlip duvar (Ahmed-tipi kurulum)
+    },
     "genel": {
         "ad": "Genel Cisim (küt gövde)",
         "refinement": (1, 2), "domain": (5.0, 15.0, 5.0),
         "aref_mode": "frontal", "lift_relevant": False,
     },
 }
+
+
+def auto_ground_clearance(preset: dict, height_m: float,
+                          ground_clearance: float | None) -> float | None:
+    """Zemin-etkili preset'te (araba) clearance verilmemişse Ahmed-oranı varsayılanı:
+    deney kurulumunun h/H≈50/288≈0.17'si. Kullanıcı değeri her zaman öncelikli."""
+    if ground_clearance is not None:
+        return ground_clearance
+    if preset.get("ground"):
+        return round(0.17 * height_m, 4)
+    return None
 
 # bg_div: arka-plan hucresi = L/bg_div. maxGlobalCells yalniz refinement'i
 # sinirlar; domain ~21Lx11Lx11L oldugundan taban mesh = 2541*bg_div^3 hucre —
@@ -173,9 +190,12 @@ def weld_axial_segments(m: trimesh.Trimesh):
                     "kaynatıldı (konveks-zarf köprüleme; exploded/kopuk-ihraç onarımı)")
 
 
-def prepare_geometry(path, out_dir: Path, progress_cb=None) -> tuple[Path, dict]:
+def prepare_geometry(path, out_dir: Path, progress_cb=None,
+                     auto_orient: bool = True) -> tuple[Path, dict]:
     """Her formatı analiz-hazır tek STL'e indirger: CAD dönüşümü, çok-gövde
-    birleştirme, normal/sarım onarımı, delik kapatma. Onarım kaydı döner."""
+    birleştirme, normal/sarım onarımı, delik kapatma. Onarım kaydı döner.
+    auto_orient=False: canonicalize_axial atlanır — çağıran nose/up eksenini
+    açıkça veriyorsa çift-dönme olmasın."""
     path = Path(path)
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -228,10 +248,11 @@ def prepare_geometry(path, out_dir: Path, progress_cb=None) -> tuple[Path, dict]
     info["su_gecirmez_sonra"] = bool(m.is_watertight)
 
     # Yönelim: eksenel cismi (roket/füze) uçuş yönüne hizala (uzun eksen→+x).
-    m, _orient = canonicalize_axial(m)
-    if _orient:
-        info["onarimlar"].append(_orient)
-        info["yonelim"] = _orient
+    if auto_orient:
+        m, _orient = canonicalize_axial(m)
+        if _orient:
+            info["onarimlar"].append(_orient)
+            info["yonelim"] = _orient
 
     # Birim sezgisi: CAD (STEP/IGES) konvansiyonel mm; çözücü metre bekler.
     # BİLSEM araçları (roket/İHA/dron) 0.05–10 m; >50 birim => mm, ÷1000.
@@ -388,6 +409,18 @@ def resolution_warning(lmax_m: float, bg_div: int, ref_max: int, min_dim_m: floa
             "'hassas' kalite önerilir")
 
 
+def trailing_mean(vals, fallback, min_n: int = 20):
+    """Kuvvet-katsayısı için kuyruk-penceresi ortalaması (son %20, ≥min_n iter).
+    Son-iterasyon değeri erken-durdurucunun kestiği noktaya duyarlı (~%1-3 titreşim);
+    bu gürültü mesh-seviye farklarıyla yarışıp GCI dizisini sahte-salınımlı gösteriyordu
+    (2026-07-07 kampanya bulgusu). Steady-RANS raporlama pratiği: trailing-window mean."""
+    v = [x for x in vals if x is not None and math.isfinite(x)]
+    if len(v) < min_n:
+        return fallback
+    w = max(min_n, len(v) // 5)
+    return sum(v[-w:]) / w
+
+
 def parse_checkmesh(log: Path) -> dict:
     out = {"cells": None, "non_ortho_max": None, "skew_max": None, "mesh_ok": None}
     if not log.exists():
@@ -434,14 +467,10 @@ def first_layer_height(velocity, lref, yplus_target, nu=1.5e-5):
 
 def measure_yplus(case_dir, timeout=600) -> dict | None:
     """Çözülmüş alanda duvar y⁺'ını ÖLÇER (varsayım değil; foamPostProcess)."""
-    p = str(Path(case_dir).resolve())
-    wsl = "/mnt/" + p[0].lower() + p[2:].replace("\\", "/")
     try:
-        r = subprocess.run(
-            f'wsl bash -c "source /opt/openfoam11/etc/bashrc && unset FOAM_SIGFPE && '
-            f"cd {wsl} && foamPostProcess -solver incompressibleFluid -func yPlus -latestTime 2>&1"
-            f'"',
-            shell=True, capture_output=True, text=True, timeout=timeout)
+        r = _wsl_run(windows_to_wsl_path(case_dir),
+                     "foamPostProcess -solver incompressibleFluid -func yPlus -latestTime 2>&1",
+                     timeout=timeout)
         m = re.search(r"y\+ : min = ([\d.eE+-]+), max = ([\d.eE+-]+), average = ([\d.eE+-]+)",
                       r.stdout)
         if m:
@@ -464,14 +493,10 @@ def export_surface_vtk(case_dir, patch_name: str, timeout=600) -> Path | None:
     )
     (case_dir / "system" / "yuzeyBasinc").write_text(
         "FoamFile{version 2.0; format ascii; class dictionary; object yuzeyBasinc;}\n" + func)
-    p = str(case_dir.resolve())
-    wsl = "/mnt/" + p[0].lower() + p[2:].replace("\\", "/")
     try:
-        subprocess.run(
-            f'wsl bash -c "source /opt/openfoam11/etc/bashrc && unset FOAM_SIGFPE && '
-            f'cd {wsl} && foamPostProcess -solver incompressibleFluid -func yuzeyBasinc '
-            f'-latestTime > log.yuzeyBasinc 2>&1"',
-            shell=True, capture_output=True, text=True, timeout=timeout)
+        _wsl_run(windows_to_wsl_path(case_dir),
+                 "foamPostProcess -solver incompressibleFluid -func yuzeyBasinc "
+                 "-latestTime > log.yuzeyBasinc 2>&1", timeout=timeout)
         cands = sorted((case_dir / "postProcessing" / "yuzeyBasinc").rglob("*.vtk")) + \
                 sorted((case_dir / "postProcessing" / "yuzeyBasinc").rglob("*.vtp"))
         return cands[-1] if cands else None
@@ -493,14 +518,10 @@ def export_cutplane_vtk(case_dir, center, timeout=600) -> Path | None:
     )
     (case_dir / "system" / "hizKesiti").write_text(
         "FoamFile{version 2.0; format ascii; class dictionary; object hizKesiti;}\n" + func)
-    p = str(case_dir.resolve())
-    wsl = "/mnt/" + p[0].lower() + p[2:].replace("\\", "/")
     try:
-        subprocess.run(
-            f'wsl bash -c "source /opt/openfoam11/etc/bashrc && unset FOAM_SIGFPE && '
-            f'cd {wsl} && foamPostProcess -solver incompressibleFluid -func hizKesiti '
-            f'-latestTime > log.hizKesiti 2>&1"',
-            shell=True, capture_output=True, text=True, timeout=timeout)
+        _wsl_run(windows_to_wsl_path(case_dir),
+                 "foamPostProcess -solver incompressibleFluid -func hizKesiti "
+                 "-latestTime > log.hizKesiti 2>&1", timeout=timeout)
         cands = sorted((case_dir / "postProcessing" / "hizKesiti").rglob("kesit.vtk"))
         return cands[-1] if cands else None
     except Exception:
@@ -533,6 +554,7 @@ class VehicleAnalysisResult:
     velocity: float
     alpha_deg: float
     geometry: dict
+    kalite: str = ""                    # MESH_QUALITY preset'i — mentor öğrenmesi için kayıt
     aref_m2: float | None = None
     aref_mode: str = ""
     cd: float | None = None
@@ -563,6 +585,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                          nose_axis="+x", up_axis="+z",
                          mesh_sensitivity=False, n_layers=0, yplus_target=30.0,
                          pervane_itki_n=0.0, pervane_cap_m=0.0,
+                         ground_clearance=None, mesh_levels=3,
                          progress_cb=None) -> VehicleAnalysisResult:
     stl_path = Path(stl_path)
     stem = stl_path.stem
@@ -574,7 +597,8 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
 
     run_dir = Path(out_root) / stem
     run_dir.mkdir(parents=True, exist_ok=True)
-    stl_path, prep = prepare_geometry(stl_path, run_dir, progress_cb)
+    stl_path, prep = prepare_geometry(stl_path, run_dir, progress_cb,
+                                      auto_orient=(nose_axis == "+x" and up_axis == "+z"))
     stl_path = orient_mesh(stl_path, nose_axis, up_axis,
                            run_dir / f"{stem}_oriented.stl")
     geo = inspect_geometry(stl_path)
@@ -587,6 +611,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     rmin, rmax = preset["refinement"]
     bump = q["ref_bump"]
     _dom = farfield_domain(preset, alpha_deg)   # lift-bilinçli far-field
+    ground_clearance = auto_ground_clearance(preset, geo["boyutlar_m"][2], ground_clearance)
     prop = None
     if pervane_itki_n > 0 and pervane_cap_m > 0:
         prop = propeller_params(pervane_itki_n, pervane_cap_m, velocity, rho)
@@ -620,6 +645,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         propeller=prop,
         compressible=compressible,
         n_processors=n_processors,
+        ground_clearance=ground_clearance,
     )
     res = run_cfd(case, run_dir, progress_callback=progress_cb)
     case_dir = res.case_dir
@@ -627,7 +653,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     base = VehicleAnalysisResult(
         status="failed", vehicle_type=vehicle_type, stl=str(stl_path),
         velocity=velocity, alpha_deg=alpha_deg, geometry=geo,
-        case_dir=str(case_dir),
+        kalite=quality, case_dir=str(case_dir),
     )
     if not res.success or res.cd is None:
         base.error = (res.stderr or res.stdout)[-2000:]
@@ -642,8 +668,10 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     if aref <= 0:
         aref, aref_mode = aref_of, "lref^2 (fallback)"
     scale = aref_of / aref
-    cd = res.cd * scale
-    cl = res.cl * scale if res.cl is not None and math.isfinite(res.cl) else None
+    cd_raw = trailing_mean([h[1] for h in res.forces_history], res.cd)
+    cl_raw = trailing_mean([h[2] for h in res.forces_history], res.cl)
+    cd = cd_raw * scale
+    cl = cl_raw * scale if cl_raw is not None and math.isfinite(cl_raw) else None
     q_dyn = 0.5 * rho * velocity**2
 
     history = [(t, c * scale, (lc * scale if math.isfinite(lc) else float("nan")))
@@ -658,8 +686,10 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         w = max(2, n // 5)
         drift_pct = abs(history[-1][1] - history[-w][1]) / (abs(history[-1][1]) + 1e-12) * 100
     final_res = {f: (v[-1] if v else None) for f, v in residuals.items()}
-    res_ok = all(v is not None and v < RESIDUAL_TARGET for f, v in final_res.items()
-                 if f.startswith(("Ux", "Uy", "Uz", "p")))
+    momentum_res = {f: v for f, v in final_res.items()
+                    if f.startswith(("Ux", "Uy", "Uz", "p"))}
+    res_ok = bool(momentum_res) and all(v is not None and v < RESIDUAL_TARGET
+                                        for v in momentum_res.values())
     conv = {
         "iterasyon": n,
         "cd_drift_son20pct": round(drift_pct, 3) if drift_pct is not None else None,
@@ -705,6 +735,9 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         uyarilar.append(f"Mach {mach:.2f} > 0.3 — sıkıştırılamaz çözücü varsayımı "
                         "İHLAL; Cd sistematik hatalı. Sıkışabilir yol deneysel "
                         "(CFD_COMPRESSIBLE=1 ile açılır, kararlılık garantisiz)")
+    if ground_clearance is not None:
+        uyarilar.append(f"Zemin düzlemi aktif (clearance={ground_clearance:g} m, sabit noSlip) "
+                        "— serbest-akış DEĞİL; Cd yalnız zemin-etkili referanslarla kıyaslanır")
     if not geo["su_gecirmez"]:
         uyarilar.append("STL su geçirmez değil — snappyHexMesh toleranslı ama "
                         "kapalı yüzey önerilir")
@@ -745,15 +778,20 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                         "sürüklemesi duvar fonksiyonu sınırında; katman sayısını artırın")
     base.uyarilar = uyarilar
 
-    # Opsiyonel mesh-bağımsızlık: aynı analizi 2 daha kaba seviyede koş → 3-mesh Richardson
-    # GCI (Celik 2008, Fs=1.25). Sonuç: Cd ± GCI% + asimptotik-mi verdikti = sayısal belirsizlik.
+    # Opsiyonel mesh-bağımsızlık: aynı analizi daha kaba seviyelerde koş → 3-mesh Richardson
+    # GCI (Celik 2008, Fs=1.25); mesh_levels≥4'te ek 'cokkaba' seviye + LSR (Eça-Hoekstra)
+    # bandı — non-asimptotik/salınımlı dizide Richardson'ın veremediği dürüst U'yu verir.
     u_num_pct = None
+    u_kaynak = None
     if mesh_sensitivity:
-        from report_generator import compute_gci, gci_verdict
+        from report_generator import compute_gci, gci_verdict, least_squares_gci
         cells_fine = (meshq or {}).get("cells")
         levels = [{"ad": "ince", "cells": cells_fine, "Cd": cd}] if cells_fine else []
-        for ad, dref, ddiv, et in (("orta", 1, 2, q["end_time"]),
-                                   ("kaba", 2, 4, MESH_QUALITY["hizli"]["end_time"])):
+        kademeler = [("orta", 1, 2, q["end_time"]),
+                     ("kaba", 2, 4, MESH_QUALITY["hizli"]["end_time"])]
+        if mesh_levels >= 4:
+            kademeler.append(("cokkaba", 3, 6, MESH_QUALITY["hizli"]["end_time"]))
+        for ad, dref, ddiv, et in kademeler:
             if progress_cb:
                 progress_cb(80, f"Mesh-bağımsızlık: {ad} seviye koşusu…")
             lvl = CFDCase(
@@ -765,27 +803,41 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                 end_time=et, max_global_cells=q["max_cells"],
                 bg_cell_size=geo["lmax_m"] / max(3, q["bg_div"] - ddiv),
                 n_layers=n_layers, first_layer_thickness=case.first_layer_thickness,
-                n_processors=n_processors,
+                n_processors=n_processors, ground_clearance=ground_clearance,
             )
             r = run_cfd(lvl, run_dir, progress_callback=None)
             mq = parse_checkmesh(r.case_dir / "log.checkMesh") if r.success else {}
             if r.success and r.cd is not None and mq.get("cells"):
-                levels.append({"ad": ad, "cells": mq["cells"], "Cd": round(r.cd * scale, 5)})
+                cd_lvl = trailing_mean([h[1] for h in r.forces_history], r.cd)
+                levels.append({"ad": ad, "cells": mq["cells"], "Cd": round(cd_lvl * scale, 5)})
         levels = [lv for lv in levels if lv.get("cells")]
         levels.sort(key=lambda lv: lv["cells"])              # kaba→ince
+        def h(lv):                                           # 3B temsili hücre boyu
+            return lv["cells"] ** (-1.0 / 3.0)
         if len(levels) >= 3:
             f3, f2, f1 = levels[-3], levels[-2], levels[-1]
-            def h(lv):                                       # 3B temsili hücre boyu
-                return lv["cells"] ** (-1.0 / 3.0)
             gci = compute_gci(h(f3), h(f2), h(f1), f3["Cd"], f2["Cd"], f1["Cd"])
             base.mesh_duyarlilik = {"seviyeler": levels, "gci": gci,
                                     "verdikt": gci_verdict(gci) if gci else "hesaplanamadı"}
-            if gci:
+            lsr = (least_squares_gci([h(lv) for lv in levels], [lv["Cd"] for lv in levels])
+                   if len(levels) >= 4 else None)
+            if lsr:
+                base.mesh_duyarlilik["lsr"] = lsr
+            # U_sayısal seçimi: asimptotik GCI > LSR bandı > ham GCI (etiketiyle)
+            if gci and str(base.mesh_duyarlilik["verdikt"]).startswith("✅"):
+                u_num_pct, u_kaynak = gci["gci_fine_pct"], "GCI (3-mesh, asimptotik)"
+                base.cd_richardson = gci["f_exact"]
+            elif lsr:
+                u_num_pct, u_kaynak = lsr["u_pct"], f"LSR ({lsr['n']}-seviye; {lsr['kural']})"
+                base.cd_richardson = lsr["f_exact"]
+            elif gci:
                 u_num_pct = gci["gci_fine_pct"]
+                u_kaynak = "GCI (asimptotik DEĞİL — band güvenilirliği düşük)"
                 base.cd_richardson = gci["f_exact"]
         elif len(levels) == 2:                               # 3. seviye düştü → 2-mesh vekil-bant
             d = abs(levels[-1]["Cd"] - levels[0]["Cd"]) / (abs(levels[-1]["Cd"]) + 1e-12) * 100
             u_num_pct = round(d, 1)
+            u_kaynak = "2-mesh vekil bant"
             base.mesh_duyarlilik = {"seviyeler": levels, "fark_pct": u_num_pct,
                                     "yorum": "yalnız 2 seviye tamamlandı — vekil bant, GCI değil"}
         else:
@@ -797,7 +849,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     mu = model_uncertainty_pct(regime_of(vehicle_type, preset), wall_resolved)
     u_total = combine_uncertainty(u_num_pct, mu["u_model_pct"])
     base.belirsizlik = {
-        "u_sayisal_pct": u_num_pct,
+        "u_sayisal_pct": u_num_pct, "u_sayisal_kaynak": u_kaynak,
         "u_model_pct": mu["u_model_pct"], "model_kaynak": mu["kaynak"],
         "u_toplam_pct": u_total, "duvar_cozunur": wall_resolved,
         "rapor": (f"Cd = {cd:.4f} ± {u_total:.1f}% "
@@ -831,6 +883,8 @@ if __name__ == "__main__":
                     help="modelin üst ekseni")
     ap.add_argument("--duyarlilik", action="store_true",
                     help="ikinci (kaba) koşuyla mesh duyarlılık bandı hesapla")
+    ap.add_argument("--seviyeler", type=int, default=3, choices=(3, 4),
+                    help="duyarlılık seviye sayısı (4 = LSR bandı, non-asimptotikte de U verir)")
     ap.add_argument("--katman", type=int, default=0,
                     help="prizma sınır-tabaka katman sayısı (0=kapalı)")
     ap.add_argument("--yplus", type=float, default=30.0,
@@ -848,7 +902,7 @@ if __name__ == "__main__":
                              args.kalite, n_processors=args.islemci,
                              nose_axis=args.burun, up_axis=args.ust,
                              mesh_sensitivity=args.duyarlilik, n_layers=args.katman,
-                             yplus_target=args.yplus,
+                             mesh_levels=args.seviyeler, yplus_target=args.yplus,
                              pervane_itki_n=args.itki, pervane_cap_m=args.cap,
                              progress_cb=_cb)
     if r.status == "ok":

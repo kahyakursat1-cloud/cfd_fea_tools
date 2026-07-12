@@ -267,9 +267,16 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
     # ── Okula-güvenli geçerlilik-zarfı banner'ı (EN BAŞTA — öğrenci verdict'i İLK görsün) ──
     from validity_envelope import ALPHA_VALID_DEG, banner_md, classify_cfd, overall_class
     _mds = getattr(r, "mesh_duyarlilik", None) or {}
+    _gci_ok = bool(_mds.get("gci")) and str(_mds.get("verdikt", "")).startswith("✅")
     _verdicts = classify_cfd(r.vehicle_type, r.alpha_deg, Ma,
-                             has_gci_band=False, band_pct=_mds.get("fark_pct"))
+                             has_gci_band=_gci_ok, band_pct=_mds.get("fark_pct"))
     md.append(banner_md(_verdicts))
+    # Öğretici kutu (BİLSEM): kararların 'neden'i acemi-erişilebilir dille (mentor).
+    try:
+        from mentor import egitim_notu
+        md.append(egitim_notu({"tip": r.vehicle_type, "analiz": "tekil"}, seviye="oyg"))
+    except Exception:
+        pass
     md.append("---\n")
     try:
         r.validity = {"sinif": overall_class(_verdicts),
@@ -406,6 +413,11 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
             md.append(f"Richardson $C_D$={g['f_exact']} · gözlemlenen mertebe p={g['p']} · "
                       f"GCI_ince=**%{g['gci_fine_pct']}** · asimptotik-oran={g.get('asymptotic')}  ")
             md.append(f"→ {md_s.get('verdikt')}\n")
+            lsr = md_s.get("lsr")
+            if lsr:
+                md.append(f"**LSR (Eça-Hoekstra, {lsr['n']}-seviye):** "
+                          f"$C_D$={lsr['f_exact']} ± %{lsr['u_pct']} · p={lsr['p']} · "
+                          f"{lsr['kural']} — Richardson asimptotik değilse geçerli band budur.\n")
         elif "fark_pct" in md_s:                         # 2-mesh vekil-bant (3. seviye düştü)
             band = md_s["fark_pct"]
             md.append(f"**Mesh duyarlılık (2-seviye vekil):** ±%{band} "

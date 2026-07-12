@@ -105,14 +105,20 @@ class CFDCase:
     write_interval: int = 100
     n_processors: int = 0          # 0 = otomatik (WSL nproc, max 8)
     max_global_cells: int = 1_500_000  # snappyHexMesh hücre tavanı (RAM koruması)
+    ground_clearance: float | None = None  # m; verilirse taban = sabit noSlip zemin
+                                           # (Ahmed-tipi zemin-etkili validasyon; incompressible)
 
     @property
     def lref(self) -> float:
-        """Referans uzunluk: bbox max boyutu."""
+        """Referans uzunluk: bbox max boyutu (ilk erişimde STL'den; sonra cache)."""
+        cached = getattr(self, "_lref", None)
+        if cached is not None:
+            return cached
         m = trimesh.load(str(self.stl_path), force="mesh")
-        if not isinstance(m, trimesh.Trimesh):
-            return 1.0
-        return float((m.bounds[1] - m.bounds[0]).max())
+        val = (float((m.bounds[1] - m.bounds[0]).max())
+               if isinstance(m, trimesh.Trimesh) else 1.0)
+        self._lref = val
+        return val
 
 
 @dataclass
@@ -154,7 +160,10 @@ def _compute_domain(stl_path: Path, case: CFDCase) -> tuple[np.ndarray, np.ndarr
     dmax[0] += L * case.domain_downstream
     dmin[1] -= L * case.domain_lateral
     dmax[1] += L * case.domain_lateral
-    dmin[2] -= L * case.domain_lateral
+    if case.ground_clearance is not None:
+        dmin[2] = gmin[2] - case.ground_clearance   # taban = zemin düzlemi
+    else:
+        dmin[2] -= L * case.domain_lateral
     dmax[2] += L * case.domain_lateral
     return dmin, dmax, gmin, gmax
 
@@ -213,7 +222,7 @@ def mesh_quality_gate(checkmesh_text: str) -> dict:
 # ---------------------------------------------------------------------------
 
 def _write_block_mesh(case_dir: Path, dmin: np.ndarray, dmax: np.ndarray,
-                      cell_size: float) -> None:
+                      cell_size: float, ground: bool = False) -> None:
     nx = max(int(math.ceil((dmax[0] - dmin[0]) / cell_size)), 8)
     ny = max(int(math.ceil((dmax[1] - dmin[1]) / cell_size)), 8)
     nz = max(int(math.ceil((dmax[2] - dmin[2]) / cell_size)), 8)
@@ -236,12 +245,13 @@ def _write_block_mesh(case_dir: Path, dmin: np.ndarray, dmax: np.ndarray,
     txt += ");\n\n"
     txt += f"blocks\n(\n    hex (0 1 2 3 4 5 6 7) ({nx} {ny} {nz}) simpleGrading (1 1 1)\n);\n\n"
     txt += "edges\n(\n);\n\n"
+    bottom_type = "wall" if ground else "patch"
     txt += (
         "boundary\n(\n"
         "    inlet     { type patch; faces ((0 4 7 3)); }\n"
         "    outlet    { type patch; faces ((1 2 6 5)); }\n"
         "    top       { type patch; faces ((3 7 6 2)); }\n"
-        "    bottom    { type patch; faces ((0 1 5 4)); }\n"
+        f"    bottom    {{ type {bottom_type}; faces ((0 1 5 4)); }}\n"
         "    front     { type patch; faces ((0 3 2 1)); }\n"
         "    back      { type patch; faces ((4 5 6 7)); }\n"
         ");\n\n"
@@ -643,6 +653,7 @@ def _write_field_p_compressible(case_dir: Path, case: CFDCase, surface_name: str
 def _write_field_U(case_dir: Path, case: CFDCase, surface_name: str) -> None:
     fx, fy, fz = case.flow_direction
     Ux, Uy, Uz = (case.velocity * fx, case.velocity * fy, case.velocity * fz)
+    bottom = "{ type noSlip; }" if case.ground_clearance is not None else "{ type slip; }"
     txt = _foam_header("volVectorField", "U", "0")
     txt += (
         "dimensions      [0 1 -1 0 0 0 0];\n\n"
@@ -652,7 +663,7 @@ def _write_field_U(case_dir: Path, case: CFDCase, surface_name: str) -> None:
         "    outlet  { type inletOutlet; inletValue uniform (0 0 0); "
         f"value uniform ({Ux} {Uy} {Uz}); }}\n"
         f"    top     {{ type slip; }}\n"
-        f"    bottom  {{ type slip; }}\n"
+        f"    bottom  {bottom}\n"
         f"    front   {{ type slip; }}\n"
         f"    back    {{ type slip; }}\n"
         f"    {surface_name} {{ type noSlip; }}\n"
@@ -661,7 +672,8 @@ def _write_field_U(case_dir: Path, case: CFDCase, surface_name: str) -> None:
     (case_dir / "0" / "U").write_text(txt)
 
 
-def _write_field_p(case_dir: Path, surface_name: str) -> None:
+def _write_field_p(case_dir: Path, surface_name: str, ground: bool = False) -> None:
+    bottom = "{ type zeroGradient; }" if ground else "{ type slip; }"
     txt = _foam_header("volScalarField", "p", "0")
     txt += (
         "dimensions      [0 2 -2 0 0 0 0];\n\n"
@@ -670,7 +682,7 @@ def _write_field_p(case_dir: Path, surface_name: str) -> None:
         "    inlet   { type zeroGradient; }\n"
         "    outlet  { type fixedValue; value uniform 0; }\n"
         "    top     { type slip; }\n"
-        "    bottom  { type slip; }\n"
+        f"    bottom  {bottom}\n"
         "    front   { type slip; }\n"
         "    back    { type slip; }\n"
         f"    {surface_name} {{ type zeroGradient; }}\n"
@@ -682,6 +694,8 @@ def _write_field_p(case_dir: Path, surface_name: str) -> None:
 def _write_field_k(case_dir: Path, case: CFDCase, surface_name: str) -> None:
     I = case.turbulence_intensity
     k = 1.5 * (case.velocity * I) ** 2
+    bottom = ("{ type kqRWallFunction; value uniform 1e-10; }"
+              if case.ground_clearance is not None else "{ type slip; }")
     txt = _foam_header("volScalarField", "k", "0")
     txt += (
         "dimensions      [0 2 -2 0 0 0 0];\n\n"
@@ -690,7 +704,7 @@ def _write_field_k(case_dir: Path, case: CFDCase, surface_name: str) -> None:
         f"    inlet   {{ type fixedValue; value uniform {k:.6e}; }}\n"
         "    outlet  { type zeroGradient; }\n"
         "    top     { type slip; }\n"
-        "    bottom  { type slip; }\n"
+        f"    bottom  {bottom}\n"
         "    front   { type slip; }\n"
         "    back    { type slip; }\n"
         f"    {surface_name} {{ type kqRWallFunction; value uniform 1e-10; }}\n"
@@ -705,6 +719,8 @@ def _write_field_omega(case_dir: Path, case: CFDCase, surface_name: str, lref: f
     Cmu = 0.09
     l = 0.07 * lref
     omega = (k ** 0.5) / (Cmu ** 0.25 * l)
+    bottom = (f"{{ type omegaWallFunction; value uniform {omega:.6e}; }}"
+              if case.ground_clearance is not None else "{ type slip; }")
     txt = _foam_header("volScalarField", "omega", "0")
     txt += (
         "dimensions      [0 0 -1 0 0 0 0];\n\n"
@@ -713,7 +729,7 @@ def _write_field_omega(case_dir: Path, case: CFDCase, surface_name: str, lref: f
         f"    inlet   {{ type fixedValue; value uniform {omega:.6e}; }}\n"
         "    outlet  { type zeroGradient; }\n"
         "    top     { type slip; }\n"
-        "    bottom  { type slip; }\n"
+        f"    bottom  {bottom}\n"
         "    front   { type slip; }\n"
         "    back    { type slip; }\n"
         f"    {surface_name} {{ type omegaWallFunction; value uniform {omega:.6e}; }}\n"
@@ -722,7 +738,9 @@ def _write_field_omega(case_dir: Path, case: CFDCase, surface_name: str, lref: f
     (case_dir / "0" / "omega").write_text(txt)
 
 
-def _write_field_nut(case_dir: Path, surface_name: str) -> None:
+def _write_field_nut(case_dir: Path, surface_name: str, ground: bool = False) -> None:
+    bottom = ("{ type nutUSpaldingWallFunction; value uniform 0; }"
+              if ground else "{ type slip; }")
     txt = _foam_header("volScalarField", "nut", "0")
     txt += (
         "dimensions      [0 2 -1 0 0 0 0];\n\n"
@@ -731,7 +749,7 @@ def _write_field_nut(case_dir: Path, surface_name: str) -> None:
         "    inlet   { type calculated; value uniform 0; }\n"
         "    outlet  { type calculated; value uniform 0; }\n"
         "    top     { type slip; }\n"
-        "    bottom  { type slip; }\n"
+        f"    bottom  {bottom}\n"
         "    front   { type slip; }\n"
         "    back    { type slip; }\n"
         f"    {surface_name} {{ type nutUSpaldingWallFunction; value uniform 0; }}\n"
@@ -771,7 +789,8 @@ def build_case(case: CFDCase, out_dir: Path) -> Path:
     cz = (gmin[2] + gmax[2]) * 0.5
     inside_pt = (cx + L * 2.0, cy + L * 0.1, cz + L * 0.1)
 
-    _write_block_mesh(case_dir, dmin, dmax, cell_size)
+    ground = case.ground_clearance is not None
+    _write_block_mesh(case_dir, dmin, dmax, cell_size, ground=ground)
     _write_snappy(case_dir, stl_name, surface_name, inside_pt, case)
     _write_surface_features(case_dir, stl_name)
     lref = L
@@ -796,10 +815,10 @@ def build_case(case: CFDCase, out_dir: Path) -> Path:
         _write_field_T(case_dir, case, surface_name)
         _write_field_alphat(case_dir, surface_name)
     else:
-        _write_field_p(case_dir, surface_name)
+        _write_field_p(case_dir, surface_name, ground=ground)
     _write_field_k(case_dir, case, surface_name)
     _write_field_omega(case_dir, case, surface_name, lref)
-    _write_field_nut(case_dir, surface_name)
+    _write_field_nut(case_dir, surface_name, ground=ground)
 
     if case.propeller:
         _write_propeller(case_dir, case.propeller, gmin, gmax, cell_size)

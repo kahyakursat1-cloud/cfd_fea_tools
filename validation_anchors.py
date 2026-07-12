@@ -33,6 +33,14 @@ ANCHORS = {
         "Cd": 0.285, "regime": "bluff", "Re": "~1e6",
         "aref": "frontal", "ref": "Ahmed et al. 1984; Meile et al. 2011",
     },
+    "cube": {
+        "Cd": 1.05, "regime": "bluff", "Re": ">1e4 (keskin-kenar, Re-duyarsız)",
+        "aref": "frontal", "ref": "Hoerner, Fluid-Dynamic Drag (1965)",
+    },
+    "disk": {
+        "Cd": 1.17, "regime": "bluff", "Re": ">1e3 (keskin-kenar, Re-duyarsız)",
+        "aref": "frontal", "ref": "Hoerner, Fluid-Dynamic Drag (1965)",
+    },
 }
 
 # Rejim × duvar-çözünürlüğü → RANS-SST tipik model belirsizliği (%, 1σ mertebesi).

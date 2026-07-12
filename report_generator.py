@@ -49,8 +49,24 @@ def compute_gci(h_coarse, h_med, h_fine, f_coarse, f_med, f_fine, Fs=1.25):
     if abs(e21) < 1e-15 or abs(e32) < 1e-15:
         return None
     monotonic = (e32 / e21) > 0
-    # Sabit r icin: p = ln|e32/e21| / ln(r)
+    # Sabit-r baslangic kestirimi: p = ln|e32/e21| / ln(r21)
     p = math.log(abs(e32 / e21)) / math.log(r21)
+    if abs(r21 - r32) > 1e-6 * r21:
+        # Degisken r: Celik (2008) sabit-nokta iterasyonu (r21==r32'de q=0, ayni sonuc)
+        s = 1.0 if monotonic else -1.0
+        p0 = p
+        try:
+            for _ in range(50):
+                q = math.log((r21 ** p - s) / (r32 ** p - s))
+                p_new = abs(math.log(abs(e32 / e21)) + q) / math.log(r21)
+                if abs(p_new - p) < 1e-8:
+                    p = p_new
+                    break
+                p = p_new
+        except (ValueError, ZeroDivisionError, OverflowError):
+            p = p0
+    if abs(r21 ** p - 1) < 1e-15 or abs(r32 ** p - 1) < 1e-15:
+        return None
     f_exact = f_fine + e21 / (r21 ** p - 1)
     gci_fine = Fs * abs(e21 / f_fine) / (r21 ** p - 1) * 100
     gci_med = Fs * abs(e32 / f_med) / (r32 ** p - 1) * 100
@@ -61,6 +77,84 @@ def compute_gci(h_coarse, h_med, h_fine, f_coarse, f_med, f_fine, Fs=1.25):
         "monotonic": monotonic,
         "p_in_range": P_RANGE[0] <= p <= P_RANGE[1],
     }
+
+
+def least_squares_gci(h_list, f_list):
+    """Eça & Hoekstra (2014, JCP 262:104-130) LSR yönteminin basitleştirilmiş uygulaması:
+    ≥4 mesh çözümüne f = f0 + α·hᵖ açılımı EN-KÜÇÜK-KARELER ile oturtulur; belirsizlik,
+    gözlemlenen mertebe p ve fit kalitesine (σ) bağlı emniyet faktörüyle verilir.
+
+    3-nokta Richardson'ın (compute_gci) çözemediği durumların literatürdeki cevabı:
+    - non-asimptotik p (bu projede kronik: O-grid Cd p≈0.2, roket p'de GCI %103),
+    - salınımlı yakınsama (Celik'in eksi-işaret hilesinin matematiksel temeli yok),
+    - veri gürültüsü (tek üçlü yerine tüm seviyeler kullanılır).
+    Tam prosedür 4 açılım + ağırlıklı fit içerir; burada serbest-p + sabit p=1/p=2
+    açılımları ve E&H emniyet-faktörü mantığı uygulanır (kural alanında belgelenir).
+
+    Kurallar (E&H §3, basitleştirilmiş):
+      monotonik & 0.5≤p≤2.1 & iyi-fit → U = 1.25·|δ_RE| + σ        (standart GCI'ye iner)
+      monotonik & p>2.1 (süper-yakınsak) → p=2 sabit fit, U = 1.25·|δ₂| + σ₂ + |f0−f0₂|
+      monotonik & p<0.5 (asimptotik-altı) → ekstrapolasyon YOK; f0=f_ince, U = 3·Δ_M + σ
+        (p→0'da fit dejenere: h^p sütunu ~sabit → δ_RE/f0 anlamsız, ekstrapole edilmez)
+      salınımlı/karışık → ekstrapolasyon YOK; f0 = f_ince, U = 3·Δ_M
+    Δ_M = max|f_i − f_j| (tüm seviye çiftleri). Döner: dict (yontem, n, p, f_exact,
+    u_abs, u_pct, sigma_abs, convergence, kural, guvenilir) | None (n<4 / dejenere).
+    NOT: 'guvenilir' = belirsizlik KESTİRİMİ güvenilir (standart dal) demektir; band
+    yine de geniş olabilir (u_pct büyükse dürüst cevap 'mesh yakınsamamış'tır)."""
+    h = np.asarray(h_list, float)
+    f = np.asarray(f_list, float)
+    if len(h) < 4 or len(h) != len(f):
+        return None
+    order = np.argsort(h)                       # ince → kaba
+    h, f = h[order], f[order]
+    f_fine = float(f[0])
+    delta_m = float(np.max(np.abs(f[:, None] - f[None, :])))
+    if delta_m < 1e-15:
+        return None
+
+    diffs = np.diff(f[::-1])                    # kaba→ince ardışık değişimler
+    signs = np.sign(diffs[np.abs(diffs) > 1e-15])
+    if len(signs) and np.all(signs == signs[0]):
+        convergence = "monotonic"
+    elif len(signs) >= 2 and np.all(signs[:-1] * signs[1:] < 0):
+        convergence = "oscillatory"
+    else:
+        convergence = "mixed"
+
+    def _fit(p):
+        A = np.column_stack([np.ones_like(h), h ** p])
+        coef, *_ = np.linalg.lstsq(A, f, rcond=None)
+        resid = f - A @ coef
+        dof = max(len(h) - 2, 1)
+        return float(coef[0]), float(coef[1]), float(np.sqrt(np.sum(resid ** 2) / dof))
+
+    p_grid = np.arange(0.05, 4.001, 0.01)
+    fits = [(_fit(p), p) for p in p_grid]
+    (f0, alpha, sigma), p_best = min(fits, key=lambda t: t[0][2])
+    delta_re = alpha * h[0] ** p_best           # ince mesh'teki kestirilen hata
+
+    if convergence == "monotonic" and 0.5 <= p_best <= 2.1 and sigma <= abs(delta_m):
+        u = 1.25 * abs(delta_re) + sigma
+        f_exact, kural, guvenilir = f0, "standart (0.5≤p≤2.1, iyi fit): U=1.25|δ|+σ", True
+    elif convergence == "monotonic" and p_best > 2.1:
+        f02, a2, s2 = _fit(2.0)
+        u = 1.25 * abs(a2 * h[0] ** 2) + s2 + abs(f0 - f02)
+        f_exact, kural, guvenilir = f02, "süper-yakınsak (p>2.1): p=2 sabit, U=1.25|δ₂|+σ₂+|Δf0|", False
+    elif convergence == "monotonic":
+        # p→0'da h^p sütunu ~sabit → fit dejenere, f0/δ_RE anlamsız (Ahmed vakası:
+        # f_exact=-7.8 patlaması). Asimptotik-altında EKSTRAPOLASYON YOK: veri-aralığı bandı.
+        u = 3.0 * delta_m + sigma
+        f_exact, kural, guvenilir = f_fine, "asimptotik-altı (p<0.5): ekstrapolasyon yok, U=3·Δ_M+σ", False
+    else:
+        u = 3.0 * delta_m
+        f_exact, kural, guvenilir = f_fine, "salınımlı/karışık: ekstrapolasyon yok, U=3·Δ_M", False
+
+    ref = max(abs(f_fine), 1e-15)
+    return {"yontem": "LSR (Eça-Hoekstra 2014, basitleştirilmiş)", "n": int(len(h)),
+            "p": round(float(p_best), 3), "f_exact": round(float(f_exact), 6),
+            "u_abs": round(float(u), 6), "u_pct": round(float(u / ref * 100), 2),
+            "sigma_abs": round(sigma, 6), "convergence": convergence,
+            "kural": kural, "guvenilir": guvenilir}
 
 
 def _fea_val_error_pct(d):
