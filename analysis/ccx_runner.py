@@ -13,7 +13,9 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-WSL_DISTRO = "Ubuntu-22.04"
+from .backend import WSL_DISTRO, linux_argv  # arka uç seçici (wsl|docker)
+
+__all__ = ["WSL_DISTRO", "CCXResult", "windows_to_wsl_path", "run_ccx"]
 
 
 @dataclass
@@ -66,11 +68,7 @@ def run_ccx(inp_path: Path, timeout: int = 1800,
         progress_callback(5, "ccx çalıştırılıyor (WSL)...")
 
     # ccx -i jobname  (uzantısız!)
-    cmd = [
-        "wsl", "-d", WSL_DISTRO, "--",
-        "bash", "-c",
-        f"cd '{wsl_dir}' && ccx -i {job_name} 2>&1",
-    ]
+    cmd = linux_argv(f"cd '{wsl_dir}' && ccx -i {job_name} 2>&1")
 
     try:
         result = subprocess.run(

@@ -36,31 +36,35 @@ import trimesh
 
 
 def _default_processors() -> int:
-    """CFD için optimal MPI rank sayısı = FİZİKSEL çekirdek (Windows host değil, WSL).
+    """CFD için optimal MPI rank sayısı = FİZİKSEL çekirdek (host değil, arka uç).
 
     Open MPI fiziksel çekirdeği 'slot' sayar; mantıksal (hyperthread) sayısı verirsek
     'not enough slots' hatası. Ayrıca CFD bellek-bant sınırlı → hyperthread ~fayda yok.
     `lscpu -p=Core` benzersiz çekirdek = fiziksel. .wslconfig sınırını da yansıtır.
     """
     try:
-        r = subprocess.run(
-            ["wsl", "-d", "Ubuntu-22.04", "--", "bash", "-c",
-             "lscpu -p=Core 2>/dev/null | grep -v '^#' | sort -u | wc -l"],
-            capture_output=True, text=True, timeout=15,
-        )
+        from .backend import linux_run as _lr
+        r = _lr("lscpu -p=Core 2>/dev/null | grep -v '^#' | sort -u | wc -l", 15)
         n = int(r.stdout.strip())
         if n < 1:
             raise ValueError
         return max(1, min(n, 8))           # pratik tavan 8 (bellek koruması)
     except Exception:
         try:
-            r = subprocess.run(["wsl", "-d", "Ubuntu-22.04", "--", "nproc"],
-                               capture_output=True, text=True, timeout=15)
+            from .backend import linux_run as _lr
+            r = _lr("nproc", 15)
             return max(1, min(int(r.stdout.strip()) // 2, 8))   # mantıksal/2 ≈ fiziksel
         except Exception:
             return max(1, (os.cpu_count() or 4) // 2)
 
-from .ccx_runner import WSL_DISTRO, windows_to_wsl_path  # noqa: E402
+from .backend import (  # noqa: E402
+    WSL_DISTRO,  # geriye-uyum: supersonic_cfd vb. buradan içe aktarır
+    ext4_enabled,
+    linux_home,
+    linux_popen,
+    linux_run,
+)
+from .ccx_runner import windows_to_wsl_path  # noqa: E402
 
 # OpenFOAM 11 (Foundation) bashrc
 OF_BASHRC = "/opt/openfoam11/etc/bashrc"
@@ -881,12 +885,9 @@ def _write_propeller(case_dir: Path, prop: dict, gmin, gmax, bg_cell: float):
 
 
 def _wsl_run(wsl_dir: str, command: str, timeout: int) -> subprocess.CompletedProcess:
-    """OF environment ile birlikte WSL'de bir komut çalıştır."""
+    """OF environment ile seçili Linux arka ucunda (wsl|docker) komut çalıştır."""
     full = f"{OF_ENV_PREFIX}cd '{wsl_dir}' && {command}"
-    return subprocess.run(
-        ["wsl", "-d", WSL_DISTRO, "--", "bash", "-c", full],
-        capture_output=True, text=True, timeout=timeout,
-    )
+    return linux_run(full, timeout)
 
 
 # Uzun-koşan OF binary'leri: timeout/iptal'de WSL-içi orphan bırakmamak için
@@ -939,8 +940,7 @@ def _wsl_kill(patterns) -> None:
         return
     cmd = "; ".join(f"pkill -9 -f {p} 2>/dev/null" for p in patterns) + "; true"
     try:
-        subprocess.run(["wsl", "-d", WSL_DISTRO, "--", "bash", "-c", cmd],
-                       capture_output=True, text=True, timeout=30)
+        linux_run(cmd, 30)
     except Exception:
         pass
 
@@ -954,6 +954,36 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
     all_stdout = []
     all_stderr = []
 
+    # ext4 modu (CFD_EXT4=1, yalnız wsl): case çözüm süresince Linux-yerli diskte koşar —
+    # drvfs(9p) paralel-yazım çökmesini (küre I/O vakası) kökten çözer + belirgin hız.
+    # Solver bitince/başarısızlıkta içerik Windows tarafına geri kopyalanır.
+    ext4 = ext4_enabled()
+    exec_dir = wsl_dir
+    if ext4:
+        _home = linux_home()
+        exec_dir = f"{_home}/cfd_runs/{case.name}"
+        try:
+            prep = linux_run(f"rm -rf '{exec_dir}' && mkdir -p '{_home}/cfd_runs' && "
+                             f"cp -a '{wsl_dir}' '{exec_dir}'", 900)
+            if prep.returncode != 0:
+                raise RuntimeError(prep.stderr[-200:])
+        except Exception as e:
+            all_stderr.append(f"ext4 hazırlık başarısız — drvfs'te koşuluyor: {e}")
+            exec_dir, ext4 = wsl_dir, False
+
+    def _copy_back():
+        nonlocal ext4
+        if ext4:
+            try:
+                linux_run(f"cp -a '{exec_dir}/.' '{wsl_dir}/' && rm -rf '{exec_dir}'", 1800)
+            except Exception as e:
+                all_stderr.append(f"ext4 geri-kopyalama hatası: {e}")
+            ext4 = False
+
+    def _ret(res_obj):
+        _copy_back()
+        return res_obj
+
     def _step(percent: int, msg: str, command: str, log_name: str,
               tmo: int) -> subprocess.CompletedProcess | None:
         if progress_callback:
@@ -962,7 +992,7 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
         # (Windows-tarafı tmo backstop, biraz daha yüksek). Orphan'ı kökten önler.
         wrapped, bins = _wrap_timeout(command, tmo)
         try:
-            r = _wsl_run(wsl_dir, wrapped + f" > {log_name} 2>&1", timeout=tmo)
+            r = _wsl_run(exec_dir, wrapped + f" > {log_name} 2>&1", timeout=tmo)
         except subprocess.TimeoutExpired as e:
             all_stderr.append(f"TIMEOUT in {log_name}: {e}")
             _wsl_kill(bins)            # Windows-tarafı aşımı: WSL orphan'larını öldür
@@ -981,14 +1011,19 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
         if progress_callback:
             progress_callback(70, msg)
         wrapped, bins = _wrap_timeout(command, tmo)
-        full = f"{OF_ENV_PREFIX}cd '{wsl_dir}' && {wrapped} > log.foamRun 2>&1"
-        proc = subprocess.Popen(["wsl", "-d", WSL_DISTRO, "--", "bash", "-c", full],
-                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        full = f"{OF_ENV_PREFIX}cd '{exec_dir}' && {wrapped} > log.foamRun 2>&1"
+        proc = linux_popen(full)
         t0 = time.time(); early = False; n_iter = 0
         while proc.poll() is None:
             time.sleep(12)
             try:
-                hist = parse_force_coeffs(case_dir)[3]
+                if ext4:
+                    txt = _wsl_run(exec_dir, "cat postProcessing/forceCoeffs1/*/"
+                                             "coefficient.dat 2>/dev/null || true",
+                                   timeout=30).stdout
+                    hist = parse_force_coeffs_text(txt)[3]
+                else:
+                    hist = parse_force_coeffs(case_dir)[3]
             except Exception:
                 hist = []
             n_iter = len(hist)
@@ -1011,51 +1046,56 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
     # 1) surfaceFeatures
     r = _step(10, "surfaceFeatures...", "surfaceFeatures", "log.surfaceFeatures", 120)
     if r is None or r.returncode != 0:
-        return CFDResult(case_dir=case_dir, success=False,
-                         return_code=-1 if r is None else r.returncode,
-                         stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
-                         log_files=log_files)
+        return _ret(CFDResult(case_dir=case_dir, success=False,
+                              return_code=-1 if r is None else r.returncode,
+                              stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
+                              log_files=log_files))
 
     # 2) blockMesh
     r = _step(20, "blockMesh...", "blockMesh", "log.blockMesh", 120)
     if r is None or r.returncode != 0:
-        return CFDResult(case_dir=case_dir, success=False,
-                         return_code=-1 if r is None else r.returncode,
-                         stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
-                         log_files=log_files)
+        return _ret(CFDResult(case_dir=case_dir, success=False,
+                              return_code=-1 if r is None else r.returncode,
+                              stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
+                              log_files=log_files))
 
     # 3) snappyHexMesh
     r = _step(40, "snappyHexMesh (mesh adapsiyonu, en uzun adım)...",
               "snappyHexMesh -overwrite", "log.snappyHexMesh", 1800)
     if r is None or r.returncode != 0:
-        return CFDResult(case_dir=case_dir, success=False,
-                         return_code=-1 if r is None else r.returncode,
-                         stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
-                         log_files=log_files)
+        return _ret(CFDResult(case_dir=case_dir, success=False,
+                              return_code=-1 if r is None else r.returncode,
+                              stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
+                              log_files=log_files))
 
     # 4) checkMesh (uyarılar normal, başarısızlık değil)
     _step(55, "checkMesh...", "checkMesh", "log.checkMesh", 300)
 
     # 4-gate) Mesh-kalite ön-geçidi: reject-kalite mesh'i ÇÖZÜCÜDEN ÖNCE ele
     # (negatif hacim / aşırı non-ortho-skew → çözücü saatlerce diverjyor/timeout).
-    cm = case_dir / "log.checkMesh"
-    if cm.exists():
-        mq = mesh_quality_gate(cm.read_text(errors="ignore"))
+    if ext4:
+        cm_txt = _wsl_run(exec_dir, "cat log.checkMesh 2>/dev/null || true",
+                          timeout=60).stdout
+    else:
+        cm = case_dir / "log.checkMesh"
+        cm_txt = cm.read_text(errors="ignore") if cm.exists() else ""
+    if cm_txt:
+        mq = mesh_quality_gate(cm_txt)
         if mq["verdict"] == "reject":
             all_stderr.append("Mesh kalitesiz, çözücüye GÖNDERİLMEDİ: "
                               + "; ".join(mq["reasons"]))
-            return CFDResult(case_dir=case_dir, success=False, return_code=-2,
-                             stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
-                             log_files=log_files)
+            return _ret(CFDResult(case_dir=case_dir, success=False, return_code=-2,
+                                  stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
+                                  log_files=log_files))
 
     # 4b) topoSet (varsa — pervane diski cellSet'i vb.)
     if (case_dir / "system" / "topoSetDict").exists():
         r = _step(57, "topoSet (pervane diski)...", "topoSet", "log.topoSet", 300)
         if r is None or r.returncode != 0:
-            return CFDResult(case_dir=case_dir, success=False,
-                             return_code=-1 if r is None else r.returncode,
-                             stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
-                             log_files=log_files)
+            return _ret(CFDResult(case_dir=case_dir, success=False,
+                                  return_code=-1 if r is None else r.returncode,
+                                  stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
+                                  log_files=log_files))
 
     # 5) Solver: foamRun (OF 11) — çok işlemcili
     n = case.n_processors
@@ -1076,18 +1116,18 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
         r = _step(60, f"decomposePar ({n} işlemci)...",
                   "decomposePar -force", "log.decomposePar", 300)
         if r is None or r.returncode != 0:
-            return CFDResult(case_dir=case_dir, success=False,
-                             return_code=-1 if r is None else r.returncode,
-                             stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
-                             log_files=log_files)
+            return _ret(CFDResult(case_dir=case_dir, success=False,
+                                  return_code=-1 if r is None else r.returncode,
+                                  stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
+                                  log_files=log_files))
         # Paralel foamRun + CANLI Cd-yakınsama erken-durdurma (4 çekirdek × erken-stop)
         rc = _foam_run_early_stop(
             f"mpirun --oversubscribe -np {n} foamRun -parallel",
             max(timeout - 600, 600), f"foamRun (paralel SIMPLE, {n} çekirdek, Cd-izlemeli)...")
         if rc != 0:
-            return CFDResult(case_dir=case_dir, success=False, return_code=rc,
-                             stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
-                             log_files=log_files)
+            return _ret(CFDResult(case_dir=case_dir, success=False, return_code=rc,
+                                  stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
+                                  log_files=log_files))
         _step(95, "reconstructPar...", "reconstructPar -latestTime",
               "log.reconstructPar", 600)
     else:
@@ -1097,9 +1137,12 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
         rc = _foam_run_early_stop("foamRun", max(timeout - 600, 600),
                                   "foamRun (seri SIMPLE, Cd-yakınsama izlemeli)...")
         if rc != 0:
-            return CFDResult(case_dir=case_dir, success=False, return_code=rc,
-                             stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
-                             log_files=log_files)
+            return _ret(CFDResult(case_dir=case_dir, success=False, return_code=rc,
+                                  stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
+                                  log_files=log_files))
+
+    # Çözücü bitti → ext4 içeriği Windows tarafına al (diverjans/parse yerel dosyadan)
+    _copy_back()
 
     # Diverjans bekçisi: solver returncode 0 olsa bile NaN/inf üretmiş olabilir
     # (timeout'a kadar koşup ıraksar). Garbage sonucu BAŞARILI sayma.
@@ -1125,49 +1168,51 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
     )
 
 
+def parse_force_coeffs_text(text: str) -> tuple[float | None, float | None,
+                                                float | None,
+                                                list[tuple[int, float, float, float]]]:
+    """coefficient.dat İÇERİĞİNİ parse et (ext4/uzak arka uçta canlı izleme için
+    dosyasız sürüm). Returns: (Cd_son, Cl_son, Cm_son, [(iter, Cd, Cl, Cm), ...])"""
+    history: list[tuple[int, float, float, float]] = []
+    cd_idx = cl_idx = cm_idx = None
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith("#"):
+            # Header satırı: # Time Cd Cs Cl ... formatı değişebilir
+            if "Cd" in line or "Cm" in line:
+                parts = line.lstrip("#").split()
+                for i, p in enumerate(parts):
+                    if p == "Cd":
+                        cd_idx = i
+                    elif p == "Cl":
+                        cl_idx = i
+                    elif p == "Cm":
+                        cm_idx = i
+            continue
+        parts = line.split()
+        try:
+            t = int(float(parts[0]))
+            cd = float(parts[cd_idx]) if cd_idx is not None and cd_idx < len(parts) else float("nan")
+            cl = float(parts[cl_idx]) if cl_idx is not None and cl_idx < len(parts) else float("nan")
+            cm = float(parts[cm_idx]) if cm_idx is not None and cm_idx < len(parts) else float("nan")
+            history.append((t, cd, cl, cm))
+        except (ValueError, IndexError):
+            continue
+    if not history:
+        return None, None, None, history
+    _, cd, cl, cm = history[-1]
+    return cd, cl, cm, history
+
+
 def parse_force_coeffs(case_dir: Path) -> tuple[float | None, float | None,
                                                   float | None,
                                                   list[tuple[int, float, float, float]]]:
-    """postProcessing/forceCoeffs1/0/coefficient.dat'ı parse et.
-
-    Returns: (Cd_son, Cl_son, Cm_son, [(iter, Cd, Cl, Cm), ...])
-    """
+    """postProcessing/forceCoeffs1/0/coefficient.dat'ı parse et."""
     candidates = list((case_dir / "postProcessing" / "forceCoeffs1").glob("*/coefficient.dat"))
     if not candidates:
         candidates = list((case_dir / "postProcessing" / "forceCoeffs1").glob("*/forceCoeffs.dat"))
     if not candidates:
         return None, None, None, []
-
-    history: list[tuple[int, float, float, float]] = []
-    cd_idx = cl_idx = cm_idx = None
-    with candidates[0].open() as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            if line.startswith("#"):
-                # Header satırı: # Time Cd Cs Cl ... formatı değişebilir
-                if "Cd" in line or "Cm" in line:
-                    parts = line.lstrip("#").split()
-                    for i, p in enumerate(parts):
-                        if p == "Cd":
-                            cd_idx = i
-                        elif p == "Cl":
-                            cl_idx = i
-                        elif p == "Cm":
-                            cm_idx = i
-                continue
-            parts = line.split()
-            try:
-                t = int(float(parts[0]))
-                cd = float(parts[cd_idx]) if cd_idx is not None and cd_idx < len(parts) else float("nan")
-                cl = float(parts[cl_idx]) if cl_idx is not None and cl_idx < len(parts) else float("nan")
-                cm = float(parts[cm_idx]) if cm_idx is not None and cm_idx < len(parts) else float("nan")
-                history.append((t, cd, cl, cm))
-            except (ValueError, IndexError):
-                continue
-
-    if not history:
-        return None, None, None, history
-    _, cd, cl, cm = history[-1]
-    return cd, cl, cm, history
+    return parse_force_coeffs_text(candidates[0].read_text(errors="ignore"))
