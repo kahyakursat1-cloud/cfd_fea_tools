@@ -585,7 +585,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                          nose_axis="+x", up_axis="+z",
                          mesh_sensitivity=False, n_layers=0, yplus_target=30.0,
                          pervane_itki_n=0.0, pervane_cap_m=0.0,
-                         ground_clearance=None, mesh_levels=3,
+                         ground_clearance=None, mesh_levels=3, refinement_regions=None,
                          progress_cb=None) -> VehicleAnalysisResult:
     stl_path = Path(stl_path)
     stem = stl_path.stem
@@ -646,6 +646,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         compressible=compressible,
         n_processors=n_processors,
         ground_clearance=ground_clearance,
+        refinement_regions=refinement_regions,
     )
     res = run_cfd(case, run_dir, progress_callback=progress_cb)
     case_dir = res.case_dir
@@ -804,6 +805,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                 bg_cell_size=geo["lmax_m"] / max(3, q["bg_div"] - ddiv),
                 n_layers=n_layers, first_layer_thickness=case.first_layer_thickness,
                 n_processors=n_processors, ground_clearance=ground_clearance,
+                refinement_regions=refinement_regions,
             )
             r = run_cfd(lvl, run_dir, progress_callback=None)
             mq = parse_checkmesh(r.case_dir / "log.checkMesh") if r.success else {}

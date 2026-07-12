@@ -63,6 +63,21 @@ def test_build_case_free_air_bottom_slip(tmp_path):
     assert "bottom  { type slip; }" in (case_dir / "0" / "U").read_text()
 
 
+def test_build_case_refinement_regions(tmp_path):
+    # Hedefli bölge-refinement: searchableBox geometry'ye + inside-mode refinementRegions'a
+    rr = [{"ad": "izBolgesi", "min": (0.1, -0.05, -0.05), "max": (0.4, 0.05, 0.05), "level": 3}]
+    case_dir = build_case(_box_case(tmp_path, refinement_regions=rr), tmp_path / "out")
+    snappy = (case_dir / "system" / "snappyHexMeshDict").read_text()
+    assert "izBolgesi { type searchableBox; min (0.100000 -0.050000 -0.050000)" in snappy
+    assert "izBolgesi { mode inside; levels ((1e15 3)); }" in snappy
+
+
+def test_build_case_no_regions_writes_empty_block(tmp_path):
+    snappy = (build_case(_box_case(tmp_path), tmp_path / "out2")
+              / "system" / "snappyHexMeshDict").read_text()
+    assert "refinementRegions" in snappy and "searchableBox" not in snappy
+
+
 def test_build_case_ground_plane(tmp_path):
     # Ahmed-tipi zemin: taban wall + noSlip + duvar fonksiyonları; domain tabanı clearance'ta
     case_dir = build_case(_box_case(tmp_path, ground_clearance=0.02), tmp_path / "out")

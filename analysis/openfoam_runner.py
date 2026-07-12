@@ -107,6 +107,10 @@ class CFDCase:
     max_global_cells: int = 1_500_000  # snappyHexMesh hücre tavanı (RAM koruması)
     ground_clearance: float | None = None  # m; verilirse taban = sabit noSlip zemin
                                            # (Ahmed-tipi zemin-etkili validasyon; incompressible)
+    refinement_regions: list | None = None # hedefli bölge-refinement kutuları:
+                                           # [{"ad", "min":(x,y,z), "max":(x,y,z), "level"}]
+                                           # (gövde-altı/iz gibi yüzeyden-uzak kritik bölgeler;
+                                           # max_global_cells tavanı yine geçerli)
 
     @property
     def lref(self) -> float:
@@ -269,6 +273,7 @@ def _write_snappy(case_dir: Path, stl_name: str, surface_name: str,
         "snap            true;\n"
         f"addLayers       {'true' if case.n_layers > 0 else 'false'};\n\n"
     )
+    rregions = case.refinement_regions or []
     txt += (
         "geometry\n{\n"
         f"    {stl_name}\n"
@@ -276,8 +281,16 @@ def _write_snappy(case_dir: Path, stl_name: str, surface_name: str,
         "        type triSurfaceMesh;\n"
         f"        name {surface_name};\n"
         "    }\n"
-        "}\n\n"
     )
+    for rr in rregions:
+        mn, mx = rr["min"], rr["max"]
+        txt += (f"    {rr['ad']} {{ type searchableBox; "
+                f"min ({mn[0]:.6f} {mn[1]:.6f} {mn[2]:.6f}); "
+                f"max ({mx[0]:.6f} {mx[1]:.6f} {mx[2]:.6f}); }}\n")
+    txt += "}\n\n"
+    rregion_txt = "".join(
+        f"        {rr['ad']} {{ mode inside; levels ((1e15 {int(rr['level'])})); }}\n"
+        for rr in rregions)
     txt += (
         "castellatedMeshControls\n{\n"
         f"    maxLocalCells       {max_local};\n"
@@ -295,7 +308,7 @@ def _write_snappy(case_dir: Path, stl_name: str, surface_name: str,
         "            patchInfo { type wall; }\n"
         "        }\n"
         "    }\n"
-        "    refinementRegions {}\n"
+        "    refinementRegions\n    {\n" + rregion_txt + "    }\n"
         f"    locationInMesh ({inside_pt[0]:.6f} {inside_pt[1]:.6f} {inside_pt[2]:.6f});\n"
         "    allowFreeStandingZoneFaces true;\n"
         "    resolveFeatureAngle 30;\n"

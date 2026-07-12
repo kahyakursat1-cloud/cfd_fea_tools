@@ -68,15 +68,25 @@ def disk_body() -> trimesh.Trimesh:
 # küp/disk keskin-kenarlı, Re-duyarsız → varsayılan hız.
 _GEOM = {
     # cube: y⁺-hedef 1 katmanları keskin kenarda KISMÎ çöküyordu (ölçülen y⁺=68) →
-    # seviyeler arası tutarsız duvar davranışı diziyi karıştırıyor; katmansız hassas_nl
-    # ile her seviye aynı duvar-fonksiyonu rejiminde (keskin-kenar ayrılması geometri-sabit).
+    # katmansız hassas_nl (v4'te Cd tekrarlanabilir oldu ama dizi mixed kaldı) + v5:
+    # yakın-iz kutusu (ayrılma-bölgesi çözünürlüğü — mixed dizinin kalan şüphelisi).
+    # Kutu bütçesi: 0.2×0.14×0.14 m³ @ L2 (2.8mm) ≈ 180k hücre (tavan 2.5M içinde).
     "cube": (lambda: trimesh.creation.box(extents=(0.1, 0.1, 0.1)), "genel",
-             {"quality": "hassas_nl"}),
+             {"quality": "hassas_nl",
+              "refinement_regions": [
+                  {"ad": "izBolgesi", "min": (0.05, -0.07, -0.07),
+                   "max": (0.25, 0.07, 0.07), "level": 2}]}),
     "disk": (disk_body, "genel", {}),
-    # ahmed: y⁺=1 hedefi zemin+keskin-kenarda örülemedi (ölçülen y⁺=5240, tam çökme) →
-    # erişilebilir duvar-fonksiyonu hedefi (8 katman, y⁺=30; Ahmed RANS literatür standardı).
+    # ahmed: katmanlar y⁺=30 hedefiyle DE örülmedi (v4: y⁺=5238; ilk-katman/yüzey-hücresi
+    # ~0.01 — snappy kalınlık-kısıtı). v5: bütçe gövde-altı boşluğa + yakın-ize yığılır:
+    # gap kutusu L4 (7.3mm → 50mm boşlukta ~7 hücre) ≈160k, iz kutusu L3 ≈85k.
     "ahmed_25": (ahmed_body, "genel", {"velocity": 40.0, "ground_clearance": 0.05,
-                                       "n_layers": 8, "yplus_target": 30.0}),
+                                       "n_layers": 8, "yplus_target": 30.0,
+                                       "refinement_regions": [
+                                           {"ad": "altBosluk", "min": (-0.05, -0.22, -0.051),
+                                            "max": (1.10, 0.22, 0.07), "level": 4},
+                                           {"ad": "yakinIz", "min": (1.04, -0.30, -0.051),
+                                            "max": (2.10, 0.30, 0.35), "level": 3}]}),
 }
 
 # Koşulamayan çapalar — gerekçesiyle (dürüst V&V: setup-uyumsuz koşu validasyon değildir).
@@ -120,7 +130,8 @@ def _run_anchor(name: str, velocity: float, out_root: str) -> dict | None:
                              n_layers=kw.get("n_layers", 0),
                              yplus_target=kw.get("yplus_target", 30.0),
                              mesh_sensitivity=True, mesh_levels=4,
-                             out_root=out_root, ground_clearance=kw.get("ground_clearance"))
+                             out_root=out_root, ground_clearance=kw.get("ground_clearance"),
+                             refinement_regions=kw.get("refinement_regions"))
     if r.status != "ok" or r.cd is None:
         return {"durum": "koşu başarısız", "hata": r.error[-400:]}   # kuyruk: asıl hata sonda
     # GUARD (dürüst V&V): mesh-bağımsızlık kanıtı olmadan banda yazılmaz. Kanıt yolu iki:
