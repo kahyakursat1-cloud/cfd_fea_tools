@@ -409,6 +409,28 @@ def resolution_warning(lmax_m: float, bg_div: int, ref_max: int, min_dim_m: floa
             "'hassas' kalite önerilir")
 
 
+def salinim_analizi(vals, pencere_orani: float = 0.4, min_n: int = 40) -> dict | None:
+    """Kuvvet tarihçesinin kuyruğunda SALINIM dedektörü (küp dersi: steady-SIMPLE
+    keskin-kenar küt cisimde salınır; tek-değer/kısa-pencere raporu faz-piyangosu).
+    Ölçüt: ortalamadan sapmanın ≥4 işaret-geçişi VE genlik > %0.5. Döner:
+    {osilasyon, ortalama, genlik, genlik_pct, gecis} | None (kısa tarihçe)."""
+    v = [x for x in vals if x is not None and math.isfinite(x)]
+    if len(v) < min_n:
+        return None
+    w = v[-max(min_n, int(len(v) * pencere_orani)):]
+    mu = sum(w) / len(w)
+    dev = [x - mu for x in w]
+    esik = 0.05 * max(abs(d) for d in dev) if any(dev) else 0.0
+    isaretler = [1 if d > esik else (-1 if d < -esik else 0) for d in dev]
+    isaretler = [s for s in isaretler if s != 0]
+    gecis = sum(1 for a, b in zip(isaretler, isaretler[1:]) if a != b)
+    genlik = (max(w) - min(w)) / 2.0
+    genlik_pct = genlik / (abs(mu) + 1e-12) * 100
+    return {"osilasyon": bool(gecis >= 4 and genlik_pct > 0.5),
+            "ortalama": mu, "genlik": round(genlik, 6),
+            "genlik_pct": round(genlik_pct, 2), "gecis": gecis}
+
+
 def trailing_mean(vals, fallback, min_n: int = 20):
     """Kuvvet-katsayısı için kuyruk-penceresi ortalaması (son %20, ≥min_n iter).
     Son-iterasyon değeri erken-durdurucunun kestiği noktaya duyarlı (~%1-3 titreşim);
@@ -701,12 +723,14 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                     if f.startswith(("Ux", "Uy", "Uz", "p"))}
     res_ok = bool(momentum_res) and all(v is not None and v < RESIDUAL_TARGET
                                         for v in momentum_res.values())
+    sal = salinim_analizi([h[1] for h in res.forces_history])
     conv = {
         "iterasyon": n,
         "cd_drift_son20pct": round(drift_pct, 3) if drift_pct is not None else None,
         "drift_ok": drift_pct is not None and drift_pct < DRIFT_LIMIT_PCT,
         "son_rezidualler": {k: (f"{v:.2e}" if v is not None else None) for k, v in final_res.items()},
         "rezidual_ok": res_ok,
+        "salinim": sal,
     }
 
     base.status = "ok"
@@ -749,6 +773,11 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     if ground_clearance is not None:
         uyarilar.append(f"Zemin düzlemi aktif (clearance={ground_clearance:g} m, sabit noSlip) "
                         "— serbest-akış DEĞİL; Cd yalnız zemin-etkili referanslarla kıyaslanır")
+    if sal and sal["osilasyon"]:
+        uyarilar.append(f"Kuvvet tarihçesi SALINIMLI (genlik ±%{sal['genlik_pct']}, "
+                        f"{sal['gecis']} işaret-geçişi) — Cd pencere-ortalamasıdır ve genlik "
+                        "sayısal belirsizliğe RSS ile eklendi. Steady-RANS bu rejimde sınırda; "
+                        "kalıcı çözüm zaman-doğru (URANS) analizdir")
     if not geo["su_gecirmez"]:
         uyarilar.append("STL su geçirmez değil — snappyHexMesh toleranslı ama "
                         "kapalı yüzey önerilir")
@@ -855,8 +884,13 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         else:
             base.mesh_duyarlilik = {"durum": "yetersiz seviye — bant hesaplanamadı"}
 
-    # Birleşik belirsizlik (ASME V&V 20): U_total = √(U_sayısal² + U_model²)
+    # Birleşik belirsizlik (ASME V&V 20): U_total = √(U_sayısal² + U_model²).
+    # Salınım genliği sayısal bileşene RSS ile katılır (Eça-Hoekstra salınım kuralı ruhu).
     from validation_anchors import combine_uncertainty, model_uncertainty_pct, regime_of
+    u_sal_pct = sal["genlik_pct"] if (sal and sal["osilasyon"]) else None
+    if u_sal_pct is not None:
+        u_num_pct = round(math.sqrt((u_num_pct or 0.0) ** 2 + u_sal_pct ** 2), 2)
+        u_kaynak = (u_kaynak + " ⊕ salınım-genliği") if u_kaynak else "salınım-genliği"
     wall_resolved = n_layers > 0 and (yp is None or yp.get("ort", 99) < 5)
     mu = model_uncertainty_pct(regime_of(vehicle_type, preset), wall_resolved)
     u_total = combine_uncertainty(u_num_pct, mu["u_model_pct"])

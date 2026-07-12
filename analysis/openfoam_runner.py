@@ -910,6 +910,20 @@ def divergence_in_log(log_text: str) -> str | None:
     return None
 
 
+def _cd_plateau(cds, tol: float) -> bool:
+    """Erken-durdurma kararı: uç-uca drift < tol VE pencere-genliği küçük olmalı.
+    Salınımlı çözümde (keskin-kenar küt cisim, steady-SIMPLE) iki uç tesadüfen
+    çakışıp drift<tol verebilir — erken kesmek faz-piyangosudur (küp dersi
+    2026-07-12: AYNI mesh'te Cd 0.916↔1.097). Genlik büyükse end_time'a koşulur;
+    raporlama katmanı pencere-ortalaması + genliği banda ekler."""
+    drift = abs(cds[-1] - cds[0]) / (abs(cds[-1]) + 1e-12)
+    if drift >= tol:
+        return False
+    mu = sum(cds) / len(cds)
+    amp = (max(cds) - min(cds)) / 2.0
+    return amp <= 2.0 * tol * (abs(mu) + 1e-12)
+
+
 def _wrap_timeout(command: str, tmo: int) -> tuple[str, list[str]]:
     """Komutta OF binary varsa WSL-içi GNU timeout ile sar (orphan-önleme).
     Döndür: (sarılmış_komut, kill_edilecek_binary_listesi)."""
@@ -980,8 +994,7 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
             n_iter = len(hist)
             if n_iter >= 2 * window:
                 cds = [h[1] for h in hist[-window:]]
-                drift = abs(cds[-1] - cds[0]) / (abs(cds[-1]) + 1e-12)
-                if drift < tol:
+                if _cd_plateau(cds, tol):
                     _wsl_kill(bins); early = True
                     break
             if time.time() - t0 > tmo:

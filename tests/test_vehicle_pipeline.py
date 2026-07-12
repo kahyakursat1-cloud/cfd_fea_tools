@@ -74,6 +74,33 @@ def test_trailing_mean_cuts_stopping_noise():
     assert trailing_mean([float("nan")] * 30, 0.5) == 0.5    # NaN'lar elenir → fallback
 
 
+def test_salinim_analizi_detects_oscillation():
+    import math
+
+    from vehicle_pipeline import salinim_analizi
+    # ±%5 salınan sinyal (küp imzası) → osilasyon + genlik doğru
+    osc = [1.0 + 0.05 * math.sin(i / 4) for i in range(200)]
+    s = salinim_analizi(osc)
+    assert s["osilasyon"] and s["gecis"] >= 4
+    assert 4.0 < s["genlik_pct"] < 6.0
+    # Monoton yakınsayan sinyal → osilasyon YOK (yanlış-pozitif üretme)
+    mono = [1.0 + 0.5 * math.exp(-i / 30) for i in range(200)]
+    assert not salinim_analizi(mono)["osilasyon"]
+    assert salinim_analizi([1.0] * 10) is None            # kısa tarihçe
+
+
+def test_cd_plateau_refuses_oscillating_window():
+    import math
+
+    from analysis.openfoam_runner import _cd_plateau
+    # Uçları tesadüfen çakışan salınım: drift<tol AMA genlik büyük → ERKEN DURMA YOK
+    osc = [0.3 + 0.015 * math.sin(2 * math.pi * i / 50) for i in range(51)]
+    assert abs(osc[-1] - osc[0]) / abs(osc[-1]) < 0.003    # drift kriteri sağlanıyor
+    assert not _cd_plateau(osc, tol=0.003)                 # ama plato DEĞİL (küp dersi)
+    duz = [0.3 + 1e-5 * i for i in range(50)]
+    assert _cd_plateau(duz, tol=0.003)                     # gerçek plato → erken dur
+
+
 def test_measure_yplus_locks_to_body_patch(monkeypatch, tmp_path):
     # Zemin-etkili kurulumda bottom da wall → ilk-eşleşme ZEMİNİN y⁺'ını veriyordu
     # (5200'lük hayalet, 3 kampanyalık yanlış teşhis). Gövde patch'ine kilitlenmeli.
