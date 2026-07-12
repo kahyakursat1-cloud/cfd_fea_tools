@@ -217,15 +217,68 @@ def _map_pressure_to_shell(vtk_patch, m: trimesh.Trimesh, rho=1.225) -> dict:
             "toplam_kuvvet_N": [round(float(x), 3) for x in dF.sum(axis=0)]}
 
 
+def _kiris_zinciri(V: np.ndarray, sec: np.ndarray, sirala_ekseni: int) -> list[tuple[int, int]]:
+    """Seçili düğümleri (üst/alt yüzey ayrı) verilen eksene göre sıralayıp ardışık
+    B31 çiftleri döndürür (0-indexed). Kabuk düğümleri paylaşıldığından bağ otomatik."""
+    if len(sec) < 2:
+        return []
+    z_med = float(np.median(V[sec, 2]))
+    ciftler = []
+    for taraf in (V[sec, 2] >= z_med, V[sec, 2] < z_med):
+        grup = sec[taraf]
+        if len(grup) < 2:
+            continue
+        sirali = grup[np.argsort(V[grup, sirala_ekseni])]
+        ciftler += [(int(a), int(b)) for a, b in zip(sirali, sirali[1:])]
+    return ciftler
+
+
+def _spar_kaburga_bolumu(m: trimesh.Trimesh, mat_ad: str, sparlar, kaburga_n: int,
+                         elem_offset: int, kesit_m=(0.006, 0.004)) -> tuple[list[str], int]:
+    """Kabuk derisine SPAR-KAPAĞI (açıklık-boyu, üst+alt) ve KABURGA-KAPAĞI
+    (kiriş-boyu) B31 kirişleri ekler — İHA kanadında iç yapının ön-tasarım temsili.
+    DÜRÜSTLÜK: kapak-kirişi idealizasyonudur (spar gövdesi/web modellenmez);
+    eğilme rijitliğini taşır, kayma-göçmesi/burulma detayı kapsam dışı."""
+    V = np.asarray(m.vertices, float)
+    xmin, xmax = V[:, 0].min(), V[:, 0].max()
+    ymin, ymax = V[:, 1].min(), V[:, 1].max()
+    chord, span = xmax - xmin, ymax - ymin
+    ciftler: list[tuple[int, int]] = []
+    for f in (sparlar or []):
+        x0 = xmin + f * chord
+        sec = np.where(np.abs(V[:, 0] - x0) < 0.03 * chord)[0]
+        ciftler += _kiris_zinciri(V, sec, sirala_ekseni=1)
+    for k in range(kaburga_n):
+        y0 = ymin + (k + 0.5) * span / max(kaburga_n, 1)
+        sec = np.where(np.abs(V[:, 1] - y0) < 0.02 * span)[0]
+        ciftler += _kiris_zinciri(V, sec, sirala_ekseni=0)
+    if not ciftler:
+        return [], 0
+    L = ["*ELEMENT, TYPE=B31, ELSET=KIRIS"]
+    eid = elem_offset
+    for a, b in ciftler:
+        eid += 1
+        L.append(f"{eid}, {a+1}, {b+1}")
+    L += [f"*BEAM SECTION, ELSET=KIRIS, MATERIAL={mat_ad}, SECTION=RECT",
+          f"{kesit_m[0]:.6e}, {kesit_m[1]:.6e}",
+          "0., 0., 1."]
+    return L, len(ciftler)
+
+
 def _write_shell_inp(path: Path, m: trimesh.Trimesh, mat: FEAMaterial,
                      thickness_m: float, fixed_nodes, cload: str,
-                     frequency_modes: int = 0) -> Path:
+                     frequency_modes: int = 0,
+                     sparlar=None, kaburga: int = 0) -> Path:
     L = ["*HEADING", "Kabuk (S3) yapisal kontrol", "*NODE"]
     for i, (x, y, z) in enumerate(m.vertices, start=1):
         L.append(f"{i}, {x:.9e}, {y:.9e}, {z:.9e}")
     L.append("*ELEMENT, TYPE=S3, ELSET=KABUK")
     for i, f in enumerate(m.faces, start=1):
         L.append(f"{i}, {f[0]+1}, {f[1]+1}, {f[2]+1}")
+    if sparlar or kaburga:
+        kiris_L, n_kiris = _spar_kaburga_bolumu(
+            m, mat.name.replace(" ", "_")[:60], sparlar, kaburga, len(m.faces))
+        L += kiris_L
     L.append("*NSET, NSET=SABIT")
     for k in range(0, len(fixed_nodes), 8):
         L.append(", ".join(str(int(n)) for n in fixed_nodes[k:k+8]))
@@ -270,7 +323,8 @@ def _cload_lines(node_forces: dict) -> str:
 def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
                          rho=1.225, model="dolu", shell_thickness_mm=2.0,
                          analysis="statik", n_modes=8, g_yuk=0.0, itki_n=0.0,
-                         delta_t=0.0, progress_cb=None) -> dict:
+                         delta_t=0.0, sparlar=None, kaburga=0,
+                         progress_cb=None) -> dict:
     """g_yuk: manevra yük faktörü n (≠0 → CFD basıncına ek n·g eylemsizlik gövde-
     kuvveti, -z; FlightEnvelope.n_max ile beslenebilir). 0 = sadece aero-basınç.
     itki_n: motor itkisi (N); ≠0 → aft (kuyruk, min-x) patch'ine +x dağıtık nokta-yük.
@@ -348,7 +402,8 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
             return out
         inp = _write_shell_inp(fea_dir / "kabuk_kontrol.inp", m, mat,
                                shell_thickness_mm / 1000.0, fixed,
-                               _cload_lines(mp["node_forces"]))
+                               _cload_lines(mp["node_forces"]),
+                               sparlar=sparlar, kaburga=kaburga)
         cb(40, f"CalculiX kabuk çözümü ({len(m.vertices):,} düğüm)...")
         ccx = run_ccx(inp, timeout=3600)
         if not ccx.success:
@@ -363,7 +418,9 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
         sa = _stress_assessment(vm, mat.yield_strength_pa / 1e6) or {}
         if mech:   # mekanizma → emniyet faktörü anlamsız
             sa = {**sa, "emniyet_faktoru": None, "emniyet_faktoru_temsili": None}
-        out = {"status": "ok", "model": f"kabuk (t={shell_thickness_mm} mm)",
+        out = {"status": "ok", "model": f"kabuk (t={shell_thickness_mm} mm)"
+                       + (f" + spar{sparlar}/kaburga×{kaburga} kirişleri"
+                          if (sparlar or kaburga) else ""),
                "malzeme": mat.name, "mesnet": desc,
                "dugum": int(len(m.vertices)), "eleman": int(len(m.faces)),
                "sabit_dugum": int(len(fixed)),
@@ -579,6 +636,10 @@ if __name__ == "__main__":
     ap.add_argument("--analiz", default="statik", choices=["statik", "frekans"],
                     help="statik (CFD yükü) / frekans (modal, yük gerekmez)")
     ap.add_argument("--modlar", type=int, default=8, help="mod sayısı")
+    ap.add_argument("--spar", default="",
+                    help="spar kiriş konumları, kiriş-kesri (ör. 0.25,0.70) — kabuk modeli")
+    ap.add_argument("--kaburga", type=int, default=0,
+                    help="kaburga kirişi sayısı (açıklık boyunca eşit aralıklı)")
     args = ap.parse_args()
 
     def _cb(p, m):
@@ -587,6 +648,9 @@ if __name__ == "__main__":
     r = run_structural_check(args.run_dir, args.malzeme, args.mesnet,
                              model=args.model, shell_thickness_mm=args.kalinlik,
                              analysis=args.analiz, n_modes=args.modlar,
+                             sparlar=([float(x) for x in args.spar.split(",")]
+                                      if args.spar else None),
+                             kaburga=args.kaburga,
                              progress_cb=_cb)
     if r["status"] == "ok" and r.get("analiz") == "doğal frekans":
         print("\nDogal frekanslar (Hz):", r["dogal_frekanslar_hz"])

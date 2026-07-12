@@ -25,13 +25,17 @@ from .tet_mesher import TetMesh
 
 @dataclass
 class FEAMaterial:
-    """Lineer elastik izotropik malzeme (SI birimleri)."""
+    """Lineer elastik malzeme (SI). Varsayılan izotropik; engineering_constants
+    verilirse ORTOTROPİK yazılır (*ELASTIC, TYPE=ENGINEERING CONSTANTS —
+    9'lu: E1,E2,E3,nu12,nu13,nu23,G12,G13,G23; eksenler GLOBAL çerçevede,
+    kanat konvansiyonu: 1=kiriş/x, 2=açıklık/y, 3=kalınlık/z; bkz. laminat.py)."""
     name: str
     youngs_modulus_pa: float   # Pa (örn: 70e9 = 70 GPa)
     poisson_ratio: float
     density_kg_m3: float
     yield_strength_pa: float = 0.0  # post-process için
     thermal_expansion_per_k: float = 0.0   # α (1/K); >0 ise termal genleşme etkin
+    engineering_constants: tuple | None = None  # 9'lu ortotropik takım (Pa)
 
     @classmethod
     def from_gpa(cls, name: str, e_gpa: float, nu: float, rho: float,
@@ -139,8 +143,14 @@ def write_inp(case: FEACase, output_dir: Path) -> Path:
 
     # ─── MALZEME ───
     lines.append(f"*MATERIAL, NAME={mat.name}")
-    lines.append("*ELASTIC")
-    lines.append(f"{mat.youngs_modulus_pa:.6e}, {mat.poisson_ratio:.4f}")
+    if mat.engineering_constants:
+        ec = mat.engineering_constants
+        lines.append("*ELASTIC, TYPE=ENGINEERING CONSTANTS")
+        lines.append(", ".join(f"{v:.6e}" for v in ec[:8]))   # ilk 8 değer 1. satır
+        lines.append(f"{ec[8]:.6e}")                          # G23 (+ opsiyonel T) 2. satır
+    else:
+        lines.append("*ELASTIC")
+        lines.append(f"{mat.youngs_modulus_pa:.6e}, {mat.poisson_ratio:.4f}")
     lines.append("*DENSITY")
     lines.append(f"{mat.density_kg_m3:.6e}")
     thermal = mat.thermal_expansion_per_k > 0 and abs(case.delta_t) > 0
