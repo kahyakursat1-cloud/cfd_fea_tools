@@ -465,17 +465,25 @@ def first_layer_height(velocity, lref, yplus_target, nu=1.5e-5):
     return 2.0 * yplus_target * nu / utau
 
 
-def measure_yplus(case_dir, timeout=600) -> dict | None:
-    """Çözülmüş alanda duvar y⁺'ını ÖLÇER (varsayım değil; foamPostProcess)."""
+def measure_yplus(case_dir, patch: str | None = None, timeout=600) -> dict | None:
+    """Çözülmüş alanda duvar y⁺'ını ÖLÇER (varsayım değil; foamPostProcess).
+    patch verilirse O patch'in bloğundan okur — zemin-etkili kurulumda bottom da
+    wall olduğundan ilk-eşleşme ZEMİNİN y⁺'ını veriyordu (5200'lük hayalet:
+    2026-07-12 Ahmed teşhisi); gövde patch'ine kilitlenmek şart."""
     try:
         r = _wsl_run(windows_to_wsl_path(case_dir),
                      "foamPostProcess -solver incompressibleFluid -func yPlus -latestTime 2>&1",
                      timeout=timeout)
+        out = r.stdout
+        if patch:
+            i = out.find(patch)
+            if i >= 0:
+                out = out[i:]
         m = re.search(r"y\+ : min = ([\d.eE+-]+), max = ([\d.eE+-]+), average = ([\d.eE+-]+)",
-                      r.stdout)
+                      out)
         if m:
             return {"min": round(float(m.group(1)), 2), "max": round(float(m.group(2)), 2),
-                    "ort": round(float(m.group(3)), 2)}
+                    "ort": round(float(m.group(3)), 2), "patch": patch or "ilk-wall"}
     except Exception:
         pass
     return None
@@ -763,7 +771,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
 
     if progress_cb:
         progress_cb(78, "y+ olcumu...")
-    yp = measure_yplus(case_dir)
+    yp = measure_yplus(case_dir, patch=Path(stl_path).stem.replace(" ", "_"))
     base.sinir_tabaka = {"katman_sayisi": n_layers, "yplus": yp,
                          "yplus_hedef": yplus_target if n_layers > 0 else None,
                          "ilk_katman_m": (round(case.first_layer_thickness, 8)

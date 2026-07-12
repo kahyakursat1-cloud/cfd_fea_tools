@@ -74,6 +74,25 @@ def test_trailing_mean_cuts_stopping_noise():
     assert trailing_mean([float("nan")] * 30, 0.5) == 0.5    # NaN'lar elenir → fallback
 
 
+def test_measure_yplus_locks_to_body_patch(monkeypatch, tmp_path):
+    # Zemin-etkili kurulumda bottom da wall → ilk-eşleşme ZEMİNİN y⁺'ını veriyordu
+    # (5200'lük hayalet, 3 kampanyalık yanlış teşhis). Gövde patch'ine kilitlenmeli.
+    import vehicle_pipeline as vp
+    fake_out = ("Calculating y+ ...\n"
+                "    patch bottom y+ : min = 4831, max = 5752, average = 5232.4\n"
+                "    patch gövde_prep y+ : min = 2.5, max = 883.7, average = 45.26\n")
+
+    class _R:
+        stdout = fake_out
+    monkeypatch.setattr(vp, "_wsl_run", lambda *a, **k: _R())
+    govde = vp.measure_yplus(tmp_path, patch="gövde_prep")
+    assert govde["ort"] == 45.26 and govde["patch"] == "gövde_prep"
+    eski = vp.measure_yplus(tmp_path)                    # patch'siz → ilk-wall (belgeli)
+    assert eski["ort"] == 5232.4
+    yok = vp.measure_yplus(tmp_path, patch="olmayan")    # bulunamazsa tüm çıktıya düşer
+    assert yok["ort"] == 5232.4
+
+
 def test_car_preset_auto_ground_clearance():
     from vehicle_pipeline import auto_ground_clearance
     araba = VEHICLE_PRESETS["araba"]
