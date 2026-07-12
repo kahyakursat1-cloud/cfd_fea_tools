@@ -162,7 +162,9 @@ def main():
         except Exception:
             band = {}
     for regime, errs in by_regime.items():
-        band.setdefault(regime, {})["wall_resolved"] = round(max(errs), 2)
+        eski = band.get(regime, {}).get("wall_resolved")
+        yeni = max(errs + ([eski] if eski is not None else []))   # tarihsel maksimum korunur
+        band.setdefault(regime, {})["wall_resolved"] = round(yeni, 2)
     if by_regime:
         _BAND_FILE.write_text(json.dumps(band, indent=2, ensure_ascii=False), encoding="utf-8")
     print(json.dumps({"sonuclar": results, "yazilan_band": band}, indent=2, ensure_ascii=False))

@@ -2,6 +2,7 @@
 # NOT: bu dosya SALT-ASCII kalmali (PS 5.1 BOM'suz UTF-8'i ANSI okur; em-dash gibi
 # cok-baytli karakterlerin son bayti cp1254'te tirnak sayilip parse'i kirar).
 # Izleme: Get-Content kampanya_lsr.log -Tail 20
+param([string]$Anchors = "cube,disk,ahmed_25")
 $ErrorActionPreference = "Continue"
 $root = "D:\bilsem_beyin\cfd_fea_tools"
 Set-Location $root
@@ -18,7 +19,7 @@ function Log($m) {
 
 Log "=== LSR KAMPANYASI (v2, 4-seviye) BASLADI ==="
 $sonuc = @()
-foreach ($anchor in @("cube", "disk", "ahmed_25")) {
+foreach ($anchor in ($Anchors -split ",")) {
     $freeGB = [math]::Round((Get-PSDrive D).Free / 1GB, 1)
     if ($freeGB -lt 8) {
         Log ("SKIP {0} - disk {1} GB" -f $anchor, $freeGB)
