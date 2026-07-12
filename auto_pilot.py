@@ -26,12 +26,14 @@ REAL_SEED = Path(__file__).parent / "auto_pilot_real_seed.jsonl"
 MEMORY = Path(__file__).parent / "auto_pilot_memory.jsonl"
 MIN_CASES = 8        # bu sayıdan az onaylı vaka varken yalnız kural-tabanlı
 # Temel tipler (kural+k-NN) + hibrit alt-tipler (yalnız k-NN ile öğrenilir).
+# 'araba' kural-imzasız (tekerlek/zemin sezgisi geometriden güvenilir çıkmaz):
+# kullanıcı seçimi + k-NN öğrenmesiyle gelir; preset zemin-düzlemini otomatik kurar.
 TIPLER = ("roket", "ucak", "multikopter", "genel", "kanatli_roket", "tilt_rotor",
-          "kanatli_vtol", "kaldirici_govde")
+          "kanatli_vtol", "kaldirici_govde", "araba")
 # Sınıflandırma tipi -> CFD preset (vehicle_pipeline.VEHICLE_PRESETS anahtarı)
 PRESET_MAP = {"roket": "roket", "ucak": "ucak", "multikopter": "multikopter",
               "genel": "genel", "kanatli_roket": "roket", "tilt_rotor": "ucak",
-              "kanatli_vtol": "ucak", "kaldirici_govde": "roket"}
+              "kanatli_vtol": "ucak", "kaldirici_govde": "roket", "araba": "araba"}
 
 
 def _features(metrik: dict) -> list:
@@ -326,6 +328,37 @@ def auto_configure(stl_path, out_dir="vehicle_runs/_autoprep",
         uyarilar.append("Sınıflandırma güveni düşük — planı kontrol edin.")
     if info.get("birim_olcek"):
         uyarilar.append(f"Birim ölçeği uygulandı: {info['birim_olcek']} (Lmax={lmax:.2f} m).")
+    # GCI-öncülü (öğrenilen): geçmiş mesh-yakınsama sonuçlarından koşu-öncesi beklenti.
+    # Yalnız PLAN uyarısıdır; ölçülen band değildir, UQ/rapora girmez (gci_advisor).
+    try:
+        from gci_advisor import advise as _gci_advise
+        gp = _gci_advise(cls["metrik"], tip)
+        if gp:
+            cfg["gci_onculu"] = gp
+            uyarilar.append(
+                f"GCI-öncülü ({gp['n_destek']} geçmiş koşu): beklenen sayısal band "
+                f"~%{gp['u_num_beklenen_pct']}, asimptotik-çıkma olasılığı "
+                f"{gp['asimptotik_olasilik']:.0%}. {gp['oneri']}")
+    except Exception:
+        pass
+    # Mesh-öncülü (öğrenilen): benzer geometrilerin ayar→sonuç geçmişinden kalite/y⁺
+    # önerisi. Kural seçimini EZMEZ — öner+onayla planında kullanıcıya gösterilir.
+    try:
+        from mentor import advise_mesh as _mesh_advise
+        mp = _mesh_advise(cls["metrik"], tip)
+        if mp:
+            cfg["mesh_onculu"] = mp
+            if mp.get("onerilen_kalite") and mp["onerilen_kalite"] != quality:
+                uyarilar.append(
+                    f"Mesh-öncülü ({mp['n_destek']} geçmiş koşu): bu geometri sınıfında "
+                    f"'{mp['onerilen_kalite']}' kalite daha başarılı görünüyor "
+                    f"(kural '{quality}' seçti; başarı oranları {mp['kalite_basari']}).")
+            for r in mp.get("riskler", []):
+                uyarilar.append("Mesh-öncülü risk: " + r)
+            if mp.get("yplus_duzeltme"):
+                uyarilar.append("y⁺-öncülü: " + mp["yplus_duzeltme"]["oneri"])
+    except Exception:
+        pass
     n_kutuphane = len(_load_cases())
     if n_kutuphane < MIN_CASES:
         uyarilar.append(f"Öğrenme: kütüphanede {n_kutuphane}/{MIN_CASES} onaylı vaka — "
@@ -392,6 +425,12 @@ def apply_type_settings(cfg: dict, tip: str, dogrulama_modu: bool = False) -> di
         cfg.update(rejim="subsonic", hiz_ms=12.0, analiz="tekil")
         cfg["plan"] = (f"Multikopter (güven {gv}) → ses-altı tekil analiz "
                        f"U∞=12 m/s, {q} mesh (frontal referans).")
+    elif tip == "araba":
+        cfg.update(rejim="subsonic", hiz_ms=20.0, analiz="tekil")
+        cfg["plan"] = (f"Kara aracı (güven {gv}) → ses-altı tekil analiz U∞=20 m/s, "
+                       f"{q} mesh, frontal referans. ZEMİN-ETKİLİ: taban noSlip zemin "
+                       f"düzlemi otomatik kurulur (clearance verilmezse Ahmed-oranı "
+                       f"0.17·H); Cd yalnız zemin-etkili referanslarla kıyaslanır.")
     else:
         cfg.update(rejim="subsonic", hiz_ms=20.0, analiz="tekil")
         cfg["plan"] = (f"Genel cisim → muhafazakâr ses-altı tekil analiz "
