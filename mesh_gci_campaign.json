@@ -1,37 +1,46 @@
 {
-  "vaka": "Mesh-GCI kampanyası — clean_rocket.stl (tip=roket, V=30.0, α=0.0)",
+  "vaka": "Mesh-GCI kampanyası — clean_rocket_fixed_prep.stl (tip=roket, V=30.0, α=0.0)",
   "seviyeler": [
     {
       "seviye": "hizli",
-      "cd": 0.27457,
-      "cells": 342938
+      "cd": 0.2746,
+      "cells": 342938,
+      "cd_wake": 0.22321
     },
     {
       "seviye": "standart",
       "cd": 0.20433,
-      "cells": 931959
+      "cells": 931959,
+      "cd_wake": 0.21145
     },
     {
       "seviye": "hassas",
-      "cd": 0.15398,
-      "cells": 1981524
+      "cd": 0.1542,
+      "cells": 1981524,
+      "cd_wake": 0.15008
     }
   ],
-  "gci": {
-    "p": 1.324,
-    "f_exact": 0.026523,
-    "gci_fine_pct": 103.4689,
-    "gci_med_pct": 77.4767,
-    "asymptotic": 1.863,
+  "gci_yuzey": {
+    "p": 0.192,
+    "f_exact": -0.861889,
+    "gci_fine_pct": 823.678,
+    "gci_med_pct": 652.2654,
+    "asymptotic": 1.3251,
     "monotonic": true,
-    "p_in_range": true
+    "p_in_range": false
   },
-  "verdict": "⚠️ Mesh bağımsızlığı GÖSTERİLEMEDİ: GCI=103.4689% ≥ 5.0%",
-  "sure_dk": 48.5,
-  "yorum": {
-    "geometri_fix": "weld_axial_segments ile clean_rocket tek-gövdeye kaynatıldı (önce 3 kopuk parça → Cd çöp 1.37). Artık Cd FİZİKSEL + MONOTON (0.275→0.204→0.154; p=1.324 makul, monotonic=True) — kopuk geometrinin kaosu gitti.",
-    "mesh_bagimsizlik": "GCI=%103, asimptotik oran=1.86 (≈1 değil) → Cd her kademede ~%25 düşüyor; 2M hücre bile ince roketin (0.08m çap) sınır-tabakasını/eğriliğini çözmüyor. Richardson f_exact=0.0265 GÜVENİLMEZ (asimptotik aralık dışı). GCI verdict'i yakınsamamış cevabı DOĞRU işaretledi (ASME V&V 20 işlevi).",
-    "sonuc": "Geometri-fix DOĞRULANDI (fiziksel+monoton Cd); mesh-bağımsız mutlak Cd bu donanımda erişilemez (ince-cisim çözünürlüğü)."
+  "verdict_yuzey": "⚠️ Mesh bağımsızlığı GÖSTERİLEMEDİ: p=0.192 makul aralik (0.5, 3.0) disi — asimptotik aralikta degil; GCI=823.678% ≥ 5.0%",
+  "gci_wake": {
+    "p": 10.021,
+    "f_exact": 0.144709,
+    "gci_fine_pct": 4.4736,
+    "gci_med_pct": 0.2555,
+    "asymptotic": 217.5386,
+    "monotonic": true,
+    "p_in_range": false
   },
-  "_not": "ASME V&V 20 discretization belirsizliği. h∝N^(-1/3). compute_gci çekirdeği."
+  "verdict_wake": "⚠️ Mesh bağımsızlığı GÖSTERİLEMEDİ: p=10.021 makul aralik (0.5, 3.0) disi — asimptotik aralikta degil; asimptotik oran 217.5386 (≈1 beklenir)",
+  "karsilastirma": "wake-momentum (2. mertebe) yüzey-entegrasyona (1. mertebe) göre GCI'ı; wake yakınsayıp yüzey yakınsamıyorsa 3D Cd için TASARIM-GRADE değer wake-Cd'dir.",
+  "sure_dk": 26.1,
+  "_not": "ASME V&V 20 discretization belirsizliği. h∝N^(-1/3). compute_gci çekirdeği. Çift-GCI (yüzey vs wake) — #1 3D-Cd tasarım-grade hedefi."
 }
