@@ -23,7 +23,12 @@ def test_is_float():
     assert not _is_float("abc") and not _is_float("")
 
 
-@pytest.mark.skipif(not SPHERE_FRD.exists(), reason="sphere_test.frd fixture diskte yok")
+@pytest.mark.skipif(
+    not SPHERE_FRD.exists(),
+    reason=("sphere_test.frd fixture diskte yok (üreten .inp kayıp — golden 0.39733 "
+            "sadakatle yeniden üretilemez). AYNI kod yolu tests/test_fea_runner_frd.py'de "
+            "sentetik + analitik girdiyle her koşuda test edilir."),
+)
 def test_parse_frd_golden():
     """CalculiX .frd → von Mises stres çıkarımı (sonuç-extraction kalbi)."""
     from fea_runner import FEASimulationRunner

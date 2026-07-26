@@ -42,6 +42,80 @@ class Verdict:
     message: str
 
 
+HAVA_NU = 1.5e-5          # m²/s, ~15 °C
+OLCEK_BUYUK_M = 100.0     # üstü: mm/inç ölçek hatası şüphesi (10 m'lik model 1000× → 10 km)
+OLCEK_KUCUK_M = 0.005     # altı: m yerine mm girilmiş küçük parça şüphesi
+
+
+KESKIN_KENAR_ESIGI = 0.02   # altı: pürüzsüz gövde (küre/kapsül 0.00; küp 0.67, silindir 0.33)
+
+
+def geometry_sanity(geo: dict, vehicle_type: str = "genel",
+                    velocity: float | None = None, n_layers: int = 0) -> list[str]:
+    """KURULUM kapısı — çözücü başlamadan ÖNCE, saatlik koşuyu boşa harcamamak için.
+
+    Fizik kapısı sonucu denetler; bu kapı GİRDİYİ denetler. Yakalanan üç hata sınıfı,
+    üçü de sessizce "geçerli görünen" ama tamamen yanlış bir sayı üretir:
+      1. Ölçek — STL mm cinsinden ihraç edilmişse domain 1000× büyür, Reynolds ve
+         dolayısıyla Cd tamamen kayar; hiçbir sonuç-kapısı bunu yakalayamaz.
+      2. Eksen — akış ekseni yanlışsa cisim akışa yanlış yüzünü verir; sayı makul
+         görünür ama başka bir problemin cevabıdır.
+      3. Referans alan — araç tipi A_ref'i seçer (uçak: planform, diğerleri: frontal).
+         Tip geometriyle uyuşmuyorsa Cd doğrudan alan oranı kadar yanlıştır.
+
+    Döner: uyarı metinleri (boş liste = kurulum makul görünüyor).
+    """
+    u: list[str] = []
+    L = geo.get("lmax_m") or 0.0
+    on = geo.get("on_alan_m2") or 0.0
+    yan = geo.get("yan_alan_m2") or 0.0
+    plan = geo.get("planform_alan_m2") or 0.0
+
+    if L > OLCEK_BUYUK_M:
+        u.append(f"ÖLÇEK ŞÜPHESİ: model {L:.0f} m — mm cinsinden ihraç edilmiş olabilir "
+                 f"(m karşılığı ~{L / 1000:.3f} m). Yanlış ölçek Reynolds'u ve Cd'yi "
+                 "tamamen kaydırır; hiçbir sonuç kontrolü bunu yakalayamaz")
+    elif 0 < L < OLCEK_KUCUK_M:
+        u.append(f"ÖLÇEK ŞÜPHESİ: model {L * 1000:.2f} mm — birim m mi? "
+                 "Çok küçük ölçekte Reynolds düşer, türbülans modeli geçersizleşir")
+    if velocity and L > 0:
+        re = velocity * L / HAVA_NU
+        if re < 1e4:
+            u.append(f"Re = {re:.1e} < 1e4 — türbülanslı RANS varsayımı zayıf "
+                     "(laminer/geçiş rejimi); ölçek veya hız gözden geçirilmeli")
+
+    # Eksen: akış-yönlü araçta frontal izdüşüm en KÜÇÜK olmalı
+    izd = {"frontal": on, "yan": yan, "üstten": plan}
+    if on > 0 and max(izd.values()) == on and vehicle_type in ("ucak", "roket"):
+        u.append(f"EKSEN ŞÜPHESİ: frontal izdüşüm ({on:.4g} m²) üç izdüşümün en büyüğü — "
+                 f"yan {yan:.4g}, üstten {plan:.4g}. Akış-yönlü araçta frontal EN KÜÇÜK "
+                 "olmalıdır; --burun/--ust eksenleri yanlış olabilir")
+
+    # Referans alan ↔ araç tipi tutarlılığı
+    if vehicle_type == "ucak" and on > 0 and plan / on < 2.0:
+        u.append(f"REFERANS ALAN ŞÜPHESİ: tip='ucak' planform alanını A_ref alır "
+                 f"({plan:.4g} m²) ama planform/frontal = {plan / on:.1f} < 2 — "
+                 "geometri kanat benzeri değil. Küt gövde için --tip genel kullan")
+    if vehicle_type == "roket" and yan > 0 and on / yan > 0.5:
+        u.append(f"GEOMETRİ ŞÜPHESİ: tip='roket' ama frontal/yan = {on / yan:.2f} > 0.5 — "
+                 "narin gövde değil; Barrowman/slender varsayımları geçerli olmayabilir")
+
+    # Ayrılma noktasını ne belirliyor? Bu hattın bilinen sistematik sınırı.
+    kk = geo.get("keskin_kenar_orani")
+    if kk is not None and kk < KESKIN_KENAR_ESIGI and n_layers == 0:
+        u.append(f"PÜRÜZSÜZ GÖVDE (keskin-kenar oranı {kk:.3f} < {KESKIN_KENAR_ESIGI}): "
+                 "ayrılma noktası geometriyle sabitlenmiyor, sınır-tabaka geçişine bağlı. "
+                 "Duvar-fonksiyonlu tam-türbülanslı RANS bu sınıfta SİSTEMATİK şaşırır "
+                 "(küre drag krizi vakası) — Cd yalnız EĞİLİM düzeyindedir. Prizma katmanı "
+                 "(--katman) ile y⁺<1 çöz veya sonucu karşılaştırma amaçlı kullan")
+
+    n_ucgen = geo.get("ucgen_sayisi") or 0
+    if 0 < n_ucgen < 100:
+        u.append(f"GEOMETRİ ÇÖZÜNÜRLÜĞÜ: yalnız {n_ucgen} üçgen — eğrilik fasetli, "
+                 "yüzey basıncı ve ayrılma noktası temsili olmayabilir")
+    return u
+
+
 def force_admissibility(Cd, Cl=None, alpha=None, cd_max=CD_MAX_PLAUSIBLE):
     """Kuvvet katsayıları FİZİKSEL olarak kabul edilebilir mi? (zarf sınıfından ÖNCE gelir)
 

@@ -483,7 +483,11 @@ class FEASimulationRunner:
             disps, vm_stresses, freqs = [], [], []
             # FRD fixed-width: negatif sayilar bitisik yazilir (0.0E+00-2.8E-11).
             # split() bunlari tek token yapip atlar -> sci-notation regex gerekli.
-            _SCI = re.compile(r'[-+]?\d*\.\d+[eE][-+]?\d+')
+            # Us OPSIYONEL: ccx'in kendisi hep %12.5E yazar, ama donusturulmus/uretilmis
+            # .frd'lerde ussuz bilesen gorulebilir. Eksik okunan bilesen 6-bilesen
+            # kosulunu dusurur ve STRESS satiri SESSIZCE atlanir -> tepe gerilme kacar,
+            # SF olduğundan YUKSEK cikar (tehlikeli yon). Superset kabul, savunmaci.
+            _SCI = re.compile(r'[-+]?\d*\.\d+(?:[eE][-+]?\d+)?')
 
             for line in lines:
                 # Blok başlıkları

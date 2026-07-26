@@ -45,7 +45,10 @@ def test_flutter_velocity_golden():
 
 @pytest.mark.skipif(
     not (COUPLING_VTK.exists() and COUPLING_STL.exists()),
-    reason="medium_fixed CFD VTK/STL fixture diskte yok",
+    reason=("medium_fixed CFD VTK/STL fixture diskte yok (~6 GB case, .gitignore'da). "
+            "Korunum garantisi tests/test_coupling_fsi.py::test_conservation_machine_precision"
+            " ile sentetik girdide her koşuda doğrulanır; burada yalnız bu vakaya ait "
+            "golden lift/drag değerleri test edilemiyor."),
 )
 def test_coupling_conservation_golden():
     """1-way FSI: CFD basınç → FEA düğüm kuvveti, momentum korunumu."""

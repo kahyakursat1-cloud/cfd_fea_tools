@@ -284,6 +284,10 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
     if _fz.get("verdict", "ok") != "ok":
         md.append(f"> 🔴 **FİZİK KAPISI:** {'; '.join(_fz.get('reasons', []))} — "
                   "bu koşunun kuvvet katsayıları tasarım kararında KULLANILMAZ.\n")
+    # Kurulum uyarıları EN ÜSTTE: yanlış ölçek/eksen/A_ref aşağıdaki tüm bölümleri
+    # geçersizler; okuyucu dört bölüm makul sayı okuduktan SONRA öğrenmemeli.
+    for _ku in (getattr(r, "kurulum", None) or []):
+        md.append(f"> 🟠 **KURULUM:** {_ku}\n")
     # Öğretici kutu (BİLSEM): kararların 'neden'i acemi-erişilebilir dille (mentor).
     try:
         from mentor import egitim_notu
@@ -413,9 +417,10 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
                                                            out / "figures" / "velocity_slice.png"):
         md.append("![Hız kesiti](figures/velocity_slice.png)\n")
 
-    # 4b. Uyarılar + mesh duyarlılığı
-    if getattr(r, "uyarilar", None):
-        for u in r.uyarilar:
+    # 4b. Uyarılar + mesh duyarlılığı (kurulum uyarıları zaten en üstte, tekrarlanmaz)
+    _kur = set(getattr(r, "kurulum", None) or [])
+    for u in (getattr(r, "uyarilar", None) or []):
+        if u not in _kur:
             md.append(f"> ⚠️ **UYARI:** {u}\n")
     md_s = getattr(r, "mesh_duyarlilik", None)
     if md_s:

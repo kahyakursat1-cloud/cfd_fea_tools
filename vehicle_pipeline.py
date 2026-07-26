@@ -25,7 +25,7 @@ from scipy.spatial import ConvexHull
 from analysis.ccx_runner import windows_to_wsl_path
 from analysis.openfoam_runner import CFDCase, _wsl_run, run_cfd
 from constants import NONORTHO_LIMIT, RESIDUAL_TARGET, SKEW_LIMIT
-from validity_envelope import force_admissibility
+from validity_envelope import force_admissibility, geometry_sanity
 
 VEHICLE_PRESETS = {
     "ucak": {
@@ -352,6 +352,17 @@ def _radial_solidity(m: trimesh.Trimesh) -> float:
     return round(min(sil / hull, 1.0), 4) if hull > 1e-12 else 1.0
 
 
+def _keskin_kenar_orani(m: trimesh.Trimesh, esik_deg: float = 30.0) -> float:
+    """Komşu yüz çiftlerinin kaçında dihedral açı > eşik (keskin kenar).
+
+    Ayrılma noktasını ne belirler sorusunun proxy'si: keskin kenar ayrılmayı GEOMETRİK
+    olarak sabitler (küp 0.67, silindir 0.33), pürüzsüz gövdede (küre/kapsül 0.00)
+    ayrılma sınır-tabaka geçişine bağlıdır ve tam-türbülanslı RANS sistematik şaşırır.
+    """
+    a = m.face_adjacency_angles
+    return round(float((a > np.radians(esik_deg)).sum() / max(len(a), 1)), 4)
+
+
 def inspect_geometry(stl_path: Path) -> dict:
     m = trimesh.load(str(stl_path), force="mesh")
     if not isinstance(m, trimesh.Trimesh):
@@ -365,9 +376,11 @@ def inspect_geometry(stl_path: Path) -> dict:
         "su_gecirmez": bool(m.is_watertight),
         "yuzey_alani_m2": round(float(m.area), 5),
         "on_alan_m2": round(_hull_projected_area(m.vertices, 0), 5),     # akış +x
+        "yan_alan_m2": round(_hull_projected_area(m.vertices, 1), 5),    # yandan (eksen kontrolü)
         "planform_alan_m2": round(_hull_projected_area(m.vertices, 2), 5),  # üstten
         "ince_kalinlik_m": (lambda t: round(t, 5) if t else None)(estimate_thin_thickness(m)),
         "ince_yassilik": round(_thin_flatness(m), 4),    # kanat-inceliği (bbox-üstü)
+        "keskin_kenar_orani": _keskin_kenar_orani(m),    # ayrılma geometrik mi geçiş-güdümlü mü
         "radyal_doluluk": _radial_solidity(m),           # spoke↔sürekli (multikopter ayrımı)
     }
 
@@ -609,6 +622,7 @@ class VehicleAnalysisResult:
     error: str = ""
     validity: dict | None = None    # geçerlilik-zarfı verdict'i (okula-güvenli kapı)
     fizik_kabul: dict | None = None  # fiziksel kabul-edilebilirlik kapısı (zarf sınıfından ÖNCE)
+    kurulum: list | None = None      # kurulum kapısı (ölçek/eksen/A_ref) — raporun EN ÜSTÜNDE
 
 
 def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg=0.0,
@@ -639,6 +653,13 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     geo["oryantasyon"] = f"burun={nose_axis} üst={up_axis} → akış çerçevesi (+x, +z)"
     if progress_cb:
         progress_cb(2, f"Geometri: {geo['lmax_m']} m, {geo['ucgen_sayisi']} üçgen")
+
+    # KURULUM KAPISI — çözücüden ÖNCE. Ölçek/eksen/referans-alan hatası saatlerce
+    # koşup "geçerli görünen" ama başka bir problemin cevabı olan bir sayı üretir.
+    kurulum_uyarilari = geometry_sanity(geo, vehicle_type, velocity, n_layers=n_layers)
+    for _ku in kurulum_uyarilari:
+        if progress_cb:
+            progress_cb(3, f"⚠ KURULUM: {_ku}")
 
     a = math.radians(alpha_deg)
     rmin, rmax = preset["refinement"]
@@ -758,7 +779,9 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     except Exception:
         pass
 
-    uyarilar = []
+    # Kurulum uyarıları listenin en başında: yanlış kurulmuş bir analizin sonucunu
+    # yorumlamanın anlamı yok (fizik kapısı bile geçse).
+    uyarilar = list(kurulum_uyarilari)
     # FİZİK KAPISI — zarf sınıfından ve mesh/iterasyon ölçütlerinden ÖNCE gelir: sayısal
     # olarak kusursuz yakınsamış bir koşu da fizik-dışı Cd üretebilir (kaba gridde negatif
     # basınç sürüklemesi). Bu hüküm listenin BAŞINDA durur ki mühendis ilk onu görsün.
@@ -837,6 +860,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         uyarilar.append("y⁺ ÖLÇÜLEMEDİ — sınır tabaka çözünürlüğü doğrulanamadı; "
                         "sürtünme sürüklemesinin duvar-fonksiyonu geçerliliği bilinmiyor")
     base.uyarilar = uyarilar
+    base.kurulum = kurulum_uyarilari     # raporun EN ÜSTÜ: kurulum hatası her şeyi geçersizler
 
     # Opsiyonel mesh-bağımsızlık: aynı analizi daha kaba seviyelerde koş → 3-mesh Richardson
     # GCI (Celik 2008, Fs=1.25); mesh_levels≥4'te ek 'cokkaba' seviye + LSR (Eça-Hoekstra)

@@ -122,13 +122,25 @@ python run_prism_3d.py                    # prism-layer 3D mesh + y+ ölçümü
 | `analysis/` | KANONİK CFD/FEA katmanı — case kurulumu, mesh kalite kapısı, ccx, frd okuma |
 | `vehicle_pipeline.py` | Headless araç CFD/FEA akışı — otomatik V&V/UQ bandı üretir |
 | `app_analyzer.py` | Analiz stüdyosu GUI — sonuç rozeti fizik kapısından geçer |
-| `validity_envelope.py` | **Güven kapısı:** fiziksel kabul-edilebilirlik + geçerlilik-zarfı sınıfı |
+| `validity_envelope.py` | **Güven kapıları:** kurulum (ölçek/eksen/A_ref) + fiziksel kabul-edilebilirlik + geçerlilik-zarfı sınıfı |
 | `zarf.py` | Yukarıdaki çalışma-zarfı tablosunu kanıt JSON'larından üretir |
 | `on_kontrol.py` | Ön-kontrol (`pipeline.py doctor`) — ortam gerçekten koşabilir mi |
 
-## Sonuca Güven: İki Kapı
+## Sonuca Güven: Üç Kapı
 
-Bir sayı mühendislik kararına girmeden önce iki bağımsız kapıdan geçer:
+Bir sayı mühendislik kararına girmeden önce üç bağımsız kapıdan geçer:
+
+0. **Kurulum kapısı** (`validity_envelope.geometry_sanity`) — çözücüden **önce**, saatlik
+   koşuyu boşa harcamamak için. Yanlış kurulmuş bir analiz fiziksel olarak makul bir sayı
+   üretir (Cd pozitif, mesh temiz, iterasyon yakınsamış) — hiçbir sonuç kontrolü yakalayamaz
+   çünkü sayı doğrudur, sadece *başka bir problemin* cevabıdır. Yakaladıkları:
+   - **Ölçek:** mm cinsinden ihraç edilmiş STL (Reynolds ve Cd tamamen kayar)
+   - **Eksen:** dikey modellenmiş roket/uçak (frontal izdüşüm en büyükse akış ekseni yanlış)
+   - **Referans alan:** `--tip ucak` planform alanı alır; geometri kanat benzeri değilse Cd
+     doğrudan alan oranı kadar yanlış olur
+   - **Pürüzsüz gövde:** keskin-kenar oranı < 0.02 (küre/kapsül) ise ayrılma geçiş-güdümlüdür
+     ve duvar-fonksiyonlu RANS **sistematik** şaşırır → sonuç yalnız EĞİLİM düzeyinde
+   Uyarılar raporun **en üstünde** durur; kurulum hatası altındaki her bölümü geçersizler.
 
 1. **Fizik kapısı** (`validity_envelope.force_admissibility`) — negatif/sıfır sürükleme,
    makul olmayan Cd/Cl mertebesi, hücum açısıyla ters işaretli taşıma. Sayısal yakınsama

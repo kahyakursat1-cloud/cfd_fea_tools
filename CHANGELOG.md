@@ -4,6 +4,40 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-07-26b] feat | Kurulum kapısı — yanlış kurulmuş analiz çözücüden ÖNCE yakalanır
+
+**Neden:** Fizik kapısı sonucu denetliyor ama yanlış KURULMUŞ bir analizin sonucu zaten
+fiziksel olarak makuldür: Cd pozitif, mertebe doğru, mesh temiz, iterasyon yakınsamış.
+Hiçbir sonuç kontrolü yakalayamaz çünkü sayı doğrudur — sadece *başka bir problemin*
+cevabıdır. Bu üç hata sınıfı daha önce "kullanıcının sorumluluğu" olarak bırakılmıştı;
+ölçülebilir olduklarını gördük.
+
+- **`validity_envelope.geometry_sanity()`** — `run_cfd`'den ÖNCE, saatlik koşuyu boşa
+  harcamamak için:
+  - **Ölçek:** L>100 m → mm ihracı şüphesi (doğru m karşılığını önerir); L<5 mm → birim
+    şüphesi; Re<1e4 → türbülanslı RANS varsayımı zayıf.
+  - **Eksen:** akış-yönlü araçta frontal izdüşüm üç izdüşümün en büyüğüyse burun/üst
+    ekseni yanlış (dikey modellenmiş roket vakası).
+  - **Referans alan:** `--tip ucak` planform A_ref alır; planform/frontal < 2 ise geometri
+    kanat benzeri değil → `--tip genel` önerilir. Roket'te frontal/yan > 0.5 → narin değil.
+  - **Pürüzsüz gövde:** yeni `keskin_kenar_orani` ölçüsü (dihedral > 30° olan komşu yüz
+    oranı; küp 0.67, silindir 0.33, küre/kapsül 0.00). < 0.02 ve prizma katmanı yoksa
+    ayrılma geçiş-güdümlüdür ve duvar-fonksiyonlu RANS **sistematik** şaşırır (projenin
+    küreyi doğrulama vakası olarak reddetme gerekçesiyle aynı fizik) → sonuç EĞİLİM düzeyi.
+- Kapı hazırlık+otomatik-oryantasyondan SONRA, çözücünün göreceği geometride ölçer:
+  otomatik düzeltilen dikey roket yanlış alarm vermez, kullanıcı açık yanlış eksen
+  verdiyse uyarır (teste bağlandı).
+- Uyarılar raporun **EN ÜSTÜNDE** (`r.kurulum`), banner'ın hemen altında; 4b'de
+  tekrarlanmaz. Kurulum hatası altındaki tüm bölümleri geçersizler.
+- **`fea_runner._parse_frd`** ilk kez test edildi (sertifikasyon zincirinin sonuç-okuma
+  yolu, kanonik `analysis/frd_parser`'dan ayrı ikinci parser): bitişik negatif sayıların
+  ayrışması, von Mises analitik doğrulaması, iki parser'ın aynı dosyada aynı hükmü vermesi.
+  Sci-notation regex'i üssü opsiyonel yaptı (savunmacı; eksik okunan bileşen STRESS
+  satırını sessizce düşürüp SF'yi olduğundan yüksek gösterebilir).
+- Kalıcı atlanan iki test (fixture'ları kayıp/6 GB) artık skip mesajında hangi testin
+  aynı yolu kapsadığını söylüyor — "kapsam var" yanılsaması kalktı.
+- Testler: 297 → 329 birim. Kapsam: validity_envelope %92, frd_parser %87.
+
 ## [2026-07-26] feat | Güven katmanı — fizik kapısı, provenance, gerçek-çözücü regresyonu
 
 **Neden:** Hedef "bir analiz mühendisi çıktıya güvenerek karar verebilsin". Denetim üç
