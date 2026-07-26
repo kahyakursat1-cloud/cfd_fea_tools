@@ -55,11 +55,18 @@ def _arac_mesh() -> tuple[str, str]:
 def _kup_arac_gci() -> tuple[str, str]:
     d = _json("gci_kup_arac.json")
     g, ref = d["gci"], d["referans"]["Cd"]
-    asimptotik = g["p_in_range"] and g["monotonic"]
-    guv = "✅ Yüksek" if g["gci_fine_pct"] < 5 else "⚠️ Bantlı"
-    return guv, (f"Küp (Hoerner {ref}): Cd={d['Cd_ince']:.3f} → sapma %{d['literatur_sapma_pct']}, "
-                 f"GCI %{g['gci_fine_pct']:.1f} (p={g['p']}, "
-                 f"{'asimptotik' if asimptotik else 'asimptotik DIŞI'})")
+    lsr = d.get("lsr") or {}
+    yakinsadi = g["gci_fine_pct"] < 5 and g["p_in_range"] and g["monotonic"]
+    # LSR tüm seviyelere bakar; Richardson yalnız en ince üçe. Ayrıştıklarında
+    # ÇELİŞKİ gizlenmez — bant, çelişkiyi taşıyan tarafın hükmüyle sunulur.
+    lsr_itiraz = lsr and not lsr.get("guvenilir", True)
+    guv = ("⚠️ Bantlı" if (not yakinsadi or lsr_itiraz) else "✅ Yüksek")
+    s = (f"Küp (Hoerner {ref}): Cd={d['Cd_ince']:.3f} → sapma %{d['literatur_sapma_pct']}, "
+         f"Richardson GCI %{g['gci_fine_pct']:.1f} (p={g['p']}, "
+         f"{'asimptotik' if yakinsadi else 'asimptotik DIŞI'})")
+    if lsr_itiraz:
+        s += f"; ancak {lsr['n']}-seviye LSR U=%{lsr['u_pct']:.0f} (asimptotik-altı)"
+    return guv, s
 
 
 def _arac_bandi() -> tuple[str, str]:

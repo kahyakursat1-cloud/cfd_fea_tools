@@ -110,10 +110,14 @@ def geometry_sanity(geo: dict, vehicle_type: str = "genel",
                  "(küre drag krizi vakası) — Cd yalnız EĞİLİM düzeyindedir. Prizma katmanı "
                  "(--katman) ile y⁺<1 çöz veya sonucu karşılaştırma amaçlı kullan")
 
+    # Üçgen-sayısı uyarısı YALNIZ eğrilik varken anlamlı: küp tam 12 üçgendir, bu bir
+    # yaklaşım değil kesin geometridir (ara açı oranı 0 → çok-yüzlü). Fasetli bir eğride
+    # (küre/silindir) ara açılar dolar ve düşük üçgen sayısı gerçek bir çözünürlük sorunudur.
     n_ucgen = geo.get("ucgen_sayisi") or 0
-    if 0 < n_ucgen < 100:
-        u.append(f"GEOMETRİ ÇÖZÜNÜRLÜĞÜ: yalnız {n_ucgen} üçgen — eğrilik fasetli, "
-                 "yüzey basıncı ve ayrılma noktası temsili olmayabilir")
+    egrilik = geo.get("fasetli_egrilik_orani")
+    if 0 < n_ucgen < 100 and (egrilik is None or egrilik > 0.0):
+        u.append(f"GEOMETRİ ÇÖZÜNÜRLÜĞÜ: yalnız {n_ucgen} üçgen ve yüzeyde eğrilik var — "
+                 "eğrilik fasetli, yüzey basıncı ve ayrılma noktası temsili olmayabilir")
     return u
 
 
@@ -149,39 +153,57 @@ def force_admissibility(Cd, Cl=None, alpha=None, cd_max=CD_MAX_PLAUSIBLE):
     return {"verdict": verdict, "reasons": reasons}
 
 
-SF_MAKUL_UST = 100.0        # üstü: yük muhtemelen aktarılmadı (tipik tasarım SF 1-5)
-GERILME_TABAN_ORANI = 1e-3  # σ_max < akma·1e-3 ise yapı yüklenmemiş sayılır
+SF_MAKUL_UST = 100.0        # üstü: dikkat çekilir ama REDDEDİLMEZ (bkz. aşağıdaki not)
+GERILME_TABAN_MPA = 1e-6    # bunun altı sayısal sıfır (çift-duyarlık gürültüsü)
 
 
 def stress_admissibility(max_vm_mpa=None, yield_mpa=None, sf=None,
-                         max_disp_mm=None) -> dict:
+                         max_disp_mm=None, uygulanan_yuk_n=None) -> dict:
     """Yapısal sonucun FİZİKSEL kabul-edilebilirliği — `force_admissibility`'nin eşi.
 
     En tehlikeli yapısal başarısızlık "yüksek gerilme" değil, YÜKÜN HİÇ AKTARILMAMASIDIR:
     ccx sıfır dönüş kodu verir, .frd okunur, gerilme ~0 çıkar, SF astronomik olur ve
-    rapor "çok güvenli" der. Hiçbir şey test edilmemişken güvenli hükmü verilir.
+    rapor "çok güvenli" der; hiçbir şey test edilmemişken güvenli hükmü verilir.
+
+    ÖLÇÜT SEÇİMİ (gerçek çözücü koşusuyla düzeltildi): "σ akmaya göre küçük" ölçütü
+    YANLIŞTI — 20 m/s'de 0.4 m'lik bir plakada σ=0.12 MPa fiziksel olarak DOĞRUDUR
+    (yapı sadece fazlasıyla güvenli). Hafif yüklü gerçek aero-yapısal vakaların
+    neredeyse tamamı akmanın binde birinin altındadır. Doğru ölçüt gerilmenin akmaya
+    oranı değil, UYGULANAN YÜKE karşı tepkinin olup olmadığıdır.
 
     Döner: {"verdict": "ok"|"suspect"|"inadmissible", "reasons": [...]}
     """
     reasons, verdict = [], "ok"
+    yuklu = uygulanan_yuk_n is None or (math.isfinite(uygulanan_yuk_n)
+                                        and abs(uygulanan_yuk_n) > 0)
+    # Statik analizde yükün KENDİSİ sıfırsa sonuç anlamsızdır: kullanıcı yüklü analiz
+    # istedi, basınç alanı boş geldi (CFD çözülmemiş / yanlış patch / birim hatası).
+    # Sıfır gerilme burada "meşru" değildir — hiçbir şey sorulmamış demektir.
+    if uygulanan_yuk_n is not None and math.isfinite(uygulanan_yuk_n) and uygulanan_yuk_n == 0:
+        reasons.append("uygulanan toplam kuvvet SIFIR — basınç alanı boş "
+                       "(CFD çözülmemiş, yanlış yüzey patch'i veya birim hatası); "
+                       "statik sonuç anlamsız")
+        verdict = "inadmissible"
     if max_vm_mpa is not None:
         if not math.isfinite(max_vm_mpa):
             reasons.append("gerilme alanı sonlu değil (NaN/Inf) — çözüm ıraksadı")
             verdict = "inadmissible"
-        elif max_vm_mpa <= 0:
-            reasons.append("gerilme alanı sıfır — yük yapıya AKTARILMAMIŞ "
-                           "(yük seti/mesnet tanımı boş olabilir)")
+        elif max_vm_mpa <= GERILME_TABAN_MPA and yuklu:
+            reasons.append(
+                f"gerilme sayısal sıfır (σ_max={max_vm_mpa:.3g} MPa)"
+                + (f" oysa {abs(uygulanan_yuk_n):.3g} N yük uygulandı"
+                   if uygulanan_yuk_n else "")
+                + " — yük yapıya AKTARILMAMIŞ (yük seti/mesnet tanımı boş olabilir)")
             verdict = "inadmissible"
-        elif yield_mpa and max_vm_mpa < yield_mpa * GERILME_TABAN_ORANI:
-            reasons.append(f"σ_max={max_vm_mpa:.3g} MPa, akmanın binde birinden küçük "
-                           f"({yield_mpa:.0f} MPa) — yük muhtemelen uygulanmadı")
-            verdict = "inadmissible"
-    if max_disp_mm is not None and math.isfinite(max_disp_mm) and max_disp_mm == 0:
+    if (max_disp_mm is not None and math.isfinite(max_disp_mm)
+            and max_disp_mm == 0 and yuklu):
         reasons.append("hiçbir düğüm hareket etmemiş — model tümüyle ankastre veya yüksüz")
         verdict = "inadmissible"
     if sf is not None and math.isfinite(sf) and sf > SF_MAKUL_UST and verdict == "ok":
-        reasons.append(f"emniyet faktörü {sf:.0f} (> {SF_MAKUL_UST:.0f}) — tipik tasarım "
-                       "1-5 bandının çok üstünde; yük ölçeği veya birimler gözden geçirilmeli")
+        # UYARI, ret DEĞİL: ön-tasarımda aşırı güvenli yapı meşrudur. Yine de yük
+        # ölçeği/birim hatası da aynı imzayı verir; mühendis ayırt etsin.
+        reasons.append(f"emniyet faktörü {sf:.0f} (> {SF_MAKUL_UST:.0f}) — yapı fazlasıyla "
+                       "güvenli OLABİLİR ya da yük ölçeği/birimi hatalı; yük büyüklüğünü teyit edin")
         verdict = "suspect"
     return {"verdict": verdict, "reasons": reasons}
 

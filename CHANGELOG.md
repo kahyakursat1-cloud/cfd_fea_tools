@@ -4,6 +4,36 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-07-27] feat+fix | 4-seviye GCI: arac hattinda mesh bagimsizligi ILK KEZ gosterildi
+
+**Olculen (kup, kalite=standart, r=1.5 sabit oran, 4 seviye):**
+23968 / 82201 / 267305 / 888377 hucre -> Richardson **GCI %3.15 < %5**, **p=2.386**
+(2. mertebe teorik ~2), monoton, asimptotik oran 0.96 -> **✅ Yakinsadi**. Onceki 3-seviye
+kosuda GCI %13.4 idi. ANCAK 4-seviye LSR (Eca-Hoekstra) p=0.06 / U=%58.3 ile
+"asimptotik-alti" diyor: en kaba seviye (23968) araligin disinda ve fiti bozuyor.
+Zarf tablosu CELISKIYI GIZLEMEZ — her iki hukum de satirda. Ayrica ince mesh Cd=1.1133,
+Hoerner 1.05'ten %6.0 sapiyor; kaba mesh'in %2.2 uyumu kismen tesadufiymis.
+
+**Gercek cozucuyle bulunan uc hata:**
+- `_parse_eigenfrequencies` yalniz harf-arali "E I G E N V A L U E" basligini ariyordu;
+  ccx 2.17 " MODE NO  EIGENVALUE ... FREQUENCY" yaziyor -> modal analiz `status: ok` +
+  **BOS frekans listesi** donduruyordu (sessiz basarisizlik). Iki bicim de taniniyor;
+  frekans uretilemezse artik FAILED doner.
+- **Kendi yapisal kapim yanlis alarm veriyordu:** "sigma < akma*1e-3 -> yuk uygulanmadi"
+  olcutu, 0.4 m plakada 160 N aero yukunde olculen sigma=0.122 MPa'yi reddetti — oysa bu
+  FIZIKSEL OLARAK DOGRU (elle kontrol M*c/I ~ 0.38 MPa). Hafif yuklu gercek aero-yapisal
+  vakalarin cogu akmanin binde birinin altindadir. Olcut degisti: gerilme/akma orani
+  DEGIL, uygulanan yuke karsi tepki. SF>100 artik `suspect` (uyari), ret degil.
+- **Kurulum kapisi kupte yanlis alarm veriyordu:** kup TAM 12 ucgendir, yaklasim degil.
+  Yeni `fasetli_egrilik_orani` (1-30 derece ara aci orani) cok-yuzluyu (0.00) fasetli
+  egriden (kure 1.00) ayirir; ucgen-sayisi uyarisi yalniz egrilik varken cikar.
+
+**Yeni:** bos yuk alani kapisi (statikte toplam kuvvet 0 -> sonuc anlamsiz), modal
+rijit-cisim kapisi (f1<1 Hz -> mesnet yetersiz, "flutter kiyasi yapilamaz"),
+`vehicle_fea` GERCEK ccx regresyonu (3 test, CFD kosusu gerektirmez).
+
+Testler: 356 -> 361 birim + 3 gercek-cozucu FEA.
+
 ## [2026-07-26c] fix+feat | GCI kampanyası dejenere seviye üretiyordu + GUI/yapısal kapı
 
 **Bulgu (uygulamayı koşturarak):** Küp üzerinde `--duyarlilik` kampanyası ~10 dk compute

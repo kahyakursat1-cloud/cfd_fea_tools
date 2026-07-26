@@ -1,49 +1,68 @@
 {
-  "vaka": "Kup 0.5 m, V=10 m/s (Re=3.3e5) — arac hatti (vehicle_pipeline) 3-seviye GCI",
-  "kaynak": "snappyHexMesh + foamRun, kalite=hizli, sabit oran r=1.5 (Celik 2008)",
+  "vaka": "Kup 0.5 m, V=10 m/s (Re=3.3e5) — arac hatti 4-seviye mesh yakinsama",
+  "kaynak": "snappyHexMesh + foamRun, kalite=standart, sabit oran r=1.5 (Celik 2008)",
   "referans": {
     "Cd": 1.05,
     "kaynak": "Hoerner 1965, Fluid-Dynamic Drag; Re>1e4 Re-bagimsiz"
   },
   "seviyeler": [
     {
+      "ad": "cokkaba",
+      "cells": 23968,
+      "Cd": 0.90397,
+      "Cd_wake": 1.17494
+    },
+    {
       "ad": "kaba",
-      "cells": 30156,
-      "Cd": 0.87312,
-      "Cd_wake": 1.1844
+      "cells": 82201,
+      "Cd": 0.95523,
+      "Cd_wake": 1.20639
     },
     {
       "ad": "orta",
-      "cells": 97251,
-      "Cd": 0.99718,
-      "Cd_wake": 1.21773
+      "cells": 267305,
+      "Cd": 1.06849,
+      "Cd_wake": 1.17826
     },
     {
       "ad": "ince",
-      "cells": 320552,
-      "Cd": 1.0735483127027028
+      "cells": 888377,
+      "Cd": 1.1133245685
     }
   ],
   "gci": {
-    "p": 1.28,
-    "f_exact": 1.188706,
-    "gci_fine_pct": 13.4085,
-    "gci_med_pct": 24.0084,
-    "asymptotic": 0.9289,
+    "p": 2.386,
+    "f_exact": 1.141369,
+    "gci_fine_pct": 3.1487,
+    "gci_med_pct": 8.5259,
+    "asymptotic": 0.9597,
     "monotonic": true,
     "p_in_range": true
   },
-  "verdikt": "⚠️ Mesh bağımsızlığı GÖSTERİLEMEDİ: GCI=13.4085% ≥ 5.0%",
-  "Cd_ince": 1.07355,
-  "literatur_sapma_pct": 2.24,
+  "lsr": {
+    "yontem": "LSR (Eça-Hoekstra 2014, basitleştirilmiş)",
+    "n": 4,
+    "p": 0.06,
+    "f_exact": 1.113325,
+    "u_abs": 0.649437,
+    "u_pct": 58.33,
+    "sigma_abs": 0.021373,
+    "convergence": "monotonic",
+    "kural": "asimptotik-altı (p<0.5): ekstrapolasyon yok, U=3·Δ_M+σ",
+    "guvenilir": false
+  },
+  "verdikt": "✅ Yakınsadı (GCI<5.0%, monoton, p makul, asimptotik oran≈1)",
+  "Cd_ince": 1.11332,
+  "literatur_sapma_pct": 6.03,
   "belirsizlik": {
-    "u_sayisal_pct": 13.4085,
-    "u_sayisal_kaynak": "GCI (asimptotik DEĞİL — band güvenilirliği düşük)",
+    "u_sayisal_pct": 7.77,
+    "u_sayisal_kaynak": "GCI (3-mesh, asimptotik) ⊕ salınım-genliği",
     "u_model_pct": 20.0,
     "model_kaynak": "literatür-öncül (pipeline-validasyonu beklemede)",
-    "u_toplam_pct": 24.08,
+    "u_toplam_pct": 21.46,
     "duvar_cozunur": false,
-    "rapor": "Cd = 1.0735 ± 24.1% (sayısal 13.4085% ⊕ model 20.0%)"
+    "rapor": "Cd = 1.1133 ± 21.5% (sayısal 7.77% ⊕ model 20.0%)"
   },
-  "_not": "Projenin arac hattinda ILK gecerli 3D Richardson analizi (p aralikta, monoton, asimptotik~1). Onceki kampanyalar dejenere seviye uretiyordu (bkz. CHANGELOG 2026-07-26c). GCI %13.4 > %5: bu cozunurlukte mesh bagimsizligi GOSTERILEMEDI, ama band artik OLCULMUS."
+  "_not": "Richardson (en ince 3 seviye): GCI %3.15 < %5, p=2.386 (2. mertebe teorik ~2), monoton, asimptotik oran 0.96 -> arac hattinda mesh bagimsizligi ILK KEZ GOSTERILDI. ANCAK 4-seviye LSR (Eca-Hoekstra) p=0.06 ve U=%58.3 ile \"asimptotik-alti\" diyor: en kaba seviye (23968 hucre) asimptotik aralikta degil ve fiti bozuyor. DURUST OKUMA: ince ucla (82k-888k) yakinsama gosterildi, kaba uc disarida. Ayrica ince mesh Cd=1.1133 literaturden %6.0 sapiyor — kaba mesh'in %2.2 uyumu kismen tesadufi idi.",
+  "_onceki": "gci_kup_arac.json (3 seviye, hizli kalite): GCI %13.4, p=1.28"
 }

@@ -117,8 +117,26 @@ def test_keskin_kenar_olcusu_gercek_sekillerde_ayrisir():
 
 # ── Diğer ────────────────────────────────────────────────────────────────────
 
-def test_fasetli_geometri_uyarir():
-    assert any("ÇÖZÜNÜRLÜĞÜ" in s for s in geometry_sanity(_geo(ucgen=12), "genel", 30.0))
+def test_fasetli_egri_uyarir():
+    """Kaba küre (80 üçgen, ara açı dolu) gerçek bir çözünürlük sorunudur."""
+    g = _geo(ucgen=80, keskin=0.0)
+    g["fasetli_egrilik_orani"] = 1.0
+    assert any("ÇÖZÜNÜRLÜĞÜ" in s for s in geometry_sanity(g, "genel", 30.0))
+
+
+def test_cok_yuzlu_uygun_ucgen_sayisiyla_uyarilmaz():
+    """YANLIŞ ALARM DÜZELTMESİ: küp TAM olarak 12 üçgendir — yaklaşım değil, kesin
+    geometri. Ara açı oranı 0 (tüm komşu yüzler ya düzlemsel ya keskin) → uyarı yok."""
+    g = _geo(ucgen=12, keskin=0.67)
+    g["fasetli_egrilik_orani"] = 0.0
+    assert not any("ÇÖZÜNÜRLÜĞÜ" in s for s in geometry_sanity(g, "genel", 30.0))
+
+
+def test_egrilik_olcusu_gercek_sekillerde_ayrisir():
+    trimesh = pytest.importorskip("trimesh")
+    from vehicle_pipeline import _fasetli_egrilik_orani
+    assert _fasetli_egrilik_orani(trimesh.creation.box(extents=[1, 1, 1])) == 0.0
+    assert _fasetli_egrilik_orani(trimesh.creation.icosphere(subdivisions=1)) > 0.5
 
 
 def test_eksik_alan_bilgisi_cokmez():

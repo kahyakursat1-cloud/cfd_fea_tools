@@ -16,16 +16,45 @@ def test_saglikli_sonuc_gecer():
 
 
 def test_sifir_gerilme_kabul_edilemez():
-    r = stress_admissibility(max_vm_mpa=0.0, yield_mpa=275.0)
+    r = stress_admissibility(max_vm_mpa=0.0, yield_mpa=275.0, uygulanan_yuk_n=50.0)
     assert r["verdict"] == "inadmissible"
     assert "AKTARILMAMIŞ" in r["reasons"][0]
 
 
-def test_gurultu_mertebesinde_gerilme_yakalanir():
-    """σ akmanın binde birinden küçükse yapı pratikte yüklenmemiştir."""
-    r = stress_admissibility(max_vm_mpa=0.05, yield_mpa=275.0, sf=5500.0)
+def test_yuk_uygulandi_ama_gerilme_sifir():
+    """Doğru ölçüt: yük UYGULANMIŞKEN tepki yoksa aktarım kopmuştur."""
+    r = stress_admissibility(max_vm_mpa=0.0, yield_mpa=275.0, uygulanan_yuk_n=160.0)
     assert r["verdict"] == "inadmissible"
-    assert "binde birinden" in r["reasons"][0]
+    assert "160" in r["reasons"][0] and "AKTARILMAMIŞ" in r["reasons"][0]
+
+
+def test_hafif_yuklu_gercek_vaka_reddedilmez():
+    """GERÇEK ÇÖZÜCÜ DERSİ (2026-07-27): 0.4 m plaka, 20 m/s, 160 N aero yükünde
+    ccx σ_max=0.122 MPa ölçtü (elle kontrol M·c/I ≈ 0.38 MPa ile aynı mertebe).
+    Bu FİZİKSEL OLARAK DOĞRU — yapı sadece fazlasıyla güvenli. Önceki ölçüt
+    (σ < akma·1e-3 → 'yük uygulanmadı') hafif yüklü gerçek aero vakalarının
+    neredeyse tamamını haksız yere reddederdi."""
+    r = stress_admissibility(max_vm_mpa=0.122, yield_mpa=290.0, sf=2373.88,
+                             uygulanan_yuk_n=160.0, max_disp_mm=0.03)
+    assert r["verdict"] != "inadmissible", "hafif yüklü geçerli sonuç reddedildi"
+    assert r["verdict"] == "suspect"
+    assert "fazlasıyla güvenli OLABİLİR" in r["reasons"][0], "tek olasılık sunulmamalı"
+
+
+def test_bos_yuk_alani_statikte_kabul_edilemez():
+    """Kullanıcı yüklü analiz istedi ama basınç alanı boş geldi (CFD çözülmemiş /
+    yanlış patch / birim hatası) — sıfır gerilme burada 'meşru' değil, hiçbir şey
+    sorulmamış demektir."""
+    r = stress_admissibility(max_vm_mpa=0.0, uygulanan_yuk_n=0.0)
+    assert r["verdict"] == "inadmissible"
+    assert "toplam kuvvet SIFIR" in r["reasons"][0]
+
+
+def test_yuk_bilinmiyorken_sifir_gerilme_muhafazakar_reddedilir():
+    """Yük bilgisi yoksa varsayım YÜKLÜ'dür: sıfır gerilme muhafazakâr olarak
+    reddedilir (güvenli taraf). Frekans analizi bu fonksiyona hiç uğramaz —
+    vehicle_fea'nın frekans kolu ayrı sözlük döndürür."""
+    assert stress_admissibility(max_vm_mpa=0.0)["verdict"] == "inadmissible"
 
 
 def test_nan_gerilme_kabul_edilemez():
@@ -34,14 +63,15 @@ def test_nan_gerilme_kabul_edilemez():
 
 
 def test_sifir_deplasman_kabul_edilemez():
-    r = stress_admissibility(max_vm_mpa=100.0, yield_mpa=275.0, max_disp_mm=0.0)
+    r = stress_admissibility(max_vm_mpa=100.0, yield_mpa=275.0, max_disp_mm=0.0,
+                             uygulanan_yuk_n=50.0)
     assert r["verdict"] == "inadmissible"
     assert any("hareket etmemiş" in s for s in r["reasons"])
 
 
-def test_asiri_sf_supheli():
+def test_asiri_sf_supheli_ama_ret_degil():
     r = stress_admissibility(max_vm_mpa=1.0, yield_mpa=275.0, sf=SF_MAKUL_UST + 1)
-    assert r["verdict"] in ("suspect", "inadmissible")
+    assert r["verdict"] == "suspect", "aşırı güvenli yapı ön-tasarımda meşrudur, reddedilmez"
 
 
 def test_tipik_tasarim_sf_supheli_degil():
@@ -62,7 +92,8 @@ def test_stress_assessment_kapiyi_tasir():
     assert saglikli["fizik_kabul"]["verdict"] == "ok"
     assert "⛔" not in saglikli["_gerilme_notu"]
 
-    yuksuz = _stress_assessment(np.array([1.0e3, 5.0e2, 2.0e2]), 275.0)   # ~1e-3 MPa
+    yuksuz = _stress_assessment(np.array([0.0, 0.0, 0.0]), 275.0,
+                                uygulanan_yuk_n=160.0)                 # yük var, tepki yok
     assert yuksuz["fizik_kabul"]["verdict"] == "inadmissible"
     assert "⛔" in yuksuz["_gerilme_notu"]
     assert "SF ANLAMSIZ" in yuksuz["_gerilme_notu"], "SF hâlâ geçerliymiş gibi sunulmamalı"
@@ -77,5 +108,5 @@ def test_bos_alan_none_doner():
 @pytest.mark.parametrize("vm,beklenen", [(1e9, "ok"), (0.0, "inadmissible")])
 def test_uc_degerler(vm, beklenen):
     from vehicle_fea import _stress_assessment
-    r = _stress_assessment(np.array([vm, vm * 0.9]), 275.0)
+    r = _stress_assessment(np.array([vm, vm * 0.9]), 275.0, uygulanan_yuk_n=100.0)
     assert r["fizik_kabul"]["verdict"] == beklenen

@@ -352,6 +352,18 @@ def _radial_solidity(m: trimesh.Trimesh) -> float:
     return round(min(sil / hull, 1.0), 4) if hull > 1e-12 else 1.0
 
 
+def _fasetli_egrilik_orani(m: trimesh.Trimesh, alt: float = 1.0, ust: float = 30.0) -> float:
+    """ARA açılı (1°–30°) komşu yüz oranı — geometride EĞRİLİK var mı?
+
+    Gerçek çok-yüzlüde (küp, tetrahedron) komşu yüzler ya düzlemsel (0°) ya keskindir;
+    ara açı YOKTUR. Fasetli bir eğri yüzeyde (küre, ince bölünmüş silindir) ara açılar
+    doludur. Küp tam olarak 12 üçgendir — bu bir yaklaşım değil, kesin geometridir;
+    üçgen-sayısı uyarısı ona verilmemelidir.
+    """
+    a = np.degrees(m.face_adjacency_angles)
+    return round(float(((a >= alt) & (a <= ust)).mean()) if len(a) else 0.0, 4)
+
+
 def _keskin_kenar_orani(m: trimesh.Trimesh, esik_deg: float = 30.0) -> float:
     """Komşu yüz çiftlerinin kaçında dihedral açı > eşik (keskin kenar).
 
@@ -381,6 +393,7 @@ def inspect_geometry(stl_path: Path) -> dict:
         "ince_kalinlik_m": (lambda t: round(t, 5) if t else None)(estimate_thin_thickness(m)),
         "ince_yassilik": round(_thin_flatness(m), 4),    # kanat-inceliği (bbox-üstü)
         "keskin_kenar_orani": _keskin_kenar_orani(m),    # ayrılma geometrik mi geçiş-güdümlü mü
+        "fasetli_egrilik_orani": _fasetli_egrilik_orani(m),  # geometride eğrilik var mı
         "radyal_doluluk": _radial_solidity(m),           # spoke↔sürekli (multikopter ayrımı)
     }
 

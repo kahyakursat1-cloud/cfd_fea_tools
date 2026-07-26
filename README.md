@@ -56,7 +56,7 @@ olmayan satır "beyan" olarak işaretlenir.
 |-------|--------------|-------|
 | Bağlı akış, 2D airfoil mutlak $C_d$ (M<0.3) | ✅ Yüksek | NASA TMR NACA0012 α=0°: GCI %1.7 (p=0.666), TMR sapması %4.9 |
 | 3D araç mesh yakınsama (snappyHexMesh) | ⚠️ Gösterilemedi | MiniHawk 3D snappyHexMesh: GCI %0.12, p=3.898 (asimptotik aralık DIŞI) |
-| 3D künt cisim — araç hattı GCI + literatür | ⚠️ Bantlı | Küp (Hoerner 1.05): Cd=1.074 → sapma %2.24, GCI %13.4 (p=1.28, asimptotik) |
+| 3D künt cisim — araç hattı GCI + literatür | ⚠️ Bantlı | Küp (Hoerner 1.05): Cd=1.113 → sapma %6.03, Richardson GCI %3.1 (p=2.386, asimptotik); ancak 4-seviye LSR U=%58 (asimptotik-altı) |
 | 3D araç $C_d$ — V&V/UQ bandı | ⚠️ Bantlı | Ölçülen validasyon bandı — bluff %6.0 |
 | Yapısal — lineer statik (kiriş) | ✅ Çok yüksek | Ankastre kiriş ↔ Euler-Bernoulli: sehim %1.0, gerilme %3.9 |
 | Yapısal — gerilme konsantrasyonu ($K_t$) | ✅ Yüksek | Delikli plaka Kt ↔ Heywood: tepe gerilme %1.7 (C3D10, 6637 eleman) |

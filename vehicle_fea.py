@@ -72,7 +72,12 @@ def _parse_eigenfrequencies(dat_path: Path, max_modes=10) -> list[float]:
         return freqs
     in_block = False
     for line in dat_path.read_text(errors="ignore").splitlines():
-        if "E I G E N V A L U E" in line:
+        # ccx sürümleri başlığı FARKLI yazar: eski/bazı derlemeler harf-aralı
+        # "E I G E N V A L U E", 2.17 ise " MODE NO    EIGENVALUE ... FREQUENCY".
+        # Yalnız ilk biçim aranınca tablo hiç bulunamıyor ve modal analiz
+        # status='ok' + BOŞ frekans listesi döndürüyordu (sessiz başarısızlık).
+        u = line.upper()
+        if "E I G E N V A L U E" in u or ("MODE NO" in u and "EIGENVALUE" in u):
             in_block = True
             continue
         if in_block:
@@ -103,7 +108,8 @@ def _mechanism_check(max_disp_mm, lmax_m, fixed_n, total_n) -> str | None:
     return None
 
 
-def _stress_assessment(vm_field, yield_mpa: float) -> dict | None:
+def _stress_assessment(vm_field, yield_mpa: float, uygulanan_yuk_n=None,
+                       max_disp_mm=None) -> dict | None:
     """Tekillik-dayanıklı gerilme özeti. Sivri iç köşede tepe von Mises bir
     TEKİLLİK'tir (mesh inceldikçe ıraksar) → SF'yi yapay düşürüp yanlış 'güvensiz'
     verdicti verir. Tepeyle birlikte 99. yüzdelik 'temsili' değeri + oranı raporla;
@@ -128,7 +134,9 @@ def _stress_assessment(vm_field, yield_mpa: float) -> dict | None:
     # HİÇ AKTARILMAMASIDIR — ccx 0 döner, .frd okunur, σ≈0 çıkar, SF astronomik olur
     # ve rapor "çok güvenli" der. Hiçbir şey test edilmemişken güvenli hükmü verilir.
     from validity_envelope import stress_admissibility
-    kabul = stress_admissibility(max_vm_mpa=peak, yield_mpa=yield_mpa, sf=_sf(peak))
+    kabul = stress_admissibility(max_vm_mpa=peak, yield_mpa=yield_mpa, sf=_sf(peak),
+                                 max_disp_mm=max_disp_mm,
+                                 uygulanan_yuk_n=uygulanan_yuk_n)
     return {"max_von_mises_MPa": round(peak, 3),
             "temsili_von_mises_MPa": round(repr_, 3),
             "tepe_temsili_orani": round(ratio, 2) if ratio else None,
@@ -395,10 +403,24 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
             if not ccx.success:
                 return {"status": "FAILED", "error": f"ccx: {ccx.stderr[-400:]}"}
             freqs = _parse_eigenfrequencies(ccx.dat_path, n_modes)
+            if not freqs:
+                # ccx koştu ama tablo okunamadı — 'ok' + boş liste sessiz başarısızlıktır
+                return {"status": "FAILED",
+                        "error": f"modal çözüm frekans üretmedi ({ccx.dat_path.name} "
+                                 "okunamadı veya boş) — ccx sürüm/format uyumu"}
+            # Rijit-cisim/mekanizma modu: mesnetli bir yapıda f1 pratikte sıfır olamaz.
+            # Statikteki _mechanism_check'in modal karşılığı — sessizce "0.00 Hz"
+            # raporlamak mühendisi yanlış flutter marjına götürür.
+            rijit = freqs[0] < 1.0
             out = {"status": "ok", "analiz": "doğal frekans",
                    "model": f"kabuk (t={shell_thickness_mm} mm)", "malzeme": mat.name,
                    "mesnet": desc, "dugum": int(len(m.vertices)),
-                   "dogal_frekanslar_hz": [round(f, 2) for f in freqs],
+                   "dogal_frekanslar_hz": [round(f, 4) for f in freqs],
+                   "rijit_cisim_suphesi": bool(rijit),
+                   **({"uyari": (f"1. mod {freqs[0]:.4g} Hz ≈ 0 — RİJİT-CİSİM/MEKANİZMA "
+                                 f"modu: mesnet yetersiz veya kabuk ağı çok kaba "
+                                 f"({len(m.vertices)} düğüm). Frekanslar yapısal DEĞİL; "
+                                 "flutter/uyarım kıyası yapılamaz")} if rijit else {}),
                    "_not": ("Yakıt/donanım/motor kütleleri ve iç yapı yok — frekanslar "
                             "yapısal-deri üst sınırıdır; flutter taraması için 1. mod "
                             "uçuş zarfı uyarım frekanslarıyla kıyaslanır.")}
@@ -422,7 +444,9 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
         max_disp_mm = float(disp.max()) * 1000 if disp is not None else None
         lmax = float((m.bounds[1] - m.bounds[0]).max())
         mech = _mechanism_check(max_disp_mm, lmax, len(fixed), len(m.vertices))
-        sa = _stress_assessment(vm, mat.yield_strength_pa / 1e6) or {}
+        sa = _stress_assessment(vm, mat.yield_strength_pa / 1e6,
+                            uygulanan_yuk_n=float(np.linalg.norm(mp["toplam_kuvvet_N"])),
+                            max_disp_mm=max_disp_mm) or {}
         if mech:   # mekanizma → emniyet faktörü anlamsız
             sa = {**sa, "emniyet_faktoru": None, "emniyet_faktoru_temsili": None}
         out = {"status": "ok", "model": f"kabuk (t={shell_thickness_mm} mm)"
@@ -523,7 +547,9 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
     vm = frd.von_mises()
     max_disp_mm = float(disp.max()) * 1000 if disp is not None else None
     mech = _mechanism_check(max_disp_mm, lmax, len(fixed), tet.num_nodes)
-    sa = _stress_assessment(vm, mat.yield_strength_pa / 1e6) or {}
+    sa = _stress_assessment(vm, mat.yield_strength_pa / 1e6,
+                            uygulanan_yuk_n=float(np.linalg.norm(mp["toplam_kuvvet_N"])),
+                            max_disp_mm=max_disp_mm) or {}
     if mech:
         sa = {**sa, "emniyet_faktoru": None, "emniyet_faktoru_temsili": None}
     out = {"status": "ok", "model": "dolu katı", "malzeme": mat.name, "mesnet": desc,
