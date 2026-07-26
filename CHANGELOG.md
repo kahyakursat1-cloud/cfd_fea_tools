@@ -4,6 +4,40 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-07-26c] fix+feat | GCI kampanyası dejenere seviye üretiyordu + GUI/yapısal kapı
+
+**Bulgu (uygulamayı koşturarak):** Küp üzerinde `--duyarlilik` kampanyası ~10 dk compute
+yaktı ve hiçbir kanıt üretmedi. Sebep: "orta" ve "kaba" seviyeler **aynı mesh'i** üretiyordu
+(ikisi de 70022 hücre, Cd 0.92869 vs 0.92854) → Richardson tanımsız → sonuç yalnızca
+"hesaplanamadı" diyordu. Kullanıcı neyi düzelteceğini bilemez.
+
+- **Kök sebep:** taban hücre `lmax / max(3, bg_div - ddiv)` ile kırpılıyordu; `hizli`
+  presetinde (`bg_div=5`) orta `max(3,3)=3`, kaba `max(3,1)=3` → aynı. Refinement de
+  `max(1, …)` ile 1'e çöküyordu.
+- **Düzeltme:** seviyeler artık **sabit oranla** ayrışıyor (r=1.5, Celik 2008 r≥1.3):
+  `bg = bg_ince · r^k`. Çakışma matematiksel olarak imkânsız.
+- **Dejenere koruması:** iki kademe %5'ten yakınsa verdikt sebebi ve düzeltme yolunu
+  söylüyor ("seviyeler ayrışmadı — kaba↔orta (70022≈70022); --kalite standart ile tekrarla").
+- **Ölçülen sonuç (düzeltme sonrası):** 30156 · 97251 · 320552 hücre → **p=1.28 (aralıkta),
+  monoton, asimptotik oran 0.93** — projenin araç hattında İLK geçerli 3D Richardson
+  analizi. GCI %13.4 (>%5, bağımsızlık hâlâ gösterilemedi) ama band artık ÖLÇÜLMÜŞ:
+  Cd = 1.0735 ± %24.1 (sayısal %13.4 ⊕ model %20); Hoerner 1.05'ten sapma %2.2.
+  `gci_kup_arac.json` + çalışma zarfı tablosuna yeni satır.
+
+**Yapısal fizik kapısı** (`stress_admissibility`) — aero'daki `force_admissibility`'nin eşi.
+En tehlikeli FEA başarısızlığı yüksek gerilme değil, yükün HİÇ AKTARILMAMASIDIR: ccx 0
+döner, σ≈0 çıkar, SF astronomik olur, rapor "çok güvenli" der. Yakalananlar: σ=0 / NaN,
+σ < akma·1e-3, sıfır deplasman, SF>100. `_stress_assessment` hükmü taşır ve düştüğünde
+notu "⛔ … SF ANLAMSIZ" ile başlar.
+
+**GUI ilk kez test edildi** (`app_analyzer`: 60 günde 22 değişiklik, 1039 satır, 0 test).
+Offscreen Qt ile gerçek pencere kurulup `_on_done` sahte sonuçlarla sürülüyor: rozet
+fizik-dışı koşuda "⛔ fizik-dışı" diyor, Cd çıplak gösterilmiyor, engel diyaloğu çıkıyor,
+uyarılar log paneline düşüyor. **Mutasyon doğrulaması:** kapı devre dışı bırakılınca 2 test
+düşüyor, geri alınınca geçiyor — testler gerçekten davranışı ölçüyor.
+
+Testler: 329 → 356.
+
 ## [2026-07-26b] feat | Kurulum kapısı — yanlış kurulmuş analiz çözücüden ÖNCE yakalanır
 
 **Neden:** Fizik kapısı sonucu denetliyor ama yanlış KURULMUŞ bir analizin sonucu zaten

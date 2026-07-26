@@ -1,0 +1,49 @@
+{
+  "vaka": "Kup 0.5 m, V=10 m/s (Re=3.3e5) — arac hatti (vehicle_pipeline) 3-seviye GCI",
+  "kaynak": "snappyHexMesh + foamRun, kalite=hizli, sabit oran r=1.5 (Celik 2008)",
+  "referans": {
+    "Cd": 1.05,
+    "kaynak": "Hoerner 1965, Fluid-Dynamic Drag; Re>1e4 Re-bagimsiz"
+  },
+  "seviyeler": [
+    {
+      "ad": "kaba",
+      "cells": 30156,
+      "Cd": 0.87312,
+      "Cd_wake": 1.1844
+    },
+    {
+      "ad": "orta",
+      "cells": 97251,
+      "Cd": 0.99718,
+      "Cd_wake": 1.21773
+    },
+    {
+      "ad": "ince",
+      "cells": 320552,
+      "Cd": 1.0735483127027028
+    }
+  ],
+  "gci": {
+    "p": 1.28,
+    "f_exact": 1.188706,
+    "gci_fine_pct": 13.4085,
+    "gci_med_pct": 24.0084,
+    "asymptotic": 0.9289,
+    "monotonic": true,
+    "p_in_range": true
+  },
+  "verdikt": "⚠️ Mesh bağımsızlığı GÖSTERİLEMEDİ: GCI=13.4085% ≥ 5.0%",
+  "Cd_ince": 1.07355,
+  "literatur_sapma_pct": 2.24,
+  "belirsizlik": {
+    "u_sayisal_pct": 13.4085,
+    "u_sayisal_kaynak": "GCI (asimptotik DEĞİL — band güvenilirliği düşük)",
+    "u_model_pct": 20.0,
+    "model_kaynak": "literatür-öncül (pipeline-validasyonu beklemede)",
+    "u_toplam_pct": 24.08,
+    "duvar_cozunur": false,
+    "rapor": "Cd = 1.0735 ± 24.1% (sayısal 13.4085% ⊕ model 20.0%)"
+  },
+  "_not": "Projenin arac hattinda ILK gecerli 3D Richardson analizi (p aralikta, monoton, asimptotik~1). Onceki kampanyalar dejenere seviye uretiyordu (bkz. CHANGELOG 2026-07-26c). GCI %13.4 > %5: bu cozunurlukte mesh bagimsizligi GOSTERILEMEDI, ama band artik OLCULMUS."
+}

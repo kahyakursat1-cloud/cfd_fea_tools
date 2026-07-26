@@ -13,6 +13,7 @@ Dayanak (Annex I + 2026-06 doğrulamaları):
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 VALIDATED = "VALIDATED"
@@ -145,6 +146,43 @@ def force_admissibility(Cd, Cl=None, alpha=None, cd_max=CD_MAX_PLAUSIBLE):
         elif alpha is not None and abs(alpha) > 2.0 and Cl * alpha < 0 and verdict != "inadmissible":
             reasons.append(f"taşıma işareti hücum açısıyla ters (α={alpha}°, Cl={Cl:.3f})")
             verdict = "suspect"
+    return {"verdict": verdict, "reasons": reasons}
+
+
+SF_MAKUL_UST = 100.0        # üstü: yük muhtemelen aktarılmadı (tipik tasarım SF 1-5)
+GERILME_TABAN_ORANI = 1e-3  # σ_max < akma·1e-3 ise yapı yüklenmemiş sayılır
+
+
+def stress_admissibility(max_vm_mpa=None, yield_mpa=None, sf=None,
+                         max_disp_mm=None) -> dict:
+    """Yapısal sonucun FİZİKSEL kabul-edilebilirliği — `force_admissibility`'nin eşi.
+
+    En tehlikeli yapısal başarısızlık "yüksek gerilme" değil, YÜKÜN HİÇ AKTARILMAMASIDIR:
+    ccx sıfır dönüş kodu verir, .frd okunur, gerilme ~0 çıkar, SF astronomik olur ve
+    rapor "çok güvenli" der. Hiçbir şey test edilmemişken güvenli hükmü verilir.
+
+    Döner: {"verdict": "ok"|"suspect"|"inadmissible", "reasons": [...]}
+    """
+    reasons, verdict = [], "ok"
+    if max_vm_mpa is not None:
+        if not math.isfinite(max_vm_mpa):
+            reasons.append("gerilme alanı sonlu değil (NaN/Inf) — çözüm ıraksadı")
+            verdict = "inadmissible"
+        elif max_vm_mpa <= 0:
+            reasons.append("gerilme alanı sıfır — yük yapıya AKTARILMAMIŞ "
+                           "(yük seti/mesnet tanımı boş olabilir)")
+            verdict = "inadmissible"
+        elif yield_mpa and max_vm_mpa < yield_mpa * GERILME_TABAN_ORANI:
+            reasons.append(f"σ_max={max_vm_mpa:.3g} MPa, akmanın binde birinden küçük "
+                           f"({yield_mpa:.0f} MPa) — yük muhtemelen uygulanmadı")
+            verdict = "inadmissible"
+    if max_disp_mm is not None and math.isfinite(max_disp_mm) and max_disp_mm == 0:
+        reasons.append("hiçbir düğüm hareket etmemiş — model tümüyle ankastre veya yüksüz")
+        verdict = "inadmissible"
+    if sf is not None and math.isfinite(sf) and sf > SF_MAKUL_UST and verdict == "ok":
+        reasons.append(f"emniyet faktörü {sf:.0f} (> {SF_MAKUL_UST:.0f}) — tipik tasarım "
+                       "1-5 bandının çok üstünde; yük ölçeği veya birimler gözden geçirilmeli")
+        verdict = "suspect"
     return {"verdict": verdict, "reasons": reasons}
 
 

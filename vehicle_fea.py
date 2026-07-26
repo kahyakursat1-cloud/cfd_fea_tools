@@ -124,13 +124,20 @@ def _stress_assessment(vm_field, yield_mpa: float) -> dict | None:
             "(sahte, mesh inceldikçe ıraksar) VEYA gerçek konsantrasyon (delik/fillet) "
             "olabilir — tek-mesh ayıramaz. Karar muhafazakâr tepe-SF'de kalır; sivri köşe "
             "ise fillet ekleyip ya da mesh-yakınsamayla teyit edin (gerçek SF temsiliye yakın).")
+    # FİZİK KAPISI (yapısal): en tehlikeli başarısızlık yüksek gerilme değil, yükün
+    # HİÇ AKTARILMAMASIDIR — ccx 0 döner, .frd okunur, σ≈0 çıkar, SF astronomik olur
+    # ve rapor "çok güvenli" der. Hiçbir şey test edilmemişken güvenli hükmü verilir.
+    from validity_envelope import stress_admissibility
+    kabul = stress_admissibility(max_vm_mpa=peak, yield_mpa=yield_mpa, sf=_sf(peak))
     return {"max_von_mises_MPa": round(peak, 3),
             "temsili_von_mises_MPa": round(repr_, 3),
             "tepe_temsili_orani": round(ratio, 2) if ratio else None,
             "tekillik_suphesi": singular,
             "emniyet_faktoru": _sf(peak),                  # muhafazakâr (tepe)
             "emniyet_faktoru_temsili": _sf(repr_),         # tekillik-robust
-            "_gerilme_notu": note}
+            "fizik_kabul": kabul,
+            "_gerilme_notu": note if kabul["verdict"] == "ok"
+                             else "⛔ " + "; ".join(kabul["reasons"]) + " — SF ANLAMSIZ. " + note}
 
 
 # Termal genleşme katsayıları (1/K) — malzeme adından sezgi (CTE literatür değerleri)

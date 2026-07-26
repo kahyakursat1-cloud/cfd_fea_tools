@@ -871,11 +871,18 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         from report_generator import compute_gci, gci_verdict, least_squares_gci
         cells_fine = (meshq or {}).get("cells")
         levels = [{"ad": "ince", "cells": cells_fine, "Cd": cd}] if cells_fine else []
-        kademeler = [("orta", 1, 2, q["end_time"]),
-                     ("kaba", 2, 4, MESH_QUALITY["hizli"]["end_time"])]
+        # Seviye ayrımı SABİT ORAN ile (Celik 2008: r ≥ 1.3). Eski kurulum taban hücreyi
+        # `lmax / max(3, bg_div - ddiv)` ile kırpıyordu; bg_div=5 (hizli) presetinde orta
+        # ve kaba seviyeler AYNI 3'e düşüp aynı mesh'i üretiyor, GCI sessizce
+        # "hesaplanamadı" oluyordu (küp kampanyası: iki seviye de 70022 hücre).
+        GCI_ORANI = 1.5
+        bg_ince = geo["lmax_m"] / q["bg_div"]
+        kademeler = [("orta", 1, GCI_ORANI, q["end_time"]),
+                     ("kaba", 2, GCI_ORANI ** 2, MESH_QUALITY["hizli"]["end_time"])]
         if mesh_levels >= 4:
-            kademeler.append(("cokkaba", 3, 6, MESH_QUALITY["hizli"]["end_time"]))
-        for ad, dref, ddiv, et in kademeler:
+            kademeler.append(("cokkaba", 3, GCI_ORANI ** 3,
+                              MESH_QUALITY["hizli"]["end_time"]))
+        for ad, dref, oran, et in kademeler:
             if progress_cb:
                 progress_cb(80, f"Mesh-bağımsızlık: {ad} seviye koşusu…")
             lvl = CFDCase(
@@ -885,7 +892,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                 refinement_min=max(1, rmin + bump - dref),
                 refinement_max=max(1, rmax + bump - dref),
                 end_time=et, max_global_cells=q_max,
-                bg_cell_size=geo["lmax_m"] / max(3, q["bg_div"] - ddiv),
+                bg_cell_size=bg_ince * oran,
                 n_layers=n_layers, first_layer_thickness=case.first_layer_thickness,
                 n_processors=n_processors, ground_clearance=ground_clearance,
                 refinement_regions=refinement_regions,
@@ -909,8 +916,26 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         if len(levels) >= 3:
             f3, f2, f1 = levels[-3], levels[-2], levels[-1]
             gci = compute_gci(h(f3), h(f2), h(f1), f3["Cd"], f2["Cd"], f1["Cd"])
-            base.mesh_duyarlilik = {"seviyeler": levels, "gci": gci,
-                                    "verdikt": gci_verdict(gci) if gci else "hesaplanamadı"}
+            # Dejenere seviye: iki kademe pratikte AYNI mesh'i ürettiyse GCI matematiksel
+            # olarak tanımsızdır. "hesaplanamadı" demek sebebi gizler; kullanıcı saatlerce
+            # compute yakıp neyi düzelteceğini bilemez.
+            dejenere = [f"{a['ad']}↔{b['ad']} ({a['cells']}≈{b['cells']} hücre)"
+                        for a, b in zip(levels, levels[1:])
+                        if abs(a["cells"] - b["cells"]) / max(a["cells"], 1) < 0.05]
+            if gci:
+                verdikt = gci_verdict(gci)
+            elif dejenere:
+                verdikt = ("⚠️ GCI HESAPLANAMADI: seviyeler ayrışmadı — " +
+                           ", ".join(dejenere) +
+                           ". Mesh çözünürlüğü tabana dayandı; daha ince bir kalite "
+                           "preset'i (--kalite standart/hassas) veya daha büyük "
+                           "--seviyeler ile tekrarlayın")
+            else:
+                verdikt = ("⚠️ GCI HESAPLANAMADI: seviyeler arası Cd farkı sayısal "
+                           "gürültü mertebesinde (Richardson tanımsız)")
+            base.mesh_duyarlilik = {"seviyeler": levels, "gci": gci, "verdikt": verdikt}
+            if dejenere:
+                base.mesh_duyarlilik["dejenere_seviyeler"] = dejenere
             lsr = (least_squares_gci([h(lv) for lv in levels], [lv["Cd"] for lv in levels])
                    if len(levels) >= 4 else None)
             if lsr:

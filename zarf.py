@@ -52,6 +52,16 @@ def _arac_mesh() -> tuple[str, str]:
                  f"p={g['p']} ({'asimptotik' if g['p_in_range'] else 'asimptotik aralık DIŞI'})")
 
 
+def _kup_arac_gci() -> tuple[str, str]:
+    d = _json("gci_kup_arac.json")
+    g, ref = d["gci"], d["referans"]["Cd"]
+    asimptotik = g["p_in_range"] and g["monotonic"]
+    guv = "✅ Yüksek" if g["gci_fine_pct"] < 5 else "⚠️ Bantlı"
+    return guv, (f"Küp (Hoerner {ref}): Cd={d['Cd_ince']:.3f} → sapma %{d['literatur_sapma_pct']}, "
+                 f"GCI %{g['gci_fine_pct']:.1f} (p={g['p']}, "
+                 f"{'asimptotik' if asimptotik else 'asimptotik DIŞI'})")
+
+
 def _arac_bandi() -> tuple[str, str]:
     b = _json("validation_band.json")
     p = [f"{vaka} %{max(m.values()):.1f}" for vaka, m in b.items() if isinstance(m, dict) and m]
@@ -74,6 +84,7 @@ def _kt() -> tuple[str, str]:
 SATIRLAR = [
     ("Bağlı akış, 2D airfoil mutlak $C_d$ (M<0.3)", _airfoil_cd),
     ("3D araç mesh yakınsama (snappyHexMesh)", _arac_mesh),
+    ("3D künt cisim — araç hattı GCI + literatür", _kup_arac_gci),
     ("3D araç $C_d$ — V&V/UQ bandı", _arac_bandi),
     ("Yapısal — lineer statik (kiriş)", _kiris),
     ("Yapısal — gerilme konsantrasyonu ($K_t$)", _kt),
