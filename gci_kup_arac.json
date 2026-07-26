@@ -64,5 +64,6 @@
     "rapor": "Cd = 1.1133 ± 21.5% (sayısal 7.77% ⊕ model 20.0%)"
   },
   "_not": "Richardson (en ince 3 seviye): GCI %3.15 < %5, p=2.386 (2. mertebe teorik ~2), monoton, asimptotik oran 0.96 -> arac hattinda mesh bagimsizligi ILK KEZ GOSTERILDI. ANCAK 4-seviye LSR (Eca-Hoekstra) p=0.06 ve U=%58.3 ile \"asimptotik-alti\" diyor: en kaba seviye (23968 hucre) asimptotik aralikta degil ve fiti bozuyor. DURUST OKUMA: ince ucla (82k-888k) yakinsama gosterildi, kaba uc disarida. Ayrica ince mesh Cd=1.1133 literaturden %6.0 sapiyor — kaba mesh'in %2.2 uyumu kismen tesadufi idi.",
-  "_onceki": "gci_kup_arac.json (3 seviye, hizli kalite): GCI %13.4, p=1.28"
+  "_onceki": "gci_kup_arac.json (3 seviye, hizli kalite): GCI %13.4, p=1.28",
+  "_uretim": "Üretim: python vehicle_pipeline.py vehicle_runs/gci_kup.stl --tip genel --hiz 10 --kalite standart --duyarlilik --seviyeler 4"
 }

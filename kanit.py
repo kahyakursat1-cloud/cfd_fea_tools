@@ -13,11 +13,12 @@ Bu araç dosyaları SINIFLAR ve kanıt olanları verdiktleriyle listeler:
 
     python kanit.py            # tablo
     python kanit.py --json     # kanit_manifest.json yaz
-    python kanit.py --eksik    # yalnız hükmü olmayan/eskimiş kanıtları göster
+    python kanit.py --eksik    # hükmü/üretim komutu olmayan veya eskimiş kanıtlar
 """
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -56,9 +57,21 @@ def _hukum(d: dict) -> tuple[str, str]:
     return "—", ""
 
 
+# Kanıtı ÜRETEN komut — yeniden-üretilebilirlik (yayın/hakem için kritik).
+# FEA ailesi bu geleneği kurmuş ("Üretim: python experiments/…"); indeks onu görünür kılar.
+# Nokta komutun PARÇASI olabilir (vehicle_pipeline.py); cümle sonunu ". " ile ayır.
+_URETIM = re.compile(r"(?:Üretim|Uretim|Reproduce)\s*:\s*(python[^\"\n]{3,120}?)"
+                     r"(?=\.\s|\.$|$|\")")
+
+
+def _uretim_komutu(d: dict) -> str:
+    m = _URETIM.search(" ".join(str(v) for v in d.values()))
+    return m.group(1).strip() if m else ""
+
+
 def sinifla(p: Path) -> dict:
     kayit = {"dosya": p.name, "sinif": "?", "vaka": "", "hukum": "", "sembol": "—",
-             "eskimis": False, "not": ""}
+             "eskimis": False, "uretim": "", "not": ""}
     if p.name in KAYNAK:
         kayit["sinif"] = "kaynak"
         return kayit
@@ -77,6 +90,7 @@ def sinifla(p: Path) -> dict:
     kayit["vaka"] = str(d.get("vaka") or d.get("_kaynak") or "")[:90]
     kayit["eskimis"] = bool(d.get("_SUPERSEDED"))
     kayit["sembol"], kayit["hukum"] = sembol, metin[:150]
+    kayit["uretim"] = _uretim_komutu(d)
     kayit["sinif"] = "kanit" if (kayit["vaka"] or metin) else "artefakt"
     if kayit["eskimis"]:
         kayit["not"] = "ESKİMİŞ — güncel dosya için _SUPERSEDED notuna bak"
@@ -90,18 +104,24 @@ def manifest() -> list[dict]:
 
 def tablo(kayitlar: list[dict], yalniz_kanit: bool = True) -> str:
     k = [x for x in kayitlar if x["sinif"] == "kanit"] if yalniz_kanit else kayitlar
-    sat = ["| Dosya | Vaka | Hüküm |", "|---|---|---|"]
+    sat = ["| Dosya | Vaka | Hüküm | Yeniden üretim |", "|---|---|---|---|"]
     for x in k:
         vaka = x["vaka"] or "—"
         hukum = (x["hukum"] or "hüküm alanı YOK").replace("|", "/")
         if x["eskimis"]:
             hukum = "🕰 ESKİMİŞ — " + hukum
-        sat.append(f"| `{x['dosya']}` | {vaka} | {x['sembol']} {hukum} |")
+        ur = f"`{x['uretim']}`" if x["uretim"] else "⚠ komut kayıtlı değil"
+        sat.append(f"| `{x['dosya']}` | {vaka} | {x['sembol']} {hukum} | {ur} |")
     ozet = {}
     for x in kayitlar:
         ozet[x["sinif"]] = ozet.get(x["sinif"], 0) + 1
     sat.append("")
     sat.append("**Özet:** " + ", ".join(f"{v} {a}" for a, v in sorted(ozet.items())))
+    kanitlar = [x for x in kayitlar if x["sinif"] == "kanit"]
+    uretilebilir = sum(1 for x in kanitlar if x["uretim"])
+    if kanitlar:
+        sat.append(f"**Yeniden üretilebilir:** {uretilebilir}/{len(kanitlar)} kanıt "
+                   "üreten komutu kaydediyor")
     bozuk = [x for x in kayitlar if x["sinif"] == "bozuk"]
     if bozuk:
         sat.append("")
@@ -119,7 +139,8 @@ def main() -> int:
         return 0
     if "--eksik" in sys.argv:
         eksik = [x for x in kayitlar
-                 if x["sinif"] == "kanit" and (not x["hukum"] or x["eskimis"])]
+                 if x["sinif"] == "kanit"
+                 and (not x["hukum"] or x["eskimis"] or not x["uretim"])]
         print(tablo(eksik) if eksik else "Tüm kanıt dosyaları hüküm taşıyor ve güncel.")
         return 0
     print(tablo(kayitlar))

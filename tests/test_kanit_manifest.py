@@ -79,3 +79,32 @@ def test_zarf_bom_dayanikli():
 
     import zarf
     assert "utf-8-sig" in inspect.getsource(zarf._json)
+
+
+def test_uretim_komutu_cikarilir():
+    """Yeniden-üretilebilirlik yayın/hakem için kritik: kanıtı hangi komut üretti?"""
+    assert kanit._uretim_komutu({"_not": "Uretim: python experiments/fea_validation.py"}) \
+        == "python experiments/fea_validation.py"
+    # nokta komutun PARÇASI (vehicle_pipeline.py) — cümle sonuyla karıştırılmamalı
+    uzun = {"_u": "Üretim: python vehicle_pipeline.py x.stl --tip genel. Not: 4 seviye"}
+    assert kanit._uretim_komutu(uzun) == "python vehicle_pipeline.py x.stl --tip genel"
+    assert kanit._uretim_komutu({"vaka": "komut yok"}) == ""
+
+
+def test_uretim_komutu_olmayan_kanit_eksik_sayilir(tmp_path):
+    import json as _j
+    p = tmp_path / "kanitsiz.json"
+    p.write_text(_j.dumps({"vaka": "x", "sonuc": "GECTI"}), encoding="utf-8")
+    assert kanit.sinifla(p)["uretim"] == ""
+
+
+def test_tablo_yeniden_uretim_sutunu_tasir():
+    t = kanit.tablo(kanit.manifest())
+    assert "Yeniden üretim" in t and "Yeniden üretilebilir:" in t
+
+
+def test_bilinen_kanitlar_komut_kaydediyor():
+    """FEA doğrulama ailesi bu geleneği kurdu — regresyon çapası."""
+    m = {k["dosya"]: k for k in kanit.manifest()}
+    for ad in ("fea_validation.json", "fea_validation_hole.json", "gci_kup_arac.json"):
+        assert m[ad]["uretim"].startswith("python"), f"{ad} üretim komutunu kaybetti"
