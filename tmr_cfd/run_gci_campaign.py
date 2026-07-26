@@ -72,8 +72,10 @@ def main():
             continue
         action = "RESUME" if (case / "processor0").is_dir() else "koşuluyor"
         print(f"=== {lbl} (α={ALPHA}) {action} ===", flush=True)
+        # iç monitör 36000 s ile sınırlı; dış tavan onun üstünde olmalı ki normal koşu
+        # kesilmesin ama asılı seviye kampanyayı süresiz kilitlemesin (check=False → devam)
         subprocess.run([sys.executable, str(HERE / "build_and_run.py"),
-                        str(grid), str(case), ALPHA, end, "8"], check=False)
+                        str(grid), str(case), ALPHA, end, "8"], check=False, timeout=40000)
 
     res = [(lbl, cells, cd_of(case), cl_of(case)) for lbl, _, case, cells, _ in LEVELS]
     print("Sonuçlar (Cd,Cl):", [(l, cd, cl) for l, _, cd, cl in res], flush=True)

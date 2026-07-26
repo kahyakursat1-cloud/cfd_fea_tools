@@ -1061,7 +1061,7 @@ mergePatchPairs
         try:
             # gmshToFoam çalıştır
             cmd = f"gmshToFoam {msh_file} -case {case_dir}"
-            subprocess.run(cmd, shell=True, check=True)
+            subprocess.run(cmd, shell=True, check=True, timeout=1800)
             print(f"✅ Mesh converted: {msh_file} → {case_dir}")
         except subprocess.CalledProcessError as e:
             print(f"❌ Conversion error: {e}")

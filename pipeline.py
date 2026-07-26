@@ -5,6 +5,7 @@ Endustri on-tasarim is akisini tek komutta yonetir:
   validate -> mesh-study -> polar -> loads -> fea -> report
 
 Kullanim:
+  python pipeline.py doctor            # ON-KONTROL: ortam analiz kosabilir mi? (once bunu kos)
   python pipeline.py loads             # V-n yuk zarfi (hizli)
   python pipeline.py fea               # kritik yuk -> kanat FEA
   python pipeline.py report            # mevcut json'lardan V&V raporu
@@ -188,7 +189,8 @@ def stage_rocket_cfd():
 def stage_report():
     """Mevcut tum JSON sonuclarindan V&V raporu uret."""
     import subprocess
-    subprocess.run([sys.executable, str(BASE / "report_generator.py")], cwd=str(BASE))
+    subprocess.run([sys.executable, str(BASE / "report_generator.py")], cwd=str(BASE),
+                   timeout=1800)
     print(f"[report] -> {BASE / 'report' / 'VV_report.md'}")
 
 
@@ -219,6 +221,9 @@ def main():
         stage_rocket_cfd()
     elif cmd == "report":
         stage_report()
+    elif cmd == "doctor":
+        from on_kontrol import main as _doctor
+        sys.exit(_doctor())
     elif cmd == "all":
         _, crit = stage_loads()
         stage_fea(crit)

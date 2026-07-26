@@ -44,9 +44,14 @@ dev = [
 [project.urls]
 Documentation = "https://github.com/kahyakursat/cfdfea-tools#readme"
 
-# NOT: Paket bulma (src/ layout) Faz 4'te kesinlestirilecek. Su an dosyalar
-# kok dizinde flat; pipeline.py / launcher.py CLI giris noktalaridir.
+# Paketleme durumu (Faz 4'te src/ layout'a tasinacak):
+#   - `analysis` KURULUR: kanonik CFD/FEA katmani, ad-alani temiz, disaridan
+#     `from analysis.openfoam_runner import run_cfd` ile kullanilabilir.
+#   - Kok dizindeki 68 flat modul BILEREK kurulmaz: `constants`, `kuyruk`, `mentor`,
+#     `laminat` gibi cok genel adlar site-packages'ta baska paketleri golgeler.
+#     Bunlar repo kokunden calistirilir (README: komutlari kok dizinde kos).
 [tool.setuptools]
+packages = ["analysis"]
 py-modules = []
 
 # ─── Ruff (lint + format) ─────────────────────────────────────────────────

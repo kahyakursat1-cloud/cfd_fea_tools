@@ -164,3 +164,6 @@ _doe_tmp/
 design_explore_*.json
 kuyruk.jsonl
 kuyruk.lock
+
+# Gecelik gercek-cozucu regresyonu ciktisi (uretilen)
+regresyon_sonuc.json

@@ -98,7 +98,16 @@ def _solve_report(cu):
     proc = subprocess.Popen(solve, shell=True)
     pl = monitor(CASE, window=10, tol=1.5e-3, poll=20.0, timeout=36000)
     print(f"[{CASE.name}] force-plateau: {pl}", flush=True)
-    proc.wait()
+    # monitor plato görünce stopAt writeNow yazar; çözücü buna yanıt vermezse (asılı MPI —
+    # hwloc vakası) sınırsız wait tüm gece kampanyasını kilitler. Sarmalayıcıyı öldürmek
+    # WSL tarafındaki mpirun'ı bırakabilir, ama kampanya bir sonraki seviyeye geçer.
+    try:
+        proc.wait(timeout=1800)
+    except subprocess.TimeoutExpired:
+        print(f"[{CASE.name}] UYARI: çözücü stopAt'e 30 dk'da yanıt vermedi — sonlandırılıyor",
+              flush=True)
+        proc.kill()
+        proc.wait()
     fdat = forcecoeffs_dat(CASE)
     if fdat.exists():
         last = [ln for ln in fdat.read_text().splitlines() if ln.strip() and not ln.startswith("#")][-1]
@@ -117,7 +126,7 @@ def main():
         # dict'leri tazele (residual 1e-9 + stopAt endTime, force-plateau uyumlu); startFrom
         # latestTime processor çözümünden devam eder, processor alanlarına dokunulmaz.
         subprocess.run([sys.executable, str(HERE / "setup_case.py"), str(CASE), ALPHA, "6e6", END],
-                       check=True)
+                       check=True, timeout=600)
         return _solve_report(cu)
     return _full_build_and_solve(cu)
 
@@ -146,7 +155,7 @@ def _full_build_and_solve(cu):
         return 1
     print(f"[{CASE.name}] setup_case α={ALPHA}...", flush=True)
     subprocess.run([sys.executable, str(HERE / "setup_case.py"), str(CASE), ALPHA, "6e6", END],
-                   check=True)
+                   check=True, timeout=600)
     (CASE / "system" / "decomposeParDict").write_text(
         f"FoamFile{{version 2.0;format ascii;class dictionary;object decomposeParDict;}}\n"
         f"numberOfSubdomains {NP};\nmethod scotch;\n")

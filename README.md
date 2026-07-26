@@ -8,9 +8,15 @@ OpenFOAM (CFD) + CalculiX (FEA) tabanlı, **ASME V&V 20 / FAR-CS-23** uyumlu
 endüstri ön-tasarım analiz hattı. Doğrulanmış (validated) çözücü, mesh
 bağımsızlık (GCI), yük zarfı (V-n), CFD→FEA coupling ve otomatik raporlama.
 
-İki giriş noktası: otomasyon için **`pipeline.py`** (CLI, aşağıda), etkileşimli
-parametrik tasarım için **`launcher.py`** (PySide6 GUI → `app_parametric.py`,
-malzeme editörü, fotogrametri tarayıcı).
+Giriş noktaları:
+
+| Ne yapmak istiyorsun | Komut |
+|---|---|
+| **Önce ortamı doğrula** | `python pipeline.py doctor` |
+| Sertifikasyon zinciri (yük → FEA → rapor) | `python pipeline.py all` |
+| Tek geometrinin araç analizi (headless) | `python vehicle_pipeline.py <STL>` |
+| Etkileşimli analiz stüdyosu (GUI) | `python launcher.py` → **Araç Analizi** (`app_analyzer.py`) |
+| Eski parametrik GUI | `python launcher.py` → Parametrik (`app_parametric.py`) |
 
 ## Kurulum
 
@@ -25,25 +31,44 @@ pip install -e ".[gui]"           # + PySide6 arayüzleri (launcher.py)
 pip install -e ".[gui,viz]"       # tam sistem (görüntü-işleme/YOLO → ../goruntu_isleme/)
 ```
 
-**Harici araçlar** (Python paketi değil): OpenFOAM 11 (CFD), CalculiX `ccx` 2.21
-(FEA), opsiyonel OpenVSP 3.50 (`openvsp` conda env) ve OpenRocket (`orenv`, JVM).
-Bkz. [Donanım Notu](#donanım-notu).
+`pip install -e .` bağımlılıkları ve **kanonik `analysis` katmanını** kurar — dışarıdaki
+bir script'ten `from analysis.openfoam_runner import run_cfd` çalışır. Kök dizindeki flat
+modüller (`pipeline`, `vehicle_pipeline`, `constants`, …) bilerek kurulmaz: bu kadar genel
+adlar site-packages'ta başka paketleri gölgeler. **Komutları repo kökünde koş** (src/
+layout'a taşınması Faz 4).
+
+**Harici araçlar** (Python paketi değil): OpenFOAM 11 (CFD), CalculiX `ccx` (FEA;
+doğrulandığı sürüm 2.17), opsiyonel OpenVSP 3.50 (`openvsp` conda env) ve OpenRocket
+(`orenv`, JVM). Hangisinin kurulu olduğunu `python pipeline.py doctor` söyler — çözücünün
+gerçekten kullandığı arka uçtan (`CFD_BACKEND=wsl|docker`) sınar. Bkz.
+[Donanım Notu](#donanım-notu).
 
 
 
 ## Çalışma Zarfı (Geçerlilik Sınırları)
 
+Tablo elle yazılmaz — `python zarf.py --yaz` ile kök dizindeki V&V kanıt JSON'larından
+üretilir; verdiktler kanonik `report_generator.gci_verdict` ile hesaplanır. Kanıt dosyası
+olmayan satır "beyan" olarak işaretlenir.
+
+<!-- ZARF:BASLANGIC — `python zarf.py --yaz` uretir, elle duzenleme -->
 | Koşul | Güvenilirlik | Kanıt |
 |-------|--------------|-------|
-| Bağlı akış α≤8°, M<0.3 | ✅ Yüksek | NACA0012 α=4°: Cd %2.2 hata |
-| Yapısal (lineer statik) | ✅ Çok yüksek | Kiriş analitik %0.05 |
-| Mesh yakınsama | ✅ | GCI 0.09% |
-| Stall / CLmax | ⚠️ ±2-3°, ±%15 (RANS) | — |
-| y⁺<1 transition / ayrılmış akış | ❌ Kapsam dışı | C-grid / DES gerekir |
+| Bağlı akış, 2D airfoil mutlak $C_d$ (M<0.3) | ✅ Yüksek | NASA TMR NACA0012 α=0°: GCI %1.7 (p=0.666), TMR sapması %4.9 |
+| 3D araç mesh yakınsama (snappyHexMesh) | ⚠️ Gösterilemedi | MiniHawk 3D snappyHexMesh: GCI %0.12, p=3.898 (asimptotik aralık DIŞI) |
+| 3D araç $C_d$ — V&V/UQ bandı | ⚠️ Bantlı | Ölçülen validasyon bandı — bluff %6.0 |
+| Yapısal — lineer statik (kiriş) | ✅ Çok yüksek | Ankastre kiriş ↔ Euler-Bernoulli: sehim %1.0, gerilme %3.9 |
+| Yapısal — gerilme konsantrasyonu ($K_t$) | ✅ Yüksek | Delikli plaka Kt ↔ Heywood: tepe gerilme %1.7 (C3D10, 6637 eleman) |
+| Stall / $C_{L,max}$ | ⚠️ ±2-3°, ±%15 (RANS) | beyan — kanıt dosyası yok |
+| y⁺<1 transition / ayrılmış akış | ❌ Kapsam dışı | beyan — kanıt dosyası yok; C-grid / DES gerekir |
+<!-- ZARF:SON -->
 
 ## Hızlı Başlangıç
 
 ```bash
+# 0) Ortam kontrolü — saatlik koşuyu başlatmadan önce
+python pipeline.py doctor
+
 # Compute-hafif tam akış: yük zarfı -> kritik FEA -> rapor
 python pipeline.py all
 
@@ -90,6 +115,35 @@ python run_prism_3d.py                    # prism-layer 3D mesh + y+ ölçümü
 | `openrocket_bridge.py` | **OpenRocket** (orhelper/JPype): roket uçuş sim — stabilite, apogee, Cd-Mach |
 | `report_generator.py` | ASME V&V 20 raporu + 300 DPI figürler + VLM/RANS çapraz-kontrol |
 
+**Araç akışı (modern, `analysis/` tabanlı) ve güven katmanı:**
+
+| Dosya | Sorumluluk |
+|-------|------------|
+| `analysis/` | KANONİK CFD/FEA katmanı — case kurulumu, mesh kalite kapısı, ccx, frd okuma |
+| `vehicle_pipeline.py` | Headless araç CFD/FEA akışı — otomatik V&V/UQ bandı üretir |
+| `app_analyzer.py` | Analiz stüdyosu GUI — sonuç rozeti fizik kapısından geçer |
+| `validity_envelope.py` | **Güven kapısı:** fiziksel kabul-edilebilirlik + geçerlilik-zarfı sınıfı |
+| `zarf.py` | Yukarıdaki çalışma-zarfı tablosunu kanıt JSON'larından üretir |
+| `on_kontrol.py` | Ön-kontrol (`pipeline.py doctor`) — ortam gerçekten koşabilir mi |
+
+## Sonuca Güven: İki Kapı
+
+Bir sayı mühendislik kararına girmeden önce iki bağımsız kapıdan geçer:
+
+1. **Fizik kapısı** (`validity_envelope.force_admissibility`) — negatif/sıfır sürükleme,
+   makul olmayan Cd/Cl mertebesi, hücum açısıyla ters işaretli taşıma. Sayısal yakınsama
+   bunu kurtaramaz: yakınsamış ama fizik-dışı koşu **ZARF-DIŞI**'na indirilir, rapor
+   banner'ı ve GUI rozeti "tasarımda kullanılmaz" der.
+   Cd üst sınırı geometri sınıfına bağlıdır — evrensel `2.5` (künt cisim: küp ≈1.05,
+   levha ≈1.98), akış-yönlü geometri bilindiğinde çağıran `CD_MAX_STREAMLINED = 0.5`
+   geçirir. Tek eşik künt-cisim analizini haksız yere reddeder (gerçek-çözücü
+   regresyonunda ölçüldü).
+2. **Geçerlilik zarfı** (`classify_cfd`) — DOĞRULANMIŞ / YALNIZ-EĞİLİM / ZARF-DIŞI sınıfı,
+   3-mesh GCI bandının varlığına ve α/Mach rejimine göre.
+
+Mesh kalite kapısı (`analysis/openfoam_runner.mesh_quality_gate`) bunlardan önce, çözücü
+başlamadan çalışır; eşikler `analysis/thresholds.py`'de tek kaynaktır.
+
 ## Araç Tipleri
 
 | Tip | Hızlı katman | Yüksek-fidelite | Yapısal |
@@ -114,6 +168,19 @@ V-n zarfı (structural_loads)
 2. **Validation (fiziksel doğruluk):** NASA Ladson NACA0012 + Euler-Bernoulli
 3. **Coupling tutarlılığı:** ∑F_CFD = ∑F_FEA (korunum 3.9e-15)
 
+**Doğrulama betikleri** (hepsi GERÇEK çözücü koşar, mock yok):
+
+| Betik | Ne doğrular |
+|---|---|
+| `python pipeline.py doctor` | ortam: arka uç, OpenFOAM, ccx, disk |
+| `python regresyon.py` | hat regresyonu: kiriş ↔ Euler-Bernoulli, küp Cd ↔ Hoerner |
+| `check_cfd_pipeline.py` | küre STL → snappyHexMesh → foamRun → Cd/Cl |
+| `check_fea_pipeline.py` | küre → tet mesh → ccx → sonuç okuma |
+| `check_vehicle_validation.py` | keskin kenarlı küp Cd ≈ 1.05 (Hoerner 1965) çapası |
+| `validate_pipeline.py` | ölçülen validasyon bandı → `validation_band.json` |
+| `verify_system.py` | bağımlılık + modül envanteri |
+| `check_integration.py` | ⚠️ yalnız HAT DUMAN TESTİ — sayıları analiz sonucu değildir |
+
 ## Bilinen Sınırlar (Dürüst)
 
 - **2D y⁺<1 transition:** tek-blok radyal O-grid non-orthogonality (82°) +
@@ -135,9 +202,19 @@ pip install -e ".[dev]"
 pre-commit install                 # her commit'te ruff + hijyen kontrolü
 
 ruff check .                       # lint (yazarın kompakt stili korunur, format yok)
-pytest -m "not external"           # harici araç gerektirmeyen testler
+pytest -m "not external"           # harici araç gerektirmeyen testler (CI bunu koşar)
 pytest --cov                       # kapsam raporu
+
+pytest -m external                 # GERÇEK çözücü: ccx + OpenFOAM uçtan uca
+python regresyon.py                # aynısı + JSON verdikt (gecelik cron için)
+python regresyon.py --hizli        # yalnız FEA zinciri (~5 s)
 ```
+
+**Gerçek-çözücü regresyonu.** Birim testlerin tamamı mock; case yazımını, WSL/docker arka
+ucunu veya `.frd` okumayı bozan bir değişiklik onları yeşil bırakır. `external` işaretli iki
+test bu zinciri analitik referansa karşı koşturur (ankastre kiriş ↔ Euler-Bernoulli; küp Cd
+↔ bluff-body mertebesi + fizik kapısı). CI'da OpenFOAM/ccx olmadığı için orada atlanır —
+`regresyon.py` gecelik görev olarak çalıştırılmalıdır.
 
 CI (`.github/workflows/ci.yml`) Python 3.11/3.12'de ruff + pytest çalıştırır.
 `external` / `slow` / `gui` işaretli testler (OpenFOAM, CalculiX, conda env veya

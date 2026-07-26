@@ -4,6 +4,43 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-07-26] feat | Güven katmanı — fizik kapısı, provenance, gerçek-çözücü regresyonu
+
+**Neden:** Hedef "bir analiz mühendisi çıktıya güvenerek karar verebilsin". Denetim üç
+sistematik güven açığı buldu: (a) sayısal olarak yakınsamış ama fizik-dışı sonuçlar
+"✅ yakınsadı" görünüyordu, (b) uydurma veri "ölçüldü" damgası alabiliyordu, (c) gerçek
+çözücü yolunda hiçbir otomatik regresyon yoktu.
+
+- **Fizik kapısı** (`validity_envelope.force_admissibility`): negatif/sıfır Cd, makul
+  olmayan Cd/Cl mertebesi, α ile ters işaretli taşıma. Zarf sınıfından ÖNCE gelir ve
+  onu ezer (`apply_physics_gate`); kullanıcı-yüzü hüküm `sonuc_kapisi` ile tek yerden.
+  Bağlandığı yollar: `vehicle_pipeline`, `vehicle_polar` (fizik-dışı α eğri uydurmadan
+  dışlanır), `vehicle_report` (banner), `app_analyzer` (rozet + engel diyaloğu),
+  `report_generator` (GCI tablosunda İterasyon/Fizik ayrı sütun), `run_aoa_polar`,
+  `transition_polar`, `supersonic_cfd`. `test_fizik_kapisi_kapsami` kapsamı dondurur.
+- **Cd eşiği geometri sınıfına bağlandı:** evrensel 2.5 + `CD_MAX_STREAMLINED=0.5`.
+  Tek 0.5 eşiği künt cisimleri haksız yere reddediyordu — küp regresyonu (Cd=1.079)
+  ölçerek gösterdi.
+- **Provenance yıkaması kapatıldı** (ADR REVİZYON 3): `_run_mock_simulation()` sabit
+  katsayı dosyası yazıyor, okuyucu `source='openfoam'` diyordu. Mock artık kendini
+  işaretler (`.MOCK`), `CFDResult.data_source`/`convergence_source` taşınır, `olculdu`
+  yalnız gerçek çözücü için True; `check_integration.py` "HAT DUMAN TESTİ" başlığıyla
+  koşar ve sayıları `[TAHMIN]` etiketler.
+- **Gerçek-çözücü regresyonu** (`tests/test_cozucu_regresyon.py`, `external`): kiriş ↔
+  Euler-Bernoulli (%25 bant) ve küp Cd ↔ Hoerner 1965 (1.05, ±%30). `regresyon.py`
+  gecelik cron için JSON verdikt üretir.
+- **Ön-kontrol** `python pipeline.py doctor` (`on_kontrol.py`): çözücünün GERÇEKTEN
+  kullandığı arka uçtan (`CFD_BACKEND=wsl|docker`) OpenFOAM/ccx/disk sınar.
+- **Çalışma zarfı kanıttan üretiliyor** (`zarf.py`): README tablosu elle yazılmıyor;
+  hüküm kanonik `gci_verdict` ile hesaplanıyor. Düzelen iddia: "Mesh yakınsama ✅
+  GCI %0.09" → "⚠️ gösterilemedi, p=3.898 asimptotik dışı".
+- **Eşikler tek kaynakta** (`analysis/thresholds.py`); `constants.py` yeniden-dışa-aktarım.
+- **Sessizce düşen çapraz-kontroller** artık uyarı üretir (iz-momentum Cd, y⁺ ölçümü).
+- **Paketleme:** `pip install -e .` artık `analysis` paketini kurar (flat kök modüller
+  bilerek hariç — `constants`/`kuyruk` gibi adlar site-packages'ı gölgeler).
+- **frd_parser kapsamı %11 → %87**; `analysis/` kök modüle bağımsızlığı teste bağlandı.
+- Testler: 235 → 297 (+ 2 gerçek-çözücü). Ruff temiz.
+
 ## [2026-06-13] feat | Drag component buildup — eksik cilt-sürtünmesi (hakem #1)
 
 **What:** Hakem incelemesinin en kritik bulgusu kapatıldı: inviscid shockFluid
