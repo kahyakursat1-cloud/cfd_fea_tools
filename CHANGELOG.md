@@ -4,6 +4,30 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-07-27b] feat | Kanit manifesti + BOM dayanikligi + tasima (Cl) zarf satiri
+
+Kokte 50+ JSON var; hangisinin gercek V&V kaniti oldugu isimden anlasilmiyordu
+(gci_cgrid_base/mid/fine/xfine/final/finding...). `kanit.py` dosyalari SINIFLAR
+(kanit / artefakt / kaynak / bozuk) ve kanitlari hukumleriyle listeler:
+  python kanit.py | --eksik | --json
+
+Manifest hemen iki sey buldu:
+- IKI DOSYA OKUNAMIYORDU: mesh_quality.json ve overnight_summary.json UTF-8 BOM ile
+  basliyor (PowerShell varsayilan ciktisi) ve `encoding="utf-8"` ile JSONDecodeError
+  veriyor. report_generator bu dersi almis (utf-8-sig kullaniyor) ama zarf.py almamisti.
+  Kanit okuyan yollar artik utf-8-sig (BOM'lu ve BOM'suzun ust kumesi).
+- UC KANIT DOSYASI HUKUMSUZ: fea_element_order, mesh_independence, supersonic_validation
+  veri tasiyor ama gecti/kaldi demiyor. `--eksik` bunlari listeler.
+
+TASIMA (Cl) ZARF SATIRI — zarf "bagli akis alpha<=8 ✅ yuksek" diyordu ama bunun dogrudan
+kaniti (tmr_gci_verdict_a8.json) tabloda yoktu. Eklendi ve HAM VERIDEN hesaplaniyor:
+dosyadaki duzyazi `sonuc` alani Richardson ekstrapolasyonunun TMR'ye %0.6 uyumunu one
+cikariyor, oysa seri IRAKSIYOR (p=-2.463: en ince iki grid arasindaki degisim kaba
+ikisinden buyuk) ve o ekstrapolasyon anlamsiz. Savunulabilir sayi en ince gridin degeri:
+Cl=0.8556 vs TMR 0.862 -> %0.7 sapma, ama sayisal belirsizlik Richardson ile OLCULEMEDI.
+
+Testler: 361 -> 371.
+
 ## [2026-07-27] feat+fix | 4-seviye GCI: arac hattinda mesh bagimsizligi ILK KEZ gosterildi
 
 **Olculen (kup, kalite=standart, r=1.5 sabit oran, 4 seviye):**

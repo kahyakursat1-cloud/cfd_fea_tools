@@ -26,7 +26,10 @@ BEYAN = "beyan — kanıt dosyası yok"
 
 
 def _json(ad: str) -> dict:
-    return json.loads((ROOT / ad).read_text(encoding="utf-8"))
+    # utf-8-sig: PowerShell ile üretilen kanıt dosyaları BOM taşır (mesh_quality.json,
+    # overnight_summary.json ölçüldü). Düz "utf-8" bunlarda JSONDecodeError verir;
+    # -sig hem BOM'lu hem BOM'suz dosyayı okur (üst küme).
+    return json.loads((ROOT / ad).read_text(encoding="utf-8-sig"))
 
 
 def _airfoil_cd() -> tuple[str, str]:
@@ -69,6 +72,26 @@ def _kup_arac_gci() -> tuple[str, str]:
     return guv, s
 
 
+def _tasima_a8() -> tuple[str, str]:
+    """Taşıma (Cl) α=8° — zarfın 'bağlı akış α≤8° ✅' iddiasının doğrudan kanıtı.
+
+    Bilerek HAM VERİDEN hesaplanır: dosyadaki düzyazı `sonuc` alanı Richardson
+    ekstrapolasyonunun TMR'ye uyumunu öne çıkarıyor, oysa seri ıraksadığı için o
+    ekstrapolasyon anlamsız. Savunulabilir sayı EN İNCE gridin değeridir.
+    """
+    d = _json("tmr_gci_verdict_a8.json")
+    ince = max(d["seviyeler"], key=lambda x: x["cells"])
+    ref = d["TMR_referans"]["Cl"]
+    sapma = abs(ince["Cl"] - ref) / ref * 100
+    p = d["gci"]["p"]
+    yakinsak = d["gci"]["p_in_range"]
+    guv = "✅ Yüksek" if (sapma < 5 and yakinsak) else "⚠️ Bantlı"
+    return guv, (f"NASA TMR NACA0012 α=8°: en ince grid ({ince['cells']:,} hücre) "
+                 f"Cl={ince['Cl']:.4f} vs TMR {ref} → sapma %{sapma:.1f}; "
+                 f"ancak 3-grid serisi ıraksıyor (p={p}) → sayısal belirsizlik "
+                 "Richardson ile ölçülemedi")
+
+
 def _arac_bandi() -> tuple[str, str]:
     b = _json("validation_band.json")
     p = [f"{vaka} %{max(m.values()):.1f}" for vaka, m in b.items() if isinstance(m, dict) and m]
@@ -90,6 +113,7 @@ def _kt() -> tuple[str, str]:
 
 SATIRLAR = [
     ("Bağlı akış, 2D airfoil mutlak $C_d$ (M<0.3)", _airfoil_cd),
+    ("Bağlı akış, 2D airfoil taşıma $C_l$ (α=8°)", _tasima_a8),
     ("3D araç mesh yakınsama (snappyHexMesh)", _arac_mesh),
     ("3D künt cisim — araç hattı GCI + literatür", _kup_arac_gci),
     ("3D araç $C_d$ — V&V/UQ bandı", _arac_bandi),

@@ -55,6 +55,7 @@ olmayan satır "beyan" olarak işaretlenir.
 | Koşul | Güvenilirlik | Kanıt |
 |-------|--------------|-------|
 | Bağlı akış, 2D airfoil mutlak $C_d$ (M<0.3) | ✅ Yüksek | NASA TMR NACA0012 α=0°: GCI %1.7 (p=0.666), TMR sapması %4.9 |
+| Bağlı akış, 2D airfoil taşıma $C_l$ (α=8°) | ⚠️ Bantlı | NASA TMR NACA0012 α=8°: en ince grid (917,504 hücre) Cl=0.8556 vs TMR 0.862 → sapma %0.7; ancak 3-grid serisi ıraksıyor (p=-2.463) → sayısal belirsizlik Richardson ile ölçülemedi |
 | 3D araç mesh yakınsama (snappyHexMesh) | ⚠️ Gösterilemedi | MiniHawk 3D snappyHexMesh: GCI %0.12, p=3.898 (asimptotik aralık DIŞI) |
 | 3D künt cisim — araç hattı GCI + literatür | ⚠️ Bantlı | Küp (Hoerner 1.05): Cd=1.113 → sapma %6.03, Richardson GCI %3.1 (p=2.386, asimptotik); ancak 4-seviye LSR U=%58 (asimptotik-altı) |
 | 3D araç $C_d$ — V&V/UQ bandı | ⚠️ Bantlı | Ölçülen validasyon bandı — bluff %6.0 |
@@ -125,7 +126,18 @@ python run_prism_3d.py                    # prism-layer 3D mesh + y+ ölçümü
 | `app_analyzer.py` | Analiz stüdyosu GUI — sonuç rozeti fizik kapısından geçer |
 | `validity_envelope.py` | **Güven kapıları:** kurulum (ölçek/eksen/A_ref) + fiziksel kabul-edilebilirlik + geçerlilik-zarfı sınıfı |
 | `zarf.py` | Yukarıdaki çalışma-zarfı tablosunu kanıt JSON'larından üretir |
+| `kanit.py` | Kanıt manifesti — hangi dosya kanıt, hangisi artefakt, hükmü ne |
 | `on_kontrol.py` | Ön-kontrol (`pipeline.py doctor`) — ortam gerçekten koşabilir mi |
+| `regresyon.py` | Gerçek-çözücü regresyonu + JSON verdikt (gecelik cron) |
+
+**"Bu araç neyi doğrulanmış biliyor?"** — kökteki 50+ JSON'un hangisi gerçek V&V kanıtı
+olduğu isimden anlaşılmıyor. Manifest bunu sınıflar ve hükümleriyle listeler:
+
+```bash
+python kanit.py            # kanıt tablosu (vaka + ✅/⚠️/❌ hüküm)
+python kanit.py --eksik    # hükmü olmayan veya eskimiş kanıtlar
+python kanit.py --json     # kanit_manifest.json
+```
 
 ## Sonuca Güven: Üç Kapı
 

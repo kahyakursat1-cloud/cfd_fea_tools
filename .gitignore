@@ -167,3 +167,6 @@ kuyruk.lock
 
 # Gecelik gercek-cozucu regresyonu ciktisi (uretilen)
 regresyon_sonuc.json
+
+# ─── Kanit manifesti (uretilen indeks) ───
+kanit_manifest.json
