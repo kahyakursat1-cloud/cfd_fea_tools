@@ -1,14 +1,18 @@
 """
-Integration Test — End-to-end CFD/FEA workflow
+HAT DUMAN TESTİ (smoke) — ikincil solvers/ + post_processing/ katmanı için.
 
-Tüm sistemi test et:
-  1. Geometry seç
-  2. Material seç
-  3. Mesh oluştur (GMSH mock)
-  4. CFD çalıştır (OpenFOAM mock)
-  5. FEA çalıştır (CalculiX mock)
-  6. Post-processing (results extract)
-  7. Rapor oluştur (PDF)
+⚠️ BU BİR ANALİZ ARACI DEĞİLDİR. Çözücü yoksa post_processing analitik
+component-buildup tahminine düşer; buradaki Cd/Cl/gerilme sayıları TASARIM
+KARARINDA KULLANILMAZ. Amaç yalnızca modüllerin birbirine bağlanabildiğini
+göstermek.
+
+Gerçek analiz yolları:
+  python vehicle_pipeline.py <STL>      # araç CFD/FEA (fizik kapılı)
+  python pipeline.py all                # uçak V&V zinciri
+  python -m pytest -m external          # GERÇEK çözücü regresyonu
+
+Adımlar: geometri → malzeme → mesh (GMSH) → CFD (wrapper) → FEA (wrapper)
+         → post-processing → özet.
 """
 
 import tempfile
@@ -31,7 +35,8 @@ from solvers.openfoam_wrapper import OpenFOAMRunner
 def test_end_to_end_workflow():
     """Complete CFD/FEA workflow test"""
     print("="*70)
-    print("END-TO-END WORKFLOW TEST")
+    print("HAT DUMAN TESTI (smoke) — ANALIZ SONUCU URETMEZ")
+    print("Cozucu yoksa katsayilar ANALITIK TAHMINDIR; tasarimda kullanilmaz.")
     print("="*70)
 
     # Temporary directory for simulation
@@ -121,8 +126,12 @@ def test_end_to_end_workflow():
             alpha_deg=alpha_deg,
         )
 
-        print(f"  [OK] Cd={cfd_result.drag_coefficient:.4f}, Cl={cfd_result.lift_coefficient:.4f}")
+        etiket = "OLCULDU" if cfd_result.olculdu else "TAHMIN"
+        print(f"  [{etiket}] Cd={cfd_result.drag_coefficient:.4f}, "
+              f"Cl={cfd_result.lift_coefficient:.4f}")
         print(f"       Re={cfd_result.reynolds_number:.2e}, Fd={cfd_result.drag_force:.2f}N, Fl={cfd_result.lift_force:.2f}N")
+        if not cfd_result.olculdu:
+            print(f"  {cfd_result.provenance_uyarisi()}")
 
         # STEP 5: FEA Simulation
         # Applied load = lift force (worst case: 2.5g maneuver)
@@ -155,12 +164,16 @@ def test_end_to_end_workflow():
 
         # STEP 6: Summary
         print("\n" + "="*70)
-        print("[SUCCESS] END-TO-END WORKFLOW TAMAMLANDI!")
+        print("[OK] HAT AYAKTA — moduller birbirine baglaniyor.")
         print("="*70)
         print(f"\nAircraft: {aircraft.name}")
         print(f"Material: {material.name}")
-        print(f"CFD: Cd={cfd_result.drag_coefficient:.4f}, Cl={cfd_result.lift_coefficient:.4f}")
+        print(f"CFD ({cfd_result.data_source}): Cd={cfd_result.drag_coefficient:.4f}, "
+              f"Cl={cfd_result.lift_coefficient:.4f}")
         print(f"FEA: sigma_max={fea_result.max_stress:.2f} MPa, SF={fea_result.safety_factor:.2f} ({fea_result.stress_status()})")
+        if not cfd_result.olculdu:
+            print("\n⚠ Yukaridaki sayilar HAT TESTI ciktisidir, analiz sonucu DEGILDIR.")
+            print("  Gercek sonuc icin: python vehicle_pipeline.py <STL>  (fizik kapili)")
 
         return True
 

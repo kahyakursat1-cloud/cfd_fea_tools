@@ -994,21 +994,31 @@ class AnalyzerWindow(QMainWindow):
         lab.setText(f"{title}\n{value}")
 
     def _on_done(self, r):
+        from validity_envelope import sonuc_kapisi
         self.last_result = r
         self.progress.setValue(100)
         self._log("✅ Analiz tamamlandı.")
-        self._set_metric("cd", f"{r.cd}")
+        kapi = sonuc_kapisi(getattr(r, "fizik_kabul", None), r.convergence)
+        # Fizik-dışı Cd'yi çıplak sayı olarak göstermek mühendisi yanlış sayıya güvendirir
+        self._set_metric("cd", f"{r.cd}" + (" ⛔" if kapi["seviye"] == "engel" else ""))
         self._set_metric("cl", f"{r.cl}" if r.cl is not None else "—")
         self._set_metric("ld", f"{r.ld}" if r.ld is not None else "—")
         self._set_metric("drag", f"{r.drag_N} N")
         cells = (r.mesh or {}).get("cells")
         self._set_metric("cells", f"{cells:,}" if cells else "—")
-        conv = r.convergence or {}
-        ok = conv.get("drift_ok") and conv.get("rezidual_ok")
-        self._set_metric("verdict", "✅ yakınsadı" if ok else "⚠️ sınırda")
+        self._set_metric("verdict", kapi["etiket"])
+        for g in kapi["gerekce"]:
+            self._log(f"⚠ {g}")
+        for u in (getattr(r, "uyarilar", None) or []):
+            self._log(f"⚠ {u}")
         self.btn_report.setEnabled(bool(r.report))
         self.btn_run.setEnabled(True)
         self._log(f"Rapor: {r.report}")
+        if kapi["seviye"] == "engel":
+            QMessageBox.warning(self, "Sonuç fizik kapısından geçmedi",
+                                "\n".join(kapi["gerekce"]) +
+                                "\n\nBu kuvvet katsayıları TASARIM KARARINDA KULLANILMAZ. "
+                                "Mesh çözünürlüğünü (özellikle iz/wake bölgesi) artırın.")
         self._record_learning({"Cd_toplam": getattr(r, "cd", None)})
 
     def _on_fail(self, err: str):

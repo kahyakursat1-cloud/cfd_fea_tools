@@ -1,10 +1,19 @@
-"""Proje-geneli mesh kalite ve yakınsama eşikleri — TEK KAYNAK.
+"""Proje-geneli mesh kalite ve yakınsama eşikleri — kök erişim noktası.
 
-CLAUDE.md proje kuralı: maxNonOrthogonality < 70, maxSkewness < 4, residuals < 1e-4.
-Bu eşikler birden çok modülde (vehicle_pipeline, vehicle_report) kullanılır; burada
-tutulur ki çatallaşmasın.
+Sayıların TEK KAYNAĞI `analysis/thresholds.py`; eşiği uygulayan kapı (mesh_quality_gate,
+fvSolution residualControl) orada olduğu için değerler kanonik katmanda tutulur. Bu modül
+kök seviyeden (vehicle_pipeline, vehicle_report) erişim için yeniden dışa aktarır —
+bağımlılık yönü kök -> paket, tersi değil.
 """
 
-RESIDUAL_TARGET = 1e-4   # yakınsama kriteri (OpenFOAM residuals)
-NONORTHO_LIMIT = 70.0    # maxNonOrthogonality eşiği (°)
-SKEW_LIMIT = 4.0         # maxSkewness eşiği
+from analysis.thresholds import (
+    ASPECT_LIMIT,
+    NONORTHO_LIMIT,
+    NONORTHO_REJECT,
+    RESIDUAL_TARGET,
+    SKEW_LIMIT,
+    SKEW_REJECT,
+)
+
+__all__ = ["ASPECT_LIMIT", "NONORTHO_LIMIT", "NONORTHO_REJECT",
+           "RESIDUAL_TARGET", "SKEW_LIMIT", "SKEW_REJECT"]

@@ -46,10 +46,35 @@ class CFDResult:
     velocity_field: dict | None = None
     convergence_history: dict | None = None
 
+    # PROVENANCE — bu sayilar nereden geldi? 'openfoam'/'log' = OLCULDU,
+    # 'analytical'/'placeholder' = TAHMIN. Onceden hicbir yerde tasinmiyordu; olculmus
+    # sonucla analitik tahmin ayirt edilemiyordu (guven tuzagi).
+    data_source: str = "unknown"
+    convergence_source: str = "unknown"
+
+    @property
+    def olculdu(self) -> bool:
+        """Katsayilar GERCEK cozucu ciktisindan mi geldi?
+
+        'mock' BILEREK haric: openfoam_wrapper cozucu yokken sabit test verisi yazar,
+        dosyadan okunur ama olculmus DEGILDIR.
+        """
+        return self.data_source == "openfoam"
+
+    def provenance_uyarisi(self) -> str:
+        """Olculmemis sonuc icin acik uyari; olculduyse bos string."""
+        if self.olculdu:
+            return ""
+        return (f"[TAHMIN] Katsayilar cozucu ciktisi DEGIL (kaynak: {self.data_source}) — "
+                "analitik component-buildup tahmini; tasarim karari icin kullanilmaz.")
+
     def __str__(self) -> str:
+        uyari = self.provenance_uyarisi()
         return f"""
 CFD ANALYSIS RESULTS
 ====================
+{uyari}
+Veri kaynagi: {self.data_source} | yakinsama kaynagi: {self.convergence_source}
 Aircraft: {self.aircraft_name}
 Wind Speed: {self.wind_speed:.1f} m/s
 Reynolds: {self.reynolds_number:.2e}
@@ -99,11 +124,13 @@ class CFDPostProcessor:
         log_file = self.case_dir / "log.simpleFoam"
 
         if not log_file.exists():
-            # Log file yoksa placeholder döndür
+            # Log yoksa TEMSILI egri. 'source' ile isaretlenir: cagiran bunu olculmus
+            # yakinsama saniyordu (CFDResult'a provenance girmiyordu) — artik giriyor.
             return {
                 'iterations': np.array([0, 100, 200, 500, 1000]),
                 'pressure_residual': np.array([1e0, 1e-2, 1e-3, 1e-4, 1e-5]),
                 'velocity_residual': np.array([1e0, 1e-2, 1e-3, 1e-4, 1e-5]),
+                'source': 'placeholder',
             }
 
         iterations = []
@@ -128,6 +155,7 @@ class CFDPostProcessor:
             'iterations': np.array(iterations) if iterations else np.array([0, 1000]),
             'pressure_residual': np.array(p_residuals) if p_residuals else np.array([1e0, 1e-5]),
             'velocity_residual': np.array(u_residuals) if u_residuals else np.array([1e0, 1e-5]),
+            'source': 'log' if p_residuals else 'placeholder',
         }
 
     def read_force_coefficients(self, wind_speed: float = 15.0,
@@ -144,10 +172,13 @@ class CFDPostProcessor:
         → Returns: {Cd, Cl, Cm, Cd_pressure, Cd_viscous}
         """
         forces_file = self.postprocessing_dir / "forces" / "0" / "coefficient.dat"
+        # Mock isaretcisi: openfoam_wrapper cozucu yokken SABIT test verisi yazar.
+        # Isaretci kontrol edilmezse o sayilar dosyadan okunup "olculdu" saniliyordu.
+        mock = (self.postprocessing_dir / ".MOCK").exists()
 
         if forces_file.exists():
             try:
-                data = np.loadtxt(forces_file, skiprows=1)
+                data = np.loadtxt(forces_file, comments='#')
                 if len(data.shape) == 1:
                     data = data.reshape(1, -1)
                 last_row = data[-1, :]
@@ -157,7 +188,7 @@ class CFDPostProcessor:
                     'Cm': float(last_row[3]),
                     'Cd_pressure': float(last_row[4]),
                     'Cd_viscous': float(last_row[5]),
-                    'source': 'openfoam',
+                    'source': 'mock' if mock else 'openfoam',
                 }
             except Exception as e:
                 print(f"[WARNING] OpenFOAM forces okunamadı, analytical hesaba düşülüyor: {e}")
@@ -313,6 +344,8 @@ class CFDPostProcessor:
             convergence_residual=float(conv.get('pressure_residual', [1e0])[-1]),
             mesh_elements=mesh_elements,
             convergence_history=conv,
+            data_source=source,
+            convergence_source=conv.get('source', 'unknown'),
         )
 
         self.results = result

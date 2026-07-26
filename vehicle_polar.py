@@ -22,6 +22,8 @@ from pathlib import Path
 import matplotlib
 import numpy as np
 
+from validity_envelope import force_admissibility
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -121,11 +123,18 @@ def run_polar(stl_path, vehicle_type="ucak", velocity=25.0, alphas=(-4, 0, 4, 8)
         cl = trailing_mean([h[2] for h in _hist], cl)
         cm = trailing_mean([h[3] for h in _hist], cm)
         ok = r.returncode == 0 and cd is not None and math.isfinite(cd) and abs(cd * scale) < 5
+        cd_s = round(cd * scale, 5) if ok else None
+        cl_s = round(cl * scale, 5) if ok and cl is not None else None
+        # Fizik kapısı NOKTA BAZINDA: tek bir fizik-dışı α, lift eğimini ve L/D'yi
+        # sessizce bozar — o nokta polardan dışlanır, gerekçesi satırda kalır.
+        fz = force_admissibility(cd_s, cl_s, a_deg) if ok else {"verdict": "ok", "reasons": []}
         rows.append({"alpha": a_deg,
-                     "Cl": round(cl * scale, 5) if ok and cl is not None else None,
-                     "Cd": round(cd * scale, 5) if ok else None,
+                     "Cl": cl_s,
+                     "Cd": cd_s,
                      "Cm": round(cm * scale, 5) if ok and cm is not None and math.isfinite(cm) else None,
-                     "durum": "ok" if ok else "failed"})
+                     "durum": ("ok" if fz["verdict"] == "ok" else f"fizik: {fz['verdict']}")
+                              if ok else "failed",
+                     "fizik": fz})
 
     out = {"status": "ok", "stl": str(stl_path), "vehicle_type": vehicle_type,
            "velocity": velocity, "aref_m2": r0.aref_m2, "cofr_notu":
@@ -139,10 +148,15 @@ def run_polar(stl_path, vehicle_type="ucak", velocity=25.0, alphas=(-4, 0, 4, 8)
     return out
 
 
+def _fizik_ok(r) -> bool:
+    """Fizik-dışı nokta eğri uydurmaya ve figüre GİRMEZ (tabloda gerekçesiyle kalır)."""
+    return (r.get("fizik") or {}).get("verdict", "ok") != "inadmissible"
+
+
 def _polar_report(out, rep_dir: Path):
     rep_dir = Path(rep_dir)
     (rep_dir / "figures").mkdir(parents=True, exist_ok=True)
-    rows = [r for r in out["polar"] if r.get("Cd") is not None]
+    rows = [r for r in out["polar"] if r.get("Cd") is not None and _fizik_ok(r)]
     if len(rows) >= 2:
         a = [r["alpha"] for r in rows]
         cl = [r["Cl"] for r in rows]
@@ -164,16 +178,25 @@ def _polar_report(out, rep_dir: Path):
     md = [f"# Polar Taraması — {Path(out['stl']).name}",
           f"\n**V = {out['velocity']} m/s**, A_ref = {out['aref_m2']} m² "
           f"({out['vehicle_type']})\n",
-          "| α (°) | $C_L$ | $C_D$ | L/D | $C_M$ |",
-          "|-------|-------|-------|-----|-------|"]
+          "| α (°) | $C_L$ | $C_D$ | L/D | $C_M$ | Fizik |",
+          "|-------|-------|-------|-----|-------|-------|"]
     for r in out["polar"]:
         if r.get("Cd"):
             ld = round(r["Cl"] / r["Cd"], 2) if r.get("Cl") else "—"
+            fz = (r.get("fizik") or {}).get("verdict", "ok")
+            fz_s = {"ok": "✅", "suspect": "⚠️ şüpheli", "inadmissible": "⛔ dışlandı"}[fz]
             md.append(f"| {r['alpha']} | {r.get('Cl', '—')} | {r['Cd']} | {ld} | "
-                      f"{r.get('Cm', '—')} |")
+                      f"{r.get('Cm', '—')} | {fz_s} |")
         else:
-            md.append(f"| {r['alpha']} | — | — | — | — (başarısız) |")
-    ok_rows = [r for r in out["polar"] if r.get("Cl") is not None]
+            md.append(f"| {r['alpha']} | — | — | — | — | — (başarısız) |")
+    disi = [r for r in out["polar"] if r.get("Cd") is not None and not _fizik_ok(r)]
+    if disi:
+        md.append("\n**Fizik kapısı:** aşağıdaki noktalar fiziksel olarak kabul edilemez ve "
+                  "eğri uydurma/figür DIŞINDA bırakıldı:  ")
+        md.extend(f"- α={r['alpha']}°: {'; '.join((r.get('fizik') or {}).get('reasons', []))}  "
+                  for r in disi)
+        md.append("")
+    ok_rows = [r for r in out["polar"] if r.get("Cl") is not None and _fizik_ok(r)]
     if len(ok_rows) >= 2:
         sl = (ok_rows[-1]["Cl"] - ok_rows[0]["Cl"]) / (ok_rows[-1]["alpha"] - ok_rows[0]["alpha"])
         md.append(f"\n**Lift eğimi** ≈ {sl:.4f}/° (ince kanat teorisi ~0.1096/°)  ")

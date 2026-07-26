@@ -65,6 +65,14 @@ from .backend import (  # noqa: E402
     linux_run,
 )
 from .ccx_runner import windows_to_wsl_path  # noqa: E402
+from .thresholds import (  # noqa: E402
+    ASPECT_LIMIT,
+    NONORTHO_LIMIT,
+    NONORTHO_REJECT,
+    RESIDUAL_TARGET,
+    SKEW_LIMIT,
+    SKEW_REJECT,
+)
 
 # OpenFOAM 11 (Foundation) bashrc
 OF_BASHRC = "/opt/openfoam11/etc/bashrc"
@@ -193,7 +201,8 @@ def _foam_header(class_: str, object_: str, location: str = "") -> str:
 def mesh_quality_gate(checkmesh_text: str) -> dict:
     """checkMesh çıktısını çöz + ÇÖZÜCÜ-ÖNCESİ verdict: 'ok' / 'warn' / 'reject'.
     Kötü mesh çözücüde saatlerce diverjyor/timeout'a uğruyor; bunu ÖNCEDEN yakala.
-    Eşikler proje konvansiyonu (CLAUDE.md: nonOrtho<70, skew<4) + diverjans deneyimi.
+    Eşikler `thresholds.py`'den (TEK KAYNAK): warn = proje konvansiyonu
+    (nonOrtho<70, skew<4), reject = diverjans deneyimi (75 / 6).
     Döner: {verdict, reasons[], non_ortho_max, skew_max, aspect_max, negatif_hacim}."""
     import re as _re
 
@@ -208,17 +217,19 @@ def mesh_quality_gate(checkmesh_text: str) -> dict:
     # REJECT: çözücü neredeyse kesin patlar
     if neg_vol:
         reasons.append("negatif hacimli hücre (mesh bozuk)"); verdict = "reject"
-    if non_ortho is not None and non_ortho >= 75:
-        reasons.append(f"aşırı non-ortogonallik ({non_ortho:.0f}°≥75)"); verdict = "reject"
-    if skew is not None and skew >= 6:
-        reasons.append(f"aşırı skewness ({skew:.1f}≥6)"); verdict = "reject"
+    if non_ortho is not None and non_ortho >= NONORTHO_REJECT:
+        reasons.append(f"aşırı non-ortogonallik ({non_ortho:.0f}°≥{NONORTHO_REJECT:.0f})")
+        verdict = "reject"
+    if skew is not None and skew >= SKEW_REJECT:
+        reasons.append(f"aşırı skewness ({skew:.1f}≥{SKEW_REJECT:.0f})"); verdict = "reject"
     # WARN: sınırda; koşabilir ama dikkat
     if verdict != "reject":
-        if non_ortho is not None and 70 <= non_ortho < 75:
-            reasons.append(f"yüksek non-ortogonallik ({non_ortho:.0f}°, eşik 70)"); verdict = "warn"
-        if skew is not None and 4 <= skew < 6:
-            reasons.append(f"yüksek skewness ({skew:.1f}, eşik 4)"); verdict = "warn"
-        if aspect is not None and aspect > 1e5:
+        if non_ortho is not None and NONORTHO_LIMIT <= non_ortho < NONORTHO_REJECT:
+            reasons.append(f"yüksek non-ortogonallik ({non_ortho:.0f}°, eşik {NONORTHO_LIMIT:.0f})")
+            verdict = "warn"
+        if skew is not None and SKEW_LIMIT <= skew < SKEW_REJECT:
+            reasons.append(f"yüksek skewness ({skew:.1f}, eşik {SKEW_LIMIT:.0f})"); verdict = "warn"
+        if aspect is not None and aspect > ASPECT_LIMIT:
             reasons.append(f"çok yüksek aspect ratio ({aspect:.0e})"); verdict = "warn"
     return {"verdict": verdict, "reasons": reasons, "non_ortho_max": non_ortho,
             "skew_max": skew, "aspect_max": aspect, "negatif_hacim": neg_vol,
@@ -527,9 +538,9 @@ def _write_fv_solution(case_dir: Path, compressible: bool = False) -> None:
         "    nNonOrthogonalCorrectors 1;\n"
         "    consistent      yes;\n"
         "    residualControl\n    {\n"
-        "        p               1e-4;\n"
-        "        U               1e-4;\n"
-        "        \"(k|omega|nuTilda)\" 1e-4;\n"
+        f"        p               {RESIDUAL_TARGET:g};\n"
+        f"        U               {RESIDUAL_TARGET:g};\n"
+        f"        \"(k|omega|nuTilda)\" {RESIDUAL_TARGET:g};\n"
         "    }\n"
         "}\n\n"
         # Sıkışabilir soğuk-başlangıç kararsızlığı (T<0 abort) için düşük

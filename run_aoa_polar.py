@@ -130,7 +130,13 @@ def run_alpha(alpha):
         return {"alpha":alpha, "status":"FAILED", "log":tail}
     f = parse_forces(case, alpha)
     if not f: return {"alpha":alpha, "status":"NO_FORCES"}
-    f["alpha"]=alpha; f["status"]="SUCCESS"
+    f["alpha"]=alpha
+    # Fizik kapisi: yakinsamis kosu da fizik-disi Cd uretebilir (kaba gridde negatif
+    # basinc suruklemesi). Sonuc JSON'a hukmuyle birlikte yazilir, sessizce gecmez.
+    from validity_envelope import force_admissibility
+    fz = force_admissibility(f.get("Cd"), f.get("Cl"), alpha)
+    f["fizik"] = fz
+    f["status"] = "SUCCESS" if fz["verdict"] != "inadmissible" else "FIZIK_DISI"
     return f
 
 
@@ -150,9 +156,11 @@ if __name__ == "__main__":
         r = run_alpha(a)
         results.append(r)
         print(f"  Cl={r.get('Cl')} Cd={r.get('Cd')} L/D={r.get('LD')} -> {r.get('status')}", flush=True)
+        for g in (r.get("fizik") or {}).get("reasons", []):
+            print(f"  FIZIK KAPISI: {g}", flush=True)
         json.dump(results, open("aoa_polar.json","w"), indent=2)
-    # stall tespiti
-    ok = [r for r in results if r.get("Cl") is not None]
+    # stall tespiti — fizik-disi noktalar CLmax'a girmez
+    ok = [r for r in results if r.get("Cl") is not None and r.get("status") == "SUCCESS"]
     if len(ok) >= 3:
         clmax = max(ok, key=lambda r: r["Cl"])
         print(f"\nCLmax = {clmax['Cl']} @ alpha={clmax['alpha']} deg (stall isareti)", flush=True)

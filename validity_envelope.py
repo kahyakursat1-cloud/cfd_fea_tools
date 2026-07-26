@@ -21,6 +21,13 @@ OUT = "OUT"
 
 ALPHA_VALID_DEG = 8.0   # |α|≤8° bağlı akış, doğrulanmış; üstü erken-stall (~%45 @10°)
 MACH_INCOMP = 0.3
+# Cd üst sınırı GEOMETRİ SINIFINA bağlıdır; tek eşik yanlış alarm üretir.
+# Ölçülen referanslar (frontal alan): küp ≈1.05, akışa dik levha ≈1.98, paraşüt ≈1.4,
+# Ahmed gövdesi ≈0.3, NACA0012 α=0° ≈0.008. Gerçek-çözücü regresyonu (küp Cd=1.079)
+# 0.5'lik tek eşiğin künt cisimleri haksız yere reddettiğini gösterdi.
+CD_MAX_PLAUSIBLE = 2.5      # EVRENSEL fizik sınırı — üstü hiçbir araç sınıfında makul değil
+CD_MAX_STREAMLINED = 0.5    # profil/kanat/ince gövde bilindiğinde çağıran bunu geçirir
+CL_MAX_PLAUSIBLE = 3.0      # 2D basit kesit CLmax ~1.6-2.0; üstü şüpheli
 
 _TR = {VALIDATED: "DOĞRULANMIŞ", TREND: "YALNIZ-EĞİLİM", OUT: "ZARF-DIŞI"}
 _ICON = {VALIDATED: "✅", TREND: "🟡", OUT: "🔴"}
@@ -33,6 +40,79 @@ class Verdict:
     klass: str
     design_safe: bool
     message: str
+
+
+def force_admissibility(Cd, Cl=None, alpha=None, cd_max=CD_MAX_PLAUSIBLE):
+    """Kuvvet katsayıları FİZİKSEL olarak kabul edilebilir mi? (zarf sınıfından ÖNCE gelir)
+
+    İterasyon yakınsaması ve mesh kalitesi SAYISAL ölçütlerdir; fiziksel imkânsızlığı
+    yakalamazlar. Wake-kümelemesiz kaba grid negatif basınç sürüklemesi üretiyor ve drift
+    küçük olduğu için "yakınsadı" görünüyordu — hüküm elle yazılan dipnotta kalıyordu.
+    Bu kapı onu hesaplanabilir yapar; fizik-dışı sayı hiçbir zarf sınıfıyla kurtarılamaz.
+
+    `cd_max`: varsayılan EVRENSEL sınır (2.5). Çağıran geometrinin akış-yönlü olduğunu
+    biliyorsa `CD_MAX_STREAMLINED` geçirir; künt cisim (küp, araç, paraşüt) analizinde
+    varsayılan kalmalıdır — aksi halde geçerli sonuç haksız yere reddedilir.
+
+    Döner: {"verdict": "ok"|"suspect"|"inadmissible", "reasons": [...]}
+    """
+    reasons, verdict = [], "ok"
+    if Cd is not None:
+        if Cd <= 0:
+            reasons.append(f"negatif/sıfır sürükleme (Cd={Cd:.5f}) — fiziksel olarak imkânsız")
+            verdict = "inadmissible"
+        elif abs(Cd) > cd_max:
+            reasons.append(f"makul olmayan sürükleme mertebesi (Cd={Cd:.4f} > {cd_max})")
+            verdict = "inadmissible"
+    if Cl is not None:
+        if abs(Cl) > CL_MAX_PLAUSIBLE:
+            reasons.append(f"makul olmayan taşıma (|Cl|={abs(Cl):.2f} > {CL_MAX_PLAUSIBLE})")
+            verdict = "inadmissible"
+        elif alpha is not None and abs(alpha) > 2.0 and Cl * alpha < 0 and verdict != "inadmissible":
+            reasons.append(f"taşıma işareti hücum açısıyla ters (α={alpha}°, Cl={Cl:.3f})")
+            verdict = "suspect"
+    return {"verdict": verdict, "reasons": reasons}
+
+
+def apply_physics_gate(verdicts: list[Verdict], fizik: dict | None) -> list[Verdict]:
+    """Fizik kapısı düştüyse zarf sınıflarını indir ve GEREKÇEYİ mesajlara yaz.
+
+    Sınıfı indirip mesajı bırakmak mühendisi yanıltır ("ZARF-DIŞI" başlığın altında
+    "tasarım kararı için kullanılabilir" açıklaması). Ladder:
+      inadmissible -> hepsi OUT (fizik-dışı sayı hiçbir yorumla kurtarılamaz)
+      suspect      -> DOĞRULANMIŞ olanlar EĞİLİM'e iner (şüphe doğrulamayı geçersizler)
+    """
+    v = (fizik or {}).get("verdict", "ok")
+    if v == "ok":
+        return verdicts
+    gerekce = "; ".join((fizik or {}).get("reasons", [])) or "fiziksel kabul-edilebilirlik kapısı"
+    if v == "inadmissible":
+        return [Verdict(x.quantity, OUT, False, f"FİZİK KAPISI: {gerekce}") for x in verdicts]
+    return [Verdict(x.quantity, TREND if x.klass == VALIDATED else x.klass, False,
+                    f"FİZİK KAPISI (şüpheli): {gerekce}") for x in verdicts]
+
+
+def sonuc_kapisi(fizik: dict | None, convergence: dict | None) -> dict:
+    """Kullanıcı-yüzü tek hüküm (GUI rozeti / CLI özeti) — ÖNCELİK SIRALI.
+
+    Sıra kritik: fiziksel kabul-edilebilirlik, sayısal yakınsamadan ÖNCE gelir. Yakınsamış
+    ama fizik-dışı bir koşuya "✅ yakınsadı" demek mühendisi yanlış sayıya güvendirir.
+    Döner: {"seviye": "engel"|"uyari"|"ok", "etiket": str, "gerekce": [...]}
+    """
+    v = (fizik or {}).get("verdict", "ok")
+    if v == "inadmissible":
+        return {"seviye": "engel", "etiket": "⛔ fizik-dışı",
+                "gerekce": list((fizik or {}).get("reasons", []))}
+    if v == "suspect":
+        return {"seviye": "uyari", "etiket": "⚠️ fizik şüpheli",
+                "gerekce": list((fizik or {}).get("reasons", []))}
+    c = convergence or {}
+    if c.get("drift_ok") and c.get("rezidual_ok"):
+        return {"seviye": "ok", "etiket": "✅ yakınsadı", "gerekce": []}
+    eksik = [ad for ad, anahtar in (("kuvvet drifti", "drift_ok"), ("rezidüel", "rezidual_ok"))
+             if not c.get(anahtar)]
+    return {"seviye": "uyari", "etiket": "⚠️ sınırda",
+            "gerekce": [f"{', '.join(eksik)} hedefin dışında"] if eksik else []}
 
 
 def classify_cfd(vehicle_type: str, alpha_deg: float, mach: float,

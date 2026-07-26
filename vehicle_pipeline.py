@@ -25,6 +25,7 @@ from scipy.spatial import ConvexHull
 from analysis.ccx_runner import windows_to_wsl_path
 from analysis.openfoam_runner import CFDCase, _wsl_run, run_cfd
 from constants import NONORTHO_LIMIT, RESIDUAL_TARGET, SKEW_LIMIT
+from validity_envelope import force_admissibility
 
 VEHICLE_PRESETS = {
     "ucak": {
@@ -607,6 +608,7 @@ class VehicleAnalysisResult:
     report: str = ""
     error: str = ""
     validity: dict | None = None    # geçerlilik-zarfı verdict'i (okula-güvenli kapı)
+    fizik_kabul: dict | None = None  # fiziksel kabul-edilebilirlik kapısı (zarf sınıfından ÖNCE)
 
 
 def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg=0.0,
@@ -757,12 +759,27 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         pass
 
     uyarilar = []
+    # FİZİK KAPISI — zarf sınıfından ve mesh/iterasyon ölçütlerinden ÖNCE gelir: sayısal
+    # olarak kusursuz yakınsamış bir koşu da fizik-dışı Cd üretebilir (kaba gridde negatif
+    # basınç sürüklemesi). Bu hüküm listenin BAŞINDA durur ki mühendis ilk onu görsün.
+    fizik = force_admissibility(cd, cl, alpha_deg)
+    base.fizik_kabul = fizik
+    if fizik["verdict"] != "ok":
+        etiket = ("SONUÇ FİZİK KAPISINDAN GEÇMEDİ" if fizik["verdict"] == "inadmissible"
+                  else "SONUÇ FİZİKSEL OLARAK ŞÜPHELİ")
+        uyarilar.append(f"{etiket}: {'; '.join(fizik['reasons'])} — bu sayı TASARIM KARARINDA "
+                        "KULLANILMAZ; mesh çözünürlüğünü (özellikle iz/wake bölgesi) artırın")
     if cd_wake is not None and cd:
         fark = abs(cd - cd_wake) / abs(cd) * 100
         if fark > 12:
             uyarilar.append(f"Yüzey-Cd ({cd:.3f}) ile iz-momentum Cd ({cd_wake:.3f}) "
                             f"%{fark:.0f} ayrışıyor → mesh az-çözünür/yakınsamamış olabilir "
                             "(çapraz-kontrol; uyum yakınsama göstergesi)")
+    elif cd:
+        # Kontrolün YAPILAMADIĞI, yapılıp geçtiğiyle karıştırılmamalı: sessiz düşen
+        # çapraz-kontrol mühendise "doğrulandı" izlenimi verir.
+        uyarilar.append("İz-momentum çapraz-kontrolü YAPILAMADI (far-field Cd çıkarılamadı) "
+                        "— bağımsız yakınsama göstergesi yok, Cd tek kaynağa dayanıyor")
     if compressible:
         uyarilar.append(f"Mach {mach:.2f} > 0.3 — DENEYSEL sıkışabilir çözücü "
                         "(soğuk-başlangıç kararlılığı tuning gerektirir)")
@@ -816,6 +833,9 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     if yp and yp["ort"] > 30 and n_layers == 0:
         uyarilar.append(f"Ölçülen y⁺ ort={yp['ort']} (log bölgesi üstü) — sürtünme "
                         "sürüklemesi duvar fonksiyonu sınırında; katman sayısını artırın")
+    elif not yp:
+        uyarilar.append("y⁺ ÖLÇÜLEMEDİ — sınır tabaka çözünürlüğü doğrulanamadı; "
+                        "sürtünme sürüklemesinin duvar-fonksiyonu geçerliliği bilinmiyor")
     base.uyarilar = uyarilar
 
     # Opsiyonel mesh-bağımsızlık: aynı analizi daha kaba seviyelerde koş → 3-mesh Richardson

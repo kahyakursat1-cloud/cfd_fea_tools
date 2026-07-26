@@ -236,8 +236,14 @@ relaxationFactors{ equations{ U 0.3; k 0.2; omega 0.2; gammaInt 0.2; ReThetat 0.
         sim = self._parse_forces(case, alpha_deg)
         if not sim: return {"status":"FAILED","step":"forces"}
         ref = NACA0012_REF.get(alpha_deg)
+        # Fizik kapisi: bu O-grid ailesinin kaba seviyeleri negatif Cd uretebiliyor
+        # (wake kumelemesi yok). Hukum sonuca YAZILIR, sessizce SUCCESS olmaz.
+        from validity_envelope import CD_MAX_STREAMLINED, force_admissibility
+        fz = force_admissibility(round(sim["Cd"],5), round(sim["Cl"],4), alpha_deg,
+                                 cd_max=CD_MAX_STREAMLINED)   # NACA0012 = akis-yonlu
         out = {"alpha":alpha_deg, "Cl":round(sim["Cl"],4), "Cd":round(sim["Cd"],5),
-               "status":"SUCCESS"}
+               "fizik":fz,
+               "status":"SUCCESS" if fz["verdict"]!="inadmissible" else "FIZIK_DISI"}
         if ref:
             out["Cl_ref"], out["Cd_ref"] = ref
             out["Cl_err_pct"] = round(abs(sim["Cl"]-ref[0])/(abs(ref[0])+1e-3)*100,1)
@@ -257,5 +263,7 @@ if __name__ == "__main__":
         results.append(r)
         print(f"  Cl={r.get('Cl')} (ref={r.get('Cl_ref')}) Cd={r.get('Cd')} "
               f"-> {r.get('status')} {r.get('step','')}", flush=True)
+        for g in (r.get("fizik") or {}).get("reasons", []):
+            print(f"  FIZIK KAPISI: {g}", flush=True)
     json.dump(results, open("transition_polar.json","w"), indent=2)
     print("\nKaydedildi: transition_polar.json")

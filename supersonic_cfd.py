@@ -408,6 +408,15 @@ def run_supersonic(stl_path, mach=2.0, vehicle_type="roket", quality="standart",
            "case": str(case_dir),
            "_not": ("shockFluid inviscid basınç+dalga sürüklemesi + analitik "
                     "türbülanslı cilt-sürtünmesi (component buildup). Tek mesh.")}
+    # Fizik kapısı: taban-çökmesi/erken-kesme Cd≈0 veya negatif üretebiliyor (bkz. modül
+    # başı notu). Üst sınır evrensel varsayılan: süpersonik künt burunda dalga sürüklemesi
+    # yüksektir, dar (akış-yönlü) eşik burada yanlış alarm verir.
+    from validity_envelope import force_admissibility
+    fz = force_admissibility(out["Cd_toplam"])
+    out["fizik"] = fz
+    if fz["verdict"] != "ok":
+        out["status"] = "fizik_disi" if fz["verdict"] == "inadmissible" else "ok"
+        out["uyari_fizik"] = "; ".join(fz["reasons"])
     if base_artifact:
         out["uyari"] = base_artifact
     (run_dir / "supersonic.json").write_text(

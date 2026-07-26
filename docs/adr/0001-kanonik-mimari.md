@@ -70,7 +70,34 @@ gerilme-TO, FSI, far-field, parallel-CFD fix, batch-öğrenme orada). #1 2D-V&V 
 **Giriş noktaları (güncel):** `app_analyzer.py` (araç GUI, #4) + `app_parametric.py` (2D V&V GUI, #1)
 + `pipeline.py` (V&V CLI) + `experiments/batch_learn.py` (toplu öğrenme).
 
+## REVİZYON 3 (2026-07-26) — #2 silinmedi, DÜRÜSTLEŞTİRİLDİ
+
+Silme adayı olarak yeniden incelendi (yalnız `check_integration.py` tüketiyor). REVİZYON-1/2
+kararı korundu — **silinmedi** — ama silme tartışmasında asıl sorun ortaya çıktı: sorun ölü
+kod değil, **provenance yıkaması**.
+
+Zincir şuydu: `solvers/openfoam_wrapper._run_mock_simulation()` çözücü yokken SABİT bir
+katsayı dosyası yazıyor (Cd=0.1452, Cl=0.521) → `post_processing.read_force_coefficients()`
+onu diskten okuyup `source='openfoam'` etiketliyor → `CFDResult` bu etiketi hiç taşımıyor →
+`check_integration.py` `[OK] Cd=0.1452` ve `[SUCCESS] END-TO-END WORKFLOW TAMAMLANDI!`
+basıyor. Uydurma sayı bir dosyadan geçerek "çözücü çıktısı"na dönüşüyordu.
+
+Yapılan (silme yerine):
+- Mock koşu ürettiği veriyi kendi işaretler: `postProcessing/.MOCK` + dat başlığında `# MOCK`.
+- Okuyucu işaretçiyi tanır → `source='mock'`; `CFDResult.data_source` / `convergence_source`
+  alanları eklendi, `olculdu` özelliği YALNIZ gerçek `openfoam` için True.
+- Log yokken dönen temsili rezidüel eğrisi `source='placeholder'` ile işaretlenir.
+- `check_integration.py` artık "HAT DUMAN TESTİ — ANALİZ SONUCU ÜRETMEZ" başlığıyla koşar,
+  sayıları `[TAHMIN]` etiketiyle basar ve gerçek yolları gösterir.
+- `tests/test_provenance.py` bu hata sınıfını dondurur.
+
+**Karar:** #2 ikincil katman olarak kalır; ürettiği hiçbir sayı ölçülmüş sonuçtan ayırt
+edilemez halde sunulamaz. Aynı ilke tüm katmanlarda geçerli (bkz. `validity_envelope`
+fizik kapısı, `zarf.py` kanıt-tabanlı çalışma zarfı).
+
 ## Notlar
 
 Karakterizasyon + regresyon testleri (`tests/`) dört katmanın çekirdek fiziğini ve
 post-processing matematiğini dondurur — 118 test (golden değerler + araç-stack V&V dahil).
+2026-07-26: 290+ teste çıktı; `external` işaretli iki test GERÇEK çözücüyü (ccx + OpenFOAM)
+uçtan uca koşturur (`tests/test_cozucu_regresyon.py`).

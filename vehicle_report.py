@@ -265,12 +265,25 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
           "\n---\n"]
 
     # ── Okula-güvenli geçerlilik-zarfı banner'ı (EN BAŞTA — öğrenci verdict'i İLK görsün) ──
-    from validity_envelope import ALPHA_VALID_DEG, banner_md, classify_cfd, overall_class
+    from validity_envelope import (
+        ALPHA_VALID_DEG,
+        apply_physics_gate,
+        banner_md,
+        classify_cfd,
+        overall_class,
+    )
     _mds = getattr(r, "mesh_duyarlilik", None) or {}
     _gci_ok = bool(_mds.get("gci")) and str(_mds.get("verdikt", "")).startswith("✅")
     _verdicts = classify_cfd(r.vehicle_type, r.alpha_deg, Ma,
                              has_gci_band=_gci_ok, band_pct=_mds.get("fark_pct"))
+    # Fizik kapısı zarf sınıfını EZER: sayısal olarak kusursuz koşu da fizik-dışı sayı
+    # üretebilir; o durumda banner "DOĞRULANMIŞ" demesin.
+    _fz = getattr(r, "fizik_kabul", None) or {}
+    _verdicts = apply_physics_gate(_verdicts, _fz)
     md.append(banner_md(_verdicts))
+    if _fz.get("verdict", "ok") != "ok":
+        md.append(f"> 🔴 **FİZİK KAPISI:** {'; '.join(_fz.get('reasons', []))} — "
+                  "bu koşunun kuvvet katsayıları tasarım kararında KULLANILMAZ.\n")
     # Öğretici kutu (BİLSEM): kararların 'neden'i acemi-erişilebilir dille (mentor).
     try:
         from mentor import egitim_notu

@@ -14,6 +14,15 @@ from pathlib import Path
 import matplotlib
 import numpy as np
 
+# Fiziksel kabul-edilebilirlik kapisi bagimlilik-siz zarf katmaninda; burada yeniden disa
+# aktarilir ki rapor ile arac pipeline'i AYNI hukmu kullansin (tek kaynak).
+from validity_envelope import (
+    CD_MAX_PLAUSIBLE,
+    CD_MAX_STREAMLINED,
+    CL_MAX_PLAUSIBLE,
+    force_admissibility,
+)
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -32,6 +41,8 @@ TOL_FEA_PCT = 5.0    # analitik kiris sehimi
 TOL_FEA_SUITE_PCT = 8.0   # kanonik FEA V&V suite (en kotu ~%4.8 ozagirlik kok-konsantrasyonu)
 GCI_PASS_PCT = 5.0
 P_RANGE = (0.5, 3.0)  # gozlemlenen mertebe makul araligi (teorik ~2)
+_ = (CD_MAX_PLAUSIBLE, CD_MAX_STREAMLINED, CL_MAX_PLAUSIBLE,
+     force_admissibility)                                       # yeniden disa aktarim
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -458,15 +469,31 @@ class VVReport:
             gci2 = fig_airfoil_gci(levels, refs, self.out / "figures" / "airfoil_gci.png")
             md.append(f"## 1b. 2D Airfoil GCI — NACA0012 α={airfoil_gci.get('alpha')}° "
                       f"({airfoil_gci.get('model')})\n")
-            md.append("| Seviye | Grid | Hücre | $C_d$ | $C_l$ | İter. drift | Durum |")
-            md.append("|--------|------|-------|-------|-------|-------------|-------|")
+            md.append("| Seviye | Grid | Hücre | $C_d$ | $C_l$ | İter. drift | İterasyon | Fizik |")
+            md.append("|--------|------|-------|-------|-------|-------------|-----------|-------|")
+            kabul_disi = []
             for lv in sorted(levels, key=lambda x: x["cells"]):
                 stat = "✅ ok" if lv.get("status") == "ok" else f"❌ {lv.get('status')}"
+                # 2D airfoil: akış-yönlü geometri bilindiği için DAR sınır (künt-cisim
+                # toleransı burada yanlış-negatif üretir)
+                adm = force_admissibility(lv.get("Cd"), lv.get("Cl"), airfoil_gci.get("alpha"),
+                                          cd_max=CD_MAX_STREAMLINED)
+                if adm["verdict"] == "ok":
+                    adm_s = "✅ kabul"
+                else:
+                    adm_s = ("⛔ fizik-dışı" if adm["verdict"] == "inadmissible" else "⚠️ şüpheli")
+                    kabul_disi.append(f"**{lv['name']}** — {'; '.join(adm['reasons'])}")
                 cd_s = f"{lv['Cd']:.5f}" if lv.get("Cd") is not None else "—"
                 cl_s = f"{lv['Cl']:.4f}" if lv.get("Cl") is not None else "—"
                 dr_s = f"{lv['drift']:.1e}" if lv.get("drift") is not None else "—"
                 md.append(f"| {lv['name']} | {lv.get('grid','-')} | {lv['cells']} | "
-                          f"{cd_s} | {cl_s} | {dr_s} | {stat} |")
+                          f"{cd_s} | {cl_s} | {dr_s} | {stat} | {adm_s} |")
+            if kabul_disi:
+                md.append("\n**Fiziksel kabul-edilebilirlik:** iterasyon yakınsaması sayısal bir "
+                          "ölçüttür; aşağıdaki seviyeler fizik kapısından geçmedi ve GCI hükmü "
+                          "okunurken dışlanmalıdır:  ")
+                md.extend(f"- {s}  " for s in kabul_disi)
+                md.append("")
             if gci2:
                 md.append(f"\n**Gözlemlenen mertebe** p = {gci2['p']}  ")
                 if gci2.get("monotonic") and gci2.get("p_in_range"):

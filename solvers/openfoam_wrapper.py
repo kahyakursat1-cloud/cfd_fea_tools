@@ -554,8 +554,17 @@ relaxationFactors
         (postproc_dir / "forces").mkdir(exist_ok=True)
         (postproc_dir / "forces" / "0").mkdir(exist_ok=True)
 
+        # MOCK ISARETCISI: bu dosyalar cozucu ciktisi DEGIL. Isaretci olmadan okuyucu
+        # sahte katsayilari dosyadan okuyup "OpenFOAM'dan geldi" saniyordu — uydurma
+        # sayi "olculdu" damgasi aliyordu (provenance yikamasi).
+        (postproc_dir / ".MOCK").write_text(
+            "Bu dizindeki veriler _run_mock_simulation() tarafindan uretilmis SABIT "
+            "test verisidir. Cozucu kosmadi. Tasarim karari icin kullanilamaz.\n",
+            encoding="utf-8")
+
         # Create mock force coefficients file
-        force_data = """# Time Cd Cl Cm Cd_p Cd_v
+        force_data = """# MOCK DATA — cozucu ciktisi degildir (solvers/openfoam_wrapper)
+# Time Cd Cl Cm Cd_p Cd_v
 0.0 0.145 0.523 -0.012 0.132 0.013
 100 0.144 0.524 -0.0119 0.131 0.013
 200 0.1445 0.5225 -0.012 0.132 0.0125
@@ -568,6 +577,7 @@ relaxationFactors
 
         # Create mock log file
         with open(self.log_file, 'w') as f:
+            f.write("# MOCK — cozucu kosmadi\n")
             f.write("Mock OpenFOAM log file\n")
             f.write("Time = 0.001\n")
             f.write("p: Solving for p, Initial residual = 1e-01\n")
