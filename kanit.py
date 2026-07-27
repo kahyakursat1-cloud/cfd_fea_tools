@@ -14,6 +14,7 @@ Bu araç dosyaları SINIFLAR ve kanıt olanları verdiktleriyle listeler:
     python kanit.py            # tablo
     python kanit.py --json     # kanit_manifest.json yaz
     python kanit.py --eksik    # hükmü/üretim komutu olmayan veya eskimiş kanıtlar
+    python kanit.py --bayat    # onu üreten koddan ESKİ kanıtlar (exit 1)
 """
 from __future__ import annotations
 
@@ -81,8 +82,14 @@ _URETIM = re.compile(r"(?:Üretim|Uretim|Reproduce)\s*:\s*(python[^\"\n]{3,120}?
 
 
 def _uretim_komutu(d: dict) -> str:
-    m = _URETIM.search(" ".join(str(v) for v in d.values()))
-    return m.group(1).strip() if m else ""
+    # Değerleri BİRLEŞTİRMEK kırılgan: komşu alan komutun peşine yapışıp uzunluk
+    # sınırını aştırınca eşleşme tamamen kayboluyordu (_son_dogrulama eklenince
+    # fea_validation.json'da yaşandı). Her alan AYRI taranır.
+    for v in d.values():
+        m = _URETIM.search(str(v))
+        if m:
+            return m.group(1).strip()
+    return ""
 
 
 def sinifla(p: Path) -> dict:
@@ -117,6 +124,93 @@ def sinifla(p: Path) -> dict:
     if kayit["eskimis"]:
         kayit["not"] = "ESKİMİŞ — güncel dosya için _SUPERSEDED notuna bak"
     return kayit
+
+
+def _git_tarih(yol: str) -> int:
+    """Yolun son commit zamanı (unix). Git yoksa/izlenmiyorsa 0."""
+    import subprocess
+    try:
+        r = subprocess.run(["git", "log", "-1", "--format=%ct", "--", yol],
+                           cwd=ROOT, capture_output=True, text=True, timeout=30)
+        return int(r.stdout.strip()) if r.stdout.strip().isdigit() else 0
+    except Exception:
+        return 0
+
+
+# Kanıtı ÜRETEN kod: bunlar kanıttan SONRA değiştiyse kanıt eski kodla üretilmiş olabilir.
+URETEN_KOD = ["vehicle_pipeline.py", "analysis", "report_generator.py", "validity_envelope.py"]
+
+
+def _uretim_scripti(komut: str) -> str:
+    """`python experiments/fea_validation.py …` -> `experiments/fea_validation.py`."""
+    for p in komut.split():
+        if p.endswith(".py"):
+            return p
+    return ""
+
+
+def _bagimli_kod(script: str, derinlik: int = 2) -> list[str]:
+    """Script + içe aktardığı PROJE modülleri (derinlik seviyeye kadar).
+
+    `check_vehicle_validation.py` -> `vehicle_pipeline.py` -> `analysis/openfoam_runner.py`
+    zincirini izler; `experiments/fea_validation.py` ise yalnız calculix/frd yoluna iner.
+    """
+    import re as _re
+    gorulen, kuyruk, cikti = set(), [(script, 0)], []
+    _imp = _re.compile(r"^\s*(?:from|import)\s+([A-Za-z_][\w.]*)", _re.M)
+    while kuyruk:
+        yol, d = kuyruk.pop()
+        if yol in gorulen:
+            continue
+        gorulen.add(yol)
+        p = ROOT / yol
+        if not p.exists():
+            continue
+        cikti.append(yol)
+        if d >= derinlik:
+            continue
+        for ad in _imp.findall(p.read_text(encoding="utf-8", errors="replace")):
+            kok = ad.split(".")[0]
+            aday = f"{ad.replace('.', '/')}.py" if kok == "analysis" else f"{kok}.py"
+            if (ROOT / aday).exists():
+                kuyruk.append((aday, d + 1))
+    return cikti
+
+
+def bayatlik(kayitlar: list[dict]) -> list[dict]:
+    """Kanıt dosyası, ONU ÜRETEN koddan eski mi?
+
+    Somut vaka: vehicle_validation.json (küp ↔ Hoerner çapası) 2026-06-10'da üretildi;
+    o tarihten sonra kuvvet tarihçesi pencere-ortalaması (trailing_mean) dahil çok şey
+    değişti. Dosya "✅ %2.4 hata" diyor ama güncel kod aynı mesh'te %6.0 veriyor.
+
+    KESİNLİK: üretim komutu kayıtlıysa YALNIZ o script + kanonik katman ile kıyaslanır
+    (kesin). Değilse geniş kod kümesiyle kıyaslanır ve "tahmin" olarak işaretlenir —
+    FEA kanıtını CFD değişikliğiyle bayat ilan etmek sinyali gürültüye çevirir.
+    """
+    genel_ts = max((_git_tarih(y) for y in URETEN_KOD), default=0)
+    analysis_ts = _git_tarih("analysis")
+    out = []
+    for k in kayitlar:
+        if k["sinif"] != "kanit":
+            continue
+        ts = _git_tarih(k["dosya"])
+        if not ts:
+            continue
+        script = _uretim_scripti(k["uretim"])
+        if script:
+            # `analysis/` KLASÖRÜNÜN tamamıyla kıyaslamak yanlış: FEA kanıtı
+            # calculix_writer/frd_parser'a bağlıdır, openfoam_runner'a değil. Script'in
+            # GERÇEK import'larını izle — aksi halde her CFD değişikliği tüm FEA
+            # kanıtlarını "bayat" ilan eder ve sinyal gürültüye gömülür.
+            kod_ts, kesin = max((_git_tarih(y) for y in _bagimli_kod(script)),
+                                default=0), True
+        else:
+            kod_ts, kesin = genel_ts, False
+        if kod_ts and ts < kod_ts:
+            out.append({**k, "bayat_gun": round((kod_ts - ts) / 86400, 1),
+                        "kesin": kesin, "kiyas": script or "genel kod kümesi"})
+    return out
 
 
 def manifest() -> list[dict]:
@@ -159,6 +253,26 @@ def main() -> int:
                             encoding="utf-8")
         print(f"{MANIFEST.name} yazıldı ({len(kayitlar)} dosya)")
         return 0
+    if "--bayat" in sys.argv:
+        b = bayatlik(kayitlar)
+        if not b:
+            print("Hiçbir kanıt onu üreten koddan eski değil.")
+            return 0
+        kesin = [x for x in b if x["kesin"]]
+        tahmin = [x for x in b if not x["kesin"]]
+        print("| Dosya | Kıyas | Gün | Hüküm |")
+        print("|---|---|---|---|")
+        for x in sorted(kesin, key=lambda z: -z["bayat_gun"]):
+            print(f"| `{x['dosya']}` | `{x['kiyas']}` | {x['bayat_gun']:.0f} | "
+                  f"{x['sembol']} {x['hukum'][:50]} |")
+        if tahmin:
+            print()
+            print(f"Üretim komutu kayıtlı olmayan {len(tahmin)} kanıt genel kod kümesiyle "
+                  "kıyaslandı (TAHMİN, kesin değil): "
+                  + ", ".join(f"`{x['dosya']}`" for x in tahmin[:8]))
+        print()
+        print("Bu dosyalar ESKİ KODLA üretilmiş olabilir; üretim komutuyla tazeleyin.")
+        return 1 if kesin else 0
     if "--eksik" in sys.argv:
         eksik = [x for x in kayitlar
                  if x["sinif"] == "kanit"

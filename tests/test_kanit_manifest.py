@@ -136,3 +136,50 @@ def test_gercek_kanitlarin_hepsi_hukum_tasiyor():
     hukumsuz = [k["dosya"] for k in kanit.manifest()
                 if k["sinif"] == "kanit" and not k["hukum"]]
     assert hukumsuz == [], f"hükümsüz kanıt: {hukumsuz}"
+
+
+def test_uretim_scripti_cikarilir():
+    assert kanit._uretim_scripti("python experiments/fea_validation.py") \
+        == "experiments/fea_validation.py"
+    assert kanit._uretim_scripti("python vehicle_pipeline.py x.stl --tip genel") \
+        == "vehicle_pipeline.py"
+    assert kanit._uretim_scripti("kabuk komutu") == ""
+
+
+def test_bagimli_kod_import_zincirini_izler():
+    """`analysis/` KLASÖRÜNÜN tamamıyla kıyaslamak yanlış: FEA kanıtı calculix/frd
+    yoluna bağlıdır, openfoam_runner'a değil. Her CFD değişikliği tüm FEA kanıtlarını
+    'bayat' ilan ederse sinyal gürültüye gömülür."""
+    zincir = kanit._bagimli_kod("check_vehicle_validation.py")
+    assert "check_vehicle_validation.py" in zincir
+    assert "vehicle_pipeline.py" in zincir, "doğrudan import izlenmedi"
+
+    fea = kanit._bagimli_kod("experiments/fea_validation.py")
+    assert not any("openfoam_runner" in y for y in fea), \
+        "FEA zinciri CFD çözücüsüne bağlanmamalı"
+
+
+def test_bayatlik_kesin_ve_tahmin_ayrimi():
+    """Üretim komutu kayıtlı olan KESİN, olmayan TAHMİN olarak işaretlenir."""
+    b = kanit.bayatlik(kanit.manifest())
+    assert all("kesin" in x and "kiyas" in x and "bayat_gun" in x for x in b)
+    for x in b:
+        if x["kesin"]:
+            assert x["kiyas"].endswith(".py")
+
+
+def test_bayat_isareti_hukum_degil():
+    """`--bayat` 'yanlış' demez, 'doğrula' der: altı FEA çapası bu işareti taşırken
+    yeniden koşulduğunda BİREBİR aynı çıktı (2026-07-27). Metin bunu yansıtmalı."""
+    import inspect
+    src = inspect.getsource(kanit.main)
+    assert "olabilir" in src, "kesin hüküm gibi sunulmamalı"
+
+
+def test_komsu_alan_uretim_komutunu_bozmaz():
+    """REGRESYON: değerler birleştirilerek taranınca komşu alan komutun peşine yapışıp
+    uzunluk sınırını aştırıyor ve eşleşme TAMAMEN kayboluyordu (_son_dogrulama
+    eklenince fea_validation.json'da yaşandı). Her alan ayrı taranmalı."""
+    d = {"_not": "…dogrulandi. Uretim: python experiments/fea_validation.py",
+         "_son_dogrulama": "2026-07-27 — yeniden koşuldu; sonuç " + "x" * 200}
+    assert kanit._uretim_komutu(d) == "python experiments/fea_validation.py"

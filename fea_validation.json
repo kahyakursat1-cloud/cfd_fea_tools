@@ -1,10 +1,28 @@
 {
   "vaka": "Ankastre kiriş (cantilever), uçtan yük — Euler-Bernoulli kapalı-form",
   "yontem": "CalculiX C3D8I, 24x4x4 hex, ankastre kök, uçta dağıtık -z yük",
-  "geometri": {"L_m": 1.0, "b_m": 0.05, "h_m": 0.05, "E_Pa": 7.0e10, "nu": 0.33, "P_N": 1000},
-  "sehim": {"analitik_mm": 9.143, "fem_mm": 9.051, "hata_pct": 1.0, "formul": "PL^3/(3EI)"},
-  "gerilme": {"analitik_MPa": 48.0, "fem_temsili_MPa": 49.8, "hata_pct": 3.9,
-              "formul": "M*c/I (kök yüzey)", "fem_tepe_MPa": 49.9},
+  "geometri": {
+    "L_m": 1.0,
+    "b_m": 0.05,
+    "h_m": 0.05,
+    "E_Pa": 70000000000.0,
+    "nu": 0.33,
+    "P_N": 1000
+  },
+  "sehim": {
+    "analitik_mm": 9.143,
+    "fem_mm": 9.051,
+    "hata_pct": 1.0,
+    "formul": "PL^3/(3EI)"
+  },
+  "gerilme": {
+    "analitik_MPa": 48.0,
+    "fem_temsili_MPa": 49.8,
+    "hata_pct": 3.9,
+    "formul": "M*c/I (kök yüzey)",
+    "fem_tepe_MPa": 49.9
+  },
   "sonuc": "GECTI — analitik ile uyumlu (sehim %1, gerilme %4). CalculiX kurulumu +",
-  "_not": "frd-parse + eleman davranisi + temsili-gerilme cikarimi dogrulandi. Tepe~temsili: temiz geometride sahte tekillik yok. Uretim: python experiments/fea_validation.py"
+  "_not": "frd-parse + eleman davranisi + temsili-gerilme cikarimi dogrulandi. Tepe~temsili: temiz geometride sahte tekillik yok. Uretim: python experiments/fea_validation.py",
+  "_son_dogrulama": "2026-07-27 — üretim komutuyla yeniden koşuldu; sonuç GÜNCEL KODLA BİREBİR AYNI (kanit.py --bayat işareti içerik olarak yanlış alarmdı, doğrulandı)."
 }

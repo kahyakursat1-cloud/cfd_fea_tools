@@ -1,11 +1,28 @@
 {
   "vaka": "Öz-ağırlık çubuk (gravity body-force) — kapalı-form (rho*g*L)",
   "yontem": "ÜRETİM GÖVDE-KUVVETİ yolu: GravityLoad → *DLOAD GRAV (calculix_writer) → ccx → frd. Üstten ankastre prizmatik çubuk, -z yer-çekimi.",
-  "geometri": {"kesit_m": 0.02, "boy_m": 1.0, "E_Pa": 2.1e11, "nu": 0.30, "rho_kg_m3": 7850, "g": 9.81},
-  "analitik": {"sigma_max_MPa": 0.077, "delta_um": 0.1834,
-               "formul": "sigma_max=rho*g*L (kök ekseni); delta=rho*g*L^2/(2E)"},
-  "fem": {"sigma_tepe_MPa": 0.0807, "sigma_hata_pct": 4.8, "delta_um": 0.1831,
-          "delta_hata_pct": 0.2, "dugum": 2206, "eleman_C3D10": 987},
+  "geometri": {
+    "kesit_m": 0.02,
+    "boy_m": 1.0,
+    "E_Pa": 210000000000.0,
+    "nu": 0.3,
+    "rho_kg_m3": 7850,
+    "g": 9.81
+  },
+  "analitik": {
+    "sigma_max_MPa": 0.077,
+    "delta_um": 0.1834,
+    "formul": "sigma_max=rho*g*L (kök ekseni); delta=rho*g*L^2/(2E)"
+  },
+  "fem": {
+    "sigma_tepe_MPa": 0.0807,
+    "sigma_hata_pct": 4.8,
+    "delta_um": 0.1831,
+    "delta_hata_pct": 0.2,
+    "dugum": 2206,
+    "eleman_C3D10": 987
+  },
   "sonuc": "GECTI — sehim %0.2, gerilme %4.8 (kök-mesnet lokal konsantrasyonu). Doğrular: ÜRETİMin GÖVDE-KUVVETİ yolu (GravityLoad→*DLOAD GRAV). Manevra g-yükü (n·g) artık FEA'ya uygulanabilir (run_structural_check g_yuk param).",
-  "_not": "Üretim: python experiments/fea_validation_grav.py. Yük-uygulama üçlüsü tamam: kuvvet (kiriş/delik), basınç (silindir), gövde (bu)."
+  "_not": "Üretim: python experiments/fea_validation_grav.py. Yük-uygulama üçlüsü tamam: kuvvet (kiriş/delik), basınç (silindir), gövde (bu).",
+  "_son_dogrulama": "2026-07-27 — üretim komutuyla yeniden koşuldu; sonuç GÜNCEL KODLA BİREBİR AYNI (kanit.py --bayat işareti içerik olarak yanlış alarmdı, doğrulandı)."
 }

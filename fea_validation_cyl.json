@@ -25,5 +25,6 @@
     "tepe_temsili_orani": 1.0
   },
   "sonuc": "GECTI — Lamé ile %1.3. Doğrular: ÜRETİMin BASINÇ yükü yolu (PressureLoad→nodal, CFD-basınç→FEA kuplajının dayandığı kod). T6 kuadratik tutarlı-yük (kenar-orta A/3, köşe 0) ile basınç integrasyonu tam mertebede — eski köşe-only lumping'in %7.2 hatası %1.3'e indi.",
-  "_not": "Üretim: python experiments/fea_validation_cyl.py. Suite: fea_validation*.json (6 kanonik V&V)."
+  "_not": "Üretim: python experiments/fea_validation_cyl.py. Suite: fea_validation*.json (6 kanonik V&V).",
+  "_son_dogrulama": "2026-07-27 — üretim komutuyla yeniden koşuldu; sonuç GÜNCEL KODLA BİREBİR AYNI (kanit.py --bayat işareti içerik olarak yanlış alarmdı, doğrulandı)."
 }
