@@ -172,6 +172,10 @@ class MeshGenerator:
         target_yplus: hedef y+ (1.0 = low-Re cozunmus BL, 30-50 = wall function)
         """
         self.aircraft = aircraft
+        # Geometri üretiminde sessizce düşülen geri-adımlar burada birikir; çağıran
+        # (ve testler) bunu okuyabilmeli — "üretildi" ile "istenildiği gibi üretildi"
+        # ayni sey degil.
+        self.gerilemeler: list[str] = []
         self.base_mesh_size = mesh_size
         self.wind_speed = wind_speed
         self.target_yplus = target_yplus
@@ -265,9 +269,15 @@ class MeshGenerator:
 
         # Kök ve uç extrusion'ı blend ederek trapez kanat oluştur
         # Her iki poly aynı sayıda vertex içermeli → interpolasyon
-        n = len(profile_2d)
+        # n GİRDİ profilinden değil POLİGONDAN türetilir: Shapely, hücum kenarında
+        # çakışan ilk/son noktayı birleştiriyor (48 panelde 96 yerine 95 köşe) ve
+        # sabit n ile column_stack ValueError atıyordu. Hata `except Exception` ile
+        # yutulup kanat sessizce DÜZ KUTUYA düşüyordu.
         root_xz = np.array(list(root_poly.exterior.coords)[:-1])
         tip_xz  = np.array(list(tip_poly.exterior.coords)[:-1])
+        if len(root_xz) != len(tip_xz):
+            raise ValueError(f"kök/uç kesit köşe sayısı farklı: {len(root_xz)} vs {len(tip_xz)}")
+        n = len(root_xz)
 
         # 3D vertices
         root_v = np.column_stack([root_xz[:, 0], np.full(n, y_root), root_xz[:, 1]])
@@ -427,8 +437,16 @@ class MeshGenerator:
             wing_l.vertices[:, 1] *= -1
             wing_l.invert()
             parts += [wing_r, wing_l]
-        except Exception:
-            # Fallback: düz kutu kanat
+        except Exception as _e:
+            # SESSİZ DEĞİL: bu geri-düşüş kanadı NACA profilinden DÜZ KUTUYA çevirir ve
+            # tüm aerodinamik sonucu geçersizler. `shapely` kurulu olmadığı için yıllarca
+            # sessizce tetiklenmiş; ihraç edilen MiniHawk'ın kanadı 12 üçgenlik bir
+            # kutuydu ve bunu hiçbir yer söylemiyordu.
+            self.gerilemeler.append(
+                f"KANAT PROFİLİ ÜRETİLEMEDİ → DÜZ KUTUYA düşüldü ({type(_e).__name__}: "
+                f"{_e}). Aerodinamik sonuç NACA profilini TEMSİL ETMEZ; eksik bağımlılık "
+                "için `python pipeline.py doctor` çalıştırın (shapely, mapbox_earcut).")
+            print(f"[UYARI] {self.gerilemeler[-1]}")
             chord = self.aircraft.wing.root_chord()
             span  = self.aircraft.wing.span
             wb = tc.box([chord, span, chord * 0.10])

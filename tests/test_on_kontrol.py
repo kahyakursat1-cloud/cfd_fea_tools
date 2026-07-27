@@ -75,7 +75,8 @@ def test_pyproject_zorunlulari_doctor_ile_ortusuyor():
     from pathlib import Path
     kok = Path(on_kontrol.__file__).resolve().parent
     cfg = tomllib.loads((kok / "pyproject.toml").read_text(encoding="utf-8"))
-    ad_map = {"pyyaml": "yaml", "PyYAML": "yaml"}
+    # dagitim adi != import adi olan paketler
+    ad_map = {"pyyaml": "yaml", "PyYAML": "yaml", "mapbox-earcut": "mapbox_earcut"}
     dep = {ad_map.get(d.split(">")[0].split("=")[0].strip(),
                       d.split(">")[0].split("=")[0].strip())
            for d in cfg["project"]["dependencies"]}

@@ -25,7 +25,9 @@ dependencies = [
     "pandas>=2.0",
     "pyyaml>=6.0",
     "trimesh>=3.20",
-    "rtree>=1.0",
+    "rtree>=1.0",          # ray-tabanlı et-kalınlığı; yoksa ölçüm sessizce bbox'a düşer
+    "shapely>=2.0",        # NACA profil ekstrüzyonu; yoksa kanat DÜZ KUTUYA düşer
+    "mapbox-earcut>=1.0",  # kesit üçgenlemesi; yoksa kanat uç kapakları oluşmaz
     "gmsh>=4.11",
 ]
 

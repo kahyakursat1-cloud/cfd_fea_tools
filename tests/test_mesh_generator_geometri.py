@@ -138,3 +138,41 @@ def test_uretilen_stl_dokuntusuz():
     m = trimesh.load(p, force="mesh")
     kucuk = [x for x in m.split(only_watertight=False) if len(x.faces) <= 2]
     assert not kucuk, f"{len(kucuk)} döküntü parça kaldı"
+
+
+# ── Kanat profili gerçekten üretiliyor mu ────────────────────────────────────
+
+def test_kanat_kutuya_dusmuyor():
+    """shapely kurulu değilken NACA ekstrüzyonu `except Exception` ile yutuluyor ve
+    kanat 12 üçgenlik DÜZ KUTUYA düşüyordu — tüm aerodinamik sonucu geçersizleyen
+    sessiz gerileme. Artık kaydediliyor ve bağımlılıklar doctor'da."""
+    pytest.importorskip("shapely")
+    pytest.importorskip("mapbox_earcut")
+    from aircraft_geometry import AircraftLibrary
+    from mesh_generator import MeshGenerator
+
+    g = MeshGenerator(AircraftLibrary().minihawk_uav())
+    import tempfile
+    from pathlib import Path
+    with tempfile.TemporaryDirectory() as d:
+        g.generate_stl(str(Path(d) / "u.stl"))
+    assert g.gerilemeler == [], f"geometri gerilemesi: {g.gerilemeler}"
+
+
+def test_profil_ekstruzyonu_watertight_kanat_uretir():
+    """Shapely hücum kenarındaki çakışan noktayı birleştirir; n GİRDİ profilinden
+    alınırsa column_stack ValueError atar ve kanat kutuya düşerdi (off-by-one)."""
+    pytest.importorskip("shapely")
+    pytest.importorskip("mapbox_earcut")
+    prof = MeshGenerator._naca4_profile(0.02, 0.4, 0.12, n=48)
+    w = MeshGenerator._extrude_profile_to_mesh(prof, 0.0, 0.75, 0.25, 0.175, 0.28, 0.30)
+    assert w.is_watertight, "kesit kapakları oluşmamış (mapbox_earcut?)"
+    d = w.bounds[1] - w.bounds[0]
+    assert d[2] / d[0] == pytest.approx(0.12, abs=0.01), "profil kalınlık/kord NACA'ya uymuyor"
+    assert w.volume > 0
+
+
+def test_gerileme_kaydi_bos_baslar():
+    from aircraft_geometry import AircraftLibrary
+    from mesh_generator import MeshGenerator
+    assert MeshGenerator(AircraftLibrary().minihawk_uav()).gerilemeler == []

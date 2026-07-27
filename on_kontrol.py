@@ -20,7 +20,8 @@ from pathlib import Path
 # pyproject'te ZORUNLU olan her paket burada da olmalı. `rtree` eksikti: yokluğunda
 # ray-tabanlı et-kalınlığı ölçümü sessizce bbox yedeğine düşüyor ve çağıran bunu ÖLÇÜM
 # sanıyordu (MiniHawk'ta "ince özellik 80 mm" aslında gövde çapıydı).
-ZORUNLU_PY = ["numpy", "scipy", "matplotlib", "trimesh", "gmsh", "yaml", "rtree"]
+ZORUNLU_PY = ["numpy", "scipy", "matplotlib", "trimesh", "gmsh", "yaml",
+              "rtree", "shapely", "mapbox_earcut"]
 SECMELI_PY = {"PySide6": "GUI (app_analyzer / launcher)",
               "pandas": "tablo/rapor yardımcıları",
               "plotly": "etkileşimli figürler"}
@@ -48,8 +49,13 @@ def kontroller() -> list[dict]:
     from analysis.backend import backend, container
 
     out = []
-    _NEDEN = {"rtree": "yoksa et-kalınlığı ölçümü sessizce bbox yedeğine düşer "
-                       "(ince-özellik uyarıları ölçüme değil kutuya dayanır)"}
+    _NEDEN = {
+        "rtree": "yoksa et-kalınlığı ölçümü sessizce bbox yedeğine düşer "
+                 "(ince-özellik uyarıları ölçüme değil kutuya dayanır)",
+        "shapely": "yoksa NACA profil ekstrüzyonu düşer ve kanat DÜZ KUTU olur — "
+                   "tüm aerodinamik sonuç profili temsil etmez",
+        "mapbox_earcut": "yoksa kanat kesit kapakları üçgenlenemez, geometri açık kalır",
+    }
     for m in ZORUNLU_PY:
         var = _py_modul(m)
         out.append({"ad": f"python: {m}", "zorunlu": True,

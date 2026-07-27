@@ -101,8 +101,11 @@ def _minihawk_gci() -> tuple[str, str]:
     ince = max(b["seviyeler"], key=lambda x: x["cells"])
     yp = (b.get("yplus") or {}).get("ort")
     c = _json("gci_minihawk_hassas.json")          # katmanlı deneme
-    return "⚠️ Gösterilemedi", (
-        f"MiniHawk İHA, ÜÇ kampanya, üçünde de GCI yakınsamadı "
+    return "❌ Geçersiz geometri", (
+        "⚠ Bu üç kampanya kanadı DÜZ KUTU olan bir STL üzerinde koşuldu (shapely "
+        "kurulu olmadığı için NACA ekstrüzyonu sessizce kutuya düşüyordu; 2026-07-27'de "
+        "düzeltildi) — aerodinamik sayılar NACA2412'yi TEMSİL ETMEZ, yeniden koşulmalı. "
+        "Mesh-yakınsama dersleri geçerli: "
         f"(%{a['gci']['gci_fine_pct']:.0f} → %{gb['gci_fine_pct']:.0f}). "
         "GERÇEK ölçümle (rtree kurulduktan sonra) kanat hiçbir seviyede çözülmedi: "
         "yığın kalınlık/hücre standart 1.32×, hassas 3.39× — hedef ≥6. "

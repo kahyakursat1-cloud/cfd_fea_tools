@@ -4,6 +4,36 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-07-27g] fix | KANAT DUZ KUTUYDU: shapely eksikligi NACA profilini sessizce dusuruyordu
+
+EN CIDDI BULGU. Uretilen MiniHawk STL'inde kanat, 12 ucgenlik bir DIKDORTGEN KUTUYDU —
+NACA2412 profili degil. Zincir:
+  shapely kurulu degil -> _extrude_profile_to_mesh ModuleNotFoundError
+  -> `except Exception:` yutuyor -> "Fallback: duz kutu kanat"
+  -> ihrac edilen ucagin kanadi kutu; hicbir yer soylemiyor
+shapely pyproject'te HIC TANIMLI DEGILDI. Yani bu hat yillarca kutu kanat uretmis ve
+uzerinde kosulan tum aerodinamik gecersiz.
+
+Ikinci hata (shapely kurulunca ortaya cikti): ekstruzyonda off-by-one. Shapely hucum
+kenarindaki cakisan ilk/son noktayi BIRLESTIRIYOR (48 panelde 96 yerine 95 kose) ama
+n girdi profilinden aliniyordu -> column_stack ValueError -> yine kutuya dusus.
+n artik POLIGONDAN turetiliyor + kok/uc kose sayisi esitligi kontrol ediliyor.
+
+Ucuncu eksik: mapbox_earcut yoksa kesit KAPAKLARI ucgenlenemiyor, kanat acik kaliyordu.
+
+Sonuc (olculdu): kanat 380 ucgen, WATERTIGHT, kalinlik/kord 0.1215 (NACA2412 ~0.12),
+hacim 0.0028 m3. Uc bagimlilik (rtree, shapely, mapbox-earcut) pyproject'e ve doctor'a
+eklendi; dagitim-adi/import-adi farki teste baglandi.
+
+META-DUZELTME: geri-dusus artik SESSIZ DEGIL — MeshGenerator.gerilemeler listesine
+yaziliyor ve ekrana basiliyor ("KANAT PROFILI URETILEMEDI -> DUZ KUTUYA dusuldu ...").
+
+UC MiniHawk KAMPANYASI GECERSIZ ISARETLENDI: aerodinamik sayilari kutu kanat icindir.
+Mesh-yakinsama dersleri (dejenere seviye, katman cokmesi, y+ derecelendirme) GECERLI
+kalir — onlar geometriden bagimsiz.
+
+Testler: 424 -> 427 (+3 kanat capasi).
+
 ## [2026-07-27f] fix+test | STL dokuntu temizligi + NACA profili literature karsi dogrulandi
 
 STL DOKUNTUSU: uretilen MiniHawk 99 AYRIK GOVDEDEN olusuyordu — govde, kanat ve
