@@ -37,3 +37,30 @@ def test_verdikt_kanonik_fonksiyondan():
     beklenen_ok = gci_verdict(g).startswith("✅")
     guv, _ = zarf._arac_mesh()
     assert guv.startswith("✅") == beklenen_ok
+
+
+def test_vv_raporu_ayni_zarf_tablosunu_kullanir():
+    """Üç artefakt (README, VV_report, zarf.py) tek kaynaktan beslenmeli. Rapor kendi
+    bölümlerini eski JSON kümesinden kuruyordu; yeni kanıtlar (araç kampanyaları,
+    geçersiz kılınan geometriler) yalnız zarf tablosunda vardı ve rapordan okunamıyordu
+    — README ile yaşanan çelişki sınıfının aynısı."""
+    import inspect
+
+    from report_generator import VVReport
+    src = inspect.getsource(VVReport.build)
+    assert "from zarf import zarf_tablosu" in src, "rapor zarf tablosunu üretmiyor"
+    i_zarf = src.index("zarf_tablosu()")
+    i_mesh = src.index("## 0. Mesh Kalitesi")
+    assert i_zarf < i_mesh, "zarf tablosu raporun EN BAŞINDA olmalı"
+    assert "tablo günceldir" in src, "çelişki durumunda hangisinin geçerli olduğu yazmalı"
+
+
+def test_zarf_uretilemezse_rapor_yine_uretilir():
+    """Kanıt okunamazsa rapor düşmemeli — uyarıyla devam etmeli."""
+    import inspect
+
+    from report_generator import VVReport
+    src = inspect.getsource(VVReport.build)
+    i = src.index("from zarf import zarf_tablosu")
+    assert "except Exception" in src[i:i + 700]
+    assert "üretilemedi" in src[i:i + 900]

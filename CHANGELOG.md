@@ -4,6 +4,35 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-07-27i] fix | Sistematik sessiz-yutma taramasi: NaN kapidan geciyordu + rapor tek kaynaga baglandi
+
+AST ile tum kod tabaninda "sessizce yutulan istisna" arandi (54 adet, tests/experiments
+haric), riske gore siralanip SAYI URETEN yollar incelendi. Uc gercek acik:
+
+1. NaN FIZIK KAPISINDAN GECIYORDU. NaN ile HER karsilastirma False doner; `Cd <= 0` ve
+   `abs(Cd) > cd_max` kontrollerinin ikisi de NaN'i iskaliyordu (Inf yakalaniyordu).
+   Sonluluk kontrolu en basa alindi.
+2. parse_force_coeffs_text BASLIKSIZ dosyada (nan, nan, nan) donduruyordu; (1) ile
+   birlesince format degisimi sessizce "Cd=nan, kapi ok" veriyordu — iki savunma
+   katmani ayni anda kordu. Artik sutun bulunamazsa None.
+3. fea_runner._extract_frequencies iki bicimde yanlisti (yanlis dosya + yanlis sutun) ve
+   hic cagrilmadigi icin sessiz kalmisti; dogrulanmis ayristiriciya devredildi.
+
+supersonic_cfd._parse_cd ayni desende GORUNUYOR ama guvenli (cd_idx guard'i) —
+degistirilmedi, incelendigi kaydedildi.
+
+RAPOR TEK KAYNAGA BAGLANDI: VV_report kendi bolumlerini eski JSON kumesinden kuruyordu;
+yeni kanitlar (arac kampanyalari, gecersiz kilinan geometriler) yalniz zarf tablosundaydi
+ve rapordan OKUNAMIYORDU — oturumun basinda README ile yasanan celiski sinifinin aynisi.
+Rapor artik "## 0. Calisma Zarfi" ile basliyor ve tabloyu zarf.py'den URETIYOR (kopya
+degil). Celiski durumunda hangisinin gecerli oldugu da yaziyor.
+
+Sertifikasyon zinciri (structural_loads, coupling_fsi) denetlendi: sessiz yutma YOK,
+sabitler FAR 23 maddelerine atifli, korunum kontrolu yerinde. Uctan uca `pipeline.py all`
+kosuldu (SF limit 1.61 / ultimate 1.08).
+
+Testler: 439 -> 441.
+
 ## [2026-07-27h] feat | ILK DOGRU-GEOMETRI KOSUSU + dusen seviye artik sessizce atilmiyor
 
 MiniHawk gercek NACA2412 kanatla ilk kez kosuldu (shapely/mapbox_earcut duzeltmesinden

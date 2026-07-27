@@ -428,6 +428,21 @@ class VVReport:
               "**Standart:** ASME V&V 20-2009, FAR/CS-23  ",
               "\n---\n"]
 
+        # ÇALIŞMA ZARFI — kanıt dosyalarından ÜRETİLİR, burada kopyalanmaz.
+        # Rapor kendi bölümlerini eski JSON kümesinden kuruyor; yeni kanıtlar (araç
+        # kampanyaları, geçersiz kılınan geometriler) yalnız zarf tablosunda vardı ve
+        # bu rapordan okunamıyordu. Aynı çelişki sınıfı README ile yaşanmıştı.
+        try:
+            from zarf import zarf_tablosu
+            md += ["## 0. Çalışma Zarfı (tüm kanıtlardan üretilir)\n",
+                   "> Bu tablo `zarf.py` tarafından kök dizindeki V&V kanıt "
+                   "JSON'larından üretilir; aşağıdaki bölümler tekil vakaların "
+                   "ayrıntısıdır. Çelişki görürseniz tablo günceldir.\n",
+                   zarf_tablosu(), "\n---\n"]
+        except Exception as _e:   # zarf kanıt okuyamazsa rapor yine üretilmeli
+            md += [f"> ⚠️ Çalışma zarfı tablosu üretilemedi ({type(_e).__name__}: {_e}); "
+                   "`python zarf.py` ile ayrıca kontrol edin.\n", "\n---\n"]
+
         # 0. Mesh kalitesi / y+ (prism layer)
         if mesh_quality:
             mq = mesh_quality
