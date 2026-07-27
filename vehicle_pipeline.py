@@ -392,6 +392,13 @@ def inspect_geometry(stl_path: Path) -> dict:
         "planform_alan_m2": round(_hull_projected_area(m.vertices, 2), 5),  # üstten
         "ince_kalinlik_m": (lambda t: round(t, 5) if t else None)(estimate_thin_thickness(m)),
         "ince_kalinlik_olculdu": kalinlik_olculdu_mu(),   # ölçüm mü bbox yedeği mi
+        # EN İNCE özellik (1. persentil): firar kenarı gibi keskin bölge. Yığın
+        # kalınlığından AYRI kısıt — prizma katmanı feasibility'sini bu belirler.
+        # 4000 örnek: 200'de p1 kararsız (6.15±4.74 mm), 1000'de ±0.61, 4000'de
+        # ±0.20 mm ölçüldü. Firar kenarı yüzeyin küçük bir kesri olduğundan az
+        # örnekle nadiren yakalanıyor; maliyet 3k-yüzlü mesh'te ihmal edilebilir.
+        "min_ozellik_m": (lambda t: round(t, 6) if t else None)(
+            estimate_thin_thickness(m, samples=4000, percentile=1.0)),
         "ince_yassilik": round(_thin_flatness(m), 4),    # kanat-inceliği (bbox-üstü)
         "keskin_kenar_orani": _keskin_kenar_orani(m),    # ayrılma geometrik mi geçiş-güdümlü mü
         "fasetli_egrilik_orani": _fasetli_egrilik_orani(m),  # geometride eğrilik var mı
@@ -427,7 +434,8 @@ def estimate_thin_thickness(m: trimesh.Trimesh, samples: int = 200,
                                          method="ray")
         th = th[np.isfinite(th) & (th > 0)]
         if len(th) >= samples // 4:
-            _son_kaynak["olculdu"] = True
+            _son_kaynak.update(olculdu=True,
+                               neden=f"ray ölçümü ({len(th)}/{samples} geçerli örnek)")
             return float(np.percentile(th, percentile))
         _son_kaynak["neden"] = f"yetersiz geçerli örnek ({len(th)}/{samples})"
     except Exception as e:
@@ -861,6 +869,20 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     thin = geo.get("ince_kalinlik_m") or min(geo["boyutlar_m"])
     rw = resolution_warning(geo["lmax_m"], q["bg_div"], case.refinement_max, thin,
                             olculdu=bool((geo.get("ince_kalinlik_olculdu") or {}).get("olculdu")))
+    # KATMAN YAPILABİLİRLİĞİ — çözücüden ÖNCE. En ince özellik (firar kenarı) yüzey
+    # hücresinden küçükse snappy o bölgeyi çözemez, üzerine katman hiç öremez.
+    # MiniHawk'ta ölçüldü: TE ≈ 1.6 mm, yüzey hücresi 10.4 mm → 0.15 hücre; 12 katman
+    # istendi ve mesh katmansızla birebir aynı çıktı.
+    _min_oz = geo.get("min_ozellik_m")
+    if n_layers > 0 and _min_oz:
+        _surf = (geo["lmax_m"] / q["bg_div"]) / (2 ** case.refinement_max)
+        if _min_oz < _surf:
+            uyarilar.append(
+                f"KATMAN YAPILAMAZ: en ince özellik {_min_oz * 1000:.1f} mm, yüzey hücresi "
+                f"{_surf * 1000:.1f} mm — özellik hücrenin {_min_oz / _surf:.2f} katı. "
+                f"snappyHexMesh bu bölgeyi çözemez, {n_layers} prizma katmanı örülemez. "
+                "Ya yüzey seviyesini artırın (maliyet üstel) ya geometriyi künt yapın "
+                "ya da duvar-fonksiyonlu yolu kabul edin (--kalite hassas_nl)")
     if rw:
         uyarilar.append(rw)
     # Mesh-kalite uyarısı (reject zaten run_cfd'de elendi; warn-seviyesini yüzeye çıkar)

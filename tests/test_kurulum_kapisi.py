@@ -296,3 +296,42 @@ def test_cozunurluk_uyarisi_olcum_tabanini_bildirir():
     assert olculen and "ÖLÇÜLMEDİ" not in olculen
     assert yedek and "ÖLÇÜLMEDİ" in yedek and "rtree" in yedek
     assert "firar kenarı" in yedek, "gerçek darboğaz adlandırılmalı"
+
+
+def test_min_ozellik_yigin_kalinliktan_ayri_olculur():
+    """Yığın kalınlığı (p10) ve EN İNCE özellik (p1) AYRI kısıtlardır: MiniHawk'ta
+    yığın 35 mm ama firar kenarı ~1.6-2 mm. Katman yapılabilirliğini ikincisi belirler."""
+    pytest.importorskip("rtree")
+    from pathlib import Path
+
+    from vehicle_pipeline import inspect_geometry
+    stl = Path(__file__).resolve().parent.parent / "vehicle_runs" / "minihawk.stl"
+    if not stl.exists():
+        pytest.skip("minihawk.stl yok")
+    g = inspect_geometry(stl)
+    assert g["ince_kalinlik_olculdu"]["olculdu"] is True, "rtree var ama ölçüm yapılmadı"
+    assert g["min_ozellik_m"] < g["ince_kalinlik_m"], "min özellik yığından küçük olmalı"
+    assert g["min_ozellik_m"] * 1000 < 6.0, "firar kenarı yakalanmadı"
+
+
+def test_katman_yapilabilirlik_kapisi_kaynakta():
+    """En ince özellik yüzey hücresinden küçükse katman ÖRÜLEMEZ — çözücüden önce söyle."""
+    import inspect
+
+    import vehicle_pipeline
+    src = inspect.getsource(vehicle_pipeline.run_vehicle_analysis)
+    assert "KATMAN YAPILAMAZ" in src
+    i = src.index("KATMAN YAPILAMAZ")
+    kosul = src[max(0, i - 350):i]
+    assert "n_layers > 0" in kosul and "_min_oz < _surf" in kosul
+    assert "hassas_nl" in src[i:i + 600], "kabul edilebilir alternatif gösterilmeli"
+
+
+def test_olcum_kaynagi_basarida_da_kaydedilir():
+    """Eskiden 'neden' yalnız hatada yazılıyordu; başarıda 'henüz çağrılmadı' kalıyordu."""
+    trimesh = pytest.importorskip("trimesh")
+    pytest.importorskip("rtree")
+    from vehicle_pipeline import estimate_thin_thickness, kalinlik_olculdu_mu
+    estimate_thin_thickness(trimesh.creation.box(extents=[1, 1, 0.1]))
+    k = kalinlik_olculdu_mu()
+    assert k["olculdu"] and "ray ölçümü" in k["neden"]

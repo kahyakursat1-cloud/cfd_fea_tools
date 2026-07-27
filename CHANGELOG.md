@@ -4,6 +4,30 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-07-27e] fix | rtree kuruldu: cozunurluk oranlari YANLISTI, MiniHawk kayitlari duzeltildi
+
+rtree kurulunca et-kalinligi GERCEKTEN olculuyor ve onceki turda bildirdigim oranlarin
+yanlis oldugu ortaya cikti:
+  bbox yedegi (rtree yokken): 80 mm  <- GOVDE CAPI, kanat hic olculmemis
+  gercek olcum: yigin (p10) 35.3 mm | en ince ozellik (p1, firar kenari) ~1.6-2.1 mm
+
+DUZELTILMIS ORANLAR (hedef >=6): standart 1.32x (kayitta 3.0x), hassas/hassas_nl 3.39x
+(kayitta 7.7x). YANI KANAT HICBIR KAMPANYADA COZULMEDI; "hassas_nl ince kanadi cozdu"
+iddiasi GECERSIZ. Dahasi bbox yedegi ozelligi 2.3 kat buyuk gosterip cozunurluk uyarisini
+hassas_nl kosusunda YANLIS-NEGATIF bastirmisti — bu yuzden o kosuda uyari hic cikmadi.
+
+- inspect_geometry artik IKI ayri kisit olcuyor: yigin kalinlik (p10) ve EN INCE ozellik
+  (p1). p1 kararliligi olculdu: 200 ornekte +-4.74 mm, 1000'de +-0.61, 4000'de +-0.20 ->
+  4000 ornek secildi (3k-yuzlu mesh'te maliyet ihmal edilebilir).
+- KATMAN YAPILABILIRLIK kapisi (cozucuden ONCE): en ince ozellik yuzey hucresinden
+  kucukse snappy o bolgeyi cozemez, katman orulemez. MiniHawk: 2.1 mm / 10.42 mm = 0.20x
+  -> 12 katman istegi bastan imkansizdi (kampanya bunu 40 dk sonra kesfetmisti).
+- estimate_thin_thickness basaride de kaynagini kaydediyor (onceden 'henuz cagrilmadi'
+  kaliyordu).
+- Uc MiniHawk kanit dosyasina _DUZELTME notu; zarf satiri gercek olcumlerle yeniden yazildi.
+
+Testler: 410 -> 413.
+
 ## [2026-07-27d] fix | KATMAN COKMESI sessizce raporlaniyordu + kanit bayatlik dedektoru
 
 MINIHAWK UCUNCU KAMPANYA (--kalite hassas, 12 prizma katmani, y+ hedefi 1.0) BULGU URETTI:
