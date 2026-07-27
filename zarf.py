@@ -92,6 +92,17 @@ def _tasima_a8() -> tuple[str, str]:
                  "Richardson ile ölçülemedi")
 
 
+def _minihawk_gci() -> tuple[str, str]:
+    """MiniHawk (ince kanat) — küp ile aynı ayarlarda ÖLÇÜLDÜ, geçersiz çıktı."""
+    d = _json("gci_minihawk_arac.json")
+    g = d["gci"]
+    ince = max(d["seviyeler"], key=lambda x: x["cells"])
+    return "⚠️ Gösterilemedi", (
+        f"MiniHawk İHA, {len(d['seviyeler'])} seviye ({ince['cells']:,} hücreye kadar): "
+        f"seri SALINIMLI (GCI %{g['gci_fine_pct']:.0f}, monoton değil) — kanat kalınlığı "
+        "yüzey hücresinin ~3 katı (hedef ≥6); ince kanat çözülmüyor, 'hassas' kalite gerekir")
+
+
 def _arac_bandi() -> tuple[str, str]:
     b = _json("validation_band.json")
     p = [f"{vaka} %{max(m.values()):.1f}" for vaka, m in b.items() if isinstance(m, dict) and m]
@@ -115,6 +126,7 @@ SATIRLAR = [
     ("Bağlı akış, 2D airfoil mutlak $C_d$ (M<0.3)", _airfoil_cd),
     ("Bağlı akış, 2D airfoil taşıma $C_l$ (α=8°)", _tasima_a8),
     ("3D araç mesh yakınsama (snappyHexMesh)", _arac_mesh),
+    ("3D ince-kanatlı İHA — araç hattı GCI", _minihawk_gci),
     ("3D künt cisim — araç hattı GCI + literatür", _kup_arac_gci),
     ("3D araç $C_d$ — V&V/UQ bandı", _arac_bandi),
     ("Yapısal — lineer statik (kiriş)", _kiris),

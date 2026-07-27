@@ -921,8 +921,17 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                         lv_rec["Cd_wake"] = round(w["Cd"], 5)
                 except Exception:
                     pass
+                # FİZİK KAPISI seviye bazında: MiniHawk kampanyasında en kaba seviye
+                # Cd=0.0 üretti (uçak hiç çözülmemiş) ve bu fizik-dışı değer Richardson
+                # fitine girip GCI'ı %226'ya şişirdi. Fizik-dışı seviye fite GİRMEZ,
+                # kayda gerekçesiyle kalır (vehicle_polar ile aynı desen).
+                lv_rec["fizik"] = force_admissibility(lv_rec["Cd"], None, alpha_deg)
                 levels.append(lv_rec)
-        levels = [lv for lv in levels if lv.get("cells")]
+        def _fizik_disi(lv):
+            return (lv.get("fizik") or {}).get("verdict") == "inadmissible"
+
+        dislanan = [lv for lv in levels if _fizik_disi(lv)]
+        levels = [lv for lv in levels if lv.get("cells") and not _fizik_disi(lv)]
         levels.sort(key=lambda lv: lv["cells"])              # kaba→ince
         def h(lv):                                           # 3B temsili hücre boyu
             return lv["cells"] ** (-1.0 / 3.0)
@@ -949,6 +958,11 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
             base.mesh_duyarlilik = {"seviyeler": levels, "gci": gci, "verdikt": verdikt}
             if dejenere:
                 base.mesh_duyarlilik["dejenere_seviyeler"] = dejenere
+            if dislanan:
+                base.mesh_duyarlilik["fizik_disi_seviyeler"] = [
+                    {"ad": lv["ad"], "cells": lv["cells"], "Cd": lv["Cd"],
+                     "gerekce": "; ".join((lv.get("fizik") or {}).get("reasons", []))}
+                    for lv in dislanan]
             lsr = (least_squares_gci([h(lv) for lv in levels], [lv["Cd"] for lv in levels])
                    if len(levels) >= 4 else None)
             if lsr:
