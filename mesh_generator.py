@@ -482,7 +482,14 @@ class MeshGenerator:
                 for p in clean_parts[1:]:
                     try:
                         result = trimesh.boolean.union([result, p], engine="manifold")
-                    except Exception:
+                    except Exception as _be:
+                        # SESSİZ DEĞİL: birleşim düşerse parçalar AYRI cisim kalır ve
+                        # STL su-geçirmez olmaz; snappyHexMesh iç yüzey/kaçak görür.
+                        # manifold3d kurulu olmadığı için yıllarca sessizce tetiklenmiş.
+                        self.gerilemeler.append(
+                            f"KATI BİRLEŞİM DÜŞTÜ → parçalar ayrı cisim kaldı "
+                            f"({type(_be).__name__}: {_be}). STL su-geçirmez olmayacak; "
+                            "`python pipeline.py doctor` (manifold3d) çalıştırın.")
                         result = trimesh.util.concatenate([result, p])
                 combined = result
         except ImportError:

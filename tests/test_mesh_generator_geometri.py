@@ -176,3 +176,34 @@ def test_gerileme_kaydi_bos_baslar():
     from aircraft_geometry import AircraftLibrary
     from mesh_generator import MeshGenerator
     assert MeshGenerator(AircraftLibrary().minihawk_uav()).gerilemeler == []
+
+
+def test_uretilen_ucak_watertight():
+    """DÖRDÜNCÜ sessiz bağımlılık: manifold3d yoksa trimesh.boolean.union düşüyor ve
+    kanat/gövde/kuyruk AYRI cisim kalıyordu → STL su-geçirmez değil, snappyHexMesh iç
+    yüzey/kaçak görüyordu. 'Geometri düzeltici gerekli' sanılan sorun buydu."""
+    pytest.importorskip("manifold3d")
+    pytest.importorskip("shapely")
+    trimesh = pytest.importorskip("trimesh")
+    import tempfile
+    from pathlib import Path
+
+    from aircraft_geometry import AircraftLibrary
+    from mesh_generator import MeshGenerator
+    g = MeshGenerator(AircraftLibrary().minihawk_uav(), mesh_size=0.01)
+    with tempfile.TemporaryDirectory() as d:
+        m = trimesh.load(g.generate_stl(str(Path(d) / "u.stl")), force="mesh")
+    assert g.gerilemeler == [], f"geometri gerilemesi: {g.gerilemeler}"
+    assert m.is_watertight, "gövdeler birleşmemiş (boolean union düşmüş olabilir)"
+    assert m.volume > 0
+
+
+def test_boolean_dususu_sessiz_degil():
+    """Birleşim düşerse kayıt tutulmalı — 'üretildi' ile 'birleşti' aynı şey değil."""
+    import inspect
+
+    from mesh_generator import MeshGenerator
+    src = inspect.getsource(MeshGenerator.generate_stl)
+    i = src.index("boolean.union")
+    assert "KATI BİRLEŞİM DÜŞTÜ" in src[i:i + 900]
+    assert "manifold3d" in src[i:i + 900], "eksik bağımlılık adlandırılmalı"

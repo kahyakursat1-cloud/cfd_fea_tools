@@ -28,6 +28,8 @@ dependencies = [
     "rtree>=1.0",          # ray-tabanlı et-kalınlığı; yoksa ölçüm sessizce bbox'a düşer
     "shapely>=2.0",        # NACA profil ekstrüzyonu; yoksa kanat DÜZ KUTUYA düşer
     "mapbox-earcut>=1.0",  # kesit üçgenlemesi; yoksa kanat uç kapakları oluşmaz
+    "manifold3d>=2.0",     # katı boolean birleşim; yoksa gövdeler BİRLEŞMEZ
+                           # ve STL su-geçirmez olmaz (snappy kaçak yüzey görür)
     "gmsh>=4.11",
 ]
 
