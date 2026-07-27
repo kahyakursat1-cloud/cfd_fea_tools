@@ -46,9 +46,23 @@ def _read_force(fdat: Path):
     if not fdat.exists():
         return [], [], []
     its, cds, cls = [], [], []
+    # Sutunlar KONUMDAN degil BASLIKTAN okunur: forceCoeffs.dat duzeni ayarlara gore
+    # degisir (Cd(f)/Cd(r) eklenince kayar) ve sabit indeks sessizce YANLIS niceligi
+    # okur — erken-durdurma karari ve raporlanan plato degeri o yanlis sayiya dayanir.
+    # Kanonik analysis/openfoam_runner.parse_force_coeffs_text ile ayni davranis.
+    cd_i, cl_i = 2, 3        # baslik yoksa tarihsel varsayilan
     for ln in fdat.read_text(errors="ignore").splitlines():
         ln = ln.strip()
-        if not ln or ln.startswith("#"):
+        if not ln:
+            continue
+        if ln.startswith("#"):
+            if "Cd" in ln:
+                parts = ln.lstrip("#").split()
+                for i, tok in enumerate(parts):
+                    if tok == "Cd":
+                        cd_i = i
+                    elif tok == "Cl":
+                        cl_i = i
             continue
         if "(" in ln:                           # forces.dat (kuvvet vektörü) formatı
             nums = re.findall(r"[-+]?\d+\.?\d*[eE]?[-+]?\d*", ln)
@@ -60,9 +74,10 @@ def _read_force(fdat: Path):
                     pass
         else:                                   # forceCoeffs.dat (skaler) formatı
             p = ln.split()
-            if len(p) >= 4:
+            if len(p) > max(cd_i, cl_i):
                 try:
-                    its.append(float(p[0])); cds.append(float(p[2])); cls.append(float(p[3]))
+                    its.append(float(p[0]))
+                    cds.append(float(p[cd_i])); cls.append(float(p[cl_i]))
                 except ValueError:
                     pass
     return its, cds, cls

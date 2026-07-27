@@ -3,6 +3,8 @@ Saf-Python (CFD yok); sentetik forceCoeffs.dat."""
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tmr_cfd"))
 from force_plateau import _read_force, forcecoeffs_dat, monitor, relative_drift  # noqa: E402
 
@@ -82,3 +84,26 @@ def test_monitor_does_not_stop_while_rising(tmp_path):
     r = monitor(tmp_path, window=10, tol=1e-4, min_rows=12, poll=0.3, timeout=1)
     assert r["durum"] == "timeout"                  # plato yok → durdurmadı
     assert "stopAt writeNow" not in (tmp_path / "system" / "controlDict").read_text()
+
+
+def test_sutunlar_baslıktan_okunur(tmp_path):
+    """Sabit indeks (p[2]=Cd, p[3]=Cl) forceCoeffs düzeni değişince SESSİZCE yanlış
+    niceliği okur; erken-durdurma kararı ve raporlanan plato değeri o yanlış sayıya
+    dayanır. Kanonik parser başlıktan okuyor, bu yol okumuyordu."""
+    f = tmp_path / "forceCoeffs.dat"
+
+    # standart düzen: Time Cm Cd Cl ...
+    f.write_text("# Time \tCm \tCd \tCl \tCl(f)\n100\t0.01\t1.079\t0.0006\t0\n")
+    _, cd, cl = _read_force(f)
+    assert cd == [pytest.approx(1.079)] and cl == [pytest.approx(0.0006)]
+
+    # KAYMIŞ düzen: Cd(f) araya girmiş -> sabit indeks yanlış sütunu okurdu
+    f.write_text("# Time \tCm \tCd(f) \tCd \tCl\n100\t0.01\t0.5\t1.079\t0.0006\n")
+    _, cd, cl = _read_force(f)
+    assert cd == [pytest.approx(1.079)], "kaymış başlıkta yanlış sütun okundu"
+    assert cl == [pytest.approx(0.0006)]
+
+    # başlıksız -> tarihsel varsayılan (2,3) korunur
+    f.write_text("100\t0.01\t1.079\t0.0006\n")
+    _, cd, _ = _read_force(f)
+    assert cd == [pytest.approx(1.079)]
