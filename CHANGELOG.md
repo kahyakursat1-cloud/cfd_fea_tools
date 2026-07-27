@@ -4,6 +4,32 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-07-27h] feat | ILK DOGRU-GEOMETRI KOSUSU + dusen seviye artik sessizce atilmiyor
+
+MiniHawk gercek NACA2412 kanatla ilk kez kosuldu (shapely/mapbox_earcut duzeltmesinden
+sonra). Kutu-kanat hatasinin OLCULEN etkisi:
+  Cd  0.02719 (kutu) -> 0.01909 (profil)   = %30 YUKSEK gosteriyordu
+  y+  4114   (kutu) -> 524     (profil)   = 8 kat buyuk gosteriyordu
+  band +-%517        -> +-%55.7
+
+Yakinsama HALA gosterilemedi ama sebebi artik ACIKCA olculuyor: en ince boyut 5.83 mm,
+yuzey hucresi 10.42 mm -> 0.6 kat (hedef >=6). Kamburluk cozulmuyor: Cl=0.0074, oysa
+NACA2412 alpha=0 icin ~0.25 beklenir. Bu bir cozucu hatasi DEGIL, mesh cozunurluk
+siniri: 1.5 m domainde 0.25 m kordlu ince kanadi cozmek ~1 mm hucre = 100M+ hucre.
+Bu donanimda snappy ile duvar-cozunur yol KAPALI — durustce boyle kaydedildi.
+
+DUSEN SEVIYE SESSIZCE ATILMIYOR: 'orta' seviye mesh kalite kapisinda reddedildi
+(checkMesh Failed 1) ve listeden sessizce dusuyordu; kullanici "yalniz 2 seviye
+tamamlandi" gorup nedenini bilemiyordu. Artik sebebiyle kaydediliyor
+(basarisiz_seviyeler) ve 2-seviye yorumunda gosteriliyor.
+
+KATMAN-YAPILABILIRLIK KAPISI COZUCUDEN ONCEYE TASINDI: yorumunda "cozucuden ONCE"
+yaziyordu ama fiilen post-run blogundaydi (kapi ~209, run_cfd ~79) — yani "40 dakika
+bosa gitmesin" amaci hic gerceklesmiyordu. Artik kapi ~87, run_cfd ~96; test sirayi
+dogruluyor.
+
+Testler: 430 -> 432.
+
 ## [2026-07-27g] fix | KANAT DUZ KUTUYDU: shapely eksikligi NACA profilini sessizce dusuruyordu
 
 EN CIDDI BULGU. Uretilen MiniHawk STL'inde kanat, 12 ucgenlik bir DIKDORTGEN KUTUYDU —

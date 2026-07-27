@@ -1,0 +1,59 @@
+{
+  "vaka": "MiniHawk UAV — GERCEK NACA2412 KANAT (ilk kez), hassas_nl, V=15 m/s, alpha=0",
+  "kaynak": "snappyHexMesh + foamRun; shapely/mapbox_earcut kurulduktan sonra uretilen STL",
+  "verdikt": "⚠️ Mesh bağımsızlığı GÖSTERİLEMEDİ: yalnız 2 seviye tamamlandı (orta seviye mesh kalite kapısında reddedildi) → GCI değil ±%54.4 vekil bant. Kök sebep ölçüldü: en ince boyut yüzey hücresinin 0.6 katı (hedef ≥6); kamburluk çözülmüyor (Cl=0.0074, NACA2412 α=0 için ~0.25 beklenir). Sonuç YALNIZ EĞİLİM.",
+  "seviyeler": [
+    {
+      "ad": "kaba",
+      "cells": 353996,
+      "Cd": 0.02947,
+      "Cd_wake": 0.02727,
+      "fizik": {
+        "verdict": "ok",
+        "reasons": []
+      }
+    },
+    {
+      "ad": "ince",
+      "cells": 3943329,
+      "Cd": 0.019089865757390242
+    }
+  ],
+  "fark_pct": 54.4,
+  "yorum": "yalnız 2 seviye tamamlandı — vekil bant, GCI değil",
+  "Cd": 0.01909,
+  "Cl": 0.0074,
+  "hucre": 3943329,
+  "yplus": {
+    "min": 199.79,
+    "max": 1350.96,
+    "ort": 523.97,
+    "patch": "minihawk_v2_prep"
+  },
+  "belirsizlik": {
+    "u_sayisal_pct": 54.4,
+    "u_sayisal_kaynak": "2-mesh vekil bant",
+    "u_model_pct": 12.0,
+    "model_kaynak": "literatür-öncül (pipeline-validasyonu beklemede)",
+    "u_toplam_pct": 55.71,
+    "duvar_cozunur": false,
+    "rapor": "Cd = 0.0191 ± 55.7% (sayısal 54.4% ⊕ model 12.0%)"
+  },
+  "uyarilar": [
+    "Yüzey-Cd (0.019) ile iz-momentum Cd (0.000) %100 ayrışıyor → mesh az-çözünür/yakınsamamış olabilir (çapraz-kontrol; uyum yakınsama göstergesi)",
+    "STL su geçirmez değil — snappyHexMesh toleranslı ama kapalı yüzey önerilir",
+    "En ince boyut (0.00583 m) en ince yüzey hücresinin ~0.6 katı (hedef ≥6) — kanat/fin gibi ince özellikler yeterince çözülmüyor olabilir; Cl/Cd güvenilirliği için '--kalite hassas_nl' (katmansız yoğun mesh) önerilir; prizma katmanı güvenle örülebiliyorsa 'hassas'",
+    "Mesh skewness 4.5 > 4 eşiği — yerel hata kaynağı (mesh iyileştir)",
+    "Ölçülen y⁺ ort=523.97 (log bölgesi üstü) — sürtünme sürüklemesi duvar fonksiyonu sınırında; katman sayısını artırın"
+  ],
+  "kutu_kanat_kiyasi": {
+    "Cd_kutu": 0.02719,
+    "Cd_profil": 0.01909,
+    "fark_pct": -29.8,
+    "yplus_kutu": 4113.52,
+    "yplus_profil": 523.97,
+    "not": "Kanat kutu iken Cd %30 YUKSEK ve y+ 8 kat buyuktu — geometri hatasinin olculen etkisi."
+  },
+  "_not": "ILK DOGRU-GEOMETRI KOSUSU. Yakinsama HALA GOSTERILEMEDI ve sebebi artik ACIKCA olculuyor: en ince boyut (5.83 mm) yuzey hucresinin 0.6 kati (hedef >=6). Kanadin kamburlugu cozulmuyor -> Cl=0.0074, oysa NACA2412 alpha=0 icin ~0.25 beklenir. Bu bir cozucu hatasi degil, MESH COZUNURLUK siniri: 1.5 m aciklikli domainde 0.25 m kordlu ince kanadi cozmek icin gereken hucre boyu (~1 mm) 100M+ hucre demektir. Bu donanimda snappy ile duvar-cozunur yol KAPALI. ORTA SEVIYE mesh kalite kapisinda reddedildi (checkMesh Failed 1) -> 3 yerine 2 seviye -> GCI degil vekil bant (+-%54.4).",
+  "_uretim": "Üretim: python vehicle_pipeline.py vehicle_runs/minihawk_v2.stl --tip ucak --hiz 15 --kalite hassas_nl --duyarlilik --seviyeler 3"
+}

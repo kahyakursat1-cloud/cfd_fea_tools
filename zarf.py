@@ -115,6 +115,20 @@ def _minihawk_gci() -> tuple[str, str]:
         "duvar-çözünür yol KAPALI")
 
 
+def _minihawk_v2() -> tuple[str, str]:
+    """İlk DOĞRU-GEOMETRİ koşusu (gerçek NACA2412 kanat)."""
+    d = _json("gci_minihawk_v2_profil.json")
+    kk = d["kutu_kanat_kiyasi"]
+    yp = (d.get("yplus") or {}).get("ort")
+    return "⚠️ Yalnız eğilim", (
+        f"MiniHawk gerçek NACA2412 kanatla (ilk kez): Cd={d['Cd']:.4f} ± %{d['fark_pct']:.0f} "
+        f"(2 seviye vekil bant; 'orta' seviye mesh kapısında reddedildi). "
+        f"Kutu-kanat hatası Cd'yi %{abs(kk['fark_pct']):.0f} yüksek, y⁺'yi 8× büyük "
+        f"gösteriyordu (y⁺ {kk['yplus_kutu']:.0f}→{yp:.0f}). "
+        f"Cl={d['Cl']:.4f} oysa NACA2412 α=0'da ~0.25 — kamburluk ÇÖZÜLMÜYOR: en ince "
+        "boyut yüzey hücresinin 0.6 katı (hedef ≥6)")
+
+
 def _arac_bandi() -> tuple[str, str]:
     b = _json("validation_band.json")
     p = [f"{vaka} %{max(m.values()):.1f}" for vaka, m in b.items() if isinstance(m, dict) and m]
@@ -139,6 +153,7 @@ SATIRLAR = [
     ("Bağlı akış, 2D airfoil taşıma $C_l$ (α=8°)", _tasima_a8),
     ("3D araç mesh yakınsama (snappyHexMesh)", _arac_mesh),
     ("3D ince-kanatlı İHA — araç hattı GCI", _minihawk_gci),
+    ("3D İHA, gerçek NACA kanat (ilk doğru geometri)", _minihawk_v2),
     ("3D künt cisim — araç hattı GCI + literatür", _kup_arac_gci),
     ("3D araç $C_d$ — V&V/UQ bandı", _arac_bandi),
     ("Yapısal — lineer statik (kiriş)", _kiris),

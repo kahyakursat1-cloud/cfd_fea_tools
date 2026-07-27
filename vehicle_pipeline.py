@@ -962,6 +962,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         # `lmax / max(3, bg_div - ddiv)` ile kırpıyordu; bg_div=5 (hizli) presetinde orta
         # ve kaba seviyeler AYNI 3'e düşüp aynı mesh'i üretiyor, GCI sessizce
         # "hesaplanamadı" oluyordu (küp kampanyası: iki seviye de 70022 hücre).
+        basarisiz: list[dict] = []
         GCI_ORANI = 1.5
         bg_ince = geo["lmax_m"] / q["bg_div"]
         kademeler = [("orta", 1, GCI_ORANI, q["end_time"]),
@@ -986,21 +987,28 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
             )
             r = run_cfd(lvl, run_dir, progress_callback=None)
             mq = parse_checkmesh(r.case_dir / "log.checkMesh") if r.success else {}
-            if r.success and r.cd is not None and mq.get("cells"):
-                cd_lvl = trailing_mean([h[1] for h in r.forces_history], r.cd)
-                lv_rec = {"ad": ad, "cells": mq["cells"], "Cd": round(cd_lvl * scale, 5)}
-                try:
-                    w = compute_case_wake_drag(r.case_dir, U_inf=velocity, A_ref=aref, rho=rho)
-                    if w and w.get("Cd") is not None:
-                        lv_rec["Cd_wake"] = round(w["Cd"], 5)
-                except Exception:
-                    pass
-                # FİZİK KAPISI seviye bazında: MiniHawk kampanyasında en kaba seviye
-                # Cd=0.0 üretti (uçak hiç çözülmemiş) ve bu fizik-dışı değer Richardson
-                # fitine girip GCI'ı %226'ya şişirdi. Fizik-dışı seviye fite GİRMEZ,
-                # kayda gerekçesiyle kalır (vehicle_polar ile aynı desen).
-                lv_rec["fizik"] = force_admissibility(lv_rec["Cd"], None, alpha_deg)
-                levels.append(lv_rec)
+            if not (r.success and r.cd is not None and mq.get("cells")):
+                # SESSİZ ATLAMA YOK: düşen seviye kampanyadan sessizce çıkarsa kullanıcı
+                # "yalnız 2 seviye tamamlandı" görür ve NEDENİNİ bilemez. MiniHawk'ta
+                # 'orta' seviye mesh kalite kapısında reddedilmişti (checkMesh: Failed 1).
+                _sebep = ((r.stderr or r.stdout or "")[-160:] if not r.success
+                          else "Cd çıkarılamadı" if r.cd is None else "checkMesh okunamadı")
+                basarisiz.append({"ad": ad, "sebep": _sebep.strip() or "bilinmiyor"})
+                continue
+            cd_lvl = trailing_mean([h[1] for h in r.forces_history], r.cd)
+            lv_rec = {"ad": ad, "cells": mq["cells"], "Cd": round(cd_lvl * scale, 5)}
+            try:
+                w = compute_case_wake_drag(r.case_dir, U_inf=velocity, A_ref=aref, rho=rho)
+                if w and w.get("Cd") is not None:
+                    lv_rec["Cd_wake"] = round(w["Cd"], 5)
+            except Exception:
+                pass
+            # FİZİK KAPISI seviye bazında: MiniHawk kampanyasında en kaba seviye
+            # Cd=0.0 üretti (uçak hiç çözülmemiş) ve bu fizik-dışı değer Richardson
+            # fitine girip GCI'ı %226'ya şişirdi. Fizik-dışı seviye fite GİRMEZ,
+            # kayda gerekçesiyle kalır (vehicle_polar ile aynı desen).
+            lv_rec["fizik"] = force_admissibility(lv_rec["Cd"], None, alpha_deg)
+            levels.append(lv_rec)
         def _fizik_disi(lv):
             return (lv.get("fizik") or {}).get("verdict") == "inadmissible"
 
@@ -1030,6 +1038,8 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                 verdikt = ("⚠️ GCI HESAPLANAMADI: seviyeler arası Cd farkı sayısal "
                            "gürültü mertebesinde (Richardson tanımsız)")
             base.mesh_duyarlilik = {"seviyeler": levels, "gci": gci, "verdikt": verdikt}
+            if basarisiz:
+                base.mesh_duyarlilik["basarisiz_seviyeler"] = basarisiz
             if dejenere:
                 base.mesh_duyarlilik["dejenere_seviyeler"] = dejenere
             if dislanan:
@@ -1080,8 +1090,13 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
             d = abs(levels[-1]["Cd"] - levels[0]["Cd"]) / (abs(levels[-1]["Cd"]) + 1e-12) * 100
             u_num_pct = round(d, 1)
             u_kaynak = "2-mesh vekil bant"
-            base.mesh_duyarlilik = {"seviyeler": levels, "fark_pct": u_num_pct,
-                                    "yorum": "yalnız 2 seviye tamamlandı — vekil bant, GCI değil"}
+            base.mesh_duyarlilik = {
+                "seviyeler": levels, "fark_pct": u_num_pct,
+                "yorum": "yalnız 2 seviye tamamlandı — vekil bant, GCI değil"
+                         + ("; DÜŞEN SEVİYE: "
+                            + "; ".join(f"{b['ad']} ({b['sebep'][:80]})" for b in basarisiz)
+                            if basarisiz else ""),
+                **({"basarisiz_seviyeler": basarisiz} if basarisiz else {})}
         else:
             base.mesh_duyarlilik = {"durum": "yetersiz seviye — bant hesaplanamadı"}
 

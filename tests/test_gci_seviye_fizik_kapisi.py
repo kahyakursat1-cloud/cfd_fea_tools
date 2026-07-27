@@ -61,3 +61,24 @@ def test_kapi_alpha_ile_cagriliyor():
     """Taşıma işareti kontrolü için hücum açısı geçilmeli."""
     m = re.search(r'lv_rec\["fizik"\] = force_admissibility\(([^)]*)\)', SRC)
     assert m and "alpha_deg" in m.group(1)
+
+
+def test_dusen_seviye_sessizce_atilmaz():
+    """MiniHawk v2'de 'orta' seviye mesh kalite kapısında reddedildi (checkMesh:
+    Failed 1) ve listeden SESSİZCE düştü; kullanıcı "yalnız 2 seviye tamamlandı"
+    görüp NEDENİNİ bilemiyordu. Artık sebebiyle kaydediliyor."""
+    src = inspect.getsource(vehicle_pipeline.run_vehicle_analysis)
+    assert "basarisiz.append" in src, "düşen seviye kaydedilmiyor"
+    assert "basarisiz_seviyeler" in src, "sonuca taşınmıyor"
+    assert "DÜŞEN SEVİYE" in src, "2-seviye yorumunda sebep gösterilmiyor"
+    # kayıt, seviyeyi listeye eklemeden ÖNCE olmalı (continue ile)
+    i_kayit = src.index("basarisiz.append")
+    i_ekle = src.index("levels.append(lv_rec)")
+    assert i_kayit < i_ekle
+
+
+def test_dusen_seviye_sebebi_bos_kalmaz():
+    """Sebep metni boşsa 'bilinmiyor' yazılmalı — boş string hiçbir şey söylemez."""
+    src = inspect.getsource(vehicle_pipeline.run_vehicle_analysis)
+    i = src.index("basarisiz.append")
+    assert "bilinmiyor" in src[max(0, i - 400):i + 200]
