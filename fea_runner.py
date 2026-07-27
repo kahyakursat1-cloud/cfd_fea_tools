@@ -557,23 +557,17 @@ class FEASimulationRunner:
         return results
 
     def _extract_frequencies(self, frd_file: Path) -> list[float]:
-        """FRD dosyasından titreşim frekanslarını çıkar"""
-        frequencies = []
+        """Modal frekanslar — DOĞRULANMIŞ ayrıştırıcıya devreder.
 
-        try:
-            with open(frd_file) as f:
-                lines = f.readlines()
-                for line in lines:
-                    if "eigenvalue" in line.lower():
-                        try:
-                            freq = float(line.split()[-1])
-                            frequencies.append(freq)
-                        except (ValueError, IndexError):
-                            pass
-        except Exception:
-            pass
-
-        return frequencies
+        Bu metot iki ayrı biçimde yanlıştı ve hiçbir yerden çağrılmadığı için sessiz
+        kalmıştı: (1) frekansları `.frd`'de arıyordu, oysa ccx onları `.dat`'a yazar;
+        (2) "eigenvalue" satırının SON alanını okuyordu, oysa CYCLES/TIME sütunu 4.
+        sıradadır. `vehicle_fea._parse_eigenfrequencies` gerçek ccx çıktısında
+        doğrulandı (iki başlık biçimi + doğru sütun) — çoğaltmak yerine ona devredilir.
+        """
+        from vehicle_fea import _parse_eigenfrequencies
+        dat = Path(frd_file).with_suffix(".dat")
+        return _parse_eigenfrequencies(dat)
 
     def run_parametric_study(self, base_job: FEAJob, parameter_variations: dict,
                             num_workers: int = 4) -> list[dict]:

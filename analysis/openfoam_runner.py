@@ -1211,6 +1211,12 @@ def parse_force_coeffs_text(text: str) -> tuple[float | None, float | None,
             history.append((t, cd, cl, cm))
         except (ValueError, IndexError):
             continue
+    # BAŞLIK BULUNAMADIYSA sahte sayı üretme: cd_idx/cl_idx/cm_idx None kalırsa her
+    # satır NaN üretiyor ve history NaN'la doluyordu -> çağıran "Cd = nan" alıyordu.
+    # (Fizik kapısı da NaN'ı ıskalıyordu; ikisi birleşince format değişimi sessizce
+    # "Cd=nan, kapı ok" veriyordu.) Okunamadıysa dürüst cevap None'dır.
+    if cd_idx is None and cl_idx is None and cm_idx is None:
+        return None, None, None, []
     if not history:
         return None, None, None, history
     _, cd, cl, cm = history[-1]

@@ -6,6 +6,8 @@ raporda "✅ ok" görünüyordu; negatif sürükleme hükmü elle yazılan dipno
 import json
 from pathlib import Path
 
+import pytest
+
 from report_generator import CD_MAX_PLAUSIBLE, CD_MAX_STREAMLINED, force_admissibility
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -60,3 +62,33 @@ def test_gercek_kanit_dosyasinda_negatif_seviyeler_yakalanir():
     assert kotu == ["coarse", "medium"]
     # ...ve bu seviyeler iterasyon olcutune gore 'ok' idi — kapinin varlik sebebi
     assert all(lv["status"] == "ok" for lv in d["levels"] if lv["name"] in kotu)
+
+
+# ── NaN sızıntısı (sistematik taramada bulundu) ──────────────────────────────
+
+def test_nan_katsayi_kapidan_gecemez():
+    """NaN ile yapılan HER karşılaştırma False döner; `Cd <= 0` ve `abs(Cd) > cd_max`
+    kontrolleri NaN'ı ıskalıyor ve kapı "ok" diyordu. Inf yakalanıyordu (mertebe
+    kontrolü), NaN geçiyordu — forceCoeffs başlığı değişince parser NaN üretebiliyor."""
+    import math
+    assert force_admissibility(math.nan)["verdict"] == "inadmissible"
+    assert force_admissibility(0.03, math.nan, 4.0)["verdict"] == "inadmissible"
+    assert force_admissibility(math.inf)["verdict"] == "inadmissible"
+    r = force_admissibility(math.nan)
+    assert "sonlu değil" in r["reasons"][0]
+
+
+def test_saglam_katsayi_nan_kontrolunden_etkilenmez():
+    assert force_admissibility(0.032, 0.44, 4.0)["verdict"] == "ok"
+
+
+def test_forcecoeffs_basliksizsa_sahte_sayi_uretmez():
+    """Başlıkta Cd/Cl sütunu yoksa parser her satırda NaN üretip history'yi
+    dolduruyordu → çağıran "Cd = nan" alıyordu. Okunamadıysa dürüst cevap None."""
+    from analysis.openfoam_runner import parse_force_coeffs_text
+
+    cd, cl, cm, hist = parse_force_coeffs_text("# Time totals\n100 0.5 0.1 0.2\n")
+    assert (cd, cl, cm) == (None, None, None) and hist == []
+
+    cd, cl, _, hist = parse_force_coeffs_text("# Time Cd Cs Cl\n100 0.031 0.0 0.44\n")
+    assert cd == pytest.approx(0.031) and cl == pytest.approx(0.44) and len(hist) == 1

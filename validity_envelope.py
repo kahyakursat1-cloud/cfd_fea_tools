@@ -136,6 +136,16 @@ def force_admissibility(Cd, Cl=None, alpha=None, cd_max=CD_MAX_PLAUSIBLE):
     Döner: {"verdict": "ok"|"suspect"|"inadmissible", "reasons": [...]}
     """
     reasons, verdict = [], "ok"
+    # NaN ÖNCE: NaN ile yapılan HER karşılaştırma False döner, dolayısıyla aşağıdaki
+    # `<= 0` ve `> cd_max` kontrolleri NaN'ı ıskalar ve kapı "ok" derdi (Inf yakalanıyordu
+    # ama NaN geçiyordu). forceCoeffs başlığı değişince parser NaN üretebiliyor.
+    for _ad, _v in (("sürükleme", Cd), ("taşıma", Cl)):
+        if _v is not None and not math.isfinite(_v):
+            reasons.append(f"{_ad} katsayısı sonlu değil ({_v}) — çözüm ıraksadı "
+                           "veya kuvvet dosyası okunamadı")
+            verdict = "inadmissible"
+    if verdict == "inadmissible":
+        return {"verdict": verdict, "reasons": reasons}
     if Cd is not None:
         if Cd <= 0:
             reasons.append(f"negatif/sıfır sürükleme (Cd={Cd:.5f}) — fiziksel olarak imkânsız")

@@ -104,3 +104,29 @@ def test_iki_parser_ayni_von_mises_verir(tmp_path):
     a = parse(yol)["max_von_mises_pa"]
     b = float(np.max(parse_frd(yol).von_mises()))
     assert a == pytest.approx(b, rel=1e-9)
+
+
+def test_frekans_cikarimi_dogrulanmis_ayristiriciya_devreder(tmp_path):
+    """`fea_runner._extract_frequencies` iki biçimde yanlıştı ve hiç çağrılmadığı için
+    sessiz kalmıştı: (1) frekansları .frd'de arıyordu (ccx .dat'a yazar), (2) satırın
+    SON alanını okuyordu (CYCLES/TIME 4. sütundur). Artık doğrulanmış ayrıştırıcıya
+    devrediyor — iki ayrı yanlış kopya yerine tek doğru kaynak."""
+    from fea_runner import FEASimulationRunner
+
+    dat = tmp_path / "job.dat"
+    dat.write_text(
+        " MODE NO    EIGENVALUE                       FREQUENCY\n"
+        "                                     REAL PART            IMAGINARY PART\n"
+        "                           (RAD/TIME)      (CYCLES/TIME     (RAD/TIME)\n"
+        "\n"
+        "      1   0.5579619E-04   0.7469685E-02   0.1188837E-02   0.0000000E+00\n"
+        "      2   0.1234008E-03   0.1110859E-01   0.1767987E-02   0.0000000E+00\n",
+        encoding="ascii")
+    f = FEASimulationRunner._extract_frequencies(None, tmp_path / "job.frd")
+    assert f == pytest.approx([0.1188837e-02, 0.1767987e-02], rel=1e-6), \
+        "CYCLES/TIME sütunu okunmuyor"
+
+
+def test_frekans_cikarimi_dat_yoksa_bos_doner(tmp_path):
+    from fea_runner import FEASimulationRunner
+    assert FEASimulationRunner._extract_frequencies(None, tmp_path / "yok.frd") == []
