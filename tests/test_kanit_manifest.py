@@ -108,3 +108,31 @@ def test_bilinen_kanitlar_komut_kaydediyor():
     m = {k["dosya"]: k for k in kanit.manifest()}
     for ad in ("fea_validation.json", "fea_validation_hole.json", "gci_kup_arac.json"):
         assert m[ad]["uretim"].startswith("python"), f"{ad} üretim komutunu kaybetti"
+
+
+def test_ic_ice_hukum_alanlari_bulunur():
+    """Kanıt dosyaları tek şemaya uymuyor: kimi `sonuc`, kimi `degerlendirme`,
+    kimi `ozet.yorum` altında hüküm veriyor. Yalnız üst düzeye bakmak, hükmü OLAN
+    dosyaları 'hükümsüz' göstererek manifesti yanıltıyordu."""
+    assert kanit._hukum({"ozet": {"yorum": "C3D4 sehimi %58 düşük tahmin"}})[1].startswith("C3D4")
+    assert kanit._hukum({"degerlendirme": "shockFluid mimarisi çalışıyor"})[1].startswith("shock")
+    assert kanit._hukum({"ozet": {"baska": 1}})[0] == "—"
+
+
+def test_hukum_turetilen_dosya_eksik_sayilmaz(tmp_path):
+    """Üçüncü durum: hüküm bu dosyada saklanmaz ama zarf.py hesaplar. 'YOK' demek
+    yanıltıcı olurdu — kanıt eksik değil, hüküm türetilir."""
+    import json as _j
+    p = tmp_path / "ham.json"
+    p.write_text(_j.dumps({"vaka": "x", "levels": [1, 2, 3],
+                           "_hukum_kaynagi": "zarf.py hesaplar"}), encoding="utf-8")
+    k = kanit.sinifla(p)
+    assert k["hukum_turetilir"] is True and k["sembol"] == "↗"
+    assert "türetilir" in k["hukum"]
+
+
+def test_gercek_kanitlarin_hepsi_hukum_tasiyor():
+    """Regresyon çapası: kökteki hiçbir kanıt dosyası hükümsüz kalmamalı."""
+    hukumsuz = [k["dosya"] for k in kanit.manifest()
+                if k["sinif"] == "kanit" and not k["hukum"]]
+    assert hukumsuz == [], f"hükümsüz kanıt: {hukumsuz}"

@@ -430,10 +430,14 @@ def resolution_warning(lmax_m: float, bg_div: int, ref_max: int, min_dim_m: floa
     n_across = min_dim_m / surf_cell
     if n_across >= min_cells_across:
         return None
+    # ÖNERİ 'hassas' DEĞİL 'hassas_nl': bu uyarı tam olarak İNCE özellik varken çıkar ve
+    # 'hassas' 12 prizma katmanı ekler — MESH_QUALITY notunun kendisi katmanın ince firar
+    # kenarında güvenle örülemediğini, o vakada katmansız yoğun mesh gerektiğini söylüyor.
     return (f"En ince boyut ({min_dim_m:.3g} m) en ince yüzey hücresinin "
             f"~{n_across:.1f} katı (hedef ≥{min_cells_across}) — kanat/fin gibi ince "
             "özellikler yeterince çözülmüyor olabilir; Cl/Cd güvenilirliği için "
-            "'hassas' kalite önerilir")
+            "'--kalite hassas_nl' (katmansız yoğun mesh) önerilir; prizma katmanı "
+            "güvenle örülebiliyorsa 'hassas'")
 
 
 def salinim_analizi(vals, pencere_orani: float = 0.4, min_n: int = 40) -> dict | None:
@@ -867,8 +871,19 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     kesit = export_cutplane_vtk(case_dir, center)
     base.kesit_vtk = str(kesit) if kesit else ""
     if yp and yp["ort"] > 30 and n_layers == 0:
-        uyarilar.append(f"Ölçülen y⁺ ort={yp['ort']} (log bölgesi üstü) — sürtünme "
-                        "sürüklemesi duvar fonksiyonu sınırında; katman sayısını artırın")
+        # BÜYÜKLÜĞE GÖRE DERECELENDİR: duvar fonksiyonu log-bölgesi ~30-300'de geçerlidir.
+        # MiniHawk hassas_nl koşusunda y⁺=4113 ölçüldü — üst sınırın 13 katı; buna
+        # "sınırda" demek yanıltıcı, sürtünme bileşeni orada ÇÖZÜLMÜYOR.
+        _yp = yp["ort"]
+        if _yp > 1000:
+            uyarilar.append(
+                f"Ölçülen y⁺ ort={_yp:.0f} — duvar fonksiyonu geçerlilik bandının "
+                f"(~30-300) {_yp / 300:.0f} KATI. Sürtünme sürüklemesi ÇÖZÜLMÜYOR; "
+                "Cd yalnız basınç bileşenini temsil eder. Prizma katmanı zorunlu "
+                "(--kalite hassas veya --katman N --yplus 1)")
+        else:
+            uyarilar.append(f"Ölçülen y⁺ ort={_yp} (log bölgesi üstü) — sürtünme "
+                            "sürüklemesi duvar fonksiyonu sınırında; katman sayısını artırın")
     elif not yp:
         uyarilar.append("y⁺ ÖLÇÜLEMEDİ — sınır tabaka çözünürlüğü doğrulanamadı; "
                         "sürtünme sürüklemesinin duvar-fonksiyonu geçerliliği bilinmiyor")

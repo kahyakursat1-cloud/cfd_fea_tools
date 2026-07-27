@@ -26,7 +26,8 @@ ROOT = Path(__file__).resolve().parent
 MANIFEST = ROOT / "kanit_manifest.json"
 
 # Hüküm taşıyan anahtarlar — öncelik sırasıyla
-HUKUM_ANAHTARLARI = ("strict_gci_verdict", "verdikt", "sonuc", "verdict_yuzey", "status")
+HUKUM_ANAHTARLARI = ("strict_gci_verdict", "verdikt", "sonuc", "verdict_yuzey",
+                     "degerlendirme", "trend_degerlendirme", "status")
 # Kanıt SAYILMAYAN, çalışma-zamanı üreten dosyalar (ad öneki)
 ARTEFAKT_ONEKLERI = ("batch_learn", "surrogate_cv", "design_explore", "aoa_polar",
                      "vspaero_polar", "transition_results", "openrocket_result",
@@ -41,10 +42,25 @@ def _oku(p: Path):
     return json.loads(p.read_text(encoding="utf-8-sig"))
 
 
+def _hukum_adaylari(d: dict):
+    """Hüküm taşıyabilecek metin alanları — üst düzey ve BİR seviye iç içe.
+
+    Kanıt dosyaları tek bir şemaya uymuyor: kimi `sonuc`, kimi `degerlendirme`,
+    kimi `ozet.yorum` altında hüküm veriyor. Yalnız üst düzeye bakmak, hükmü OLAN
+    dosyaları "hükümsüz" göstererek manifesti yanıltıyordu.
+    """
+    for k in HUKUM_ANAHTARLARI:
+        yield d.get(k)
+    for ic in ("ozet", "tekil_dogrulama", "degerlendirme_ozeti"):
+        v = d.get(ic)
+        if isinstance(v, dict):
+            for k in ("yorum", "sonuc", "verdikt", "degerlendirme"):
+                yield v.get(k)
+
+
 def _hukum(d: dict) -> tuple[str, str]:
     """(sembol, metin) — hüküm metnini ✅/⚠️/❌ ile normalleştirir."""
-    for k in HUKUM_ANAHTARLARI:
-        v = d.get(k)
+    for v in _hukum_adaylari(d):
         if isinstance(v, str) and v.strip():
             s = v.strip()
             if s.startswith("✅") or s.upper().startswith(("GECTI", "GEÇTI", "GEÇTİ", "OK")):
@@ -71,7 +87,7 @@ def _uretim_komutu(d: dict) -> str:
 
 def sinifla(p: Path) -> dict:
     kayit = {"dosya": p.name, "sinif": "?", "vaka": "", "hukum": "", "sembol": "—",
-             "eskimis": False, "uretim": "", "not": ""}
+             "eskimis": False, "uretim": "", "hukum_turetilir": False, "not": ""}
     if p.name in KAYNAK:
         kayit["sinif"] = "kaynak"
         return kayit
@@ -87,6 +103,12 @@ def sinifla(p: Path) -> dict:
         kayit["sinif"] = "artefakt"
         return kayit
     sembol, metin = _hukum(d)
+    # ÜÇÜNCÜ DURUM: hüküm bu dosyada saklanmaz ama BAŞKA YERDE hesaplanır
+    # (ör. mesh_independence.json ham seviye verisi; verdikti zarf.py hesaplar).
+    # "hüküm alanı YOK" demek yanıltıcı olurdu — kanıt eksik değil, hüküm türetilir.
+    if sembol == "—" and d.get("_hukum_kaynagi"):
+        sembol, metin = "↗", "hüküm türetilir — " + str(d["_hukum_kaynagi"])[:120]
+        kayit["hukum_turetilir"] = True
     kayit["vaka"] = str(d.get("vaka") or d.get("_kaynak") or "")[:90]
     kayit["eskimis"] = bool(d.get("_SUPERSEDED"))
     kayit["sembol"], kayit["hukum"] = sembol, metin[:150]
@@ -140,7 +162,8 @@ def main() -> int:
     if "--eksik" in sys.argv:
         eksik = [x for x in kayitlar
                  if x["sinif"] == "kanit"
-                 and (not x["hukum"] or x["eskimis"] or not x["uretim"])]
+                 and (not x["hukum"] or x["eskimis"] or not x["uretim"])
+                 and not x["hukum_turetilir"]]
         print(tablo(eksik) if eksik else "Tüm kanıt dosyaları hüküm taşıyor ve güncel.")
         return 0
     print(tablo(kayitlar))

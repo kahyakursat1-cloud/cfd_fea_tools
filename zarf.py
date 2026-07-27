@@ -93,14 +93,19 @@ def _tasima_a8() -> tuple[str, str]:
 
 
 def _minihawk_gci() -> tuple[str, str]:
-    """MiniHawk (ince kanat) — küp ile aynı ayarlarda ÖLÇÜLDÜ, geçersiz çıktı."""
-    d = _json("gci_minihawk_arac.json")
-    g = d["gci"]
-    ince = max(d["seviyeler"], key=lambda x: x["cells"])
+    """MiniHawk (ince kanat) — İKİ kampanya, iki AYRI darboğaz. İkisi de raporlanır:
+    ilerleme gizlenmez, ama yakınsamadığı da yumuşatılmaz."""
+    a = _json("gci_minihawk_arac.json")          # standart
+    b = _json("gci_minihawk_hassas_nl.json")     # hassas_nl
+    gb = b["gci"]
+    ince = max(b["seviyeler"], key=lambda x: x["cells"])
+    yp = (b.get("yplus") or {}).get("ort")
     return "⚠️ Gösterilemedi", (
-        f"MiniHawk İHA, {len(d['seviyeler'])} seviye ({ince['cells']:,} hücreye kadar): "
-        f"seri SALINIMLI (GCI %{g['gci_fine_pct']:.0f}, monoton değil) — kanat kalınlığı "
-        "yüzey hücresinin ~3 katı (hedef ≥6); ince kanat çözülmüyor, 'hassas' kalite gerekir")
+        f"MiniHawk İHA — standart: GCI %{a['gci']['gci_fine_pct']:.0f} (kanat/hücre 3.0×, "
+        f"hedef ≥6); hassas_nl ({ince['cells']:,} hücre): ince kanat ÇÖZÜLDÜ (7.7×) ama "
+        f"y⁺={yp:.0f} → duvar fonksiyonu bandının ~{yp / 300:.0f} katı, sürtünme "
+        f"çözülmüyor. Seri hâlâ salınımlı (GCI %{gb['gci_fine_pct']:.0f}). "
+        "Reçete: prizma katmanı (--kalite hassas / --katman N --yplus 1)")
 
 
 def _arac_bandi() -> tuple[str, str]:

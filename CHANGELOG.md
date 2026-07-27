@@ -4,6 +4,35 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-07-27c] fix+feat | Bozuk entegrasyon testi, MiniHawk ikinci kampanya, manifest hukum durumlari
+
+FULL_INTEGRATION_TEST YILLARDIR BOZUKTU (pytest disinda, CI'da kosmuyor, kimse elle
+calistirmiyor -> sessiz curume). Iki ayri kirilma: (a) var olmayan AircraftLibrary
+enumerasyon API'si -> 3 test AttributeError; (b) run_all_tests() hic return yapmiyor ->
+sys.exit(0 if success else 1) TUM testler gecse bile 1 donduruyordu (stdout "basarili"
+derken cikis kodu "basarisiz" — iki sinyal ters). Eksik API eklendi (353 satir kurtarildi,
+"hangi hazir tasarimlar var" artik programatik), donus degeri duzeltildi: 8/8 + exit 0.
+
+MINIHAWK IKINCI KAMPANYA (hassas_nl, katmansiz yogun mesh, 3.94M hucre):
+Ilk kampanyanin teshisi dogru cikti — ince kanat COZULDU (kanat/hucre 3.0x -> 7.7x,
+cozunurluk uyarisi kalkti; iz-momentum ayrismasi %100 -> %25). AMA yeni darbogaz:
+y+ ort = 4113, duvar-fonksiyonu bandinin (~30-300) 13 KATI -> surtunme surukleme
+COZULMUYOR, Cd yalnizca basinci temsil ediyor. Seri hala salinimli (GCI %517).
+Iki kampanya = iki AYRI ve SPESIFIK teshis; arac dogru calisiyor, vaka zor.
+Zarf satiri IKISINI DE tasiyor (ilerleme gizlenmiyor, yakinsamadigi yumusatilmiyor).
+
+- y+ uyarisi BUYUKLUGE gore derecelendi: >1000'de "sinirda" degil "COZULMUYOR" +
+  somut recete (--kalite hassas / --katman N --yplus 1).
+- resolution_warning YANLIS PRESET oneriyordu: uyari tam olarak INCE ozellik varken
+  cikiyor ama 'hassas' 12 prizma katmani ekler; MESH_QUALITY'nin kendi notu katmanin
+  ince firar kenarinda guvenle orulemedigini soyluyor. Oneri 'hassas_nl' oldu.
+- Kanit manifesti hukum arayisini genisletti (ozet.yorum, degerlendirme gibi ic ice
+  alanlar) -> "hukumsuz" gorunen 3 dosyanin 2'sinin hukmu ZATEN VARDI. Ucuncu durum
+  eklendi: hukum baska yerde HESAPLANIR (mesh_independence.json ham veridir; verdikti
+  zarf.py uretir) — "YOK" demek yaniltiyordu.
+
+Testler: 393 -> 398. Ruff temiz.
+
 ## [2026-07-27b] feat | Kanit manifesti + BOM dayanikligi + tasima (Cl) zarf satiri
 
 Kokte 50+ JSON var; hangisinin gercek V&V kaniti oldugu isimden anlasilmiyordu

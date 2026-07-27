@@ -57,7 +57,7 @@ olmayan satır "beyan" olarak işaretlenir.
 | Bağlı akış, 2D airfoil mutlak $C_d$ (M<0.3) | ✅ Yüksek | NASA TMR NACA0012 α=0°: GCI %1.7 (p=0.666), TMR sapması %4.9 |
 | Bağlı akış, 2D airfoil taşıma $C_l$ (α=8°) | ⚠️ Bantlı | NASA TMR NACA0012 α=8°: en ince grid (917,504 hücre) Cl=0.8556 vs TMR 0.862 → sapma %0.7; ancak 3-grid serisi ıraksıyor (p=-2.463) → sayısal belirsizlik Richardson ile ölçülemedi |
 | 3D araç mesh yakınsama (snappyHexMesh) | ⚠️ Gösterilemedi | MiniHawk 3D snappyHexMesh: GCI %0.12, p=3.898 (asimptotik aralık DIŞI) |
-| 3D ince-kanatlı İHA — araç hattı GCI | ⚠️ Gösterilemedi | MiniHawk İHA, 4 seviye (1,860,696 hücreye kadar): seri SALINIMLI (GCI %226, monoton değil) — kanat kalınlığı yüzey hücresinin ~3 katı (hedef ≥6); ince kanat çözülmüyor, 'hassas' kalite gerekir |
+| 3D ince-kanatlı İHA — araç hattı GCI | ⚠️ Gösterilemedi | MiniHawk İHA — standart: GCI %226 (kanat/hücre 3.0×, hedef ≥6); hassas_nl (3,943,330 hücre): ince kanat ÇÖZÜLDÜ (7.7×) ama y⁺=4114 → duvar fonksiyonu bandının ~14 katı, sürtünme çözülmüyor. Seri hâlâ salınımlı (GCI %517). Reçete: prizma katmanı (--kalite hassas / --katman N --yplus 1) |
 | 3D künt cisim — araç hattı GCI + literatür | ⚠️ Bantlı | Küp (Hoerner 1.05): Cd=1.113 → sapma %6.03, Richardson GCI %3.1 (p=2.386, asimptotik); ancak 4-seviye LSR U=%58 (asimptotik-altı) |
 | 3D araç $C_d$ — V&V/UQ bandı | ⚠️ Bantlı | Ölçülen validasyon bandı — bluff %6.0 |
 | Yapısal — lineer statik (kiriş) | ✅ Çok yüksek | Ankastre kiriş ↔ Euler-Bernoulli: sehim %1.0, gerilme %3.9 |

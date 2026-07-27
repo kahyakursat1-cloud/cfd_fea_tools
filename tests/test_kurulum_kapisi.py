@@ -207,3 +207,39 @@ def test_otomatik_oryantasyondan_sonra_yanlis_alarm_yok(tmp_path):
 
     assert not _eksen_uyarisi(True), "otomatik düzeltilen geometride yanlış alarm"
     assert _eksen_uyarisi(False), "kullanıcı yanlış eksen verdiğinde uyarı gelmeli"
+
+
+def test_ince_ozellik_onerisi_katmansiz_preseti_gosterir():
+    """Uyarı tam olarak İNCE özellik varken çıkar; 'hassas' 12 prizma katmanı ekler ve
+    MESH_QUALITY'nin kendi notu katmanın ince firar kenarında güvenle örülemediğini
+    söyler. Doğru reçete katmansız yoğun mesh: hassas_nl."""
+    from vehicle_pipeline import MESH_QUALITY, resolution_warning
+
+    w = resolution_warning(1.5, 7, 3, 0.08)          # MiniHawk standart: 3.0x
+    assert w and "hassas_nl" in w
+    assert MESH_QUALITY["hassas_nl"]["n_layers"] == 0
+    assert MESH_QUALITY["hassas"]["n_layers"] > 0     # önerilmeyen kol
+
+
+def test_onerilen_preset_uyariyi_gercekten_kaldirir():
+    """Reçete işe yaramalı: önerilen ayarla hesap ≥6 katı vermeli (ölçüldü: 7.7x)."""
+    from vehicle_pipeline import MESH_QUALITY, VEHICLE_PRESETS, resolution_warning
+
+    rmax = VEHICLE_PRESETS["ucak"]["refinement"][1]
+    q = MESH_QUALITY["hassas_nl"]
+    assert resolution_warning(1.5, q["bg_div"], rmax + q["ref_bump"], 0.08) is None
+
+
+def test_yplus_uyarisi_buyukluge_gore_derecelenir():
+    """MiniHawk hassas_nl koşusunda y⁺=4113 ölçüldü — duvar-fonksiyonu bandının
+    (~30-300) 13 katı. Buna 'sınırda' demek yanıltıcıdır: sürtünme bileşeni orada
+    ÇÖZÜLMÜYOR. Uyarı büyüklüğe göre iki kademeli."""
+    import inspect
+
+    import vehicle_pipeline
+    src = inspect.getsource(vehicle_pipeline.run_vehicle_analysis)
+    assert "_yp > 1000" in src, "y⁺ uyarısı derecelendirilmemiş"
+    assert "ÇÖZÜLMÜYOR" in src and "sınırında" in src, "iki kademe de bulunmalı"
+    # şiddetli kolda somut reçete verilmeli
+    i = src.index("_yp > 1000")
+    assert "--katman" in src[i:i + 700]
