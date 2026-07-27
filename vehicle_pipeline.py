@@ -870,6 +870,19 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     center = [(bb[0][i] + bb[1][i]) / 2 for i in range(3)]
     kesit = export_cutplane_vtk(case_dir, center)
     base.kesit_vtk = str(kesit) if kesit else ""
+    # KATMAN ÇÖKMESİ: katman İSTENİP alınamamak, hiç istememekten TEHLİKELİDİR —
+    # sonuç sahip olmadığı sınır-tabaka çözünürlüğünü iddia eder. MiniHawk 'hassas'
+    # koşusunda ölçüldü: 12 katman istendi, y⁺ hedefi 1.0 idi, mesh katmansız koşuyla
+    # BİREBİR aynı çıktı (3.943.330 hücre) ve y⁺=4113 ölçüldü — snappy katman adımı
+    # sessizce çökmüş, rapor yine "12 katman" diyordu.
+    if yp and n_layers > 0 and yplus_target and yp["ort"] > 5 * yplus_target:
+        uyarilar.append(
+            f"KATMAN ÇÖKMESİ ŞÜPHESİ: {n_layers} prizma katmanı istendi ve y⁺ hedefi "
+            f"{yplus_target:g} idi, ama ÖLÇÜLEN y⁺={yp['ort']:.0f} — hedefin "
+            f"{yp['ort'] / yplus_target:.0f} katı. snappyHexMesh katman adımı büyük "
+            "olasılıkla örülemedi (ince firar kenarı/keskin köşe). Sınır tabaka "
+            "ÇÖZÜLMÜYOR; sonuç katmansız koşuyla eşdeğerdir. log.snappyHexMesh "
+            "'Layer mesh' bölümünü ve yüzey kalitesini kontrol edin")
     if yp and yp["ort"] > 30 and n_layers == 0:
         # BÜYÜKLÜĞE GÖRE DERECELENDİR: duvar fonksiyonu log-bölgesi ~30-300'de geçerlidir.
         # MiniHawk hassas_nl koşusunda y⁺=4113 ölçüldü — üst sınırın 13 katı; buna

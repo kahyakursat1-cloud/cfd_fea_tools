@@ -1,0 +1,55 @@
+{
+  "vaka": "MiniHawk UAV — hassas (12 prizma katmani istendi, y+ hedefi 1.0), 3 seviye",
+  "seviyeler": [
+    {
+      "ad": "kaba",
+      "cells": 350590,
+      "Cd": 0.03929,
+      "Cd_wake": 0.036,
+      "fizik": {
+        "verdict": "ok",
+        "reasons": []
+      }
+    },
+    {
+      "ad": "orta",
+      "cells": 1180380,
+      "Cd": 0.07081,
+      "Cd_wake": 0.07307,
+      "fizik": {
+        "verdict": "ok",
+        "reasons": []
+      }
+    },
+    {
+      "ad": "ince",
+      "cells": 3943330,
+      "Cd": 0.027192123316035495
+    }
+  ],
+  "gci": {
+    "p": 0.811,
+    "f_exact": -0.085951,
+    "gci_fine_pct": 520.1118,
+    "gci_med_pct": 143.2488,
+    "asymptotic": 5.0305,
+    "monotonic": false,
+    "p_in_range": true
+  },
+  "verdikt": "⚠️ Mesh bağımsızlığı GÖSTERİLEMEDİ: yakinsamamis/salinimli dizi; asimptotik oran 5.0305 (≈1 beklenir); GCI=520.1118% ≥ 5.0%",
+  "Cd_ince": 0.02719,
+  "sinir_tabaka": {
+    "katman_sayisi": 12,
+    "yplus": {
+      "min": 2930.17,
+      "max": 6318.38,
+      "ort": 4113.52,
+      "patch": "minihawk_prep"
+    },
+    "yplus_hedef": 1.0,
+    "ilk_katman_m": 4.844e-05
+  },
+  "BULGU": "KATMAN COKMESI. 12 katman istendi ama mesh KATMANSIZ kosuyla BIREBIR ayni cikti: 3943330 hucre (ayni), Cd=0.027192 (ayni), y+ ort=4113.52 (ayni). snappy gunlugu katman tablosunda yalniz 66 yuz gosteriyor ve layerFaces faceSet ine 0 yuz yazmis -> mesh te gercek katman YOK. Rapor yine \"katman_sayisi: 12, yplus_hedef: 1.0\" diyordu. Katman ISTENIP alinamamak, hic istememekten TEHLIKELI: sonuc sahip olmadigi sinir-tabaka cozunurlugunu iddia eder. Eski y+ uyarisi n_layers==0 kosuluna bagliydi, bu vakada HIC CIKMIYORDU. Yeni kapi olculen y+ i HEDEFLE kiyaslar (>5x -> katman-cokmesi).",
+  "_sonuc": "MiniHawk ince kanadinda prizma katmani snappy ile orulemiyor. Uc kampanya, uc teshis: (1) standart -> ince kanat cozulmuyor, (2) hassas_nl -> kanat cozuldu ama y+ 4113, surtunme cozulmuyor, (3) hassas -> katman coktu, (2) ile ayni. Bu geometri icin duvar-cozunur yol snappy ile kapali; coz: yuzey iyilestirme (kalinlastirilmis firar kenari) veya farkli mesher.",
+  "_uretim": "Üretim: python vehicle_pipeline.py vehicle_runs/minihawk.stl --tip ucak --hiz 15 --kalite hassas --duyarlilik --seviyeler 3"
+}

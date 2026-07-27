@@ -100,12 +100,15 @@ def _minihawk_gci() -> tuple[str, str]:
     gb = b["gci"]
     ince = max(b["seviyeler"], key=lambda x: x["cells"])
     yp = (b.get("yplus") or {}).get("ort")
+    c = _json("gci_minihawk_hassas.json")          # katmanlı deneme
     return "⚠️ Gösterilemedi", (
-        f"MiniHawk İHA — standart: GCI %{a['gci']['gci_fine_pct']:.0f} (kanat/hücre 3.0×, "
-        f"hedef ≥6); hassas_nl ({ince['cells']:,} hücre): ince kanat ÇÖZÜLDÜ (7.7×) ama "
-        f"y⁺={yp:.0f} → duvar fonksiyonu bandının ~{yp / 300:.0f} katı, sürtünme "
-        f"çözülmüyor. Seri hâlâ salınımlı (GCI %{gb['gci_fine_pct']:.0f}). "
-        "Reçete: prizma katmanı (--kalite hassas / --katman N --yplus 1)")
+        f"MiniHawk İHA, ÜÇ kampanya: standart GCI %{a['gci']['gci_fine_pct']:.0f} "
+        "(kanat/hücre 3.0×, hedef ≥6) → hassas_nl "
+        f"({ince['cells']:,} hücre) kanat ÇÖZÜLDÜ (7.7×) ama y⁺={yp:.0f}, sürtünme "
+        f"çözülmüyor (GCI %{gb['gci_fine_pct']:.0f}) → hassas (12 katman) "
+        "KATMAN ÇÖKTÜ: mesh katmansızla birebir aynı, y⁺ değişmedi. "
+        f"Cd={c['Cd_ince']:.4f} yalnız basınç bileşeni. "
+        "Bu geometride snappy ile duvar-çözünür yol KAPALI")
 
 
 def _arac_bandi() -> tuple[str, str]:

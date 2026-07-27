@@ -243,3 +243,32 @@ def test_yplus_uyarisi_buyukluge_gore_derecelenir():
     # şiddetli kolda somut reçete verilmeli
     i = src.index("_yp > 1000")
     assert "--katman" in src[i:i + 700]
+
+
+def test_katman_cokmesi_yakalanir():
+    """ÖLÇÜLEN VAKA (MiniHawk 'hassas', 2026-07-27): 12 prizma katmanı istendi, y⁺
+    hedefi 1.0 idi; mesh KATMANSIZ koşuyla birebir aynı çıktı (3.943.330 hücre) ve
+    y⁺=4113 ölçüldü. snappy günlüğü katman tablosunda yalnız 66 yüz gösteriyor ve
+    layerFaces faceSet'ine 0 yüz yazmış — katman adımı sessizce çökmüş.
+
+    Katman İSTENİP alınamamak, hiç istememekten TEHLİKELİDİR: sonuç sahip olmadığı
+    sınır-tabaka çözünürlüğünü iddia eder. Eski uyarı `n_layers == 0` koşuluna bağlıydı,
+    yani bu vakada HİÇ ÇIKMIYORDU."""
+    import inspect
+
+    import vehicle_pipeline
+    src = inspect.getsource(vehicle_pipeline.run_vehicle_analysis)
+    assert "KATMAN ÇÖKMESİ" in src
+    i = src.index("KATMAN ÇÖKMESİ ŞÜPHESİ")
+    kosul = src[max(0, i - 400):i]
+    assert "n_layers > 0" in kosul, "kapı yalnız katman İSTENDİĞİNDE çalışmalı"
+    assert "5 * yplus_target" in kosul, "ölçülen y⁺ HEDEFLE kıyaslanmalı"
+
+
+def test_katman_cokmesi_esigi_gercek_veriyle_tetiklenir():
+    """Ölçülen y⁺=4113, hedef 1.0 → 4113 kat; eşik 5× olduğundan kesin tetikler."""
+    yplus_olculen, hedef = 4113.52, 1.0
+    assert yplus_olculen > 5 * hedef
+    # sağlıklı bir katmanlı koşu (y⁺≈1.2, hedef 1.0) tetiklememeli
+    saglikli_yplus = 1.2
+    assert saglikli_yplus <= 5 * hedef

@@ -4,6 +4,33 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-07-27d] fix | KATMAN COKMESI sessizce raporlaniyordu + kanit bayatlik dedektoru
+
+MINIHAWK UCUNCU KAMPANYA (--kalite hassas, 12 prizma katmani, y+ hedefi 1.0) BULGU URETTI:
+katmanlar HIC ORULMEDI ama sonuc oyle demiyordu.
+  hucre 3.943.330 (katmansiz kosuyla AYNI), Cd=0.027192 (AYNI), y+ ort=4113.52 (AYNI)
+  snappy gunlugu: katman tablosunda yalniz 66 yuz, layerFaces faceSet ine 0 yuz
+  rapor yine: "katman_sayisi: 12, yplus_hedef: 1.0"
+
+Katman ISTENIP alinamamak, hic istememekten TEHLIKELIDIR: sonuc sahip olmadigi
+sinir-tabaka cozunurlugunu iddia eder. Ustelik eski y+ uyarisi `n_layers == 0` kosuluna
+bagliydi -> bu vakada HIC CIKMIYORDU. Yeni kapi olculen y+ i HEDEFLE kiyaslar
+(>5x -> "KATMAN COKMESI SUPHESI" + log.snappyHexMesh yonlendirmesi).
+
+UC KAMPANYA, UC TESHIS (hepsi kanitlandi ve zarf satirinda):
+  standart  -> ince kanat cozulmuyor (kanat/hucre 3.0x, hedef >=6)
+  hassas_nl -> kanat cozuldu (7.7x) ama y+=4113, surtunme cozulmuyor
+  hassas    -> katman coktu, (2) ile birebir ayni
+Bu geometride snappy ile duvar-cozunur yol KAPALI; cozum yuzey iyilestirme veya farkli
+mesher. Basarisiz kampanya da kanittir — ucu de kaydedildi.
+
+KANIT BAYATLIK DEDEKTORU (kanit.py --bayat): kanit onu URETEN koddan eski mi? Uretim
+komutundaki script in gercek import zinciri izlenir (analysis/ klasorunun tamami degil —
+FEA kaniti calculix/frd yoluna baglidir). Isaretlenen 6 FEA capasi yeniden kosuldu:
+HEPSI GUNCEL KODLA BIREBIR AYNI. "Bayat" != "yanlis"; isaret bir DOGRULAMA DAVETI.
+
+Testler: 404 -> 406.
+
 ## [2026-07-27c] fix+feat | Bozuk entegrasyon testi, MiniHawk ikinci kampanya, manifest hukum durumlari
 
 FULL_INTEGRATION_TEST YILLARDIR BOZUKTU (pytest disinda, CI'da kosmuyor, kimse elle
