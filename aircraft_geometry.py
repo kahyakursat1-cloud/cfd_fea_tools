@@ -150,6 +150,38 @@ class Aircraft:
 class AircraftLibrary:
     """Hazır uçak tasarımları"""
 
+    # Ad -> fabrika metodu. Kütüphane uçak-başına statik metot sunuyordu ama
+    # ENUMERASYON yoktu; full_integration_test.py bu API'yi çağırıp yıllardır
+    # AttributeError ile düşüyordu (kimse koşmadığı için sessiz kaldı).
+    _KAYIT = {
+        "mini_hawk": "minihawk_uav",
+        "model_rocket": "model_rocket",
+        "fixed_wing_racer": "fixed_wing_racer",
+        "vtol_drone": "vtol_drone",
+        "high_altitude_platform": "high_altitude_platform",
+    }
+
+    @classmethod
+    def template_adlari(cls) -> list[str]:
+        """Kayıtlı hazır tasarım adları."""
+        return list(cls._KAYIT)
+
+    @classmethod
+    def get_template(cls, ad: str):
+        """Ada göre FABRİKA döndürür (çağıran `()` ile örnekler)."""
+        if ad not in cls._KAYIT:
+            raise KeyError(f"bilinmeyen tasarım '{ad}'; mevcut: {cls.template_adlari()}")
+        return getattr(cls, cls._KAYIT[ad])
+
+    @classmethod
+    def get_all_templates(cls) -> list:
+        """Tüm hazır tasarımların FABRİKALARI (get_template ile tutarlı).
+
+        Örneklemek çağıranın işi: `[f() for f in get_all_templates()]`. Böylece
+        kullanılmayan tasarımlar boşuna kurulmaz ve iki API aynı türü döndürür.
+        """
+        return [cls.get_template(ad) for ad in cls._KAYIT]
+
     @staticmethod
     def minihawk_uav() -> Aircraft:
         """MiniHawk — Küçük İHA"""

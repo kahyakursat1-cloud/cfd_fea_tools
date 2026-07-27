@@ -63,8 +63,10 @@ class IntegrationTestSuite:
                 aircraft = template()
                 mass_props = aircraft.mass_properties()
                 print(f"    • {aircraft.name}")
-                print(f"      - Ağırlık: {mass_props['mass']:.2f} kg")
-                print(f"      - CG: {mass_props['cg']}")
+                # NOT: mass_properties() sözleşmesi 'total_mass'/'cg_x'; bu script
+                # eski 'mass'/'cg' adlarını çağırıp yıllardır KeyError ile düşüyordu.
+                print(f"      - Ağırlık: {mass_props['total_mass']:.2f} kg")
+                print(f"      - CG_x: {mass_props['cg_x']:.3f} m")
 
             self.results["Aircraft Creation"] = True
             return True
@@ -315,6 +317,10 @@ class IntegrationTestSuite:
 
         # Summary
         self._print_summary()
+        # run_all_tests HİÇ return yapmıyordu -> None -> main'deki
+        # `sys.exit(0 if success else 1)` TÜM testler geçse bile 1 döndürüyordu.
+        # Çıkış koduna bakan her otomasyon bunu kalıcı başarısızlık sanardı.
+        return bool(self.results) and all(self.results.values())
 
     def _print_summary(self):
         """Test sonuçlarını özetle"""
