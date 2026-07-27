@@ -21,13 +21,15 @@ KAPI_ZORUNLU = [
     "transition_polar.py",     # 2D geçiş polar (standalone)
     "supersonic_cfd.py",       # süpersonik Cd (standalone)
     "simulation_runner.py",    # eski-hızlı uçak hattı (Cd/Cl üretir)
+    "vehicle_topopt.py",       # tasarım verdikti (kompliyans-körlüğü kapısı)
 ]
 
 
 @pytest.mark.parametrize("dosya", KAPI_ZORUNLU)
 def test_modul_fizik_kapisini_kullanir(dosya):
     src = (ROOT / dosya).read_text(encoding="utf-8")
-    assert "force_admissibility" in src or "sonuc_kapisi" in src or "apply_physics_gate" in src, (
+    assert any(k in src for k in ("force_admissibility", "sonuc_kapisi",
+                                  "apply_physics_gate", "fizik_kabul")), (
         f"{dosya} kuvvet katsayısı üretiyor ama fizik kapısından geçmiyor — "
         "validity_envelope.force_admissibility kullan")
 

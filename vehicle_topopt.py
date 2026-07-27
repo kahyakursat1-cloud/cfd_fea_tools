@@ -44,6 +44,15 @@ def _stress_gate(sa: dict) -> dict:
     faktörüyle hükme bağlar; akma aşılırsa gerilme-farkında TO'ya (adjoint-doğrulanmış
     stress_topopt2d/3d) yönlendirir. Tekillik-robust temsili-SF kullanılır (TO geometrisi
     jagged → tepe büyük olasılıkla sahte tekillik)."""
+    # FİZİK KAPISI ÖNCE: `sa` zaten yükün aktarılıp aktarılmadığını taşıyor. Ona
+    # bakmadan SF'ye hüküm vermek, yüksüz bir koşuyu "güvenli" ilan eder — SF yüksüz
+    # durumda astronomiktir ve 1.5 eşiğini rahatça geçer.
+    _fk = sa.get("fizik_kabul") or {}
+    if _fk.get("verdict") == "inadmissible":
+        return {"durum": "değerlendirilemedi", "SF": None,
+                "mesaj": "⛔ Yapısal sonuç fizik kapısından geçmedi ("
+                         + "; ".join(_fk.get("reasons", []))
+                         + ") — SF ANLAMSIZ, tasarım hakkında hüküm verilemez."}
     sf = sa.get("emniyet_faktoru_temsili") or sa.get("emniyet_faktoru")
     if sf is None:
         return {"durum": "değerlendirilemedi", "SF": None,
