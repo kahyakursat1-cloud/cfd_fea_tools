@@ -183,3 +183,14 @@ def test_komsu_alan_uretim_komutunu_bozmaz():
     d = {"_not": "…dogrulandi. Uretim: python experiments/fea_validation.py",
          "_son_dogrulama": "2026-07-27 — yeniden koşuldu; sonuç " + "x" * 200}
     assert kanit._uretim_komutu(d) == "python experiments/fea_validation.py"
+
+
+def test_hicbir_belge_erisilemez_kalmaz():
+    """INDEX.md belge haritasıdır; listede olmayan sayfa pratikte kayıptır.
+    (Kendi bakım listesindeki 'orphaned pages' maddesinin makine kontrolü.)"""
+    from pathlib import Path
+    kok = Path(kanit.__file__).resolve().parent
+    idx = (kok / "INDEX.md").read_text(encoding="utf-8")
+    eksik = [p.name for p in kok.glob("*.md")
+             if p.name != "INDEX.md" and p.name not in idx]
+    assert eksik == [], f"INDEX.md'de olmayan belge: {eksik}"

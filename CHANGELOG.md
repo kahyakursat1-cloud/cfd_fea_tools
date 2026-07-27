@@ -4,6 +4,26 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-07-27j] fix | Supersonik rapor kapiyi gostermiyordu + topopt/belge kapanisi
+
+Ayni desen ucuncu kez: KAPI VAR AMA GIRDISINI/HUKMUNU TASIMIYOR.
+
+- supersonic_report: supersonic_cfd hukmu `fizik`/`uyari_fizik` alanlarina yaziyordu
+  ama rapor onlari HIC okumuyordu — Cd, hukmu olmadan sunuluyordu (vehicle_report'ta
+  kapatilan boslugun aynisi). Banner artik Ozet'ten ONCE, iki seviyeli (fizik-disi /
+  supheli); saglikli kosuda cikmiyor.
+- vehicle_topopt._stress_gate: `sa` sozlugunun ZATEN tasidigi fizik_kabul'e bakmiyordu.
+  Yuksuz kosuda SF astronomik cikip 1.5 esigini geciyor ve "kompliyans-optimal tasarim
+  stres-guvenli" deniyordu. Fizik kapisi en basa alindi.
+
+BELGE IDDIAM YANLISTI: "19 kok .md konsolidasyon gerektiriyor" demistim; olcunce
+belgelerin cogunun 1-5 ic baglantiyla oruldugu ve INDEX.md'nin var oldugu gorulda.
+Gercek sorun konsolidasyon degil ERISILEBILIRLIK idi: 11 belge INDEX'te yoktu.
+Tam liste eklendi ve test ile donduruldu (INDEX kendi bakim listesinde "orphaned pages"
+maddesi tasiyordu — artik makine kontrol ediyor).
+
+Testler: 457 -> 463.
+
 ## [2026-07-27i] fix | Sistematik sessiz-yutma taramasi: NaN kapidan geciyordu + rapor tek kaynaga baglandi
 
 AST ile tum kod tabaninda "sessizce yutulan istisna" arandi (54 adet, tests/experiments

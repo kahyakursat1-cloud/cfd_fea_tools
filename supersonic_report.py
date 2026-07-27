@@ -816,7 +816,16 @@ def build_supersonic_report(result: dict, case_dir, stl_path, t_inf=288.15,
         "analitik eklendi, taban sürüklemesi belirsiz)."]
 
     title = f"Aerodinamik Analiz Raporu — {result['model']}"
-    md = [f"# {title}", "", "## Özet", "", ozet, "",
+    # FİZİK KAPISI EN ÜSTTE: supersonic_cfd hükmü `fizik`/`uyari_fizik` alanlarına
+    # yazıyordu ama bu rapor onları HİÇ okumuyordu — Cd, hükmü olmadan sunuluyordu.
+    # (vehicle_report'ta kapatılan boşluğun aynısı.)
+    _fz = result.get("fizik") or {}
+    _kapi = ([f"> 🔴 **FİZİK KAPISI:** {'; '.join(_fz.get('reasons', []))} — "
+              "bu koşunun sürükleme katsayısı tasarım kararında KULLANILMAZ.", ""]
+             if _fz.get("verdict") == "inadmissible" else
+             [f"> ⚠️ **FİZİK KAPISI (şüpheli):** {'; '.join(_fz.get('reasons', []))}", ""]
+             if _fz.get("verdict") == "suspect" else [])
+    md = [f"# {title}", ""] + _kapi + ["## Özet", "", ozet, "",
           "## Nomenklatür", "", "| Sembol | Tanım |", "|--------|-------|"]
     md += [f"| {s} | {d} |" for s, d in nomenklatur]
     md += ["", "## 1. Yöntem ve Koşullar", "",

@@ -115,6 +115,29 @@ sources/SOURCES_INDEX
 
 ---
 
+## 📄 Kök Dizin Belgeleri (tam liste)
+
+INDEX'te eksik kalan belgeler buraya eklendi — hiçbir sayfa erişilemez kalmasın
+(bakım listesindeki "orphaned pages" maddesinin karşılığı).
+
+| Belge | İçerik |
+|---|---|
+| `README.md` | Giriş noktası: kurulum, komutlar, **çalışma zarfı** (kanıttan üretilir), üç güven kapısı |
+| `CHANGELOG.md` | Kronolojik değişiklik kaydı — bulunan hatalar ve ölçülen sonuçlar |
+| `EXTERNAL_TOOLS_SETUP.md` | OpenFOAM / CalculiX / OpenVSP / OpenRocket kurulumu |
+| `MESH_THEORY_GUIDE.md` | Mesh teorisi: y⁺, prizma katman, refinement |
+| `MATERIAL_SYSTEM_GUIDE.md` | Malzeme veritabanı kullanımı (`materials.json`) |
+| `MATERIAL_SYSTEM_STATUS.md` | Malzeme sistemi durum kaydı (2026-06 öncesi arayüz taslakları içerir) |
+| `QUICK_START_MATERIALS.md` | Malzeme sistemine hızlı başlangıç |
+| `LEARNING_ROADMAP_OPENFOAM_CALCULIX.md` | OpenFOAM/CalculiX öğrenme yol haritası |
+| `ZENODO_METADATA.md` | Arşiv/yayın meta verisi |
+| `AGENTS.md` / `CLAUDE.md` | Ajan çalışma kuralları (kod değil, süreç) |
+
+**Not:** V&V kanıtlarının indeksi ayrıdır — `python kanit.py` (hangi dosya kanıt,
+hükmü ne, hangi komut üretti). Çalışma zarfı tablosu `python zarf.py` ile üretilir.
+
+---
+
 ## ✅ Maintenance Checklist
 
 - [ ] Run lint pass (check for orphaned pages)
