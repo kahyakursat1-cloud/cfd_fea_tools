@@ -36,7 +36,7 @@
 
 - **Araç Analiz Stüdyosu (yeni ana uygulama):** `app_analyzer.py` — katı model
   (STL/OBJ) → araca uygun mesh → CFD → mühendis raporu (figür + yorum + uyarı +
-  duyarlılık bandı). **Deneysel doğrulama: küp Cd %2.4 hata vs Hoerner**
+  duyarlılık bandı). **Deneysel doğrulama: küp Cd %6.0 hata vs Hoerner** (2026-07-27 güncel kodla yeniden ölçüldü; 2026-06-10 kaydı %2.4 idi — `trailing_mean` vb. değişiklikler sonrası kayma. Kaynak: `vehicle_validation.json`, band ±%15 → GEÇTİ)
   (`vehicle_validation.json`). CLI eşdeğeri: `vehicle_pipeline.py`.
 - **Fotogrametri modülü kaldırıldı** (2026-06-10, kullanıcı kararı) — kod, GUI
   sekmesi, launcher butonu, scan extra ve doc referansları temiz.

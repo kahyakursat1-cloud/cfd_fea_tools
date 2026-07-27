@@ -4,10 +4,9 @@
   "kaynak": "Hoerner 1965, Fluid-Dynamic Drag",
   "kalite": "standart",
   "status": "ok",
-  "Cd_sim": 1.07504,
-  "hata_pct": 2.4,
+  "Cd_sim": 1.11332,
+  "hata_pct": 6.0,
   "gecti": true,
   "mesh_hucre": 888377,
-  "rapor": "vehicle_runs\\dogrulama_kup\\rapor\\RAPOR.md",
-  "_uretim": "Üretim: python check_vehicle_validation.py standart"
+  "rapor": "vehicle_runs\\dogrulama_kup\\rapor\\RAPOR.md"
 }

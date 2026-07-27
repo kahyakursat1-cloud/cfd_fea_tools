@@ -61,7 +61,8 @@ python app_analyzer.py
 # CLI eşdeğeri
 python vehicle_pipeline.py model.stl --tip ucak --hiz 25 --aoa 4 --burun +y --ust +x
 
-# Deneysel doğrulama çapası (küp vs Hoerner Cd=1.05; son sonuç: %2.4 hata)
+# Deneysel doğrulama çapası (küp vs Hoerner Cd=1.05; güncel sonuç:
+#   vehicle_validation.json — sayıyı buraya yazma, kod değişince bayatlıyor)
 python check_vehicle_validation.py standart
 ```
 

@@ -272,3 +272,27 @@ def test_katman_cokmesi_esigi_gercek_veriyle_tetiklenir():
     # sağlıklı bir katmanlı koşu (y⁺≈1.2, hedef 1.0) tetiklememeli
     saglikli_yplus = 1.2
     assert saglikli_yplus <= 5 * hedef
+
+
+def test_kalinlik_olcumu_yedege_dustugunu_soyler():
+    """SESSİZ BOZULMA: rtree yoksa ray-kalınlık ölçümü ModuleNotFoundError atıyor,
+    `except: pass` yutuyor ve bbox yedeği ÖLÇÜM sanılıyordu. Kaynak artık kayıtlı."""
+    trimesh = pytest.importorskip("trimesh")
+    from vehicle_pipeline import estimate_thin_thickness, kalinlik_olculdu_mu
+
+    estimate_thin_thickness(trimesh.creation.box(extents=[1, 1, 0.1]))
+    k = kalinlik_olculdu_mu()
+    assert set(k) == {"olculdu", "neden"}
+    if not k["olculdu"]:
+        assert k["neden"] and k["neden"] != "henüz çağrılmadı", "sebep kaydedilmemiş"
+
+
+def test_cozunurluk_uyarisi_olcum_tabanini_bildirir():
+    """Ölçülmemiş bir boyuta dayanan uyarı, bunu açıkça söylemeli."""
+    from vehicle_pipeline import resolution_warning
+
+    olculen = resolution_warning(1.5, 7, 3, 0.08, olculdu=True)
+    yedek = resolution_warning(1.5, 7, 3, 0.08, olculdu=False)
+    assert olculen and "ÖLÇÜLMEDİ" not in olculen
+    assert yedek and "ÖLÇÜLMEDİ" in yedek and "rtree" in yedek
+    assert "firar kenarı" in yedek, "gerçek darboğaz adlandırılmalı"

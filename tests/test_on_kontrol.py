@@ -59,3 +59,26 @@ def test_pipeline_doctor_komutu_bagli():
     src = inspect.getsource(pipeline.main)
     assert '"doctor"' in src and "on_kontrol" in src
     assert "doctor" in pipeline.__doc__
+
+
+def test_rtree_zorunlu_listede():
+    """pyproject'te ZORUNLU olan rtree doctor'da yoktu. Yokluğunda ray-tabanlı
+    et-kalınlığı ölçümü sessizce bbox yedeğine düşüyor ve çağıran bunu ÖLÇÜM sanıyordu
+    (MiniHawk'ta 'ince özellik 80 mm' aslında gövde çapıydı, kanat hiç ölçülmemişti)."""
+    assert "rtree" in on_kontrol.ZORUNLU_PY
+
+
+def test_pyproject_zorunlulari_doctor_ile_ortusuyor():
+    """Sessiz yetenek kaybını önlemek için: pyproject'in çekirdek bağımlılıkları
+    doctor'ın zorunlu listesinde olmalı."""
+    import tomllib
+    from pathlib import Path
+    kok = Path(on_kontrol.__file__).resolve().parent
+    cfg = tomllib.loads((kok / "pyproject.toml").read_text(encoding="utf-8"))
+    ad_map = {"pyyaml": "yaml", "PyYAML": "yaml"}
+    dep = {ad_map.get(d.split(">")[0].split("=")[0].strip(),
+                      d.split(">")[0].split("=")[0].strip())
+           for d in cfg["project"]["dependencies"]}
+    eksik = {d for d in dep if d not in on_kontrol.ZORUNLU_PY
+             and d not in ("pandas", "matplotlib")}
+    assert not eksik, f"pyproject zorunlusu doctor'da yok: {eksik}"

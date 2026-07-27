@@ -391,11 +391,22 @@ def inspect_geometry(stl_path: Path) -> dict:
         "yan_alan_m2": round(_hull_projected_area(m.vertices, 1), 5),    # yandan (eksen kontrolü)
         "planform_alan_m2": round(_hull_projected_area(m.vertices, 2), 5),  # üstten
         "ince_kalinlik_m": (lambda t: round(t, 5) if t else None)(estimate_thin_thickness(m)),
+        "ince_kalinlik_olculdu": kalinlik_olculdu_mu(),   # ölçüm mü bbox yedeği mi
         "ince_yassilik": round(_thin_flatness(m), 4),    # kanat-inceliği (bbox-üstü)
         "keskin_kenar_orani": _keskin_kenar_orani(m),    # ayrılma geometrik mi geçiş-güdümlü mü
         "fasetli_egrilik_orani": _fasetli_egrilik_orani(m),  # geometride eğrilik var mı
         "radyal_doluluk": _radial_solidity(m),           # spoke↔sürekli (multikopter ayrımı)
     }
+
+
+# estimate_thin_thickness'in SON çağrısı gerçekten ölçtü mü, yoksa bbox'a mı düştü.
+# Çağıran bunu bilmeden "ölçülen ince özellik" diye raporlayamaz.
+_son_kaynak: dict = {"olculdu": False, "neden": "henüz çağrılmadı"}
+
+
+def kalinlik_olculdu_mu() -> dict:
+    """Son kalınlık kestiriminin kaynağı: {'olculdu': bool, 'neden': str}."""
+    return dict(_son_kaynak)
 
 
 def estimate_thin_thickness(m: trimesh.Trimesh, samples: int = 200,
@@ -416,14 +427,20 @@ def estimate_thin_thickness(m: trimesh.Trimesh, samples: int = 200,
                                          method="ray")
         th = th[np.isfinite(th) & (th > 0)]
         if len(th) >= samples // 4:
+            _son_kaynak["olculdu"] = True
             return float(np.percentile(th, percentile))
-    except Exception:
-        pass
+        _son_kaynak["neden"] = f"yetersiz geçerli örnek ({len(th)}/{samples})"
+    except Exception as e:
+        # SESSİZ BOZULMA: `rtree` kurulu değilse ray yolu ModuleNotFoundError atar ve
+        # burada yutulurdu; çağıran bbox yedeğini ÖLÇÜM sanıyordu (MiniHawk'ta "ince
+        # özellik 80 mm" aslında gövde çapıydı, kanat hiç ölçülmemişti). Sebep kaydedilir.
+        _son_kaynak["neden"] = f"{type(e).__name__}: {e}"
+    _son_kaynak["olculdu"] = False
     return bbox_min
 
 
 def resolution_warning(lmax_m: float, bg_div: int, ref_max: int, min_dim_m: float,
-                       min_cells_across: int = 6) -> str | None:
+                       min_cells_across: int = 6, olculdu: bool = True) -> str | None:
     """En ince bbox boyutunun en ince yüzey hücresine oranı — kanat/fin gibi
     ince özelliklerin çözünürlük bekçisi. Yetersizse uyarı metni döner."""
     surf_cell = (lmax_m / bg_div) / (2 ** ref_max)
@@ -437,7 +454,10 @@ def resolution_warning(lmax_m: float, bg_div: int, ref_max: int, min_dim_m: floa
             f"~{n_across:.1f} katı (hedef ≥{min_cells_across}) — kanat/fin gibi ince "
             "özellikler yeterince çözülmüyor olabilir; Cl/Cd güvenilirliği için "
             "'--kalite hassas_nl' (katmansız yoğun mesh) önerilir; prizma katmanı "
-            "güvenle örülebiliyorsa 'hassas'")
+            "güvenle örülebiliyorsa 'hassas'"
+            + ("" if olculdu else
+               " | DİKKAT: bu boyut ÖLÇÜLMEDİ, bbox yedeğidir (rtree kurulu olmayabilir) "
+               "— gerçek ince özellik (firar kenarı) çok daha küçük olabilir"))
 
 
 def salinim_analizi(vals, pencere_orani: float = 0.4, min_n: int = 40) -> dict | None:
@@ -839,7 +859,8 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         uyarilar.append("STL su geçirmez değil — snappyHexMesh toleranslı ama "
                         "kapalı yüzey önerilir")
     thin = geo.get("ince_kalinlik_m") or min(geo["boyutlar_m"])
-    rw = resolution_warning(geo["lmax_m"], q["bg_div"], case.refinement_max, thin)
+    rw = resolution_warning(geo["lmax_m"], q["bg_div"], case.refinement_max, thin,
+                            olculdu=bool((geo.get("ince_kalinlik_olculdu") or {}).get("olculdu")))
     if rw:
         uyarilar.append(rw)
     # Mesh-kalite uyarısı (reject zaten run_cfd'de elendi; warn-seviyesini yüzeye çıkar)

@@ -17,7 +17,10 @@ import sys
 import tempfile
 from pathlib import Path
 
-ZORUNLU_PY = ["numpy", "scipy", "matplotlib", "trimesh", "gmsh", "yaml"]
+# pyproject'te ZORUNLU olan her paket burada da olmalı. `rtree` eksikti: yokluğunda
+# ray-tabanlı et-kalınlığı ölçümü sessizce bbox yedeğine düşüyor ve çağıran bunu ÖLÇÜM
+# sanıyordu (MiniHawk'ta "ince özellik 80 mm" aslında gövde çapıydı).
+ZORUNLU_PY = ["numpy", "scipy", "matplotlib", "trimesh", "gmsh", "yaml", "rtree"]
 SECMELI_PY = {"PySide6": "GUI (app_analyzer / launcher)",
               "pandas": "tablo/rapor yardımcıları",
               "plotly": "etkileşimli figürler"}
@@ -45,11 +48,15 @@ def kontroller() -> list[dict]:
     from analysis.backend import backend, container
 
     out = []
+    _NEDEN = {"rtree": "yoksa et-kalınlığı ölçümü sessizce bbox yedeğine düşer "
+                       "(ince-özellik uyarıları ölçüme değil kutuya dayanır)"}
     for m in ZORUNLU_PY:
         var = _py_modul(m)
         out.append({"ad": f"python: {m}", "zorunlu": True,
                     "durum": "ok" if var else "eksik",
-                    "detay": "" if var else "pip install -e ."})
+                    "detay": "" if var else
+                             (f"pip install {m} — {_NEDEN[m]}" if m in _NEDEN
+                              else "pip install -e .")})
     for m, nicin in SECMELI_PY.items():
         var = _py_modul(m)
         out.append({"ad": f"python: {m}", "zorunlu": False,
