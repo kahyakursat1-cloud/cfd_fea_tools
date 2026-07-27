@@ -170,3 +170,6 @@ regresyon_sonuc.json
 
 # ─── Kanit manifesti (uretilen indeks) ───
 kanit_manifest.json
+_duz_levha/
+_dl_old*/
+_duz_levha_eski*/

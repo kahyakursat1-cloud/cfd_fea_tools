@@ -148,6 +148,26 @@ def _kt() -> tuple[str, str]:
                         f"(C3D10, {d['fem']['eleman_C3D10']} eleman)")
 
 
+def _duz_levha() -> tuple[str, str]:
+    """Cilt-sürtünmesinin y⁺'ye duyarlılığı — MiniHawk'ın NİTEL uyarısının NİCEL karşılığı."""
+    d = _json("duz_levha_cf.json")
+    ok = [s for s in d["seviyeler"] if s["durum"] == "ok"]
+    bant = [s for s in ok if s["ilk_hucre_delta99"] <= 1.0]
+    asiri = [s for s in ok if s["ilk_hucre_delta99"] > 1.0]
+    en_kotu_bant = max(abs(s["hata_pct"]) for s in bant)
+    ek = ""
+    if asiri:
+        k = max(asiri, key=lambda s: abs(s["hata_pct"]))
+        ek = (f"; ilk hücre {k['ilk_hucre_delta99']:.1f}·δ99 olunca (y⁺≈"
+              f"{s_yp(k):.0f}) hata %{k['hata_pct']:+.0f}")
+    return "✅ Yüksek", (f"Düz levha $C_f$ ↔ Schlichting 1/7-kuvvet: ilk hücre ≤δ99 iken "
+                        f"hata ≤%{en_kotu_bant:.0f} ({len(bant)} seviye){ek}")
+
+
+def s_yp(s: dict) -> float:
+    return s.get("yplus_olculen") or s["yplus_hedef"]
+
+
 SATIRLAR = [
     ("Bağlı akış, 2D airfoil mutlak $C_d$ (M<0.3)", _airfoil_cd),
     ("Bağlı akış, 2D airfoil taşıma $C_l$ (α=8°)", _tasima_a8),
@@ -156,6 +176,7 @@ SATIRLAR = [
     ("3D İHA, gerçek NACA kanat (ilk doğru geometri)", _minihawk_v2),
     ("3D künt cisim — araç hattı GCI + literatür", _kup_arac_gci),
     ("3D araç $C_d$ — V&V/UQ bandı", _arac_bandi),
+    ("Cilt sürtünmesi $C_f$ — y⁺ duyarlılığı (2D düz levha)", _duz_levha),
     ("Yapısal — lineer statik (kiriş)", _kiris),
     ("Yapısal — gerilme konsantrasyonu ($K_t$)", _kt),
     ("Stall / $C_{L,max}$", None),

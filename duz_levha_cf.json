@@ -1,0 +1,125 @@
+{
+  "vaka": "Duz levha cilt-surtunmesi, y+ duyarliligi — U=30.0 m/s, L=1.0 m, olcum x=0.5 m (Re_x=1.00e+06)",
+  "kaynak": "OpenFOAM 11 foamRun/incompressibleFluid, kOmegaSST, 2D blockMesh",
+  "referans": {
+    "Cf": 0.003735,
+    "bagintisi": "Cf = 0.0592 Re_x^(-1/5) (1/7-kuvvet, Schlichting)",
+    "gecerlilik": "5e5 < Re_x < 1e7"
+  },
+  "delta99_mm": 11.67,
+  "seviyeler": [
+    {
+      "yplus_hedef": 1.0,
+      "yplus_olculen": 1.4966409504132232,
+      "Cf": 0.003622,
+      "Cf_ref": 0.003735,
+      "hata_pct": -3.04,
+      "ny": 70,
+      "iterasyon": 304,
+      "ilk_hucre_mm": 0.012,
+      "ilk_hucre_delta99": 0.001,
+      "durum": "ok"
+    },
+    {
+      "yplus_hedef": 5.0,
+      "yplus_olculen": 3.4615914049586776,
+      "Cf": 0.003446,
+      "Cf_ref": 0.003735,
+      "hata_pct": -7.74,
+      "ny": 70,
+      "iterasyon": 907,
+      "ilk_hucre_mm": 0.058,
+      "ilk_hucre_delta99": 0.005,
+      "durum": "ok"
+    },
+    {
+      "yplus_hedef": 15.0,
+      "durum": "yakinsamadi",
+      "iterasyon": 1500,
+      "ny": 70,
+      "neden": "SIMPLE residualControl'e ulasilmadi — Cf veri sayilmaz"
+    },
+    {
+      "yplus_hedef": 30.0,
+      "yplus_olculen": 16.1759826446281,
+      "Cf": 0.003632,
+      "Cf_ref": 0.003735,
+      "hata_pct": -2.78,
+      "ny": 70,
+      "iterasyon": 245,
+      "ilk_hucre_mm": 0.347,
+      "ilk_hucre_delta99": 0.03,
+      "durum": "ok"
+    },
+    {
+      "yplus_hedef": 60.0,
+      "yplus_olculen": 31.140153719008264,
+      "Cf": 0.003679,
+      "Cf_ref": 0.003735,
+      "hata_pct": -1.51,
+      "ny": 70,
+      "iterasyon": 136,
+      "ilk_hucre_mm": 0.694,
+      "ilk_hucre_delta99": 0.059,
+      "durum": "ok"
+    },
+    {
+      "yplus_hedef": 100.0,
+      "yplus_olculen": 50.561552892561984,
+      "Cf": 0.003626,
+      "Cf_ref": 0.003735,
+      "hata_pct": -2.94,
+      "ny": 70,
+      "iterasyon": 109,
+      "ilk_hucre_mm": 1.157,
+      "ilk_hucre_delta99": 0.099,
+      "durum": "ok"
+    },
+    {
+      "yplus_hedef": 200.0,
+      "durum": "yakinsamadi",
+      "iterasyon": 1500,
+      "ny": 70,
+      "neden": "SIMPLE residualControl'e ulasilmadi — Cf veri sayilmaz"
+    },
+    {
+      "yplus_hedef": 400.0,
+      "yplus_olculen": 181.7402256198347,
+      "Cf": 0.003525,
+      "Cf_ref": 0.003735,
+      "hata_pct": -5.63,
+      "ny": 48,
+      "iterasyon": 104,
+      "ilk_hucre_mm": 4.628,
+      "ilk_hucre_delta99": 0.396,
+      "durum": "ok"
+    },
+    {
+      "yplus_hedef": 1000.0,
+      "yplus_olculen": 404.3093801652892,
+      "Cf": 0.003646,
+      "Cf_ref": 0.003735,
+      "hata_pct": -2.38,
+      "ny": 19,
+      "iterasyon": 107,
+      "ilk_hucre_mm": 11.57,
+      "ilk_hucre_delta99": 0.991,
+      "durum": "ok"
+    },
+    {
+      "yplus_hedef": 3000.0,
+      "yplus_olculen": 863.871347107438,
+      "Cf": 0.00226,
+      "Cf_ref": 0.003735,
+      "hata_pct": -39.5,
+      "ny": 8,
+      "iterasyon": 101,
+      "ilk_hucre_mm": 34.709,
+      "ilk_hucre_delta99": 2.974,
+      "durum": "ok"
+    }
+  ],
+  "verdikt": "⚠️ y+ DUYARLI: 5/8 seviye %5 bandinda; en kotu y+=864 olcumunde Cf hatasi %-39.5. Duvar-fonksiyonu gecerlilik bandinda (30-300) 2/3 seviye %5 icinde — bandin disina cikildikca surtunme sistematik sapar.",
+  "_not": "Bu capa MiniHawk kampanyalarinin NITEL bulgusunu ('y+ yuksek, surtunme cozulmuyor') NICEL hale getirir: verilen y+'de Cf hatasi yuzde kac.",
+  "_uretim": "Üretim: python experiments/duz_levha_cf.py"
+}
