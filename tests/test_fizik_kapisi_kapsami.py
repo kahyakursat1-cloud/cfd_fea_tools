@@ -20,6 +20,7 @@ KAPI_ZORUNLU = [
     "run_aoa_polar.py",        # 3D stall polar (standalone)
     "transition_polar.py",     # 2D geçiş polar (standalone)
     "supersonic_cfd.py",       # süpersonik Cd (standalone)
+    "simulation_runner.py",    # eski-hızlı uçak hattı (Cd/Cl üretir)
 ]
 
 
@@ -43,3 +44,13 @@ def test_esikler_tek_kaynakta():
     tanim = [p.name for p in list(ROOT.glob("*.py")) + list((ROOT / "analysis").glob("*.py"))
              if "NONORTHO_LIMIT =" in p.read_text(encoding="utf-8")]
     assert tanim == ["thresholds.py"], f"eşik çoğaltılmış: {tanim}"
+
+
+def test_kuvvet_cikarim_hatasi_sessiz_degil():
+    """`simulation_runner`'da katsayı çıkarımı `except: pass` ile sarılıydı: forces
+    dosyası beklenen sütun düzeninde değilse Cd/Cl anahtarları HİÇ oluşmuyor, sonuç
+    sözlüğü "başarılı ama katsayısız" görünüyordu."""
+    src = (ROOT / "simulation_runner.py").read_text(encoding="utf-8")
+    assert "kuvvet_cikarim_hatasi" in src, "çıkarım hatası kaydedilmiyor"
+    i = src.index("kuvvet_cikarim_hatasi")
+    assert "URETILEMEDI" in src[i:i + 400], "ne üretilemediği söylenmeli"

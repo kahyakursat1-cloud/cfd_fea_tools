@@ -140,12 +140,15 @@ def _on_materials_updated(self):
 
 ### Tab Yapısı
 
+> NOT: aşağıdaki arayüz taslağı 2026-06 öncesine aittir; [Scanner] sekmesi
+> fotogrametri modülüyle birlikte KALDIRILDI (2026-06-10).
+
 ```
 ┌─────────────────────────────────────────────────┐
 │ Parametric Analysis Tool                        │
 ├─────────────────────────────────────────────────┤
 │ [Konfigürasyon] [Mesh] [Simülasyon] [Sonuçlar] │
-│ [Scanner] [🧪 Malzemeler] [⚙️ FEA]             │ ← NEW!
+│ [🧪 Malzemeler] [⚙️ FEA]                        │ ← NEW!
 ├─────────────────────────────────────────────────┤
 │                                                 │
 │  + Malzeme Ekle  | ✎ Düzenle  | ✕ Sil        │

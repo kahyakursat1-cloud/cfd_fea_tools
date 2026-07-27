@@ -55,5 +55,6 @@
     "not": "Kanat kutu iken Cd %30 YUKSEK ve y+ 8 kat buyuktu — geometri hatasinin olculen etkisi."
   },
   "_not": "ILK DOGRU-GEOMETRI KOSUSU. Yakinsama HALA GOSTERILEMEDI ve sebebi artik ACIKCA olculuyor: en ince boyut (5.83 mm) yuzey hucresinin 0.6 kati (hedef >=6). Kanadin kamburlugu cozulmuyor -> Cl=0.0074, oysa NACA2412 alpha=0 icin ~0.25 beklenir. Bu bir cozucu hatasi degil, MESH COZUNURLUK siniri: 1.5 m aciklikli domainde 0.25 m kordlu ince kanadi cozmek icin gereken hucre boyu (~1 mm) 100M+ hucre demektir. Bu donanimda snappy ile duvar-cozunur yol KAPALI. ORTA SEVIYE mesh kalite kapisinda reddedildi (checkMesh Failed 1) -> 3 yerine 2 seviye -> GCI degil vekil bant (+-%54.4).",
-  "_uretim": "Üretim: python vehicle_pipeline.py vehicle_runs/minihawk_v2.stl --tip ucak --hiz 15 --kalite hassas_nl --duyarlilik --seviyeler 3"
+  "_uretim": "Üretim: python vehicle_pipeline.py vehicle_runs/minihawk.stl --tip ucak --hiz 15 --kalite hassas_nl --duyarlilik --seviyeler 3",
+  "_geometri_notu": "Kosu sirasinda dosya adi minihawk_v2.stl idi; duzeltilmis uretec kalici hale gelince minihawk.stl AYNI geometriyle yeniden uretildi ve v2 kaldirildi (kutu-kanatli eski dosya artik diskte YOK)."
 }

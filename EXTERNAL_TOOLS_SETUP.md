@@ -236,7 +236,8 @@ python app_parametric.py
 3. ✅ CFD (OpenFOAM ile)
 4. ✅ FEA (CalculiX ile)
 5. ✅ Sonuçlar
-6. ✅ Scanner (open3d ile)
+6. ~~Scanner (open3d ile)~~ — **KALDIRILDI** (fotogrametri modülü 2026-06-10'da
+   çıkarıldı; görüntü-işleme katmanı `../goruntu_isleme/`'ye taşındı)
 
 ---
 

@@ -554,8 +554,19 @@ writeObj yes;
                         results["Cl"] = round(lift / (q * S), 4)
                         results["Cm"] = round((Mpy + Mvy) / (q * S * c), 6)
                         results["L_D_ratio"] = round(lift / drag, 2) if drag > 0 else None
-                    except (IndexError, ValueError):
-                        pass
+                        # FIZIK KAPISI: bu yol da Cd/Cl uretiyor; hukumsuz sayi
+                        # birakmamak icin arac hattiyla ayni kapidan gecirilir.
+                        from validity_envelope import force_admissibility
+                        results["fizik_kabul"] = force_admissibility(
+                            results["Cd"], results["Cl"], results["alpha_deg"])
+                    except (IndexError, ValueError) as _e:
+                        # SESSIZ ATLAMA YOK: format degisirse Cd/Cl anahtarlari hic
+                        # olusmuyordu ve cagiran NEDENINI bilemiyordu — sonuc sozlugu
+                        # "basarili ama katsayisiz" gorunuyordu.
+                        results["kuvvet_cikarim_hatasi"] = (
+                            f"{type(_e).__name__}: {_e} — forces dosyasi beklenen "
+                            f"sutun duzeninde degil ({len(nums)} sayi okundu); "
+                            "Cd/Cl/Cm URETILEMEDI")
 
             results["mass_properties"] = job.aircraft.mass_properties()
             return results
