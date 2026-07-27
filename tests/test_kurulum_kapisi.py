@@ -314,17 +314,22 @@ def test_min_ozellik_yigin_kalinliktan_ayri_olculur():
     assert g["min_ozellik_m"] * 1000 < 6.0, "firar kenarı yakalanmadı"
 
 
-def test_katman_yapilabilirlik_kapisi_kaynakta():
-    """En ince özellik yüzey hücresinden küçükse katman ÖRÜLEMEZ — çözücüden önce söyle."""
+def test_katman_yapilabilirlik_kapisi_COZUCUDEN_ONCE():
+    """Kapının tüm değeri zamanlamada: çözücüden SONRA çalışırsa 40 dakika zaten
+    harcanmış olur. İlk yazımda yanlışlıkla sonraya konmuştu (satır 209 vs run_cfd 79)."""
     import inspect
 
     import vehicle_pipeline
     src = inspect.getsource(vehicle_pipeline.run_vehicle_analysis)
     assert "KATMAN YAPILAMAZ" in src
-    i = src.index("KATMAN YAPILAMAZ")
-    kosul = src[max(0, i - 350):i]
+    i_kapi = src.index("KATMAN YAPILAMAZ")
+    i_cozucu = src.index("res = run_cfd(")
+    assert i_kapi < i_cozucu, "kapı çözücüden SONRA — koşu zaten boşa gitmiş olur"
+    kosul = src[max(0, i_kapi - 400):i_kapi]
     assert "n_layers > 0" in kosul and "_min_oz < _surf" in kosul
-    assert "hassas_nl" in src[i:i + 600], "kabul edilebilir alternatif gösterilmeli"
+    assert "hassas_nl" in src[i_kapi:i_kapi + 700], "kabul edilebilir alternatif gösterilmeli"
+    # kurulum uyarilarina yazilmali ki raporun EN USTUNDE ciksin
+    assert "kurulum_uyarilari.append" in src[i_kapi - 400:i_kapi + 700]
 
 
 def test_olcum_kaynagi_basarida_da_kaydedilir():

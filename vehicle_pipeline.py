@@ -748,6 +748,23 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         ground_clearance=ground_clearance,
         refinement_regions=refinement_regions,
     )
+    # KATMAN YAPILABİLİRLİĞİ — ÇÖZÜCÜDEN ÖNCE (case kuruldu, henüz koşmadı). En ince
+    # özellik (firar kenarı) yüzey hücresinden küçükse snappy o bölgeyi çözemez ve
+    # üzerine katman HİÇ öremez. MiniHawk'ta ölçüldü: 12 katman istendi, mesh katmansız
+    # koşuyla birebir aynı çıktı — bu 40 dakika sonra keşfedildi, artık başta söyleniyor.
+    _min_oz = geo.get("min_ozellik_m")
+    if n_layers > 0 and _min_oz:
+        _surf = (geo["lmax_m"] / q["bg_div"]) / (2 ** case.refinement_max)
+        if _min_oz < _surf:
+            _m = (f"KATMAN YAPILAMAZ: en ince özellik {_min_oz * 1000:.2f} mm, yüzey "
+                  f"hücresi {_surf * 1000:.1f} mm — özellik hücrenin {_min_oz / _surf:.2f} "
+                  f"katı. snappyHexMesh bu bölgeyi çözemez, {n_layers} prizma katmanı "
+                  "örülemez (mesh katmansızla aynı çıkar). Ya yüzey seviyesini artırın "
+                  "(maliyet üstel) ya geometriyi künt yapın ya da duvar-fonksiyonlu yolu "
+                  "kabul edin (--kalite hassas_nl)")
+            kurulum_uyarilari.append(_m)
+            if progress_cb:
+                progress_cb(4, f"⚠ KURULUM: {_m}")
     res = run_cfd(case, run_dir, progress_callback=progress_cb)
     case_dir = res.case_dir
 
@@ -869,20 +886,6 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     thin = geo.get("ince_kalinlik_m") or min(geo["boyutlar_m"])
     rw = resolution_warning(geo["lmax_m"], q["bg_div"], case.refinement_max, thin,
                             olculdu=bool((geo.get("ince_kalinlik_olculdu") or {}).get("olculdu")))
-    # KATMAN YAPILABİLİRLİĞİ — çözücüden ÖNCE. En ince özellik (firar kenarı) yüzey
-    # hücresinden küçükse snappy o bölgeyi çözemez, üzerine katman hiç öremez.
-    # MiniHawk'ta ölçüldü: TE ≈ 1.6 mm, yüzey hücresi 10.4 mm → 0.15 hücre; 12 katman
-    # istendi ve mesh katmansızla birebir aynı çıktı.
-    _min_oz = geo.get("min_ozellik_m")
-    if n_layers > 0 and _min_oz:
-        _surf = (geo["lmax_m"] / q["bg_div"]) / (2 ** case.refinement_max)
-        if _min_oz < _surf:
-            uyarilar.append(
-                f"KATMAN YAPILAMAZ: en ince özellik {_min_oz * 1000:.1f} mm, yüzey hücresi "
-                f"{_surf * 1000:.1f} mm — özellik hücrenin {_min_oz / _surf:.2f} katı. "
-                f"snappyHexMesh bu bölgeyi çözemez, {n_layers} prizma katmanı örülemez. "
-                "Ya yüzey seviyesini artırın (maliyet üstel) ya geometriyi künt yapın "
-                "ya da duvar-fonksiyonlu yolu kabul edin (--kalite hassas_nl)")
     if rw:
         uyarilar.append(rw)
     # Mesh-kalite uyarısı (reject zaten run_cfd'de elendi; warn-seviyesini yüzeye çıkar)
