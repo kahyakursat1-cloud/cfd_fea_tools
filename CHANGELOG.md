@@ -4,6 +4,29 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-07-27f] fix+test | STL dokuntu temizligi + NACA profili literature karsi dogrulandi
+
+STL DOKUNTUSU: uretilen MiniHawk 99 AYRIK GOVDEDEN olusuyordu — govde, kanat ve
+**96 adet tek-ucgenlik dokuntu**. Toplam yuzey alanina katkilari %0.0000 (sifir-alanli
+dejenere ucgenler) ama STL'i su-gecirmez olmaktan cikarip snappyHexMesh'in onlara
+yapismasina yol aciyorlardi; pipeline HER KOSUDA "STL su gecirmez degil" uyarisi
+veriyordu ve sebebi bilinmiyordu. `_dokuntu_temizle` oransal esikle (toplam alanin
+1e-6 kati) atiyor: 3292 -> 3196 ucgen, alan BIREBIR ayni (1.3812).
+(Kalan su-gecirmezlik sorunu ayri ve daha derin: gercek govdelerden biri acik.)
+
+NACA PROFILI ILK KEZ DOGRULANDI: `_naca4_profile` uçak geometrisinin KAYNAGI ama hic
+test edilmemisti (mesh_generator %9 kapsam). Abbott & von Doenhoff NACA0012 ordinatlarina
+karsi en kotu sapma %0.37, cogu nokta <%0.1. Ayrica: simetrik profilde alt yuzey ustun
+aynasi, maks kalinlik x/c=0.30'da, NACA2412 kamburlugu %2 ve x/c=0.4'te, acik TE
+0.25%c (prizma katmaninin orulememesinin geometrik sebebi).
+Kambur profilde ust yuzeyin hucum kenarini hafifce sarmasi (x biraz negatif) DOGRU NACA
+davranisi olarak belgelendi.
+
+Katman yapilabilirlik kapisi simetri testiyle tamamlandi: ince kanat 0.11x (orulemez),
+kunt kutu 28.8x (mumkun) — kapi hem kapaniyor hem aciliyor.
+
+Testler: 413 -> 424. mesh_generator kapsam %9 -> %14.
+
 ## [2026-07-27e] fix | rtree kuruldu: cozunurluk oranlari YANLISTI, MiniHawk kayitlari duzeltildi
 
 rtree kurulunca et-kalinligi GERCEKTEN olculuyor ve onceki turda bildirdigim oranlarin

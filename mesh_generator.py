@@ -134,6 +134,32 @@ print("VSP_STL_OK:" + p['output'])
 # MESH GENERATOR
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _dokuntu_temizle(m, alan_esigi: float = 1e-6):
+    """Ayrık DÖKÜNTÜ parçalarını at (dejenere/sıfır-alanlı üçgenler).
+
+    Ölçüldü (MiniHawk, 2026-07-27): üretilen STL 99 ayrık gövdeden oluşuyordu —
+    gövde, kanat ve **96 adet tek-üçgenlik döküntü**. Toplam yüzey alanına katkıları
+    %0.0000 (sıfır-alanlı), ama STL'i su-geçirmez olmaktan çıkarıp snappyHexMesh'in
+    onlara yapışmasına yol açıyorlardı; pipeline her koşuda "STL su geçirmez değil"
+    uyarısı veriyordu ve sebebi bilinmiyordu.
+
+    Eşik ORANSAL: toplam alanın `alan_esigi` katından küçük parça atılır — mutlak
+    boyut varsayımı yapmaz (0.1 m'lik İHA ile 30 m'lik kanat aynı kuralla temizlenir).
+    """
+    import trimesh
+    try:
+        parcalar = m.split(only_watertight=False)
+    except Exception:
+        return m
+    if len(parcalar) <= 1:
+        return m
+    toplam = float(m.area) or 1.0
+    saglam = [p for p in parcalar if float(p.area) / toplam > alan_esigi]
+    if not saglam or len(saglam) == len(parcalar):
+        return m
+    return trimesh.util.concatenate(saglam) if len(saglam) > 1 else saglam[0]
+
+
 class MeshGenerator:
     """OpenFOAM uyumlu mesh oluştur"""
 
@@ -446,6 +472,7 @@ class MeshGenerator:
 
         # Son temizlik
         trimesh.repair.fix_normals(combined)
+        combined = _dokuntu_temizle(combined)
         combined.export(str(output_path))
         return str(output_path)
 

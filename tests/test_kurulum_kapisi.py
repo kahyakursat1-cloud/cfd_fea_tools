@@ -335,3 +335,24 @@ def test_olcum_kaynagi_basarida_da_kaydedilir():
     estimate_thin_thickness(trimesh.creation.box(extents=[1, 1, 0.1]))
     k = kalinlik_olculdu_mu()
     assert k["olculdu"] and "ray ölçümü" in k["neden"]
+
+
+def test_katman_kapisi_hem_kapaniyor_hem_aciliyor(tmp_path):
+    """Kapının değeri simetride: uygun geometride SUSMALI. Ölçüldü —
+    ince kanat 0.11× (örülemez), künt kutu 28.8× (mümkün)."""
+    trimesh = pytest.importorskip("trimesh")
+    pytest.importorskip("rtree")
+    from vehicle_pipeline import MESH_QUALITY, VEHICLE_PRESETS, inspect_geometry
+
+    q = MESH_QUALITY["hassas"]
+    rm = VEHICLE_PRESETS["ucak"]["refinement"][1] + q["ref_bump"]
+
+    def _oran(m):
+        p = tmp_path / "g.stl"
+        m.export(p)
+        g = inspect_geometry(p)
+        surf = (g["lmax_m"] / q["bg_div"]) / (2 ** rm)
+        return g["min_ozellik_m"] / surf
+
+    assert _oran(trimesh.creation.box(extents=[1.5, 0.4, 0.3])) > 1.0, \
+        "künt gövdede katman mümkün olmalı — kapı yanlış alarm veriyor"
