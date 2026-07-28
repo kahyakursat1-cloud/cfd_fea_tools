@@ -352,6 +352,56 @@ def _radial_solidity(m: trimesh.Trimesh) -> float:
     return round(min(sil / hull, 1.0), 4) if hull > 1e-12 else 1.0
 
 
+DONEL_KATLAR = (3, 4, 5, 6, 8)
+# 2-kat KASITLI dışarıda: uçağın üst-görünümü de 180°'de büyük ölçüde örtüşür, o yüzden
+# 2-kat simetri "radyal çok-rotorlu" ile "kanatlı"yı ayırmaz. 3+ kat radyal topolojiye özgü.
+
+
+def _donel_simetri(m: trimesh.Trimesh) -> float | None:
+    """Üst-görünüm siluetinin en iyi DÖNEL SİMETRİSİ (IoU) — multikopter↔kanat ayırıcısı.
+
+    Siluet, ağırlık merkezi etrafında 360/k derece döndürülüp orijinaliyle kesişim/
+    birleşim alanı alınır; k ∈ DONEL_KATLAR üzerinden EN İYİSİ döner. Quadcopter k=4'te,
+    tri-kopter k=3'te, hexa k=6'da kendine oturur (≈1.0); uçağın kanadı bir yöne gövdesi
+    diğerine uzandığı için hiçbir katta oturmaz (≈0.3); roket en düşük (≈0.05).
+
+    Yalnız 90° bakan ilk sürüm YETERSİZDİ ve bunu ayrı NX EĞİTİM ailesi yakaladı:
+    tri-kopter 0.08, hexa-kopter 0.15 ölçüldü (90°, 120° ve 60° simetriyi görmez).
+    Test ailesinde yalnız 4-kollu quad vardı, orada kusursuz görünüyordu.
+
+    NEDEN GEREKLİ: kuralın multikopter dalı H/L ≥ 0.3 istiyordu ve bilinen 33
+    multikopterin hepsi ≤ 0.28 olduğu için DAL HİÇ ATEŞLENMİYORDU. Eşiği gevşetmek
+    denendi ve GERİLEDİ (ayrık NX setinde kural doğruluğu %51.2 → %34.1), çünkü
+    mevcut ayırt edici olan radyal doluluk multikopter (0.25–0.39) ile uçağı
+    (0.34–0.42) ayırmıyor. Ayıran şey yassılık değil DÖNEL SİMETRİ.
+
+    Döner None: siluet çıkarılamadı (su-geçirmez olmayan/bozuk geometri) — çağıran
+    bunu "bilinmiyor" saymalı, 0 ya da 1 varsaymamalı.
+    """
+    try:
+        from shapely import affinity
+        from trimesh.path import polygons as _tp
+    except Exception:
+        return None
+    try:
+        ext = m.bounds[1] - m.bounds[0]
+        normal = [0.0, 0.0, 0.0]
+        normal[int(np.argmin(ext))] = 1.0        # _radial_solidity ile aynı "üst" tanımı
+        poly = _tp.projected(m, normal=normal)
+        if poly is None or poly.is_empty or poly.area <= 0:
+            return None
+        merkez = poly.centroid
+        en_iyi = 0.0
+        for kat in DONEL_KATLAR:
+            dondurulmus = affinity.rotate(poly, 360.0 / kat, origin=merkez)
+            birlesim = poly.union(dondurulmus).area
+            if birlesim > 0:
+                en_iyi = max(en_iyi, poly.intersection(dondurulmus).area / birlesim)
+        return round(en_iyi, 4)
+    except Exception:
+        return None
+
+
 def _fasetli_egrilik_orani(m: trimesh.Trimesh, alt: float = 1.0, ust: float = 30.0) -> float:
     """ARA açılı (1°–30°) komşu yüz oranı — geometride EĞRİLİK var mı?
 
@@ -403,6 +453,7 @@ def inspect_geometry(stl_path: Path) -> dict:
         "keskin_kenar_orani": _keskin_kenar_orani(m),    # ayrılma geometrik mi geçiş-güdümlü mü
         "fasetli_egrilik_orani": _fasetli_egrilik_orani(m),  # geometride eğrilik var mı
         "radyal_doluluk": _radial_solidity(m),           # spoke↔sürekli (multikopter ayrımı)
+        "donel_simetri": _donel_simetri(m),              # 90° dönel simetri (kopter↔kanat)
     }
 
 

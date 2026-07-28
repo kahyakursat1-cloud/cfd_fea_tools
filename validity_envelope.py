@@ -49,6 +49,8 @@ OLCEK_KUCUK_M = 0.005     # altı: m yerine mm girilmiş küçük parça şüphe
 
 
 KESKIN_KENAR_ESIGI = 0.02   # altı: pürüzsüz gövde (küre/kapsül 0.00; küp 0.67, silindir 0.33)
+EKSEN_ORAN_ESIGI = 1.5      # frontal/en-küçük izdüşüm; küp 1.0 (yanlış alarm vermez),
+                            # Z-hizalı roket 12.1 (NX testinde ölçüldü)
 
 
 def geometry_sanity(geo: dict, vehicle_type: str = "genel",
@@ -85,12 +87,23 @@ def geometry_sanity(geo: dict, vehicle_type: str = "genel",
             u.append(f"Re = {re:.1e} < 1e4 — türbülanslı RANS varsayımı zayıf "
                      "(laminer/geçiş rejimi); ölçek veya hız gözden geçirilmeli")
 
-    # Eksen: akış-yönlü araçta frontal izdüşüm en KÜÇÜK olmalı
-    izd = {"frontal": on, "yan": yan, "üstten": plan}
-    if on > 0 and max(izd.values()) == on and vehicle_type in ("ucak", "roket"):
-        u.append(f"EKSEN ŞÜPHESİ: frontal izdüşüm ({on:.4g} m²) üç izdüşümün en büyüğü — "
-                 f"yan {yan:.4g}, üstten {plan:.4g}. Akış-yönlü araçta frontal EN KÜÇÜK "
-                 "olmalıdır; --burun/--ust eksenleri yanlış olabilir")
+    # Eksen: akış-yönlü araçta frontal izdüşüm en KÜÇÜK olmalı.
+    #
+    # Bu kontrol ÖNCE yalnız tip ∈ {ucak, roket} için çalışıyordu — ama yanlış eksen
+    # zaten TİPİ yanlış yapan şeydir. NX test setinde ölçüldü: Z ekseninde modellenmiş
+    # bir roket (CAD'de en yaygın yönelim) sınıflandırıcıya 'genel' göründü ve kapı bu
+    # yüzden sessiz kaldı; oysa A_ref 0.0113 yerine 0.1368 m² alınıyordu — Cd'de 12×
+    # hata. Kapı, korumakla yükümlü olduğu değere bağımlı olamaz: artık tipten bağımsız.
+    en_kucuk_diger = min(x for x in (yan, plan) if x > 0) if (yan > 0 or plan > 0) else 0.0
+    if on > 0 and en_kucuk_diger > 0 and on > max(yan, plan) * 0.999:
+        oran = on / en_kucuk_diger
+        if oran >= EKSEN_ORAN_ESIGI:
+            u.append(f"EKSEN ŞÜPHESİ: frontal izdüşüm ({on:.4g} m²) üç izdüşümün en "
+                     f"büyüğü ve en küçüğünün {oran:.1f}× katı — yan {yan:.4g}, üstten "
+                     f"{plan:.4g}. Akış-yönlü araçta frontal EN KÜÇÜK olmalıdır; model "
+                     "büyük olasılıkla akış eksenine dik duruyor (CAD'de Z-uzun yönelim "
+                     f"yaygındır). A_ref bu yüzden ~{oran:.0f}× büyük alınır ve Cd aynı "
+                     "oranda yanlış çıkar; --burun/--ust eksenlerini kontrol edin")
 
     # Referans alan ↔ araç tipi tutarlılığı
     if vehicle_type == "ucak" and on > 0 and plan / on < 2.0:

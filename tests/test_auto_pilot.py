@@ -10,35 +10,39 @@ import auto_pilot as ap
 def empty_lib(tmp_path, monkeypatch):
     """Öğrenme kütüphanesini boş izole et → KURAL sınıflandırması deterministik test edilir
     (canlı-birikmiş kütüphaneye bağımlı olmasın; öğrenilen-override ayrı testlerde)."""
-    monkeypatch.setattr(ap, "SEED", tmp_path / "s.jsonl")
-    monkeypatch.setattr(ap, "REAL_SEED", tmp_path / "r.jsonl")
-    monkeypatch.setattr(ap, "MEMORY", tmp_path / "m.jsonl")
+    _izole(tmp_path, monkeypatch)
 
 
-def _geo(L, W, H, planform=None, frontal=None, bodies=1, faces=5000, sol=1.0):
+def _izole(tmp_path, monkeypatch):
+    """TÜM kütüphane kaynaklarını boşa yönlendir — listeyi auto_pilot'tan okur ki
+    yeni bir kaynak eklendiğinde izolasyon sessizce delinmesin (NX_SEED'de oldu)."""
+    for ad in ap.KAYNAK_ADLARI:
+        monkeypatch.setattr(ap, ad, tmp_path / f"{ad.lower()}.jsonl")
+
+
+def _geo(L, W, H, planform=None, frontal=None, bodies=1, faces=5000, sol=1.0, sim=0.0):
     fr = frontal if frontal is not None else math.pi * (min(W, H) / 2) ** 2
     pf = planform if planform is not None else L * W
     return {"boyutlar_m": [L, W, H], "lmax_m": max(L, W, H),
             "on_alan_m2": fr, "planform_alan_m2": pf, "radyal_doluluk": sol,
-            "govde_sayisi": bodies, "ucgen_sayisi": faces, "su_gecirmez": True}
+            "govde_sayisi": bodies, "ucgen_sayisi": faces, "su_gecirmez": True,
+            "donel_simetri": sim}
 
 
 def test_radial_solidity_separates_multikopter(empty_lib):
     # RADYAL-SİMETRİ: kompakt+geniş cisim, DÜŞÜK solidity (spoke-kollu) → multikopter
     # (bodies=1 olsa bile — sentetik bağlı-kollu modelde govde dejenere); YÜKSEK → değil
-    mk = _geo(0.4, 0.38, 0.15, frontal=0.05, bodies=1, sol=0.25)
+    mk = _geo(0.4, 0.38, 0.15, frontal=0.05, bodies=1, sol=0.25, sim=0.98)
     assert ap.classify_vehicle(mk)["tip"] == "multikopter"
     # aynı bbox ama SÜREKLİ yüzey (yüksek solidity) → multikopter DEĞİL (küt/genel)
-    blunt = _geo(0.4, 0.38, 0.15, frontal=0.05, bodies=1, sol=0.95)
+    blunt = _geo(0.4, 0.38, 0.15, frontal=0.05, bodies=1, sol=0.95, sim=0.98)
     assert ap.classify_vehicle(blunt)["tip"] != "multikopter"
 
 
 def test_solidity_veto_blocks_wrong_multikopter(monkeypatch, tmp_path):
     # FİZİK-VETO: öğrenilen kütüphane 'multikopter' dese de SÜREKLİ yüzey (yüksek solidity)
     # multikopter OLAMAZ → override engellenir (eski-anchor solidity taşımasa bile)
-    monkeypatch.setattr(ap, "SEED", tmp_path / "s.jsonl")
-    monkeypatch.setattr(ap, "REAL_SEED", tmp_path / "r.jsonl")
-    monkeypatch.setattr(ap, "MEMORY", tmp_path / "m.jsonl")
+    _izole(tmp_path, monkeypatch)
     m = {"L_D": 7, "W_L": 0.5, "H_L": 0.03, "H_W": 0.07, "govde": 1}   # kanat metriği
     for _ in range(10):
         ap.record_case(m, "multikopter", "multikopter", {"Cd_toplam": 0.3})
@@ -62,7 +66,7 @@ def test_classify_cube_is_generic(empty_lib):
 
 
 def test_classify_multikopter(empty_lib):
-    g = _geo(0.4, 0.38, 0.12, frontal=0.05, bodies=5)   # kompakt + çok kol
+    g = _geo(0.4, 0.38, 0.12, frontal=0.05, bodies=5, sol=0.3, sim=0.95)  # radyal + çok kol
     assert ap.classify_vehicle(g)["tip"] == "multikopter"
 
 
@@ -131,7 +135,7 @@ def test_planform_frontal_in_features():
                       "planform_frontal": 2.7, "govde": 1})
     b = ap._features({"L_D": 2.2, "W_L": 0.7, "H_L": 0.25, "H_W": 0.4,
                       "planform_frontal": 4.0, "govde": 1})
-    assert a != b and len(a) == 8           # pf farkı vektörü değiştirir
+    assert a != b and len(a) == 9           # pf farkı vektörü değiştirir
 
 
 def test_thin_flatness_in_features():
@@ -142,13 +146,11 @@ def test_thin_flatness_in_features():
     body = ap._features({**base, "ince_yassilik": 0.45})
     assert wing != body
     # eksik (None) → güvenli varsayılan (küt=1.0), çökmez
-    assert len(ap._features({**base, "ince_yassilik": None})) == 8
+    assert len(ap._features({**base, "ince_yassilik": None})) == 9
 
 
 def test_learned_vote_knn(tmp_path, monkeypatch):
-    monkeypatch.setattr(ap, "SEED", tmp_path / "seed.jsonl")
-    monkeypatch.setattr(ap, "REAL_SEED", tmp_path / "real.jsonl")
-    monkeypatch.setattr(ap, "MEMORY", tmp_path / "mem.jsonl")
+    _izole(tmp_path, monkeypatch)
     assert ap.learned_vote({"L_D": 11, "W_L": 0.06, "H_L": 0.05, "H_W": 1.0}) is None
     for _ in range(10):
         ap.record_case({"L_D": 12, "W_L": 0.05, "H_L": 0.05, "H_W": 1.0, "govde": 1},
@@ -159,9 +161,7 @@ def test_learned_vote_knn(tmp_path, monkeypatch):
 
 def test_learned_overrides_rule(tmp_path, monkeypatch):
     # kural 'genel' der ama kütüphane güçlü 'multikopter' derse öğrenilen kazanır
-    monkeypatch.setattr(ap, "SEED", tmp_path / "seed.jsonl")
-    monkeypatch.setattr(ap, "REAL_SEED", tmp_path / "real.jsonl")
-    monkeypatch.setattr(ap, "MEMORY", tmp_path / "mem.jsonl")
+    _izole(tmp_path, monkeypatch)
     m = {"L_D": 1.2, "W_L": 0.7, "H_L": 0.25, "H_W": 0.35, "govde": 1}
     for _ in range(10):
         ap.record_case(m, "genel", "multikopter", {"Cd_toplam": 0.9})
@@ -173,9 +173,7 @@ def test_learned_overrides_rule(tmp_path, monkeypatch):
 
 def test_referee_gate_blocks_bad_cd(tmp_path, monkeypatch):
     # hakem-kapısı: zayıf yakınsama / fiziksel-olmayan / aykırı Cd temiz çapa OLMAZ
-    monkeypatch.setattr(ap, "SEED", tmp_path / "seed.jsonl")
-    monkeypatch.setattr(ap, "REAL_SEED", tmp_path / "real.jsonl")
-    monkeypatch.setattr(ap, "MEMORY", tmp_path / "mem.jsonl")
+    _izole(tmp_path, monkeypatch)
     m = {"L_D": 12, "W_L": 0.05, "H_L": 0.05, "H_W": 1.0, "govde": 1}
     # temiz koşu → güvenilir çapa
     g_ok = ap.record_case(m, "roket", "roket", {"Cd_toplam": 0.22, "Cd_drift_pct": 1.0})
@@ -194,9 +192,7 @@ def test_referee_gate_blocks_bad_cd(tmp_path, monkeypatch):
 
 def test_cd_predict_declines_thin_data(tmp_path, monkeypatch):
     # Geometri-farkında Cd-tahmini: <min_support vaka → şeffaf REDDET (sahte güven yok)
-    monkeypatch.setattr(ap, "SEED", tmp_path / "seed.jsonl")
-    monkeypatch.setattr(ap, "REAL_SEED", tmp_path / "real.jsonl")
-    monkeypatch.setattr(ap, "MEMORY", tmp_path / "mem.jsonl")
+    _izole(tmp_path, monkeypatch)
     m = {"L_D": 8, "W_L": 0.1, "H_L": 0.1, "H_W": 1.0, "govde": 1}
     for _ in range(3):                       # 3 < min_support(5)
         ap.record_case(m, "roket", "roket", {"Cd_toplam": 0.4, "Cd_drift_pct": 1.0})
@@ -204,9 +200,7 @@ def test_cd_predict_declines_thin_data(tmp_path, monkeypatch):
 
 
 def test_cd_predict_and_prior_check(tmp_path, monkeypatch):
-    monkeypatch.setattr(ap, "SEED", tmp_path / "seed.jsonl")
-    monkeypatch.setattr(ap, "REAL_SEED", tmp_path / "real.jsonl")
-    monkeypatch.setattr(ap, "MEMORY", tmp_path / "mem.jsonl")
+    _izole(tmp_path, monkeypatch)
     for i in range(8):                       # 8 benzer roket, Cd≈0.40–0.47
         m = {"L_D": 8 + i * 0.1, "W_L": 0.08, "H_L": 0.08, "H_W": 1.0, "govde": 1}
         ap.record_case(m, "roket", "roket", {"Cd_toplam": 0.40 + 0.01 * i, "Cd_drift_pct": 1.0})
@@ -219,9 +213,7 @@ def test_cd_predict_and_prior_check(tmp_path, monkeypatch):
 
 
 def test_cd_outlier_flags_anomaly(tmp_path, monkeypatch):
-    monkeypatch.setattr(ap, "SEED", tmp_path / "seed.jsonl")
-    monkeypatch.setattr(ap, "REAL_SEED", tmp_path / "real.jsonl")
-    monkeypatch.setattr(ap, "MEMORY", tmp_path / "mem.jsonl")
+    _izole(tmp_path, monkeypatch)
     for _ in range(6):
         ap.record_case({"L_D": 12, "W_L": 0.05, "H_L": 0.05, "H_W": 1.0, "govde": 1},
                        "roket", "roket", {"Cd_toplam": 0.2})
@@ -234,3 +226,16 @@ def test_runtime_band():
     assert "uzun" in ap._runtime_band("supersonic", "hizli", 2.0)
     assert ap._runtime_band("subsonic", "hizli", 0.6) == "hızlı (<15 dk)"
     assert "uzun" in ap._runtime_band("subsonic", "hassas", 0.3)   # hassas → ağır
+
+
+def test_izolasyon_tum_kaynaklari_kapsiyor(tmp_path, monkeypatch):
+    """NX_SEED eklendiğinde izolasyon fixture'ı SESSİZCE delindi: kaynak listesi hem
+    _load_cases'te hem testte ayrı ayrı yazılıydı, biri güncellenip diğeri kalınca
+    'boş kütüphane' bekleyen testler 29 kayıt gördü. Artık tek kaynak KAYNAK_ADLARI;
+    bu test onun _load_cases tarafından gerçekten kullanıldığını bağlar."""
+    import inspect
+    assert "KAYNAK_ADLARI" in inspect.getsource(ap._load_cases)
+    _izole(tmp_path, monkeypatch)
+    assert ap._load_cases() == [], "izolasyona rağmen kütüphane boş değil"
+    for ad in ap.KAYNAK_ADLARI:
+        assert getattr(ap, ad).parent == tmp_path, f"{ad} izole edilmedi"

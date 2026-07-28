@@ -164,6 +164,16 @@ def _duz_levha() -> tuple[str, str]:
                         f"hata ≤%{en_kotu_bant:.0f} ({len(bant)} seviye){ek}")
 
 
+def _siniflandirici() -> tuple[str, str]:
+    """Araç tipi sınıflandırması — AYRIK NX setinde ölçülen genelleme."""
+    d = _json("nx_siniflandirici.json")["ozet"]
+    guv = "✅ Yüksek" if d["preset_dogruluk"] >= 0.9 else "⚠️ Orta"
+    return guv, (f"NX ayrık test seti ({d['adet']} geometri): analiz ayarını belirleyen "
+                 f"preset doğruluğu %{d['preset_dogruluk'] * 100:.0f}, ince tip "
+                 f"%{d['son_ince_dogruluk'] * 100:.0f}; kural tek başına "
+                 f"%{d['kural_kaba_dogruluk'] * 100:.0f} — öğrenilen kNN taşıyor")
+
+
 def s_yp(s: dict) -> float:
     return s.get("yplus_olculen") or s["yplus_hedef"]
 
@@ -177,6 +187,7 @@ SATIRLAR = [
     ("3D künt cisim — araç hattı GCI + literatür", _kup_arac_gci),
     ("3D araç $C_d$ — V&V/UQ bandı", _arac_bandi),
     ("Cilt sürtünmesi $C_f$ — y⁺ duyarlılığı (2D düz levha)", _duz_levha),
+    ("Araç tipi sınıflandırma (geometri → analiz ayarı)", _siniflandirici),
     ("Yapısal — lineer statik (kiriş)", _kiris),
     ("Yapısal — gerilme konsantrasyonu ($K_t$)", _kt),
     ("Stall / $C_{L,max}$", None),

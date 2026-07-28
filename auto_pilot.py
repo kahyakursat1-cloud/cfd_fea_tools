@@ -23,8 +23,26 @@ SEED = Path(__file__).parent / "auto_pilot_seed.jsonl"
 # REAL_SEED: internetten indirilen gerçek CAD modellerinin hakem-etiketli
 # metrikleri (gerçek-dünya oranları; sentetik idealize plakaların açığını kapatır).
 REAL_SEED = Path(__file__).parent / "auto_pilot_real_seed.jsonl"
+# NX_SEED: NX'te parametrik üretilmiş, etiketi inşa anında bilinen EĞİTİM ailesi.
+# Varlık sebebi: eski 241 kaydın hiçbirinde `donel_simetri` yok, bu yüzden kNN gerçek
+# bir multikopterin yanına komşu bulamıyordu. AYRIK test ailesi buraya GİRMEZ.
+NX_SEED = Path(__file__).parent / "auto_pilot_nx_seed.jsonl"
 MEMORY = Path(__file__).parent / "auto_pilot_memory.jsonl"
 MIN_CASES = 8        # bu sayıdan az onaylı vaka varken yalnız kural-tabanlı
+# Multikopter dalı ÖNCE H/L ≥ 0.30 istiyordu ve bu ULAŞILAMAZ bir eşikti: bilinen 33
+# multikopterin hepsinde H/L ≤ 0.28 (medyan 0.13). Ateşlenen 24 vakanın 23'ü 'genel'di —
+# dal ters çalışıyordu. Eşiği gevşetmek DENENDİ ve GERİLEDİ (ayrık NX setinde kural
+# doğruluğu %51.2 → %34.1), çünkü radyal doluluk multikopter (0.25-0.39) ile uçağı
+# (0.34-0.42) ayırmıyor. Ayıran şey yassılık değil DÖNEL SİMETRİ: çok-rotorlu gövde
+# üstten 360/k derece dönünce kendine oturur, kanatlı araç oturmaz.
+# Eşikler AYRI NX EĞİTİM ailesinde kalibre edildi (test setine bakılmadan):
+#   multikopter simetri 0.52-1.00 / doluluk 0.21-0.28  (n=5)
+#   en yakın yabancı: tilt_rotor simetri 0.46          → yanlış ateşleme 0/24
+# 0.55 seçildi (0.50 değil): yanlış 'multikopter' hükmü yanlış preset ve yanlış A_ref
+# demektir; kaçırılan multikopter ise kNN'e düşer. Marj dar (0.46 ↔ 0.52) ve eğitim
+# örneği az (5) — bu dal kesin değil, kNN'i DESTEKLER.
+MULTIKOPTER_SIMETRI_ESIGI = 0.55
+MULTIKOPTER_DOLULUK_ESIGI = 0.45
 # Temel tipler (kural+k-NN) + hibrit alt-tipler (yalnız k-NN ile öğrenilir).
 # 'araba' kural-imzasız (tekerlek/zemin sezgisi geometriden güvenilir çıkmaz):
 # kullanıcı seçimi + k-NN öğrenmesiyle gelir; preset zemin-düzlemini otomatik kurar.
@@ -46,17 +64,23 @@ def _features(metrik: dict) -> list:
     # gövdeden ayırmada bbox oranlarının yetmediği yerde ek sinyal.
     # radyal_doluluk (üst-görünüm spoke↔sürekli): multikopter↔kanat bbox-örtüşmesini
     # çözen güçlü ayırt edici; eski-anchorda yoksa 1.0 (sürekli) varsayılır.
+    # donel_simetri (360/k dönel simetri): çok-rotorlu gövdeyi kanatlıdan ayıran tek
+    # güçlü sinyal; doluluk tek başına ayırmıyor (multikopter 0.25-0.39 ↔ uçak 0.34-0.42).
+    # Eski kayıtlarda yok → 0.0 (simetrisiz) varsayılır, "bilinmiyor"u simetrik saymaz.
     w = {"L_D": 1.3, "W_L": 0.6, "H_L": 2.0, "H_W": 1.5, "govde": 0.7,
-         "pf": 1.2, "yass": 1.4, "dol": 1.5}
+         "pf": 1.2, "yass": 1.4, "dol": 1.5, "sim": 1.8}
     iy = metrik.get("ince_yassilik")
     dol = metrik.get("radyal_doluluk")
+    sim = metrik.get("donel_simetri")
     f = [min(metrik.get("L_D", 0), 30) / 30, metrik.get("W_L", 0),
          metrik.get("H_L", 0), metrik.get("H_W", 0),
          min(metrik.get("govde", 1), 8) / 8,
          min(metrik.get("planform_frontal", 0), 20) / 20,
          min(iy if iy is not None else 1.0, 1.0),
-         dol if dol is not None else 1.0]
-    sw = [w["L_D"], w["W_L"], w["H_L"], w["H_W"], w["govde"], w["pf"], w["yass"], w["dol"]]
+         dol if dol is not None else 1.0,
+         sim if sim is not None else 0.0]
+    sw = [w["L_D"], w["W_L"], w["H_L"], w["H_W"], w["govde"], w["pf"], w["yass"],
+          w["dol"], w["sim"]]
     return [fi * (wi ** 0.5) for fi, wi in zip(f, sw)]
 
 
@@ -106,10 +130,18 @@ def record_case(metrik: dict, otopilot_tip: str, onayli_tip: str,
     return gate
 
 
+# Kütüphane kaynakları TEK YERDE adlandırılır. Kaynak listesi çağrı yerinde gömülüyken
+# NX_SEED eklenmesi testlerin izolasyon fixture'ını SESSİZCE deldi (boş kütüphane
+# beklerken 29 kayıt görüldü). Adları buradan okumak, yeni kaynağın izolasyona
+# otomatik dahil olmasını sağlar.
+KAYNAK_ADLARI = ("SEED", "REAL_SEED", "NX_SEED", "MEMORY")
+
+
 def _load_cases() -> list:
-    """Uzman-etiketli SEED tabanı + çalışma-zamanı MEMORY birleştirilir."""
+    """Uzman-etiketli SEED tabanı + NX eğitim tohumu + çalışma-zamanı MEMORY."""
     out = []
-    for src in (SEED, REAL_SEED, MEMORY):
+    for _ad in KAYNAK_ADLARI:
+        src = globals()[_ad]
         if not src.exists():
             continue
         for line in src.read_text(encoding="utf-8").splitlines():
@@ -209,6 +241,7 @@ def classify_vehicle(geo: dict) -> dict:
     compact = H / max(L, 1e-6)
     planform_ratio = planform / frontal
     solidity = geo.get("radyal_doluluk", 1.0)         # üst-görünüm doluluk (spoke↔sürekli)
+    donel = geo.get("donel_simetri")                  # 360/k dönel simetri (kopter↔kanat)
 
     score = {"roket": 0.0, "ucak": 0.0, "multikopter": 0.0, "genel": 0.3}
     reasons = []
@@ -222,9 +255,13 @@ def classify_vehicle(geo: dict) -> dict:
         reasons.append(f"ince-yassı (H/L≈{compact:.2f}) ve geniş (W/L≈{span_ratio:.2f}) → kaldırma yüzeyi")
     # Multikopter: kompakt + geniş + RADYAL-KOLLU (düşük solidity = spoke; bağlı-kollu
     # modelde bodies=1 olabilir → solidity bodies'ten daha güvenilir ayırt edici)
-    if compact >= 0.3 and span_ratio >= 0.55 and slender < 4 and (bodies >= 2 or solidity < 0.45):
-        score["multikopter"] += compact + 0.5 + (0.5 if solidity < 0.45 else 0)
-        reasons.append(f"kompakt (H/L≈{compact:.2f}), radyal-kollu (doluluk≈{solidity:.2f})")
+    # Multikopter: RADYAL SİMETRİ (üstten 360/k dönünce kendine oturur) + spoke topolojisi.
+    # donel_simetri None ise (siluet çıkarılamadı) dal ateşlenmez — "bilinmiyor" ≠ "değil".
+    if (donel is not None and donel >= MULTIKOPTER_SIMETRI_ESIGI
+            and solidity < MULTIKOPTER_DOLULUK_ESIGI and slender < 4):
+        score["multikopter"] += 1.0 + (donel - MULTIKOPTER_SIMETRI_ESIGI)
+        reasons.append(f"radyal simetrik (dönel simetri≈{donel:.2f}) ve spoke-kollu "
+                       f"(doluluk≈{solidity:.2f}) → çok-rotorlu gövde")
 
     vtype = max(score, key=score.get)
     total = sum(v for v in score.values() if v > 0)
@@ -233,7 +270,8 @@ def classify_vehicle(geo: dict) -> dict:
               "H_L": round(compact, 2), "H_W": round(flatness, 2),
               "planform_frontal": round(planform_ratio, 2), "govde": bodies,
               "ince_yassilik": geo.get("ince_yassilik"),
-              "radyal_doluluk": round(solidity, 3)}
+              "radyal_doluluk": round(solidity, 3),
+              "donel_simetri": round(donel, 3) if donel is not None else None}
     out = {"tip": vtype, "guven": round(conf, 2), "metrik": metrik,
            "gerekce": reasons, "kural_tip": vtype}
     # Öğrenme: birikmiş kütüphane yeterliyse k-NN oyunu harmanla
