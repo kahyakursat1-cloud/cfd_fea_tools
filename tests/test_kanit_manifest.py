@@ -231,3 +231,29 @@ def test_manifest_uretilemez_kaniti_acikca_soyluyor():
     src = inspect.getsource(kanit)
     assert "ÜRETİCİ KOD DEPODA YOK" in src
     assert "üretici kod depoda var" in src
+
+
+def test_dogrulama_damgasi_bayatligi_temizliyor(tmp_path, monkeypatch):
+    """ASIL KUSUR: kanıt yeniden koşulup sonuç BİREBİR AYNI çıkarsa git yeni commit
+    görmez ve dosya sonsuza dek "bayat" kalır — "hiç koşulmadı" ile "koşuldu ve
+    doğrulandı" ayırt edilemiyordu. `_son_dogrulama` alanı ZATEN yazılıyordu (4
+    dosyada) ama `bayatlik()` onu HİÇ OKUMUYORDU: bu oturumda avlanan desenin
+    kendisi, üstelik bu projenin kendi kanıt aracında."""
+    kayit = {"dosya": "x.json", "sinif": "kanit", "uretim": "", "dogrulama_ts": 0}
+    monkeypatch.setattr(kanit, "_git_tarih",
+                        lambda y: 1000 if y == "x.json" else 2000)
+    assert kanit.bayatlik([kayit]), "damgasız kanıt bayat sayılmalı"
+    assert not kanit.bayatlik([{**kayit, "dogrulama_ts": 2500}]), (
+        "üreten koddan YENİ damga bayatlığı temizlemeli")
+    assert kanit.bayatlik([{**kayit, "dogrulama_ts": 1500}]), (
+        "üreten koddan ESKİ damga bayatlığı temizlememeli")
+
+
+def test_damgala_alani_yaziyor(tmp_path, monkeypatch):
+    import json as _json
+    p = tmp_path / "k.json"
+    p.write_text(_json.dumps({"vaka": "t"}), encoding="utf-8")
+    monkeypatch.setattr(kanit, "ROOT", tmp_path)
+    assert kanit.damgala(["k.json"]) == 1
+    d = _json.loads(p.read_text(encoding="utf-8"))
+    assert d["_son_dogrulama_ts"] > 0 and "yeniden" in d["_son_dogrulama"]

@@ -15,6 +15,7 @@ Bu araç dosyaları SINIFLAR ve kanıt olanları verdiktleriyle listeler:
     python kanit.py --json     # kanit_manifest.json yaz
     python kanit.py --eksik    # hükmü/üretim komutu olmayan veya eskimiş kanıtlar
     python kanit.py --bayat    # onu üreten koddan ESKİ kanıtlar (exit 1)
+    python kanit.py --damgala <dosya...>   # yeniden koşulup DOĞRULANMIŞ kanıtı damgala
 """
 from __future__ import annotations
 
@@ -131,7 +132,8 @@ def _uretim_komutu(d: dict) -> str:
 
 def sinifla(p: Path) -> dict:
     kayit = {"dosya": p.name, "sinif": "?", "vaka": "", "hukum": "", "sembol": "—",
-             "eskimis": False, "uretim": "", "hukum_turetilir": False, "not": ""}
+             "eskimis": False, "uretim": "", "hukum_turetilir": False, "not": "",
+             "dogrulama_ts": 0}
     if p.name in KAYNAK:
         kayit["sinif"] = "kaynak"
         return kayit
@@ -157,6 +159,7 @@ def sinifla(p: Path) -> dict:
     kayit["eskimis"] = bool(d.get("_SUPERSEDED"))
     kayit["sembol"], kayit["hukum"] = sembol, metin[:150]
     kayit["uretim"] = _uretim_komutu(d)
+    kayit["dogrulama_ts"] = d.get("_son_dogrulama_ts") or 0
     kayit["sinif"] = "kanit" if (kayit["vaka"] or metin) else "artefakt"
     if kayit["eskimis"]:
         kayit["not"] = "ESKİMİŞ — güncel dosya için _SUPERSEDED notuna bak"
@@ -246,9 +249,40 @@ def bayatlik(kayitlar: list[dict]) -> list[dict]:
         else:
             kod_ts, kesin = genel_ts, False
         if kod_ts and ts < kod_ts:
+            # DOĞRULAMA DAMGASI: kanıt yeniden koşulup sonuç BİREBİR AYNI çıkarsa git
+            # yeni commit görmez ve dosya sonsuza dek "bayat" kalır — "hiç koşulmadı"
+            # ile "koşuldu ve doğrulandı" ayırt edilemezdi. `_son_dogrulama_ts` alanı
+            # (unix) üreten koddan yeniyse kanıt GÜNCEL sayılır.
+            if (k.get("dogrulama_ts") or 0) >= kod_ts:
+                continue
             out.append({**k, "bayat_gun": round((kod_ts - ts) / 86400, 1),
                         "kesin": kesin, "kiyas": script or "genel kod kümesi"})
     return out
+
+
+def damgala(dosyalar: list[str], not_metni: str = "") -> int:
+    """Yeniden koşulup DOĞRULANMIŞ kanıtlara zaman damgası basar.
+
+    Damga elle atılmaz: bu komut, kanıtın üretim komutunu yeniden koşup sonucun aynı
+    çıktığını GÖRMÜŞ olan kişi/ajan tarafından çağrılır. Damga yalnız "o an geçerli
+    koda karşı doğrulandı" der; içeriğin doğruluğunu garanti etmez.
+    """
+    import time
+    n = 0
+    for ad in dosyalar:
+        p = ROOT / ad
+        if not p.exists():
+            print(f"  yok: {ad}")
+            continue
+        d = json.loads(p.read_text(encoding="utf-8-sig"))
+        d["_son_dogrulama_ts"] = int(time.time())
+        d["_son_dogrulama"] = (time.strftime("%Y-%m-%d") + " — üretim komutuyla yeniden "
+                               "koşuldu; sonuç güncel kodla karşılaştırıldı."
+                               + (f" {not_metni}" if not_metni else ""))
+        p.write_text(json.dumps(d, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        n += 1
+        print(f"  damgalandı: {ad}")
+    return n
 
 
 def manifest() -> list[dict]:
@@ -290,6 +324,14 @@ def tablo(kayitlar: list[dict], yalniz_kanit: bool = True) -> str:
 
 
 def main() -> int:
+    if "--damgala" in sys.argv:
+        i = sys.argv.index("--damgala")
+        hedef = [a for a in sys.argv[i + 1:] if not a.startswith("--")]
+        if not hedef:
+            print("kullanım: python kanit.py --damgala <kanit.json> [...]")
+            return 1
+        print(f"{damgala(hedef)} kanıt doğrulama damgası aldı.")
+        return 0
     kayitlar = manifest()
     if "--json" in sys.argv:
         MANIFEST.write_text(json.dumps(kayitlar, indent=2, ensure_ascii=False) + "\n",

@@ -24,5 +24,6 @@
   },
   "sonuc": "GECTI — sehim %0.2, gerilme %4.8 (kök-mesnet lokal konsantrasyonu). Doğrular: ÜRETİMin GÖVDE-KUVVETİ yolu (GravityLoad→*DLOAD GRAV). Manevra g-yükü (n·g) artık FEA'ya uygulanabilir (run_structural_check g_yuk param).",
   "_not": "Üretim: python experiments/fea_validation_grav.py. Yük-uygulama üçlüsü tamam: kuvvet (kiriş/delik), basınç (silindir), gövde (bu).",
-  "_son_dogrulama": "2026-07-27 — üretim komutuyla yeniden koşuldu; sonuç GÜNCEL KODLA BİREBİR AYNI (kanit.py --bayat işareti içerik olarak yanlış alarmdı, doğrulandı)."
+  "_son_dogrulama": "2026-07-28 — üretim komutuyla yeniden koşuldu; sonuç güncel kodla karşılaştırıldı.",
+  "_son_dogrulama_ts": 1785238783
 }
