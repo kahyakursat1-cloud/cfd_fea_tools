@@ -1,0 +1,72 @@
+{
+  "vaka": "MiniHawk UAV (govde 0.8 m, kanat 1.5 m) — arac hatti 4-seviye mesh yakinsama, V=15 m/s, alpha=0",
+  "kaynak": "snappyHexMesh + foamRun, kalite=standart, sabit oran r=1.5",
+  "seviyeler": [
+    {
+      "ad": "cokkaba",
+      "cells": 51090,
+      "Cd": 0.0,
+      "Cd_wake": 0.0
+    },
+    {
+      "ad": "kaba",
+      "cells": 165804,
+      "Cd": 0.01499,
+      "Cd_wake": 0.01039
+    },
+    {
+      "ad": "orta",
+      "cells": 551908,
+      "Cd": 0.04765,
+      "Cd_wake": 0.04439
+    },
+    {
+      "ad": "ince",
+      "cells": 1860696,
+      "Cd": 0.025522865737390387
+    }
+  ],
+  "gci": {
+    "p": 0.967,
+    "f_exact": -0.02061,
+    "gci_fine_pct": 225.9398,
+    "gci_med_pct": 180.9176,
+    "asymptotic": 1.8479,
+    "monotonic": false,
+    "p_in_range": true
+  },
+  "lsr": {
+    "yontem": "LSR (Eça-Hoekstra 2014, basitleştirilmiş)",
+    "n": 4,
+    "p": 2.6,
+    "f_exact": 0.025523,
+    "u_abs": 0.14295,
+    "u_pct": 560.09,
+    "sigma_abs": 0.014229,
+    "convergence": "mixed",
+    "kural": "salınımlı/karışık: ekstrapolasyon yok, U=3·Δ_M",
+    "guvenilir": false
+  },
+  "verdikt": "⚠️ Mesh bağımsızlığı GÖSTERİLEMEDİ: yakinsamamis/salinimli dizi; GCI=225.9398% ≥ 5.0%",
+  "Cd_ince": 0.02552,
+  "Cl_ince": 0.07126,
+  "belirsizlik": {
+    "u_sayisal_pct": 560.09,
+    "u_sayisal_kaynak": "LSR (4-seviye; salınımlı/karışık: ekstrapolasyon yok, U=3·Δ_M)",
+    "u_model_pct": 12.0,
+    "model_kaynak": "literatür-öncül (pipeline-validasyonu beklemede)",
+    "u_toplam_pct": 560.22,
+    "duvar_cozunur": false,
+    "rapor": "Cd = 0.0255 ± 560.2% (sayısal 560.09% ⊕ model 12.0%)"
+  },
+  "uyarilar": [
+    "Yüzey-Cd (0.026) ile iz-momentum Cd (0.000) %100 ayrışıyor → mesh az-çözünür/yakınsamamış olabilir (çapraz-kontrol; uyum yakınsama göstergesi)",
+    "STL su geçirmez değil — snappyHexMesh toleranslı ama kapalı yüzey önerilir",
+    "En ince boyut (0.08 m) en ince yüzey hücresinin ~3.0 katı (hedef ≥6) — kanat/fin gibi ince özellikler yeterince çözülmüyor olabilir; Cl/Cd güvenilirliği için 'hassas' kalite önerilir",
+    "y⁺ ÖLÇÜLEMEDİ — sınır tabaka çözünürlüğü doğrulanamadı; sürtünme sürüklemesinin duvar-fonksiyonu geçerliliği bilinmiyor"
+  ],
+  "_not": "OLCULDU ve GECERSIZ CIKTI — durustce raporlanir. Seri SALINIMLI (cokkaba Cd=0.0 [ucak hic cozulmemis] -> 0.015 -> 0.048 -> 0.026); GCI %226, LSR U=%560. Kok sebep pipeline uyarisinda: en ince boyut (kanat kalinligi 0.08 m) yuzey hucresinin ~3 kati, hedef >=6 -> ince kanat cozulmuyor. Bu geometri icin standart kalite YETERSIZ; hassas kalite veya hedefli refinement gerekir. Kup (kalin, keskin kenarli) ayni ayarlarla GCI %3.15 vermisti — fark geometrik.",
+  "_uretim": "Üretim: python vehicle_pipeline.py vehicle_runs/minihawk.stl --tip ucak --hiz 15 --kalite standart --duyarlilik --seviyeler 4",
+  "_DUZELTME_2026_07_27": "ONCEKI KAYITTAKI CÖZÜNÜRLÜK ORANLARI YANLISTI. O sirada rtree kurulu degildi; et-kalinligi olcumu sessizce bbox yedegine (80 mm = GOVDE CAPI) dusuyordu. rtree kurulup GERCEK olcum yapilinca: yigin kalinlik (p10) 35.3 mm, en ince ozellik (p1, firar kenari) ~1.6-2.1 mm. Duzeltilmis oranlar (hedef >=6): standart 1.32x (kayitta 3.0x yaziyordu), hassas_nl/hassas 3.39x (kayitta 7.7x). YANI KANAT HICBIR KAMPANYADA COZULMEDI — 'hassas_nl ince kanadi cozdu' iddiasi GECERSIZ. Ustelik bbox yedegi ozelligi 2.3 kat buyuk gosterip cozunurluk uyarisini hassas_nl kosusunda YANLIS-NEGATIF bastirmisti. Firar kenari (~2 mm) yuzey hucresinin (10.4 mm) 0.20 kati -> prizma katmani zaten orulemezdi.",
+  "_GEOMETRI_GECERSIZ": "GEOMETRI GECERSIZ (2026-07-27 kesfi): bu kampanya, kanadi DUZ KUTU olan bir STL uzerinde kosuldu. mesh_generator NACA profil ekstruzyonunu shapely ile yapiyor; shapely KURULU DEGILDI, `except Exception` yutuyordu ve kanat 12 ucgenlik bir kutuya dusuyordu. Yani buradaki Cd/Cl bir NACA2412 kanadi DEGIL, dikdortgen levha icindir. shapely + mapbox_earcut kurulup ekstruzyondaki off-by-one duzeltildikten sonra kanat gercek profil (kalinlik/kord 0.1215) ve su gecirmez uretiliyor. Bu kampanyalarin AERODINAMIK sayilari yeniden kosulmadan kullanilamaz; MESH-YAKINSAMA dersleri (dejenere seviye, katman cokmesi, y+ derecelendirme) gecerli kalir cunku onlar geometriden bagimsiz."
+}

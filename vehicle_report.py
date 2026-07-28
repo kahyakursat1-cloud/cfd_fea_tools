@@ -337,7 +337,11 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
                      f"ilk katman {bl.get('ilk_katman_m', 0)*1000:.3f} mm)")
     else:
         line = "- Sınır tabaka: prizma katmanı YOK"
-    if yp:
+    if yp and yp.get("olculemedi"):
+        # "Ölçülemedi" ile "ölçüldü ve iyi" AYNI görünmemeli: eskiden ikisi de
+        # "y⁺ ölçülemedi" idi ve sebep hiç yazılmıyordu.
+        line += f"; ⚠️ **y⁺ ÖLÇÜLEMEDİ** — {yp.get('neden', 'sebep kaydedilmemiş')}"
+    elif yp:
         reg = ("viskoz alt-tabaka (y⁺<5) — sürtünme doğrudan çözülüyor" if yp["ort"] < 5 else
                "buffer bölgesi (5<y⁺<30) — kOmegaSST sürekli duvar fonksiyonu, orta belirsizlik"
                if yp["ort"] < 30 else
@@ -351,8 +355,15 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
                      + ("hedefe oturdu ✓" if 0.5 <= oran <= 2.0 else
                         "düz-plaka korelasyonu bu gövdede sapıyor; hedefi "
                         f"~{ht/max(oran,1e-3):.0f} alıp tekrarlayın"))
+        # NİCEL bağ: düz levha çapası (duz_levha_cf.json) y⁺ ile cilt-sürtünmesi
+        # hatasını ÖLÇTÜ. "y⁺ yüksek" demek yerine hatanın büyüklüğünü söyle.
+        if yp["ort"] > 1000:
+            line += (". ⚠️ Düz levha çapasında ilk hücre sınır tabakayı yuttuğunda "
+                     "(y⁺≈860) cilt sürtünmesi **%40 eksik** ölçüldü; buradaki y⁺ o "
+                     "seviyenin de üstünde — sürtünme bileşeni ÇÖZÜLMÜYOR, C_D yalnız "
+                     "basınç tarafında anlamlı")
     else:
-        line += "; y⁺ ölçülemedi"
+        line += "; y⁺ ölçülemedi (ölçüm hiç denenmemiş)"
     md.append(line + "\n")
 
     # 3. Yakınsama

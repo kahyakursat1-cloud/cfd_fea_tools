@@ -616,8 +616,43 @@ def measure_yplus(case_dir, patch: str | None = None, timeout=600) -> dict | Non
         if m:
             return {"min": round(float(m.group(1)), 2), "max": round(float(m.group(2)), 2),
                     "ort": round(float(m.group(3)), 2), "patch": patch or "ilk-wall"}
-    except Exception:
-        pass
+        hata = "foamPostProcess çıktısında y⁺ satırı yok"
+    except Exception as e:
+        hata = f"{type(e).__name__}: {e}"
+
+    # SESSİZ YUTMA YOK. Eskiden bu yol düz `None` dönüyordu ve `yplus: None`, "y⁺
+    # ölçülemedi" ile "y⁺ ölçüldü ve iyi" arasında hiçbir fark bırakmıyordu. MiniHawk
+    # yeniden koşusunda tam bu oldu: y⁺ ORTALAMA 5399 ölçülmüştü (duvar tümüyle
+    # çözümsüz, hedef 30-300) ama sonuç None geldiği için rapor uyaramadı. Ölçüm
+    # sonradan aynı case'te elle çalıştı → hata geçiciydi ve sebebi kayboldu.
+    # Son çare: diskte kalan yPlus.dat okunur; o da yoksa SEBEP döner.
+    d = _yplus_dat_oku(Path(case_dir), patch)
+    if d:
+        return d
+    return {"olculemedi": True, "neden": hata, "patch": patch or "ilk-wall"}
+
+
+def _yplus_dat_oku(case_dir: Path, patch: str | None) -> dict | None:
+    """postProcessing/yPlus/<zaman>/yPlus.dat — foamPostProcess yeniden koşmadan okur."""
+    kok = case_dir / "postProcessing" / "yPlus"
+    if not kok.is_dir():
+        return None
+    dosyalar = sorted(kok.rglob("yPlus.dat"),
+                      key=lambda f: float(f.parent.name) if
+                      f.parent.name.replace(".", "", 1).isdigit() else -1.0)
+    if not dosyalar:
+        return None
+    for satir in reversed(dosyalar[-1].read_text(errors="ignore").splitlines()):
+        if satir.startswith("#") or not satir.strip():
+            continue
+        parca = satir.split()
+        if len(parca) >= 5 and (patch is None or patch in parca[1]):
+            try:
+                return {"min": round(float(parca[2]), 2), "max": round(float(parca[3]), 2),
+                        "ort": round(float(parca[4]), 2), "patch": parca[1],
+                        "_kaynak": "yPlus.dat (foamPostProcess çıktısı okunamadı)"}
+            except ValueError:
+                continue
     return None
 
 

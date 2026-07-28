@@ -103,3 +103,47 @@ def test_esik_makul(genlik, beklenen):
     """Sayısal gürültü salınım sayılmamalı; gerçek limit çevrimi sayılmalı."""
     sal = salinim_analizi(_salinan_tarihce(genlik=genlik))
     assert sal["osilasyon"] is beklenen
+
+
+def test_yplus_olculemedigi_SESSIZ_gecmiyor():
+    """MiniHawk yeniden koşusunda ölçüldü: y⁺ ortalama 5399 (duvar tümüyle çözümsüz)
+    ama `measure_yplus` geçici bir hatada `except: pass` ile düz None döndü ve kanıta
+    `yplus: null` yazıldı. Böylece 'ölçülemedi' ile 'ölçüldü ve iyi' AYNI göründü,
+    rapor da bu geometrinin en kritik sınırını hiç söyleyemedi."""
+    import inspect
+
+    import vehicle_pipeline
+    src = inspect.getsource(vehicle_pipeline.measure_yplus)
+    assert "olculemedi" in src and "neden" in src, "başarısızlık sebebi taşınmalı"
+    assert "_yplus_dat_oku" in src, "diskte kalan yPlus.dat son çare olarak okunmalı"
+
+
+def test_yplus_dat_yedegi_calisiyor(tmp_path):
+    d = tmp_path / "postProcessing" / "yPlus" / "100"
+    d.mkdir(parents=True)
+    (d / "yPlus.dat").write_text(
+        "# y+ ()\n# Time\tpatch\tmin\tmax\taverage\n"
+        "100\tminihawk_prep\t2.10281027e+03\t6.92199628e+03\t5.39858893e+03\n")
+    from vehicle_pipeline import _yplus_dat_oku
+    r = _yplus_dat_oku(tmp_path, None)
+    assert r["ort"] == pytest.approx(5398.59, abs=0.01)
+    assert r["patch"] == "minihawk_prep"
+
+
+def test_rapor_olculemedi_ile_iyi_yplusu_ayiriyor():
+    import inspect
+
+    import vehicle_report
+    src = inspect.getsource(vehicle_report)
+    i = src.index('yp.get("olculemedi")')
+    assert "ÖLÇÜLEMEDİ" in src[i:i + 400]
+
+
+def test_rapor_yuksek_yplusu_DUZ_LEVHA_capasina_bagliyor():
+    """'y⁺ yüksek' NİTEL uyarısı yerine ölçülmüş hata büyüklüğü verilmeli."""
+    import inspect
+
+    import vehicle_report
+    src = inspect.getsource(vehicle_report)
+    i = src.index('yp["ort"] > 1000')
+    assert "%40" in src[i:i + 500] and "Düz levha" in src[i:i + 500]

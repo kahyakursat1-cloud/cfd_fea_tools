@@ -93,26 +93,28 @@ def _tasima_a8() -> tuple[str, str]:
 
 
 def _minihawk_gci() -> tuple[str, str]:
-    """MiniHawk (ince kanat) — İKİ kampanya, iki AYRI darboğaz. İkisi de raporlanır:
-    ilerleme gizlenmez, ama yakınsamadığı da yumuşatılmaz."""
-    a = _json("gci_minihawk_arac.json")          # standart
-    b = _json("gci_minihawk_hassas_nl.json")     # hassas_nl
-    gb = b["gci"]
-    ince = max(b["seviyeler"], key=lambda x: x["cells"])
-    yp = (b.get("yplus") or {}).get("ort")
-    c = _json("gci_minihawk_hassas.json")          # katmanlı deneme
-    return "❌ Geçersiz geometri", (
-        "⚠ Bu üç kampanya kanadı DÜZ KUTU olan bir STL üzerinde koşuldu (shapely "
-        "kurulu olmadığı için NACA ekstrüzyonu sessizce kutuya düşüyordu; 2026-07-27'de "
-        "düzeltildi) — aerodinamik sayılar NACA2412'yi TEMSİL ETMEZ, yeniden koşulmalı. "
-        "Mesh-yakınsama dersleri geçerli: "
-        f"(%{a['gci']['gci_fine_pct']:.0f} → %{gb['gci_fine_pct']:.0f}). "
-        "GERÇEK ölçümle (rtree kurulduktan sonra) kanat hiçbir seviyede çözülmedi: "
-        "yığın kalınlık/hücre standart 1.32×, hassas 3.39× — hedef ≥6. "
-        "En ince özellik (firar kenarı ~2 mm) yüzey hücresinin 0.20 katı → 12 prizma "
-        f"katmanı ÖRÜLEMEDİ (mesh katmansızla birebir aynı, y⁺={yp:.0f}). "
-        f"Cd={c['Cd_ince']:.4f} yalnız basınç bileşeni; bu geometride snappy ile "
-        "duvar-çözünür yol KAPALI")
+    """MiniHawk — DOĞRU geometriyle (su geçirmez, gerçek NACA2412) yeniden koşuldu.
+
+    Önceki üç kampanya kanadı düz kutu olan ve gövdeleri birleşmemiş bir STL üzerindeydi;
+    onlar `gci_minihawk_arac.ONCEKI_GECERSIZ.json`'da duruyor. Bu satır artık geçersiz
+    bir kanıtı değil, GÜNCEL ölçümü raporluyor — sonuç yine olumsuz ama ölçülmüş.
+    """
+    d = _json("gci_minihawk_arac.json")
+    g = d["gci"]
+    yp = (d.get("yplus") or {}).get("ort")
+    sev = d["seviyeler"]
+    cd_ler = ", ".join(f"{s['cells']:,}→{s['Cd']:.4f}" for s in sev if s.get("Cd") is not None)
+    red = d.get("fizik_disi_seviyeler") or []
+    return "❌ Yakınsamadı", (
+        f"MiniHawk (2026-07-28, DOĞRU geometri): 4 seviye {cd_ler} — GCI "
+        f"%{g['gci_fine_pct']:.0f}, seri MONOTON DEĞİL → mesh bağımsızlığı YOK. "
+        + (f"En kaba seviye ({red[0]['cells']:,} hücre) fizik kapısında reddedildi "
+           "(Cd=0). " if red else "")
+        + (f"Ölçülen y⁺ ort **{yp:.0f}** (bant 30-300): düz levha çapasında ilk hücre "
+           "sınır tabakayı yuttuğunda sürtünme %40 eksik ölçülmüştü, buradaki y⁺ daha "
+           "da yüksek → SÜRTÜNME ÇÖZÜLMÜYOR. " if yp else "")
+        + f"Cl={d['Cl']:.4f} oysa NACA2412 α=0'da ~0.25 — kamburluk hâlâ çözülmüyor; "
+        "geometri artık doğru, sınır MESH ÇÖZÜNÜRLÜĞÜNDE (ince kanat ~1 mm hücre ister)")
 
 
 def _minihawk_v2() -> tuple[str, str]:
