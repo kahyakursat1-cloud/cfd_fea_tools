@@ -62,3 +62,24 @@ class TestKanit:
     def test_teshis_verdiktte_acikca_yaziyor(self):
         v = self._d()["verdikt"]
         assert "PROFIL DOGRU" in v and "MESH COZUNURLUGU" in v
+
+
+def test_kopru_CGRIDI_sessizce_kabul_etmiyor(tmp_path):
+    """KÖK SEBEP: write_ogrid_gmsh 'j=0 airfoil, i-periyodik' varsayar; C-grid'de j=0
+    IZ KESIGINDE başlar (ölçüldü: x=15.5, kord 0..1) ve iz kesiği NO-SLIP DUVAR
+    etiketlenir. Sonuç "SUCCESS" görünen ama nonOrtho 180 / skewness 3.35e152 olan bir
+    mesh'ti — değer O-grid koşusuyla BİREBİR aynı, yani bozukluk dönüştürücüden
+    geliyordu. Sessizce geçersiz mesh üretmektense açıkça reddedilmeli."""
+    from construct2d_bridge import build_mesh
+    r = build_mesh("yok.dat", str(tmp_path / "c"), name="x", topo="CGRD")
+    # dosya hiç okunmadan reddedilmeli — kapı EN BAŞTA
+    assert r["status"] == "FAILED" and r["step"] == "topoloji"
+    assert "OGRD" in r["hata"]
+
+
+def test_ogrid_yolu_kapida_takilmiyor(tmp_path, monkeypatch):
+    """Kapı YALNIZ C-grid'i durdurmalı; O-grid (çalışan yol) etkilenmemeli."""
+    import construct2d_bridge as cb
+    monkeypatch.setattr(cb, "run_construct2d", lambda *a, **k: None)
+    r = cb.build_mesh("yok.dat", str(tmp_path / "o"), name="x", topo="OGRD")
+    assert r["step"] == "construct2d", r        # topoloji kapısına takılmadı

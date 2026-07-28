@@ -211,14 +211,19 @@ def main() -> int:
                "profil": {**geo, "kaynak": "mesh_generator._naca4_profile(0.02, 0.4, 0.12)"},
                "durum": "cfd_uretilemedi", "mesh": _sade(mesh),
                "_grid_altyapisi": (
-                   "Bu depoda keyfi airfoil icin 2B grid uretimi UC AYRI sekilde basarisiz: "
-                   "(1) OGRD keskin firar kenarinda dejenere — nonOrtho 179.999, skewness "
-                   "3.4e152 olculdu (Construct2D zaten C-grid onermisti); (2) CGRD+ELLP "
-                   "eliptik duzlestirici NaN'a IRAKSADI (1000 iterasyon); (3) CGRD+HYPR grid "
-                   "uretiyor ama skew 89.97 deg ve xi-yonunde buyume Infinity. Hafizadaki not "
-                   "dogrulandi: bespoke grid yolu terk edilip NASA TMR gridlerine gecilmis, "
-                   "ama TMR gridleri yalniz NACA0012 icin var. 2B CFD capasi bu altyapiyla "
-                   "URETILEMEZ; bozuk mesh uzerinde Cl yayinlamak yaniltici olurdu."),
+                   "ASIL KOK SEBEP (izlenerek bulundu): write_ogrid_gmsh YALNIZ O-grid "
+                   "ifade edebilir — 'j=0 airfoil, i-periyodik' varsayar. C-grid'de j=0 "
+                   "cizgisi IZ KESIGINDE baslar (olculdu: x=15.5, kord 0..1) ve bu rutin "
+                   "iz kesigini NO-SLIP DUVAR olarak etiketler. Bu yuzden CGRD+HYPR "
+                   "gridi Construct2D'de makul iken OpenFOAM mesh'i nonOrtho 180 / "
+                   "skewness 3.35e152 cikiyordu — deger O-grid kosusuyla BIREBIR AYNI, "
+                   "yani bozukluk grid'den degil DONUSTURUCUDEN geliyor. build_mesh artik "
+                   "topo != OGRD durumunda acikca REDDEDIYOR (sessizce gecersiz mesh "
+                   "uretmektense). "
+                   "Ikincil bulgular: OGRD keskin firar kenarinda dejenere (Construct2D "
+                   "zaten C-grid onermisti); CGRD+ELLP eliptik duzlestirici NaN'a IRAKSADI. "
+                   "2B CFD capasi bu altyapiyla URETILEMEZ; C-grid destegi icin "
+                   "write_cgrid_gmsh (iz kesigi = ic sinir) yazilmalidir."),
                "verdikt": (_profil_verdikti(dog) + " " + ("⚠️ Mesh KALITE KAPISINDA reddedildi: "
                            + mesh.get("red_nedeni", "")
                            + " — bozuk mesh uzerinde Cl uretmek yaniltici olurdu."

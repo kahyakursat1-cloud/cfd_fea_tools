@@ -12,10 +12,14 @@ cozucu yazmak yerine.
 """
 
 import subprocess
+import time
 from pathlib import Path
 
 import numpy as np
 
+# Hiperbolik/eliptik grid üretimi dakikalarca sürebilir; `wsl bash -c` erken döndüğü
+# için süreç bitene kadar beklenir (bkz. run_construct2d içindeki YARIŞ DURUMU notu).
+HIPERBOLIK_BEKLEME_S = 900
 C2D_DIR = Path(__file__).parent / "Construct2D"
 C2D_BIN = C2D_DIR / "construct2d"
 
@@ -75,15 +79,36 @@ def run_construct2d(airfoil_dat: str, work: Path, name: str,
            f'{binp} {name}.dat > log.c2d 2>&1"')
     subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=600)
     p3d = work / f"{name}.p3d"
+    # YARIŞ DURUMU: `wsl bash -c` sarmalayıcısı, Linux tarafındaki construct2d hâlâ
+    # koşarken dönebiliyor. p3d'yi HEMEN kontrol etmek "FAILED/construct2d" veriyordu
+    # ve bu, gerçek bir başarısızlıkla karıştırıldı: NACA2412 koşusu defalarca
+    # "mesh üretilemedi" raporladı, oysa süreç arka planda %102 CPU ile çalışmaya
+    # devam ediyordu (öksüz kalıp saatlerce sürdü). Süreç bitene kadar beklenir.
+    for _ in range(int(HIPERBOLIK_BEKLEME_S / 5)):
+        if p3d.exists():
+            break
+        canli = subprocess.run(
+            'wsl bash -c "pgrep -f \'[c]onstruct2d\' >/dev/null && echo VAR"',
+            shell=True, capture_output=True, text=True, timeout=60)
+        if "VAR" not in (canli.stdout or ""):
+            break
+        time.sleep(5)
     if p3d.exists():
         return p3d
     # IRAKSAMA SESSİZ KALMASIN: eliptik düzleştirici NaN'a gidince .p3d hiç yazılmıyor
     # ve çağıran yalnız "FAILED/construct2d" görüyordu — "Construct2D çalışmadı" ile
     # "grid üretici IRAKSADI" çok farklı iki teşhis.
     log = work / "log.c2d"
-    if log.exists() and "NaN" in log.read_text(errors="ignore"):
+    metin = log.read_text(errors="ignore") if log.exists() else ""
+    if "NaN" in metin:
         print(f"[UYARI] Construct2D {slvr} çözücüsü IRAKSADI (RMS residual NaN) — "
               f"{name}: grid üretilemedi", flush=True)
+    elif not metin:
+        print(f"[UYARI] Construct2D log YAZMADI ({name}) — süreç hiç başlamamış "
+              "veya erken öldürülmüş olabilir", flush=True)
+    else:
+        print(f"[UYARI] Construct2D bitti ama .p3d yok ({name}); log sonu: "
+              + " / ".join(metin.strip().splitlines()[-2:])[:160], flush=True)
     return None
 
 
@@ -178,6 +203,19 @@ def _min_case(case):
 
 def build_mesh(airfoil_dat: str, case_dir: str, name="naca", **c2d_kw):
     """Tam akis: construct2d -> p3d -> gmsh -> gmshToFoam. checkMesh dondur."""
+    # TOPOLOJI KAPISI: write_ogrid_gmsh YALNIZ O-grid ifade edebilir — "j=0 airfoil,
+    # i-periyodik" varsayar. C-grid'de j=0 cizgisi IZ KESIGINDE baslar (olculdu:
+    # x=15.5, airfoil kordu 0..1) ve bu rutin iz kesigini NO-SLIP DUVAR olarak
+    # etiketler, iki yakasini da periyodik baglar. Sonuc: OpenFOAM mesh'i "SUCCESS"
+    # raporluyor ama nonOrtho 180 / skewness 3.35e152 (O-grid kosusuyla BIREBIR AYNI
+    # deger — bozukluk grid'den degil DONUSTURUCUDEN geliyordu). Sessizce yanlis mesh
+    # uretmektense acikca reddet.
+    topo = str(c2d_kw.get("topo", "OGRD")).upper()
+    if topo != "OGRD":
+        return {"status": "FAILED", "step": "topoloji",
+                "hata": (f"write_ogrid_gmsh topo={topo} ifade edemez (yalniz OGRD). "
+                         "C-grid'de j=0 iz kesiginde baslar ve duvar olarak "
+                         "etiketlenir; uretilecek mesh gecersiz olur.")}
     case = Path(case_dir)
     work = case / "c2d"
     p3d = run_construct2d(airfoil_dat, work, name, **c2d_kw)
