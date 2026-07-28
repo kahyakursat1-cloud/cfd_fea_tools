@@ -164,6 +164,22 @@ def _duz_levha() -> tuple[str, str]:
                         f"hata ≤%{en_kotu_bant:.0f} ({len(bant)} seviye){ek}")
 
 
+def _ayrilmis_akis() -> tuple[str, str]:
+    """Ayrılma/yeniden-yapışma — zarfın 'ayrılmış akış ❌ kapsam dışı' BEYANININ ölçüsü."""
+    d = _json("basamak_ayrilma.json")
+    ok = [s for s in d["seviyeler"] if s["durum"] == "ok"]
+    if not ok:
+        return "❓ Ölçülemedi", "geriye-basamaklı akış çapası hiçbir modelde tamamlanmadı"
+    en_iyi = min(ok, key=lambda s: abs(s["hata_pct"]))
+    ykn = [s for s in d["seviyeler"] if s["durum"] == "yakinsamadi"]
+    guv = "⚠️ Yalnız eğilim" if abs(en_iyi["hata_pct"]) > 5 else "✅ Yüksek"
+    ek = (f"; {ykn[0]['model']} bu kurulumda sabit noktaya OTURMUYOR "
+          f"({ykn[0]['iterasyon']} iterasyon, rezidüeller platoda)") if ykn else ""
+    return guv, (f"Geriye-basamaklı akış ↔ Driver & Seegmiller 1985 (Re_H=37500): "
+                 f"yeniden-yapışma {en_iyi['model']} ile Xr/H={en_iyi['Xr_H']:.2f} vs "
+                 f"deney {d['referans']['Xr_H']} → %{en_iyi['hata_pct']:+.0f}{ek}")
+
+
 def _siniflandirici() -> tuple[str, str]:
     """Araç tipi sınıflandırması — AYRIK NX setinde ölçülen genelleme."""
     # KÖR aile öne alınır: test ailesinin son turu hata analizine konu oldu, kör aile
@@ -196,12 +212,15 @@ SATIRLAR = [
     ("Yapısal — lineer statik (kiriş)", _kiris),
     ("Yapısal — gerilme konsantrasyonu ($K_t$)", _kt),
     ("Stall / $C_{L,max}$", None),
-    ("y⁺<1 transition / ayrılmış akış", None),
+    ("Ayrılmış akış — yeniden-yapışma uzunluğu (2D basamak)", _ayrilmis_akis),
+    ("y⁺<1 transition (duvar-çözünür)", None),
 ]
 
 BEYANLAR = {
     "Stall / $C_{L,max}$": ("⚠️ ±2-3°, ±%15 (RANS)", BEYAN),
-    "y⁺<1 transition / ayrılmış akış": ("❌ Kapsam dışı", f"{BEYAN}; C-grid / DES gerekir"),
+    # "ayrılmış akış" bu beyandan ÇIKARILDI: artık basamak çapasıyla ÖLÇÜLÜYOR
+    # (bkz. _ayrilmis_akis). Geriye yalnız duvar-çözünür (y⁺<1) geçiş kaldı.
+    "y⁺<1 transition (duvar-çözünür)": ("❌ Kapsam dışı", f"{BEYAN}; C-grid / DES gerekir"),
 }
 
 

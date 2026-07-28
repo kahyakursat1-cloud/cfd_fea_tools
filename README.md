@@ -66,7 +66,8 @@ olmayan satır "beyan" olarak işaretlenir.
 | Yapısal — lineer statik (kiriş) | ✅ Çok yüksek | Ankastre kiriş ↔ Euler-Bernoulli: sehim %1.0, gerilme %3.9 |
 | Yapısal — gerilme konsantrasyonu ($K_t$) | ✅ Yüksek | Delikli plaka Kt ↔ Heywood: tepe gerilme %1.7 (C3D10, 6637 eleman) |
 | Stall / $C_{L,max}$ | ⚠️ ±2-3°, ±%15 (RANS) | beyan — kanıt dosyası yok |
-| y⁺<1 transition / ayrılmış akış | ❌ Kapsam dışı | beyan — kanıt dosyası yok; C-grid / DES gerekir |
+| Ayrılmış akış — yeniden-yapışma uzunluğu (2D basamak) | ⚠️ Yalnız eğilim | Geriye-basamaklı akış ↔ Driver & Seegmiller 1985 (Re_H=37500): yeniden-yapışma kOmegaSST ile Xr/H=5.54 vs deney 6.26 → %-12; kEpsilon bu kurulumda sabit noktaya OTURMUYOR (20000 iterasyon, rezidüeller platoda) |
+| y⁺<1 transition (duvar-çözünür) | ❌ Kapsam dışı | beyan — kanıt dosyası yok; C-grid / DES gerekir |
 <!-- ZARF:SON -->
 
 ## Hızlı Başlangıç

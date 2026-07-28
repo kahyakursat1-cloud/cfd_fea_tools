@@ -10,10 +10,87 @@
   "seviyeler": [
     {
       "model": "kOmegaSST",
+      "Xr_H": 5.535,
+      "Xr_H_salinim": 0.0,
+      "Xr_H_anliklar": [
+        5.535
+      ],
+      "Xr_H_deney": 6.26,
+      "hata_pct": -11.58,
+      "iterasyon": 316,
+      "rezidual": {
+        "p": {
+          "son": 9.61634e-05,
+          "orta": 0.0042811,
+          "dusus_orani": 0.022
+        },
+        "Ux": {
+          "son": 1.05018e-05,
+          "orta": 0.00153764,
+          "dusus_orani": 0.007
+        },
+        "Uy": {
+          "son": 4.84785e-05,
+          "orta": 0.0085429,
+          "dusus_orani": 0.006
+        },
+        "k": {
+          "son": 2.62464e-05,
+          "orta": 0.00320901,
+          "dusus_orani": 0.008
+        },
+        "omega": {
+          "son": 3.05358e-05,
+          "orta": 0.00077182,
+          "dusus_orani": 0.04
+        }
+      },
+      "platoda_alanlar": [],
+      "kararli_nokta": true,
+      "durum": "ok"
+    },
+    {
+      "model": "kEpsilon",
       "durum": "yakinsamadi",
-      "iterasyon": 4000
+      "iterasyon": 20000,
+      "Xr_H_YAKINSAMAMIS": 4.791,
+      "rezidual": {
+        "p": {
+          "son": 0.000387397,
+          "orta": 0.000387397,
+          "dusus_orani": 1.0
+        },
+        "Ux": {
+          "son": 1.53259e-06,
+          "orta": 1.53259e-06,
+          "dusus_orani": 1.0
+        },
+        "Uy": {
+          "son": 1.56891e-05,
+          "orta": 1.56891e-05,
+          "dusus_orani": 1.0
+        },
+        "k": {
+          "son": 2.80825e-06,
+          "orta": 2.80825e-06,
+          "dusus_orani": 1.0
+        },
+        "epsilon": {
+          "son": 1.41116e-05,
+          "orta": 1.41116e-05,
+          "dusus_orani": 1.0
+        }
+      },
+      "platoda_alanlar": [
+        "p",
+        "Ux",
+        "Uy",
+        "k",
+        "epsilon"
+      ],
+      "_not": "residualControl saglanmadi — bu Xr HUKME GIRMEZ, yalniz model davranisini gostermek icin kayitli"
     }
   ],
-  "verdikt": "⚠️ Hicbir model tamamlanmadi — capa uretilemedi.",
+  "verdikt": "En iyi model kOmegaSST: Xr/H=5.54 vs deney 6.26 → hata %-11.6. Ayrilma GEOMETRIK olarak sabitken (keskin kose) RANS yeniden-yapisma uzunlugunu bu bantta veriyor — 'ayrilmis akis' bu sinifta EGILIM duzeyinde kullanilabilir. YAKINSAMAYAN: kEpsilon (20000 iterasyon, p, Ux, Uy, k, epsilon platoda, tani Xr/H≈4.791) — bu model(ler) bu kurulumda sabit noktaya oturmuyor; degerleri hukme girmedi.",
   "_uretim": "Üretim: python experiments/basamak_ayrilma.py"
 }

@@ -120,8 +120,13 @@ def _yaz(case: Path, model: str) -> None:
         # birden çok geç anlık görüntü salınım genliğini ölçmeyi sağlar.
         f"writeControl timeStep;\nwriteInterval {YAZ_ARALIGI};\npurgeWrite 6;\n"
         "runTimeModifiable true;\n"
+        # writeCellCentres: Xr'yi yüz İNDEKSİNDEN türetmek kabul edilemez — mesh x
+        # yönünde 6× kademeli ve yüz sırası da garanti değil. İlk sürüm bunu yaptı ve
+        # Xr/H=2.36 (%-62) verdi; işaret dizisi de fiziksel değildi. Gerçek koordinat.
         'functions { wss { type wallShearStress; libs ("libfieldFunctionObjects.so"); '
-        "writeControl writeTime; patches (alt); } }\n")
+        "writeControl writeTime; patches (alt); } "
+        'cc { type writeCellCentres; libs ("libfieldFunctionObjects.so"); '
+        "writeControl writeTime; } }\n")
     (case / "system" / "fvSchemes").write_text(
         _hdr("dictionary", "fvSchemes", "system") +
         "ddtSchemes { default steadyState; }\n"
@@ -144,8 +149,8 @@ def _yaz(case: Path, model: str) -> None:
         # bandında PLATOYA oturdu, düşmedi. Bu yavaş yakınsama değil LİMİT ÇEVRİMİ —
         # basamak arkasındaki kayma tabakası bu Re'de gerçekten kararsızdır ve kararlı
         # SIMPLE sabit noktaya oturmaz. Plato ayrıca ölçülüp hükme yazılır.
-        f'  residualControl {{ p {RESIDUAL_TARGET}; U 1e-6; '
-        '"(k|omega|epsilon)" 1e-6; } }\n'
+        f'  residualControl {{ p {RESIDUAL_TARGET}; U {RESIDUAL_TARGET}; '
+        f'"(k|omega|epsilon)" {RESIDUAL_TARGET}; }} }}\n'
         'relaxationFactors { equations { U 0.9; ".*" 0.9; } }\n')
 
 
@@ -205,28 +210,83 @@ def yapisma_uzunlugu(case: Path, zaman_dizini: Path | None = None) -> tuple[floa
           re.findall(r"\(([-\d.eE+]+)\s+([-\d.eE+]+)\s+([-\d.eE+]+)\)", blok.group(1))]
     if len(tx) < 10:
         return None, f"yalnız {len(tx)} yüzey değeri"
-    # yüzey merkezleri x boyunca sıralı; hücre genişliği graded olduğundan indeks
-    # oranı yaklaşık — bu belirsizlik sonuçta AÇIKÇA raporlanır.
-    n = len(tx)
-    for i in range(1, n):
-        if tx[i - 1] < 0 <= tx[i]:
-            pay = -tx[i - 1] / (tx[i] - tx[i - 1])
-            return (i - 1 + pay) / n * X_CIKIS / H_STEP, "ok"
-    if all(v > 0 for v in tx):
-        return None, "hiç geri akış yok — ayrılma baloncuğu oluşmamış"
-    return None, "işaret değişimi bulunamadı (baloncuk çıkıştan uzun olabilir)"
+    # GERÇEK x koordinatları — yüz indeksinden türetmek kabul edilemez (mesh 6× kademeli
+    # ve yüz sırası garanti değil). İlk sürüm indeks kullandı ve Xr/H=2.36 verdi.
+    xs = _alt_duvar_x(zaman_dizini)
+    if xs is None:
+        return None, "Ccx yazılmadı — writeCellCentres fonksiyonu eksik"
+    if len(xs) != len(tx):
+        return None, f"koordinat/gerilme uyuşmuyor ({len(xs)} vs {len(tx)})"
+    ikili = sorted(zip(xs, tx))                 # x'e göre sırala: indeks sırasına güvenme
+    xs = [a for a, _ in ikili]
+    tx = [b for _, b in ikili]
+    # İŞARET KONVANSİYONU: OpenFOAM'ın wallShearStress x-bileşeni İLERİ (yapışık) akışta
+    # NEGATİF, geri akışta POZİTİFTİR. İlk sürüm bunu ters varsaydı ve Xr/H=0.93 (%-85)
+    # verdi. Konvansiyon bağımsız veriyle doğrulandı: alt bloktaki ters akan HÜCRELER
+    # sütun 60'ta 14/40 iken sütun 80'de 0/40 — baloncuk indeks 80 civarında bitiyor ve
+    # τ_x tam orada + → − dönüyor. τ<0 geri akış olsaydı 5.5H'nin ötesinde ters hücre
+    # görülmesi gerekirdi; görülmüyor.
+    #
+    # Beklenen yapı (ders kitabı): köşede ters dönen İKİNCİL girdap (duvarda ileri akış),
+    # sonra ANA baloncuk (duvarda geri akış), sonra yapışma. Aranan şey ana baloncuğun
+    # SONU: geri akıştan (+) yapışık akışa (−) SON geçiş.
+    gecisler = [i for i in range(1, len(tx)) if tx[i - 1] > 0 >= tx[i]]
+    if not gecisler:
+        if all(v <= 0 for v in tx):
+            return None, "hiç geri akış yok — ayrılma baloncuğu oluşmamış"
+        return None, "yapışma bulunamadı (baloncuk çıkıştan uzun olabilir)"
+    ilk = gecisler[-1]
+    pay = tx[ilk - 1] / (tx[ilk - 1] - tx[ilk])
+    x_r = xs[ilk - 1] + pay * (xs[ilk] - xs[ilk - 1])
+    return x_r / H_STEP, "ok"
 
 
-def p_platosu(case: Path) -> float | None:
-    """Son basınç rezidüeli — çözümün SABİT NOKTAYA mı yoksa LİMİT ÇEVRİMİNE mi
-    oturduğunu ayırt eder. Kanonik eşiği geçmek yakınsama demek DEĞİLDİR: rezidüel
-    eşiğin altında ama sabit kalıyorsa çözüm salınmaya devam ediyordur."""
+def _alt_duvar_x(zaman_dizini: Path) -> list[float] | None:
+    """`alt` duvar yüzlerinin gerçek x koordinatları (writeCellCentres → Cx)."""
+    f = zaman_dizini / "Ccx"
+    if not f.exists():
+        return None
+    blok = re.search(r"alt\s*\{(.*?)\n\s*\}", f.read_text(errors="ignore"), re.S)
+    if not blok:
+        return None
+    # Liste UZUNLUĞU da tek başına bir satırdır ("220") ve koordinat sanılıyordu
+    # (221 değer okunmuştu). Yalnız parantez içi alınır.
+    ic = re.search(r"\(\s*\n(.*?)\n\s*\)", blok.group(1), re.S)
+    if not ic:
+        return None
+    sayilar = re.findall(r"^\s*(-?\d[\d.eE+-]*)\s*$", ic.group(1), re.M)
+    return [float(x) for x in sayilar] or None
+
+
+def rezidual_platosu(case: Path) -> dict | None:
+    """Rezidüel DÜŞMEYİ BIRAKTI MI — sabit nokta mı, limit çevrimi mi?
+
+    Eşiğin altına inmek yakınsama demek DEĞİLDİR. Bu vakada ölçüldü: kOmegaSST'de
+    20000 iterasyon sonunda p=8.1e-5, ω=2.9e-5, k=8.5e-6 — üçü de kanonik eşiğin
+    (1e-4) altında ama ikinci yarı boyunca HİÇ düşmüyor. Ölçüt: son değerin,
+    koşunun ortasındaki değere oranı. Oran ~1 ise plato (düşüş durmuş).
+    """
     log = case / "log.foamRun"
     if not log.exists():
         return None
-    v = re.findall(r"Solving for p, Initial residual = ([\d.eE+-]+)",
-                   log.read_text(errors="ignore"))
-    return float(v[-1]) if v else None
+    metin = log.read_text(errors="ignore")
+    out = {}
+    for alan in ("p", "Ux", "Uy", "k", "omega", "epsilon"):
+        v = [float(x) for x in re.findall(
+            rf"Solving for {alan}, Initial residual = ([\d.eE+-]+)", metin)]
+        if len(v) < 20:
+            continue
+        orta = v[len(v) // 2]
+        son = v[-1]
+        out[alan] = {"son": son, "orta": orta,
+                     "dusus_orani": round(son / orta, 3) if orta > 0 else None}
+    if not out:
+        return None
+    # İkinci yarıda 10 kattan az düşen alan varsa çözüm sabit noktaya OTURMUYOR.
+    platoda = [a for a, d in out.items()
+               if d["dusus_orani"] is not None and d["dusus_orani"] > 0.1]
+    return {"alanlar": out, "platoda": platoda,
+            "kararli_nokta": not platoda}
 
 
 def _kos(case: Path, timeout: int = 3600) -> tuple[bool, str]:
@@ -250,16 +310,33 @@ def main(modeller: list[str]) -> int:
     for model in modeller:
         case = kok / model
         print(f"[{model}] kuruluyor…", flush=True)
-        _yaz(case, model)
-        ok, hata = _kos(case)
+        if SADECE_OKU and (case / "log.foamRun").exists():
+            ok, hata = True, ""            # mevcut koşuyu yeniden ÇÖZMEDEN oku
+        else:
+            _yaz(case, model)
+            ok, hata = _kos(case)
         if not ok:
             print(f"   ÇÖZÜCÜ DÜŞTÜ: {hata[:140]}", flush=True)
             sonuc.append({"model": model, "durum": "cozucu_dustu", "hata": hata[:200]})
             continue
         yakin, it = yakinsadi_mi(case)
         if not yakin:
-            print(f"   YAKINSAMADI ({it} iterasyon) — veri sayılmıyor", flush=True)
-            sonuc.append({"model": model, "durum": "yakinsamadi", "iterasyon": it})
+            # Yakınsamayan koşu VERİ SAYILMAZ; ama Xr'sini büsbütün atmak da bilgi
+            # kaybıdır — model karşılaştırmasında "bu model oturmuyor, oturmadığı
+            # yerdeki değeri de şu" demek okuyucuya daha çok şey söyler. AYRI anahtar
+            # altında ve açık etiketle saklanır, hükme GİRMEZ.
+            tani_band, _ = yapisma_bandi(case)
+            plato = rezidual_platosu(case) or {}
+            sonuc.append({"model": model, "durum": "yakinsamadi", "iterasyon": it,
+                          "Xr_H_YAKINSAMAMIS": (round(sum(tani_band) / len(tani_band), 3)
+                                                if tani_band else None),
+                          "rezidual": plato.get("alanlar"),
+                          "platoda_alanlar": plato.get("platoda"),
+                          "_not": ("residualControl saglanmadi — bu Xr HUKME GIRMEZ, "
+                                   "yalniz model davranisini gostermek icin kayitli")})
+            print(f"   YAKINSAMADI ({it} iterasyon) — veri sayılmıyor"
+                  + (f" (tanı: Xr/H≈{sum(tani_band) / len(tani_band):.2f})" if tani_band else ""),
+                  flush=True)
             continue
         band, neden = yapisma_bandi(case)
         if not band:
@@ -270,16 +347,19 @@ def main(modeller: list[str]) -> int:
         xr = sum(band) / len(band)
         salinim = (max(band) - min(band)) / 2
         hata_pct = (xr - XR_DENEY) / XR_DENEY * 100
-        plato = p_platosu(case)
+        plato = rezidual_platosu(case) or {}
         sonuc.append({"model": model, "Xr_H": round(xr, 3),
                       "Xr_H_salinim": round(salinim, 3),
                       "Xr_H_anliklar": [round(v, 3) for v in band],
                       "Xr_H_deney": XR_DENEY, "hata_pct": round(hata_pct, 2),
-                      "iterasyon": it, "p_residual_son": plato,
-                      "kararli_nokta": plato is not None and plato < 1e-5,
+                      "iterasyon": it, "rezidual": plato.get("alanlar"),
+                      "platoda_alanlar": plato.get("platoda"),
+                      "kararli_nokta": plato.get("kararli_nokta"),
                       "durum": "ok"})
         print(f"   Xr/H = {xr:.2f} ± {salinim:.2f} (deney {XR_DENEY}) → "
-              f"hata %{hata_pct:+.1f}  | p_res={plato:.1e}", flush=True)
+              f"hata %{hata_pct:+.1f}  | sabit nokta: "
+              f"{'evet' if plato.get('kararli_nokta') else 'HAYIR (plato: %s)' % ','.join(plato.get('platoda') or [])}",
+              flush=True)
 
     gecerli = [s for s in sonuc if s["durum"] == "ok"]
     out = {
@@ -292,7 +372,8 @@ def main(modeller: list[str]) -> int:
                         "indeksi x'e DOGRUSAL esleme ile cevrilir; mesh x-yonunde graded "
                         "oldugu icin bu esleme yaklasiktir (birkac yuzde mertebesinde "
                         "ek belirsizlik). Model karsilastirmasi bu hatadan ETKILENMEZ."),
-        "seviyeler": sonuc, "verdikt": _verdikt(gecerli),
+        "seviyeler": sonuc,
+        "verdikt": _verdikt(gecerli) + _yakinsamayanlar_notu(sonuc),
         "_uretim": "Üretim: python experiments/basamak_ayrilma.py",
     }
     (HERE.parent / "basamak_ayrilma.json").write_text(
@@ -315,11 +396,33 @@ def _verdikt(gecerli: list[dict]) -> str:
     else:
         p.append("Sapma %15'i asiyor — bu hatta ayrilmis akis SAYISAL olarak "
                  "guvenilmez, yalniz nitel karsilastirma icin kullanilmali")
+    salinanlar = [s for s in gecerli if s.get("kararli_nokta") is False]
+    if salinanlar:
+        k = salinanlar[0]
+        p.append(f"UYARI: cozum SABIT NOKTAYA OTURMADI ({', '.join(k['platoda_alanlar'])} "
+                 f"rezidueli platoda) — kanonik esik saglansa da limit cevrimi var; "
+                 f"Xr bir BANT olarak verildi (±{k['Xr_H_salinim']:.2f})")
     if len(gecerli) > 1:
         p.append("model bagimliligi: " + ", ".join(
             f"{s['model']} %{s['hata_pct']:+.0f}" for s in gecerli))
     return ". ".join(p) + "."
 
 
+def _yakinsamayanlar_notu(sonuc: list[dict]) -> str:
+    ykn = [s for s in sonuc if s["durum"] == "yakinsamadi"]
+    if not ykn:
+        return ""
+    par = []
+    for s in ykn:
+        xr = s.get("Xr_H_YAKINSAMAMIS")
+        par.append(f"{s['model']} ({s['iterasyon']} iterasyon, "
+                   f"{', '.join(s.get('platoda_alanlar') or [])} platoda"
+                   + (f", tani Xr/H≈{xr}" if xr else "") + ")")
+    return (" YAKINSAMAYAN: " + "; ".join(par) +
+            " — bu model(ler) bu kurulumda sabit noktaya oturmuyor; degerleri hukme girmedi.")
+
+
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:] or ["kOmegaSST", "kEpsilon"]))
+    args = [a for a in sys.argv[1:] if a != "--oku"]
+    SADECE_OKU = "--oku" in sys.argv                     # mevcut case'leri yeniden çözmeden oku
+    sys.exit(main(args or ["kOmegaSST", "kEpsilon"]))

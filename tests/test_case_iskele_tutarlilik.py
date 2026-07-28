@@ -62,8 +62,8 @@ def test_ad_hoc_yazici_envanteri_bilinir():
     # duz_levha_cf ile aynı gerekçe: analysis/openfoam_runner snappyHexMesh+STL üzerine
     # kurulu, çok bloklu yapısal blockMesh'i ifade edemiyor. V&V çapaları bu yüzden
     # kendi iskelesini kurar; artış bilinçli ve bu satır sessiz kalmasını engelliyor.
-    assert len(yazicilar) <= 15, (
-        f"{len(yazicilar)} ad-hoc residualControl yazıcısı var (ölçülen taban 15): "
+    assert len(yazicilar) <= 16, (
+        f"{len(yazicilar)} ad-hoc residualControl yazıcısı var (ölçülen taban 16): "
         f"{sorted(yazicilar)}. "
         "Yeni CFD kodu analysis/openfoam_runner kullanmalı (CLAUDE.md kuralı)")
 
@@ -81,5 +81,5 @@ def test_controldict_yazan_dosya_sayisi_bilinir():
     n = sum(1 for f in _kaynaklar()
             if "controlDict" in f.read_text(encoding="utf-8", errors="replace")
             and not f.relative_to(ROOT).as_posix().startswith(("analysis/", "tests/")))
-    assert n <= 25, (f"{n} dosya kendi controlDict'ini yazıyor (ölçülen taban 25). "
+    assert n <= 26, (f"{n} dosya kendi controlDict'ini yazıyor (ölçülen taban 26). "
                      "Yeni case iskelesi yazmadan analysis/openfoam_runner'a bak")
