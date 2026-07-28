@@ -1,8 +1,8 @@
 {
-  "vaka": "auto_pilot arac siniflandirici — NX ayrilmis test seti",
+  "vaka": "auto_pilot arac siniflandirici — NX ayrik set (test)",
   "kaynak": "Siemens NX 2412 — run_journal, analitik katı + boolean",
   "_neden": "Siniflandiricinin hafizasi kendi parametrik sekillerinden olusuyor; bu set bagimsiz ve etiketi insa aninda bilinen AYRILMIS settir. Ogrenme yapilmaz, yalniz olculur.",
-  "_korluk": "TAM KOR DEGIL. Ilk olcum (kural %51.2 / kNN-kaba %80.5 / ince %53.7) tam ayrik sette yapildi. Sonra iki tur duzeltme geldi: (a) donel_simetri ozelligi ve esikleri YALNIZ egitim ailesinde kalibre edildi — bu tur kor kaldi; (b) son turda, test setinde kalan iki preset hatasi (yassi disk, cok yassi kaldirici govde) SINIF olarak egitim ailesine eklendi. (b) hata analizine dayanir, dolayisiyla son sayilar bir miktar iyimserdir. Sinif duzeyinde eklendi, belirli test ornegine gore degil; ve eklenen sekiller test ornekleriyle ayni parametrelerde DEGIL. Tam kor bir sayi icin yeni bir ucuncu aile uretilmeli.",
+  "_korluk": "TAM KOR DEGIL. Ilk olcum (kural %51.2 / kNN-kaba %80.5 / ince %53.7) tam ayrik sette yapildi; donel_simetri turu da kor kaldi (esikler yalniz egitim ailesinde kalibre edildi). Ancak SON tur, bu sette kalan iki preset hatasina bakilarak yapilmis bir hata analizidir — bu yuzden buradaki sayilar bir miktar iyimserdir. Kirlenmemis sayi icin nx_siniflandirici_kor.json'a bakin.",
   "ozet": {
     "adet": 41,
     "kural_kaba_dogruluk": 0.659,

@@ -166,12 +166,17 @@ def _duz_levha() -> tuple[str, str]:
 
 def _siniflandirici() -> tuple[str, str]:
     """Araç tipi sınıflandırması — AYRIK NX setinde ölçülen genelleme."""
-    d = _json("nx_siniflandirici.json")["ozet"]
-    guv = "✅ Yüksek" if d["preset_dogruluk"] >= 0.9 else "⚠️ Orta"
-    return guv, (f"NX ayrık test seti ({d['adet']} geometri): analiz ayarını belirleyen "
-                 f"preset doğruluğu %{d['preset_dogruluk'] * 100:.0f}, ince tip "
-                 f"%{d['son_ince_dogruluk'] * 100:.0f}; kural tek başına "
-                 f"%{d['kural_kaba_dogruluk'] * 100:.0f} — öğrenilen kNN taşıyor")
+    # KÖR aile öne alınır: test ailesinin son turu hata analizine konu oldu, kör aile
+    # hiçbir tura girmedi. İyimser olanı değil, hak edilmiş olanı raporla.
+    k = _json("nx_siniflandirici_kor.json")["ozet"]
+    t = _json("nx_siniflandirici.json")["ozet"]
+    guv = "✅ Yüksek" if k["preset_dogruluk"] >= 0.9 else "⚠️ Orta"
+    return guv, (f"TAM KÖR üçüncü NX ailesi ({k['adet']} geometri): analiz ayarını "
+                 f"belirleyen preset doğruluğu %{k['preset_dogruluk'] * 100:.0f}, ince tip "
+                 f"%{k['son_ince_dogruluk'] * 100:.0f}, kural tek başına "
+                 f"%{k['kural_kaba_dogruluk'] * 100:.0f} — öğrenilen kNN taşıyor "
+                 f"(ilk ayrık sette preset %{t['preset_dogruluk'] * 100:.0f}, ama o set "
+                 "son turda hata analizine konu oldu)")
 
 
 def s_yp(s: dict) -> float:

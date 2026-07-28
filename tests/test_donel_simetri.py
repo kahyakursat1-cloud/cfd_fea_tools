@@ -168,9 +168,41 @@ class TestAyrikOlcum:
         bir güven verir."""
         d = json.loads(KANIT.read_text(encoding="utf-8"))
         assert "TAM KOR DEGIL" in d["_korluk"]
-        assert "hata analizine" in d["_korluk"]
+        assert "hata analizidir" in d["_korluk"]
+        assert "nx_siniflandirici_kor.json" in d["_korluk"], "kör sayıya yol gösterilmeli"
 
     def test_preset_dogrulugu_gerilemedi(self):
         """Regresyon kilidi: ölçülen taban %100 (41 geometri). Altına düşerse
         sınıflandırıcıya dokunan bir değişiklik analiz ayarını bozmuş demektir."""
         assert self._o()["preset_dogruluk"] >= 1.0
+
+
+KOR = KOK / "nx_siniflandirici_kor.json"
+
+
+@pytest.mark.skipif(not KOR.exists(), reason="kör ölçüm koşulmamış")
+class TestKorOlcum:
+    """Üçüncü aile — hiçbir tasarım/kalibrasyon/hata-analizi turuna girmedi."""
+
+    @staticmethod
+    def _d():
+        return json.loads(KOR.read_text(encoding="utf-8"))
+
+    def test_tam_kor_beyani(self):
+        assert "TAM KOR." in self._d()["_korluk"]
+
+    def test_preset_dogrulugu_taban(self):
+        """Ölçülen kör taban %96.3 (27 geometri). Altına düşerse genelleme bozulmuştur."""
+        assert self._d()["ozet"]["preset_dogruluk"] >= 0.96
+
+    def test_multikopter_dali_kor_ailede_de_calisiyor(self):
+        """ASIL KANIT: dönel simetri özelliği uydurma değil. Kör ailedeki multikopterler
+        Y6 (3 kol, koaksiyel) ve UZATILMIŞ hexa — ikisi de eğitim ailesinde YOK.
+        Kural bunları kendi başına bulabiliyorsa özellik gerçekten genelleşiyor."""
+        mk = [k for k in self._d()["kayitlar"] if k["gercek"] == "multikopter"]
+        assert len(mk) >= 4
+        assert all(k["kural"] == "multikopter" for k in mk), \
+            [(k["ad"], k["kural"]) for k in mk]
+
+    def test_knn_kor_ailede_de_bozmuyor(self):
+        assert self._d()["ozet"]["knn_bozdugu"] == []

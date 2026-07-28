@@ -24,8 +24,9 @@ import NXOpen.GeometricUtilities
 # Eşiği test setinde kalibre etmek ölçümü değersiz kılar; aileler alt-şekil düzeyinde
 # ayrıktır (test: + kollu quad / düz kanat; eğitim: hexa-tri-X kollu / uçan kanat…).
 AILE_ADI = os.environ.get("NX_AILE", "test")
+_DIZIN = {"test": "nx_geo", "egitim": "nx_geo_egitim", "kor": "nx_geo_kor"}
 CIKTI = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                     "nx_geo" if AILE_ADI == "test" else "nx_geo_egitim")
+                     _DIZIN.get(AILE_ADI, "nx_geo_egitim"))
 KABA_TOLERANS = 0.6      # tessellation duyarlılığı ölçümü için ikinci ihracat
 INCE_TOLERANS = 0.05
 
@@ -302,6 +303,105 @@ def dalga_binici(g, boy, genislik_orani):
     g.blok((boy * 0.78, -h * 0.5, h / 2), boy * 0.22, h, h * 1.6)
 
 
+# ------------------------------------------------- KÖR aileye özgü şekiller
+# Üçüncü aile: ne test ne eğitim ailesinde bulunan alt-şekiller. Hiçbir kalibrasyon
+# bu aileye bakılarak yapılmaz — tek seferlik, kirlenmemiş ölçüm içindir.
+
+def bot_kuyruklu_roket(g, cap, ld, bot_orani):
+    """Boat-tail (daralan kıç) roket — kıçta çap düşer."""
+    boy = cap * ld
+    burun = cap * 2.6
+    bot = cap * 1.2
+    g.koni((0, 0, 0), cap * bot_orani, cap, bot)
+    g.silindir((0, 0, bot), cap, boy - burun - bot)
+    g.koni((0, 0, boy - burun), cap, cap * 0.12, burun)
+
+
+def izgara_kanatli_roket(g, cap, ld):
+    """Izgara (grid) kanatlı roket — dört yönde kalın, kısa kanatçık."""
+    roket(g, cap, ld)
+    ac, kord, kal = cap * 0.55, cap * 0.9, cap * 0.22
+    z = cap * 1.2
+    for dx, dy, sx, sy in ((1, 0, ac, kal), (-1, 0, ac, kal),
+                           (0, 1, kal, ac), (0, -1, kal, ac)):
+        g.blok((dx * cap * 0.4 - (sx if dx < 0 else 0) - (sx / 2 if dx == 0 else 0),
+                dy * cap * 0.4 - (sy if dy < 0 else 0) - (sy / 2 if dy == 0 else 0),
+                z), sx, sy, kord)
+
+
+def delta_ucak(g, boy, cap, acik_orani):
+    """Delta kanatlı uçak — kanat kökü gövde boyunca uzun, uçta sivri."""
+    _ucak_govde(g, boy, cap)
+    ac = boy * acik_orani / 2
+    kal = boy * 0.020
+    n = 6
+    for i in range(n):
+        y0, y1 = ac * i / n, ac * (i + 1) / n
+        t = (i + 0.5) / n
+        kord = boy * 0.52 * (1 - 0.88 * t)
+        x0 = boy * 0.30 + boy * 0.42 * t
+        for yy0, yy1 in ((y0, y1), (-y1, -y0)):
+            g.blok((x0, yy0, -kal / 2), kord, yy1 - yy0, kal)
+    g.blok((boy * 0.86, -kal / 2, 0), boy * 0.09, kal, boy * 0.12)
+
+
+def gondollu_ucak(g, boy, cap, acik_orani, n_motor):
+    """Kanat altı gondollu (nacelle) uçak — gerçek nakliye uçağı imzası."""
+    ucak(g, boy, cap, acik_orani)
+    ac = boy * acik_orani / 2
+    nc = boy * 0.048
+    for i in range(n_motor // 2):
+        y = ac * (0.32 + 0.28 * i)
+        for yy in (y, -y):
+            # gondol kanadı KESMELİ; yalnız altına teğet geçerse NX birleştiremez
+            g.silindir((boy * 0.36, yy, -nc * 0.45), nc, boy * 0.16, eksen=(1, 0, 0))
+
+
+def y6_kopter(g, acik, govde_orani, motor_cap):
+    """Y6: 3 kol, her kolda ÜST+ALT motor (koaksiyel) — 3-kat simetri."""
+    gv = acik * govde_orani
+    kol_cap = acik * 0.05
+    g.silindir((0, 0, -gv * 0.4), gv, gv * 0.8)
+    for i in range(3):
+        a = 2 * math.pi * i / 3
+        ex, ey = math.cos(a), math.sin(a)
+        g.silindir((0, 0, 0), kol_cap, acik / 2, eksen=(ex, ey, 0))
+        # koaksiyel çift: alt motor kola DEĞMELİ (aksi halde birleşim düşer)
+        for dz in (kol_cap * 0.2, -motor_cap * 0.8):
+            g.silindir((ex * acik / 2, ey * acik / 2, dz), motor_cap, motor_cap * 0.8)
+
+
+def uzun_hexakopter(g, acik, uzunluk_orani, motor_cap):
+    """Uzatılmış hexakopter (kollar eşit değil) — simetri bozulmuş zor vaka."""
+    gv = acik * 0.24
+    kol_cap = acik * 0.045
+    g.silindir((0, 0, -gv * 0.35), gv, gv * 0.7)
+    for i in range(6):
+        a = 2 * math.pi * i / 6 + math.pi / 6
+        ex, ey = math.cos(a), math.sin(a)
+        r = acik / 2 * (uzunluk_orani if abs(ex) > 0.7 else 1.0)
+        g.silindir((0, 0, 0), kol_cap, r, eksen=(ex, ey, 0))
+        g.silindir((ex * r, ey * r, -motor_cap * 0.5), motor_cap, motor_cap * 1.1)
+
+
+def ogiv(g, cap, boy_orani):
+    """Ogive burun — küt olmayan ama kanatsız dönel cisim (genel)."""
+    boy = cap * boy_orani
+    n = 5
+    for i in range(n):
+        z0, z1 = boy * i / n, boy * (i + 1) / n
+        d0 = cap * (1 - (i / n) ** 1.8)
+        d1 = cap * (1 - ((i + 1) / n) ** 1.8)
+        g.koni((0, 0, z0), max(d0, cap * 0.02), max(d1, cap * 0.01), z1 - z0)
+
+
+def kademeli_silindir(g, cap, boy_orani):
+    """Kademeli silindir — iki farklı çaplı kısa silindir (genel, küt)."""
+    boy = cap * boy_orani
+    g.silindir((0, 0, 0), cap, boy * 0.55)
+    g.silindir((0, 0, boy * 0.45), cap * 0.62, boy * 0.55)
+
+
 AILE = []
 
 
@@ -337,7 +437,7 @@ if AILE_ADI == "test":
     _ekle("genel_kup300", "genel", genel_kup, 300.0)
     _ekle("genel_kup800", "genel", genel_kup, 800.0)
     _ekle("genel_disk", "genel", genel_disk, 700.0, 90.0)
-else:
+elif AILE_ADI == "egitim":
     for ld, uo in ((7, 0.55), (10, 0.62), (14, 0.70)):
         _ekle("kademeli_ld%d" % ld, "roket", kademeli_roket, 150.0, float(ld), uo)
     for nb in (2, 4):
@@ -380,6 +480,34 @@ else:
     for ad, boy, gen, yuk in (("cokyassi_e", 1600.0, 0.58, 0.065),
                               ("uzunyassi_e", 2000.0, 0.44, 0.080)):
         _ekle("kaldirici_" + ad, "kaldirici_govde", kaldirici_govde, boy, gen, yuk)
+elif AILE_ADI == "kor":
+    # ÜÇÜNCÜ AİLE — tam kör ölçüm. Buraya bakarak HİÇBİR eşik/özellik ayarlanmaz.
+    for ld, bo in ((8, 0.72), (12, 0.60), (17, 0.80)):
+        _ekle("bot_ld%d" % ld, "roket", bot_kuyruklu_roket, 145.0, float(ld), bo)
+    _ekle("ogivroket_ld10", "roket", bot_kuyruklu_roket, 175.0, 10.0, 0.9)
+    for ld in (7, 10, 13):
+        _ekle("izgara_ld%d" % ld, "kanatli_roket", izgara_kanatli_roket, 155.0, float(ld))
+    for ad, boy, cap, ao in (("dar", 2100.0, 215.0, 0.85), ("genis", 2700.0, 260.0, 1.20)):
+        _ekle("delta_" + ad, "ucak", delta_ucak, boy, cap, ao)
+    for ad, boy, cap, ao, nm in (("iki", 2900.0, 300.0, 1.40, 2),
+                                 ("dort", 3400.0, 380.0, 1.55, 4)):
+        _ekle("gondol_" + ad, "ucak", gondollu_ucak, boy, cap, ao, nm)
+    for ad, ac, gv, mot in (("y6_kucuk", 780.0, 0.30, 68.0), ("y6_orta", 1150.0, 0.26, 88.0)):
+        _ekle("kopter_" + ad, "multikopter", y6_kopter, ac, gv, mot)
+    for ad, ac, uo, mot in (("uzunhexa", 1350.0, 1.35, 90.0), ("uzunhexa2", 980.0, 1.20, 72.0)):
+        _ekle("kopter_" + ad, "multikopter", uzun_hexakopter, ac, uo, mot)
+    for ad, boy, gen, yuk in (("kor_dar", 1450.0, 0.48, 0.10), ("kor_genis", 2300.0, 0.68, 0.13)):
+        _ekle("kaldirici_" + ad, "kaldirici_govde", kaldirici_govde, boy, gen, yuk)
+    _ekle("dalgabinici_kor", "kaldirici_govde", dalga_binici, 1900.0, 0.62)
+    for ad, boy, cap, ao in (("kor_a", 2200.0, 225.0, 1.10), ("kor_b", 1700.0, 180.0, 1.45)):
+        _ekle("tiltrotor_" + ad, "tilt_rotor", tilt_rotor, boy, cap, ao)
+    for ad, boy, cap, ao in (("kor_a", 2400.0, 240.0, 1.30), ("kor_b", 1550.0, 170.0, 1.10)):
+        _ekle("kanatlivtol_" + ad, "kanatli_vtol", kanatli_vtol, boy, cap, ao)
+    _ekle("genel_ogiv_kisa", "genel", ogiv, 420.0, 1.6)
+    _ekle("genel_ogiv_uzun", "genel", ogiv, 300.0, 3.0)
+    for ad, cap, bo in (("kisa", 460.0, 1.1), ("uzun", 380.0, 1.9)):
+        _ekle("genel_kademeli_" + ad, "genel", kademeli_silindir, cap, bo)
+    _ekle("genel_kure_kor", "genel", genel_kure, 520.0)
 
 KABA_ORNEK = ({"roket_ld11", "ucak_orta", "multikopter_orta", "kaldirici_orta",
                "tiltrotor_orta", "genel_kup300"} if AILE_ADI == "test" else set())

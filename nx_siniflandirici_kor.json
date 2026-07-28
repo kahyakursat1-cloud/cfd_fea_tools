@@ -1,0 +1,971 @@
+{
+  "vaka": "auto_pilot arac siniflandirici — NX ayrik set (kor)",
+  "kaynak": "Siemens NX 2412 — run_journal, analitik katı + boolean",
+  "_neden": "Siniflandiricinin hafizasi kendi parametrik sekillerinden olusuyor; bu set bagimsiz ve etiketi insa aninda bilinen AYRILMIS settir. Ogrenme yapilmaz, yalniz olculur.",
+  "_korluk": "TAM KOR. Ucuncu aile; ne ozellik tasarimi ne esik kalibrasyonu ne de hata analizi bu aileye bakilarak yapildi. Uretim hatalari (temas etmeyen parcalar) duzeltildi ama bunlar SINIFLANDIRICI sonucuna bakilmadan giderildi. Buradaki sayilar sistemin gercek genelleme performansidir.",
+  "ozet": {
+    "adet": 27,
+    "kural_kaba_dogruluk": 0.704,
+    "son_kaba_dogruluk": 0.963,
+    "son_ince_dogruluk": 0.741,
+    "preset_dogruluk": 0.963,
+    "preset_hatalari": [
+      {
+        "ad": "izgara_ld7",
+        "gercek": "kanatli_roket",
+        "tahmin": "genel",
+        "preset_gercek": "roket",
+        "preset_tahmin": "genel"
+      }
+    ],
+    "knn_bozdugu": [],
+    "knn_duzelttigi": [
+      "bot_ld8",
+      "bot_ld12",
+      "bot_ld17",
+      "ogivroket_ld10",
+      "izgara_ld10",
+      "izgara_ld13",
+      "kaldirici_kor_genis"
+    ],
+    "kural_hatalari": [
+      {
+        "gercek": "roket",
+        "tahmin": "genel",
+        "adet": 7
+      },
+      {
+        "gercek": "ucak",
+        "tahmin": "genel",
+        "adet": 1
+      }
+    ],
+    "tessellation": {
+      "cift_sayisi": 0,
+      "kararsiz": [],
+      "ayrinti": []
+    }
+  },
+  "kayitlar": [
+    {
+      "ad": "bot_ld8",
+      "gercek": "roket",
+      "gercek_kaba": "roket",
+      "kural": "genel",
+      "son": "roket",
+      "guven": 1.0,
+      "ogrenilen": {
+        "tip": "roket",
+        "guven": 1.0,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 2.74,
+        "W_L": 0.12,
+        "H_L": 0.12,
+        "H_W": 1.0,
+        "planform_frontal": 0.12,
+        "govde": 1,
+        "ince_yassilik": 0.9998,
+        "radyal_doluluk": 1.0,
+        "donel_simetri": 0.118
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 964,
+      "watertight": true,
+      "hacim_m3": 0.0145416,
+      "boyut_m": [
+        0.145,
+        0.145,
+        1.16
+      ]
+    },
+    {
+      "ad": "bot_ld12",
+      "gercek": "roket",
+      "gercek_kaba": "roket",
+      "kural": "genel",
+      "son": "roket",
+      "guven": 1.0,
+      "ogrenilen": {
+        "tip": "roket",
+        "guven": 1.0,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 3.26,
+        "W_L": 0.08,
+        "H_L": 0.08,
+        "H_W": 1.0,
+        "planform_frontal": 0.07,
+        "govde": 1,
+        "ince_yassilik": 0.9998,
+        "radyal_doluluk": 1.0,
+        "donel_simetri": 0.071
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 964,
+      "watertight": true,
+      "hacim_m3": 0.02384392,
+      "boyut_m": [
+        0.145,
+        0.145,
+        1.74
+      ]
+    },
+    {
+      "ad": "bot_ld17",
+      "gercek": "roket",
+      "gercek_kaba": "roket",
+      "kural": "genel",
+      "son": "roket",
+      "guven": 1.0,
+      "ogrenilen": {
+        "tip": "roket",
+        "guven": 1.0,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 3.8,
+        "W_L": 0.06,
+        "H_L": 0.06,
+        "H_W": 1.0,
+        "planform_frontal": 0.05,
+        "govde": 1,
+        "ince_yassilik": 0.9998,
+        "radyal_doluluk": 1.0,
+        "donel_simetri": 0.047
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 972,
+      "watertight": true,
+      "hacim_m3": 0.03626445,
+      "boyut_m": [
+        0.145,
+        0.145,
+        2.465
+      ]
+    },
+    {
+      "ad": "ogivroket_ld10",
+      "gercek": "roket",
+      "gercek_kaba": "roket",
+      "kural": "genel",
+      "son": "roket",
+      "guven": 1.0,
+      "ogrenilen": {
+        "tip": "roket",
+        "guven": 1.0,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 2.99,
+        "W_L": 0.1,
+        "H_L": 0.1,
+        "H_W": 1.0,
+        "planform_frontal": 0.09,
+        "govde": 1,
+        "ince_yassilik": 0.9999,
+        "radyal_doluluk": 1.0,
+        "donel_simetri": 0.087
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 1058,
+      "watertight": true,
+      "hacim_m3": 0.03477316,
+      "boyut_m": [
+        0.175,
+        0.175,
+        1.75
+      ]
+    },
+    {
+      "ad": "izgara_ld7",
+      "gercek": "kanatli_roket",
+      "gercek_kaba": "roket",
+      "kural": "genel",
+      "son": "genel",
+      "guven": 1.0,
+      "ogrenilen": {
+        "tip": "kanatli_roket",
+        "guven": 0.4,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 2.18,
+        "W_L": 0.27,
+        "H_L": 0.27,
+        "H_W": 1.0,
+        "planform_frontal": 0.27,
+        "govde": 1,
+        "ince_yassilik": 1.0,
+        "radyal_doluluk": 0.778,
+        "donel_simetri": 0.209
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 624,
+      "watertight": true,
+      "hacim_m3": 0.01595207,
+      "boyut_m": [
+        0.2945,
+        0.2945,
+        1.085
+      ]
+    },
+    {
+      "ad": "izgara_ld10",
+      "gercek": "kanatli_roket",
+      "gercek_kaba": "roket",
+      "kural": "genel",
+      "son": "roket",
+      "guven": 0.8,
+      "ogrenilen": {
+        "tip": "roket",
+        "guven": 0.6,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 2.55,
+        "W_L": 0.19,
+        "H_L": 0.19,
+        "H_W": 1.0,
+        "planform_frontal": 0.18,
+        "govde": 1,
+        "ince_yassilik": 1.0,
+        "radyal_doluluk": 0.772,
+        "donel_simetri": 0.085
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 624,
+      "watertight": true,
+      "hacim_m3": 0.02471979,
+      "boyut_m": [
+        0.2945,
+        0.2945,
+        1.55
+      ]
+    },
+    {
+      "ad": "izgara_ld13",
+      "gercek": "kanatli_roket",
+      "gercek_kaba": "roket",
+      "kural": "genel",
+      "son": "roket",
+      "guven": 0.8,
+      "ogrenilen": {
+        "tip": "roket",
+        "guven": 0.6,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 2.84,
+        "W_L": 0.15,
+        "H_L": 0.15,
+        "H_W": 1.0,
+        "planform_frontal": 0.13,
+        "govde": 1,
+        "ince_yassilik": 1.0,
+        "radyal_doluluk": 0.75,
+        "donel_simetri": 0.061
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 624,
+      "watertight": true,
+      "hacim_m3": 0.0334875,
+      "boyut_m": [
+        0.2945,
+        0.2945,
+        2.015
+      ]
+    },
+    {
+      "ad": "delta_dar",
+      "gercek": "ucak",
+      "gercek_kaba": "ucak",
+      "kural": "ucak",
+      "son": "ucak",
+      "guven": 0.76,
+      "ogrenilen": {
+        "tip": "ucak",
+        "guven": 0.4,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 3.09,
+        "W_L": 0.85,
+        "H_L": 0.17,
+        "H_W": 0.2,
+        "planform_frontal": 5.72,
+        "govde": 1,
+        "ince_yassilik": 0.0325,
+        "radyal_doluluk": 0.605,
+        "donel_simetri": 0.582
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 1300,
+      "watertight": true,
+      "hacim_m3": 0.09817394,
+      "boyut_m": [
+        2.1,
+        1.785,
+        0.3595
+      ]
+    },
+    {
+      "ad": "delta_genis",
+      "gercek": "ucak",
+      "gercek_kaba": "ucak",
+      "kural": "ucak",
+      "son": "ucak",
+      "guven": 0.77,
+      "ogrenilen": {
+        "tip": "ucak",
+        "guven": 0.6,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 3.15,
+        "W_L": 0.83,
+        "H_L": 0.14,
+        "H_W": 0.17,
+        "planform_frontal": 5.82,
+        "govde": 1,
+        "ince_yassilik": 0.0493,
+        "radyal_doluluk": 0.581,
+        "donel_simetri": 0.478
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 1414,
+      "watertight": true,
+      "hacim_m3": 0.23708841,
+      "boyut_m": [
+        2.7,
+        3.24,
+        0.454
+      ]
+    },
+    {
+      "ad": "gondol_iki",
+      "gercek": "ucak",
+      "gercek_kaba": "ucak",
+      "kural": "ucak",
+      "son": "ucak",
+      "guven": 0.77,
+      "ogrenilen": {
+        "tip": "tilt_rotor",
+        "guven": 0.4,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 3.48,
+        "W_L": 0.71,
+        "H_L": 0.11,
+        "H_W": 0.15,
+        "planform_frontal": 6.74,
+        "govde": 1,
+        "ince_yassilik": 0.1187,
+        "radyal_doluluk": 0.37,
+        "donel_simetri": 0.374
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 2468,
+      "watertight": true,
+      "hacim_m3": 0.29604518,
+      "boyut_m": [
+        2.9,
+        4.06,
+        0.44
+      ]
+    },
+    {
+      "ad": "gondol_dort",
+      "gercek": "ucak",
+      "gercek_kaba": "ucak",
+      "kural": "ucak",
+      "son": "ucak",
+      "guven": 0.76,
+      "ogrenilen": {
+        "tip": "tilt_rotor",
+        "guven": 0.4,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 3.53,
+        "W_L": 0.65,
+        "H_L": 0.1,
+        "H_W": 0.16,
+        "planform_frontal": 6.27,
+        "govde": 1,
+        "ince_yassilik": 0.1434,
+        "radyal_doluluk": 0.373,
+        "donel_simetri": 0.353
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 4012,
+      "watertight": true,
+      "hacim_m3": 0.55458465,
+      "boyut_m": [
+        3.4,
+        5.27,
+        0.53
+      ]
+    },
+    {
+      "ad": "kopter_y6_kucuk",
+      "gercek": "multikopter",
+      "gercek_kaba": "multikopter",
+      "kural": "multikopter",
+      "son": "multikopter",
+      "guven": 0.83,
+      "ogrenilen": {
+        "tip": "multikopter",
+        "guven": 1.0,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 1.89,
+        "W_L": 0.88,
+        "H_L": 0.25,
+        "H_W": 0.29,
+        "planform_frontal": 2.23,
+        "govde": 1,
+        "ince_yassilik": 0.5907,
+        "radyal_doluluk": 0.332,
+        "donel_simetri": 1.0
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 5050,
+      "watertight": true,
+      "hacim_m3": 0.01012207,
+      "boyut_m": [
+        0.653,
+        0.7435,
+        0.1872
+      ]
+    },
+    {
+      "ad": "kopter_y6_orta",
+      "gercek": "multikopter",
+      "gercek_kaba": "multikopter",
+      "kural": "multikopter",
+      "son": "multikopter",
+      "guven": 0.83,
+      "ogrenilen": {
+        "tip": "multikopter",
+        "guven": 1.0,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 2.02,
+        "W_L": 0.88,
+        "H_L": 0.22,
+        "H_W": 0.25,
+        "planform_frontal": 2.52,
+        "govde": 1,
+        "ince_yassilik": 0.3114,
+        "radyal_doluluk": 0.294,
+        "donel_simetri": 1.0
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 5376,
+      "watertight": true,
+      "hacim_m3": 0.02242954,
+      "boyut_m": [
+        0.9505,
+        1.0839,
+        0.2392
+      ]
+    },
+    {
+      "ad": "kopter_uzunhexa",
+      "gercek": "multikopter",
+      "gercek_kaba": "multikopter",
+      "kural": "multikopter",
+      "son": "multikopter",
+      "guven": 0.48,
+      "ogrenilen": {
+        "tip": "multikopter",
+        "guven": 0.8,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 2.93,
+        "W_L": 0.86,
+        "H_L": 0.14,
+        "H_W": 0.16,
+        "planform_frontal": 7.91,
+        "govde": 1,
+        "ince_yassilik": 0.0989,
+        "radyal_doluluk": 0.173,
+        "donel_simetri": 0.823
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 7724,
+      "watertight": true,
+      "hacim_m3": 0.03340104,
+      "boyut_m": [
+        1.6683,
+        1.44,
+        0.2268
+      ]
+    },
+    {
+      "ad": "kopter_uzunhexa2",
+      "gercek": "multikopter",
+      "gercek_kaba": "multikopter",
+      "kural": "multikopter",
+      "son": "multikopter",
+      "guven": 0.44,
+      "ogrenilen": {
+        "tip": "multikopter",
+        "guven": 0.6,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 2.6,
+        "W_L": 0.96,
+        "H_L": 0.15,
+        "H_W": 0.16,
+        "planform_frontal": 6.68,
+        "govde": 1,
+        "ince_yassilik": 0.12,
+        "radyal_doluluk": 0.19,
+        "donel_simetri": 0.673
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 7076,
+      "watertight": true,
+      "hacim_m3": 0.01278358,
+      "boyut_m": [
+        1.0904,
+        1.052,
+        0.1646
+      ]
+    },
+    {
+      "ad": "kaldirici_kor_dar",
+      "gercek": "kaldirici_govde",
+      "gercek_kaba": "ucak",
+      "kural": "ucak",
+      "son": "kaldirici_govde",
+      "guven": 0.71,
+      "ogrenilen": {
+        "tip": "kaldirici_govde",
+        "guven": 0.8,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 3.24,
+        "W_L": 0.48,
+        "H_L": 0.19,
+        "H_W": 0.4,
+        "planform_frontal": 5.71,
+        "govde": 1,
+        "ince_yassilik": 0.2083,
+        "radyal_doluluk": 0.899,
+        "donel_simetri": 0.586
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 198,
+      "watertight": true,
+      "hacim_m3": 0.12182051,
+      "boyut_m": [
+        1.45,
+        0.696,
+        0.2755
+      ]
+    },
+    {
+      "ad": "kaldirici_kor_genis",
+      "gercek": "kaldirici_govde",
+      "gercek_kaba": "ucak",
+      "kural": "genel",
+      "son": "kaldirici_govde",
+      "guven": 1.0,
+      "ogrenilen": {
+        "tip": "kaldirici_govde",
+        "guven": 1.0,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 2.39,
+        "W_L": 0.68,
+        "H_L": 0.25,
+        "H_W": 0.36,
+        "planform_frontal": 4.39,
+        "govde": 1,
+        "ince_yassilik": 0.1912,
+        "radyal_doluluk": 0.897,
+        "donel_simetri": 0.742
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 272,
+      "watertight": true,
+      "hacim_m3": 0.89456987,
+      "boyut_m": [
+        2.3,
+        1.564,
+        0.5681
+      ]
+    },
+    {
+      "ad": "dalgabinici_kor",
+      "gercek": "kaldirici_govde",
+      "gercek_kaba": "ucak",
+      "kural": "ucak",
+      "son": "kaldirici_govde",
+      "guven": 0.64,
+      "ogrenilen": {
+        "tip": "kaldirici_govde",
+        "guven": 0.6,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 2.98,
+        "W_L": 0.62,
+        "H_L": 0.2,
+        "H_W": 0.31,
+        "planform_frontal": 4.95,
+        "govde": 1,
+        "ince_yassilik": 0.1673,
+        "radyal_doluluk": 0.911,
+        "donel_simetri": 0.471
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 114,
+      "watertight": false,
+      "hacim_m3": 0.21801351,
+      "boyut_m": [
+        1.9,
+        1.178,
+        0.3705
+      ]
+    },
+    {
+      "ad": "tiltrotor_kor_a",
+      "gercek": "tilt_rotor",
+      "gercek_kaba": "ucak",
+      "kural": "ucak",
+      "son": "ucak",
+      "guven": 0.79,
+      "ogrenilen": {
+        "tip": "tilt_rotor",
+        "guven": 0.4,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 2.93,
+        "W_L": 0.91,
+        "H_L": 0.14,
+        "H_W": 0.15,
+        "planform_frontal": 6.68,
+        "govde": 1,
+        "ince_yassilik": 0.0575,
+        "radyal_doluluk": 0.367,
+        "donel_simetri": 0.438
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 2294,
+      "watertight": true,
+      "hacim_m3": 0.11850123,
+      "boyut_m": [
+        2.2,
+        2.42,
+        0.3325
+      ]
+    },
+    {
+      "ad": "tiltrotor_kor_b",
+      "gercek": "tilt_rotor",
+      "gercek_kaba": "ucak",
+      "kural": "ucak",
+      "son": "ucak",
+      "guven": 0.76,
+      "ogrenilen": {
+        "tip": "tilt_rotor",
+        "guven": 0.4,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 3.36,
+        "W_L": 0.69,
+        "H_L": 0.11,
+        "H_W": 0.15,
+        "planform_frontal": 6.61,
+        "govde": 1,
+        "ince_yassilik": 0.0731,
+        "radyal_doluluk": 0.346,
+        "donel_simetri": 0.362
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 2272,
+      "watertight": true,
+      "hacim_m3": 0.0632476,
+      "boyut_m": [
+        1.7,
+        2.465,
+        0.26
+      ]
+    },
+    {
+      "ad": "kanatlivtol_kor_a",
+      "gercek": "kanatli_vtol",
+      "gercek_kaba": "ucak",
+      "kural": "ucak",
+      "son": "ucak",
+      "guven": 0.77,
+      "ogrenilen": {
+        "tip": "tilt_rotor",
+        "guven": 0.4,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 3.43,
+        "W_L": 0.77,
+        "H_L": 0.12,
+        "H_W": 0.15,
+        "planform_frontal": 7.07,
+        "govde": 1,
+        "ince_yassilik": 0.0575,
+        "radyal_doluluk": 0.393,
+        "donel_simetri": 0.427
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 2640,
+      "watertight": true,
+      "hacim_m3": 0.16612191,
+      "boyut_m": [
+        2.4,
+        3.12,
+        0.36
+      ]
+    },
+    {
+      "ad": "kanatlivtol_kor_b",
+      "gercek": "kanatli_vtol",
+      "gercek_kaba": "ucak",
+      "kural": "ucak",
+      "son": "ucak",
+      "guven": 0.78,
+      "ogrenilen": {
+        "tip": "tilt_rotor",
+        "guven": 0.4,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 3.11,
+        "W_L": 0.91,
+        "H_L": 0.14,
+        "H_W": 0.15,
+        "planform_frontal": 6.87,
+        "govde": 1,
+        "ince_yassilik": 0.0575,
+        "radyal_doluluk": 0.419,
+        "donel_simetri": 0.448
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 2060,
+      "watertight": true,
+      "hacim_m3": 0.04563403,
+      "boyut_m": [
+        1.55,
+        1.705,
+        0.24
+      ]
+    },
+    {
+      "ad": "genel_ogiv_kisa",
+      "gercek": "genel",
+      "gercek_kaba": "genel",
+      "kural": "genel",
+      "son": "genel",
+      "guven": 1.0,
+      "ogrenilen": {
+        "tip": "genel",
+        "guven": 0.8,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 1.4,
+        "W_L": 0.62,
+        "H_L": 0.62,
+        "H_W": 1.0,
+        "planform_frontal": 0.77,
+        "govde": 1,
+        "ince_yassilik": 1.0,
+        "radyal_doluluk": 1.0,
+        "donel_simetri": 0.537
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 2402,
+      "watertight": true,
+      "hacim_m3": 0.04609805,
+      "boyut_m": [
+        0.42,
+        0.42,
+        0.672
+      ]
+    },
+    {
+      "ad": "genel_ogiv_uzun",
+      "gercek": "genel",
+      "gercek_kaba": "genel",
+      "kural": "genel",
+      "son": "genel",
+      "guven": 1.0,
+      "ogrenilen": {
+        "tip": "genel",
+        "guven": 0.4,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 1.92,
+        "W_L": 0.33,
+        "H_L": 0.33,
+        "H_W": 1.0,
+        "planform_frontal": 0.41,
+        "govde": 1,
+        "ince_yassilik": 0.9998,
+        "radyal_doluluk": 1.0,
+        "donel_simetri": 0.337
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 2048,
+      "watertight": true,
+      "hacim_m3": 0.03149683,
+      "boyut_m": [
+        0.3,
+        0.2999,
+        0.9
+      ]
+    },
+    {
+      "ad": "genel_kademeli_kisa",
+      "gercek": "genel",
+      "gercek_kaba": "genel",
+      "kural": "genel",
+      "son": "genel",
+      "guven": 1.0,
+      "ogrenilen": {
+        "tip": "genel",
+        "guven": 0.8,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 0.97,
+        "W_L": 0.91,
+        "H_L": 0.91,
+        "H_W": 1.0,
+        "planform_frontal": 0.78,
+        "govde": 1,
+        "ince_yassilik": 0.9999,
+        "radyal_doluluk": 0.906,
+        "donel_simetri": 0.763
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 1080,
+      "watertight": true,
+      "hacim_m3": 0.06077692,
+      "boyut_m": [
+        0.46,
+        0.46,
+        0.506
+      ]
+    },
+    {
+      "ad": "genel_kademeli_uzun",
+      "gercek": "genel",
+      "gercek_kaba": "genel",
+      "kural": "genel",
+      "son": "genel",
+      "guven": 1.0,
+      "ogrenilen": {
+        "tip": "genel",
+        "guven": 0.8,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 1.28,
+        "W_L": 0.53,
+        "H_L": 0.53,
+        "H_W": 1.0,
+        "planform_frontal": 0.45,
+        "govde": 1,
+        "ince_yassilik": 0.9999,
+        "radyal_doluluk": 0.906,
+        "donel_simetri": 0.468
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 980,
+      "watertight": true,
+      "hacim_m3": 0.05917607,
+      "boyut_m": [
+        0.38,
+        0.38,
+        0.722
+      ]
+    },
+    {
+      "ad": "genel_kure_kor",
+      "gercek": "genel",
+      "gercek_kaba": "genel",
+      "kural": "genel",
+      "son": "genel",
+      "guven": 1.0,
+      "ogrenilen": {
+        "tip": "genel",
+        "guven": 1.0,
+        "komsu": 5,
+        "kutuphane": 277
+      },
+      "metrik": {
+        "L_D": 1.0,
+        "W_L": 1.0,
+        "H_L": 1.0,
+        "H_W": 1.0,
+        "planform_frontal": 1.0,
+        "govde": 1,
+        "ince_yassilik": 1.0,
+        "radyal_doluluk": 1.0,
+        "donel_simetri": 1.0
+      },
+      "kordal_tol": 0.05,
+      "ucgen": 51302,
+      "watertight": true,
+      "hacim_m3": 0.0735988,
+      "boyut_m": [
+        0.52,
+        0.52,
+        0.52
+      ]
+    }
+  ],
+  "verdikt": "⚠️ Kural motoru bagimsiz sette yalniz %70 kaba-sinif dogrulugunda — kendi dagiliminda olculen guven yaniltici. kNN 7 vakayi duzeltti, hic bozmadi. ucgenleme yogunlugu hukmu degistirmiyor. ince (8-sinif) dogruluk %74, ANALIZ AYARINI belirleyen preset dogrulugu %96.",
+  "_uretim": "Üretim: run_journal.exe experiments/nx_geometri_uret.py && python experiments/nx_siniflandirici_testi.py"
+}

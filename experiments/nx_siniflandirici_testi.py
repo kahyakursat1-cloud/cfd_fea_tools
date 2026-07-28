@@ -12,6 +12,7 @@ Bu script, NX'te üretilmiş ve etiketi inşa anında bilinen bağımsız aileyi
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -26,7 +27,12 @@ import trimesh  # noqa: E402
 from auto_pilot import PRESET_MAP, classify_vehicle  # noqa: E402
 from vehicle_pipeline import inspect_geometry  # noqa: E402
 
-GEO = HERE / "nx_geo"
+# Hangi aile ölçülecek: "test" (kalibrasyona hiç girmedi ama son turda hata analizine
+# konu oldu) | "kor" (üçüncü aile, hiçbir turda bakılmadı — kirlenmemiş sayı).
+AILE = os.environ.get("NX_OLC", "test")
+_DIZIN = {"test": "nx_geo", "kor": "nx_geo_kor"}
+GEO = HERE / _DIZIN.get(AILE, "nx_geo")
+CIKTI_JSON = {"test": "nx_siniflandirici.json", "kor": "nx_siniflandirici_kor.json"}[AILE]
 # Kural motoru yalnız 4 sınıf üretebilir; ince etiketler (kanatlı roket, tilt-rotor…)
 # ancak öğrenilmiş kNN oyundan gelebilir. İki seviyeyi AYRI raporlamak şart:
 # kural motorunu ulaşamayacağı bir etikette suçlamak ölçümü bozar.
@@ -43,6 +49,21 @@ def _metre_kopyasi(stl: Path, hedef: Path) -> dict:
     return {"ucgen": int(len(m.faces)), "watertight": bool(m.is_watertight),
             "hacim_m3": round(float(m.volume), 8),
             "boyut_m": [round(float(x), 4) for x in m.extents]}
+
+
+_KORLUK = {
+    "test": (
+        "TAM KOR DEGIL. Ilk olcum (kural %51.2 / kNN-kaba %80.5 / ince %53.7) tam ayrik "
+        "sette yapildi; donel_simetri turu da kor kaldi (esikler yalniz egitim ailesinde "
+        "kalibre edildi). Ancak SON tur, bu sette kalan iki preset hatasina bakilarak "
+        "yapilmis bir hata analizidir — bu yuzden buradaki sayilar bir miktar iyimserdir. "
+        "Kirlenmemis sayi icin nx_siniflandirici_kor.json'a bakin."),
+    "kor": (
+        "TAM KOR. Ucuncu aile; ne ozellik tasarimi ne esik kalibrasyonu ne de hata "
+        "analizi bu aileye bakilarak yapildi. Uretim hatalari (temas etmeyen parcalar) "
+        "duzeltildi ama bunlar SINIFLANDIRICI sonucuna bakilmadan giderildi. Buradaki "
+        "sayilar sistemin gercek genelleme performansidir."),
+}
 
 
 def calistir() -> dict:
@@ -124,27 +145,18 @@ def main() -> int:
     d = calistir()
     o = ozetle(d["kayitlar"])
     out = {
-        "vaka": "auto_pilot arac siniflandirici — NX ayrilmis test seti",
+        "vaka": f"auto_pilot arac siniflandirici — NX ayrik set ({AILE})",
         "kaynak": d["etiket_kaynagi"],
         "_neden": ("Siniflandiricinin hafizasi kendi parametrik sekillerinden olusuyor; "
                    "bu set bagimsiz ve etiketi insa aninda bilinen AYRILMIS settir. "
                    "Ogrenme yapilmaz, yalniz olculur."),
-        "_korluk": (
-            "TAM KOR DEGIL. Ilk olcum (kural %51.2 / kNN-kaba %80.5 / ince %53.7) tam "
-            "ayrik sette yapildi. Sonra iki tur duzeltme geldi: (a) donel_simetri "
-            "ozelligi ve esikleri YALNIZ egitim ailesinde kalibre edildi — bu tur kor "
-            "kaldi; (b) son turda, test setinde kalan iki preset hatasi (yassi disk, cok "
-            "yassi kaldirici govde) SINIF olarak egitim ailesine eklendi. (b) hata "
-            "analizine dayanir, dolayisiyla son sayilar bir miktar iyimserdir. Sinif "
-            "duzeyinde eklendi, belirli test ornegine gore degil; ve eklenen sekiller "
-            "test ornekleriyle ayni parametrelerde DEGIL. Tam kor bir sayi icin yeni "
-            "bir ucuncu aile uretilmeli."),
+        "_korluk": _KORLUK[AILE],
         "ozet": o, "kayitlar": d["kayitlar"],
         "verdikt": _verdikt(o),
         "_uretim": ("Üretim: run_journal.exe experiments/nx_geometri_uret.py"
                     " && python experiments/nx_siniflandirici_testi.py"),
     }
-    (HERE.parent / "nx_siniflandirici.json").write_text(
+    (HERE.parent / CIKTI_JSON).write_text(
         json.dumps(out, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     print(f"{'geometri':24} {'gercek':16} {'kural':12} {'son':16} guven")
@@ -164,7 +176,7 @@ def main() -> int:
     print(f"kNN duzelttigi: {o['knn_duzelttigi']}")
     print(f"tessellation kararsiz: {o['tessellation']['kararsiz']}")
     print("\n" + out["verdikt"])
-    print("-> nx_siniflandirici.json")
+    print("-> " + CIKTI_JSON)
     return 0
 
 
