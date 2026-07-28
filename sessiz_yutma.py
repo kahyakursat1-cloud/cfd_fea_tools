@@ -21,6 +21,12 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
+# Tablo '✓' ve Türkçe karakter içeriyor; Windows konsolu cp1254'te UnicodeEncodeError
+# atıp DENETİMİ İLK SATIRDA KESİYORDU — sessiz yutmayı arayan aracın kendisi çıktısını
+# yutuyordu. (Aynı kusur naca2412_kesit.py'de de vardı.)
+for _akis in (sys.stdout, sys.stderr):
+    if hasattr(_akis, "reconfigure"):
+        _akis.reconfigure(encoding="utf-8", errors="replace")
 # `experiments` ÖNCE atlanıyordu — oysa V&V ÇAPALARI orada üretiliyor (düz levha,
 # basamak, FEA doğrulamaları). Kanıt üreten kodun sessizliği en az hüküm veren kodunki
 # kadar önemlidir; kapsama alındı.

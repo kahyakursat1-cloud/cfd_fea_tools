@@ -11,6 +11,7 @@ Bu, OpenVSP/OpenRocket gibi olgun araci entegre etme felsefesi — elle eliptik
 cozucu yazmak yerine.
 """
 
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -186,6 +187,95 @@ def write_ogrid_gmsh(path, X, Y, ni, nj, span=0.1):
     return seam_dup, ni_u
 
 
+def write_cgrid_gmsh(path, X, Y, ni, nj, span=0.1, tol=1e-9):
+    """C-grid -> Gmsh MSH 2.2. İZ KESİĞİ İÇ SINIR olarak bağlanır (duvar DEĞİL).
+
+    C-grid'de j=0 çizgisi şöyle gider: akış-aşağı (alt yaka) → firar kenarı → airfoil
+    → firar kenarı → akış-aşağı (üst yaka). İki iz-kesiği yakası AYNI fiziksel çizgide
+    durur; ölçüldü: (k,0) ile (ni-1-k,0) k=0..50 için tam çakışıyor (x 15.5 → 1.0).
+
+    `write_ogrid_gmsh` bu yapıyı ifade EDEMEZ: "j=0 airfoil, i-periyodik" varsayar ve
+    iz kesiğini NO-SLIP DUVAR olarak etiketler. Burada çakışan düğümler BİRLEŞTİRİLİR;
+    kesiğin iki yanındaki hücreler aynı yüzü paylaşır ve OpenFOAM onu İÇ yüz sayar.
+    Airfoil yaması yalnız i ∈ [nwke, ni-1-nwke) aralığıdır.
+    """
+    nwke = 0
+    while (nwke < ni // 2
+           and abs(X[nwke, 0] - X[ni - 1 - nwke, 0]) < tol
+           and abs(Y[nwke, 0] - Y[ni - 1 - nwke, 0]) < tol):
+        nwke += 1
+    if nwke == 0:
+        raise ValueError("C-grid iz kesiği bulunamadı — bu bir C-grid değil mi?")
+
+    nodes = []
+    nid = {}
+    for k, z in enumerate((0.0, span)):
+        for i in range(ni):
+            for j in range(nj):
+                if j == 0 and i >= ni - nwke:          # iz kesiğinin ÜST yakası
+                    nid[(i, j, k)] = nid[(ni - 1 - i, 0, k)]
+                    continue
+                nodes.append((float(X[i, j]), float(Y[i, j]), z))
+                nid[(i, j, k)] = len(nodes)
+
+    coord = {v: np.array(p) for p, v in zip(nodes, range(1, len(nodes) + 1))}
+
+    def svol(ns):
+        p = [coord[n] for n in ns]
+        return np.dot(np.cross(p[1] - p[0], p[3] - p[0]), p[4] - p[0])
+
+    L = ["$MeshFormat\n2.2 0 8\n$EndMeshFormat\n",
+         "$PhysicalNames\n3\n",
+         '2 1 "airfoil"\n2 2 "farfield"\n2 3 "frontAndBack"\n$EndPhysicalNames\n',
+         f"$Nodes\n{len(nodes)}\n"]
+    for n, (x, y, z) in enumerate(nodes, 1):
+        L.append(f"{n} {x:.9g} {y:.9g} {z:.9g}\n")
+    L.append("$EndNodes\n")
+
+    elems = []
+    eid = [0]
+
+    def E(typ, phys, ns):
+        eid[0] += 1
+        elems.append(f"{eid[0]} {typ} 2 {phys} {phys} " + " ".join(map(str, ns)) + "\n")
+
+    for i in range(ni - 1):                     # C-grid i-yönünde PERİYODİK DEĞİL
+        for j in range(nj - 1):
+            h = [nid[(i, j, 0)], nid[(i + 1, j, 0)], nid[(i + 1, j + 1, 0)], nid[(i, j + 1, 0)],
+                 nid[(i, j, 1)], nid[(i + 1, j, 1)], nid[(i + 1, j + 1, 1)], nid[(i, j + 1, 1)]]
+            if svol(h) < 0:
+                h = [h[0], h[3], h[2], h[1], h[4], h[7], h[6], h[5]]
+            E(5, 0, h)
+
+    # airfoil: YALNIZ gövde bölgesi — iz kesiği hariç, orası artık İÇ yüz.
+    # Sınır KRİTİK: kesik yüzleri i∈[0,nwke-1) (düğüm 0..nwke-1), gövde i∈[nwke-1, ni-nwke).
+    # İlk sürüm range(nwke, ni-1-nwke) idi ve firar kenarına bitişik İKİ yüzü hiçbir
+    # yamaya atamıyordu; gmshToFoam onları `defaultFaces`'e düşürüyordu (checkMesh
+    # "defaultFaces 2" ile yakalandı) — kuvvet integrali o iki yüzü kaçırırdı.
+    for i in range(nwke - 1, ni - nwke):
+        E(3, 1, [nid[(i, 0, 0)], nid[(i + 1, 0, 0)], nid[(i + 1, 0, 1)], nid[(i, 0, 1)]])
+    # farfield: dış yay (j=nj-1) + iki uç düzlem (i=0, i=ni-1) = çıkış
+    for i in range(ni - 1):
+        E(3, 2, [nid[(i, nj - 1, 0)], nid[(i + 1, nj - 1, 0)],
+                 nid[(i + 1, nj - 1, 1)], nid[(i, nj - 1, 1)]])
+    for i in (0, ni - 1):
+        for j in range(nj - 1):
+            E(3, 2, [nid[(i, j, 0)], nid[(i, j + 1, 0)], nid[(i, j + 1, 1)], nid[(i, j, 1)]])
+    for kk in (0, 1):
+        for i in range(ni - 1):
+            for j in range(nj - 1):
+                E(3, 3, [nid[(i, j, kk)], nid[(i + 1, j, kk)],
+                         nid[(i + 1, j + 1, kk)], nid[(i, j + 1, kk)]])
+
+    L.append(f"$Elements\n{len(elems)}\n")
+    L.extend(elems)
+    L.append("$EndElements\n")
+    Path(path).write_text("".join(L))
+    # 2. deger = i-yonundeki HUCRE sayisi. C-grid periyodik DEGIL -> ni-1.
+    # (ni dondurulunce cagiran 34650 rapor ediyordu, checkMesh 34551 sayiyordu.)
+    return nwke, ni - 1
+
+
 def _min_case(case):
     sysd = case/"system"; sysd.mkdir(parents=True, exist_ok=True)
     (sysd/"controlDict").write_text(
@@ -201,6 +291,12 @@ def _min_case(case):
         "FoamFile{ version 2.0; format ascii; class dictionary; object fvSolution; }\nsolvers{} SIMPLE{}\n")
 
 
+def _ilk_sayi(metin: str) -> str:
+    """Metindeki ilk sayiyi dondur ("1.34034 OK." -> "1.34034"); yoksa ham metin."""
+    m = re.search(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", metin)
+    return m.group(0) if m else metin.strip()
+
+
 def build_mesh(airfoil_dat: str, case_dir: str, name="naca", **c2d_kw):
     """Tam akis: construct2d -> p3d -> gmsh -> gmshToFoam. checkMesh dondur."""
     # TOPOLOJI KAPISI: write_ogrid_gmsh YALNIZ O-grid ifade edebilir — "j=0 airfoil,
@@ -211,11 +307,9 @@ def build_mesh(airfoil_dat: str, case_dir: str, name="naca", **c2d_kw):
     # deger — bozukluk grid'den degil DONUSTURUCUDEN geliyordu). Sessizce yanlis mesh
     # uretmektense acikca reddet.
     topo = str(c2d_kw.get("topo", "OGRD")).upper()
-    if topo != "OGRD":
+    if topo not in ("OGRD", "CGRD"):
         return {"status": "FAILED", "step": "topoloji",
-                "hata": (f"write_ogrid_gmsh topo={topo} ifade edemez (yalniz OGRD). "
-                         "C-grid'de j=0 iz kesiginde baslar ve duvar olarak "
-                         "etiketlenir; uretilecek mesh gecersiz olur.")}
+                "hata": f"desteklenmeyen topoloji {topo} (OGRD | CGRD)"}
     case = Path(case_dir)
     work = case / "c2d"
     p3d = run_construct2d(airfoil_dat, work, name, **c2d_kw)
@@ -224,7 +318,8 @@ def build_mesh(airfoil_dat: str, case_dir: str, name="naca", **c2d_kw):
     X, Y, ni, nj = read_p3d_2d(p3d)
     _min_case(case)
     msh = case / "mesh.msh"
-    seam, ni_u = write_ogrid_gmsh(str(msh), X, Y, ni, nj)
+    yazici = write_cgrid_gmsh if topo == "CGRD" else write_ogrid_gmsh
+    seam, ni_u = yazici(str(msh), X, Y, ni, nj)
     p = str(case.resolve()); wsl = f"/mnt/{p[0].lower()}{p[2:].replace(chr(92),'/')}"
     def of(cmd, t=300):
         return subprocess.run(
@@ -236,10 +331,13 @@ def build_mesh(airfoil_dat: str, case_dir: str, name="naca", **c2d_kw):
     out = {"status": "SUCCESS" if g.returncode == 0 else "FAILED",
            "ni": ni, "nj": nj, "seam_dup": seam, "cells": ni_u*(nj-1)}
     for line in chk.splitlines():
+        # checkMesh satirlari "... = 1.34034 OK." gibi EK tasiyabilir; ham metni
+        # birakmak cagirani float() hatasina dusuruyordu (kalite kapisi degeri
+        # "okunamadi" sayip mesh'i reddetti — dogru davranis, ama sebep ayristiriciydi).
         if "non-orthogonality Max" in line:
-            out["non_ortho_max"] = line.split("Max:")[1].split("average")[0].strip()
+            out["non_ortho_max"] = _ilk_sayi(line.split("Max:")[1])
         if "Max skewness" in line:
-            out["skewness_max"] = line.split("=")[1].split(",")[0].strip()
+            out["skewness_max"] = _ilk_sayi(line.split("=")[1])
         if "Mesh OK" in line:
             out["mesh_ok"] = True
     return out
@@ -255,9 +353,74 @@ def _fix_patches(case: Path):
     bf.write_text(t)
 
 
+def _foam_govde(p: Path) -> str:
+    t = p.read_text()
+    return t[t.index("\n(", t.index("FoamFile")):]
+
+
+def _kord_span_olc(case: Path) -> dict:
+    """airfoil yamasının KORDUNU ve SPAN'ini POLYMESH'TEN ölçer.
+
+    Çağıranın verdiği `chord` referans alana giriyordu ve grid'in gerçek korduyla
+    aynı olmak ZORUNDA değil. NACA2412 çapasında ölçüldü: .dat birim kordlu üretilip
+    run_validation'a fiziksel kord 0.25 verilmişti → referans alan 4 KAT küçük,
+    Cl/Cd 4 kat büyük. Aynı uyuşmazlık Reynolds'u da kaydırıyordu: kanıt "Re=2.5e5"
+    yazarken çözülen akış Re=1.0e6 idi. Ölçmek bu hata sınıfını kapatır.
+    """
+    pm = case / "constant" / "polyMesh"
+    try:
+        m = re.search(r"\bairfoil\s*\{[^}]*?nFaces\s+(\d+);[^}]*?startFace\s+(\d+);",
+                      (pm / "boundary").read_text(), re.DOTALL)
+        if not m:
+            return {"olculemedi": "polyMesh/boundary icinde 'airfoil' yamasi yok"}
+        nF, sF = int(m.group(1)), int(m.group(2))
+        yuz = re.findall(r"\d+\(([\d ]+)\)", _foam_govde(pm / "faces"))[sF:sF + nF]
+        pts = np.array([[float(v) for v in t] for t in re.findall(
+            r"\(([-\d.eE+]+) ([-\d.eE+]+) ([-\d.eE+]+)\)", _foam_govde(pm / "points"))])
+        q = pts[sorted({int(v) for f in yuz for v in f.split()})]
+        return {"kord": float(q[:, 0].max() - q[:, 0].min()),
+                "span": float(q[:, 2].max() - q[:, 2].min()), "yuz": nF}
+    # sessiz-yutma: kabul — ölçüm başarısızlığı koşuyu düşürmemeli AMA gizlenmemeli;
+    # sebep sonuca yazılır ve çağıranın verdiği kord'a düşülür (uyarı ile).
+    except Exception as e:
+        return {"olculemedi": f"{type(e).__name__}: {e}"}
+
+
+def _yakinsama(case: Path) -> dict:
+    """log.run rezidüellerinden yakınsama hükmü.
+
+    'endTime'a ulaştı' ile 'yakınsadı' AYNI ŞEY DEĞİLDİR. Ölçüldü: NACA2412 koşusu
+    2000 iterasyonu doldurup durdu, p ilk-rezidüeli 4.1e-2'de SALINIYORDU (hedef
+    1e-6) — ve bu fonksiyon eklenmeden önce sonuç `status: SUCCESS` olarak dönüp
+    Cl=0.0342 yayınlanmıştı. Ölçüt `basamak_ayrilma.rezidual_platosu` ile aynı:
+    son değerin koşu ortasındaki değere oranı ~1 ise düşüş durmuş demektir.
+    """
+    log = case / "log.run"
+    if not log.exists():
+        return {"yakinsadi": False, "neden": "log.run yok — çözücü hiç koşmamış olabilir"}
+    t = log.read_text(errors="ignore")
+    it = t.count("\nTime = ")
+    if "SIMPLE solution converged" in t:
+        return {"yakinsadi": True, "iterasyon": it}
+    alanlar = {}
+    for a in ("Ux", "Uy", "p", "k", "omega"):
+        v = [float(x) for x in re.findall(
+            rf"Solving for {a}, Initial residual = ([\d.eE+-]+)", t)]
+        if len(v) < 20:
+            continue
+        orta = v[len(v) // 2]
+        alanlar[a] = {"son": v[-1],
+                      "dusus_orani": round(v[-1] / orta, 3) if orta > 0 else None}
+    return {"yakinsadi": False, "iterasyon": it,
+            "neden": "residualControl tetiklenmedi — koşu endTime'da durdu",
+            "alanlar": alanlar,
+            "platoda": [a for a, d in alanlar.items()
+                        if d["dusus_orani"] is not None and d["dusus_orani"] > 0.1]}
+
+
 def run_validation(case_dir: str, alpha_deg=0.0, V=50.0, nu=1.48e-5,
                    rho=1.225, chord=1.0, end_time=2000):
-    """Construct2D O-grid'inde kOmegaSST CFD -> Cd, Cl. NASA ile karsilastir."""
+    """Construct2D grid'inde (O- veya C-) kOmegaSST CFD -> Cd, Cl."""
     import math
     import re
     case = Path(case_dir)
@@ -316,7 +479,14 @@ solvers{
   "(U|k|omega)"{ solver smoothSolver; smoother symGaussSeidel; tolerance 1e-8; relTol 0.05; nSweeps 2; } }
 SIMPLE{ nNonOrthogonalCorrectors 2; consistent yes; residualControl{ p 1e-6; U 1e-6; } }
 potentialFlow{ nNonOrthogonalCorrectors 5; }
-relaxationFactors{ equations{ U 0.3; k 0.2; omega 0.2; } fields{ p 0.2; } }""")
+relaxationFactors{ equations{ U 0.7; k 0.5; omega 0.5; } fields{ p 1.0; } }""")
+    # GEVSETME: `consistent yes` (SIMPLEC) hiz duzeltmesini alpha_p = 1 varsayarak kurar;
+    # basinci 0.2'ye kadar gevsetmek bu varsayimi bozar ve SIRKULASYONUN kurulmasini
+    # asiri yavaslatir. Olculdu (NACA2412, alpha=0, ayni mesh, 4000 iterasyon):
+    #   p=0.2 / U=0.3  -> Cl 0.008 +- 0.021   (siddetli limit cevrimi)
+    #   p=1.0 / U=0.7  -> Cl 0.083 +- 0.028   (10 kat daha hizli kurulum)
+    # Tek bir sayisal ayarin sonucu 10 kat degistirmesi, eski ayarla uretilen her Cl'in
+    # SAYISAL olarak oturmamis oldugunun dogrudan kanitidir.
 
     p = str(case.resolve()); wsl = f"/mnt/{p[0].lower()}{p[2:].replace(chr(92),'/')}"
     # potentialFoam: divergence-free baslangic (startup blow-up'i onler)
@@ -328,13 +498,44 @@ relaxationFactors{ equations{ U 0.3; k 0.2; omega 0.2; } fields{ p 0.2; } }""")
     if not ff:
         return {"status": "FAILED", "step": "forces"}
     lines = [l for l in ff[0].read_text().splitlines() if l.strip() and not l.startswith("#")]
-    nums = re.findall(r'[-+]?\d+\.?\d*[eE]?[-+]?\d*', lines[-1])
-    # X-Y duzlem: Fx=nums[1]+nums[4], Fy=nums[2]+nums[5]
-    Fx = float(nums[1])+float(nums[4]); Fy = float(nums[2])+float(nums[5])
-    drag = Fx*math.cos(a)+Fy*math.sin(a); lift = -Fx*math.sin(a)+Fy*math.cos(a)
-    q = 0.5*rho*V**2; S = chord*0.1
-    return {"status": "SUCCESS", "alpha": alpha_deg,
-            "Cd": round(drag/(q*S), 5), "Cl": round(lift/(q*S), 4)}
+    if not lines:
+        return {"status": "FAILED", "step": "forces", "hata": "forces.dat bos"}
+
+    olcu = _kord_span_olc(case)
+    kord = olcu.get("kord", chord)
+    span = olcu.get("span", 0.1)
+    q = 0.5*rho*V**2; S = kord*span
+
+    # SON SATIR DEĞİL, KUYRUK ORTALAMASI: çözüm sabit noktaya oturmuyorsa tek anlık
+    # değer salınımın neresinde durulduğuna bağlıdır (aynı ders vehicle_pipeline'da
+    # trailing_mean ile öğrenilmişti). Band, belirsizliği gizlemek yerine sayıya çevirir.
+    n_son = max(3, len(lines) // 5)
+    cl, cd = [], []
+    for satir in lines[-n_son:]:
+        nums = re.findall(r'[-+]?\d+\.?\d*[eE]?[-+]?\d*', satir)
+        # X-Y duzlem: Fx=nums[1]+nums[4], Fy=nums[2]+nums[5]
+        Fx = float(nums[1])+float(nums[4]); Fy = float(nums[2])+float(nums[5])
+        cd.append((Fx*math.cos(a)+Fy*math.sin(a))/(q*S))
+        cl.append((-Fx*math.sin(a)+Fy*math.cos(a))/(q*S))
+
+    yak = _yakinsama(case)
+    out = {"status": "SUCCESS" if yak["yakinsadi"] else "YAKINSAMADI",
+           "alpha": alpha_deg,
+           "Cd": round(sum(cd)/len(cd), 5), "Cl": round(sum(cl)/len(cl), 4),
+           "Cd_band": round((max(cd)-min(cd))/2, 5),
+           "Cl_band": round((max(cl)-min(cl))/2, 4),
+           "kuyruk_ornek": n_son, "yakinsama": yak,
+           "S_ref": round(S, 6), "kord_olculen": round(kord, 5),
+           "span_olculen": round(span, 5),
+           "Re_efektif": round(V*kord/nu, 1)}
+    if "olculemedi" in olcu:
+        out["kord_olcum_hatasi"] = olcu["olculemedi"]
+    elif abs(kord - chord)/max(kord, 1e-9) > 0.01:
+        # SESSİZ KALMASIN: çağıranın kordu ile mesh'in kordu ayrıysa hem referans alan
+        # hem de raporlanan Reynolds kayar (ölçüldü: 4x alan, 4x Re).
+        out["kord_uyusmazligi"] = (f"cagiran chord={chord} verdi, mesh'te olculen "
+                                   f"{kord:.5f} — referans alan ve Re OLCULENDEN alindi")
+    return out
 
 
 if __name__ == "__main__":

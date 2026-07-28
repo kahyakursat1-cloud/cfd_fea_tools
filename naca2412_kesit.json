@@ -1,5 +1,12 @@
 {
-  "vaka": "NACA2412 2B kesit — profil dogrulugu (analitik) + 2B CFD (destekleyici)",
+  "vaka": "NACA2412 2B kesit — birim kordlu grid, V=15.0 m/s, nu=6.00e-05 (Re=2.50e+05 — MiniHawk ile ESLESTIRILMIS), alpha=0.0",
+  "_neden": "MiniHawk 3B kosusu Cl=0.0143 verdi (2B beklenti ~0.23). Bu capa 'profil mi yanlis, mesh mi' sorusunu ayirir: AYNI profil ureticisi 2B'de, cozunurlugu yeterli C-grid uzerinde kosulur.",
+  "profil": {
+    "nokta": 320,
+    "maks_kalinlik": 0.12159,
+    "kord": 1.00016,
+    "kaynak": "mesh_generator._naca4_profile(0.02, 0.4, 0.12)"
+  },
   "profil_dogrulama": {
     "nokta": 326,
     "ortalama_sapma_kord": 7.572e-06,
@@ -9,19 +16,191 @@
     "kamburluk_tanim": 0.02,
     "gecti": true
   },
-  "profil": {
-    "nokta": 320,
-    "maks_kalinlik": 0.12159,
-    "kord": 1.00016,
-    "kaynak": "mesh_generator._naca4_profile(0.02, 0.4, 0.12)"
+  "referans": {
+    "Cl_ince_kanat": 0.227,
+    "alfa_L0_deg": -2.07,
+    "Cl_deney_Re3e6": 0.25,
+    "kaynak": "Abbott & von Doenhoff, Theory of Wing Sections"
   },
-  "durum": "cfd_uretilemedi",
   "mesh": {
-    "status": "FAILED",
-    "step": "topoloji",
-    "hata": "write_ogrid_gmsh topo=CGRD ifade edemez (yalniz OGRD). C-grid'de j=0 iz kesiginde baslar ve duvar olarak etiketlenir; uretilecek mesh gecersiz olur."
+    "status": "SUCCESS",
+    "ni": 410,
+    "nj": 100,
+    "seam_dup": 81,
+    "cells": 40491,
+    "non_ortho_max": "63.751",
+    "skewness_max": "1.02413"
   },
-  "_grid_altyapisi": "ASIL KOK SEBEP (izlenerek bulundu): write_ogrid_gmsh YALNIZ O-grid ifade edebilir — 'j=0 airfoil, i-periyodik' varsayar. C-grid'de j=0 cizgisi IZ KESIGINDE baslar (olculdu: x=15.5, kord 0..1) ve bu rutin iz kesigini NO-SLIP DUVAR olarak etiketler. Bu yuzden CGRD+HYPR gridi Construct2D'de makul iken OpenFOAM mesh'i nonOrtho 180 / skewness 3.35e152 cikiyordu — deger O-grid kosusuyla BIREBIR AYNI, yani bozukluk grid'den degil DONUSTURUCUDEN geliyor. build_mesh artik topo != OGRD durumunda acikca REDDEDIYOR (sessizce gecersiz mesh uretmektense). Ikincil bulgular: OGRD keskin firar kenarinda dejenere (Construct2D zaten C-grid onermisti); CGRD+ELLP eliptik duzlestirici NaN'a IRAKSADI. 2B CFD capasi bu altyapiyla URETILEMEZ; C-grid destegi icin write_cgrid_gmsh (iz kesigi = ic sinir) yazilmalidir.",
-  "verdikt": "PROFIL DOGRU (analitik): mesh_generator._naca4_profile cikti, NACA 4-haneli tanimdan en fazla kordun %0.005'i kadar sapiyor; kamburluk 0.02 (tanim 0.02). Yani MiniHawk 3B kosusundaki Cl=0.0143 (2B beklenti ~0.23) PROFILDEN KAYNAKLANMIYOR — geriye 3B MESH COZUNURLUGU kaliyor (en ince boyut yuzey hucresinin 0.6 kati olculmustu). 2B CFD destekleyici kaniti URETILEMEDI (grid altyapisi; bkz. _grid_altyapisi).",
-  "_uretim": "Üretim: python experiments/naca2412_kesit.py"
+  "cfd": {
+    "status": "YAKINSAMADI",
+    "alpha": 0.0,
+    "Cd": 0.01604,
+    "Cl": 0.0839,
+    "Cd_band": 1e-05,
+    "Cl_band": 0.0,
+    "kuyruk_ornek": 80,
+    "yakinsama": {
+      "yakinsadi": false,
+      "iterasyon": 20000,
+      "neden": "residualControl tetiklenmedi — koşu endTime'da durdu",
+      "alanlar": {
+        "Ux": {
+          "son": 1.96539e-05,
+          "dusus_orani": 0.885
+        },
+        "Uy": {
+          "son": 1.74173e-05,
+          "dusus_orani": 0.026
+        },
+        "p": {
+          "son": 8.81938e-07,
+          "dusus_orani": 0.001
+        },
+        "k": {
+          "son": 7.84611e-06,
+          "dusus_orani": 0.358
+        },
+        "omega": {
+          "son": 9.90533e-09,
+          "dusus_orani": 0.991
+        }
+      },
+      "platoda": [
+        "Ux",
+        "k",
+        "omega"
+      ]
+    },
+    "S_ref": 0.099988,
+    "kord_olculen": 0.99988,
+    "span_olculen": 0.1,
+    "Re_efektif": 249970.5
+  },
+  "alfa_taramasi": {
+    "noktalar": [
+      {
+        "alpha": 0.0,
+        "Cl": 0.0839
+      },
+      {
+        "alpha": 4.0,
+        "Cl": 0.4995
+      }
+    ],
+    "egim_deg": 0.1039,
+    "egim_rad": 5.953,
+    "egim_2pi_orani": 0.9475,
+    "alfa_L0_deg": -0.808,
+    "alfa_L0_referans": -2.07,
+    "alfa_L0_sapma_pct": 61.0,
+    "egim_gecti": true,
+    "kamburluk_gecti": false
+  },
+  "cfd_tum_alfalar": {
+    "0.0": {
+      "status": "YAKINSAMADI",
+      "alpha": 0.0,
+      "Cd": 0.01604,
+      "Cl": 0.0839,
+      "Cd_band": 1e-05,
+      "Cl_band": 0.0,
+      "kuyruk_ornek": 80,
+      "yakinsama": {
+        "yakinsadi": false,
+        "iterasyon": 20000,
+        "neden": "residualControl tetiklenmedi — koşu endTime'da durdu",
+        "alanlar": {
+          "Ux": {
+            "son": 1.96539e-05,
+            "dusus_orani": 0.885
+          },
+          "Uy": {
+            "son": 1.74173e-05,
+            "dusus_orani": 0.026
+          },
+          "p": {
+            "son": 8.81938e-07,
+            "dusus_orani": 0.001
+          },
+          "k": {
+            "son": 7.84611e-06,
+            "dusus_orani": 0.358
+          },
+          "omega": {
+            "son": 9.90533e-09,
+            "dusus_orani": 0.991
+          }
+        },
+        "platoda": [
+          "Ux",
+          "k",
+          "omega"
+        ]
+      },
+      "S_ref": 0.099988,
+      "kord_olculen": 0.99988,
+      "span_olculen": 0.1,
+      "Re_efektif": 249970.5
+    },
+    "4.0": {
+      "status": "YAKINSAMADI",
+      "alpha": 4.0,
+      "Cd": 0.01789,
+      "Cl": 0.4995,
+      "Cd_band": 1e-05,
+      "Cl_band": 0.0001,
+      "kuyruk_ornek": 80,
+      "yakinsama": {
+        "yakinsadi": false,
+        "iterasyon": 20000,
+        "neden": "residualControl tetiklenmedi — koşu endTime'da durdu",
+        "alanlar": {
+          "Ux": {
+            "son": 6.05486e-06,
+            "dusus_orani": 1.073
+          },
+          "Uy": {
+            "son": 2.47413e-05,
+            "dusus_orani": 0.985
+          },
+          "p": {
+            "son": 1.4347e-06,
+            "dusus_orani": 0.005
+          },
+          "k": {
+            "son": 2.16072e-08,
+            "dusus_orani": 0.367
+          },
+          "omega": {
+            "son": 9.90301e-09,
+            "dusus_orani": 1.001
+          }
+        },
+        "platoda": [
+          "Ux",
+          "Uy",
+          "k",
+          "omega"
+        ]
+      },
+      "S_ref": 0.099988,
+      "kord_olculen": 0.99988,
+      "span_olculen": 0.1,
+      "Re_efektif": 249970.5
+    }
+  },
+  "_elenen_supheliler": {
+    "grid_kalitesi": "nonOrtho 63.8 / skewness 1.02 (esikler 75 / 6)",
+    "iz_kesigi": "iki yaka ZIT yone aciliyor (dy = -4.06e-5 / +4.06e-5), birlestirilen yuzlerde nonOrtho ~0 -> kesik gercekten IC sinir",
+    "kamburluk": "grid gövdesinde x/c=0.4'te ust +0.078 / alt -0.038 -> kamber %2.0",
+    "sinir_tabaka": "y+ maks 0.61, ortalama 0.26 (nutLowReWallFunction icin uygun)",
+    "ayrilma": "tau_x tum yuzeyde NEGATIF (ileri akis); tek isaret degisimi x/c=0.987 -> yalnizca firar kenari kabarcigi, kutlesel ayrilma YOK",
+    "referans_alan_ve_Re": "mesh'ten olculuyor (S=0.0999, Re=2.50e5)"
+  },
+  "Cl": 0.0839,
+  "Cd": 0.01604,
+  "Cl_sapma_pct": -63.04,
+  "verdikt": "NACA2412 2B, Re=2.5e+05, alpha=0: Cl=0.0839 (ince-kanat teorisi 0.227, deney 0.25) -> sapma %-63. NOT: residualControl tetiklenmedi (platoda: ['Ux', 'k', 'omega']) ama Cl kuyruk bandi ±0.0 — ilgilenilen buyukluk 20000 iterasyonda DURAGAN, hukum QoI'ye dayaniyor. tasima egimi 5.95/rad = 0.948·2pi -> COZUCU DOGRU. alpha_L0 -0.81° (referans -2.07°) -> KAMBURLUK COZULMUYOR. AYIRICI BULGU: akis cozucusu sirkulasyonu DOGRU uretiyor (egim 2pi'ye oturuyor) ama KAMBURLUGUN katkisi eksik. Hata cozucude degil, kamburlugun cozunurlugunde/temsilinde. ⚠️ Cl kabul bandi (0.15, 0.32) DISINDA — profil ya da 2B kurulum sorgulanmali; MiniHawk teshisi bu capaya dayandirilamaz. mesh: 40491 hucre, nonOrtho 63.751, skewness 1.02413.",
+  "_uretim": "Üretim: python experiments/naca2412_kesit.py",
+  "_kalan_supheli": "Cozum SAYISAL olarak oturmadi. Ayni kurulumda olculen iki-nokta taramasi (alpha=0 ve 4, 4000 iterasyon) tasima EGIMINI 5.64/rad verdi — 2pi'nin %90'i, Re=2.5e5 icin dogru — ama alpha_L0 -0.08 derece cikti (-2.07 olmali) ve alpha=4 kosusunda Cl son 750 iterasyonda MONOTON yukseliyordu. Yani eksik olan fizik degil, SIRKULASYONUN KURULMASI icin gereken iterasyon."
 }

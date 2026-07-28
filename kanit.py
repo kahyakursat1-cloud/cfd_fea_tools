@@ -24,6 +24,14 @@ import re
 import sys
 from pathlib import Path
 
+# Windows konsolu cp1254: Türkçe karakter / ok / ✓ basan her satır
+# UnicodeEncodeError ile SÜRECİ DÜŞÜRÜYOR. Ölçüldü: kanit.py tabloyu hiç
+# basamadı, check_integration.py bunu "[ERROR] ... entegrasyon" diye
+# raporladı — yani KODLAMA sorunu ARIZA gibi göründü.
+for _akis in (sys.stdout, sys.stderr):
+    if hasattr(_akis, "reconfigure"):
+        _akis.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).resolve().parent
 MANIFEST = ROOT / "kanit_manifest.json"
 

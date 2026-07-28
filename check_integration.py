@@ -15,6 +15,7 @@ Adımlar: geometri → malzeme → mesh (GMSH) → CFD (wrapper) → FEA (wrappe
          → post-processing → özet.
 """
 
+import sys
 import tempfile
 from pathlib import Path
 
@@ -30,6 +31,14 @@ from solvers.calculix_wrapper import CalculiXRunner
 # Solvers
 from solvers.gmsh_wrapper import GMSHMeshGenerator
 from solvers.openfoam_wrapper import OpenFOAMRunner
+
+# Windows konsolu cp1254: Türkçe karakter / ok / ✓ basan her satır
+# UnicodeEncodeError ile SÜRECİ DÜŞÜRÜYOR. Ölçüldü: kanit.py tabloyu hiç
+# basamadı, check_integration.py bunu "[ERROR] ... entegrasyon" diye
+# raporladı — yani KODLAMA sorunu ARIZA gibi göründü.
+for _akis in (sys.stdout, sys.stderr):
+    if hasattr(_akis, "reconfigure"):
+        _akis.reconfigure(encoding="utf-8", errors="replace")
 
 
 def test_end_to_end_workflow():

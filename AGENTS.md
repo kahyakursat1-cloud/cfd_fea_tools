@@ -38,6 +38,7 @@ scriptleri `analysis/`'i kullanmaz, kendi iskelesini tekrarlar (çalışır; ref
 - `/analiz [tip]` — solver seçimi ve boundary conditions
 - `/sonuç [case]` — post-processing ve figür üretimi
 - `/malzeme [isim]` — materials.json güncelle
+- `/tasarım [gereksinim]` — çok-disiplinli tasarım orkestratörü (tasarim-muhendisi skill'i): disiplin ajanlarını (aero/yapısal-termal/malzeme-imalat/sistem-MDAO) dispatch eder, takas raporu üretir
 
 ---
 **Oluşturma:** 2026-04-30 | **Versiyon:** 1.0
