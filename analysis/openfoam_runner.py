@@ -206,12 +206,27 @@ def mesh_quality_gate(checkmesh_text: str) -> dict:
     Döner: {verdict, reasons[], non_ortho_max, skew_max, aspect_max, negatif_hacim}."""
     import re as _re
 
+    # SAYI DESENI TEK YERDE: elle yazilan karakter siniflari bu dosyada gercek bir
+    # COKMEYE yol acti. Eski desen `([\d.eE+]+)` idi ve EKSI USSU KAPSAMIYORDU:
+    # "Max skewness = 9.8987286e-05" -> "9.8987286e" yakalanip float() ValueError
+    # atiyordu ve TUM analiz cokuyordu. Ustelik bu YALNIZ skewness KUCUKken olur,
+    # yani mesh IYIYKEN — kalite kapisi iyi mesh'te patliyordu. Guvenilirlik
+    # taramasinda 12 geometrinin 3'u tam bu sebeple coktu (%25).
+    SAYI = r"([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)"
+
     def g(pat):
         m = _re.search(pat, checkmesh_text)
-        return float(m.group(1)) if m else None
-    non_ortho = g(r"non-orthogonality Max:\s*([\d.]+)")
-    skew = g(r"Max skewness\s*=\s*([\d.eE+]+)")
-    aspect = g(r"Max aspect ratio\s*[=:]?\s*([\d.eE+]+)")
+        if not m:
+            return None
+        # sessiz-yutma: kabul — ayristirilamayan metrik "sorun yok" SAYILMAZ; None
+        # doner ve asagidaki kapi onu "okunamadi" olarak isler (bkz. 2eb2686).
+        try:
+            return float(m.group(1))
+        except ValueError:
+            return None
+    non_ortho = g(r"non-orthogonality Max:\s*" + SAYI)
+    skew = g(r"Max skewness\s*=\s*" + SAYI)
+    aspect = g(r"Max aspect ratio\s*[=:]?\s*" + SAYI)
     neg_vol = "negative volume" in checkmesh_text.lower()
     reasons, verdict = [], "ok"
     # REJECT: çözücü neredeyse kesin patlar
