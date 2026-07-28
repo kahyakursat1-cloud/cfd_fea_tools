@@ -77,8 +77,44 @@ def _hukum(d: dict) -> tuple[str, str]:
 # Kanıtı ÜRETEN komut — yeniden-üretilebilirlik (yayın/hakem için kritik).
 # FEA ailesi bu geleneği kurmuş ("Üretim: python experiments/…"); indeks onu görünür kılar.
 # Nokta komutun PARÇASI olabilir (vehicle_pipeline.py); cümle sonunu ". " ile ayır.
-_URETIM = re.compile(r"(?:Üretim|Uretim|Reproduce)\s*:\s*(python[^\"\n]{3,120}?)"
-                     r"(?=\.\s|\.$|$|\")")
+# Komut YALNIZ "python" ile başlayabiliyordu; NX journal kanıtları (run_journal.exe) ve
+# ortam-değişkenli koşular (NX_AILE=kor …) bu yüzden "komut kayıtlı değil" görünüyordu —
+# kanıt vardı, manifest göremiyordu. Kabul edilen ilk sözcük kümesi genişletildi;
+# yine de bir ÇALIŞTIRILABİLİR gerekiyor ki düz metin komut sanılmasın.
+_URETIM = re.compile(
+    r"(?:Üretim|Uretim|Reproduce)\s*:\s*"
+    r"((?:[A-Z][A-Z0-9_]*=\S+\s+)*"                  # isteğe bağlı ortam değişkenleri
+    r"(?:python|bash|sh|\"?[^\"\n]*run_journal[^\"\n]*?\.exe\"?)"
+    r"[^\"\n]{3,160}?)(?=\.\s|\.$|$|\")")
+
+
+_YAZMA = re.compile(r"json\.dump|write_text|open\([^)]*[\"']w")
+
+
+def uretici_kod_var(ad: str) -> bool:
+    """Depoda bu kanıt dosyasını YAZAN bir kaynak var mı?
+
+    "Komut kayıtlı değil" iki çok farklı durumu aynı gösteriyordu: (a) üretici script
+    duruyor, yalnız kanıta not düşülmemiş — bir satırlık iş; (b) üreten kod depoda HİÇ
+    YOK (silinmiş ya da ad-hoc koşulmuş) — kanıt gerçekten yeniden üretilemez. İkincisi
+    çok daha ağır ve ayrı görünmeli.
+    """
+    for f in ROOT.rglob("*.py"):
+        if set(f.parts) & {"tests", "__pycache__", ".venv", "Construct2D", "sources"}:
+            continue
+        try:
+            t = f.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for satir in t.splitlines():
+            if ad in satir and _YAZMA.search(satir):
+                return True
+        # write_text çok satıra yayılmış olabilir: dosya adı geçen bloğu gevşek tara
+        if ad in t:
+            i = t.index(ad)
+            if _YAZMA.search(t[max(0, i - 200):i + 200]):
+                return True
+    return False
 
 
 def _uretim_komutu(d: dict) -> str:
@@ -226,7 +262,12 @@ def tablo(kayitlar: list[dict], yalniz_kanit: bool = True) -> str:
         hukum = (x["hukum"] or "hüküm alanı YOK").replace("|", "/")
         if x["eskimis"]:
             hukum = "🕰 ESKİMİŞ — " + hukum
-        ur = f"`{x['uretim']}`" if x["uretim"] else "⚠ komut kayıtlı değil"
+        if x["uretim"]:
+            ur = f"`{x['uretim']}`"
+        elif uretici_kod_var(x["dosya"]):
+            ur = "⚠ komut kayıtlı değil (üretici kod depoda var)"
+        else:
+            ur = "❌ ÜRETİCİ KOD DEPODA YOK — yeniden üretilemez"
         sat.append(f"| `{x['dosya']}` | {vaka} | {x['sembol']} {hukum} | {ur} |")
     ozet = {}
     for x in kayitlar:

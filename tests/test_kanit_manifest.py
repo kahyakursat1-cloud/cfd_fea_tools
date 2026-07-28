@@ -194,3 +194,40 @@ def test_hicbir_belge_erisilemez_kalmaz():
     eksik = [p.name for p in kok.glob("*.md")
              if p.name != "INDEX.md" and p.name not in idx]
     assert eksik == [], f"INDEX.md'de olmayan belge: {eksik}"
+
+
+def test_uretim_regexi_python_disi_komutlari_taniyor():
+    """NX journal kanıtları `run_journal.exe …` ile üretilir ve regex YALNIZ `python`
+    kabul ediyordu → kanıtta komut YAZILI olduğu halde manifest "kayıtlı değil" diyordu.
+    Ortam değişkenli koşular (NX_AILE=kor python …) da aynı delikten düşüyordu."""
+    ok = [
+        'Üretim: python experiments/duz_levha_cf.py',
+        'Üretim: NX_OLC=kor python experiments/nx_siniflandirici_testi.py',
+        ('Üretim: "C:/Program Files/Siemens/NX2412/NXBIN/run_journal.exe" '
+         'experiments/nx_geometri_uret.py'),
+        'Üretim: run_journal.exe experiments/nx_geometri_uret.py && python x.py',
+    ]
+    for m in ok:
+        assert kanit._uretim_komutu({"_uretim": m}), m
+
+
+def test_uretim_regexi_duz_metni_komut_saymiyor():
+    """Gevşetme, prozayı komut sanacak kadar ileri gitmemeli."""
+    for m in ("Üretim: elle hesaplandı", "Üretim: ölçüm laboratuvarda yapıldı"):
+        assert not kanit._uretim_komutu({"_uretim": m}), m
+
+
+def test_uretici_kod_yoklugu_ayri_isaretleniyor():
+    """'Komut kayıtlı değil' iki ayrı durumu gizliyordu: (a) script duruyor, not
+    düşülmemiş — bir satırlık iş; (b) üretici kod depoda HİÇ YOK — kanıt gerçekten
+    yeniden üretilemez. İkincisi çok daha ağır ve ayrı görünmeli."""
+    assert kanit.uretici_kod_var("duz_levha_cf.json") is True
+    assert kanit.uretici_kod_var("bu_dosya_hicbir_yerde_yazilmiyor_xyz.json") is False
+
+
+def test_manifest_uretilemez_kaniti_acikca_soyluyor():
+    """İki durum manifest metninde AYRI ifade edilmeli."""
+    import inspect
+    src = inspect.getsource(kanit)
+    assert "ÜRETİCİ KOD DEPODA YOK" in src
+    assert "üretici kod depoda var" in src

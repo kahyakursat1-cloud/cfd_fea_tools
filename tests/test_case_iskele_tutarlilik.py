@@ -58,8 +58,12 @@ def test_ad_hoc_yazici_envanteri_bilinir():
     # analysis/openfoam_runner snappyHexMesh+STL üzerine kurulu; sıfır-basınç-gradyanlı
     # levha için gerekli graded blockMesh'i ifade edemiyor. Tabanı yükseltmek bilinçli;
     # bu satır artışın SESSİZ olmasını engelliyor.
-    assert len(yazicilar) <= 14, (
-        f"{len(yazicilar)} ad-hoc residualControl yazıcısı var (ölçülen taban 14): "
+    # 15 (2026-07-28): experiments/basamak_ayrilma.py — 2D geriye-basamaklı akış.
+    # duz_levha_cf ile aynı gerekçe: analysis/openfoam_runner snappyHexMesh+STL üzerine
+    # kurulu, çok bloklu yapısal blockMesh'i ifade edemiyor. V&V çapaları bu yüzden
+    # kendi iskelesini kurar; artış bilinçli ve bu satır sessiz kalmasını engelliyor.
+    assert len(yazicilar) <= 15, (
+        f"{len(yazicilar)} ad-hoc residualControl yazıcısı var (ölçülen taban 15): "
         f"{sorted(yazicilar)}. "
         "Yeni CFD kodu analysis/openfoam_runner kullanmalı (CLAUDE.md kuralı)")
 
@@ -77,5 +81,5 @@ def test_controldict_yazan_dosya_sayisi_bilinir():
     n = sum(1 for f in _kaynaklar()
             if "controlDict" in f.read_text(encoding="utf-8", errors="replace")
             and not f.relative_to(ROOT).as_posix().startswith(("analysis/", "tests/")))
-    assert n <= 24, (f"{n} dosya kendi controlDict'ini yazıyor (ölçülen taban 24). "
+    assert n <= 25, (f"{n} dosya kendi controlDict'ini yazıyor (ölçülen taban 25). "
                      "Yeni case iskelesi yazmadan analysis/openfoam_runner'a bak")

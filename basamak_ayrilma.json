@@ -1,0 +1,19 @@
+{
+  "vaka": "Geriye-basamakli akis, yeniden-yapisma uzunlugu — H=12.7 mm, U=44.29 m/s, Re_H=37499, ER=1.125",
+  "kaynak": "OpenFOAM 11 foamRun/incompressibleFluid, 2D blockMesh",
+  "referans": {
+    "Xr_H": 6.26,
+    "belirsizlik": 0.1,
+    "kaynak": "Driver & Seegmiller, AIAA J. 23(2), 1985 — deneysel"
+  },
+  "_olcum_notu": "Xr, alt duvarda tau_x isaret degisiminden okunur ve yuzey-merkezi indeksi x'e DOGRUSAL esleme ile cevrilir; mesh x-yonunde graded oldugu icin bu esleme yaklasiktir (birkac yuzde mertebesinde ek belirsizlik). Model karsilastirmasi bu hatadan ETKILENMEZ.",
+  "seviyeler": [
+    {
+      "model": "kOmegaSST",
+      "durum": "yakinsamadi",
+      "iterasyon": 4000
+    }
+  ],
+  "verdikt": "⚠️ Hicbir model tamamlanmadi — capa uretilemedi.",
+  "_uretim": "Üretim: python experiments/basamak_ayrilma.py"
+}

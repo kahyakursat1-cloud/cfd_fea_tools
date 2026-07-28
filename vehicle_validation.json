@@ -8,5 +8,6 @@
   "hata_pct": 6.0,
   "gecti": true,
   "mesh_hucre": 888377,
-  "rapor": "vehicle_runs\\dogrulama_kup\\rapor\\RAPOR.md"
+  "rapor": "vehicle_runs\\dogrulama_kup\\rapor\\RAPOR.md",
+  "_uretim": "Üretim: python check_vehicle_validation.py"
 }

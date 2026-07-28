@@ -12,5 +12,6 @@
     "Cd": 0.01194,
     "Cl": 0.4274
   },
-  "status": "ok"
+  "status": "ok",
+  "_uretim": "Üretim: python experiments/overnight_cgrid_xfine.py"
 }

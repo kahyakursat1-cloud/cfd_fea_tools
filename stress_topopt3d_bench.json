@@ -9,5 +9,6 @@
   "tepe_azalma_pct": 3.3,
   "warm_start": "kompliyans-tasarımından (Le 2010; OC stress'te tek-başına salınır)",
   "sonuc": "GECTI — 3D gerilme-min tepe von Mises'i düşürdü (kompliyans-körlüğü 3D'de de gerilme-farkındalıkla giderilebilir).",
-  "_not": "Motor: stress_topopt3d (adjoint gradyanı FD-doğrulanmış <1e-4, test_stress_topopt3d — gerilme-TO'nun KRİTİK verification'ı). 2D eşi %7.3; 3D azalma daha ölçülü (kaba köşe + extrude seyreltme + OC'nin MMA'ya göre stress-TO zayıflığı) ama YÖN doğru ve adjoint kesin. Üretim notu: vehicle_topopt SADECE kompliyans → yüksek-gerilme tasarım; bu motor gerilme-farkındalığı 3D'ye taşır. Tam üretim-kalitesi için MMA + penal/P-continuation + ince grid önerilir."
+  "_not": "Motor: stress_topopt3d (adjoint gradyanı FD-doğrulanmış <1e-4, test_stress_topopt3d — gerilme-TO'nun KRİTİK verification'ı). 2D eşi %7.3; 3D azalma daha ölçülü (kaba köşe + extrude seyreltme + OC'nin MMA'ya göre stress-TO zayıflığı) ama YÖN doğru ve adjoint kesin. Üretim notu: vehicle_topopt SADECE kompliyans → yüksek-gerilme tasarım; bu motor gerilme-farkındalığı 3D'ye taşır. Tam üretim-kalitesi için MMA + penal/P-continuation + ince grid önerilir.",
+  "_uretim": "Üretim: python experiments/stress_topopt3d_bench.py"
 }
