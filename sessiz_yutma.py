@@ -21,13 +21,27 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-ATLA = {"tests", "__pycache__", ".venv", "Construct2D", "sources", "experiments",
-        "vehicle_runs", "_basamak", "_duz_levha"}
+# `experiments` ÖNCE atlanıyordu — oysa V&V ÇAPALARI orada üretiliyor (düz levha,
+# basamak, FEA doğrulamaları). Kanıt üreten kodun sessizliği en az hüküm veren kodunki
+# kadar önemlidir; kapsama alındı.
+ATLA = {"tests", "__pycache__", ".venv", "Construct2D", "sources",
+        "vehicle_runs", "_basamak", "_duz_levha", "nx_geo", "nx_geo_egitim", "nx_geo_kor"}
 # Hükme/sayıya dönüşen katman — buradaki sessizlik mühendisi yanıltır.
+#
+# İLK SÜRÜM YALNIZ KÖK DOSYALARI SAYIYORDU ve "güven yolunda incelenmemiş = 0" iddiası
+# bu yüzden KAPSAM OLARAK YANLIŞTI: CLAUDE.md'nin KANONİK katman dediği `analysis/`
+# (openfoam_runner, ccx_runner, frd_parser, tet_mesher, geometry_loader) hiç
+# sayılmıyordu — orada 11 gerekçesiz sessizlik vardı. Dizin bazlı kapsam eklendi.
+GUVEN_YOLU_DIZIN = {"analysis", "solvers", "tmr_cfd", "post_processing", "experiments"}
 GUVEN_YOLU = {"vehicle_pipeline.py", "validity_envelope.py", "auto_pilot.py",
               "vehicle_report.py", "report_generator.py", "vehicle_fea.py",
               "vehicle_polar.py", "vehicle_topopt.py", "supersonic_report.py",
               "zarf.py", "kanit.py", "mentor.py", "gci_advisor.py"}
+
+
+def _guven_yolu(rel: str) -> bool:
+    parcalar = rel.split("/")
+    return (parcalar[0] in GUVEN_YOLU_DIZIN) or (parcalar[-1] in GUVEN_YOLU)
 
 
 def _dosyalar():
@@ -117,7 +131,7 @@ def tara() -> list[dict]:
                 "fonksiyon": fonk.get(id(n), "<modül>"),
                 "nasil": nasil,
                 "yakalanan": ast.unparse(n.type) if n.type else "BARE except",
-                "guven_yolu": Path(rel).name in GUVEN_YOLU,
+                "guven_yolu": _guven_yolu(rel),
                 "kabul": kabul,
             })
     # Risk sırası: güven yolu önce, sonra bare except, sonra return None

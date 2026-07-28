@@ -114,6 +114,9 @@ class FEAPostProcessor:
         if not self.result_file or not Path(self.result_file).exists():
             return np.array([]), np.array([]), np.array([])
 
+        # ATLANAN SATIR SAYACI: bozuk satır sessizce atlanıyordu; tepe gerilme o
+        # satırdaysa maksimum SESSİZCE düşük çıkar ve SF hükmü iyimser olur.
+        atlanan = 0
         # Parse CalculiX .frd format (ASCII)
         stress_list = []
         disp_list = []
@@ -150,17 +153,20 @@ class FEAPostProcessor:
                                 stress_list.append(vm)
                                 node_ids.append(int(parts[1]))
                             except (ValueError, IndexError):
-                                pass
+                                atlanan += 1
                         elif in_disp_block and len(parts) >= 5:
                             try:
                                 ux, uy, uz = float(parts[2]), float(parts[3]), float(parts[4])
                                 disp_list.append(np.sqrt(ux**2 + uy**2 + uz**2))
                             except (ValueError, IndexError):
-                                pass
+                                atlanan += 1
         except Exception as e:
             print(f"[WARNING] .frd okunamadı: {e}")
             return np.array([]), np.array([]), np.array([])
 
+        if atlanan:
+            print(f"[UYARI] .frd ayrıştırmada {atlanan} satır atlandı — tepe gerilme "
+                  "EKSİK olabilir (SF iyimser çıkabilir)")
         return np.array(stress_list), np.array(disp_list), np.array(node_ids)
 
     def read_frequency_results(self, n_modes: int = 10,

@@ -11,6 +11,7 @@ from pathlib import Path
 
 try:                                            # cp1254 (TR Windows) stdout α/° patlamasın
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+# sessiz-yutma: kabul — modül-düzeyi uyumluluk kalkanı; çalışma-zamanı sonucu etkilemez
 except (AttributeError, ValueError):
     pass
 

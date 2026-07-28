@@ -70,6 +70,7 @@ def _read_force(fdat: Path):
                 try:
                     its.append(float(nums[0])); cds.append(float(nums[1]) + float(nums[4]))
                     cls.append(0.0)
+                # sessiz-yutma: kabul — bozuk satır atlanır; sütun-adı tabanlı okuma başarısızsa çağıran plato bulamaz ve erken-durdurma DEVREYE GİRMEZ (güvenli taraf)
                 except ValueError:
                     pass
         else:                                   # forceCoeffs.dat (skaler) formatı
@@ -78,6 +79,7 @@ def _read_force(fdat: Path):
                 try:
                     its.append(float(p[0]))
                     cds.append(float(p[cd_i])); cls.append(float(p[cl_i]))
+                # sessiz-yutma: kabul — bozuk satır atlanır; sütun-adı tabanlı okuma başarısızsa çağıran plato bulamaz ve erken-durdurma DEVREYE GİRMEZ (güvenli taraf)
                 except ValueError:
                     pass
     return its, cds, cls

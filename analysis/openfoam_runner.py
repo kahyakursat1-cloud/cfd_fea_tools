@@ -952,6 +952,7 @@ def _wsl_kill(patterns) -> None:
     cmd = "; ".join(f"pkill -9 -f {p} 2>/dev/null" for p in patterns) + "; true"
     try:
         linux_run(cmd, 30)
+    # sessiz-yutma: kabul — süreç zaten ölmüş olabilir; öldürme başarısızlığı sonucu etkilemez
     except Exception:
         pass
 
@@ -1047,6 +1048,7 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
                 _wsl_kill(bins); break
         try:
             proc.wait(timeout=30)
+        # sessiz-yutma: kabul — erken-durdurma İYİLEŞTİRMESİ; düşerse koşu tam süre devam eder (güvenli taraf)
         except Exception:
             pass
         log_files.append(case_dir / "log.foamRun")
@@ -1209,6 +1211,7 @@ def parse_force_coeffs_text(text: str) -> tuple[float | None, float | None,
             cl = float(parts[cl_idx]) if cl_idx is not None and cl_idx < len(parts) else float("nan")
             cm = float(parts[cm_idx]) if cm_idx is not None and cm_idx < len(parts) else float("nan")
             history.append((t, cd, cl, cm))
+        # sessiz-yutma: kabul — bozuk satır atlanır; BAŞLIK bulunamama durumu hemen altta AYRICA ele alınıp None döner (NaN üretilmez)
         except (ValueError, IndexError):
             continue
     # BAŞLIK BULUNAMADIYSA sahte sayı üretme: cd_idx/cl_idx/cm_idx None kalırsa her

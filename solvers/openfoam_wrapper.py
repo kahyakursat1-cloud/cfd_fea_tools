@@ -75,6 +75,7 @@ class OpenFOAMRunner:
         finally:
             try:
                 wrapper_bat.unlink()
+            # sessiz-yutma: kabul — eski GUI yolu (iki-hızlı); analysis/ kanonik katmanı bu yolu kullanmaz
             except OSError:
                 pass
 

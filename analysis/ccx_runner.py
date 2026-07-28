@@ -119,6 +119,7 @@ def _frd_has_results(frd_path: Path) -> bool:
             for line in f:
                 if _FRD_DATASET_PATTERN.match(line):
                     return True
+    # sessiz-yutma: kabul — dosya okunamıyorsa 'sonuç yok' doğru cevaptır; çağıran ccx hatasını ayrıca raporlar
     except OSError:
         return False
     return False

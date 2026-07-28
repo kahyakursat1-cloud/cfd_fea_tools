@@ -44,6 +44,8 @@ class FRDResult:
     node_ids: np.ndarray # (N,) — orijinal CalculiX 1-indexed
     fields: dict[str, np.ndarray] = field(default_factory=dict)
     # alanlar: 'DISP': (N, 3), 'STRESS': (N, 6), 'VON_MISES': (N,)
+    # Ayrıştırmada ATLANAN satır sayısı — sıfır değilse tepe gerilme EKSİK olabilir.
+    atlanan_satir: dict = field(default_factory=lambda: {"dugum": 0, "sonuc": 0})
 
     def displacement_magnitude(self) -> np.ndarray | None:
         if "DISP" not in self.fields:
@@ -87,6 +89,10 @@ def parse_frd(frd_path: Path) -> FRDResult:
     points_list: list[list[float]] = []
     node_ids_list: list[int] = []
     fields: dict[str, np.ndarray] = {}
+    # ATLANAN SATIR SAYACI: bozuk satırlar sessizce atlanıyordu. Tepe gerilme o
+    # satırlardan birindeyse maksimum SESSİZCE DÜŞÜK çıkar ve SF hükmü iyimser olur.
+    # Atlama kaçınılmaz (kısmi/bozuk .frd olur) ama SAYISI görünmeli.
+    atlanan = {"dugum": 0, "sonuc": 0}
 
     # State machine
     in_node_block = False
@@ -152,6 +158,7 @@ def parse_frd(frd_path: Path) -> FRDResult:
                     y = float(stripped[25:37])
                     z = float(stripped[37:49])
                 except (ValueError, IndexError):
+                    atlanan["dugum"] += 1
                     continue
                 node_ids_list.append(node_id)
                 points_list.append([x, y, z])
@@ -162,6 +169,7 @@ def parse_frd(frd_path: Path) -> FRDResult:
                 try:
                     node_id = int(stripped[3:13])
                 except ValueError:
+                    atlanan["sonuc"] += 1
                     continue
                 # Geri kalan değerler 12-karakter genişliğinde
                 rest = stripped[13:]
@@ -197,7 +205,12 @@ def parse_frd(frd_path: Path) -> FRDResult:
         else:
             cleaned[name] = arr
 
-    return FRDResult(points=points, node_ids=node_ids, fields=cleaned)
+    if atlanan["dugum"] or atlanan["sonuc"]:
+        print(f"[UYARI] .frd ayrıştırmada atlanan satır: {atlanan['dugum']} düğüm, "
+              f"{atlanan['sonuc']} sonuç — tepe gerilme EKSİK olabilir "
+              f"({frd_path.name})")
+    return FRDResult(points=points, node_ids=node_ids, fields=cleaned,
+                     atlanan_satir=dict(atlanan))
 
 
 if __name__ == "__main__":

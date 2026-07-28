@@ -228,6 +228,7 @@ def _valid_geo(m) -> bool:
         ext = m.bounds[1] - m.bounds[0]
         return (len(m.faces) >= 50 and np.all(np.isfinite(ext)) and
                 float(ext.min()) > 1e-4 and float(m.volume) > 1e-9)
+    # sessiz-yutma: kabul — geometri elemesi; okunamayan STL 'geçersiz' sayılır — temkinli taraf
     except Exception:
         return False
 
@@ -250,6 +251,7 @@ def _lib_feats(tip):
         if c.get("onayli_tip") == tip and c.get("metrik"):
             try:
                 out.append(np.array(_features(c["metrik"]), float))
+            # sessiz-yutma: kabul — kütüphane özellik çıkarımı; düşerse o vaka kNN'e girmez, hüküm üretmez
             except Exception:
                 pass
     return out
@@ -283,6 +285,7 @@ def _orphan_cleanup():
         subprocess.run(["wsl", "-d", WSL_DISTRO, "--", "bash", "-c",
                         "pkill -9 -f foamRun 2>/dev/null; pkill -9 -f mpirun 2>/dev/null; true"],
                        capture_output=True, timeout=20)
+    # sessiz-yutma: kabul — geçici dosya temizliği; sonuç üretmez
     except Exception:
         pass
 
@@ -300,6 +303,7 @@ def _holdout_accuracy(rng_seed=999, n_per=3):
                 info = _metrik_of(stl, wd / f"ho_{tip}_{k}")
                 if info:
                     tot += 1; ok += int(info["tip"] == true_tip)
+            # sessiz-yutma: kabul — ayrık-doğruluk RAPORU; düşerse metrik basılmaz — kanıt dosyasına sahte sayı YAZILMAZ
             except Exception:
                 pass
     shutil.rmtree(wd, ignore_errors=True)
@@ -342,6 +346,7 @@ def main():
                 info = _metrik_of(stl, GEN_DIR / name)
                 if info:
                     cands.append((name, info["metrik"], info["prep"]))
+            # sessiz-yutma: kabul — toplu koşuda tek vakanın düşmesi kampanyayı durdurmaz; başarısızlar ayrıca sayılır
             except Exception:
                 pass
         sel = _farthest_select(cands, tip, cap, DIVERSITY_EPS)

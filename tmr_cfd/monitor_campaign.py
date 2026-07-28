@@ -22,6 +22,7 @@ from force_plateau import _read_force, forcecoeffs_dat, relative_drift  # noqa: 
 
 try:                                            # cp1254 (TR Windows) stdout α/° patlamasın
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+# sessiz-yutma: kabul — modül-düzeyi uyumluluk kalkanı; çalışma-zamanı sonucu etkilemez
 except (AttributeError, ValueError):
     pass
 
@@ -91,6 +92,7 @@ def main() -> int:
             return 0
         try:
             time.sleep(POLL)
+        # sessiz-yutma: kabul — KeyboardInterrupt — kullanıcı izlemeyi bilerek kesti, hata değil
         except KeyboardInterrupt:
             return 0
 

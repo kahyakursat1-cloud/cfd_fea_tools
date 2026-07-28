@@ -48,6 +48,7 @@ class CalculiXRunner:
                 )
                 # Any returncode is OK for ccx, might not have -version flag
                 return True
+            # sessiz-yutma: kabul — kurulum ARAMASI; bulunamazsa sonraki aday denenir, sonuç 'kurulu değil' olarak döner
             except Exception:
                 continue
 

@@ -58,6 +58,7 @@ def repair_mesh(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
     # Küçük delikleri doldur
     try:
         trimesh.repair.fill_holes(repaired)
+    # sessiz-yutma: kabul — en-iyi-çaba delik doldurma; su-geçirmezlik çağıranda AYRICA kontrol edilir (mesh_quality_gate)
     except Exception:
         pass
     return repaired
@@ -146,6 +147,7 @@ def generate_tet_mesh(
     finally:
         try:
             gmsh.finalize()
+        # sessiz-yutma: kabul — finally içinde ikinci gmsh.finalize(); asıl hata zaten RuntimeError olarak yükseltildi
         except Exception:
             pass
 

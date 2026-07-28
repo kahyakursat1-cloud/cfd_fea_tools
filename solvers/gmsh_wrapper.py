@@ -41,6 +41,7 @@ class GMSHMeshGenerator:
                 )
                 if result.returncode == 0:
                     return True
+            # sessiz-yutma: kabul — kurulum ARAMASI; bulunamazsa sonraki aday denenir, sonuç 'kurulu değil' olarak döner
             except Exception:
                 continue
 
@@ -206,6 +207,7 @@ $EndElements
                 if result.returncode == 0:
                     print(f"[OK] OpenFOAM mesh: {openfoam_dir}")
                     return openfoam_dir
+            # sessiz-yutma: kabul — eski GUI yolu (iki-hızlı); analysis/ kanonik katmanı bu yolu kullanmaz
             except Exception:
                 pass
 

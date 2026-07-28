@@ -11,6 +11,7 @@ import numpy as np
 
 try:                                            # cp1254 (TR Windows) stdout α/° patlamasın
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+# sessiz-yutma: kabul — modül-düzeyi uyumluluk kalkanı (import/sürüm farkı); çalışma-zamanı sonucu etkilemez
 except (AttributeError, ValueError):
     pass
 

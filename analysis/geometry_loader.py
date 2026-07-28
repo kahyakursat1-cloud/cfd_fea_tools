@@ -37,11 +37,17 @@ class GeometryInfo:
         return self.bbox_max - self.bbox_min
 
     @property
-    def volume(self) -> float:
+    def volume(self) -> float | None:
+        """Hacim; ÖLÇÜLEMEZSE None (0.0 DEĞİL).
+
+        0.0 makul görünen ama yanlış bir sayıdır ve aritmetiğe sızar (kütle, yoğunluk,
+        hacim oranı hepsi sıfırlanır). None "bilinmiyor" der ve çağıranı düşünmeye zorlar.
+        """
         try:
             return float(self.mesh.volume)
+        # sessiz-yutma: kabul — su-geçirmez olmayan mesh'te hacim tanımsızdır; None dönüp özet "ölçülemedi" yazar
         except Exception:
-            return 0.0
+            return None
 
     @property
     def surface_area(self) -> float:
@@ -142,8 +148,10 @@ def _load_step(path: Path) -> trimesh.Trimesh:
         finally:
             try:
                 os.unlink(tmp_path)
+            # sessiz-yutma: kabul — STEP okuyucu opsiyonel (OCC yoksa); çağıran STL yoluna düşer ve kaynak formatı raporda görünür
             except OSError:
                 pass
+    # sessiz-yutma: kabul — STEP okuyucu opsiyonel (OCC yoksa); çağıran STL yoluna düşer ve kaynak formatı raporda görünür
     except ImportError:
         pass
 

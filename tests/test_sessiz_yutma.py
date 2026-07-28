@@ -14,11 +14,16 @@ import sessiz_yutma
 # bakılmadı" aynı görünüyordu — bu oturumda avlanan kusurun ta kendisi. Kabul, kodda
 # `# sessiz-yutma: kabul — <gerekçe>` satırı ister ve gerekçe o `except`in yanında durur.
 #
-# Ölçülen (2026-07-28): 79 toplam / 31 güven yolunda / 31 kabul edilmiş.
-# GÜVEN YOLUNDA İNCELENMEMİŞ = 0 — hükme dönüşen her sessizliğin yazılı gerekçesi var.
-TABAN_TOPLAM = 79
-TABAN_GUVEN_YOLU = 31
-TABAN_INCELENMEMIS = 48
+# KAPSAM DÜZELTMESİ: ilk sürüm yalnız KÖK dosyaları "güven yolu" sayıyordu ve
+# "incelenmemiş = 0" iddiası bu yüzden YANLIŞTI — CLAUDE.md'nin KANONİK katman dediği
+# `analysis/` hiç sayılmıyordu (orada 11 gerekçesiz sessizlik vardı), `experiments/`
+# (V&V çapalarının üretildiği yer) ise hiç taranmıyordu. Kapsam genişletilince
+# güven-yolu 31 → 55, incelenmemiş 0 → 28 çıktı; hepsi tek tek gerekçelendirildi.
+#
+# Ölçülen (2026-07-28, GENİŞ kapsam): 80 toplam / 55 güven yolunda / 55 kabul edilmiş.
+TABAN_TOPLAM = 80
+TABAN_GUVEN_YOLU = 55
+TABAN_INCELENMEMIS = 25
 TABAN_INCELENMEMIS_GUVEN_YOLU = 0
 
 KABUL_SATIRI = "    # sessiz-yutma: kabul — sebebi şu"
@@ -108,6 +113,32 @@ def test_duzeltilen_vakalar_geri_gelmedi():
                  ("supersonic_report.py", "_read_solver_gci"),
                  ("auto_pilot.py", "auto_configure")):
         assert vaka not in gerekcesiz, vaka
+
+
+def test_kapsam_KANONIK_katmani_iceriyor():
+    """İlk sürümün kapsam hatası geri gelmesin: `analysis/` (kanonik CFD/FEA katmanı)
+    ve `experiments/` (V&V çapaları) güven yolunda SAYILMALI. Sayılmazsa 'incelenmemiş
+    = 0' iddiası kendiliğinden doğru çıkar ve hiçbir şey ifade etmez."""
+    assert sessiz_yutma._guven_yolu("analysis/openfoam_runner.py")
+    assert sessiz_yutma._guven_yolu("experiments/duz_levha_cf.py")
+    assert sessiz_yutma._guven_yolu("solvers/gmsh_wrapper.py")
+    assert "experiments" not in sessiz_yutma.ATLA
+
+
+def test_frd_parser_atlanan_satiri_SAYIYOR():
+    """Kanonik FEA ayrıştırıcısı bozuk satırı sessizce atıyordu; tepe gerilme o
+    satırdaysa maksimum düşük çıkar ve SF hükmü iyimser olur."""
+    from analysis.frd_parser import FRDResult
+    assert "atlanan_satir" in FRDResult.__dataclass_fields__
+
+
+def test_hacim_olculemezse_SIFIR_donmuyor():
+    """0.0 makul görünen yanlış bir sayıdır ve aritmetiğe sızar; None 'bilinmiyor' der."""
+    import inspect
+
+    from analysis.geometry_loader import GeometryInfo
+    src = inspect.getsource(GeometryInfo.volume.fget)
+    assert "return None" in src and "return 0.0" not in src
 
 
 def test_gerilemeler_alani_sonuca_bagli():
