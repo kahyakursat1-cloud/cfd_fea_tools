@@ -288,6 +288,10 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
     # geçersizler; okuyucu dört bölüm makul sayı okuduktan SONRA öğrenmemeli.
     for _ku in (getattr(r, "kurulum", None) or []):
         md.append(f"> 🟠 **KURULUM:** {_ku}\n")
+    # SESSİZ GERİLEMELER: sonuç üretildi ama bir savunma/çapraz-kontrol düştü. Koşuyu
+    # durdurmadıkları için görünmezlerdi; güvence kaybı sayının kendisi kadar önemli.
+    for _g in (getattr(r, "gerilemeler", None) or []):
+        md.append(f"> 🟡 **GÜVENCE KAYBI:** {_g}\n")
     # Öğretici kutu (BİLSEM): kararların 'neden'i acemi-erişilebilir dille (mentor).
     try:
         from mentor import egitim_notu

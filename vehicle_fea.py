@@ -372,12 +372,22 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
         # boyutuna kadar incelt — hem statik hem modal doğruluk için şart
         lmax0 = float((m.bounds[1] - m.bounds[0]).max())
         max_edge = lmax0 / 25.0
+        inceltme_uyari = ""
         try:
             if len(m.faces) < 50000:
+                n0 = len(m.faces)
                 m = m.subdivide_to_size(max_edge, max_iter=6)
-        except Exception:
-            pass
-        cb(10, f"Kabuk modeli: {len(m.faces):,} S3 eleman, t={shell_thickness_mm} mm")
+                if len(m.faces) == n0:
+                    inceltme_uyari = (" ⚠ inceltme ETKİSİZ (hedef kenar "
+                                      f"{max_edge * 1000:.1f} mm zaten sağlanıyor olabilir)")
+        except Exception as e:
+            # Sessizce geçilirse KABA kabuk üstünde gerilme hesaplanır ve tepe gerilme
+            # sistematik düşük çıkar; hüküm (SF) buna dayanır. Eleman sayısı basılıyor
+            # ama "inceltilmek İSTENDİ ve olmadı" bilgisi kayboluyordu.
+            inceltme_uyari = (f" ⚠ mesh inceltme BAŞARISIZ ({type(e).__name__}) — kaba "
+                              "kabukta tepe gerilme DÜŞÜK çıkar, SF iyimserdir")
+        cb(10, f"Kabuk modeli: {len(m.faces):,} S3 eleman, "
+               f"t={shell_thickness_mm} mm{inceltme_uyari}")
         if analysis == "statik":
             mp = _map_pressure_to_shell(cp_vtk, m, rho=rho)
             if mp["status"] != "SUCCESS":

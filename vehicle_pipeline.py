@@ -15,7 +15,7 @@ import json
 import math
 import os
 import re
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -182,13 +182,14 @@ def weld_axial_segments(m: trimesh.Trimesh):
     if not welded.is_watertight:
         return m, None
     welded = welded.subdivide().subdivide()                 # CFD-dostu yüzey
+    ek = ""
     try:
         trimesh.smoothing.filter_taubin(welded, iterations=2)
         welded.fix_normals()
-    except Exception:
-        pass
+    except Exception as e:
+        ek = f"; ⚠ yumuşatma/normal düzeltme BAŞARISIZ ({type(e).__name__}) — köprü yüzeyi ham"
     return welded, (f"{len(parts)} kopuk eş-eksenli segment → tek watertight cisme "
-                    "kaynatıldı (konveks-zarf köprüleme; exploded/kopuk-ihraç onarımı)")
+                    "kaynatıldı (konveks-zarf köprüleme; exploded/kopuk-ihraç onarımı)" + ek)
 
 
 def prepare_geometry(path, out_dir: Path, progress_cb=None,
@@ -230,14 +231,20 @@ def prepare_geometry(path, out_dir: Path, progress_cb=None,
     try:
         trimesh.repair.fix_normals(m)
         info["onarimlar"].append("normal/sarım onarımı")
-    except Exception:
-        pass
+    except Exception as e:
+        # Yalnız BAŞARILAR kaydediliyordu; başarısızlık sessizdi ve çağıran
+        # "onarım listesi kısa" ile "onarım denenmedi"yi ayırt edemiyordu.
+        info["onarimlar"].append(f"⚠ normal/sarım onarımı BAŞARISIZ ({type(e).__name__})")
     if not m.is_watertight:
         try:
             if trimesh.repair.fill_holes(m) and m.is_watertight:
                 info["onarimlar"].append("delik kapatma (su geçirmez hale getirildi)")
-        except Exception:
-            pass
+            elif not m.is_watertight:
+                info["onarimlar"].append("⚠ delik kapatma denendi, model YİNE su geçirmez "
+                                         "değil — snappyHexMesh iç yüzey/kaçak görebilir")
+        except Exception as e:
+            info["onarimlar"].append(f"⚠ delik kapatma BAŞARISIZ ({type(e).__name__}) — "
+                                     "model su geçirmez değil")
     info["su_gecirmez_once"] = before_wt
 
     # Kopuk eş-eksenli segmentleri kaynat (roket exploded/kopuk-ihraç → tek cisim).
@@ -734,6 +741,9 @@ class VehicleAnalysisResult:
     aref_mode: str = ""
     cd: float | None = None
     cd_wake: float | None = None        # far-field iz-momentum Cd (2.-mertebe çapraz-kontrol)
+    # SESSİZ GERİLEMELER: bir savunma/çapraz-kontrol düştüğünde sonuç yine üretilir ama
+    # güvencesi azalır. mesh_generator.gerilemeler deseni buraya taşındı; rapor gösterir.
+    gerilemeler: list = field(default_factory=list)
     cl: float | None = None
     ld: float | None = None
     cda_m2: float | None = None
@@ -924,8 +934,14 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         if w and w.get("Cd") is not None:
             cd_wake = round(w["Cd"], 5)
             base.cd_wake = cd_wake
-    except Exception:
-        pass
+        else:
+            base.gerilemeler.append("iz-momentum Cd çapraz-kontrolü sonuç vermedi — "
+                                    "yüzey-integral Cd'nin BAĞIMSIZ doğrulaması yok")
+    except Exception as e:
+        # Bu bir ÇAPRAZ KONTROL: sessizce düşerse Cd tek kaynaklı kalır ve
+        # "iki yöntem uyuştu" güvencesi kaybolur, üstelik kaybolduğu görünmez.
+        base.gerilemeler.append(f"iz-momentum Cd çapraz-kontrolü DÜŞTÜ "
+                                f"({type(e).__name__}: {e}) — Cd tek kaynaklı")
 
     # Kurulum uyarıları listenin en başında: yanlış kurulmuş bir analizin sonucunu
     # yorumlamanın anlamı yok (fizik kapısı bile geçse).
@@ -1087,8 +1103,8 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                 w = compute_case_wake_drag(r.case_dir, U_inf=velocity, A_ref=aref, rho=rho)
                 if w and w.get("Cd") is not None:
                     lv_rec["Cd_wake"] = round(w["Cd"], 5)
-            except Exception:
-                pass
+            except Exception as e:
+                lv_rec["Cd_wake_hata"] = f"{type(e).__name__}: {e}"
             # FİZİK KAPISI seviye bazında: MiniHawk kampanyasında en kaba seviye
             # Cd=0.0 üretti (uçak hiç çözülmemiş) ve bu fizik-dışı değer Richardson
             # fitine girip GCI'ı %226'ya şişirdi. Fizik-dışı seviye fite GİRMEZ,
