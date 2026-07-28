@@ -577,6 +577,82 @@ def parse_checkmesh(log: Path) -> dict:
     return out
 
 
+def parse_layer_report(log: Path) -> dict:
+    """snappyHexMesh'in KENDİ katman raporunu oku — istenen vs EKLENEN katman.
+
+    Katman çökmesi bugüne kadar yalnız DOLAYLI teşhis ediliyordu (ölçülen y⁺ hedefin
+    5 katından büyükse "şüphe"). Oysa snappy sonunda tam olarak kaç katman ördüğünü
+    ve gerçekleşen kalınlığı bir tabloda YAZIYOR:
+
+        patch    faces    layers   overall thickness
+                                   [m]        [%]
+        minihawk 12345    0        0          0
+
+    Doğrudan okumak şüpheyi ÖLÇÜME çevirir: 12 katman istenip 0 örülmüşse sonuç,
+    sahip olmadığı sınır-tabaka çözünürlüğünü iddia ediyor demektir. MiniHawk
+    'hassas' koşusunda ölçülmüştü: mesh katmansız koşuyla BİREBİR aynı hücre
+    sayısı (3.943.330) ve y⁺=4113 — snappy katman adımı sessizce çökmüştü.
+
+    Döndürür: {"okundu": bool, "yamalar": [{ad, yuz, katman, kalinlik_m, kalinlik_pct}],
+               "neden": str|None}
+    """
+    out = {"okundu": False, "yamalar": [], "neden": None}
+    if not log.exists():
+        out["neden"] = f"{log.name} yok — katman adımı hiç koşmamış olabilir"
+        return out
+    txt = log.read_text(errors="ignore")
+    if "overall thickness" not in txt:
+        out["neden"] = ("log'da katman tablosu yok (addLayers false ya da katman "
+                        "adımına hiç gelinmedi)")
+        return out
+    # Tablo: son "overall thickness" başlığından sonraki satırlar; ---- ayıracını atla.
+    kuyruk = txt[txt.rfind("overall thickness"):].splitlines()[1:]
+    for satir in kuyruk:
+        s = satir.strip()
+        if not s or s.startswith(("[", "-")) or "]" in s.split()[0:1]:
+            continue
+        t = s.split()
+        if len(t) < 5:
+            break
+        try:
+            out["yamalar"].append({"ad": t[0], "yuz": int(t[1]), "katman": int(t[2]),
+                                   "kalinlik_m": float(t[3]),
+                                   "kalinlik_pct": float(t[4])})
+        except ValueError:
+            break
+    out["okundu"] = bool(out["yamalar"])
+    if not out["okundu"]:
+        out["neden"] = "katman tablosu bulundu ama satır ayrıştırılamadı"
+    return out
+
+
+def katman_hukmu(rapor: dict, istenen: int, patch: str | None = None) -> dict:
+    """İstenen katman örüldü mü? Örülmediyse bunu ÖLÇÜM olarak söyle.
+
+    'Katman istenip alınamamak, hiç istememekten TEHLİKELİDİR' — sonuç sahip
+    olmadığı çözünürlüğü iddia eder. Bu yüzden hüküm y⁺'a DEĞİL, snappy'nin kendi
+    sayımına dayanır; y⁺ bağımsız bir ikinci kanıttır.
+    """
+    if istenen <= 0:
+        return {"durum": "katman_istenmedi", "istenen": 0}
+    if not rapor.get("okundu"):
+        return {"durum": "olculemedi", "istenen": istenen,
+                "neden": rapor.get("neden") or "katman raporu okunamadı"}
+    ilgili = [y for y in rapor["yamalar"]
+              if patch is None or y["ad"] == patch] or rapor["yamalar"]
+    eklenen = max((y["katman"] for y in ilgili), default=0)
+    d = {"istenen": istenen, "eklenen": eklenen,
+         "kalinlik_m": max((y["kalinlik_m"] for y in ilgili), default=0.0),
+         "yamalar": ilgili}
+    if eklenen == 0:
+        d["durum"] = "COKTU"
+    elif eklenen < istenen * 0.5:
+        d["durum"] = "kismi"
+    else:
+        d["durum"] = "ok"
+    return d
+
+
 def propeller_params(thrust_n: float, cap_m: float, velocity: float,
                      rho: float = 1.225) -> dict:
     """Froude aktüatör diski: hedef itkiden indüksiyon faktörü.
@@ -731,6 +807,60 @@ def parse_residuals(log: Path) -> dict:
             seen_this_iter.add(m.group(1))
             hist.setdefault(m.group(1), []).append(float(m.group(2)))
     return hist
+
+
+def yakinsama_teshisi(case_dir: Path, forces_history: list, scale: float = 1.0) -> dict:
+    """Bir koşunun yakınsama hükmü — ANA KOŞU ve GCI SEVİYELERİ için TEK KAYNAK.
+
+    Ayrı yazılsaydı iki yol kaçınılmaz olarak ayrışırdı; nitekim ayrışmıştı: ana koşu
+    rezidüel/drift/salınım ölçüyordu, GCI seviyeleri ise HİÇ ÖLÇMÜYORDU. Sonuç
+    MiniHawk kanıtında görülebilir: `rezidual_ok: false` ve `iterasyon: 103` yazarken
+    aynı seviyeler Richardson fitine girip GCI %379 üretti. Yakınsamamış çözümlerden
+    hesaplanan mesh-bağımsızlık sayısı, hatayı ayrıklaştırmaya YANLIŞ atfeder.
+    """
+    hist = [(t, c * scale) for t, c, _lc, _ in forces_history]
+    n = len(hist)
+    drift_pct = None
+    if n >= 10:
+        w = max(2, n // 5)
+        drift_pct = abs(hist[-1][1] - hist[-w][1]) / (abs(hist[-1][1]) + 1e-12) * 100
+    residuals = parse_residuals(case_dir / "log.foamRun")
+    final_res = {f: (v[-1] if v else None) for f, v in residuals.items()}
+    momentum_res = {f: v for f, v in final_res.items()
+                    if f.startswith(("Ux", "Uy", "Uz", "p"))}
+    res_ok = bool(momentum_res) and all(v is not None and v < RESIDUAL_TARGET
+                                        for v in momentum_res.values())
+    return {
+        "iterasyon": n,
+        "cd_drift_son20pct": round(drift_pct, 3) if drift_pct is not None else None,
+        "drift_ok": drift_pct is not None and drift_pct < DRIFT_LIMIT_PCT,
+        "son_rezidualler": {k: (f"{v:.2e}" if v is not None else None)
+                            for k, v in final_res.items()},
+        "rezidual_ok": res_ok,
+        "salinim": salinim_analizi([h[1] for h in forces_history]),
+    }
+
+
+def seviye_yakinsadi_mi(conv: dict) -> tuple[bool, str]:
+    """GCI'ya girmeye uygun mu? Değilse SEBEBİYLE birlikte söyle.
+
+    Ölçüt ana koşununkiyle aynı: rezidüel hedefi + drift + salınım yokluğu.
+    Yalnızca biri bile başarısızsa seviye Richardson fitine GİRMEZ; kayıtta gerekçesiyle
+    kalır (fizik kapısıyla aynı desen — sessiz atlama yok).
+    """
+    g = []
+    if not conv.get("rezidual_ok"):
+        r = conv.get("son_rezidualler") or {}
+        kotu = {k: v for k, v in r.items() if k.startswith(("Ux", "Uy", "Uz", "p"))}
+        g.append(f"rezidueller hedefin ({RESIDUAL_TARGET:.0e}) uzerinde: {kotu}")
+    if not conv.get("drift_ok"):
+        g.append(f"Cd drifti son %20'de {conv.get('cd_drift_son20pct')}% "
+                 f"(sinir {DRIFT_LIMIT_PCT}%)")
+    if (conv.get("salinim") or {}).get("osilasyon"):
+        g.append("kuvvet salinimi (limit cevrimi) — sabit noktaya oturmamis")
+    if (conv.get("iterasyon") or 0) < 50:
+        g.append(f"yalnizca {conv.get('iterasyon')} iterasyon")
+    return (not g), "; ".join(g)
 
 
 @dataclass
@@ -898,26 +1028,12 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     residuals = parse_residuals(case_dir / "log.foamRun")
     meshq = parse_checkmesh(case_dir / "log.checkMesh")
 
-    # Yakınsama teşhisi: son %20 pencerede Cd drifti + son rezidüeller
-    n = len(history)
-    drift_pct = None
-    if n >= 10:
-        w = max(2, n // 5)
-        drift_pct = abs(history[-1][1] - history[-w][1]) / (abs(history[-1][1]) + 1e-12) * 100
-    final_res = {f: (v[-1] if v else None) for f, v in residuals.items()}
-    momentum_res = {f: v for f, v in final_res.items()
-                    if f.startswith(("Ux", "Uy", "Uz", "p"))}
-    res_ok = bool(momentum_res) and all(v is not None and v < RESIDUAL_TARGET
-                                        for v in momentum_res.values())
-    sal = salinim_analizi([h[1] for h in res.forces_history])
-    conv = {
-        "iterasyon": n,
-        "cd_drift_son20pct": round(drift_pct, 3) if drift_pct is not None else None,
-        "drift_ok": drift_pct is not None and drift_pct < DRIFT_LIMIT_PCT,
-        "son_rezidualler": {k: (f"{v:.2e}" if v is not None else None) for k, v in final_res.items()},
-        "rezidual_ok": res_ok,
-        "salinim": sal,
-    }
+    # Yakınsama teşhisi ORTAK fonksiyondan — GCI seviyeleri de aynısını kullanır.
+    conv = yakinsama_teshisi(case_dir, res.forces_history, scale)
+    # `sal` AŞAĞIDA iki yerde daha kullanılıyor (salınım uyarısı + belirsizliğe RSS
+    # katkısı). Refactor'de satır düşünce ruff NameError'ı yakaladı; 640 test
+    # yakalayamadı çünkü bu yol GERÇEK bir CFD koşusu gerektiriyor.
+    sal = conv["salinim"]
 
     base.status = "ok"
     base.aref_m2 = round(aref, 6)
@@ -1010,11 +1126,33 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
 
     if progress_cb:
         progress_cb(78, "y+ olcumu...")
-    yp = measure_yplus(case_dir, patch=Path(stl_path).stem.replace(" ", "_"))
+    _patch = Path(stl_path).stem.replace(" ", "_")
+    yp = measure_yplus(case_dir, patch=_patch)
+    # DOĞRUDAN ÖLÇÜM: snappy'nin kendi katman sayımı. Bugüne kadar katman çökmesi
+    # yalnız y⁺'tan ÇIKARSANIYORDU; şimdi "12 istendi, 0 örüldü" diye ölçülüyor.
+    kat = katman_hukmu(parse_layer_report(case_dir / "log.snappyHexMesh"),
+                       n_layers, _patch)
     base.sinir_tabaka = {"katman_sayisi": n_layers, "yplus": yp,
+                         "katman_olcumu": kat,
                          "yplus_hedef": yplus_target if n_layers > 0 else None,
                          "ilk_katman_m": (round(case.first_layer_thickness, 8)
                                           if case.first_layer_thickness else None)}
+    if kat.get("durum") == "COKTU":
+        uyarilar.append(
+            f"KATMAN ÇÖKTÜ (ÖLÇÜLDÜ): {n_layers} prizma katmanı istendi, snappyHexMesh "
+            f"kendi raporunda 0 katman örüldüğünü yazıyor. Sınır tabaka ÇÖZÜLMÜYOR ve "
+            "sonuç katmansız koşuyla eşdeğerdir — duvar-çözünür (y⁺≈1) iddiası GEÇERSİZ. "
+            "log.snappyHexMesh 'overall thickness' tablosuna bakın; olağan sebepler: "
+            "ince firar kenarı, maxThicknessToMedialRatio, yüzey hücresi ilk-katmana "
+            "göre çok büyük")
+    elif kat.get("durum") == "kismi":
+        uyarilar.append(
+            f"KATMAN KISMİ (ÖLÇÜLDÜ): {n_layers} istendi, {kat['eklenen']} örüldü "
+            f"(gerçekleşen kalınlık {kat.get('kalinlik_m', 0):.3e} m). Sınır tabaka "
+            "kısmen çözülüyor; y⁺ hedefi tutmayabilir")
+    elif kat.get("durum") == "olculemedi" and n_layers > 0:
+        uyarilar.append(f"Katman sayımı ÖLÇÜLEMEDİ ({kat.get('neden')}) — "
+                        "duvar çözünürlüğü iddiası doğrulanmamış durumda")
     if progress_cb:
         progress_cb(82, "Yuzey basinc alani cikariliyor...")
     vtk_path = export_surface_vtk(case_dir, Path(stl_path).stem.replace(" ", "_"))
@@ -1115,12 +1253,30 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
             # fitine girip GCI'ı %226'ya şişirdi. Fizik-dışı seviye fite GİRMEZ,
             # kayda gerekçesiyle kalır (vehicle_polar ile aynı desen).
             lv_rec["fizik"] = force_admissibility(lv_rec["Cd"], None, alpha_deg)
+            # YAKINSAMA KAPISI seviye bazında — fizik kapısıyla AYNI desen.
+            # Fizik kapısı "Cd fiziksel mi" sorar; bu "Cd OTURDU MU" sorar. İkincisi
+            # yoktu ve MiniHawk kanıtında sonucu görülüyor: ana koşu `rezidual_ok:
+            # false`, `iterasyon: 103` derken aynı seviyeler Richardson fitine girdi
+            # ve GCI %379 çıktı. Yakınsamamış üç noktadan hesaplanan mesh-bağımsızlık
+            # sayısı hatayı AYRIKLAŞTIRMAYA yanlış atfeder.
+            lv_conv = yakinsama_teshisi(r.case_dir, r.forces_history, scale)
+            ok, neden = seviye_yakinsadi_mi(lv_conv)
+            lv_rec["yakinsama"] = {"gecti": ok, "iterasyon": lv_conv["iterasyon"],
+                                   "rezidual_ok": lv_conv["rezidual_ok"],
+                                   "drift_ok": lv_conv["drift_ok"]}
+            if not ok:
+                lv_rec["yakinsama"]["gerekce"] = neden
             levels.append(lv_rec)
         def _fizik_disi(lv):
             return (lv.get("fizik") or {}).get("verdict") == "inadmissible"
 
+        def _yakinsamadi(lv):
+            return not (lv.get("yakinsama") or {}).get("gecti", True)
+
         dislanan = [lv for lv in levels if _fizik_disi(lv)]
-        levels = [lv for lv in levels if lv.get("cells") and not _fizik_disi(lv)]
+        yakinsamayan = [lv for lv in levels if not _fizik_disi(lv) and _yakinsamadi(lv)]
+        levels = [lv for lv in levels
+                  if lv.get("cells") and not _fizik_disi(lv) and not _yakinsamadi(lv)]
         levels.sort(key=lambda lv: lv["cells"])              # kaba→ince
         def h(lv):                                           # 3B temsili hücre boyu
             return lv["cells"] ** (-1.0 / 3.0)
@@ -1154,6 +1310,13 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                     {"ad": lv["ad"], "cells": lv["cells"], "Cd": lv["Cd"],
                      "gerekce": "; ".join((lv.get("fizik") or {}).get("reasons", []))}
                     for lv in dislanan]
+            if yakinsamayan:
+                # SESSİZ ATLAMA YOK: dışlanan seviye kayıtta gerekçesiyle kalır,
+                # yoksa kullanıcı "3 seviye koştum, GCI yok" görür ve sebebini bilemez.
+                base.mesh_duyarlilik["yakinsamayan_seviyeler"] = [
+                    {"ad": lv["ad"], "cells": lv["cells"], "Cd": lv["Cd"],
+                     "gerekce": (lv.get("yakinsama") or {}).get("gerekce", "")}
+                    for lv in yakinsamayan]
             lsr = (least_squares_gci([h(lv) for lv in levels], [lv["Cd"] for lv in levels])
                    if len(levels) >= 4 else None)
             if lsr:
@@ -1203,9 +1366,31 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                          + ("; DÜŞEN SEVİYE: "
                             + "; ".join(f"{b['ad']} ({b['sebep'][:80]})" for b in basarisiz)
                             if basarisiz else ""),
-                **({"basarisiz_seviyeler": basarisiz} if basarisiz else {})}
+                **({"basarisiz_seviyeler": basarisiz} if basarisiz else {}),
+                **({"yakinsamayan_seviyeler": [
+                    {"ad": lv["ad"], "cells": lv["cells"], "Cd": lv["Cd"],
+                     "gerekce": (lv.get("yakinsama") or {}).get("gerekce", "")}
+                    for lv in yakinsamayan]} if yakinsamayan else {})}
         else:
-            base.mesh_duyarlilik = {"durum": "yetersiz seviye — bant hesaplanamadı"}
+            # "Yetersiz seviye" tek başına eyleme geçirilebilir bilgi değil — NEDEN
+            # yetersiz kaldığı yazılmalı. Yakınsama kapısı eklendikten sonra en olası
+            # sebep budur ve çözümü farklıdır (daha çok iterasyon, daha iyi mesh)
+            # başarısız seviyeninkinden (daha küçük bütçe).
+            _ned = []
+            if yakinsamayan:
+                _ned.append(f"{len(yakinsamayan)} seviye YAKINSAMADI")
+            if dislanan:
+                _ned.append(f"{len(dislanan)} seviye fizik-dışı")
+            if basarisiz:
+                _ned.append(f"{len(basarisiz)} seviye koşamadı")
+            base.mesh_duyarlilik = {
+                "durum": "yetersiz seviye — bant hesaplanamadı"
+                         + (" (" + ", ".join(_ned) + ")" if _ned else ""),
+                **({"yakinsamayan_seviyeler": [
+                    {"ad": lv["ad"], "cells": lv["cells"], "Cd": lv["Cd"],
+                     "gerekce": (lv.get("yakinsama") or {}).get("gerekce", "")}
+                    for lv in yakinsamayan]} if yakinsamayan else {}),
+                **({"basarisiz_seviyeler": basarisiz} if basarisiz else {})}
 
     # Birleşik belirsizlik (ASME V&V 20): U_total = √(U_sayısal² + U_model²).
     # Salınım genliği sayısal bileşene RSS ile katılır (Eça-Hoekstra salınım kuralı ruhu).

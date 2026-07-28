@@ -99,7 +99,9 @@ def _run_shock(case_dir: Path, surf: str, mach: float, t_inf: float, p_inf: floa
     try:
         r = _of(windows_to_wsl_path(case_dir), solve, 7200)
     except subprocess.TimeoutExpired:
-        _wsl_kill(["foamRun", "mpirun"])
+        # Kapsam case dizini: kapsamsiz pkill makinedeki HER foamRun'i oldururdu
+        # (olculdu: paralel bir kosu capayi 1464. iterasyonda sessizce kesti).
+        _wsl_kill(["foamRun", "mpirun"], windows_to_wsl_path(case_dir))
         r = subprocess.CompletedProcess(args="foamRun", returncode=124,
                                         stdout="", stderr="TIMEOUT")
     return r, (log.read_text(errors="ignore") if log.exists() else "TIMEOUT")

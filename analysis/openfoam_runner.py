@@ -945,11 +945,29 @@ def _wrap_timeout(command: str, tmo: int) -> tuple[str, list[str]]:
     return f"timeout -k 10 -s TERM {max(tmo - 20, 30)} {command}", bins
 
 
-def _wsl_kill(patterns) -> None:
-    """WSL-içi orphan OF süreçlerini öldür (pkill -9 -f)."""
+def _wsl_kill(patterns, dizin: str | None = None) -> None:
+    """WSL-içi orphan OF süreçlerini öldür.
+
+    `dizin` verilirse YALNIZ o case dizininde koşan süreçler öldürülür.
+
+    NEDEN: eski hâli `pkill -9 -f foamRun` idi — bu, makinedeki HER foamRun'ı
+    öldürür. ÖLÇÜLDÜ: NACA2412 çapası koşarken paralel bir duman testi
+    (check_cfd_pipeline) kendi zaman aşımında `_wsl_kill(["foamRun"])` çağırdı ve
+    ÇAPANIN çözücüsünü 1464. iterasyonda öldürdü; log iterasyon ortasında kesildi,
+    hiçbir yerde hata görünmedi ve çapa sessizce bozuk sayı üretecekti. Uzun
+    kampanyalar sırasında başka bir analiz başlatmak aynı sonucu verir.
+    Kapsam /proc/<pid>/cwd ile daraltılır — cmdline'da case yolu görünmez
+    (foamRun'ın kendi komut satırı yalnızca "foamRun -solver ...").
+    """
     if not patterns:
         return
-    cmd = "; ".join(f"pkill -9 -f {p} 2>/dev/null" for p in patterns) + "; true"
+    if dizin:
+        cmd = "; ".join(
+            f'for _p in $(pgrep -f {p} 2>/dev/null); do '
+            f'[ "$(readlink -f /proc/$_p/cwd 2>/dev/null)" = "{dizin}" ] && '
+            f'kill -9 "$_p" 2>/dev/null; done' for p in patterns) + "; true"
+    else:
+        cmd = "; ".join(f"pkill -9 -f {p} 2>/dev/null" for p in patterns) + "; true"
     try:
         linux_run(cmd, 30)
     # sessiz-yutma: kabul — süreç zaten ölmüş olabilir; öldürme başarısızlığı sonucu etkilemez
@@ -1007,7 +1025,7 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
             r = _wsl_run(exec_dir, wrapped + f" > {log_name} 2>&1", timeout=tmo)
         except subprocess.TimeoutExpired as e:
             all_stderr.append(f"TIMEOUT in {log_name}: {e}")
-            _wsl_kill(bins)            # Windows-tarafı aşımı: WSL orphan'larını öldür
+            _wsl_kill(bins, exec_dir)            # Windows-tarafı aşımı: WSL orphan'larını öldür
             return None
         log_files.append(case_dir / log_name)
         all_stdout.append(f"--- {log_name} ---\n{r.stdout}")
@@ -1042,10 +1060,10 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
             if n_iter >= 2 * window:
                 cds = [h[1] for h in hist[-window:]]
                 if _cd_plateau(cds, tol):
-                    _wsl_kill(bins); early = True
+                    _wsl_kill(bins, exec_dir); early = True
                     break
             if time.time() - t0 > tmo:
-                _wsl_kill(bins); break
+                _wsl_kill(bins, exec_dir); break
         try:
             proc.wait(timeout=30)
         # sessiz-yutma: kabul — erken-durdurma İYİLEŞTİRMESİ; düşerse koşu tam süre devam eder (güvenli taraf)

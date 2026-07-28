@@ -48,7 +48,9 @@ def _wsl_solve(case_dir: Path, timeout=7200):
         return _wsl_run(windows_to_wsl_path(case_dir),
                         wrapped + " > log.foamRun 2>&1", timeout=timeout + 60)
     except subprocess.TimeoutExpired:
-        _wsl_kill(bins)
+        # Kapsam case dizini — bkz. _wsl_kill dokumantasyonu (kapsamsiz pkill
+        # paralel kosan baska bir analizin cozucusunu de oldururdu).
+        _wsl_kill(bins, windows_to_wsl_path(case_dir))
         return subprocess.CompletedProcess(args="foamRun", returncode=-1,
                                            stdout="", stderr="TIMEOUT")
 
