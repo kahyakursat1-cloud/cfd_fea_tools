@@ -104,6 +104,7 @@ def uretici_kod_var(ad: str) -> bool:
             continue
         try:
             t = f.read_text(encoding="utf-8", errors="replace")
+        # sessiz-yutma: kabul — okunamayan kaynak taranmaz; sonuç yalnız 'üretici bulunamadı' tarafına yanılır (temkinli)
         except OSError:
             continue
         for satir in t.splitlines():
@@ -169,6 +170,7 @@ def _git_tarih(yol: str) -> int:
         r = subprocess.run(["git", "log", "-1", "--format=%ct", "--", yol],
                            cwd=ROOT, capture_output=True, text=True, timeout=30)
         return int(r.stdout.strip()) if r.stdout.strip().isdigit() else 0
+    # sessiz-yutma: kabul — git yoksa 0 döner ve bayatlık kontrolü ATLANIR — kanıt hükmü değişmez
     except Exception:
         return 0
 

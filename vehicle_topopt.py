@@ -142,6 +142,7 @@ def _parse_ener(dat_path: Path, n_elem: int) -> np.ndarray | None:
                     if 0 <= ei < n_elem:
                         sed[ei] = float(parts[2])
                     continue
+                # sessiz-yutma: kabul — ayrıştırılamayan satır atlanır; SF kapısı bu diziden BAĞIMSIZ hesaplanır
                 except ValueError:
                     pass
             if line.strip() and not line.strip()[0].isdigit():

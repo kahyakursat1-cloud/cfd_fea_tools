@@ -44,6 +44,7 @@ def export_field_cutplane(case_dir: Path, center, timeout: int = 600) -> Path | 
             shell=True, capture_output=True, text=True, timeout=timeout)
         cands = sorted((case_dir / "postProcessing" / "alanKesiti").rglob("kesit.vtk"))
         return cands[-1] if cands else None
+    # sessiz-yutma: kabul — görselleştirme çıktısı; katsayı/hüküm yolunda değil
     except Exception:
         return None
 
@@ -67,6 +68,7 @@ def export_surface_p(case_dir: Path, patch: str, timeout: int = 600) -> Path | N
         cands = sorted((case_dir / "postProcessing" / "yuzeyP").rglob("*.vtk")) + \
                 sorted((case_dir / "postProcessing" / "yuzeyP").rglob("*.vtp"))
         return cands[-1] if cands else None
+    # sessiz-yutma: kabul — görselleştirme çıktısı; katsayı/hüküm yolunda değil
     except Exception:
         return None
 
@@ -140,6 +142,7 @@ def _field_metrics(cut_vtk, mach, t_inf, p_inf, u_inf, rho_inf) -> dict | None:
             "cp0_teori": _isentropic_cp0(mach),
             "cp_crit": _critical_cp(mach),
         }
+    # sessiz-yutma: kabul — kontur YORUM metrikleri; None ise rapor o cümleleri hiç yazmaz (görünür eksilme), Cd yolunda değil
     except Exception:
         return None
 
@@ -160,6 +163,7 @@ def _body_section_area(stl_path: Path) -> float | None:
         r = np.sqrt((sel[:, 1] - cy) ** 2 + (sel[:, 2] - cz) ** 2)
         rb = float(np.percentile(r, 95))
         return math.pi * rb ** 2
+    # sessiz-yutma: kabul — gövde-kesit A_ref ADAYI; None ise çağıran frontal alana düşer ve rapor hangi referansın kullanıldığını yazar
     except Exception:
         return None
 
@@ -241,6 +245,7 @@ def render_field_figure(vtk_path, stl_path, mach, t_inf, p_inf, out) -> bool:
         fig.savefig(out, dpi=160, bbox_inches="tight")
         plt.close(fig)
         return True
+    # sessiz-yutma: kabul — figür render; False dönüşü çağıranda figürsüz rapora dönüşür, görünür
     except Exception:
         return False
 
@@ -281,6 +286,7 @@ def render_surface_cp(vtk_path, u_inf, rho_inf, p_inf, out, max_faces=40000) -> 
         fig.savefig(out, bbox_inches="tight", dpi=150)
         plt.close(fig)
         return True
+    # sessiz-yutma: kabul — figür render; False dönüşü çağıranda figürsüz rapora dönüşür, görünür
     except Exception:
         return False
 
@@ -402,6 +408,7 @@ def _emit_pdf(out_pdf: Path, rep_dir: Path, title, ozet, nomenklatur, cond_lines
             leftMargin=16 * mm, rightMargin=16 * mm,
             topMargin=14 * mm, bottomMargin=14 * mm).build(flow)
         return True
+    # sessiz-yutma: kabul — PDF opsiyonel (Pillow yoksa); Markdown rapor tam kalır
     except Exception:
         return False
 
@@ -566,19 +573,35 @@ def _read_solver_gci():
             return None
         valid = (g.get("monotonic") and g.get("p_in_range")
                  and 0 < (g.get("gci_fine_pct") or 1e9) < 5.0)
-        return g if valid else None
+        if valid:
+            return g
+        # ÜÇ DURUM tek None'a iniyordu: (a) kanıt yok, (b) alan yok, (c) GCI VAR ama
+        # YAKINSAMADI. Tüketici hepsine "resmi GCI bandı açık bir gelecek-iş kalemidir"
+        # diyordu — oysa (c)'de bant DENENDİ ve KALDI; bu çok daha ağır bir ifade.
+        return {"_gecersiz": True, "gci_fine_pct": g.get("gci_fine_pct"),
+                "monotonic": g.get("monotonic"), "p_in_range": g.get("p_in_range")}
+    # sessiz-yutma: kabul — kanıt dosyası yoksa/bozuksa None; tüketici 'bant yok' der (aşağıda ayrıştırılıyor)
     except Exception:
         return None
 
 
 def _abstract(result, mach, rejim, cd_tot, f_pct):
     g = _read_solver_gci()
-    vv_txt = (f"çözücü süpersonik küre deneyiyle (Charters & Thomas, 1945) "
-              f"doğrulanmış, ayrıklaştırma belirsizliği üç-ağ GCI ile ince-ağ "
-              f"≈%{g['gci_fine_pct']:.1f} olarak nicelenmiştir"
-              if g and g.get("gci_fine_pct") else
-              "çözücü süpersonik küre deneyiyle (Charters & Thomas, 1945) "
-              "doğrulanmıştır; resmi çok-ağ GCI bandı açık bir gelecek-iş kalemidir")
+    _dogrulama = ("çözücü süpersonik küre deneyiyle (Charters & Thomas, 1945) "
+                  "doğrulanmıştır")
+    if g and g.get("_gecersiz"):
+        # GCI DENENDİ ve KALDI — "henüz yapılmadı" demek okuyucuyu yanıltır.
+        _kusur = ", ".join(k for k, v in (("monoton değil", g.get("monotonic") is False),
+                                          ("p asimptotik dışı", g.get("p_in_range") is False))
+                           if v) or "GCI eşiği aşıldı"
+        vv_txt = (_dogrulama + "; ancak üç-ağ GCI DENENDİ ve GEÇMEDİ ("
+                  + (f"GCI ≈%{g['gci_fine_pct']:.1f}, " if g.get("gci_fine_pct") else "")
+                  + _kusur + ") — ayrıklaştırma belirsizliği NİCELENEMEDİ")
+    elif g and g.get("gci_fine_pct"):
+        vv_txt = (_dogrulama + ", ayrıklaştırma belirsizliği üç-ağ GCI ile ince-ağ "
+                  f"≈%{g['gci_fine_pct']:.1f} olarak nicelenmiştir")
+    else:
+        vv_txt = (_dogrulama + "; resmi çok-ağ GCI bandı açık bir gelecek-iş kalemidir")
     return (
         f"Bu rapor, {result['model']} geometrisinin M={mach:g} ({rejim}) koşulundaki "
         f"dış-akış aerodinamiğini OpenFOAM 11 shockFluid (Kurganov yoğunluk-bazlı "

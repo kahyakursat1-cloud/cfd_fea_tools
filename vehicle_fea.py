@@ -89,6 +89,7 @@ def _parse_eigenfrequencies(dat_path: Path, max_modes=10) -> list[float]:
                     if len(freqs) >= max_modes:
                         break
                     continue
+                # sessiz-yutma: kabul — ayrıştırılamayan satır atlanır; frekans sayısı çağırana görünür
                 except ValueError:
                     pass
             if freqs and line.strip() and not line.strip()[0].isdigit():

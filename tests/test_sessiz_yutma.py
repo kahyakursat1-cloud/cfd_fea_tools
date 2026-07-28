@@ -6,17 +6,26 @@ sessizce düşürüyordu:
   * measure_yplus `except: pass` → None                → y⁺=5399 kanıta hiç girmedi
   * geometry_sanity eksen kontrolü tipe bağlıydı       → 12× A_ref hatası görünmedi
 
-`sessiz_yutma.py` bu imzayı AST ile sayar (grep çok satırlı blokta yanılır). Testler
-sayıyı KİLİTLEMEZ-ama-GÖRÜNÜR yapar: yeni bir sessiz yutma eklenirse taban aşılır ve
-eklemenin bilinçli olduğu commit'te gerekçesiyle yükseltilmesi gerekir.
+`sessiz_yutma.py` bu imzayı AST ile sayar (grep çok satırlı blokta yanılır).
 """
 import sessiz_yutma
 
-# Ölçülen taban (2026-07-28, düzeltmelerden sonra): 81 toplam / 33 güven yolunda.
-# Öncesi 87 / 39 idi; prepare_geometry onarım kayıtları, iz-momentum çapraz-kontrolü,
-# kabuk inceltme ve y⁺ ölçümü sebeplerini artık taşıyor.
-TABAN_TOPLAM = 81
-TABAN_GUVEN_YOLU = 33
+# Ham sayı yerine İNCELENMEMİŞ sayı izlenir: "incelendi ve kabul edildi" ile "henüz
+# bakılmadı" aynı görünüyordu — bu oturumda avlanan kusurun ta kendisi. Kabul, kodda
+# `# sessiz-yutma: kabul — <gerekçe>` satırı ister ve gerekçe o `except`in yanında durur.
+#
+# Ölçülen (2026-07-28): 79 toplam / 31 güven yolunda / 31 kabul edilmiş.
+# GÜVEN YOLUNDA İNCELENMEMİŞ = 0 — hükme dönüşen her sessizliğin yazılı gerekçesi var.
+TABAN_TOPLAM = 79
+TABAN_GUVEN_YOLU = 31
+TABAN_INCELENMEMIS = 48
+TABAN_INCELENMEMIS_GUVEN_YOLU = 0
+
+KABUL_SATIRI = "    # sessiz-yutma: kabul — sebebi şu"
+
+
+def _yaz(p, satirlar):
+    p.write_text("\n".join(satirlar) + "\n", encoding="utf-8")
 
 
 def test_toplam_sessiz_yutma_artmadi():
@@ -24,49 +33,81 @@ def test_toplam_sessiz_yutma_artmadi():
     assert len(b) <= TABAN_TOPLAM, (
         f"{len(b)} sessiz yutma (taban {TABAN_TOPLAM}). Yeni bir `except: pass` / "
         "`except: return None` eklendi. Sebebi bir yere KAYDEDİLMELİ (gerilemeler, "
-        "onarimlar, 'neden' alanı) ya da bu taban gerekçesiyle yükseltilmeli.")
+        "onarimlar, 'neden' alanı) ya da gerekçeli kabul etiketi konmalı.")
 
 
 def test_guven_yolunda_sessizlik_artmadi():
-    """Güven yolu = sonucu bir sayıya/hükme dönüşen modüller. Buradaki sessizlik
-    mühendisi doğrudan yanıltır; bütçesi ayrı ve daha sıkı izlenir."""
+    """Güven yolu = sonucu bir sayıya/hükme dönüşen modüller."""
     gy = [x for x in sessiz_yutma.tara() if x["guven_yolu"]]
     assert len(gy) <= TABAN_GUVEN_YOLU, (
         f"{len(gy)} sessiz yutma GÜVEN YOLUNDA (taban {TABAN_GUVEN_YOLU}): "
         + ", ".join(f"{x['dosya']}:{x['satir']}" for x in gy[:6]))
 
 
-def test_denetim_kendini_dogruluyor(tmp_path, monkeypatch):
-    """Tarayıcı gerçekten yakalıyor mu — ve sebebi KAYDEDEN bloğu affediyor mu?"""
-    (tmp_path / "yutan.py").write_text(
-        "def f():\n    try:\n        g()\n    except Exception:\n        pass\n",
-        encoding="utf-8")
-    (tmp_path / "kaydeden.py").write_text(
-        "def f(kayit):\n    try:\n        g()\n    except Exception as e:\n"
-        "        kayit.append(str(e))\n", encoding="utf-8")
+def test_guven_yolunda_INCELENMEMIS_yok():
+    """ASIL ÖLÇÜT: sonucu bir sayıya/hükme dönüşen her sessizliğin YAZILI gerekçesi
+    olmalı. Yeni bir tanesi eklenirse burası kırılır ve gerekçe yazılmasını zorlar."""
+    inc = [x for x in sessiz_yutma.incelenmemis() if x["guven_yolu"]]
+    assert len(inc) <= TABAN_INCELENMEMIS_GUVEN_YOLU, (
+        "güven yolunda gerekçesiz sessiz yutma: "
+        + ", ".join(f"{x['dosya']}:{x['satir']} ({x['fonksiyon']})" for x in inc))
+
+
+def test_incelenmemis_toplam_artmadi():
+    assert len(sessiz_yutma.incelenmemis()) <= TABAN_INCELENMEMIS
+
+
+def test_kabul_gerekcesiyle_birlikte_okunuyor(tmp_path, monkeypatch):
+    """Etiketin varlığı yetmez; gerekçe metni de çıkarılmalı."""
+    _yaz(tmp_path / "a.py",
+         ["def f():", "    try:", "        g()", KABUL_SATIRI,
+          "    except Exception:", "        pass"])
     monkeypatch.setattr(sessiz_yutma, "ROOT", tmp_path)
     b = sessiz_yutma.tara()
-    adlar = {x["dosya"] for x in b}
+    assert b and b[0]["kabul"] == "sebebi şu"
+    assert sessiz_yutma.incelenmemis(b) == []
+
+
+def test_kabul_etiketi_UZAK_yorumdan_alinmaz(tmp_path, monkeypatch):
+    """Etiket `except`in hemen ÜSTÜNDE olmalı; araya KOD girerse sayılmaz — yoksa
+    dosyanın başındaki tek bir yorum tüm bloklara mazeret olurdu."""
+    _yaz(tmp_path / "b.py",
+         ["def f():", KABUL_SATIRI, "    x = 1", "    try:", "        g()",
+          "    except Exception:", "        pass"])
+    monkeypatch.setattr(sessiz_yutma, "ROOT", tmp_path)
+    assert sessiz_yutma.incelenmemis(sessiz_yutma.tara())
+
+
+def test_denetim_kendini_dogruluyor(tmp_path, monkeypatch):
+    """Tarayıcı gerçekten yakalıyor mu — ve sebebi KAYDEDEN bloğu affediyor mu?"""
+    _yaz(tmp_path / "yutan.py",
+         ["def f():", "    try:", "        g()", "    except Exception:", "        pass"])
+    _yaz(tmp_path / "kaydeden.py",
+         ["def f(kayit):", "    try:", "        g()", "    except Exception as e:",
+          "        kayit.append(str(e))"])
+    monkeypatch.setattr(sessiz_yutma, "ROOT", tmp_path)
+    adlar = {x["dosya"] for x in sessiz_yutma.tara()}
     assert "yutan.py" in adlar, "sebebi yutan blok yakalanmalı"
     assert "kaydeden.py" not in adlar, "sebebi kaydeden blok yanlış alarm vermemeli"
 
 
 def test_bare_except_riskli_sayiliyor(tmp_path, monkeypatch):
-    (tmp_path / "cip.py").write_text(
-        "def f():\n    try:\n        g()\n    except:\n        return None\n",
-        encoding="utf-8")
+    _yaz(tmp_path / "cip.py",
+         ["def f():", "    try:", "        g()", "    except:", "        return None"])
     monkeypatch.setattr(sessiz_yutma, "ROOT", tmp_path)
     b = sessiz_yutma.tara()
     assert b and b[0]["yakalanan"] == "BARE except"
 
 
-def test_duzeltilen_uc_vaka_geri_gelmedi():
-    """Bu oturumda kapatılan üç somut delik yeniden açılmasın."""
-    b = sessiz_yutma.tara()
-    yer = {(x["dosya"], x["fonksiyon"]) for x in b}
-    assert ("vehicle_pipeline.py", "measure_yplus") not in yer
-    assert ("vehicle_pipeline.py", "prepare_geometry") not in yer
-    assert ("vehicle_fea.py", "run_structural_check") not in yer
+def test_duzeltilen_vakalar_geri_gelmedi():
+    """Bu oturumda kapatılan delikler yeniden açılmasın."""
+    gerekcesiz = {(x["dosya"], x["fonksiyon"]) for x in sessiz_yutma.incelenmemis()}
+    for vaka in (("vehicle_pipeline.py", "measure_yplus"),
+                 ("vehicle_pipeline.py", "prepare_geometry"),
+                 ("vehicle_fea.py", "run_structural_check"),
+                 ("supersonic_report.py", "_read_solver_gci"),
+                 ("auto_pilot.py", "auto_configure")):
+        assert vaka not in gerekcesiz, vaka
 
 
 def test_gerilemeler_alani_sonuca_bagli():
@@ -83,3 +124,15 @@ def test_rapor_gerilemeleri_gosteriyor():
     assert 'getattr(r, "gerilemeler", None)' in src
     i = src.index('getattr(r, "gerilemeler", None)')
     assert "GÜVENCE KAYBI" in src[i - 200:i + 300]
+
+
+def test_supersonik_GCI_kaldi_ile_YOK_ayriliyor():
+    """Üç durum tek None'a iniyordu ve rapor hepsine "gelecek-iş kalemi" diyordu —
+    oysa GCI DENENDİ ve KALDI çok daha ağır bir ifadedir."""
+    import inspect
+
+    import supersonic_report
+    src = inspect.getsource(supersonic_report)
+    assert "_gecersiz" in src
+    i = src.index("_gecersiz")
+    assert "DENENDİ ve GEÇMEDİ" in src[i:i + 3000]

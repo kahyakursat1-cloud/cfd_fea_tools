@@ -30,6 +30,7 @@ MIN_SUPPORT = 4
 def _record_from_sonuc(path: Path) -> dict | None:
     try:
         s = json.loads(path.read_text(encoding="utf-8"))
+    # sessiz-yutma: kabul — kNN ÖNCÜLÜ kaydı; öncül UQ'ya girmez, hüküm etkilenmez
     except Exception:
         return None
     md = s.get("mesh_duyarlilik") or {}
@@ -39,6 +40,7 @@ def _record_from_sonuc(path: Path) -> dict | None:
     import auto_pilot as ap
     try:
         metrik = ap.classify_vehicle(geo)["metrik"]
+    # sessiz-yutma: kabul — kNN ÖNCÜLÜ kaydı; öncül UQ'ya girmez, hüküm etkilenmez
     except Exception:
         return None
     gci = md.get("gci") or {}
@@ -81,6 +83,7 @@ def _load() -> list[dict]:
             r = json.loads(line)
             if r.get("metrik") and r.get("u_num_pct") is not None:
                 out.append(r)
+        # sessiz-yutma: kabul — bozuk satır atlanır; öncül zayıflar, hüküm etkilenmez
         except Exception:
             pass
     return out

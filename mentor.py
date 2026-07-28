@@ -35,6 +35,7 @@ SEVIYELER = ("byf", "oyg", "proje")
 def _cfd_record(path: Path) -> dict | None:
     try:
         s = json.loads(path.read_text(encoding="utf-8"))
+    # sessiz-yutma: kabul — öğrenme kaydı; düşerse vaka kütüphaneye girmez — hüküm üretmez, öneri zayıflar
     except Exception:
         return None
     geo = s.get("geometry") or {}
@@ -43,6 +44,7 @@ def _cfd_record(path: Path) -> dict | None:
     import auto_pilot as ap
     try:
         metrik = ap.classify_vehicle(geo)["metrik"]
+    # sessiz-yutma: kabul — öğrenme kaydı; düşerse vaka kütüphaneye girmez — hüküm üretmez, öneri zayıflar
     except Exception:
         return None
     bl = s.get("sinir_tabaka") or {}
@@ -65,6 +67,7 @@ def _fea_record(path: Path) -> dict | None:
     try:
         f = json.loads(path.read_text(encoding="utf-8"))
         s = json.loads((path.parent / "sonuc.json").read_text(encoding="utf-8"))
+    # sessiz-yutma: kabul — öğrenme kaydı; düşerse vaka kütüphaneye girmez — hüküm üretmez, öneri zayıflar
     except Exception:
         return None
     geo = s.get("geometry") or {}
@@ -73,6 +76,7 @@ def _fea_record(path: Path) -> dict | None:
     import auto_pilot as ap
     try:
         metrik = ap.classify_vehicle(geo)["metrik"]
+    # sessiz-yutma: kabul — öğrenme kaydı; düşerse vaka kütüphaneye girmez — hüküm üretmez, öneri zayıflar
     except Exception:
         return None
     return {"tur": "fea", "ts": time.strftime("%Y-%m-%d %H:%M"), "kaynak": str(path),
@@ -113,6 +117,7 @@ def _load(tur: str) -> list[dict]:
             r = json.loads(line)
             if r.get("tur") == tur and r.get("metrik"):
                 out.append(r)
+        # sessiz-yutma: kabul — bozuk satır atlanır; kütüphane kısmi yüklenir, hüküm üretmez
         except Exception:
             pass
     return out

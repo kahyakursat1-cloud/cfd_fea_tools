@@ -149,6 +149,7 @@ def _load_cases() -> list:
                 c = json.loads(line)
                 if c.get("onayli_tip") and c.get("metrik"):
                     out.append(c)
+            # sessiz-yutma: kabul — bozuk JSONL satırı atlanır; kural motoru kütüphanesiz de çalışır
             except Exception:
                 pass
     return out
@@ -377,8 +378,11 @@ def auto_configure(stl_path, out_dir="vehicle_runs/_autoprep",
                 f"GCI-öncülü ({gp['n_destek']} geçmiş koşu): beklenen sayısal band "
                 f"~%{gp['u_num_beklenen_pct']}, asimptotik-çıkma olasılığı "
                 f"{gp['asimptotik_olasilik']:.0%}. {gp['oneri']}")
-    except Exception:
-        pass
+    except Exception as e:
+        # "Öncül bir şey söylemedi" ile "öncül HİÇ ÇALIŞMADI" ayrı durumlar; ikincisi
+        # sessizken plan, olmayan bir deneyime dayanıyormuş gibi görünüyordu.
+        uyarilar.append(f"GCI-öncülü okunamadı ({type(e).__name__}) — koşu-öncesi "
+                        "sayısal band beklentisi YOK; plan yalnız kural-tabanlı.")
     # Mesh-öncülü (öğrenilen): benzer geometrilerin ayar→sonuç geçmişinden kalite/y⁺
     # önerisi. Kural seçimini EZMEZ — öner+onayla planında kullanıcıya gösterilir.
     try:
@@ -395,8 +399,11 @@ def auto_configure(stl_path, out_dir="vehicle_runs/_autoprep",
                 uyarilar.append("Mesh-öncülü risk: " + r)
             if mp.get("yplus_duzeltme"):
                 uyarilar.append("y⁺-öncülü: " + mp["yplus_duzeltme"]["oneri"])
-    except Exception:
-        pass
+    except Exception as e:
+        # Sessizken "öncül bir şey söylemedi" ile "öncül HİÇ ÇALIŞMADI" aynı görünüyordu.
+        # Kural seçimi etkilenmez ama kullanıcı hangi durumda olduğunu bilmeli.
+        uyarilar.append(f"Mesh-öncülü okunamadı ({type(e).__name__}) — plan yalnız "
+                        "kural-tabanlı; geçmiş koşu deneyimi bu öneriye KATILMADI.")
     n_kutuphane = len(_load_cases())
     if n_kutuphane < MIN_CASES:
         uyarilar.append(f"Öğrenme: kütüphanede {n_kutuphane}/{MIN_CASES} onaylı vaka — "

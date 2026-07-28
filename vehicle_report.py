@@ -158,6 +158,7 @@ def _fig_cp_surface(vtk_path, velocity, out, max_faces=45000):
         fig.savefig(out, bbox_inches="tight")
         plt.close(fig)
         return True
+    # sessiz-yutma: kabul — figür üretimi; düşerse rapordan GÖRÜNÜR şekilde eksilir, sayı/hüküm etkilenmez
     except Exception:
         return False
 
@@ -221,6 +222,7 @@ def _fig_velocity_slice(vtk_path, velocity, out):
             Uz = np.where(hole, np.nan, Uz)
             ax.streamplot(GX, GZ, Ux, Uz, density=1.0, linewidth=0.45,
                           color=(1, 1, 1, 0.7), arrowsize=0.6)
+        # sessiz-yutma: kabul — figür üretimi; düşerse rapordan GÖRÜNÜR şekilde eksilir, sayı/hüküm etkilenmez
         except Exception:
             pass   # akış çizgisi süslemedir; harita tek başına da geçerli
 
@@ -231,6 +233,7 @@ def _fig_velocity_slice(vtk_path, velocity, out):
         fig.savefig(out)
         plt.close(fig)
         return True
+    # sessiz-yutma: kabul — figür üretimi; düşerse rapordan GÖRÜNÜR şekilde eksilir, sayı/hüküm etkilenmez
     except Exception:
         return False
 
@@ -296,12 +299,14 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
     try:
         from mentor import egitim_notu
         md.append(egitim_notu({"tip": r.vehicle_type, "analiz": "tekil"}, seviye="oyg"))
+    # sessiz-yutma: kabul — öğretici kutu / okunmayan validity alanı; rapor gövdesi ve hiçbir sayı etkilenmez
     except Exception:
         pass
     md.append("---\n")
     try:
         r.validity = {"sinif": overall_class(_verdicts),
                       "kalemler": [(v.quantity, v.klass, v.design_safe) for v in _verdicts]}
+    # sessiz-yutma: kabul — öğretici kutu / okunmayan validity alanı; rapor gövdesi ve hiçbir sayı etkilenmez
     except Exception:
         pass
 

@@ -388,6 +388,7 @@ def _donel_simetri(m: trimesh.Trimesh) -> float | None:
     try:
         from shapely import affinity
         from trimesh.path import polygons as _tp
+    # sessiz-yutma: kabul — None = 'bilinmiyor'; kural dalı bu durumda ATEŞLENMEZ (test_kural_simetri_yoksa_ateslenmez)
     except Exception:
         return None
     try:
@@ -405,6 +406,7 @@ def _donel_simetri(m: trimesh.Trimesh) -> float | None:
             if birlesim > 0:
                 en_iyi = max(en_iyi, poly.intersection(dondurulmus).area / birlesim)
         return round(en_iyi, 4)
+    # sessiz-yutma: kabul — None = 'bilinmiyor'; kural dalı bu durumda ATEŞLENMEZ (test_kural_simetri_yoksa_ateslenmez)
     except Exception:
         return None
 
@@ -658,6 +660,7 @@ def _yplus_dat_oku(case_dir: Path, patch: str | None) -> dict | None:
                 return {"min": round(float(parca[2]), 2), "max": round(float(parca[3]), 2),
                         "ort": round(float(parca[4]), 2), "patch": parca[1],
                         "_kaynak": "yPlus.dat (foamPostProcess çıktısı okunamadı)"}
+            # sessiz-yutma: kabul — bozuk satır atlanır; hepsi bozuksa çağıran 'olculemedi' sebebini alır
             except ValueError:
                 continue
     return None
@@ -682,6 +685,7 @@ def export_surface_vtk(case_dir, patch_name: str, timeout=600) -> Path | None:
         cands = sorted((case_dir / "postProcessing" / "yuzeyBasinc").rglob("*.vtk")) + \
                 sorted((case_dir / "postProcessing" / "yuzeyBasinc").rglob("*.vtp"))
         return cands[-1] if cands else None
+    # sessiz-yutma: kabul — görselleştirme çıktısı; yokluğu figür adımında görünür, katsayıları etkilemez
     except Exception:
         return None
 
@@ -706,6 +710,7 @@ def export_cutplane_vtk(case_dir, center, timeout=600) -> Path | None:
                  "-latestTime > log.hizKesiti 2>&1", timeout=timeout)
         cands = sorted((case_dir / "postProcessing" / "hizKesiti").rglob("kesit.vtk"))
         return cands[-1] if cands else None
+    # sessiz-yutma: kabul — görselleştirme çıktısı; yokluğu figür adımında görünür, katsayıları etkilemez
     except Exception:
         return None
 
