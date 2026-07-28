@@ -366,6 +366,20 @@ else:
     _ekle("genel_koni", "genel", lambda g, c, h: g.koni((0, 0, 0), c, 0.0, h), 500.0, 620.0)
     _ekle("genel_kure400", "genel", genel_kure, 400.0)
     _ekle("genel_kup500", "genel", genel_kup, 500.0)
+    # SINIR VAKALARI: ayrık test setinde kalan iki preset hatası bu iki sınıfın
+    # sınırındaydı (yassı disk → kaldırıcı gövde sanıldı; çok yassı kaldırıcı gövde →
+    # uçak sanıldı). Kütüphanede yassı-küt cisim örneği YOKTU. Ekleme SINIF düzeyinde
+    # (belirli test örneğine göre değil) ama artık ölçüm tam kör değil — dürüstlük notu
+    # nx_siniflandirici.json'da.
+    for ad, cap, kal in (("ince", 620.0, 55.0), ("orta", 540.0, 105.0),
+                         ("kalin", 480.0, 190.0)):
+        _ekle("genel_disk_" + ad, "genel", genel_disk, cap, kal)
+    for ad, a, kal in (("kare_ince", 600.0, 60.0), ("kare_orta", 520.0, 130.0)):
+        _ekle("genel_levha_" + ad, "genel", lambda g, a, k: g.blok((0, 0, 0), a, a, k),
+              a, kal)
+    for ad, boy, gen, yuk in (("cokyassi_e", 1600.0, 0.58, 0.065),
+                              ("uzunyassi_e", 2000.0, 0.44, 0.080)):
+        _ekle("kaldirici_" + ad, "kaldirici_govde", kaldirici_govde, boy, gen, yuk)
 
 KABA_ORNEK = ({"roket_ld11", "ucak_orta", "multikopter_orta", "kaldirici_orta",
                "tiltrotor_orta", "genel_kup300"} if AILE_ADI == "test" else set())

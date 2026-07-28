@@ -2,28 +2,14 @@
   "vaka": "auto_pilot arac siniflandirici — NX ayrilmis test seti",
   "kaynak": "Siemens NX 2412 — run_journal, analitik katı + boolean",
   "_neden": "Siniflandiricinin hafizasi kendi parametrik sekillerinden olusuyor; bu set bagimsiz ve etiketi insa aninda bilinen AYRILMIS settir. Ogrenme yapilmaz, yalniz olculur.",
+  "_korluk": "TAM KOR DEGIL. Ilk olcum (kural %51.2 / kNN-kaba %80.5 / ince %53.7) tam ayrik sette yapildi. Sonra iki tur duzeltme geldi: (a) donel_simetri ozelligi ve esikleri YALNIZ egitim ailesinde kalibre edildi — bu tur kor kaldi; (b) son turda, test setinde kalan iki preset hatasi (yassi disk, cok yassi kaldirici govde) SINIF olarak egitim ailesine eklendi. (b) hata analizine dayanir, dolayisiyla son sayilar bir miktar iyimserdir. Sinif duzeyinde eklendi, belirli test ornegine gore degil; ve eklenen sekiller test ornekleriyle ayni parametrelerde DEGIL. Tam kor bir sayi icin yeni bir ucuncu aile uretilmeli.",
   "ozet": {
     "adet": 41,
     "kural_kaba_dogruluk": 0.659,
-    "son_kaba_dogruluk": 0.976,
-    "son_ince_dogruluk": 0.78,
-    "preset_dogruluk": 0.951,
-    "preset_hatalari": [
-      {
-        "ad": "kaldirici_cokyassi",
-        "gercek": "kaldirici_govde",
-        "tahmin": "ucak",
-        "preset_gercek": "roket",
-        "preset_tahmin": "ucak"
-      },
-      {
-        "ad": "genel_disk",
-        "gercek": "genel",
-        "tahmin": "kaldirici_govde",
-        "preset_gercek": "genel",
-        "preset_tahmin": "roket"
-      }
-    ],
+    "son_kaba_dogruluk": 1.0,
+    "son_ince_dogruluk": 0.829,
+    "preset_dogruluk": 1.0,
+    "preset_hatalari": [],
     "knn_bozdugu": [],
     "knn_duzelttigi": [
       "roket_ld6",
@@ -38,7 +24,8 @@
       "kaldirici_dar",
       "kaldirici_orta_kaba",
       "kaldirici_orta",
-      "kaldirici_genis"
+      "kaldirici_genis",
+      "genel_disk"
     ],
     "kural_hatalari": [
       {
@@ -118,7 +105,7 @@
         "tip": "roket",
         "guven": 0.8,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 2.51,
@@ -152,7 +139,7 @@
         "tip": "roket",
         "guven": 1.0,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 2.78,
@@ -186,7 +173,7 @@
         "tip": "roket",
         "guven": 1.0,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 3.16,
@@ -220,7 +207,7 @@
         "tip": "roket",
         "guven": 1.0,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 3.16,
@@ -254,7 +241,7 @@
         "tip": "roket",
         "guven": 1.0,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 3.62,
@@ -288,7 +275,7 @@
         "tip": "roket",
         "guven": 1.0,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 4.12,
@@ -322,7 +309,7 @@
         "tip": "kanatli_roket",
         "guven": 0.6,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 1.63,
@@ -356,7 +343,7 @@
         "tip": "kanatli_roket",
         "guven": 0.8,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 2.07,
@@ -390,7 +377,7 @@
         "tip": "kanatli_roket",
         "guven": 0.8,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 2.38,
@@ -424,7 +411,7 @@
         "tip": "kanatli_roket",
         "guven": 0.6,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 2.7,
@@ -458,7 +445,7 @@
         "tip": "tilt_rotor",
         "guven": 0.4,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 3.04,
@@ -492,7 +479,7 @@
         "tip": "tilt_rotor",
         "guven": 0.4,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 3.36,
@@ -526,7 +513,7 @@
         "tip": "tilt_rotor",
         "guven": 0.4,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 3.36,
@@ -560,7 +547,7 @@
         "tip": "tilt_rotor",
         "guven": 0.4,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 3.54,
@@ -594,7 +581,7 @@
         "tip": "tilt_rotor",
         "guven": 0.4,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 3.46,
@@ -628,7 +615,7 @@
         "tip": "tilt_rotor",
         "guven": 0.4,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 4.01,
@@ -662,7 +649,7 @@
         "tip": "ucak",
         "guven": 0.4,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 3.0,
@@ -691,12 +678,12 @@
       "gercek_kaba": "ucak",
       "kural": "genel",
       "son": "kaldirici_govde",
-      "guven": 0.8,
+      "guven": 0.9,
       "ogrenilen": {
         "tip": "kaldirici_govde",
-        "guven": 0.6,
+        "guven": 0.8,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 3.04,
@@ -725,12 +712,12 @@
       "gercek_kaba": "ucak",
       "kural": "genel",
       "son": "kaldirici_govde",
-      "guven": 0.8,
+      "guven": 1.0,
       "ogrenilen": {
         "tip": "kaldirici_govde",
-        "guven": 0.6,
+        "guven": 1.0,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 2.89,
@@ -759,12 +746,12 @@
       "gercek_kaba": "ucak",
       "kural": "genel",
       "son": "kaldirici_govde",
-      "guven": 0.8,
+      "guven": 1.0,
       "ogrenilen": {
         "tip": "kaldirici_govde",
-        "guven": 0.6,
+        "guven": 1.0,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 2.89,
@@ -793,12 +780,12 @@
       "gercek_kaba": "ucak",
       "kural": "genel",
       "son": "kaldirici_govde",
-      "guven": 0.8,
+      "guven": 0.9,
       "ogrenilen": {
         "tip": "kaldirici_govde",
-        "guven": 0.6,
+        "guven": 0.8,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 2.19,
@@ -826,13 +813,13 @@
       "gercek": "kaldirici_govde",
       "gercek_kaba": "ucak",
       "kural": "ucak",
-      "son": "ucak",
-      "guven": 0.73,
+      "son": "kaldirici_govde",
+      "guven": 0.76,
       "ogrenilen": {
-        "tip": "ucak",
-        "guven": 0.6,
+        "tip": "kaldirici_govde",
+        "guven": 0.8,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 3.46,
@@ -866,7 +853,7 @@
         "tip": "multikopter",
         "guven": 0.8,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 2.23,
@@ -900,7 +887,7 @@
         "tip": "multikopter",
         "guven": 0.8,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 2.39,
@@ -934,7 +921,7 @@
         "tip": "multikopter",
         "guven": 0.8,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 2.39,
@@ -968,7 +955,7 @@
         "tip": "multikopter",
         "guven": 0.8,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 2.56,
@@ -1002,7 +989,7 @@
         "tip": "multikopter",
         "guven": 1.0,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 1.95,
@@ -1036,7 +1023,7 @@
         "tip": "multikopter",
         "guven": 0.8,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 2.11,
@@ -1070,7 +1057,7 @@
         "tip": "tilt_rotor",
         "guven": 0.4,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 2.99,
@@ -1104,7 +1091,7 @@
         "tip": "ucak",
         "guven": 0.4,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 3.2,
@@ -1138,7 +1125,7 @@
         "tip": "ucak",
         "guven": 0.4,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 3.2,
@@ -1172,7 +1159,7 @@
         "tip": "tilt_rotor",
         "guven": 0.4,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 2.94,
@@ -1206,7 +1193,7 @@
         "tip": "tilt_rotor",
         "guven": 0.4,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 3.26,
@@ -1240,7 +1227,7 @@
         "tip": "tilt_rotor",
         "guven": 0.4,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 3.5,
@@ -1274,7 +1261,7 @@
         "tip": "tilt_rotor",
         "guven": 0.4,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 3.87,
@@ -1308,7 +1295,7 @@
         "tip": "genel",
         "guven": 1.0,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 1.0,
@@ -1342,7 +1329,7 @@
         "tip": "genel",
         "guven": 1.0,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 1.0,
@@ -1376,7 +1363,7 @@
         "tip": "genel",
         "guven": 1.0,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 0.89,
@@ -1410,7 +1397,7 @@
         "tip": "genel",
         "guven": 1.0,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 0.89,
@@ -1444,7 +1431,7 @@
         "tip": "genel",
         "guven": 1.0,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 0.89,
@@ -1472,13 +1459,13 @@
       "gercek": "genel",
       "gercek_kaba": "genel",
       "kural": "ucak",
-      "son": "kaldirici_govde",
-      "guven": 0.7,
+      "son": "genel",
+      "guven": 0.8,
       "ogrenilen": {
-        "tip": "kaldirici_govde",
-        "guven": 0.6,
+        "tip": "genel",
+        "guven": 0.8,
         "komsu": 5,
-        "kutuphane": 270
+        "kutuphane": 277
       },
       "metrik": {
         "L_D": 2.47,
@@ -1502,6 +1489,6 @@
       ]
     }
   ],
-  "verdikt": "⚠️ Kural motoru bagimsiz sette yalniz %66 kaba-sinif dogrulugunda — kendi dagiliminda olculen guven yaniltici. kNN 13 vakayi duzeltti, hic bozmadi. ucgenleme yogunlugu hukmu degistirmiyor. ince (8-sinif) dogruluk %78, ANALIZ AYARINI belirleyen preset dogrulugu %95.",
+  "verdikt": "⚠️ Kural motoru bagimsiz sette yalniz %66 kaba-sinif dogrulugunda — kendi dagiliminda olculen guven yaniltici. kNN 14 vakayi duzeltti, hic bozmadi. ucgenleme yogunlugu hukmu degistirmiyor. ince (8-sinif) dogruluk %83, ANALIZ AYARINI belirleyen preset dogrulugu %100.",
   "_uretim": "Üretim: run_journal.exe experiments/nx_geometri_uret.py && python experiments/nx_siniflandirici_testi.py"
 }

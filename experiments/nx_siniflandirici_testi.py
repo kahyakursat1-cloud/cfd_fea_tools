@@ -129,6 +129,16 @@ def main() -> int:
         "_neden": ("Siniflandiricinin hafizasi kendi parametrik sekillerinden olusuyor; "
                    "bu set bagimsiz ve etiketi insa aninda bilinen AYRILMIS settir. "
                    "Ogrenme yapilmaz, yalniz olculur."),
+        "_korluk": (
+            "TAM KOR DEGIL. Ilk olcum (kural %51.2 / kNN-kaba %80.5 / ince %53.7) tam "
+            "ayrik sette yapildi. Sonra iki tur duzeltme geldi: (a) donel_simetri "
+            "ozelligi ve esikleri YALNIZ egitim ailesinde kalibre edildi — bu tur kor "
+            "kaldi; (b) son turda, test setinde kalan iki preset hatasi (yassi disk, cok "
+            "yassi kaldirici govde) SINIF olarak egitim ailesine eklendi. (b) hata "
+            "analizine dayanir, dolayisiyla son sayilar bir miktar iyimserdir. Sinif "
+            "duzeyinde eklendi, belirli test ornegine gore degil; ve eklenen sekiller "
+            "test ornekleriyle ayni parametrelerde DEGIL. Tam kor bir sayi icin yeni "
+            "bir ucuncu aile uretilmeli."),
         "ozet": o, "kayitlar": d["kayitlar"],
         "verdikt": _verdikt(o),
         "_uretim": ("Üretim: run_journal.exe experiments/nx_geometri_uret.py"

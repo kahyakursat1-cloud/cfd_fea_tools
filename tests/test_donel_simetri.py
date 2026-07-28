@@ -161,3 +161,16 @@ class TestAyrikOlcum:
         geometriye değil mesh ayarına bağlıdır."""
         t = self._o()["tessellation"]
         assert t["cift_sayisi"] >= 5 and t["kararsiz"] == []
+
+    def test_korluk_beyani_kanitta_duruyor(self):
+        """Son eğitim eklemesi test-seti hata analizine dayanıyor; ölçüm artık tam kör
+        değil. Bu, sayının yanında DURMALI — yoksa %100 preset doğruluğu hak edilmemiş
+        bir güven verir."""
+        d = json.loads(KANIT.read_text(encoding="utf-8"))
+        assert "TAM KOR DEGIL" in d["_korluk"]
+        assert "hata analizine" in d["_korluk"]
+
+    def test_preset_dogrulugu_gerilemedi(self):
+        """Regresyon kilidi: ölçülen taban %100 (41 geometri). Altına düşerse
+        sınıflandırıcıya dokunan bir değişiklik analiz ayarını bozmuş demektir."""
+        assert self._o()["preset_dogruluk"] >= 1.0

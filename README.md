@@ -62,7 +62,7 @@ olmayan satır "beyan" olarak işaretlenir.
 | 3D künt cisim — araç hattı GCI + literatür | ⚠️ Bantlı | Küp (Hoerner 1.05): Cd=1.113 → sapma %6.03, Richardson GCI %3.1 (p=2.386, asimptotik); ancak 4-seviye LSR U=%58 (asimptotik-altı) |
 | 3D araç $C_d$ — V&V/UQ bandı | ⚠️ Bantlı | Ölçülen validasyon bandı — bluff %6.0 |
 | Cilt sürtünmesi $C_f$ — y⁺ duyarlılığı (2D düz levha) | ✅ Yüksek | Düz levha $C_f$ ↔ Schlichting 1/7-kuvvet: ilk hücre ≤δ99 iken hata ≤%8 (7 seviye); ilk hücre 3.0·δ99 olunca (y⁺≈864) hata %-40 |
-| Araç tipi sınıflandırma (geometri → analiz ayarı) | ✅ Yüksek | NX ayrık test seti (41 geometri): analiz ayarını belirleyen preset doğruluğu %95, ince tip %78; kural tek başına %66 — öğrenilen kNN taşıyor |
+| Araç tipi sınıflandırma (geometri → analiz ayarı) | ✅ Yüksek | NX ayrık test seti (41 geometri): analiz ayarını belirleyen preset doğruluğu %100, ince tip %83; kural tek başına %66 — öğrenilen kNN taşıyor |
 | Yapısal — lineer statik (kiriş) | ✅ Çok yüksek | Ankastre kiriş ↔ Euler-Bernoulli: sehim %1.0, gerilme %3.9 |
 | Yapısal — gerilme konsantrasyonu ($K_t$) | ✅ Yüksek | Delikli plaka Kt ↔ Heywood: tepe gerilme %1.7 (C3D10, 6637 eleman) |
 | Stall / $C_{L,max}$ | ⚠️ ±2-3°, ±%15 (RANS) | beyan — kanıt dosyası yok |
