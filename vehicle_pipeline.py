@@ -1166,19 +1166,26 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     # koşusunda ölçüldü: 12 katman istendi, y⁺ hedefi 1.0 idi, mesh katmansız koşuyla
     # BİREBİR aynı çıktı (3.943.330 hücre) ve y⁺=4113 ölçüldü — snappy katman adımı
     # sessizce çökmüş, rapor yine "12 katman" diyordu.
-    if yp and n_layers > 0 and yplus_target and yp["ort"] > 5 * yplus_target:
+    # `measure_yplus` ÖLÇEMEDİĞİNDE {"olculemedi": True, "neden": ...} döner — bu,
+    # sessiz None yerine SEBEBİ taşısın diye eklenmişti. Ama tüketiciler `yp["ort"]`
+    # diye indekslemeye devam ediyordu ve ölçüm başarısız olunca TÜM analiz
+    # KeyError ile çöküyordu. Güvenilirlik taramasında 12 geometrinin 2'si böyle
+    # düştü. Sessiz başarısızlığı görünür yapmak, tüketicileri güncellemeden
+    # yapılırsa sessiz hatayı SERT hataya çevirir.
+    _ypo = yp.get("ort") if isinstance(yp, dict) else None
+    if _ypo is not None and n_layers > 0 and yplus_target and _ypo > 5 * yplus_target:
         uyarilar.append(
             f"KATMAN ÇÖKMESİ ŞÜPHESİ: {n_layers} prizma katmanı istendi ve y⁺ hedefi "
-            f"{yplus_target:g} idi, ama ÖLÇÜLEN y⁺={yp['ort']:.0f} — hedefin "
-            f"{yp['ort'] / yplus_target:.0f} katı. snappyHexMesh katman adımı büyük "
+            f"{yplus_target:g} idi, ama ÖLÇÜLEN y⁺={_ypo:.0f} — hedefin "
+            f"{_ypo / yplus_target:.0f} katı. snappyHexMesh katman adımı büyük "
             "olasılıkla örülemedi (ince firar kenarı/keskin köşe). Sınır tabaka "
             "ÇÖZÜLMÜYOR; sonuç katmansız koşuyla eşdeğerdir. log.snappyHexMesh "
             "'Layer mesh' bölümünü ve yüzey kalitesini kontrol edin")
-    if yp and yp["ort"] > 30 and n_layers == 0:
+    if _ypo is not None and _ypo > 30 and n_layers == 0:
         # BÜYÜKLÜĞE GÖRE DERECELENDİR: duvar fonksiyonu log-bölgesi ~30-300'de geçerlidir.
         # MiniHawk hassas_nl koşusunda y⁺=4113 ölçüldü — üst sınırın 13 katı; buna
         # "sınırda" demek yanıltıcı, sürtünme bileşeni orada ÇÖZÜLMÜYOR.
-        _yp = yp["ort"]
+        _yp = _ypo
         if _yp > 1000:
             uyarilar.append(
                 f"Ölçülen y⁺ ort={_yp:.0f} — duvar fonksiyonu geçerlilik bandının "
@@ -1188,9 +1195,12 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         else:
             uyarilar.append(f"Ölçülen y⁺ ort={_yp} (log bölgesi üstü) — sürtünme "
                             "sürüklemesi duvar fonksiyonu sınırında; katman sayısını artırın")
-    elif not yp:
+    elif _ypo is None:
+        # "Ölçemedim" ile "iyi" AYNI ŞEY DEĞİL — sebep de yazılır.
+        _ned = (yp or {}).get("neden") if isinstance(yp, dict) else None
         uyarilar.append("y⁺ ÖLÇÜLEMEDİ — sınır tabaka çözünürlüğü doğrulanamadı; "
-                        "sürtünme sürüklemesinin duvar-fonksiyonu geçerliliği bilinmiyor")
+                        "sürtünme sürüklemesinin duvar-fonksiyonu geçerliliği bilinmiyor"
+                        + (f" (sebep: {_ned})" if _ned else ""))
     base.uyarilar = uyarilar
     base.kurulum = kurulum_uyarilari     # raporun EN ÜSTÜ: kurulum hatası her şeyi geçersizler
 
