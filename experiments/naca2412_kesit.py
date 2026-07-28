@@ -118,13 +118,22 @@ def profil_dogrulugu(n: int = 200) -> dict:
 
 def _mesh_kalite_hatasi(mesh: dict) -> str:
     """Kanonik eşiklerle (analysis/thresholds) mesh reddi — sayı üretmeden ÖNCE."""
-    def f(anahtar):
-        try:
-            return float(str(mesh.get(anahtar, "")).strip())
-        except ValueError:
-            return None
-    no, sk = f("non_ortho_max"), f("skewness_max")
     kusur = []
+
+    def f(anahtar):
+        ham = str(mesh.get(anahtar, "")).strip()
+        if not ham:
+            kusur.append(f"{anahtar} checkMesh çıktısında YOK — kalite değerlendirilemedi")
+            return None
+        try:
+            return float(ham)
+        except ValueError:
+            # Okunamayan metrik "sorun yok" DEĞİLDİR. Sessizce None dönmek kapıyı
+            # kör eder; kapının varlık sebebi tam da bu.
+            kusur.append(f"{anahtar} okunamadı ({ham!r}) — kalite değerlendirilemedi")
+            return None
+
+    no, sk = f("non_ortho_max"), f("skewness_max")
     if no is not None and no > NONORTHO_REJECT:
         kusur.append(f"nonOrtho {no:.1f} > {NONORTHO_REJECT}")
     if sk is not None and sk > SKEW_REJECT:
