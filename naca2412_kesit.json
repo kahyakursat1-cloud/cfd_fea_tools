@@ -1,0 +1,26 @@
+{
+  "vaka": "NACA2412 2B kesit — profil dogrulugu (analitik) + 2B CFD (destekleyici)",
+  "profil_dogrulama": {
+    "nokta": 326,
+    "ortalama_sapma_kord": 7.572e-06,
+    "maks_sapma_kord": 5.119e-05,
+    "maks_sapma_pct": 0.0051,
+    "kamburluk_analitik": 0.02,
+    "kamburluk_tanim": 0.02,
+    "gecti": true
+  },
+  "profil": {
+    "nokta": 320,
+    "maks_kalinlik": 0.12159,
+    "kord": 1.00016,
+    "kaynak": "mesh_generator._naca4_profile(0.02, 0.4, 0.12)"
+  },
+  "durum": "cfd_uretilemedi",
+  "mesh": {
+    "status": "FAILED",
+    "step": "construct2d"
+  },
+  "_grid_altyapisi": "Bu depoda keyfi airfoil icin 2B grid uretimi UC AYRI sekilde basarisiz: (1) OGRD keskin firar kenarinda dejenere — nonOrtho 179.999, skewness 3.4e152 olculdu (Construct2D zaten C-grid onermisti); (2) CGRD+ELLP eliptik duzlestirici NaN'a IRAKSADI (1000 iterasyon); (3) CGRD+HYPR grid uretiyor ama skew 89.97 deg ve xi-yonunde buyume Infinity. Hafizadaki not dogrulandi: bespoke grid yolu terk edilip NASA TMR gridlerine gecilmis, ama TMR gridleri yalniz NACA0012 icin var. 2B CFD capasi bu altyapiyla URETILEMEZ; bozuk mesh uzerinde Cl yayinlamak yaniltici olurdu.",
+  "verdikt": "PROFIL DOGRU (analitik): mesh_generator._naca4_profile cikti, NACA 4-haneli tanimdan en fazla kordun %0.005'i kadar sapiyor; kamburluk 0.02 (tanim 0.02). Yani MiniHawk 3B kosusundaki Cl=0.0143 (2B beklenti ~0.23) PROFILDEN KAYNAKLANMIYOR — geriye 3B MESH COZUNURLUGU kaliyor (en ince boyut yuzey hucresinin 0.6 kati olculmustu). 2B CFD destekleyici kaniti URETILEMEDI (grid altyapisi; bkz. _grid_altyapisi).",
+  "_uretim": "Üretim: python experiments/naca2412_kesit.py"
+}

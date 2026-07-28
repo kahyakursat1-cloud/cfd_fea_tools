@@ -63,11 +63,28 @@ def run_construct2d(airfoil_dat: str, work: Path, name: str,
     # GRID -> alt-menü; SMTH (smoothed yüzey grid) -> stp1 elliptic smoothing ->
     # "perform more steps (y/n)?" -> n (final smoothing'e geç) -> QUIT.
     # Eski dizi 'GRID SMTH QUIT' idi: "n" cevabı eksik -> prompt QUIT'i reddedip EOF.
-    cmd = (f'wsl bash -c "cd {wsl} && printf \'GRID\\nSMTH\\nn\\nQUIT\\n\' | '
+    # KESKİN FİRAR KENARI + OGRD: Construct2D "C-grid önerilir, yine de O-grid mi?"
+    # diye y/n SORAR ve ilk komut ('GRID') o soruya cevap olarak yutulur; tüm dizi
+    # kayardı ("Error: command SMTH not recognized"). NACA0012 hazır .p3d ile
+    # koşulduğu için bu yol hiç tetiklenmemişti, NACA2412 ilk kez tetikledi.
+    #
+    # Cevap KOŞULLU olmalı: CGRD'de böyle bir soru sorulmaz ve fazladan 'y'
+    # tanınmayan komut olup süreci düşürür (ölçüldü: log 25 satırda kesildi).
+    on_cevap = "y\\n" if topo.upper() == "OGRD" else ""
+    cmd = (f'wsl bash -c "cd {wsl} && printf \'{on_cevap}GRID\\nSMTH\\nn\\nQUIT\\n\' | '
            f'{binp} {name}.dat > log.c2d 2>&1"')
     subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=600)
     p3d = work / f"{name}.p3d"
-    return p3d if p3d.exists() else None
+    if p3d.exists():
+        return p3d
+    # IRAKSAMA SESSİZ KALMASIN: eliptik düzleştirici NaN'a gidince .p3d hiç yazılmıyor
+    # ve çağıran yalnız "FAILED/construct2d" görüyordu — "Construct2D çalışmadı" ile
+    # "grid üretici IRAKSADI" çok farklı iki teşhis.
+    log = work / "log.c2d"
+    if log.exists() and "NaN" in log.read_text(errors="ignore"):
+        print(f"[UYARI] Construct2D {slvr} çözücüsü IRAKSADI (RMS residual NaN) — "
+              f"{name}: grid üretilemedi", flush=True)
+    return None
 
 
 def read_p3d_2d(p3d: Path):
