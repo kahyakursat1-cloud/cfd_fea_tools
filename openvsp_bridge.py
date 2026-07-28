@@ -10,11 +10,21 @@ Gereksinim: openvsp conda ortamı (Python 3.13)
 
 import os
 import sys
+from pathlib import Path
 
-# OpenVSP DLL yolu — Windows'ta gerekli
-_VSP_DIR = r"C:\Users\Victus\Desktop\OpenVSP\OpenVSP-3.50.4-win64"
-if os.path.exists(_VSP_DIR):
-    os.add_dll_directory(_VSP_DIR)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from dis_araclar import bul  # noqa: E402
+
+# OpenVSP DLL yolu — Windows'ta gerekli. Mutlak yol GÖMÜLÜ DEĞİL: OPENVSP_DIR ortam
+# değişkeni > PATH > platform varsayılanı (bkz. dis_araclar). Docker imajında yalnız
+# ortam değişkeni ayarlanır; kod değişmez.
+_VSP = bul("openvsp_dll")
+if _VSP["yol"] and hasattr(os, "add_dll_directory"):
+    os.add_dll_directory(_VSP["yol"])
+elif _VSP["zorunlu"] and not _VSP["yol"]:
+    # SESSİZ KALMASIN: eski sürüm `if os.path.exists(...)` ile atlıyordu ve import
+    # birkaç satır sonra anlaşılmaz bir DLL hatasıyla düşüyordu.
+    raise RuntimeError(f"{_VSP['neden']} Arandi: {_VSP['aranan']}")
 
 import openvsp as vsp  # noqa: E402 — DLL dizini eklendikten sonra import edilmeli
 
@@ -164,15 +174,34 @@ def export_stl(aircraft, output_path: str, tess_w: int = 16, tess_u: int = 8) ->
     return output_path
 
 
+def _ayar(analiz: str, ad: str, deger, tip: str = "int"):
+    """VSPAERO analiz girdisi ata — AD YOKSA YÜKSEK SESLE DÜŞ.
+
+    NEDEN: `SetIntAnalysisInput` bilinmeyen bir ad için İSTİSNA ATMAZ; yalnızca
+    stdout'a "Error Code: 5, Can't Find Name ..." basar ve devam eder. Ölçüldü
+    (OpenVSP 3.50.4): bu köprü "KRİTİK" yorumuyla `AnalysisMethod` ayarlıyordu, ama
+    o isim bu sürümde HİÇ YOK (80 girdi arasında yalnız GeomSet/ThinGeomSet/CGGeomSet
+    'method' benzeri). Yani hang'i çözdüğü sanılan ayar bir HİÇ-İŞLEMDİ ve kimse
+    fark etmedi. Sarmalayıcı, API sürümü değişince sessiz kalmak yerine kırılır.
+    """
+    mevcut = set(vsp.GetAnalysisInputNames(analiz))
+    if ad not in mevcut:
+        raise KeyError(f"VSPAERO '{analiz}' analizinde '{ad}' girdisi yok "
+                       f"(OpenVSP surumu degismis olabilir). Benzerleri: "
+                       f"{sorted(x for x in mevcut if ad[:4].lower() in x.lower())}")
+    {"int": vsp.SetIntAnalysisInput,
+     "double": vsp.SetDoubleAnalysisInput}[tip](analiz, ad, deger)
+
+
 def _vspaero_setup_vlm(aircraft):
-    """VSPAERO geometriyi VLM (vortex-lattice) modunda hazirlar.
-    KRITIK: AnalysisMethod=VORTEX_LATTICE — varsayilan PANEL metodu
-    DegenGeom panel hesabinda dakikalarca takiliyor (hang sebebi).
+    """VSPAERO geometriyi hazirlar.
+
+    NOT: 3.50.4'te VLM/PANEL secimi ayri bir `AnalysisMethod` girdisiyle DEGIL,
+    GeomSet/ThinGeomSet uzerinden yapiliyor. Varsayilan bu modelde takilmiyor ve
+    Trefftz alanlari fiziksel; secim ACIKCA degistirilmiyor.
     """
     aircraft_to_vsp(aircraft)
     vsp.SetAnalysisInputDefaults("VSPAEROComputeGeometry")
-    # VLM: AnalysisMethod=0 (VORTEX_LATTICE); 1=PANEL panel hesabi hang yapar
-    vsp.SetIntAnalysisInput("VSPAEROComputeGeometry", "AnalysisMethod", [0])
     vsp.ExecAnalysis("VSPAEROComputeGeometry")
 
 
@@ -189,15 +218,14 @@ def run_vspaero_polar(aircraft, alphas=(0, 4, 8, 12, 16), mach: float = 0.05,
 
     a = "VSPAEROSweep"
     vsp.SetAnalysisInputDefaults(a)
-    vsp.SetIntAnalysisInput(   a, "AnalysisMethod", [0])
-    vsp.SetDoubleAnalysisInput(a, "AlphaStart", [float(min(alphas))])
-    vsp.SetDoubleAnalysisInput(a, "AlphaEnd",   [float(max(alphas))])
-    vsp.SetIntAnalysisInput(   a, "AlphaNpts",  [len(alphas)])
-    vsp.SetDoubleAnalysisInput(a, "MachStart",  [mach])
-    vsp.SetDoubleAnalysisInput(a, "Sref",       [aircraft.wing.area])
-    vsp.SetDoubleAnalysisInput(a, "bref",       [aircraft.wing.span])
-    vsp.SetDoubleAnalysisInput(a, "cref",       [aircraft.wing.root_chord()])
-    vsp.SetIntAnalysisInput(   a, "WakeNumIter", [5])
+    _ayar(a, "AlphaStart", [float(min(alphas))], "double")
+    _ayar(a, "AlphaEnd",   [float(max(alphas))], "double")
+    _ayar(a, "AlphaNpts",  [len(alphas)])
+    _ayar(a, "MachStart",  [mach], "double")
+    _ayar(a, "Sref",       [aircraft.wing.area], "double")
+    _ayar(a, "bref",       [aircraft.wing.span], "double")
+    _ayar(a, "cref",       [aircraft.wing.root_chord()], "double")
+    _ayar(a, "WakeNumIter", [5])
 
     rid = vsp.ExecAnalysis(a)
 
@@ -290,7 +318,24 @@ if __name__ == "__main__":
         res = run_vspaero_polar(a, alphas=alphas)
         for r in res:
             print(f"  alpha={r['alpha']}: Cl={r['Cl']} Cd_i={r['Cd_i']} Cm={r['Cm']}", flush=True)
-        json.dump(res, open("vspaero_polar.json", "w"), indent=2)
+        # DÜZ LİSTE DEĞİL, SÖZLÜK: liste hâlinde kanit.py bunu "artefakt" sınıfına
+        # atıyordu — yani üretici komutu ve KISITI hiçbir yerde kayıtlı değildi.
+        # En yanıltıcı olanı kamburluk kısıtı: bu yolda Cl(0°) TANIM GEREĞİ 0'dır,
+        # dolayısıyla OpenFOAM'ın Cl'iyle düşük alfada kıyaslanamaz.
+        cikti = {
+            "vaka": f"VSPAERO VLM polar — {a.name}, alfalar={alphas}",
+            "polar": res,
+            "_kisit": ("KAMBURLUK UYGULANMIYOR: _set_naca_profile(apply_camber=False) "
+                       "— OpenVSP 3.50.4 VLM kamburlu kesitte yuksek alfada iraksiyor. "
+                       "Sonuc: alpha_L0 URETILEMEZ ve Cl(0)=0.0 bir OLCUM DEGIL, "
+                       "kurulumun dogrudan sonucudur. Bu polar YALNIZ tasima egimi ve "
+                       "induklenen direnc icin gecerlidir; mutlak Cl OpenFOAM'dan gelir."),
+            "_uretim": "Üretim: python pipeline.py vspaero " + " ".join(str(x) for x in alphas),
+        }
+        # encoding ACIK olmali: Windows'ta varsayilan cp1254 ve ensure_ascii=False ile
+        # dosya utf-8 olarak OKUNAMIYOR (pipeline UnicodeDecodeError ile dustu).
+        Path("vspaero_polar.json").write_text(
+            json.dumps(cikti, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         print("Kaydedildi: vspaero_polar.json", flush=True)
 
     elif mode == "stl":

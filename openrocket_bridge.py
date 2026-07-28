@@ -17,13 +17,25 @@ Calistirma:
 import json
 import math
 import sys
+from pathlib import Path
 
-JAR = r"C:\Program Files\OpenRocket\OpenRocket.jar"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from dis_araclar import bul  # noqa: E402
+
+# Mutlak yol GÖMÜLÜ DEĞİL: OPENROCKET_JAR > platform varsayılanı (bkz. dis_araclar).
+_JAR = bul("openrocket_jar")
+JAR = _JAR["yol"]
 
 
 def simulate(ork_path: str, sim_index: int = 0) -> dict:
     """Bir .ork roketini simule eder, ucus + aerodinamik metrikleri dondurur."""
     import numpy as np
+
+    if not JAR:
+        # "Bulunamadi" tek basina eyleme gecirilebilir bilgi degil — nereye bakildigi da yazilir.
+        return {"status": "FAILED", "step": "openrocket_jar",
+                "error": _JAR["neden"], "arandi": _JAR["aranan"]}
+
     import orhelper
     from orhelper import FlightDataType
 
@@ -112,5 +124,10 @@ if __name__ == "__main__":
     r = simulate(ork)
     print(json.dumps(r, indent=2), flush=True)
     if r.get("status") == "SUCCESS":
-        json.dump(r, open("openrocket_result.json", "w"), indent=2)
+        r["_kisit"] = ("Barrowman + OpenRocket ucus modeli — POTANSIYEL akis tabanli. "
+                       "Cd(Mach) tablosu ampirik korelasyondur, CFD DEGILDIR; "
+                       "yuksek-Mach ve ayrilmali rejimde rocket_cfd ile capraz-kontrol gerekir.")
+        r["_uretim"] = f"Üretim: python pipeline.py rocket {ork}"
+        Path("openrocket_result.json").write_text(
+            json.dumps(r, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         print("Kaydedildi: openrocket_result.json", flush=True)

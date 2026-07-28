@@ -116,16 +116,23 @@ def stage_vspaero(alphas=(0, 4, 8, 12, 16)):
     Induced drag + Cl-alpha egrisi; viskoz drag ve stall YOK (inviscid VLM).
     """
     import subprocess
-    vsp_py = r"C:\Users\Victus\miniconda3\envs\openvsp\python.exe"
-    if not Path(vsp_py).exists():
-        print("[vspaero] openvsp conda env bulunamadi — atlandi")
+
+    from dis_araclar import bul
+    a = bul("openvsp_python")
+    if not a["yol"]:
+        # ESKI DAVRANIS: "bulunamadi — atlandi" deyip None. Rapor tarafinda bu, EKSIK
+        # bolum olarak goruntuyor ama HATALI kurulum olarak degil. Docker'da yolun
+        # tamami kirilacagi icin sebep ve arama listesi artik basiliyor.
+        print(f"[vspaero] ATLANDI — {a['neden']}\n           arandi: {a['aranan']}")
         return None
+    vsp_py = a["yol"]
     bridge = BASE / "openvsp_bridge.py"
     args = [vsp_py, str(bridge), "polar"] + [str(a) for a in alphas]
     r = subprocess.run(args, cwd=str(BASE), capture_output=True, text=True, timeout=600)
     pj = BASE / "vspaero_polar.json"
     if pj.exists():
-        data = json.loads(pj.read_text())
+        data = json.loads(pj.read_text(encoding="utf-8-sig"))
+        data = data.get("polar", []) if isinstance(data, dict) else data
         ok = [d for d in data if d.get("Cl") is not None]
         if len(ok) >= 2:
             sl = (ok[-1]["Cl"] - ok[0]["Cl"]) / (ok[-1]["alpha"] - ok[0]["alpha"] + 1e-9)
@@ -140,11 +147,15 @@ def stage_rocket(ork_path="rockets/simple.ork"):
     Stabilite marji, apogee, hiz-irtifa, Cd(Mach). orenv conda env'inde calisir.
     """
     import subprocess
-    or_py = r"C:\Users\Victus\miniconda3\envs\orenv\python.exe"
-    java_home = r"C:\Users\Victus\miniconda3\envs\orenv\Library\lib\jvm"
-    if not Path(or_py).exists():
-        print("[rocket] orenv bulunamadi — atlandi")
+
+    from dis_araclar import bul
+    a, j = bul("openrocket_python"), bul("java_home")
+    eksik = [x for x in (a, j) if not x["yol"]]
+    if eksik:
+        for x in eksik:
+            print(f"[rocket] ATLANDI — {x['neden']}\n          arandi: {x['aranan']}")
         return None
+    or_py, java_home = a["yol"], j["yol"]
     env = dict(os.environ, JAVA_HOME=java_home, PYTHONIOENCODING="utf-8")
     bridge = BASE / "openrocket_bridge.py"
     r = subprocess.run([or_py, str(bridge), ork_path], cwd=str(BASE),

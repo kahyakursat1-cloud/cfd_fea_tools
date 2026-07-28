@@ -28,8 +28,14 @@ def generate_stl_openvsp(aircraft: Aircraft, output_path: str,
     """
     # OpenVSP ortamındaki Python ile bridge script'i çalıştır
     bridge_script = Path(__file__).parent / "openvsp_bridge.py"
-    vsp_python = r"C:\Users\Victus\miniconda3\envs\openvsp\python.exe"
-    vsp_dll_dir = r"C:\Users\Victus\Desktop\OpenVSP\OpenVSP-3.50.4-win64"
+    # Mutlak yollar GÖMÜLÜ DEĞİL (Docker'da tamamı kırılır) — bkz. dis_araclar.
+    from dis_araclar import bul
+    _py, _dll = bul("openvsp_python"), bul("openvsp_dll")
+    vsp_python = _py["yol"]
+    vsp_dll_dir = _dll["yol"] or ""
+    if not vsp_python:
+        print(f"[OpenVSP] {_py['neden']}\n          arandi: {_py['aranan']}")
+        return None
 
     # Parametreleri JSON ile geç
     import json
@@ -62,7 +68,10 @@ def generate_stl_openvsp(aircraft: Aircraft, output_path: str,
     # Inline script — OpenVSP ortamında çalışır
     script = f"""
 import os, sys, json
-os.add_dll_directory(r'{vsp_dll_dir}')
+# add_dll_directory YALNIZ Windows'ta var; Linux imajinda kutuphane rpath/LD_LIBRARY_PATH
+# ile bulunur. Kosulsuz cagri konteynerde AttributeError veriyordu.
+if hasattr(os, 'add_dll_directory') and r'{vsp_dll_dir}':
+    os.add_dll_directory(r'{vsp_dll_dir}')
 import openvsp as vsp
 
 p = json.load(open(r'{param_file}'))

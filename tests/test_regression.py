@@ -96,7 +96,9 @@ def test_vspaero_slope_golden():
     pj = ROOT / "vspaero_polar.json"
     if not pj.exists():
         pytest.skip("vspaero_polar.json yok — önce: python pipeline.py vspaero 0 4 8")
-    data = [d for d in json.loads(pj.read_text()) if d.get("Cl") is not None]
+    _v = json.loads(pj.read_text(encoding="utf-8-sig"))
+    _v = _v.get("polar", []) if isinstance(_v, dict) else _v
+    data = [d for d in _v if d.get("Cl") is not None]
     if len(data) < 2:
         pytest.skip("yetersiz VLM noktası")
     slope = (data[-1]["Cl"] - data[0]["Cl"]) / (data[-1]["alpha"] - data[0]["alpha"])

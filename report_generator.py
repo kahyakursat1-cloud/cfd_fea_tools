@@ -728,7 +728,15 @@ class VVReport:
             vok = [v for v in vspaero if v.get("Cl") is not None]
             md.append("## 7. VSPAERO VLM Çapraz-Doğrulama (Hızlı)\n")
             md.append("Bağımsız ikinci yöntem (vortex-lattice, inviscid, ~saniyeler). "
-                      "Lift eğimini OpenFOAM'dan bağımsız doğrular.\n")
+                      "Lift **eğimini** OpenFOAM'dan bağımsız doğrular.\n")
+            # KISIT RAPORDA GÖRÜNMELİ: bu yolda kamburluk uygulanmıyor (OpenVSP 3.50.4
+            # VLM kamburlu kesitte ıraksıyor), dolayısıyla Cl(0°)=0 bir ÖLÇÜM DEĞİL.
+            # Kısıt yazılmadığında okuyucu bunu OpenFOAM'ın Cl'iyle kıyaslayıp
+            # "VSPAERO taşıma bulamadı" diye yanlış sonuca varır.
+            md.append("> ⚠️ **Kısıt:** bu yolda kanat profiline kamburluk uygulanmaz. "
+                      "$C_L(0°)=0$ kurulumun sonucudur, ölçüm değildir; $α_{L0}$ bu "
+                      "yöntemle üretilemez. Yalnız **eğim** ve **indüklenen direnç** "
+                      "geçerlidir — mutlak $C_L$ OpenFOAM'dan gelir.\n")
             md.append("| α (°) | $C_L$ (VLM) | $C_{Di}$ (induced) |")
             md.append("|-------|-------------|--------------------|")
             for v in sorted(vok, key=lambda x: x["alpha"]):
@@ -876,7 +884,9 @@ if __name__ == "__main__":
     vspaero = None
     vfile = base / "vspaero_polar.json"
     if vfile.exists():
-        vspaero = json.loads(vfile.read_text(encoding="utf-8-sig"))
+        _v = json.loads(vfile.read_text(encoding="utf-8-sig"))
+        # Eski surum duz liste yaziyordu; yeni surum kisit/uretim tasiyan sozluk.
+        vspaero = _v.get("polar", []) if isinstance(_v, dict) else _v
 
     def _load(name):
         f = base / name
