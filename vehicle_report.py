@@ -366,6 +366,18 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
     if rr:
         md.append("- Son rezidüeller: " + ", ".join(f"{k}={v}" for k, v in rr.items()) +
                   (" ✅" if conv.get("rezidual_ok") else " ⚠️ (hedef <1e-4)") + "  ")
+    # Salınım: rezidüel VE drift ölçütleri sağlansa bile çözüm limit çevriminde olabilir.
+    # Dedektör hesaplanıp raporlanmıyordu — mühendis salınımı hiç görmüyordu.
+    sal = conv.get("salinim") or {}
+    if sal.get("osilasyon"):
+        md.append(f"- **SALINIM VAR** — genlik ±%{sal.get('genlik_pct')}, "
+                  f"{sal.get('gecis')} işaret geçişi. Çözüm sabit noktaya OTURMADI "
+                  "(limit çevrimi). Aşağıdaki katsayı salınımın ortalamasıdır; bu genlik "
+                  "gerçek bir belirsizlik bileşenidir ve GCI'ya girmez. Keskin-kenarlı "
+                  "küt cisim ve ayrılmış akışta beklenen davranıştır.  ")
+    elif sal:
+        md.append(f"- Salınım dedektörü: temiz ({sal.get('gecis')} geçiş, "
+                  f"genlik %{sal.get('genlik_pct')}) ✅  ")
     md.append("")
     if f_conv:
         md.append("![Yakınsama](figures/convergence.png)\n")

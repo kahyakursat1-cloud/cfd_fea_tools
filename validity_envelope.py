@@ -264,12 +264,31 @@ def sonuc_kapisi(fizik: dict | None, convergence: dict | None) -> dict:
         return {"seviye": "uyari", "etiket": "⚠️ fizik şüpheli",
                 "gerekce": list((fizik or {}).get("reasons", []))}
     c = convergence or {}
-    if c.get("drift_ok") and c.get("rezidual_ok"):
+    # SALINIM: rezidüel ve drift ölçütlerinin İKİSİ de sağlanırken çözüm yine de sabit
+    # noktaya oturmamış olabilir — limit çevrimi. Drift, son nokta ile %20-önceki noktayı
+    # kıyaslar; salınımın periyodu o pencereye denk gelirse ölçülen drift SIFIRA yakın
+    # çıkar. Ölçüldü: Cd ±%4 salınırken drift %1.25 (limit %2) → kapı "✅ yakınsadı"
+    # diyordu. Dedektör (salinim_analizi) zaten vardı ve hükme HİÇ girmiyordu.
+    # Fiziksel gerekçe: keskin-kenarlı küt cisim ve ayrılmış akış (geriye-basamaklı
+    # akış çapasında p rezidüeli 20000 iterasyon boyunca 8e-5'te platoya oturdu).
+    sal = c.get("salinim") or {}
+    salinimda = bool(sal.get("osilasyon"))
+    if c.get("drift_ok") and c.get("rezidual_ok") and not salinimda:
         return {"seviye": "ok", "etiket": "✅ yakınsadı", "gerekce": []}
+    gerekce = []
     eksik = [ad for ad, anahtar in (("kuvvet drifti", "drift_ok"), ("rezidüel", "rezidual_ok"))
              if not c.get(anahtar)]
-    return {"seviye": "uyari", "etiket": "⚠️ sınırda",
-            "gerekce": [f"{', '.join(eksik)} hedefin dışında"] if eksik else []}
+    if eksik:
+        gerekce.append(f"{', '.join(eksik)} hedefin dışında")
+    if salinimda:
+        gerekce.append(
+            f"kuvvet SALINIYOR (genlik ±%{sal.get('genlik_pct', 0):.1f}, "
+            f"{sal.get('gecis', 0)} işaret geçişi) — rezidüel ve drift ölçütleri sağlansa "
+            "bile çözüm sabit noktaya oturmadı (limit çevrimi). Bildirilen katsayı "
+            "salınımın ortalamasıdır; bu genlik gerçek bir belirsizlik bileşenidir ve "
+            "GCI'ya GİRMEZ")
+    etiket = "⚠️ salınımlı (sabit nokta yok)" if salinimda else "⚠️ sınırda"
+    return {"seviye": "uyari", "etiket": etiket, "gerekce": gerekce}
 
 
 def classify_cfd(vehicle_type: str, alpha_deg: float, mach: float,
