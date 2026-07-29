@@ -521,9 +521,29 @@ relaxationFactors{ equations{ U 0.7; k 0.5; omega 0.5;""" + _lm_relax + """ } fi
     p = str(case.resolve()); wsl = f"/mnt/{p[0].lower()}{p[2:].replace(chr(92),'/')}"
     # potentialFoam: divergence-free baslangic (startup blow-up'i onler)
     subprocess.run(
-        f'wsl bash -c "source /opt/openfoam11/etc/bashrc && export FOAM_SIGFPE=false && cd {wsl} && potentialFoam -initialiseUBCs -writep > log.pot 2>&1; foamRun -solver incompressibleFluid > log.run 2>&1"',
+        # `unset FOAM_SIGFPE` — `export FOAM_SIGFPE=false` HICBIR ISE YARAMAZ: OpenFOAM
+        # degiskenin VARLIGINA bakar, degerine degil. Log "sigFpe : Enabling floating
+        # point exception trapping" yaziyordu ve tuzak acikti. kOmegaSSTLM'in Fthetat
+        # terimi magSqr(U) ile boluyor; durgunluk noktasinda 0/0 olusuyor ve cozucu
+        # 1-5 iterasyonda SIGFPE ile cokuyordu. Kanonik katman (analysis/openfoam_runner)
+        # bu dersi zaten almisti — iki-hizli ayrisma: standalone kopru almamisti.
+        f'wsl bash -c "source /opt/openfoam11/etc/bashrc && unset FOAM_SIGFPE && cd {wsl} && potentialFoam -initialiseUBCs -writep > log.pot 2>&1; foamRun -solver incompressibleFluid > log.run 2>&1"',
         shell=True, capture_output=True, text=True, timeout=7200)
 
+    return oku_sonuc(case, alpha_deg, V, nu, rho, chord)
+
+
+def oku_sonuc(case: Path, alpha_deg=0.0, V=50.0, nu=1.48e-5, rho=1.225, chord=1.0):
+    """COZULMUS bir case'ten katsayilari ve kapilari uret — cozucuyu CALISTIRMADAN.
+
+    Cozme ile RAPORLAMA ayrildi: verdikt metni ya da bir kapi degistiginde kanit
+    dosyasini yenilemek 70 dakikalik CFD'yi TEKRAR kosmayi gerektiriyordu (bu
+    oturumda uc kez odendi). Sayilar ayni case'ten okundugu icin kanit yine
+    script'in urettigi seydir; yalnizca cozucu adimi atlanir.
+    """
+    import math
+    import re
+    a = math.radians(alpha_deg)
     ff = list((case/"postProcessing"/"forces").glob("*/forces.dat"))
     if not ff:
         return {"status": "FAILED", "step": "forces"}
@@ -547,6 +567,15 @@ relaxationFactors{ equations{ U 0.7; k 0.5; omega 0.5;""" + _lm_relax + """ } fi
         Fx = float(nums[1])+float(nums[4]); Fy = float(nums[2])+float(nums[5])
         cd.append((Fx*math.cos(a)+Fy*math.sin(a))/(q*S))
         cl.append((-Fx*math.sin(a)+Fy*math.cos(a))/(q*S))
+
+    # NaN/inf KAPISI: SIGFPE tuzagini kapatmak sifira bolmeyi YOK ETMEZ, yalnizca
+    # susturur — sonuc sessizce nan/inf ile kirlenebilir. `float('nan') <= x` daima
+    # False oldugu icin bir NaN, asagidaki her karsilastirmadan sessizce GECERDI.
+    if any(not math.isfinite(v) for v in cl + cd):
+        return {"status": "FAILED", "step": "sayisal",
+                "hata": ("kuvvet katsayilarinda NaN/inf — cozum kirlendi (sifira bolme "
+                         "veya iraksama). Log'da 'sigFpe' ve 'bounding' satirlarina bakin"),
+                "yakinsama": _yakinsama(case)}
 
     yak = _yakinsama(case)
     out = {"status": "SUCCESS" if yak["yakinsadi"] else "YAKINSAMADI",

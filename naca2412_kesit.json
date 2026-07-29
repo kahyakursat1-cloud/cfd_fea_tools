@@ -24,20 +24,18 @@
   },
   "mesh": {
     "status": "SUCCESS",
-    "ni": 410,
-    "nj": 100,
-    "seam_dup": 81,
     "cells": 40491,
     "non_ortho_max": "63.751",
-    "skewness_max": "1.02413"
+    "skewness_max": "1.02413",
+    "_kaynak": "--rapor: mevcut case'ten okundu, mesh YENIDEN URETILMEDI"
   },
   "cfd": {
     "status": "YAKINSAMADI",
     "alpha": 0.0,
-    "Cd": 0.01604,
-    "Cl": 0.0839,
-    "Cd_band": 1e-05,
-    "Cl_band": 0.0,
+    "Cd": 0.0105,
+    "Cl": 0.2224,
+    "Cd_band": 4e-05,
+    "Cl_band": 0.0003,
     "kuyruk_ornek": 80,
     "yakinsama": {
       "yakinsadi": false,
@@ -45,28 +43,29 @@
       "neden": "residualControl tetiklenmedi — koşu endTime'da durdu",
       "alanlar": {
         "Ux": {
-          "son": 1.96539e-05,
-          "dusus_orani": 0.885
+          "son": 2.0355e-05,
+          "dusus_orani": 0.933
         },
         "Uy": {
-          "son": 1.74173e-05,
-          "dusus_orani": 0.026
+          "son": 0.000110059,
+          "dusus_orani": 0.281
         },
         "p": {
-          "son": 8.81938e-07,
-          "dusus_orani": 0.001
+          "son": 2.8949e-05,
+          "dusus_orani": 0.018
         },
         "k": {
-          "son": 7.84611e-06,
-          "dusus_orani": 0.358
+          "son": 6.26253e-06,
+          "dusus_orani": 0.324
         },
         "omega": {
-          "son": 9.90533e-09,
-          "dusus_orani": 0.991
+          "son": 1.05755e-08,
+          "dusus_orani": 0.754
         }
       },
       "platoda": [
         "Ux",
+        "Uy",
         "k",
         "omega"
       ]
@@ -76,34 +75,43 @@
     "span_olculen": 0.1,
     "Re_efektif": 249970.5
   },
+  "turbulans_modeli": "kOmegaSSTLM",
+  "model_kiyasi": {
+    "kOmegaSST": {
+      "Cl_0": 0.0839,
+      "alfa_L0_deg": -0.808,
+      "egim_2pi": 0.948,
+      "not": "tam turbulans — kamburluk eksik"
+    }
+  },
   "alfa_taramasi": {
     "noktalar": [
       {
         "alpha": 0.0,
-        "Cl": 0.0839
+        "Cl": 0.2224
       },
       {
         "alpha": 4.0,
-        "Cl": 0.4995
+        "Cl": 0.6305
       }
     ],
-    "egim_deg": 0.1039,
-    "egim_rad": 5.953,
-    "egim_2pi_orani": 0.9475,
-    "alfa_L0_deg": -0.808,
+    "egim_deg": 0.10202,
+    "egim_rad": 5.8456,
+    "egim_2pi_orani": 0.9304,
+    "alfa_L0_deg": -2.18,
     "alfa_L0_referans": -2.07,
-    "alfa_L0_sapma_pct": 61.0,
+    "alfa_L0_sapma_pct": -5.3,
     "egim_gecti": true,
-    "kamburluk_gecti": false
+    "kamburluk_gecti": true
   },
   "cfd_tum_alfalar": {
     "0.0": {
       "status": "YAKINSAMADI",
       "alpha": 0.0,
-      "Cd": 0.01604,
-      "Cl": 0.0839,
-      "Cd_band": 1e-05,
-      "Cl_band": 0.0,
+      "Cd": 0.0105,
+      "Cl": 0.2224,
+      "Cd_band": 4e-05,
+      "Cl_band": 0.0003,
       "kuyruk_ornek": 80,
       "yakinsama": {
         "yakinsadi": false,
@@ -111,28 +119,29 @@
         "neden": "residualControl tetiklenmedi — koşu endTime'da durdu",
         "alanlar": {
           "Ux": {
-            "son": 1.96539e-05,
-            "dusus_orani": 0.885
+            "son": 2.0355e-05,
+            "dusus_orani": 0.933
           },
           "Uy": {
-            "son": 1.74173e-05,
-            "dusus_orani": 0.026
+            "son": 0.000110059,
+            "dusus_orani": 0.281
           },
           "p": {
-            "son": 8.81938e-07,
-            "dusus_orani": 0.001
+            "son": 2.8949e-05,
+            "dusus_orani": 0.018
           },
           "k": {
-            "son": 7.84611e-06,
-            "dusus_orani": 0.358
+            "son": 6.26253e-06,
+            "dusus_orani": 0.324
           },
           "omega": {
-            "son": 9.90533e-09,
-            "dusus_orani": 0.991
+            "son": 1.05755e-08,
+            "dusus_orani": 0.754
           }
         },
         "platoda": [
           "Ux",
+          "Uy",
           "k",
           "omega"
         ]
@@ -145,10 +154,10 @@
     "4.0": {
       "status": "YAKINSAMADI",
       "alpha": 4.0,
-      "Cd": 0.01789,
-      "Cl": 0.4995,
-      "Cd_band": 1e-05,
-      "Cl_band": 0.0001,
+      "Cd": 0.01308,
+      "Cl": 0.6305,
+      "Cd_band": 0.00022,
+      "Cl_band": 0.0014,
       "kuyruk_ornek": 80,
       "yakinsama": {
         "yakinsadi": false,
@@ -156,24 +165,24 @@
         "neden": "residualControl tetiklenmedi — koşu endTime'da durdu",
         "alanlar": {
           "Ux": {
-            "son": 6.05486e-06,
-            "dusus_orani": 1.073
+            "son": 1.41895e-05,
+            "dusus_orani": 0.91
           },
           "Uy": {
-            "son": 2.47413e-05,
-            "dusus_orani": 0.985
+            "son": 8.03205e-05,
+            "dusus_orani": 1.013
           },
           "p": {
-            "son": 1.4347e-06,
-            "dusus_orani": 0.005
+            "son": 5.67774e-06,
+            "dusus_orani": 0.007
           },
           "k": {
-            "son": 2.16072e-08,
-            "dusus_orani": 0.367
+            "son": 9.13436e-06,
+            "dusus_orani": 0.831
           },
           "omega": {
-            "son": 9.90301e-09,
-            "dusus_orani": 1.001
+            "son": 2.15203e-08,
+            "dusus_orani": 0.892
           }
         },
         "platoda": [
@@ -197,10 +206,10 @@
     "ayrilma": "tau_x tum yuzeyde NEGATIF (ileri akis); tek isaret degisimi x/c=0.987 -> yalnizca firar kenari kabarcigi, kutlesel ayrilma YOK",
     "referans_alan_ve_Re": "mesh'ten olculuyor (S=0.0999, Re=2.50e5)"
   },
-  "Cl": 0.0839,
-  "Cd": 0.01604,
-  "Cl_sapma_pct": -63.04,
-  "verdikt": "NACA2412 2B, Re=2.5e+05, alpha=0: Cl=0.0839 (ince-kanat teorisi 0.227, deney 0.25) -> sapma %-63. NOT: residualControl tetiklenmedi (platoda: ['Ux', 'k', 'omega']) ama Cl kuyruk bandi ±0.0 — ilgilenilen buyukluk 20000 iterasyonda DURAGAN, hukum QoI'ye dayaniyor. tasima egimi 5.95/rad = 0.948·2pi -> COZUCU DOGRU. alpha_L0 -0.81° (referans -2.07°) -> KAMBURLUK COZULMUYOR. AYIRICI BULGU: akis cozucusu sirkulasyonu DOGRU uretiyor (egim 2pi'ye oturuyor) ama KAMBURLUGUN katkisi eksik. Hata cozucude degil, kamburlugun cozunurlugunde/temsilinde. ⚠️ Cl kabul bandi (0.15, 0.32) DISINDA — profil ya da 2B kurulum sorgulanmali; MiniHawk teshisi bu capaya dayandirilamaz. mesh: 40491 hucre, nonOrtho 63.751, skewness 1.02413.",
+  "Cl": 0.2224,
+  "Cd": 0.0105,
+  "Cl_sapma_pct": -2.03,
+  "verdikt": "NACA2412 2B, Re=2.5e+05, alpha=0: Cl=0.2224 (ince-kanat teorisi 0.227, deney 0.25) -> sapma %-2. NOT: residualControl tetiklenmedi (platoda: ['Ux', 'Uy', 'k', 'omega']) ama Cl kuyruk bandi ±0.0003 — ilgilenilen buyukluk 20000 iterasyonda DURAGAN, hukum QoI'ye dayaniyor. tasima egimi 5.85/rad = 0.930·2pi -> COZUCU DOGRU. alpha_L0 -2.18° (referans -2.07°) -> KAMBURLUK COZULUYOR. PROFIL DOGRU ve 2B KURULUM DOGRULANDI: ayni uretici (mesh_generator._naca4_profile) kOmegaSSTLM ile beklenen tasimayi veriyor. MiniHawk 3B kosusu (Cl=0.0143) `vehicle_pipeline` uzerinden ve kOmegaSST ile, AYNI Reynolds mertebesinde kosuldu. Burada tek degiskenli olculdu: kOmegaSST Cl(0)=0.0839 / alpha_L0=-0.81°, kOmegaSSTLM Cl(0)=0.2224 / alpha_L0=-2.18°. Yani dusuk-Re'de TAM-TURBULANS varsayimi tek basina Cl'i %63 dusuruyor — MiniHawk acigi icin OLCULMUS bir aday. Bu, 3B mesh cozunurlugunu ELEMEZ; 3B'de de tek-degiskenli olarak gosterilmelidir. mesh: 40491 hucre, nonOrtho 63.751, skewness 1.02413.",
   "_uretim": "Üretim: python experiments/naca2412_kesit.py",
   "_kalan_supheli": "Cozum SAYISAL olarak oturmadi. Ayni kurulumda olculen iki-nokta taramasi (alpha=0 ve 4, 4000 iterasyon) tasima EGIMINI 5.64/rad verdi — 2pi'nin %90'i, Re=2.5e5 icin dogru — ama alpha_L0 -0.08 derece cikti (-2.07 olmali) ve alpha=4 kosusunda Cl son 750 iterasyonda MONOTON yukseliyordu. Yani eksik olan fizik degil, SIRKULASYONUN KURULMASI icin gereken iterasyon."
 }

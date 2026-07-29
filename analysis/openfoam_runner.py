@@ -218,10 +218,10 @@ def mesh_quality_gate(checkmesh_text: str) -> dict:
         m = _re.search(pat, checkmesh_text)
         if not m:
             return None
-        # sessiz-yutma: kabul — ayristirilamayan metrik "sorun yok" SAYILMAZ; None
-        # doner ve asagidaki kapi onu "okunamadi" olarak isler (bkz. 2eb2686).
         try:
             return float(m.group(1))
+        # sessiz-yutma: kabul — ayristirilamayan metrik "sorun yok" SAYILMAZ; None
+        # doner ve asagidaki kapi onu "okunamadi" olarak isler (bkz. 2eb2686).
         except ValueError:
             return None
     non_ortho = g(r"non-orthogonality Max:\s*" + SAYI)

@@ -78,15 +78,25 @@ class TestKanit:
                                     "KALITE KAPISINDA", "URETILEMEDI")), v
 
     def test_MiniHawk_teshisi_ELEME_ile_kurulmuyor(self):
-        """2B'de de kamburluk açığı ölçüldükten sonra '3B mesh çözünürlüğü' artık
-        eleme yoluyla iddia EDİLEMEZ. Kanıt bunu iddia ediyorsa, kamburluk kapısını
-        GEÇMİŞ olmalı."""
+        """Kanit, 3B acigi ELEME yoluyla bir sebebe atamamali.
+
+        Onceki surum "profil dogru -> oyleyse 3B mesh cozunurlugu" diyordu. 2B'de
+        ayni acik olculunce o eleme cürüdü; sonra tek-degiskenli deney GERCEK sebebi
+        verdi (tam-turbulans varsayimi). Kanit artik olculmus adayi yazmali ve
+        3B'yi ELEDIGINI iddia ETMEMELI."""
+        v = self._d()["verdikt"]
+        assert "3B MESH COZUNURLUGUNDEN kaynaklaniyor" not in v, (
+            "eleme argumani geri gelmis")
+        if "PROFIL DOGRU ve 2B KURULUM DOGRULANDI" in v:
+            assert "OLCULMUS bir aday" in v and "ELEMEZ" in v
+
+    def test_model_kiyasi_kanitta_SAYIYLA_duruyor(self):
+        """Capanin belirleyici ayari turbulans modeli; kiyas kayitta kalmali."""
         d = self._d()
-        v = d["verdikt"]
-        e = d.get("alfa_taramasi") or {}
-        if "3B MESH COZUNURLUGUNDEN" in v and "kamburluk_gecti" in e:
-            assert e["kamburluk_gecti"] is True, (
-                "2B kamburluk kapisi kaldi ama verdikt hatayi 3B'ye atiyor")
+        if d.get("turbulans_modeli"):
+            k = d.get("model_kiyasi") or {}
+            assert "kOmegaSST" in k
+            assert k["kOmegaSST"]["alfa_L0_deg"] == pytest.approx(-0.81, abs=0.02)
 
 
 def test_dat_yazici_FIRAR_KENARINDAN_basliyor(tmp_path):

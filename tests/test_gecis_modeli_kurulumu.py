@@ -81,3 +81,30 @@ def test_ReThetat_serbest_akis_degeri_MAKUL(tmp_path):
     s = (_kur(tmp_path, "kOmegaSSTLM") / "0" / "ReThetat").read_text()
     v = float(re.search(r"internalField uniform ([\d.]+)", s).group(1))
     assert 200.0 < v < 3000.0, f"ReThetat={v} fiziksel araligin disinda"
+
+
+def test_SIGFPE_unset_ediliyor_export_edilmiyor():
+    """`export FOAM_SIGFPE=false` HİÇBİR İŞE YARAMAZ — OpenFOAM değişkenin
+    VARLIĞINA bakar, değerine değil. Log 'Enabling floating point exception
+    trapping' yazıyordu ve kOmegaSSTLM'in Fthetat terimi (magSqr(U) ile bölüyor)
+    durgunluk noktasında 0/0 üretip çözücüyü 1-5 iterasyonda düşürüyordu.
+    Kanonik katman bu dersi zaten almıştı; standalone köprü almamıştı."""
+    import inspect
+    # YORUMLAR HARIÇ: hatanın kendisi açıklama yorumunda anılıyor, bu meşru.
+    kod = [s for s in inspect.getsource(cb).splitlines()
+           if not s.lstrip().startswith("#")]
+    assert any("unset FOAM_SIGFPE" in s for s in kod)
+    assert not any("export FOAM_SIGFPE=false" in s for s in kod)
+
+
+def test_NaN_sonuc_SESSIZCE_gecmiyor(tmp_path, monkeypatch):
+    """SIGFPE tuzağını kapatmak sıfıra bölmeyi yok etmez, susturur. NaN her
+    karşılaştırmadan False dönerek sessizce geçerdi."""
+    assert not (float("nan") <= 1.0) and not (float("nan") > 1.0)   # sessiz gecis
+    # Kapi `oku_sonuc`ta; `run_validation` cozdukten sonra ORAYA delege eder, yani
+    # iki yol da korunuyor. Test kapiyi ADIYLA degil KONUMUYLA baglar.
+    src = __import__("inspect").getsource(cb.oku_sonuc)
+    assert "math.isfinite" in src, "NaN kapisi yok"
+    assert '"step": "sayisal"' in src
+    assert "oku_sonuc(" in __import__("inspect").getsource(cb.run_validation), \
+        "run_validation kapiyi atlayan ayri bir yol kullaniyor"

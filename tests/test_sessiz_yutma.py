@@ -21,8 +21,17 @@ import sessiz_yutma
 # güven-yolu 31 → 55, incelenmemiş 0 → 28 çıktı; hepsi tek tek gerekçelendirildi.
 #
 # Ölçülen (2026-07-28, GENİŞ kapsam): 80 toplam / 55 güven yolunda / 55 kabul edilmiş.
-TABAN_TOPLAM = 80
-TABAN_GUVEN_YOLU = 55
+#
+# 2026-07-29 — TABAN 80 → 81 (güven yolu 55 → 56). Bu bir GERİLEME DEĞİL, kasıtlı
+# bir SAVUNMA eklemesi: `mesh_quality_gate` sayı ayrıştırması artık `float()`
+# hatasını yakalıyor. Gerekçe: eski regex `([\d.eE+]+)` eksi üssü kapsamıyordu ve
+# "Max skewness = 9.8987286e-05" TÜM analizi ValueError ile düşürüyordu — yani
+# kalite kapısı MESH İYİYKEN patlıyordu (güvenilirlik taramasında 12 geometrinin
+# 3'ü böyle kayboldu). Yakalanan hata "sorun yok" SAYILMIYOR: None dönüyor ve kapı
+# onu "okunamadı" olarak reddediyor (2eb2686'nın dersi korundu).
+# Asıl izlenen sayılar DEĞİŞMEDİ: incelenmemiş 25, güven yolunda incelenmemiş 0.
+TABAN_TOPLAM = 81
+TABAN_GUVEN_YOLU = 56
 TABAN_INCELENMEMIS = 25
 TABAN_INCELENMEMIS_GUVEN_YOLU = 0
 
