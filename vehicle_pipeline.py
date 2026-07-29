@@ -577,6 +577,19 @@ def parse_checkmesh(log: Path) -> dict:
     return out
 
 
+def yuzey_yuz_sayisi(case_dir: Path, patch: str) -> int | None:
+    """constant/polyMesh/boundary'den gövde yamasının GERÇEK yüz sayısı."""
+    b = case_dir / "constant" / "polyMesh" / "boundary"
+    if not b.exists():
+        return None
+    t = b.read_text(errors="ignore")
+    i = t.find(patch)
+    if i < 0:
+        return None
+    m = re.search(r"nFaces\s+(\d+)", t[i:i + 400])
+    return int(m.group(1)) if m else None
+
+
 def parse_layer_report(log: Path) -> dict:
     """snappyHexMesh'in KENDİ katman raporunu oku — istenen vs EKLENEN katman.
 
@@ -908,7 +921,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                          mesh_sensitivity=False, n_layers=0, yplus_target=30.0,
                          pervane_itki_n=0.0, pervane_cap_m=0.0,
                          ground_clearance=None, mesh_levels=3, refinement_regions=None,
-                         max_cells=None, ref_bump=0,
+                         max_cells=None, ref_bump=0, turbulence_model="kOmegaSST",
                          progress_cb=None) -> VehicleAnalysisResult:
     stl_path = Path(stl_path)
     stem = stl_path.stem
@@ -933,6 +946,17 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     # KURULUM KAPISI — çözücüden ÖNCE. Ölçek/eksen/referans-alan hatası saatlerce
     # koşup "geçerli görünen" ama başka bir problemin cevabı olan bir sayı üretir.
     kurulum_uyarilari = geometry_sanity(geo, vehicle_type, velocity, n_layers=n_layers)
+    # GEÇİŞ MODELİ ÖN KOŞULU — ÇÖZÜCÜDEN ÖNCE. Langtry-Menter laminer bölgeyi sınır
+    # tabakanın İÇİNDE çözer; duvar-fonksiyonu mesh'inde (y⁺≫30) laminer altkatman
+    # hiç ayrıklaştırılmaz. Model yine bir sayı üretir ama fiziksel karşılığı YOKTUR
+    # — "makul görünen ama anlamsız sonuç" sınıfı. Saatlerce koşup sonra fark etmek
+    # yerine baştan reddedilir.
+    from analysis.openfoam_runner import gecis_modeli_onkosulu
+    _gm = gecis_modeli_onkosulu(turbulence_model, n_layers, yplus_target)
+    if _gm:
+        # Bu bir CAGIRAN HATASI (katmansiz mesh'te gecis modeli istemek), calisma-zamani
+        # durumu degil — sessiz bir uyariyla devam etmek yerine SERT hata dogru.
+        raise ValueError(f"GECIS MODELI ON KOSULU: {_gm}")
     for _ku in kurulum_uyarilari:
         if progress_cb:
             progress_cb(3, f"⚠ KURULUM: {_ku}")
@@ -971,6 +995,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         max_global_cells=q_max,
         bg_cell_size=geo["lmax_m"] / q["bg_div"],
         n_layers=n_layers,
+        turbulence_model=turbulence_model,
         first_layer_thickness=(first_layer_height(velocity, geo["lmax_m"], yplus_target)
                                if n_layers > 0 else None),
         propeller=prop,
@@ -1137,6 +1162,25 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                          "yplus_hedef": yplus_target if n_layers > 0 else None,
                          "ilk_katman_m": (round(case.first_layer_thickness, 8)
                                           if case.first_layer_thickness else None)}
+    # YÜZEY ÇÖZÜNÜRLÜĞÜ — NİYET DEĞİL SONUÇ. `resolution_warning` yüzey hücresini
+    # (lmax/bg_div)/2^ref_max diye hesaplıyordu, yani iyileştirmenin UYGULANDIĞINI
+    # varsayıyor. MiniHawk'ta 0.010 m rapor edip "sorun yok" derken snappy 0.167 m
+    # teslim etmişti: arka plan mesh'i (3.94M) tavanı (2.5M) tek başına doldurmuş,
+    # snappy "No cells marked for refinement since reached limit" yazmış ve gövde
+    # 74 YÜZLE temsil edilmişti (uzak-alan yamaları 17-31 bin yüz). Bu tek kusur
+    # y⁺≈5000'i, 12 katmanın 0 örülmesini ve Cl'in 1/16 çıkmasını birlikte açıklar.
+    from analysis.openfoam_runner import yuzey_cozunurluk_hukmu
+    _sn = case_dir / "log.snappyHexMesh"
+    _yc = yuzey_cozunurluk_hukmu(_sn.read_text(errors="ignore") if _sn.exists() else "",
+                                 yuzey_yuz_sayisi(case_dir, _patch))
+    base.sinir_tabaka["yuzey_cozunurlugu"] = _yc
+    if getattr(case, "bg_bilgi", None):
+        base.sinir_tabaka["arka_plan"] = case.bg_bilgi
+    if not _yc["cozuldu"]:
+        uyarilar.insert(0, "GÖVDE YÜZEYİ ÇÖZÜLMEDİ (ÖLÇÜLDÜ): "
+                        + "; ".join(_yc["gerekce"])
+                        + ". Bu durumda Cd/Cl SAYISAL olarak üretilir ama GEOMETRİNİN "
+                          "cevabı değildir; y⁺ ve katman sonuçları da bundan türer")
     if kat.get("durum") == "COKTU":
         uyarilar.append(
             f"KATMAN ÇÖKTÜ (ÖLÇÜLDÜ): {n_layers} prizma katmanı istendi, snappyHexMesh "

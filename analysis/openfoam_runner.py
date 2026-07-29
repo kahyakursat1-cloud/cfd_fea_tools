@@ -109,6 +109,8 @@ class CFDCase:
     n_layers: int = 0              # 0 = boundary layer eklenmesin (kararlılık için)
     first_layer_thickness: float | None = None  # m; None = göreli snappy varsayılanı
     propeller: dict | None = None  # {cap_m, area, Cp, Ct} — aktüatör disk (Froude)
+    turbulence_model: str = "kOmegaSST"   # kOmegaSSTLM = Langtry-Menter gecis modeli
+    bg_bilgi: dict | None = None   # arka plan hucre secimi (build_case doldurur)
     compressible: bool = False     # True: foamRun -solver fluid (Mach>0.3 için)
     t_inf: float = 288.15          # K
     p_inf: float = 101325.0       # Pa (sıkışabilir yolda mutlak basınç)
@@ -254,6 +256,72 @@ def mesh_quality_gate(checkmesh_text: str) -> dict:
 # ---------------------------------------------------------------------------
 # Dictionary yazıcılar
 # ---------------------------------------------------------------------------
+
+ARKA_PLAN_BUTCE_PAYI = 0.25   # arka plan mesh'i bütçenin en fazla bu kadarını yesin
+
+
+def arka_plan_hucre_boyu(dmin, dmax, istenen: float, max_global_cells: int,
+                         pay: float = ARKA_PLAN_BUTCE_PAYI) -> tuple[float, dict]:
+    """Arka plan hücresini DOMAIN ve BÜTÇEDEN boyutlandır (yalnız geometriden DEĞİL).
+
+    KÖK SEBEP: `bg_cell_size` geometriden hesaplanıyordu (lmax/bg_div) ama hücre
+    SAYISINI domain belirler. MiniHawk'ta ölçüldü: gövde 0.7×1.5×0.08 m, domain
+    38×22.5×21 m, istenen hücre 0.167 m → arka plan TEK BAŞINA 3.94M hücre, oysa
+    `hassas` tavanı 2.5M. snappyHexMesh daha ilk adımda bütçeyi tüketti ve kendi
+    logunda şunu yazdı:
+        "No cells marked for refinement since reached limit 2500000."
+    Sonuç: HİÇBİR yüzey iyileştirmesi yapılmadı. Uçağın tamamı 74 yüzle temsil
+    edildi (uzak-alan yamaları 17-31 bin yüz). Bu tek kusur y⁺≈5000'i, 12 katmanın
+    0 örülmesini, Cl'in beklenenin 1/16'sı çıkmasını ve GCI %379'u birlikte açıklar.
+
+    İstenen boyu KABALAŞTIRIR (asla inceltmez): iyileştirmeye yer kalması için arka
+    plan bütçenin en fazla `pay` kadarını yemeli.
+    """
+    boy = [float(dmax[i] - dmin[i]) for i in range(3)]
+    hacim = boy[0] * boy[1] * boy[2]
+    tavan = max(int(max_global_cells * pay), 10_000)
+    gerekli = (hacim / tavan) ** (1.0 / 3.0)
+    secilen = max(float(istenen), gerekli)
+    n = [max(int(math.ceil(b / secilen)), 8) for b in boy]
+    return secilen, {
+        "istenen_m": round(float(istenen), 5),
+        "secilen_m": round(secilen, 5),
+        "kabalastirildi": secilen > float(istenen) * 1.001,
+        "domain_m": [round(b, 3) for b in boy],
+        "arka_plan_hucre": n[0] * n[1] * n[2],
+        "butce": max_global_cells,
+        "butce_payi": pay,
+    }
+
+
+def parse_iyilestirme_acligi(log_text: str) -> dict:
+    """snappy iyileştirme bütçesini tüketti mi? KENDİ log satırından ölç."""
+    m = re.findall(r"No cells marked for refinement since reached limit (\d+)", log_text)
+    return {"aclik": bool(m), "kez": len(m),
+            "limit": int(m[0]) if m else None}
+
+
+def yuzey_cozunurluk_hukmu(log_snappy: str, yuzey_yuz: int | None,
+                           en_kucuk_boyut_m: float | None = None) -> dict:
+    """Gövde GERÇEKTEN çözüldü mü? NİYET değil, SONUÇ ölçülür.
+
+    Mevcut `resolution_warning` yüzey hücresini (lmax/bg_div)/2^ref_max diye
+    NİYETTEN hesaplıyordu — yani iyileştirmenin uygulandığını VARSAYIYOR. MiniHawk'ta
+    0.010 m rapor edip "sorun yok" derken snappy 0.167 m teslim etmişti.
+    """
+    ac = parse_iyilestirme_acligi(log_snappy)
+    gerekce = []
+    if ac["aclik"]:
+        gerekce.append(
+            f"snappyHexMesh iyilestirme butcesini TUKETTI (limit {ac['limit']}, "
+            f"{ac['kez']} kez) — arka plan mesh'i tek basina tavani doldurmus, "
+            "govde yuzeyi HIC iyilestirilmemis olabilir")
+    if yuzey_yuz is not None and yuzey_yuz < 500:
+        gerekce.append(f"govde yamasi yalnizca {yuzey_yuz} yuz — bu cozunurlukte "
+                       "kamburluk/egrilik temsil EDILEMEZ")
+    return {"cozuldu": not gerekce, "gerekce": gerekce,
+            "yuzey_yuz": yuzey_yuz, **ac}
+
 
 def _write_block_mesh(case_dir: Path, dmin: np.ndarray, dmax: np.ndarray,
                       cell_size: float, ground: bool = False) -> None:
@@ -511,6 +579,11 @@ def _write_fv_schemes(case_dir: Path) -> None:
         "    div(phi,k)                              bounded Gauss upwind;\n"
         "    div(phi,omega)                          bounded Gauss upwind;\n"
         "    div(phi,nuTilda)                        bounded Gauss upwind;\n"
+        # Gecis modeli (kOmegaSSTLM) iki ek tasima denklemi cozer. `default none`
+        # altinda semasi tanimsiz her div terimi cozucuyu dusurur; kOmegaSST'de
+        # bu terimler hic olusmadigi icin kosulsuz yazmak zararsizdir.
+        "    div(phi,gammaInt)                       bounded Gauss upwind;\n"
+        "    div(phi,ReThetat)                       bounded Gauss upwind;\n"
         "    div(phi,e)                              bounded Gauss upwind;\n"
         "    div(phi,h)                              bounded Gauss upwind;\n"
         "    div(phi,K)                              bounded Gauss upwind;\n"
@@ -555,7 +628,7 @@ def _write_fv_solution(case_dir: Path, compressible: bool = False) -> None:
         "    residualControl\n    {\n"
         f"        p               {RESIDUAL_TARGET:g};\n"
         f"        U               {RESIDUAL_TARGET:g};\n"
-        f"        \"(k|omega|nuTilda)\" {RESIDUAL_TARGET:g};\n"
+        f"        \"(k|omega|nuTilda|gammaInt|ReThetat)\" {RESIDUAL_TARGET:g};\n"
         "    }\n"
         "}\n\n"
         # Sıkışabilir soğuk-başlangıç kararsızlığı (T<0 abort) için düşük
@@ -566,7 +639,7 @@ def _write_fv_solution(case_dir: Path, compressible: bool = False) -> None:
            "}\n" if compressible else
            "relaxationFactors\n{\n"
            "    fields { p 0.3; }\n"
-           "    equations { U 0.7; \"(k|omega|nuTilda)\" 0.7; }\n"
+           "    equations { U 0.7; \"(k|omega|nuTilda|gammaInt|ReThetat)\" 0.7; }\n"
            "}\n")
     )
     (case_dir / "system" / "fvSolution").write_text(txt)
@@ -590,18 +663,69 @@ def _write_transport(case_dir: Path, nu: float) -> None:
     (case_dir / "constant" / "transportProperties").write_text(txt)
 
 
-def _write_momentum(case_dir: Path) -> None:
+GECIS_MODELLERI = ("kOmegaSSTLM",)
+
+
+def gecis_modeli_onkosulu(model: str, n_layers: int, yplus_target: float | None) -> str:
+    """Geçiş modeli DUVAR-ÇÖZÜNÜR mesh ister — değilse SEBEBİ döndür ('' = uygun).
+
+    Langtry-Menter, laminer bölgeyi ve geçiş noktasını sınır tabakanın İÇİNDE çözer.
+    Duvar-fonksiyonu mesh'inde (y⁺ ≫ 30) laminer altkatman hiç ayrıklaştırılmaz;
+    model yine bir sayı üretir ama o sayının fiziksel karşılığı YOKTUR. Bu, "makul
+    görünen ama anlamsız sonuç" sınıfının ders kitabı örneğidir — bu yüzden sessizce
+    koşturmak yerine ÖNCEDEN reddedilir.
+
+    2B çapada ölçüldü (y⁺<0.61, 12 katman eşdeğeri C-grid): kOmegaSST → α_L0 −0.81°,
+    kOmegaSSTLM → −2.18° (referans −2.07°). Kazanç GERÇEK, ama duvar çözünürlüğüne
+    bağlı.
+    """
+    if model not in GECIS_MODELLERI:
+        return ""
+    if n_layers <= 0:
+        return (f"{model} DUVAR-COZUNUR mesh ister ama prizma katmani istenmemis "
+                f"(n_layers=0). Laminer altkatman ayriklastirilmadan gecis modeli "
+                f"fiziksel olmayan bir sayi uretir. --kalite hassas kullanin.")
+    if yplus_target is not None and yplus_target > 5.0:
+        return (f"{model} icin y+ hedefi {yplus_target:g} fazla yuksek (<=1 gerekir) — "
+                f"gecis noktasi cozulemez.")
+    return ""
+
+
+def _write_momentum(case_dir: Path, model: str = "kOmegaSST") -> None:
     """OpenFOAM 11: constant/momentumTransport"""
     txt = _foam_header("dictionary", "momentumTransport", "constant")
     txt += (
         "simulationType  RAS;\n\n"
         "RAS\n{\n"
-        "    model           kOmegaSST;\n"
+        f"    model           {model};\n"
         "    turbulence      on;\n"
         "    printCoeffs     on;\n"
         "}\n"
     )
     (case_dir / "constant" / "momentumTransport").write_text(txt)
+
+
+def _write_gecis_alanlari(case_dir: Path, surface_name: str,
+                          turbulence_intensity: float) -> None:
+    """Langtry-Menter'in iki ek alani. YOKSA cozucu ACIKLAMASIZ duser."""
+    Tu = max(100.0 * turbulence_intensity, 0.027)
+    ret0 = ((1173.51 - 589.428 * Tu + 0.2196 / Tu ** 2) if Tu <= 1.3
+            else 331.5 * (Tu - 0.5658) ** -0.671)      # Menter 2006 korelasyonu
+    for ad, ic in (("gammaInt", 1.0), ("ReThetat", ret0)):
+        txt = _foam_header("volScalarField", ad)
+        txt += (
+            "dimensions      [0 0 0 0 0 0 0];\n\n"
+            f"internalField   uniform {ic:.4g};\n\n"
+            "boundaryField\n{\n"
+            f"    {surface_name} {{ type zeroGradient; }}\n"
+            f"    inlet   {{ type fixedValue; value uniform {ic:.4g}; }}\n"
+            f"    outlet  {{ type inletOutlet; inletValue uniform {ic:.4g}; "
+            f"value uniform {ic:.4g}; }}\n"
+            f"    \".*\"    {{ type inletOutlet; inletValue uniform {ic:.4g}; "
+            f"value uniform {ic:.4g}; }}\n"
+            "}\n"
+        )
+        (case_dir / "0" / ad).write_text(txt)
 
 
 def _write_physical_properties(case_dir: Path, nu: float) -> None:
@@ -833,6 +957,12 @@ def build_case(case: CFDCase, out_dir: Path) -> Path:
     inside_pt = (cx + L * 2.0, cy + L * 0.1, cz + L * 0.1)
 
     ground = case.ground_clearance is not None
+    # Arka plan hücresi DOMAIN+BÜTÇEDEN — istenen boy bütçeyi tek başına yiyorsa
+    # snappy hiçbir yüzey iyileştirmesi yapamaz (MiniHawk: 3.94M arka plan / 2.5M
+    # tavan → gövde 74 yüz). Boyu yalnız KABALAŞTIRIR, asla inceltmez.
+    cell_size, bg_bilgi = arka_plan_hucre_boyu(dmin, dmax, cell_size,
+                                               case.max_global_cells)
+    case.bg_bilgi = bg_bilgi
     _write_block_mesh(case_dir, dmin, dmax, cell_size, ground=ground)
     _write_snappy(case_dir, stl_name, surface_name, inside_pt, case)
     _write_surface_features(case_dir, stl_name)
@@ -846,7 +976,9 @@ def build_case(case: CFDCase, out_dir: Path) -> Path:
     case.n_processors = n_proc  # downstream run_cfd için sabitle
     _write_decompose_par(case_dir, n_proc)
     _write_transport(case_dir, case.nu)
-    _write_momentum(case_dir)
+    _write_momentum(case_dir, case.turbulence_model)
+    if case.turbulence_model in GECIS_MODELLERI:
+        _write_gecis_alanlari(case_dir, surface_name, case.turbulence_intensity)
     if case.compressible:
         _write_physical_properties_compressible(case_dir, case)
     else:
