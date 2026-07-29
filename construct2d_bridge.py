@@ -419,8 +419,19 @@ def _yakinsama(case: Path) -> dict:
 
 
 def run_validation(case_dir: str, alpha_deg=0.0, V=50.0, nu=1.48e-5,
-                   rho=1.225, chord=1.0, end_time=2000):
-    """Construct2D grid'inde (O- veya C-) kOmegaSST CFD -> Cd, Cl."""
+                   rho=1.225, chord=1.0, end_time=2000, model="kOmegaSST"):
+    """Construct2D grid'inde (O- veya C-) RANS CFD -> Cd, Cl.
+
+    model="kOmegaSSTLM": Langtry-Menter GEÇİŞ modeli (gammaInt + ReThetat alanları
+    otomatik yazılır). NEDEN gerekli: kOmegaSST hücum kenarından itibaren TAM
+    TÜRBÜLANSLI çözer. Re=2.5e5'te gerçek bir NACA2412'nin ön kordunun büyük kısmı
+    LAMİNERDİR; tam-türbülans sınır tabakayı aşırı kalınlaştırır ve viskoz
+    de-kamburlanma üretir. Ölçülen imza tam bu: taşıma EĞİMİ doğru (0.948·2π —
+    inviscid sirkülasyondan gelir) ama α_L0 −0.81° (olması gereken −2.07°; yüzeye
+    yakın yer-değiştirme kalınlığına duyarlıdır). Geometrinin doğru olduğu ayrıca
+    ölçüldü: grid yüzeyi girdi profilinden en fazla 6.5e-5 kord sapıyor ve grid'in
+    kamber çizgisinden hesaplanan α_L0 = −2.09°.
+    """
     import math
     import re
     case = Path(case_dir)
@@ -449,9 +460,22 @@ boundaryField{{ airfoil{{type omegaWallFunction; value uniform {w0:.4f};}} farfi
 dimensions [0 2 -1 0 0 0 0]; internalField uniform {nut0:.6e};
 boundaryField{{ airfoil{{type nutLowReWallFunction; value uniform 0;}} farfield{{type calculated; value uniform {nut0:.6e};}} frontAndBack{{type empty;}} }}""")
 
+    if model == "kOmegaSSTLM":
+        # Langtry-Menter iki ek tasima denklemi cozer; alanlari YOKSA cozucu
+        # aciklamasiz duser. Serbest-akis ReThetat'i turbulans siddetinden:
+        # Tu<=1.3% icin Re_theta_t = 1173.51 - 589.428*Tu + 0.2196/Tu^2 (Menter 2006).
+        Tu = max(100.0 * I, 0.027)
+        ret0 = (1173.51 - 589.428 * Tu + 0.2196 / Tu ** 2) if Tu <= 1.3 else \
+               331.5 * (Tu - 0.5658) ** -0.671
+        fa("gammaInt", """FoamFile{ version 2.0; format ascii; class volScalarField; object gammaInt; }
+dimensions [0 0 0 0 0 0 0]; internalField uniform 1;
+boundaryField{ airfoil{type zeroGradient;} farfield{type inletOutlet; inletValue uniform 1; value uniform 1;} frontAndBack{type empty;} }""")
+        fa("ReThetat", f"""FoamFile{{ version 2.0; format ascii; class volScalarField; object ReThetat; }}
+dimensions [0 0 0 0 0 0 0]; internalField uniform {ret0:.2f};
+boundaryField{{ airfoil{{type zeroGradient;}} farfield{{type inletOutlet; inletValue uniform {ret0:.2f}; value uniform {ret0:.2f};}} frontAndBack{{type empty;}} }}""")
     (case/"constant"/"momentumTransport").write_text(
         'FoamFile{ version 2.0; format ascii; class dictionary; location "constant"; object momentumTransport; }\n'
-        'simulationType RAS; RAS{ model kOmegaSST; turbulence on; printCoeffs on; }')
+        f'simulationType RAS; RAS{{ model {model}; turbulence on; printCoeffs on; }}')
     (case/"constant"/"transportProperties").write_text(
         f'FoamFile{{ version 2.0; format ascii; class dictionary; object transportProperties; }}\ntransportModel Newtonian; nu {nu};')
     (case/"system"/"controlDict").write_text(f"""FoamFile{{ version 2.0; format ascii; class dictionary; object controlDict; }}
@@ -460,15 +484,21 @@ deltaT 1; writeControl timeStep; writeInterval {end_time}; writeFrequency {end_t
 purgeWrite 1; writeFormat binary;
 functions{{ forces{{ type forces; libs ("libforces.so"); writeControl timeStep; writeInterval 50;
   patches ("airfoil"); rho rhoInf; rhoInf {rho}; pRef 0; CofR (0.25 0 0); }} }}""")
+    # GECIS MODELI iki ek tasima denklemi cozer; `default none` altinda semasi
+    # tanimlanmayan her div TERIMI cozucuyu dusurur ("div(phi,gammaInt) not found").
+    _lm_div = ("  div(phi,gammaInt) bounded Gauss upwind;\n"
+               "  div(phi,ReThetat) bounded Gauss upwind;\n"
+               if model == "kOmegaSSTLM" else "")
     (case/"system"/"fvSchemes").write_text("""FoamFile{ version 2.0; format ascii; class dictionary; object fvSchemes; }
 ddtSchemes{ default steadyState; }
 gradSchemes{ default cellLimited Gauss linear 1; }
 divSchemes{ default none; div(phi,U) bounded Gauss linearUpwindV grad(U);
   div(phi,k) bounded Gauss upwind; div(phi,omega) bounded Gauss upwind;
-  div((nuEff*dev2(T(grad(U))))) Gauss linear; }
+""" + _lm_div + """  div((nuEff*dev2(T(grad(U))))) Gauss linear; }
 laplacianSchemes{ default Gauss linear corrected; }
 interpolationSchemes{ default linear; } snGradSchemes{ default corrected; }
 wallDist{ method meshWave; }""")
+    _lm_relax = " gammaInt 0.5; ReThetat 0.5;" if model == "kOmegaSSTLM" else ""
     # Yuksek-aspect (y+<1, AR~10000) mesh icin: potentialFoam init + PCG + guclu relax
     (case/"system"/"fvSolution").write_text("""FoamFile{ version 2.0; format ascii; class dictionary; object fvSolution; }
 solvers{
@@ -476,10 +506,10 @@ solvers{
      nPreSweeps 0; nPostSweeps 2; nFinestSweeps 2; cacheAgglomeration on;
      agglomerator faceAreaPair; nCellsInCoarsestLevel 50; mergeLevels 1; }
   Phi{ solver GAMG; tolerance 1e-6; relTol 0.01; smoother DICGaussSeidel; nCellsInCoarsestLevel 50; }
-  "(U|k|omega)"{ solver smoothSolver; smoother symGaussSeidel; tolerance 1e-8; relTol 0.05; nSweeps 2; } }
+  "(U|k|omega|gammaInt|ReThetat)"{ solver smoothSolver; smoother symGaussSeidel; tolerance 1e-8; relTol 0.05; nSweeps 2; } }
 SIMPLE{ nNonOrthogonalCorrectors 2; consistent yes; residualControl{ p 1e-6; U 1e-6; } }
 potentialFlow{ nNonOrthogonalCorrectors 5; }
-relaxationFactors{ equations{ U 0.7; k 0.5; omega 0.5; } fields{ p 1.0; } }""")
+relaxationFactors{ equations{ U 0.7; k 0.5; omega 0.5;""" + _lm_relax + """ } fields{ p 1.0; } }""")
     # GEVSETME: `consistent yes` (SIMPLEC) hiz duzeltmesini alpha_p = 1 varsayarak kurar;
     # basinci 0.2'ye kadar gevsetmek bu varsayimi bozar ve SIRKULASYONUN kurulmasini
     # asiri yavaslatir. Olculdu (NACA2412, alpha=0, ayni mesh, 4000 iterasyon):
