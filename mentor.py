@@ -60,7 +60,32 @@ def _cfd_record(path: Path) -> dict | None:
             "yplus_hedef": bl.get("yplus_hedef"), "yplus_ort": yp.get("ort"),
             "drift_ok": conv.get("drift_ok"),
             "gci_asimptotik": str(md.get("verdikt", "")).startswith("✅"),
-            "n_uyari": len(s.get("uyarilar") or [])}
+            "n_uyari": len(s.get("uyarilar") or []),
+            # ÖĞRENİLEBİLİR Mİ? Kayıt TARİHİNE göre değil, GÖVDENİN GERÇEKTEN
+            # ÇÖZÜLÜP ÇÖZÜLMEDİĞİNE göre. 2026-07-29'a kadarki tüm araç koşularında
+            # arka plan mesh'i hücre bütçesini tek başına yiyordu; snappy hiç yüzey
+            # iyileştirmesi yapamıyor ve gövde 74 yüzle temsil ediliyordu (ölçüldü).
+            # O koşulardan öğrenilen her örüntü, çözülmemiş bir geometrinin
+            # örüntüsüdür. Ama tarihe göre kesmek yanlış olurdu: eski bir koşuda
+            # geometri tesadüfen çözülmüş olabilir, yeni bir koşuda çözülmemiş
+            # olabilir. Ölçüm ayraçtır.
+            #
+            # `yuzey_cozunurlugu` alanı düzeltmeyle geldi; yoksa ölçüm YOK demektir
+            # ve "ölçemedim" ≠ "iyi" (bu oturumun tekrarlayan dersi).
+            **_yuzey_gecerlilik(bl)}
+
+
+def _yuzey_gecerlilik(bl: dict) -> dict:
+    """Bu koşudan öğrenilebilir mi? Ölçüm yoksa 'bilinmiyor' — 'iyi' DEĞİL."""
+    yc = bl.get("yuzey_cozunurlugu")
+    if not isinstance(yc, dict):
+        return {"yuzey_cozuldu": None,
+                "ogrenilebilir": False,
+                "gecersizlik": "yuzey cozunurlugu OLCULMEMIS (duzeltme oncesi kosu)"}
+    ok = bool(yc.get("cozuldu"))
+    return {"yuzey_cozuldu": ok, "ogrenilebilir": ok,
+            **({} if ok else
+               {"gecersizlik": "; ".join(yc.get("gerekce", []))[:160]})}
 
 
 def _fea_record(path: Path) -> dict | None:
@@ -104,17 +129,37 @@ def harvest_mesh(roots=_SCAN_ROOTS) -> dict:
     MESH_MEMORY.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in recs),
                            encoding="utf-8")
     n_cfd = sum(1 for r in recs if r["tur"] == "cfd")
+    cfd = [r for r in recs if r["tur"] == "cfd"]
+    ogr = sum(1 for r in cfd if r.get("ogrenilebilir"))
+    olculmemis = sum(1 for r in cfd if r.get("yuzey_cozuldu") is None)
+    # SESSİZ DARALTMA YOK: kaç kaydın öğrenmeye girmediği ve NEDEN girmediği
+    # raporlanır. Havuz sessizce küçülürse "modelim neden kötü öneriyor"
+    # sorusunun cevabı görünmez olur.
     return {"n_kayit": len(recs), "n_cfd": n_cfd, "n_fea": len(recs) - n_cfd,
-            "n_basarisiz": sum(1 for r in recs if not r["ok"]), "dosya": str(MESH_MEMORY)}
+            "n_basarisiz": sum(1 for r in recs if not r["ok"]),
+            "n_ogrenilebilir": ogr, "n_dislanan": n_cfd - ogr,
+            "n_yuzey_olculmemis": olculmemis, "dosya": str(MESH_MEMORY)}
 
 
-def _load(tur: str) -> list[dict]:
+def _load(tur: str, sadece_gecerli: bool = True) -> list[dict]:
+    """Öğrenme havuzu. `sadece_gecerli`: gövdesi ÇÖZÜLMEMİŞ koşular havuza GİRMEZ.
+
+    Bu filtre olmadan kNN, çözülmemiş geometrilerin örüntüsünü öğrenir ve onu
+    güvenle önerir — nitekim öğrenmişti: mentor "katman-çökmesi imzası, katmansız
+    'hassas_nl' düşünün" diyordu; ÖLÇÜLDÜ ki `hassas_nl` ile `hassas` BİREBİR aynı
+    mesh'i veriyor (660862 hücre, iki preset de ref_bump=+1). Yani bozuk veriden
+    tutarlı ama YANLIŞ bir kural çıkmıştı.
+
+    Sessizce daraltmıyoruz: `harvest_mesh` kaç kaydın dışlandığını raporlar.
+    """
     if not MESH_MEMORY.exists():
         return []
     out = []
     for line in MESH_MEMORY.read_text(encoding="utf-8").splitlines():
         try:
             r = json.loads(line)
+            if sadece_gecerli and r.get("tur") == "cfd" and not r.get("ogrenilebilir"):
+                continue
             if r.get("tur") == tur and r.get("metrik"):
                 out.append(r)
         # sessiz-yutma: kabul — bozuk satır atlanır; kütüphane kısmi yüklenir, hüküm üretmez

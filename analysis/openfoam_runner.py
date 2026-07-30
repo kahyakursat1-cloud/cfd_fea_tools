@@ -1122,6 +1122,31 @@ def _wsl_kill(patterns, dizin: str | None = None) -> None:
         pass
 
 
+def _cozucu_yasiyor(patterns, dizin: str) -> bool:
+    """Verilen case dizininde HÂLÂ koşan bir çözücü var mı? (kapsamlı, /proc/cwd)"""
+    if not patterns:
+        return False
+    kos = "; ".join(
+        f'for _p in $(pgrep -f {p} 2>/dev/null); do '
+        f'[ "$(readlink -f /proc/$_p/cwd 2>/dev/null)" = "{dizin}" ] && echo VAR; done'
+        for p in patterns)
+    try:
+        return "VAR" in (linux_run(kos + "; true", 60).stdout or "")
+    # sessiz-yutma: kabul — sorgulanamıyorsa "yaşamıyor" varsayılır; en kötü hâl
+    # eski davranıştır (erken okuma), yeni bir kilitlenme riski getirmez.
+    except Exception:
+        return False
+
+
+def _cozucu_bitmesini_bekle(patterns, dizin: str, tmo: int, adim: int = 10) -> None:
+    """Sarmalayıcı döndükten sonra Linux-tarafı çözücünün GERÇEKTEN bitmesini bekle."""
+    t0 = time.time()
+    while time.time() - t0 < tmo:
+        if not _cozucu_yasiyor(patterns, dizin):
+            return
+        time.sleep(adim)
+
+
 def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
              progress_callback=None) -> CFDResult:
     """Case'i kur, mesh'i üret, çöz, sonuçları parse et."""
@@ -1211,6 +1236,19 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
                     break
             if time.time() - t0 > tmo:
                 _wsl_kill(bins, exec_dir); break
+        # SARMALAYICI DÖNDÜ ≠ ÇÖZÜCÜ BİTTİ. `wsl bash -c` sarmalayıcısı, Linux
+        # tarafındaki süreç HÂLÂ KOŞARKEN dönebiliyor; bu depoda daha önce
+        # construct2d_bridge'de belgelenmişti ama KANONİK koşucuda yoktu.
+        #
+        # ÖLÇÜLDÜ (gripen_AB_Right): sonuc.json 13:51'de yazıldı, log.foamRun
+        # 13:59'da "End" ile TEMİZ bitti (800 iterasyon, öldürülmedi). Boru hattı
+        # kuvvet tarihçesini 213 kayıtta okudu — nihai 801'in dörtte biri.
+        # Çökme üretmediği, MAKUL GÖRÜNEN kısmi bir sonuç ürettiği için fark
+        # edilmedi. Sonuç: salınım hükmü koşudan koşuya değişiyordu (aynı geometri,
+        # aynı ayar: geçiş 3 ↔ 12). Cd %1 içinde tekrarlanabilirdi çünkü kuyruk
+        # ortalaması kısmi tarihçede de yakın çıkıyor — hüküm ise değildi.
+        if not early:
+            _cozucu_bitmesini_bekle(bins, exec_dir, tmo)
         try:
             proc.wait(timeout=30)
         # sessiz-yutma: kabul — erken-durdurma İYİLEŞTİRMESİ; düşerse koşu tam süre devam eder (güvenli taraf)

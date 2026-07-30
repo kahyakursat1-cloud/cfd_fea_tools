@@ -51,10 +51,16 @@ def test_advise_mesh_learns_layer_collapse(tmp_path, monkeypatch):
     # → öneri hassas_nl + risk metni katman-çökmesini söylemeli (hq kampanya dersi, veriden).
     monkeypatch.setattr(mentor, "MESH_MEMORY", tmp_path / "mem.jsonl")
     m = _metrik()
+    # ogrenilebilir=True: yuzey-cozunurluk filtresi varsayilan ACIK. Bu test
+    # MEKANIZMAYI dogruluyor (veriden ogren), gercek dunyadaki 'hassas_nl' kuralini
+    # DEGIL — o kural olculdu ve YANLIS cikti (hassas_nl ile hassas ayni mesh'i
+    # veriyor, 660862 hucre; ikisinin de ref_bump'i +1).
     recs = ([{"tur": "cfd", "tip": "ucak", "metrik": m, "kalite": "hassas",
-              "ok": False, "n_layers": 12, "cells": None} for _ in range(3)] +
+              "ok": False, "n_layers": 12, "cells": None,
+              "yuzey_cozuldu": True, "ogrenilebilir": True} for _ in range(3)] +
             [{"tur": "cfd", "tip": "ucak", "metrik": m, "kalite": "hassas_nl",
-              "ok": True, "n_layers": 0, "cells": 2_000_000} for _ in range(3)])
+              "ok": True, "n_layers": 0, "cells": 2_000_000,
+              "yuzey_cozuldu": True, "ogrenilebilir": True} for _ in range(3)])
     (tmp_path / "mem.jsonl").write_text(
         "".join(json.dumps(r) + "\n" for r in recs), encoding="utf-8")
     out = mentor.advise_mesh(m, "ucak")
@@ -69,6 +75,9 @@ def test_advise_mesh_yplus_correction(tmp_path, monkeypatch):
     monkeypatch.setattr(mentor, "MESH_MEMORY", tmp_path / "mem.jsonl")
     m = _metrik()
     recs = [{"tur": "cfd", "tip": "roket", "metrik": m, "kalite": "hassas", "ok": True,
+             # yuzey-cozunurluk filtresi varsayilan ACIK: sentetik kayit da
+             # olculmus olmali, yoksa havuza girmez (test_ogrenme_gecerliligi)
+             "yuzey_cozuldu": True, "ogrenilebilir": True,
              "n_layers": 12, "cells": 1_000_000, "yplus_hedef": 1.0, "yplus_ort": 3.2}
             for _ in range(4)]
     (tmp_path / "mem.jsonl").write_text(
@@ -84,6 +93,9 @@ def test_advise_mesh_extreme_yplus_is_collapse_not_scaling(tmp_path, monkeypatch
     monkeypatch.setattr(mentor, "MESH_MEMORY", tmp_path / "mem.jsonl")
     m = _metrik()
     recs = [{"tur": "cfd", "tip": "roket", "metrik": m, "kalite": "hassas", "ok": True,
+             # yuzey-cozunurluk filtresi varsayilan ACIK: sentetik kayit da
+             # olculmus olmali, yoksa havuza girmez (test_ogrenme_gecerliligi)
+             "yuzey_cozuldu": True, "ogrenilebilir": True,
              "n_layers": 12, "cells": 1_000_000, "yplus_hedef": 1.0, "yplus_ort": 164.0}
             for _ in range(4)]
     (tmp_path / "mem.jsonl").write_text(
