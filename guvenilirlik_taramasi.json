@@ -6,28 +6,29 @@
   "oran_pct": 0.0,
   "basarisizlik_sebepleri": {
     "duvar/y+": 12,
-    "fizik-dışı": 3
+    "fizik-dışı": 2,
+    "yakınsama/salınım": 1
   },
   "kosular": [
     {
       "stl": "minihawk_vtol.stl",
       "aile": "real_geo",
-      "Cd": 0.01207,
-      "hucre": 711357,
-      "sure_dk": 8.3,
+      "Cd": 0.0306,
+      "hucre": 106587,
+      "sure_dk": 2.5,
       "savunulabilir": false,
       "gerekce": [
-        "y+=1866 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+        "y+=724 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
       ],
       "kapi": "✅ yakınsadı",
-      "duvar": "y+=1866 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+      "duvar": "y+=724 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
     },
     {
       "stl": "ciftkuyruk_kucuk.stl",
       "aile": "nx_geo_egitim",
       "Cd": 0.0,
-      "hucre": 701480,
-      "sure_dk": 12.9,
+      "hucre": 106140,
+      "sure_dk": 2.6,
       "savunulabilir": false,
       "gerekce": [
         "⛔ fizik-dışı: negatif/sıfır sürükleme (Cd=0.00000) — fiziksel olarak imkânsız",
@@ -39,137 +40,137 @@
     {
       "stl": "gripen_AB_Right.stl",
       "aile": "real_geo",
-      "Cd": 0.25228,
-      "hucre": 721234,
-      "sure_dk": 9.0,
+      "Cd": 0.16948,
+      "hucre": 105291,
+      "sure_dk": 1.5,
       "savunulabilir": false,
       "gerekce": [
-        "y+=2065 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+        "y+=956 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
       ],
       "kapi": "✅ yakınsadı",
-      "duvar": "y+=2065 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+      "duvar": "y+=956 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
     },
     {
       "stl": "multikopter_kucuk.stl",
       "aile": "nx_geo",
-      "Cd": 0.06979,
-      "hucre": 706874,
-      "sure_dk": 5.4,
+      "Cd": 0.08331,
+      "hucre": 106455,
+      "sure_dk": 1.4,
       "savunulabilir": false,
       "gerekce": [
-        "y+=2683 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+        "y+=1264 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
       ],
       "kapi": "✅ yakınsadı",
-      "duvar": "y+=2683 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+      "duvar": "y+=1264 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
     },
     {
       "stl": "kaldirici_e_kapsulsu.stl",
       "aile": "nx_geo_egitim",
-      "Cd": 0.17549,
-      "hucre": 692624,
-      "sure_dk": 5.1,
+      "Cd": 0.22041,
+      "hucre": 104575,
+      "sure_dk": 1.5,
       "savunulabilir": false,
       "gerekce": [
-        "y+=5695 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+        "y+=2247 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
       ],
       "kapi": "✅ yakınsadı",
-      "duvar": "y+=5695 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+      "duvar": "y+=2247 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
     },
     {
       "stl": "gondol_dort.stl",
       "aile": "nx_geo_kor",
-      "Cd": 0.00163,
-      "hucre": 686922,
-      "sure_dk": 5.4,
+      "Cd": 0.0,
+      "hucre": 104473,
+      "sure_dk": 2.4,
       "savunulabilir": false,
       "gerekce": [
-        "y+=26673 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+        "⛔ fizik-dışı: negatif/sıfır sürükleme (Cd=0.00000) — fiziksel olarak imkânsız",
+        "y+ ölçülemedi (foamPostProcess çıktısında y⁺ satırı yok)"
       ],
-      "kapi": "✅ yakınsadı",
-      "duvar": "y+=26673 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+      "kapi": "⛔ fizik-dışı",
+      "duvar": "y+ ölçülemedi (foamPostProcess çıktısında y⁺ satırı yok)"
     },
     {
       "stl": "izgara_ld7.stl",
       "aile": "nx_geo_kor",
-      "Cd": 0.0,
-      "hucre": 679104,
-      "sure_dk": 10.8,
+      "Cd": 0.06266,
+      "hucre": 107632,
+      "sure_dk": 1.4,
       "savunulabilir": false,
       "gerekce": [
-        "⛔ fizik-dışı: negatif/sıfır sürükleme (Cd=0.00000) — fiziksel olarak imkânsız",
-        "y+ ölçülemedi (foamPostProcess çıktısında y⁺ satırı yok)"
+        "y+=2486 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
       ],
-      "kapi": "⛔ fizik-dışı",
-      "duvar": "y+ ölçülemedi (foamPostProcess çıktısında y⁺ satırı yok)"
+      "kapi": "✅ yakınsadı",
+      "duvar": "y+=2486 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
     },
     {
       "stl": "genel_kapsul_uzun.stl",
       "aile": "nx_geo_egitim",
-      "Cd": 0.14234,
-      "hucre": 679088,
-      "sure_dk": 8.1,
+      "Cd": 0.09738,
+      "hucre": 108179,
+      "sure_dk": 1.4,
       "savunulabilir": false,
       "gerekce": [
-        "y+=4289 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+        "y+=1866 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
       ],
       "kapi": "✅ yakınsadı",
-      "duvar": "y+=4289 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+      "duvar": "y+=1866 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
     },
     {
       "stl": "su57.stl",
       "aile": "real_geo",
-      "Cd": 0.00227,
-      "hucre": 692640,
-      "sure_dk": 5.4,
+      "Cd": 0.05829,
+      "hucre": 103539,
+      "sure_dk": 1.7,
       "savunulabilir": false,
       "gerekce": [
-        "y+=70766 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+        "y+=27352 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
       ],
       "kapi": "✅ yakınsadı",
-      "duvar": "y+=70766 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+      "duvar": "y+=27352 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
     },
     {
       "stl": "a320_Body_A320.stl",
       "aile": "real_geo",
-      "Cd": 0.0036,
-      "hucre": 701995,
-      "sure_dk": 5.5,
+      "Cd": 0.00769,
+      "hucre": 106565,
+      "sure_dk": 1.4,
       "savunulabilir": false,
       "gerekce": [
-        "y+=18271 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+        "y+=7411 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
       ],
       "kapi": "✅ yakınsadı",
-      "duvar": "y+=18271 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+      "duvar": "y+=7411 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
     },
     {
       "stl": "genel_kup800.stl",
       "aile": "nx_geo",
-      "Cd": 0.83521,
-      "hucre": 756476,
-      "sure_dk": 5.4,
+      "Cd": 1.04679,
+      "hucre": 106052,
+      "sure_dk": 1.7,
       "savunulabilir": false,
       "gerekce": [
-        "y+=2509 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+        "⚠️ sınırda: rezidüel hedefin dışında",
+        "y+=546 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
       ],
-      "kapi": "✅ yakınsadı",
-      "duvar": "y+=2509 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+      "kapi": "⚠️ sınırda",
+      "duvar": "y+=546 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
     },
     {
       "stl": "ucak_okkanat.stl",
       "aile": "nx_geo",
-      "Cd": 0.0,
-      "hucre": 706876,
-      "sure_dk": 11.3,
+      "Cd": 0.01246,
+      "hucre": 106245,
+      "sure_dk": 1.4,
       "savunulabilir": false,
       "gerekce": [
-        "⛔ fizik-dışı: negatif/sıfır sürükleme (Cd=0.00000) — fiziksel olarak imkânsız",
-        "y+ ölçülemedi (foamPostProcess çıktısında y⁺ satırı yok)"
+        "y+=3436 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
       ],
-      "kapi": "⛔ fizik-dışı",
-      "duvar": "y+ ölçülemedi (foamPostProcess çıktısında y⁺ satırı yok)"
+      "kapi": "✅ yakınsadı",
+      "duvar": "y+=3436 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
     }
   ],
-  "sure_dk": 92.5,
+  "sure_dk": 20.9,
   "olcut": {
     "yplus_bandi": [
       30.0,

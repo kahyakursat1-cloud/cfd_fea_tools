@@ -90,3 +90,34 @@ def test_uyari_EN_BASA_ekleniyor():
     src = inspect.getsource(vp.run_vehicle_analysis)
     i = src.index("GÖVDE YÜZEYİ ÇÖZÜLMEDİ")
     assert "uyarilar.insert(0," in src[max(0, i - 200):i]
+
+
+def test_resolution_warning_GERCEK_arka_plani_kullanir():
+    """Niyetle hesaplamak çözünürlüğü OLDUĞUNDAN İYİ gösterir.
+
+    MiniHawk: niyet 0.1667 m, snappy'nin teslim ettiği 0.3072 m. Aynı geometri
+    için bekçi niyetle "yeterli" derken gerçekle "yetersiz" demeli."""
+    from vehicle_pipeline import resolution_warning
+    # ince ozellik 0.021 m, ref_max=3 -> niyet hucresi 0.1667/8=0.0208 -> ~1 hucre
+    niyet = resolution_warning(1.5, 9, 3, 0.021)
+    gercek = resolution_warning(1.5, 9, 3, 0.021, bg_cell_m=0.3072)
+    assert niyet is not None and gercek is not None
+    # gercek arka plan KABA oldugu icin oran daha kotu cikmali
+    import re
+    o_n = float(re.search(r"~([\d.]+) kat", niyet).group(1))
+    o_g = float(re.search(r"~([\d.]+) kat", gercek).group(1))
+    assert o_g < o_n, f"gercek({o_g}) niyetten({o_n}) daha iyi gorunuyor"
+
+
+def test_bekci_bol_butcede_susuyor():
+    from vehicle_pipeline import resolution_warning
+    assert resolution_warning(1.5, 9, 4, 0.5, bg_cell_m=0.1667) is None
+
+
+def test_pipeline_bekciye_GERCEK_boyu_geciriyor():
+    import inspect
+
+    import vehicle_pipeline as vp
+    src = inspect.getsource(vp.run_vehicle_analysis)
+    i = src.index("resolution_warning(")
+    assert "bg_cell_m=" in src[i:i + 400], "gercek arka plan boyu gecirilmiyor"

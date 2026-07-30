@@ -508,10 +508,18 @@ def estimate_thin_thickness(m: trimesh.Trimesh, samples: int = 200,
 
 
 def resolution_warning(lmax_m: float, bg_div: int, ref_max: int, min_dim_m: float,
-                       min_cells_across: int = 6, olculdu: bool = True) -> str | None:
+                       min_cells_across: int = 6, olculdu: bool = True,
+                       bg_cell_m: float | None = None) -> str | None:
     """En ince bbox boyutunun en ince yüzey hücresine oranı — kanat/fin gibi
-    ince özelliklerin çözünürlük bekçisi. Yetersizse uyarı metni döner."""
-    surf_cell = (lmax_m / bg_div) / (2 ** ref_max)
+    ince özelliklerin çözünürlük bekçisi. Yetersizse uyarı metni döner.
+
+    `bg_cell_m`: GERÇEKTEN kullanılan arka plan hücresi. Verilmezse `lmax/bg_div`
+    varsayılır — ama bu artık NİYETTİR: `arka_plan_hucre_boyu` bütçe için hücreyi
+    KABALAŞTIRABİLİR. Niyetle hesaplamak yüzey hücresini olduğundan ince gösterir,
+    yani bu bekçi çözünürlüğü OLDUĞUNDAN İYİ raporlar. MiniHawk'ta bunun uç hâli
+    ölçüldü: bekçi 0.010 m diyip "sorun yok" verirken snappy 0.167 m teslim etti.
+    """
+    surf_cell = ((bg_cell_m if bg_cell_m else lmax_m / bg_div) / (2 ** ref_max))
     n_across = min_dim_m / surf_cell
     if n_across >= min_cells_across:
         return None
@@ -1132,8 +1140,10 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         uyarilar.append("STL su geçirmez değil — snappyHexMesh toleranslı ama "
                         "kapalı yüzey önerilir")
     thin = geo.get("ince_kalinlik_m") or min(geo["boyutlar_m"])
+    # GERÇEK arka plan hücresini geçir — build_case bütçe için kabalaştırmış olabilir.
     rw = resolution_warning(geo["lmax_m"], q["bg_div"], case.refinement_max, thin,
-                            olculdu=bool((geo.get("ince_kalinlik_olculdu") or {}).get("olculdu")))
+                            olculdu=bool((geo.get("ince_kalinlik_olculdu") or {}).get("olculdu")),
+                            bg_cell_m=(getattr(case, "bg_bilgi", None) or {}).get("secilen_m"))
     if rw:
         uyarilar.append(rw)
     # Mesh-kalite uyarısı (reject zaten run_cfd'de elendi; warn-seviyesini yüzeye çıkar)
