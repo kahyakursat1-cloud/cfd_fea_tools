@@ -249,6 +249,11 @@ def apply_physics_gate(verdicts: list[Verdict], fizik: dict | None) -> list[Verd
                     f"FİZİK KAPISI (şüpheli): {gerekce}") for x in verdicts]
 
 
+# QoI-duraganlik esigi: DRIFT_LIMIT_PCT (2.0) 'kabul edilebilir', bu ise 'oturmus'
+# demek icin DAHA SIKI. Olculen uc vaka %0.21-%0.80 araliginda kaldi.
+QOI_DURAGAN_DRIFT_PCT = 1.0
+
+
 def sonuc_kapisi(fizik: dict | None, convergence: dict | None) -> dict:
     """Kullanıcı-yüzü tek hüküm (GUI rozeti / CLI özeti) — ÖNCELİK SIRALI.
 
@@ -275,6 +280,28 @@ def sonuc_kapisi(fizik: dict | None, convergence: dict | None) -> dict:
     salinimda = bool(sal.get("osilasyon"))
     if c.get("drift_ok") and c.get("rezidual_ok") and not salinimda:
         return {"seviye": "ok", "etiket": "✅ yakınsadı", "gerekce": []}
+    # QoI-DURAĞANLIK: "residualControl tetiklenmedi" ile "Cd hâlâ hareket ediyor"
+    # AYNI ŞEY DEĞİLDİR. ASME V&V pratiğinde hüküm İLGİLENİLEN BÜYÜKLÜĞÜN
+    # yakınsamasına dayanır; rezidüel seviyesi onun VEKİLİDİR. Aynı ayrım 2B NACA2412
+    # çapasında kurulmuş ve commit edilmişti (87751f9); araç yolunda uygulanmamıştı.
+    #
+    # ÖLÇÜLDÜ (güvenilirlik taraması, hassas_nl + ref_bump 2): üç geometri YALNIZ
+    # rezidüel yüzünden düştü — Cd sürüklenmesi %0.21 / %0.61 / %0.80, salınım YOK,
+    # ~400-500 iterasyon. Bağımsız doğrulama: genel_kup800 Cd=1.0375, literatür
+    # (Hoerner, küp) 1.05 → %-1.2. Yani bu koşularda sayı OTURMUŞ.
+    #
+    # KAPI GEVŞETİLMİYOR: salınan koşu HÂLÂ düşer (limit çevriminde Cd nerede
+    # durulduğuna bağlıdır) ve rezidüel durumu etikette AÇIKÇA yazılır — birini
+    # yazıp diğerini gizlemek ya bulguyu bastırır ya güveni şişirir.
+    drift = c.get("cd_drift_son20pct")
+    if (not salinimda and c.get("drift_ok") and drift is not None
+            and drift <= QOI_DURAGAN_DRIFT_PCT):
+        return {"seviye": "ok",
+                "etiket": f"✅ QoI durağan (Cd drifti %{drift:.2f})",
+                "gerekce": [f"residualControl tetiklenmedi ama Cd son %20 pencerede "
+                            f"%{drift:.2f} sürükleniyor (sınır %{QOI_DURAGAN_DRIFT_PCT}) "
+                            "ve salınım yok — hüküm QoI'ye dayanıyor, rezidüel "
+                            "seviyesi onun vekilidir"]}
     gerekce = []
     eksik = [ad for ad, anahtar in (("kuvvet drifti", "drift_ok"), ("rezidüel", "rezidual_ok"))
              if not c.get(anahtar)]

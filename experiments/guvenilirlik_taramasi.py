@@ -102,6 +102,10 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=12)
     ap.add_argument("--kalite", default="hizli")
+    # ref_bump: yuzey iyilestirme kademesi. MiniHawk'ta OLCULDU —
+    #   +1 -> y+ 340 (band disi) | +2 -> y+ 112 | +3 -> y+ 61 (ikisi de BAND ICI)
+    # y+ ilk hucre yuksekligiyle dogru orantili; tek gercek kaldirac budur.
+    ap.add_argument("--ref-bump", type=int, default=0)
     ap.add_argument("--hiz", type=float, default=15.0)
     ap.add_argument("--tohum", type=int, default=20260728)
     ap.add_argument("--stl", nargs="*", default=None)
@@ -126,7 +130,7 @@ def main() -> int:
         t1 = time.time()
         try:
             r = run_vehicle_analysis(str(stl), velocity=a.hiz, quality=a.kalite,
-                                     out_root="vehicle_runs")
+                                     ref_bump=a.ref_bump, out_root="vehicle_runs")
             h = savunulabilir_mi(r)
             k = {"stl": stl.name, "aile": stl.parent.name,
                  "Cd": r.cd, "hucre": (r.mesh or {}).get("cells"),
@@ -158,7 +162,7 @@ def main() -> int:
 
     rec = {
         "vaka": (f"Güvenilirlik taraması — {len(kayitlar)} geometri, kalite={a.kalite}, "
-                 f"V={a.hiz} m/s"),
+                 f"V={a.hiz} m/s, ref_bump={a.ref_bump}"),
         "_neden": ("Uygulamanin BASARI ORANI olculmemisti. 'Savunulabilir' tanimi "
                    "mevcut kapilarin birlesimidir (sonuc_kapisi + duvar cozunurlugu), "
                    "yazarin yargisi degil."),
@@ -174,7 +178,7 @@ def main() -> int:
                   "kapi": "validity_envelope.sonuc_kapisi seviyesi 'ok' olmali"},
         "verdikt": "",
         "_uretim": f"Üretim: python experiments/guvenilirlik_taramasi.py --n {a.n} "
-                   f"--kalite {a.kalite} --tohum {a.tohum}",
+                   f"--kalite {a.kalite} --ref-bump {a.ref_bump} --tohum {a.tohum}",
     }
     rec["verdikt"] = (
         f"{len(gecen)}/{len(kayitlar)} geometri savunulabilir Cd uretti (%{rec['oran_pct']}). "
