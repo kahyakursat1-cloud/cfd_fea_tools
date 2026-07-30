@@ -598,6 +598,57 @@ def yuzey_yuz_sayisi(case_dir: Path, patch: str) -> int | None:
     return int(m.group(1)) if m else None
 
 
+KATMAN_YIGIN_PAYI = 0.5   # yığın, yerel YARI kalınlığın en fazla bu kadarını kaplasın
+
+
+def katman_sayisi_sigdir(n_istenen: int, h1_m: float, en_ince_m: float | None,
+                         genisleme: float = 1.25,
+                         pay: float = KATMAN_YIGIN_PAYI) -> dict:
+    """Prizma katman YIĞINI yerel kalınlığa sığmıyorsa katman sayısını AZALT.
+
+    ÖLÇÜLEN ÇÖKME MEKANİZMASI (MiniHawk, log.snappyHexMesh):
+        patch faces layers near-wall  overall
+              3060  12     4.84e-05   0.00263      <- snappy 12 katmani EKLEDI
+        Detected 53939 illegal faces (concave, zero area or negative pyramid)
+        Extruding 0 out of 3060 faces (0%). Removed extrusion at 1658 faces.
+    Ondan ÖNCEKİ ve SONRAKİ kalite kontrollerinde bozuk yüz 0 — yani mesh sağlam,
+    bozulmayı katman ekleme adımının KENDİSİ üretiyor. Sebep aritmetik: istenen
+    yığın 2.63 mm, firar kenarı 1.19 mm. İnce bir özellikte katmanlar İKİ yüzeyden
+    içeri büyür, yani her yakaya kalınlığın YARISI kalır (0.595 mm). 2.63 mm istemek
+    katmanları birbirinin içine sokup negatif hacimli hücre üretir.
+
+    `maxThicknessToMedialRatio` gibi parametreleri kurcalamak semptomu gizler;
+    asıl mesele yığının yerel kalınlığa göre boyutlandırılmamasıdır.
+
+    Yığın kalınlığı: h1·(r^n − 1)/(r − 1). Sığan EN BÜYÜK n döndürülür.
+    """
+    def yigin(n: int) -> float:
+        if n <= 0:
+            return 0.0
+        return (h1_m * n if abs(genisleme - 1.0) < 1e-9
+                else h1_m * (genisleme ** n - 1.0) / (genisleme - 1.0))
+
+    istenen_yigin = yigin(n_istenen)
+    if not en_ince_m or en_ince_m <= 0 or h1_m <= 0:
+        return {"n": n_istenen, "kisitlandi": False, "yigin_m": istenen_yigin,
+                "neden": "en ince özellik ölçülemedi — sınır uygulanamadı"}
+    sinir = pay * (en_ince_m / 2.0)          # her yakaya yarı kalınlık kalır
+    if istenen_yigin <= sinir:
+        return {"n": n_istenen, "kisitlandi": False, "yigin_m": istenen_yigin,
+                "sinir_m": sinir}
+    n = n_istenen
+    while n > 0 and yigin(n) > sinir:
+        n -= 1
+    return {"n": n, "kisitlandi": True, "istenen_n": n_istenen,
+            "yigin_m": yigin(n), "istenen_yigin_m": istenen_yigin,
+            "sinir_m": sinir, "en_ince_m": en_ince_m,
+            "neden": (f"{n_istenen} katmanin yigini {istenen_yigin * 1e3:.2f} mm, "
+                      f"en ince ozellik {en_ince_m * 1e3:.2f} mm -> yaka basina "
+                      f"{sinir * 1e3:.2f} mm sinir. {n} katmana dusuruldu "
+                      f"({yigin(n) * 1e3:.2f} mm). Sinirsiz istek snappy'de "
+                      f"negatif hacimli hucre uretip TUM ekstruzyonu geri aldiriyor")}
+
+
 def parse_layer_report(log: Path) -> dict:
     """snappyHexMesh'in KENDİ katman raporunu oku — istenen vs EKLENEN katman.
 
@@ -953,6 +1004,16 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
 
     # KURULUM KAPISI — çözücüden ÖNCE. Ölçek/eksen/referans-alan hatası saatlerce
     # koşup "geçerli görünen" ama başka bir problemin cevabı olan bir sayı üretir.
+    # KATMAN YIĞINI YEREL KALINLIĞA SIĞMALI. Sığmazsa snappy 12 katmanı ekler,
+    # 53939 bozuk yüz üretir ve TÜM ekstrüzyonu geri alır → 0 katman (ölçüldü).
+    # Az katman istemek, çok katman isteyip HİÇ alamamaktan iyidir.
+    _katman_sigdirma = None
+    if n_layers > 0:
+        _h1 = first_layer_height(velocity, geo["lmax_m"], yplus_target)
+        _katman_sigdirma = katman_sayisi_sigdir(
+            n_layers, _h1, geo.get("min_ozellik_m") or geo.get("ince_kalinlik_m"))
+        if _katman_sigdirma["kisitlandi"]:
+            n_layers = _katman_sigdirma["n"]
     kurulum_uyarilari = geometry_sanity(geo, vehicle_type, velocity, n_layers=n_layers)
     # GEÇİŞ MODELİ ÖN KOŞULU — ÇÖZÜCÜDEN ÖNCE. Langtry-Menter laminer bölgeyi sınır
     # tabakanın İÇİNDE çözer; duvar-fonksiyonu mesh'inde (y⁺≫30) laminer altkatman
@@ -1184,6 +1245,10 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     _yc = yuzey_cozunurluk_hukmu(_sn.read_text(errors="ignore") if _sn.exists() else "",
                                  yuzey_yuz_sayisi(case_dir, _patch))
     base.sinir_tabaka["yuzey_cozunurlugu"] = _yc
+    if _katman_sigdirma:
+        base.sinir_tabaka["katman_sigdirma"] = _katman_sigdirma
+        if _katman_sigdirma.get("kisitlandi"):
+            uyarilar.append("KATMAN SAYISI SINIRLANDI: " + _katman_sigdirma["neden"])
     if getattr(case, "bg_bilgi", None):
         base.sinir_tabaka["arka_plan"] = case.bg_bilgi
     if not _yc["cozuldu"]:
