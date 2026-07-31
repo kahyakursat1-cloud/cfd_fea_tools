@@ -754,6 +754,69 @@ def first_layer_height(velocity, lref, yplus_target, nu=1.5e-5):
     return 2.0 * yplus_target * nu / utau
 
 
+YPLUS_BANDI = (30.0, 300.0)    # duvar-fonksiyonu log-bölgesi
+# Ham düz-plaka formülü ÖLÇÜLENİN ALTINDA kalıyor. MiniHawk'ta iyileştirmenin
+# gerçekten uygulandığı iki noktada tahmin/ölçüm = 0.88 ve 0.81 → düzeltme ~1.2.
+# Kalibrasyon UYDURULMADI, bu iki noktadan alındı ve test onu bağlıyor.
+YPLUS_KALIBRASYON = 1.2
+# SEÇİM bandı GEÇERLİLİK bandından DAR. Sebep ölçüldü: tahmin, iyileştirme gerçekten
+# uygulandığında %6 içinde doğru — ama uygulanmadığında İYİMSER kalıyor. MiniHawk
+# bump=1'de tahmin 238 (bant içi görünür) iken ÖLÇÜLEN 340 (bant DIŞI) çıktı; çünkü
+# yüzey 3060 yüzde kaldı, beklenen ~12000'e ulaşmadı. Tam iyileştirmenin uygulanıp
+# uygulanmayacağı ÖNCEDEN bilinemez, o yüzden seçimde pay bırakılır.
+YPLUS_SECIM_BANDI = (40.0, 150.0)
+
+
+def beklenen_yplus(bg_cell_m: float, ref_max: int, velocity: float,
+                   lref_m: float, nu: float = 1.5e-5) -> float:
+    """Katmansız mesh'te BEKLENEN y⁺ — çözücüden ÖNCE, fizikten.
+
+    Katman yoksa duvara komşu hücrenin yüksekliği YÜZEY hücresidir:
+        h_yuzey = bg_cell / 2^ref_max
+    ve `first_layer_height` bunun tersidir (h = 2·y⁺·ν/u_τ), yani
+        y⁺ = h_yuzey · u_τ / (2ν),   u_τ = V·√(Cf/2),  Cf = 0.026·Re^(-1/7)
+
+    DOĞRULAMA (MiniHawk, lmax 1.5 m, V=15 m/s, katmansız — ÖLÇÜLDÜ):
+        ref_bump +1 -> y⁺ 340   |  +2 -> y⁺ 112  |  +3 -> y⁺ 61
+    Formül bu üç noktayı yakalamalı; test onu bağlıyor.
+    """
+    re = max(velocity * lref_m / nu, 1e3)
+    cf = 0.026 / re ** (1 / 7)
+    utau = velocity * math.sqrt(cf / 2)
+    h = bg_cell_m / (2 ** max(int(ref_max), 0))
+    return h * utau / (2 * nu) * YPLUS_KALIBRASYON
+
+
+def onerilen_ref_bump(bg_cell_m: float, ref_max_taban: int, velocity: float,
+                      lref_m: float, nu: float = 1.5e-5,
+                      band: tuple = YPLUS_SECIM_BANDI, tavan: int = 4) -> dict:
+    """y⁺'ı duvar-fonksiyonu bandına sokan EN UCUZ ref_bump.
+
+    NEDEN ML EYLEM UZAYINDA OLMALI: `auto_pilot` yalnız hizli/standart/hassas
+    seçiyordu; ref_bump preset'in SABİT bir alanıydı. Ama ölçüldü ki y⁺'ı banda
+    sokan tek kaldıraç budur — kök-sebep düzeltmesinden SONRA bile varsayılan
+    (+1) y⁺=340 veriyordu, +2 ise 112. Sınıflandırıcı %95 doğrulukla seçim
+    yapıyordu ama seçtiği üç seçeneğin ÜÇÜ DE bandın dışındaydı: kazanan kaldıraç
+    eylem uzayında yoktu.
+
+    Her kademe yüzey hücresini yarıya indirir → y⁺ yarıya iner; ama hücre sayısı
+    kabaca 8× artar, o yüzden BANDA GİREN İLK kademe seçilir (en ucuz).
+    """
+    denemeler = []
+    for b in range(0, tavan + 1):
+        yp = beklenen_yplus(bg_cell_m, ref_max_taban + b, velocity, lref_m, nu)
+        denemeler.append({"bump": b, "beklenen_yplus": round(yp, 1)})
+        if band[0] <= yp <= band[1]:
+            return {"bump": b, "beklenen_yplus": round(yp, 1), "band": list(band),
+                    "denemeler": denemeler, "bandda": True}
+    # Hiçbiri girmiyorsa banda EN YAKIN olanı ver ve bunu AÇIKÇA söyle.
+    en_iyi = min(denemeler, key=lambda d: abs(math.log(max(d["beklenen_yplus"], 1e-9))
+                                              - math.log(math.sqrt(band[0] * band[1]))))
+    return {**en_iyi, "band": list(band), "denemeler": denemeler, "bandda": False,
+            "neden": (f"tavan {tavan} kademeye kadar hiçbir ref_bump y⁺'ı "
+                      f"{band[0]:.0f}-{band[1]:.0f} bandına sokmuyor")}
+
+
 def measure_yplus(case_dir, patch: str | None = None, timeout=600) -> dict | None:
     """Çözülmüş alanda duvar y⁺'ını ÖLÇER (varsayım değil; foamPostProcess).
     patch verilirse O patch'in bloğundan okur — zemin-etkili kurulumda bottom da
@@ -1049,6 +1112,28 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         rho = 101325.0 / (287.058 * 288.15)
         if progress_cb:
             progress_cb(3, f"Mach {mach:.2f} — DENEYSEL sıkışabilir çözücü (fluid)")
+    # ref_bump ÖNERİSİ — çözücüden ÖNCE, ama ÇAĞIRANI SESSİZCE EZMEZ.
+    # ML katmanı yalnız hizli/standart/hassas seçiyordu; ref_bump preset'in SABİT
+    # alanıydı. Ölçüldü ki y⁺'ı duvar-fonksiyonu bandına sokan tek kaldıraç budur —
+    # kök-sebep düzeltmesinden SONRA bile varsayılan y⁺=340 veriyor, +2 ise 112.
+    # Sınıflandırıcı %95 doğrulukla seçim yapıyordu ama üç seçeneğin ÜÇÜ DE bandın
+    # dışındaydı: kazanan kaldıraç eylem uzayında yoktu.
+    _oneri = None
+    if n_layers == 0:                      # katmanlıda y⁺'ı katman belirler
+        try:
+            from analysis.openfoam_runner import arka_plan_hucre_boyu
+            _d = np.asarray(geo["boyutlar_m"], dtype=float)
+            _L = float(_d.max())
+            _dmin = np.array([-_dom[0] * _L, -_dom[2] * _L, -_dom[2] * _L])
+            _dmax = np.array([_d[0] + _dom[1] * _L, _d[1] + _dom[2] * _L,
+                              _d[2] + _dom[2] * _L])
+            _bg, _ = arka_plan_hucre_boyu(_dmin, _dmax, _L / q["bg_div"], q_max)
+            _oneri = onerilen_ref_bump(_bg, rmax + bump - ref_bump, velocity, _L)
+        # sessiz-yutma: kabul — ÖNERİ katmanı; düşerse koşu aynen devam eder,
+        # yalnız "şu bump'ı seçseydin" tavsiyesi üretilmez (hüküm üretmez).
+        except Exception as e:
+            _oneri = {"olculemedi": True, "neden": f"{type(e).__name__}: {e}"}
+
     case = CFDCase(
         name=stem,
         stl_path=stl_path,
@@ -1245,6 +1330,8 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     _yc = yuzey_cozunurluk_hukmu(_sn.read_text(errors="ignore") if _sn.exists() else "",
                                  yuzey_yuz_sayisi(case_dir, _patch))
     base.sinir_tabaka["yuzey_cozunurlugu"] = _yc
+    if _oneri:
+        base.sinir_tabaka["ref_bump_onerisi"] = {**_oneri, "kullanilan": ref_bump}
     if _katman_sigdirma:
         base.sinir_tabaka["katman_sigdirma"] = _katman_sigdirma
         if _katman_sigdirma.get("kisitlandi"):
@@ -1292,6 +1379,17 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     # düştü. Sessiz başarısızlığı görünür yapmak, tüketicileri güncellemeden
     # yapılırsa sessiz hatayı SERT hataya çevirir.
     _ypo = yp.get("ort") if isinstance(yp, dict) else None
+    # ref_bump önerisi ile SEÇİLENİ yan yana koy — "neden başarısız oldu"
+    # sorusunu tek bakışta cevaplar. Çağıran EZİLMEZ, sonucu söylenir.
+    if _oneri and _oneri.get("bump") is not None and _ypo is not None:
+        _o = _oneri["bump"]
+        if _o != ref_bump and not (YPLUS_BANDI[0] <= _ypo <= YPLUS_BANDI[1]):
+            uyarilar.append(
+                f"ref_bump={ref_bump} seçildi ve ölçülen y⁺={_ypo:.0f} "
+                f"duvar-fonksiyonu bandının ({YPLUS_BANDI[0]:.0f}-"
+                f"{YPLUS_BANDI[1]:.0f}) dışında. Fizik tahmini ref_bump={_o} "
+                f"öneriyordu (beklenen y⁺≈{_oneri.get('beklenen_yplus')}). "
+                "Her kademe yüzey hücresini yarıya indirir, hücre sayısını ~8× artırır")
     if _ypo is not None and n_layers > 0 and yplus_target and _ypo > 5 * yplus_target:
         uyarilar.append(
             f"KATMAN ÇÖKMESİ ŞÜPHESİ: {n_layers} prizma katmanı istendi ve y⁺ hedefi "

@@ -20,6 +20,7 @@ CLI: python mentor.py harvest | advise <stl> [--tip roket] | ogret <stl> [--sevi
 from __future__ import annotations
 
 import json
+import math
 import time
 from pathlib import Path
 
@@ -206,8 +207,15 @@ def advise_mesh(metrik: dict, tip: str = "", k: int = 8,
             if r < 0.5:
                 katmanli = any(c.get("n_layers", 0) > 0 for _, c in knn
                                if c.get("kalite") == q and not c["ok"])
+                # ESKİ ÖNERİ 'hassas_nl' İDİ ve ÖLÇÜMLE YANLIŞ ÇIKTI: `hassas_nl` ile
+                # `hassas` BİREBİR aynı mesh'i veriyor (660862 hücre) — ikisinin de
+                # ref_bump'ı +1, bg_div'i 9, hücre tavanı aynı. Tek fark n_layers, o da
+                # zaten çöküyor. Yani "katmansıza geç" hiçbir şeyi değiştirmiyordu.
+                # ÖLÇÜLEN gerçek kaldıraç yüzey iyileştirmesi: y⁺ 340 → 112 → 61
+                # (ref_bump +1/+2/+3, MiniHawk, katmansız).
                 riskler.append(f"'{q}' bu geometri sınıfında komşularda %{r*100:.0f} başarılı"
-                               + (" (katman-çökmesi imzası — katmansız 'hassas_nl' düşünün)"
+                               + (" (katman-çökmesi imzası — 'hassas_nl' AYNI mesh'i "
+                                  "verir, çare --ref-bump ile YÜZEY İYİLEŞTİRMESİ)"
                                   if katmanli and q == "hassas" else ""))
 
     oranlar = [c["yplus_ort"] / c["yplus_hedef"] for _, c in knn
@@ -219,11 +227,20 @@ def advise_mesh(metrik: dict, tip: str = "", k: int = 8,
         if med > 5.0 or med < 0.2:
             # Uç oran ≠ korelasyon sapması: katmanlar örülememiş/etkisiz (layer-collapse
             # imzası) — hedef-ölçekleme burada yanlış reçete olur.
+            # ÇARE ÖLÇÜLDÜ. 'hassas_nl' YANLIŞ reçeteydi (hassas ile birebir aynı
+            # mesh). Katman çökmesinin sebebi de ölçüldü: ilk katman 0.048 mm iken
+            # yüzey hücresi 10.4 mm — en-boy 215:1, snappy determinant<0.001 ile
+            # 34023 yüzü reddedip TÜM ekstrüzyonu geri alıyor. Ayrıca ince firar
+            # kenarı (1.19 mm) y⁺=30 için gereken tek katmanı (1.45 mm) bile
+            # barındıramıyor. İkisinin de çaresi aynı: YÜZEY HÜCRESİNİ küçültmek.
+            _kat = math.ceil(math.log2(max(med / 150.0, 1.0))) if med > 150 else 1
             yplus_duzeltme = {"olculen_hedef_orani": round(med, 2),
+                              "onerilen_ref_bump": _kat,
                               "oneri": f"ölçülen y⁺ hedefin ~{med:.0f} katı — prizma "
-                                       "katmanları büyük olasılıkla örülememiş (layer-"
-                                       "collapse imzası); hedef-ölçekleme değil katman "
-                                       "ayarı / 'hassas_nl' gözden geçirilmeli"}
+                                       "katmanları örülememiş (layer-collapse imzası). "
+                                       "'hassas_nl' AYNI mesh'i verir, çare değildir; "
+                                       f"YÜZEY İYİLEŞTİRMESİ gerekir (--ref-bump {_kat}: "
+                                       "her kademe y⁺'ı yarıya indirir, hücreyi ~8× artırır)"}
         elif not 0.5 <= med <= 2.0:
             yplus_duzeltme = {"olculen_hedef_orani": round(med, 2),
                               "oneri": f"düz-plaka korelasyonu bu sınıfta ~{med:.1f}× sapıyor; "
