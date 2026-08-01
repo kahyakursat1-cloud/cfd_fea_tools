@@ -48,6 +48,10 @@ OLCEK_BUYUK_M = 100.0     # üstü: mm/inç ölçek hatası şüphesi (10 m'lik 
 OLCEK_KUCUK_M = 0.005     # altı: m yerine mm girilmiş küçük parça şüphesi
 
 
+# PARÇALANMIŞ GEOMETRİ EŞİĞİ. Tek parça bir araç 1-3 gövdeden oluşur (gövde+kanat
+# ayrı ihraç edilmiş olabilir). Onlarca kopuk kabuk, CAD ihracının yüzeyi
+# birleştirmediğini gösterir ve snappyHexMesh'in yakalayacağı kapalı bir yüzey yoktur.
+GOVDE_SAYISI_ESIGI = 10
 KESKIN_KENAR_ESIGI = 0.02   # altı: pürüzsüz gövde (küre/kapsül 0.00; küp 0.67, silindir 0.33)
 EKSEN_ORAN_ESIGI = 1.5      # frontal/en-küçük izdüşüm; küp 1.0 (yanlış alarm vermez),
                             # Z-hizalı roket 12.1 (NX testinde ölçüldü)
@@ -86,6 +90,26 @@ def geometry_sanity(geo: dict, vehicle_type: str = "genel",
         if re < 1e4:
             u.append(f"Re = {re:.1e} < 1e4 — türbülanslı RANS varsayımı zayıf "
                      "(laminer/geçiş rejimi); ölçek veya hız gözden geçirilmeli")
+
+    # PARÇALANMIŞ GEOMETRİ — ÇÖZÜCÜDEN ÖNCE, çünkü snappyHexMesh bunu ZAMAN
+    # AŞIMIYLA öğretiyor. ÖLÇÜLDÜ (su57): 1398 ayrı gövde, su geçirmez DEĞİL,
+    # 354.710 üçgen. snappy 1398 kopuk kabuğu yakalamaya çalışıp snap aşamasında
+    # 310.719 bozuk yüz üretti ve 30 dk sınırını doldurdu — DÖRT koşu boyunca.
+    # Ölçek onarımı çalışmıştı (mm→m) ama gövdeleri BİRLEŞTİRMEZ.
+    #
+    # Bu, hücre bütçesiyle ilgili DEĞİL: kaç hücre verilirse verilsin parçalanmış
+    # bir yüzeyde güvenilir mesh çıkmaz. `govde_sayisi` prepare_geometry'de ZATEN
+    # ölçülüyordu ve hiçbir kapı onu tüketmiyordu.
+    nb = (geo.get("hazirlik") or {}).get("govde_sayisi")
+    if nb and nb >= GOVDE_SAYISI_ESIGI:
+        u.append(f"PARÇALANMIŞ GEOMETRİ: model {nb} AYRI gövdeden oluşuyor "
+                 f"(eşik {GOVDE_SAYISI_ESIGI})"
+                 + ("" if geo.get("su_gecirmez") else " ve su geçirmez DEĞİL")
+                 + ". snappyHexMesh yakalayacağı KAPALI bir yüzey bulamaz; snap "
+                 "aşaması bozuk yüz üretir ve mesh adımı zaman aşımına düşer "
+                 "(ölçüldü: 1398 gövdeli bir modelde 310.719 bozuk yüz, 30 dk aşım). "
+                 "Bu bir hücre bütçesi sorunu DEĞİLDİR — önce geometri onarımı "
+                 "(kabukları birleştir / su geçirmez hale getir) gerekir")
 
     # Eksen: akış-yönlü araçta frontal izdüşüm en KÜÇÜK olmalı.
     #
