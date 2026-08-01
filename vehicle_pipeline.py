@@ -1775,10 +1775,30 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                 u_num_pct = lsr_w["u_pct"]
                 u_kaynak = f"wake-LSR ({lsr_w['n']}-seviye; {lsr_w['kural']})"
                 base.cd_richardson = lsr_w["f_exact"]
-            elif gci:
+            elif gci and gci.get("monotonic") and gci.get("p_in_range"):
                 u_num_pct = gci["gci_fine_pct"]
-                u_kaynak = "GCI (asimptotik DEĞİL — band güvenilirliği düşük)"
+                u_kaynak = "GCI (Richardson, asimptotik)"
                 base.cd_richardson = gci["f_exact"]
+            elif len(levels) >= 2:
+                # ASİMPTOTİK OLMAYAN GCI'NIN SAYISI KULLANILMAZ. Kod bunu zaten
+                # biliyordu ve kaynağı "asimptotik DEĞİL" diye etiketliyordu — ama
+                # sayıyı yine de yayınlıyordu. Etiket dürüst, sayı değil.
+                #
+                # ÖLÇÜLDÜ (küp): verdikt "mesh bağımsızlığı GÖSTERİLEMEDİ (p=5.56,
+                # monoton değil)" derken belirsizlik "sayısal %0.0449" diyordu —
+                # yani rapor aynı anda hem "gösteremedim" hem "mükemmel yakınsak"
+                # anlamına geliyordu.
+                #
+                # Salınımlı yakınsamada doğru kural Eça-Hoekstra: U = 3·Δ_M
+                # (ekstrapolasyon YOK). Küpte çözülmüş üç seviyeyle %12.3 verir —
+                # %0.045'in aksine gerçek durumu yansıtır.
+                _cds = [lv["Cd"] for lv in levels]
+                _dm = max(abs(_cds[i + 1] - _cds[i]) for i in range(len(_cds) - 1))
+                u_num_pct = round(3.0 * _dm / (abs(_cds[-1]) + 1e-12) * 100, 2)
+                u_kaynak = (f"salınımlı yakınsama bandı (Eça-Hoekstra U=3·Δ, "
+                            f"{len(levels)} seviye) — Richardson asimptotik DEĞİL, "
+                            "mertebesi kullanılmadı")
+                base.cd_richardson = None
         elif len(levels) == 2:                               # 3. seviye düştü → 2-mesh vekil-bant
             d = abs(levels[-1]["Cd"] - levels[0]["Cd"]) / (abs(levels[-1]["Cd"]) + 1e-12) * 100
             u_num_pct = round(d, 1)

@@ -270,3 +270,60 @@ class TestSeviyeYuzeyCozunurlugu:
         from analysis.openfoam_runner import yuzey_cozunurluk_hukmu
         assert yuzey_cozunurluk_hukmu("temiz log", 1704)["cozuldu"] is True
         assert yuzey_cozunurluk_hukmu("temiz log", 216)["cozuldu"] is False
+
+
+class TestAsimptotikOlmayanGCIKullanilmaz:
+    """Verdikt "gösterilemedi" derken belirsizlik "%0.045" diyordu.
+
+    ÖLÇÜLDÜ (küp): GCI p=5.56, monotonic=False → verdikt "Mesh bağımsızlığı
+    GÖSTERİLEMEDİ ... asimptotik aralıkta değil". AMA belirsizlik raporu
+    "Cd = 1.0417 ± %12.0 (sayısal %0.0449)" diyordu — yani rapor aynı anda hem
+    "gösteremedim" hem "mükemmel yakınsak" anlamına geliyordu.
+
+    Kod bunu ZATEN BİLİYORDU: kaynağı "GCI (asimptotik DEĞİL — band güvenilirliği
+    düşük)" diye etiketliyordu ama sayıyı yine de yayınlıyordu. Etiket dürüst,
+    sayı değil. Bu oturumda avlanan desenin ONİKİNCİ örneği.
+
+    Salınımlı yakınsamada doğru kural Eça-Hoekstra U=3·Δ_M (ekstrapolasyon YOK).
+    Küpte çözülmüş üç seviyeyle %12.3 verir.
+    """
+    def test_asimptotik_DEGILSE_gci_sayisi_kullanilmiyor(self):
+        import inspect
+
+        import vehicle_pipeline as vp
+        src = inspect.getsource(vp.run_vehicle_analysis)
+        i = src.index('u_num_pct = gci["gci_fine_pct"]')
+        onceki = src[max(0, i - 200):i]
+        assert 'monotonic' in onceki and 'p_in_range' in onceki, (
+            "asimptotik olmayan GCI'nin sayisi hala kullaniliyor")
+
+    def test_salinimli_band_KURALI_var(self):
+        import inspect
+
+        import vehicle_pipeline as vp
+        src = inspect.getsource(vp.run_vehicle_analysis)
+        assert "Eça-Hoekstra U=3·Δ" in src
+        assert "3.0 * _dm" in src
+
+    def test_OLCULEN_kup_bandi(self):
+        """Cozulmus uc seviye: 1.08044 / 1.03769 / 1.04166 -> %12.3"""
+        cds = [1.08044, 1.03769, 1.04166]
+        dm = max(abs(cds[i + 1] - cds[i]) for i in range(len(cds) - 1))
+        assert abs(3 * dm / abs(cds[-1]) * 100 - 12.31) < 0.05
+
+    def test_asimptotik_GCI_hala_kullaniliyor(self):
+        """Gecerli bir GCI varsa onun dar bandi DOGRU sayidir — kapi onu engellemez."""
+        import inspect
+
+        import vehicle_pipeline as vp
+        src = inspect.getsource(vp.run_vehicle_analysis)
+        assert 'u_kaynak = "GCI (Richardson, asimptotik)"' in src
+
+    def test_ekstrapolasyon_YAYINLANMIYOR(self):
+        """Asimptotik degilse f_exact anlamsizdir; cd_richardson None olmali."""
+        import inspect
+
+        import vehicle_pipeline as vp
+        src = inspect.getsource(vp.run_vehicle_analysis)
+        i = src.index("Eça-Hoekstra U=3·Δ")
+        assert "base.cd_richardson = None" in src[i:i + 900]
