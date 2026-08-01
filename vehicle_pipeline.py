@@ -1095,8 +1095,16 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
 
     a = math.radians(alpha_deg)
     rmin, rmax = preset["refinement"]
-    bump = q["ref_bump"] + ref_bump             # ref_bump: çağıran-özel ek yüzey seviyesi
     q_max = max_cells or q["max_cells"]         # max_cells: hücre tavanı override
+    # ref_bump="oto": ÖNERİYİ UYGULA. Sabit bir sayı tüm geometrilere uymuyor —
+    # ölçüldü: --ref-bump 2 çoğunda y⁺'ı banda soktu ama `multikopter_kucuk`ta
+    # y⁺=25 verdi, bandın (30-300) ALTINDA. Doğru kademe gövde boyutuna ve hıza
+    # bağlıdır, o yüzden geometri-BAŞINA hesaplanmalı. Bu SESSİZ EZME DEĞİL:
+    # çağıran açıkça "oto" isteyerek devrediyor.
+    _oto = isinstance(ref_bump, str) and ref_bump.lower() == "oto"
+    if _oto:
+        ref_bump = 0
+    bump = q["ref_bump"] + ref_bump             # ref_bump: çağıran-özel ek yüzey seviyesi
     _dom = farfield_domain(preset, alpha_deg)   # lift-bilinçli far-field
     ground_clearance = auto_ground_clearance(preset, geo["boyutlar_m"][2], ground_clearance)
     prop = None
@@ -1133,6 +1141,10 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         # yalnız "şu bump'ı seçseydin" tavsiyesi üretilmez (hüküm üretmez).
         except Exception as e:
             _oneri = {"olculemedi": True, "neden": f"{type(e).__name__}: {e}"}
+    if _oto and _oneri and _oneri.get("bump") is not None:
+        ref_bump = _oneri["bump"]
+        bump = q["ref_bump"] + ref_bump
+        _oneri = {**_oneri, "uygulandi": True}
 
     case = CFDCase(
         name=stem,

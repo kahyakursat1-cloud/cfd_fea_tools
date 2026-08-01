@@ -106,7 +106,10 @@ def main() -> int:
     # ref_bump: yuzey iyilestirme kademesi. MiniHawk'ta OLCULDU —
     #   +1 -> y+ 340 (band disi) | +2 -> y+ 112 | +3 -> y+ 61 (ikisi de BAND ICI)
     # y+ ilk hucre yuksekligiyle dogru orantili; tek gercek kaldirac budur.
-    ap.add_argument("--ref-bump", type=int, default=0)
+    # "oto": geometri-BASINA fizikten hesapla. Sabit sayi tum geometrilere
+    # uymuyor — olculdu: --ref-bump 2 cogunda y+ bandi tutturdu ama
+    # multikopter_kucuk'ta y+=25 verdi, bandin ALTINDA.
+    ap.add_argument("--ref-bump", default="oto")
     ap.add_argument("--hiz", type=float, default=15.0)
     ap.add_argument("--tohum", type=int, default=20260728)
     ap.add_argument("--stl", nargs="*", default=None)
@@ -124,14 +127,16 @@ def main() -> int:
         random.Random(a.tohum).shuffle(havuz)
         sec = havuz[:a.n]
 
-    print(f"Tarama: {len(sec)} geometri, kalite={a.kalite}, V={a.hiz} m/s", flush=True)
+    _rb = a.ref_bump if a.ref_bump == "oto" else int(a.ref_bump)
+    print(f"Tarama: {len(sec)} geometri, kalite={a.kalite}, V={a.hiz} m/s, "
+          f"ref_bump={_rb}", flush=True)
     kayitlar, t0 = [], time.time()
     for i, stl in enumerate(sec, 1):
         print(f"[{i}/{len(sec)}] {stl.name} ...", flush=True)
         t1 = time.time()
         try:
             r = run_vehicle_analysis(str(stl), velocity=a.hiz, quality=a.kalite,
-                                     ref_bump=a.ref_bump, out_root="vehicle_runs")
+                                     ref_bump=_rb, out_root="vehicle_runs")
             h = savunulabilir_mi(r)
             k = {"stl": stl.name, "aile": stl.parent.name,
                  "Cd": r.cd, "hucre": (r.mesh or {}).get("cells"),

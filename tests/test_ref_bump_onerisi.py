@@ -72,3 +72,47 @@ def test_y_arti_kademe_basina_YARILANIYOR():
     a = beklenen_yplus(BG, 5, V, LREF)
     b = beklenen_yplus(BG, 6, V, LREF)
     assert math.isclose(a / b, 2.0, rel_tol=1e-9)
+
+
+class TestOtoRefBump:
+    """ref_bump="oto": geometri-BAŞINA hesapla.
+
+    Sabit bir sayı tüm geometrilere uymuyor — ÖLÇÜLDÜ: `--ref-bump 2` çoğunda y⁺'ı
+    banda soktu ama `multikopter_kucuk`ta y⁺=25 verdi, bandın (30-300) ALTINDA.
+    Ters problem: o geometride mesh duvar fonksiyonu için fazla ince kalmış.
+    Doğru kademe gövde boyutuna ve hıza bağlıdır.
+
+    Bu SESSİZ EZME DEĞİL: çağıran açıkça "oto" diyerek devrediyor. Sayı verirse
+    o sayı aynen kullanılır ve yalnız ÖNERİ raporlanır.
+    """
+    @staticmethod
+    def _src():
+        import inspect
+
+        import vehicle_pipeline as vp
+        return inspect.getsource(vp.run_vehicle_analysis)
+
+    def test_oto_destekleniyor(self):
+        assert '"oto"' in self._src() or "'oto'" in self._src()
+
+    def test_oneri_CFDCase_KURULMADAN_ONCE_uygulaniyor(self):
+        """Sonradan uygulanırsa mesh yine eski bump ile üretilir."""
+        s = self._src()
+        assert s.index("_oto and _oneri") < s.index("case = CFDCase(")
+
+    def test_SAYI_verilince_EZILMIYOR(self):
+        """Açık sayı = çağıranın kararı; öneri yalnız raporlanır."""
+        s = self._src()
+        i = s.index("_oto = ")
+        blok = s[i:i + 400]
+        assert "isinstance(ref_bump, str)" in blok      # yalniz "oto" tetikler
+
+    def test_uygulandi_KAYDA_giriyor(self):
+        assert '"uygulandi"' in self._src()
+
+    def test_tarama_varsayilani_OTO(self):
+        import inspect
+
+        import experiments.guvenilirlik_taramasi as gt
+        src = inspect.getsource(gt.main)
+        assert '"--ref-bump", default="oto"' in src
