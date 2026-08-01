@@ -145,3 +145,25 @@ def test_QoI_muafiyeti_KISA_tarihcede_verilmiyor():
     # ayni kosu UZUN tarihceyle: muafiyet verilir
     uzun = {**kisa, "iterasyon": QOI_MUAFIYET_MIN_ITER}
     assert seviye_yakinsadi_mi(uzun)[0] is True
+
+
+def test_GCI_seviyelerine_AYNI_iterasyon_butcesi():
+    """Kaba seviyelere `hizli` preset'inin end_time'i (200) veriliyordu, inceye 800
+    — yani kaba seviyeler TASARIM GEREĞİ az-yakınsamış oluyordu. Seviye yakınsama
+    kapısı eklenince bu, GCI'yı doğrudan İMKÂNSIZLAŞTIRDI.
+
+    ÖLÇÜLDÜ (küp): kaba 415.064 hücre Cd=1.04808 (200 iter, rezidüel p=2e-2, ELENDİ)
+    orta 726.544 Cd=1.04584 (800 iter, geçti) | ince 905.896 Cd=1.04166.
+    Üç değer MONOTON, toplam saçılma %0.6 — küp zaten mesh-yakınsak.
+
+    Kısmak yanlış ekonomi: kaba mesh iterasyon başına DAHA UCUZ ama
+    az-yakınsamışlığı bütün çalışmayı götürüyor."""
+    import inspect
+
+    import vehicle_pipeline as vp
+    src = inspect.getsource(vp.run_vehicle_analysis)
+    i = src.index("kademeler = [")
+    blok = src[i:i + 400]
+    assert 'MESH_QUALITY["hizli"]["end_time"]' not in blok, (
+        "kaba seviye hala kisitli iterasyonla kosuyor")
+    assert blok.count('q["end_time"]') >= 2

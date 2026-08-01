@@ -1562,11 +1562,22 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         basarisiz: list[dict] = []
         GCI_ORANI = 1.5
         bg_ince = geo["lmax_m"] / q["bg_div"]
+        # HER SEVİYEYE AYNI İTERASYON BÜTÇESİ. Eski kurulum kaba seviyelere
+        # `hizli` preset'inin end_time'ını (200) veriyordu, ince seviyeye 800 —
+        # yani kaba seviyeler TASARIM GEREĞİ az-yakınsamış oluyordu. Seviye
+        # yakınsama kapısı eklenince bu, GCI'yı doğrudan imkânsızlaştırdı.
+        #
+        # ÖLÇÜLDÜ (küp): kaba 415.064 hücre Cd=1.04808 (200 iter, rezidüel p=2e-2,
+        # ELENDİ) | orta 726.544 Cd=1.04584 (800 iter, geçti) | ince 905.896
+        # Cd=1.04166. Üç değer MONOTON ve toplam saçılma %0.6 — küp zaten
+        # mesh-yakınsak; GCI'yı engelleyen tek şey yapay iterasyon kısıtıydı.
+        #
+        # Kısmak yanlış ekonomi: kaba mesh iterasyon başına DAHA UCUZ (415k vs
+        # 906k hücre), ama az-yakınsamışlığı BÜTÜN çalışmayı götürüyor.
         kademeler = [("orta", 1, GCI_ORANI, q["end_time"]),
-                     ("kaba", 2, GCI_ORANI ** 2, MESH_QUALITY["hizli"]["end_time"])]
+                     ("kaba", 2, GCI_ORANI ** 2, q["end_time"])]
         if mesh_levels >= 4:
-            kademeler.append(("cokkaba", 3, GCI_ORANI ** 3,
-                              MESH_QUALITY["hizli"]["end_time"]))
+            kademeler.append(("cokkaba", 3, GCI_ORANI ** 3, q["end_time"]))
         for ad, dref, oran, et in kademeler:
             if progress_cb:
                 progress_cb(80, f"Mesh-bağımsızlık: {ad} seviye koşusu…")
