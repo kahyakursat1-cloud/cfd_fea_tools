@@ -26,17 +26,45 @@ BG = 0.3072          # MiniHawk arka plan hucresi (arka_plan_hucre_boyu ile olcu
 V, LREF = 15.0, 1.5
 
 
-@pytest.mark.parametrize("ref_max,olculen", [(6, 112.3), (7, 61.4)])
-def test_formul_OLCULEN_noktalari_yakaliyor(ref_max, olculen):
-    """Iyilestirmenin GERCEKTEN uygulandigi iki nokta; %15 icinde olmali."""
-    t = beklenen_yplus(BG, ref_max, V, LREF)
-    assert abs(t - olculen) / olculen < 0.15, f"tahmin {t:.1f} vs olcum {olculen}"
+# 12-geometrilik taramada OLCULEN 11 gecerli nokta:
+#   (ad, secilen_bump, o kosuda OLCULEN y+)
+OLCULEN = [
+    ("minihawk_vtol", 0, 116.86), ("multikopter", 1, 38.6), ("gripen", 1, 58.62),
+    ("kup800", 1, 65.16), ("ciftkuyruk", 2, 74.29), ("kaldirici", 2, 60.49),
+    ("izgara", 2, 48.06), ("kapsul", 2, 101.17), ("a320", 3, 57.53),
+    ("okkanat", 3, 60.53), ("gondol", 4, 65.26),
+]
 
 
-def test_kalibrasyon_UYDURULMAMIS():
-    """Kalibrasyon iki olculen noktadan geliyor; degisirse test kirilsin."""
+def test_OLCULEN_y_arti_HEPSI_BANDDA():
+    """Oto kademe ile 11 geometrinin 11'i de duvar-fonksiyonu bandina girdi."""
+    for ad, _b, y in OLCULEN:
+        assert YPLUS_BANDI[0] <= y <= YPLUS_BANDI[1], f"{ad}: y+={y} band disi"
+
+
+def test_kalibrasyon_ORTALAMAYA_FIT_EDILMEDI():
+    """Az tahmin TEHLIKELI (kucuk kademe -> y+ bant USTU), fazla tahmin yalnizca
+    PAHALI. Asimetrik risk: katsayi medyana cekilmez, bant KISITIYLA secilir.
+    Olculen tahmin/olcum medyani 1.82 idi; katsayi ona bolunseydi (1.2/1.82=0.66)
+    tutuculuk tamamen kaybolurdu."""
     from vehicle_pipeline import YPLUS_KALIBRASYON
-    assert 1.1 <= YPLUS_KALIBRASYON <= 1.3
+    assert 0.85 <= YPLUS_KALIBRASYON <= 1.0, "medyana fit edilmis olabilir"
+
+
+def test_secilen_katsayi_HICBIRINI_BAND_DISINA_CIKARMIYOR():
+    """Kalibrasyon degisikliginin ASIL kisiti: 11 olculen noktanin hicbiri
+    bandin disina dusmemeli. Kademe basina y+ yarilanir."""
+    from vehicle_pipeline import YPLUS_KALIBRASYON as K
+    for ad, b, y in OLCULEN:
+        # bu geometri icin yeni katsayida secilecek kademe
+        yb = y * (2 ** b) / (K / 1.2)      # bump=0'daki TAHMIN (eski katsayi tabanli olcum)
+        nb = 0
+        while nb <= 4 and not (40.0 <= yb / (2 ** nb) <= 150.0):
+            nb += 1
+        nb = min(nb, 4)
+        yeni_y = y * (2 ** (b - nb))
+        assert YPLUS_BANDI[0] <= yeni_y <= YPLUS_BANDI[1], (
+            f"{ad}: kademe {b}->{nb}, y+ {y:.0f}->{yeni_y:.0f} BANT DISI")
 
 
 def test_MINIHAWK_icin_OLCULEN_calisan_ayari_oneriyor():

@@ -755,10 +755,26 @@ def first_layer_height(velocity, lref, yplus_target, nu=1.5e-5):
 
 
 YPLUS_BANDI = (30.0, 300.0)    # duvar-fonksiyonu log-bölgesi
-# Ham düz-plaka formülü ÖLÇÜLENİN ALTINDA kalıyor. MiniHawk'ta iyileştirmenin
-# gerçekten uygulandığı iki noktada tahmin/ölçüm = 0.88 ve 0.81 → düzeltme ~1.2.
-# Kalibrasyon UYDURULMADI, bu iki noktadan alındı ve test onu bağlıyor.
-YPLUS_KALIBRASYON = 1.2
+# KALİBRASYON — 11 ÖLÇÜLEN NOKTADAN, ORTALAMAYA FİT EDİLEREK DEĞİL.
+#
+# İlk sürüm MiniHawk'ın İKİ noktasından 1.2 almıştı. 12-geometrilik tarama 11 geçerli
+# nokta verdi ve tahmin/ölçüm medyanının 1.82 olduğunu gösterdi (aralık 0.82-2.46):
+# tahmin sistematik olarak YÜKSEK, yani gerekenden bir kademe fazla iyileştirme
+# seçiliyor ve iyileştirme kabuğunda ~8× hücre maliyeti doğuyor.
+#
+# AMA MEDYANA ÇEKMEK YANLIŞ OLURDU: az tahmin etmek TEHLİKELİ (küçük kademe → gerçek
+# y⁺ bandın ÜSTÜNE çıkar), fazla tahmin yalnızca PAHALI. Asimetrik bir risk.
+# Bu yüzden katsayı, 11 ölçülen noktada bump seçimi SİMÜLE EDİLEREK ve kısıt olarak
+# "hiçbiri bandın dışına çıkmasın" konarak seçildi:
+#     katsayı   kademe düşüşü   bant dışı   en yüksek y⁺
+#       1.20          0             0            117
+#       0.90          5             0            202     <- seçilen
+#       0.70          7             0            202
+# 0.90: 11 geometriden 5'i bir kademe ucuzluyor, hiçbiri bant dışına çıkmıyor ve
+# en kötü vakada 300'e %33 pay kalıyor. Daha agresif değerler EK kazanç vermiyor.
+# Kalan tutuculuk KASITLI: y⁺ ölçekleme varsayımı (kademe başına 2×) iyileştirme tam
+# uygulanmadığında bozuluyor — MiniHawk bump=1'de ölçülmüştü.
+YPLUS_KALIBRASYON = 0.9
 # SEÇİM bandı GEÇERLİLİK bandından DAR. Sebep ölçüldü: tahmin, iyileştirme gerçekten
 # uygulandığında %6 içinde doğru — ama uygulanmadığında İYİMSER kalıyor. MiniHawk
 # bump=1'de tahmin 238 (bant içi görünür) iken ÖLÇÜLEN 340 (bant DIŞI) çıktı; çünkü
