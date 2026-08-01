@@ -30,8 +30,15 @@ import sessiz_yutma
 # 3'ü böyle kayboldu). Yakalanan hata "sorun yok" SAYILMIYOR: None dönüyor ve kapı
 # onu "okunamadı" olarak reddediyor (2eb2686'nın dersi korundu).
 # Asıl izlenen sayılar DEĞİŞMEDİ: incelenmemiş 25, güven yolunda incelenmemiş 0.
-TABAN_TOPLAM = 81
-TABAN_GUVEN_YOLU = 56
+#
+# 2026-08-01 — TABAN 81 → 82 (güven yolu 56 → 57). Yine GERİLEME DEĞİL: `_cozucu_yasiyor`
+# içindeki sorgu hatası yutuluyor ve gerekçesi kodda yazılı — sorgulanamıyorsa
+# "yaşamıyor" varsayılır, en kötü hâl ESKİ davranıştır (erken okuma) ve yeni bir
+# asılma riski getirmez. Bu savunma, çözücü bitmeden kuvvet tarihçesi okunmasını
+# engelleyen yarış-durumu düzeltmesinin parçasıdır (8cdb221).
+# Asıl izlenen sayılar yine DEĞİŞMEDİ: incelenmemiş 25, güven yolunda incelenmemiş 0.
+TABAN_TOPLAM = 82
+TABAN_GUVEN_YOLU = 57
 TABAN_INCELENMEMIS = 25
 TABAN_INCELENMEMIS_GUVEN_YOLU = 0
 
