@@ -1642,6 +1642,25 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                                    "drift_ok": lv_conv["drift_ok"]}
             if not ok:
                 lv_rec["yakinsama"]["gerekce"] = neden
+            # YÜZEY ÇÖZÜNÜRLÜK KAPISI SEVİYE BAZINDA — fizik ve yakınsama
+            # kapılarıyla AYNI desen. Gövdesi çözülmemiş bir mesh, ayrıklaştırma
+            # çalışmasına GİREMEZ: farklı bir geometriyi çözüyordur.
+            #
+            # ÖLÇÜLDÜ (küp, 4 seviye): en kaba seviyenin gövdesi yalnızca 216 YÜZ
+            # (diğerleri 1704 / 8084 / 49232) ve mevcut yüzey kapısı onu zaten
+            # reddediyordu — MiniHawk'ın 74-yüz vakasını yakalayan aynı kapı.
+            # O seviye fite girince Eça-Hoekstra salınımlı bandı %43.4 çıkıyordu;
+            # çözülmüş üç seviyeyle %12.3. Fark, çözülmemiş geometrinin Cd'sinin
+            # (0.930 vs ~1.04) fite taşıdığı sahte saçılmadır.
+            from analysis.openfoam_runner import yuzey_cozunurluk_hukmu
+            _lsn = r.case_dir / "log.snappyHexMesh"
+            _lyc = yuzey_cozunurluk_hukmu(
+                _lsn.read_text(errors="ignore") if _lsn.exists() else "",
+                yuzey_yuz_sayisi(r.case_dir, _patch))
+            lv_rec["yuzey"] = {"cozuldu": _lyc["cozuldu"],
+                               "yuzey_yuz": _lyc.get("yuzey_yuz")}
+            if not _lyc["cozuldu"]:
+                lv_rec["yuzey"]["gerekce"] = "; ".join(_lyc["gerekce"])[:160]
             levels.append(lv_rec)
         def _fizik_disi(lv):
             return (lv.get("fizik") or {}).get("verdict") == "inadmissible"
@@ -1649,10 +1668,17 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         def _yakinsamadi(lv):
             return not (lv.get("yakinsama") or {}).get("gecti", True)
 
+        def _yuzey_cozulmedi(lv):
+            return not (lv.get("yuzey") or {}).get("cozuldu", True)
+
         dislanan = [lv for lv in levels if _fizik_disi(lv)]
         yakinsamayan = [lv for lv in levels if not _fizik_disi(lv) and _yakinsamadi(lv)]
+        yuzeysiz = [lv for lv in levels
+                    if not _fizik_disi(lv) and not _yakinsamadi(lv)
+                    and _yuzey_cozulmedi(lv)]
         levels = [lv for lv in levels
-                  if lv.get("cells") and not _fizik_disi(lv) and not _yakinsamadi(lv)]
+                  if lv.get("cells") and not _fizik_disi(lv) and not _yakinsamadi(lv)
+                  and not _yuzey_cozulmedi(lv)]
         levels.sort(key=lambda lv: lv["cells"])              # kaba→ince
         def h(lv):                                           # 3B temsili hücre boyu
             return lv["cells"] ** (-1.0 / 3.0)
@@ -1702,6 +1728,11 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                     {"ad": lv["ad"], "cells": lv["cells"], "Cd": lv["Cd"],
                      "gerekce": "; ".join((lv.get("fizik") or {}).get("reasons", []))}
                     for lv in dislanan]
+            if yuzeysiz:
+                base.mesh_duyarlilik["yuzeyi_cozulmemis_seviyeler"] = [
+                    {"ad": lv["ad"], "cells": lv["cells"], "Cd": lv["Cd"],
+                     "gerekce": (lv.get("yuzey") or {}).get("gerekce", "")}
+                    for lv in yuzeysiz]
             if yakinsamayan:
                 # SESSİZ ATLAMA YOK: dışlanan seviye kayıtta gerekçesiyle kalır,
                 # yoksa kullanıcı "3 seviye koştum, GCI yok" görür ve sebebini bilemez.

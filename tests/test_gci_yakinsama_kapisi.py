@@ -222,3 +222,51 @@ class TestIyilestirmeOrani:
         src = inspect.getsource(vp.run_vehicle_analysis)
         i = src.index("bg_ince = ")
         assert "bg_bilgi" in src[i:i + 200]
+
+
+class TestSeviyeYuzeyCozunurlugu:
+    """Gövdesi ÇÖZÜLMEMİŞ seviye ayrıklaştırma çalışmasına GİREMEZ.
+
+    ÖLÇÜLDÜ (küp, 4 seviye):
+        seviye     hucre    yuzey_yuz   cozuldu
+        cokkaba   20.086       216        HAYIR   Cd=0.92974
+        kaba      67.144      1704        evet    Cd=1.08044
+        orta     241.135      8084        evet    Cd=1.03769
+        ince     905.896     49232        evet    Cd=1.04166
+
+    216 yüzlü seviye MiniHawk'ın 74-yüz vakasını yakalayan AYNI kapıya takılıyor.
+    O seviye fite girince Eça-Hoekstra salınımlı bandı %43.4 çıkıyor; çözülmüş üç
+    seviyeyle %12.3. Fark, çözülmemiş geometrinin Cd'sinin (0.930 vs ~1.04) fite
+    taşıdığı SAHTE saçılmadır — farklı bir geometriyi çözüyor.
+
+    Bu KEYFİ bir kesme DEĞİL: ölçüt zaten vardı ve ana koşuda uygulanıyordu.
+    """
+    def test_kapi_seviyelere_uygulaniyor(self):
+        import inspect
+
+        import vehicle_pipeline as vp
+        src = inspect.getsource(vp.run_vehicle_analysis)
+        assert "_yuzey_cozulmedi" in src
+        assert "yuzey_cozunurluk_hukmu" in src
+
+    def test_dislanan_seviye_KAYITTA_kaliyor(self):
+        """Sessiz atlama yok — gerekçesiyle raporlanmalı."""
+        import inspect
+
+        import vehicle_pipeline as vp
+        src = inspect.getsource(vp.run_vehicle_analysis)
+        assert "yuzeyi_cozulmemis_seviyeler" in src
+
+    def test_OLCULEN_bandlar(self):
+        """216-yüzlü seviye dışlanınca band %43.4 -> %12.3."""
+        F = [0.92974, 1.08044, 1.03769, 1.04166]
+        def band(f):
+            d = [f[i + 1] - f[i] for i in range(len(f) - 1)]
+            return 3 * max(abs(x) for x in d) / f[-1] * 100
+        assert abs(band(F) - 43.4) < 0.5
+        assert abs(band(F[1:]) - 12.3) < 0.5
+
+    def test_cozulmus_seviye_ETKILENMIYOR(self):
+        from analysis.openfoam_runner import yuzey_cozunurluk_hukmu
+        assert yuzey_cozunurluk_hukmu("temiz log", 1704)["cozuldu"] is True
+        assert yuzey_cozunurluk_hukmu("temiz log", 216)["cozuldu"] is False
