@@ -660,6 +660,10 @@ class AnalyzerWindow(QMainWindow):
             "velocity": self.spn_v.value(),
             "alpha_deg": self.spn_aoa.value(),
             "quality": self.cmb_quality.currentData(),
+            # ref_bump="oto": y+'i banda sokan tek kaldirac; geometri BASINA
+            # hesaplanir. Bu satir olmadan GUI varsayilan (0) ile kosuyordu ve
+            # olculen %83'luk basari orani kullanici-yuzu yolda GECERSIZDI.
+            "ref_bump": "oto",
             "n_processors": self.spn_proc.value(),
             "nose_axis": self.cmb_nose.currentText(),
             "up_axis": self.cmb_up.currentText(),

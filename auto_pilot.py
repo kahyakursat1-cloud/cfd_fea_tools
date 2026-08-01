@@ -341,7 +341,18 @@ def auto_configure(stl_path, out_dir="vehicle_runs/_autoprep",
     regime = _regime_for_tip(tip)
     quality = _quality_for(lmax, geo.get("ucgen_sayisi", 0), regime)
 
-    cfg = {"stl": str(prep), "tip": tip, "kalite": quality,
+    # ref_bump="oto": YUZEY IYILESTIRME KADEMESI ML EYLEM UZAYINA GIRER.
+    # Otopilot yalniz hizli/standart/hassas seciyordu; ref_bump preset'in SABIT
+    # alanidir. Ama OLCULDU ki y+'i duvar-fonksiyonu bandina (30-300) sokan tek
+    # kaldirac budur — ve dogru kademe govde boyutuna/hiza bagli oldugu icin sabit
+    # bir sayi tum geometrilere uymuyor (sabit bump=2 ile multikopter_kucuk y+=25
+    # verip bandin ALTINA dustu; oto kademeyle y+=38.6 ve gecti).
+    #
+    # 12-geometrilik taramada oto kademeyle secilen bump'lar 0'dan 4'e degisti ve
+    # ONBIRININ DE olculen y+'i banda girdi (39-117). Bu satir olmadan GUI ve
+    # otopilot varsayilan (0) ile kosuyor, yani olculen %83'luk oran KULLANICI
+    # YUZU hicbir yolda gecerli degildi.
+    cfg = {"stl": str(prep), "tip": tip, "kalite": quality, "ref_bump": "oto",
            "guven": cls["guven"], "metrik": cls["metrik"],
            "kural_tip": cls.get("kural_tip"), "ogrenilen": cls.get("ogrenilen"),
            "su_gecirmez": geo.get("su_gecirmez"), "lmax_m": lmax,
