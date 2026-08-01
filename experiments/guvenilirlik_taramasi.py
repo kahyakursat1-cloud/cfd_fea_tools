@@ -114,6 +114,10 @@ def main() -> int:
     ap.add_argument("--tohum", type=int, default=20260728)
     ap.add_argument("--stl", nargs="*", default=None)
     ap.add_argument("--out", default="guvenilirlik_taramasi.json")
+    # Koşu kökü AYRI verilebilmeli: aynı geometriyi farklı ref_bump ile koşmak
+    # ÖĞRENME için gereken olumsuz örneği üretir, ama varsayılan kökte koşarsa
+    # mevcut OLUMLU kayıtları siler ve havuz yine tek-yönlü kalır.
+    ap.add_argument("--out-root", default="vehicle_runs")
     a = ap.parse_args()
 
     kok = HERE.parent
@@ -136,7 +140,7 @@ def main() -> int:
         t1 = time.time()
         try:
             r = run_vehicle_analysis(str(stl), velocity=a.hiz, quality=a.kalite,
-                                     ref_bump=_rb, out_root="vehicle_runs")
+                                     ref_bump=_rb, out_root=a.out_root)
             h = savunulabilir_mi(r)
             k = {"stl": stl.name, "aile": stl.parent.name,
                  "Cd": r.cd, "hucre": (r.mesh or {}).get("cells"),
@@ -184,7 +188,8 @@ def main() -> int:
                   "kapi": "validity_envelope.sonuc_kapisi seviyesi 'ok' olmali"},
         "verdikt": "",
         "_uretim": f"Üretim: python experiments/guvenilirlik_taramasi.py --n {a.n} "
-                   f"--kalite {a.kalite} --ref-bump {a.ref_bump} --tohum {a.tohum}",
+                   f"--kalite {a.kalite} --ref-bump {a.ref_bump} --tohum {a.tohum} "
+                   f"--out-root {a.out_root} --out {a.out}",
     }
     rec["verdikt"] = (
         f"{len(gecen)}/{len(kayitlar)} geometri savunulabilir Cd uretti (%{rec['oran_pct']}). "

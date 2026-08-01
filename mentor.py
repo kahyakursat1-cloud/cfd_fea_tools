@@ -60,6 +60,14 @@ def _cfd_record(path: Path) -> dict | None:
             "non_ortho": (s.get("mesh") or {}).get("non_ortho_max"),
             "n_layers": bl.get("katman_sayisi", 0),
             "yplus_hedef": bl.get("yplus_hedef"), "yplus_ort": yp.get("ort"),
+            # AYAR→SONUÇ öğrenmesinin asıl değişkeni. Kayıtta YOKTU: havuz
+            # `kalite`yi tutuyordu ama ölçülmüş tek kaldıraç ref_bump'tı, yani
+            # öğrenme değişkeni hiç kaydedilmiyordu. Fizik önerisi ile GERÇEKTEN
+            # kullanılan kademe ayrı ayrı durur — ikisi ayrıştığında sebebi
+            # görünsün.
+            **{k: (bl.get("ref_bump_onerisi") or {}).get(v)
+               for k, v in (("ref_bump", "kullanilan"), ("ref_bump_oneri", "bump"),
+                            ("beklenen_yplus", "beklenen_yplus"))},
             "drift_ok": conv.get("drift_ok"),
             "gci_asimptotik": str(md.get("verdikt", "")).startswith("✅"),
             "n_uyari": len(s.get("uyarilar") or []),
@@ -207,6 +215,45 @@ def _knn(pool: list[dict], metrik: dict, k: int) -> list[tuple[float, dict]]:
     return sorted(((d2(c), c) for c in pool), key=lambda t: t[0])[:k]
 
 
+def _ref_bump_dersi(knn: list) -> dict:
+    """Komşuların ref_bump→sonuç geçmişi ve FİZİK KURALIYLA ÇELİŞKİSİ.
+
+    NEDEN AYRI: mentor `kalite` sıralıyordu, ama ölçülmüş tek kaldıraç ref_bump
+    (MiniHawk: +1/+2/+3 → y⁺ 340/112/61). Yani öğrenme, sonucu belirlemeyen
+    değişkeni sıralıyordu.
+
+    BU BİR ÖNERİ DEĞİL, BİR DENETİMDİR. Kademeyi `onerilen_ref_bump` fizikten
+    seçer (beklenen y⁺ bandı + hücre bütçesi); öğrenilen havuz onu EZMEZ. Havuzun
+    işi, fiziğin seçtiği kademenin gerçekte tutup tutmadığını söylemektir —
+    kural ile ölçüm ayrışırsa bu görünmelidir.
+    """
+    kayitli = [c for _, c in knn if c.get("ref_bump") is not None]
+    if not kayitli:
+        return {"ref_bump_basari": None, "ref_bump_notu":
+                "komşularda ref_bump kaydı YOK (düzeltme öncesi kayıtlar) — "
+                "ayar→sonuç dersi çıkarılamaz"}
+    ist: dict[int, list[bool]] = {}
+    for c in kayitli:
+        ist.setdefault(int(c["ref_bump"]), []).append(bool(c["ok"]))
+    basari = {b: round(sum(v) / len(v), 2) for b, v in sorted(ist.items())}
+    # Fizik önerisi ile KULLANILAN kademenin ayrıştığı ve sonucun BAŞARISIZ
+    # olduğu vakalar: kuralı doğrulayan en güçlü kanıt budur.
+    ayrisan = [c for c in kayitli
+               if c.get("ref_bump_oneri") is not None
+               and c["ref_bump_oneri"] != c["ref_bump"]]
+    ayrisan_basarisiz = sum(1 for c in ayrisan if not c["ok"])
+    not_ = None
+    if len(set(basari.values())) <= 1:
+        not_ = (f"ref_bump→sonuç AYIRT EDİCİ değil: {len(kayitli)} komşunun hepsi "
+                "aynı sonucu verdi; kademe seçimi hakkında bilgi taşımıyor")
+    elif ayrisan:
+        not_ = (f"fizik önerisinden SAPILAN {len(ayrisan)} komşunun "
+                f"{ayrisan_basarisiz}'i başarısız — kademeyi kural seçsin, "
+                "havuz yalnız denetlesin")
+    return {"ref_bump_basari": basari, "ref_bump_notu": not_,
+            "ref_bump_kayitli_komsu": len(kayitli)}
+
+
 def advise_mesh(metrik: dict, tip: str = "", k: int = 8,
                 min_support: int = MIN_SUPPORT) -> dict | None:
     """Benzer geometrilerin mesh/ayar SONUÇLARINDAN öneri: kalite (başarı oranıyla),
@@ -296,6 +343,7 @@ def advise_mesh(metrik: dict, tip: str = "", k: int = 8,
     cells = sorted(c["cells"] for _, c in knn
                    if c.get("cells") and (not onerilen or c.get("kalite") == onerilen))
     return {"onerilen_kalite": onerilen, "kalite_basari": basari,
+            **_ref_bump_dersi(knn),
             "beklenen_hucre": cells[len(cells) // 2] if cells else None,
             "yplus_duzeltme": yplus_duzeltme, "riskler": riskler,
             # n_destek KAYIT sayısı; bağımsız vaka sayısı DEĞİL. Ölçüldü: 16 kaydın

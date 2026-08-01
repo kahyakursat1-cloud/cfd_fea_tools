@@ -241,3 +241,46 @@ class TestAyrikGeometriSayisi:
         o = mentor.advise_mesh(m, "ucak")
         assert o["n_destek"] == 6
         assert o["n_ayrik_geometri"] == 2, "aynı gövdenin tekrarları bağımsız sayıldı"
+
+
+class TestRefBumpDersi:
+    """Mentor `kalite` sıralıyordu, ama ölçülmüş tek kaldıraç ref_bump'tı
+    (MiniHawk: +1/+2/+3 → y⁺ 340/112/61). Yani öğrenme, sonucu belirlemeyen
+    değişkeni sıralıyordu; belirleyen değişken kayıtta bile yoktu.
+
+    Havuz kademeyi SEÇMEZ — onu fizik seçer (beklenen y⁺ bandı + hücre bütçesi).
+    Havuzun işi fiziğin seçimini DENETLEMEKTİR.
+    """
+
+    def test_kayit_YOKSA_ders_uydurulmuyor(self):
+        import mentor
+        d = mentor._ref_bump_dersi([(0.0, {"ok": True}), (0.0, {"ok": False})])
+        assert d["ref_bump_basari"] is None
+        assert "kaydı YOK" in d["ref_bump_notu"]
+
+    def test_kademe_basina_sonuc_cikariliyor(self):
+        import mentor
+        knn = [(0.0, {"ok": False, "ref_bump": 0, "ref_bump_oneri": 2}),
+               (0.0, {"ok": False, "ref_bump": 0, "ref_bump_oneri": 2}),
+               (0.0, {"ok": True, "ref_bump": 2, "ref_bump_oneri": 2}),
+               (0.0, {"ok": True, "ref_bump": 2, "ref_bump_oneri": 2})]
+        d = mentor._ref_bump_dersi(knn)
+        assert d["ref_bump_basari"] == {0: 0.0, 2: 1.0}
+        assert "fizik önerisinden SAPILAN 2" in d["ref_bump_notu"]
+        assert "2'i başarısız" in d["ref_bump_notu"]
+
+    def test_tek_YONLU_havuzda_ders_YOK(self):
+        import mentor
+        knn = [(0.0, {"ok": True, "ref_bump": b, "ref_bump_oneri": b})
+               for b in (0, 1, 2, 3)]
+        d = mentor._ref_bump_dersi(knn)
+        assert "AYIRT EDİCİ değil" in d["ref_bump_notu"]
+
+    def test_kayit_semasi_ref_bumpi_ICERIYOR(self):
+        """Koşu bitip de alan yoksa iki saatlik hesap öğrenmeye giremez."""
+        import inspect
+
+        import mentor
+        src = inspect.getsource(mentor._cfd_record)
+        for alan in ("ref_bump", "ref_bump_oneri", "beklenen_yplus"):
+            assert f'"{alan}"' in src
