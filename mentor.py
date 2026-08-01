@@ -198,11 +198,31 @@ def advise_mesh(metrik: dict, tip: str = "", k: int = 8,
     basari = {q: round(sum(v) / len(v), 2) for q, v in kalite_ist.items()}
     riskler = []
     onerilen = None
-    if basari:
+    # AYIRT EDİCİ KANIT YOKSA SIRALAMA YAPILMAZ. Havuzdaki TÜM sonuçlar aynıysa
+    # (hepsi başarılı ya da hepsi başarısız) başarı oranı hangi seçeneğin daha iyi
+    # olduğu hakkında SIFIR bilgi taşır; sıralama tamamen beraberlik-bozucuya kalır.
+    #
+    # ÖLÇÜLDÜ: havuz 16 kayıt, 16'sı da ok=True. Mentor `kalite_basari
+    # {"hassas_nl": 1.0, "hassas": 1.0}` deyip beraberliği `hassas` lehine bozuyor
+    # ve onu öneriyordu — oysa `hassas`ın bu geometride katmanları ÇÖKERTTİĞİ ve
+    # `hassas_nl` ile BİREBİR aynı mesh'i verdiği (660862 hücre) ölçülmüştü.
+    # Yani bilgi taşımayan bir orandan kendinden emin ve YANLIŞ bir öneri çıkıyordu.
+    _sonuclar = {bool(c["ok"]) for _, c in knn}
+    _ayirt_edici = len(_sonuclar) > 1
+    if basari and _ayirt_edici:
         guvenli = {q: r for q, r in basari.items() if r >= 0.5}
         sira = {"hassas": 3, "hassas_nl": 2, "standart": 1, "hizli": 0}
         if guvenli:
             onerilen = max(guvenli, key=lambda q: (guvenli[q], sira.get(q, -1)))
+    elif basari:
+        riskler.append(
+            f"KALİTE ÖNERİSİ YOK: komşu {len(knn)} vakanın hepsi aynı sonucu verdi "
+            f"({'tümü başarılı' if all(_sonuclar) else 'tümü başarısız'}) — başarı "
+            "oranı seçenekler arasında AYIRT EDİCİ değil. Öneri üretmek için havuzda "
+            "hem başarılı hem başarısız örnek gerekir")
+    # Kalite-bazlı RİSK uyarıları sıralamadan BAĞIMSIZDIR: "bu preset komşularda
+    # düşük başarılı" bilgisi, sıralama yapılabilsin ya da yapılmasın geçerlidir.
+    if basari:
         for q, r in basari.items():
             if r < 0.5:
                 katmanli = any(c.get("n_layers", 0) > 0 for _, c in knn

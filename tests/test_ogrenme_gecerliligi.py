@@ -121,3 +121,55 @@ class TestKatmanCokmesiRecetesi:
         """Kural yalnız UÇ oranda değişmeli; ılımlı sapmanın reçetesi farklıdır."""
         o = self._pool(tmp_path, monkeypatch, 3.2)["yplus_duzeltme"]
         assert "ölçekleyin" in o["oneri"]
+
+
+class TestAyirtEdiciKanit:
+    """Havuzdaki TÜM sonuçlar aynıysa başarı oranı SIFIR bilgi taşır.
+
+    ÖLÇÜLDÜ: geçerlilik filtresinden sonra havuz 16 kayıt ve 16'sı da ok=True.
+    Mentor `kalite_basari {"hassas_nl": 1.0, "hassas": 1.0}` deyip beraberliği
+    `hassas` lehine bozuyor ve onu ÖNERİYORDU — oysa `hassas`ın bu geometride
+    katmanları ÇÖKERTTİĞİ ve `hassas_nl` ile BİREBİR aynı mesh'i verdiği
+    (660862 hücre, ikisinin de ref_bump'ı +1) ölçülmüştü.
+
+    Yani bilgi taşımayan bir orandan kendinden emin ve YANLIŞ bir öneri çıkıyordu.
+    """
+    @staticmethod
+    def _havuz(tmp_path, monkeypatch, sonuclar):
+        import json as _j
+
+        import mentor
+        monkeypatch.setattr(mentor, "MESH_MEMORY", tmp_path / "m.jsonl")
+        m = {"lmax_m": 1.5, "on_alan_m2": 0.05, "yan_alan_m2": 0.3,
+             "planform_alan_m2": 0.775, "ucgen_sayisi": 2000,
+             "ince_yassilik": 0.05, "keskin_kenar_orani": 0.1}
+        recs = [{"tur": "cfd", "tip": "ucak", "metrik": m, "kalite": kal,
+                 "ok": ok, "n_layers": 0, "cells": 900000,
+                 "yuzey_cozuldu": True, "ogrenilebilir": True}
+                for kal, ok in sonuclar]
+        (tmp_path / "m.jsonl").write_text(
+            "".join(_j.dumps(r) + "\n" for r in recs), encoding="utf-8")
+        return mentor.advise_mesh(m, "ucak")
+
+    def test_HEPSI_BASARILI_havuzda_oneri_YOK(self, tmp_path, monkeypatch):
+        o = self._havuz(tmp_path, monkeypatch,
+                        [("hassas_nl", True)] * 4 + [("hassas", True)] * 4)
+        assert o["onerilen_kalite"] is None
+        assert any("AYIRT EDİCİ değil" in r for r in o["riskler"])
+
+    def test_HEPSI_BASARISIZ_havuzda_da_oneri_YOK(self, tmp_path, monkeypatch):
+        o = self._havuz(tmp_path, monkeypatch,
+                        [("hassas_nl", False)] * 4 + [("hassas", False)] * 4)
+        assert o["onerilen_kalite"] is None
+        assert any("tümü başarısız" in r for r in o["riskler"])
+
+    def test_AYIRT_EDICI_havuzda_oneri_URETILIYOR(self, tmp_path, monkeypatch):
+        """Kapı yalnız bilgisiz havuzu susturmalı; gerçek kanıt varsa öneri gelsin."""
+        o = self._havuz(tmp_path, monkeypatch,
+                        [("hassas", False)] * 4 + [("hassas_nl", True)] * 4)
+        assert o["onerilen_kalite"] == "hassas_nl"
+
+    def test_bilgi_tasiyan_tahmin_KORUNUYOR(self, tmp_path, monkeypatch):
+        """Hücre tahmini başarı oranından bağımsızdır; susturulmamalı."""
+        o = self._havuz(tmp_path, monkeypatch, [("hassas_nl", True)] * 8)
+        assert o["beklenen_hucre"] == 900000
