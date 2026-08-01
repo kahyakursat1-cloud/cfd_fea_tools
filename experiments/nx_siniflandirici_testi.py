@@ -40,6 +40,48 @@ KABA = {"roket": "roket", "kanatli_roket": "roket", "ucak": "ucak",
         "tilt_rotor": "ucak", "kanatli_vtol": "ucak", "kaldirici_govde": "ucak",
         "multikopter": "multikopter", "genel": "genel"}
 
+# ── Hedef güncellemesi: PRESET DOĞRULUĞU ARTIK TEK BELİRLEYİCİ DEĞİL ─────────
+# Bu dosya "preset doğruluğu = analiz ayarını gerçekten etkileyen metrik" diyordu.
+# O iddia preset'in tek karar olduğu dönemde doğruydu. İki şey değişti:
+#   1. `ref_bump="oto"` eylem uzayına girdi — y⁺'ı duvar-fonksiyonu bandına sokan
+#      ÖLÇÜLMÜŞ tek kaldıraç bu, ve SINIFTAN DEĞİL geometriden/bütçeden geliyor.
+#      Yani sınıflandırıcı doğru olsa da olmasa da o kademe aynı hesaplanır.
+#   2. Sınıf yalnız preset'i değil REJİMİ ve ANALİZ TİPİNİ de seçiyor. PRESET_MAP
+#      eşitliği bunları göremiyor: ucak/tilt_rotor/kanatli_vtol üçü de "ucak"
+#      preset'i ama serbest-akım hızları 25/22/20 m/s — preset ölçütü bu farkı
+#      "hatasız" sayar.
+# Doğru ölçüt: iki tip için apply_type_settings ÇALIŞTIRILIP sonuçlanan ayarların
+# karşılaştırılması. Etiket yanlış ama ayar aynıysa sonuç DEĞİŞMEZ; etiket doğru
+# görünüp rejim değişiyorsa sonuç tamamen başkadır.
+AYAR_ANAHTARLARI = ("vehicle_preset", "rejim", "analiz", "hiz_ms",
+                    "mach_listesi", "aoa_listesi")
+AGIR = ("rejim", "analiz")          # başka çözücü / başka çıktı — sonuç kıyaslanamaz
+ORTA = ("vehicle_preset",)          # mesh/referans ayarları değişir
+
+
+def ayar_farki(gercek: str, tahmin: str) -> dict:
+    """İki tipin ürettiği ayarları karşılaştır. Etiket değil SONUCU etkileyen şey."""
+    from auto_pilot import apply_type_settings
+    a = apply_type_settings({"kalite": "standart", "guven": 1.0}, gercek)
+    b = apply_type_settings({"kalite": "standart", "guven": 1.0}, tahmin)
+    farkli = [k for k in AYAR_ANAHTARLARI if a.get(k) != b.get(k)]
+    if not farkli:
+        siddet = "ESDEGER"
+    elif any(k in AGIR for k in farkli):
+        siddet = "AGIR"
+    elif any(k in ORTA for k in farkli):
+        siddet = "ORTA"
+    else:
+        siddet = "HAFIF"
+    return {"siddet": siddet, "farkli_anahtarlar": farkli,
+            "gercek_ayar": {k: a.get(k) for k in farkli},
+            "tahmin_ayar": {k: b.get(k) for k in farkli},
+            # Plan metni ince etikete bağlı ve MÜHENDİSLİK ÇEKİNCESİ taşır
+            # ("tilt-rotor: bu analiz yalnız YATAY uçuş aerodinamiğidir"). Ayar
+            # aynı olsa bile bu uyarı kaybolur; ayrı izlenir, şiddet merdivenine
+            # karışmaz.
+            "plan_uyarisi_degisti": a.get("plan") != b.get("plan")}
+
 
 def _metre_kopyasi(stl: Path, hedef: Path) -> dict:
     """NX mm cinsinden yazar; proje metre çalışır. Ölçek dönüşümü AÇIK yapılır."""
@@ -105,6 +147,13 @@ def ozetle(kayitlar: list[dict]) -> dict:
                         "preset_gercek": PRESET_MAP.get(k["gercek"]),
                         "preset_tahmin": PRESET_MAP.get(k["son"])}
                        for k in kayitlar if PRESET_MAP.get(k["son"]) != PRESET_MAP.get(k["gercek"])]
+    # AYAR EŞDEĞERLİĞİ: preset ölçütünün göremediği rejim/analiz/hız farkları.
+    ayarlar = [{"ad": k["ad"], "gercek": k["gercek"], "tahmin": k["son"],
+                **ayar_farki(k["gercek"], k["son"])} for k in kayitlar]
+    esdeger = sum(1 for a in ayarlar if a["siddet"] == "ESDEGER")
+    siddet_dagilimi = dict(Counter(a["siddet"] for a in ayarlar))
+    plan_kaybi = [a["ad"] for a in ayarlar
+                  if a["siddet"] == "ESDEGER" and a["plan_uyarisi_degisti"]]
     knn_bozdu = [k["ad"] for k in kayitlar
                  if k["kural"] == k["gercek_kaba"] and KABA.get(k["son"], k["son"]) != k["gercek_kaba"]]
     knn_duzeltti = [k["ad"] for k in kayitlar
@@ -128,6 +177,11 @@ def ozetle(kayitlar: list[dict]) -> dict:
         "son_ince_dogruluk": round(ince_dogru / n, 3),
         "preset_dogruluk": round(preset_dogru / n, 3),
         "preset_hatalari": preset_hatalari,
+        # ASIL HEDEF (2026-08-01): etiket değil, SONUÇLANAN AYAR.
+        "ayar_esdegerlik": round(esdeger / n, 3),
+        "ayar_siddet_dagilimi": siddet_dagilimi,
+        "ayar_farklari": [a for a in ayarlar if a["siddet"] != "ESDEGER"],
+        "ayar_ayni_ama_plan_uyarisi_kayip": plan_kaybi,
         "knn_bozdugu": knn_bozdu, "knn_duzelttigi": knn_duzeltti,
         "kural_hatalari": [{"gercek": g, "tahmin": t, "adet": c}
                            for (g, t), c in hatalar.most_common()],
@@ -169,9 +223,17 @@ def main() -> int:
     print(f"son   kaba dogruluk : {o['son_kaba_dogruluk']:.1%}")
     print(f"son   ince dogruluk : {o['son_ince_dogruluk']:.1%}")
     print(f"PRESET dogrulugu    : {o['preset_dogruluk']:.1%}  "
-          f"(analiz ayarini gercekten etkileyen metrik)")
+          f"(mesh preset'i — TEK belirleyici DEGIL)")
     for h in o["preset_hatalari"]:
         print(f"   ! {h['ad']}: {h['preset_gercek']} yerine {h['preset_tahmin']}")
+    print(f"AYAR ESDEGERLIGI    : {o['ayar_esdegerlik']:.1%}  "
+          f"(rejim+analiz+hiz+preset birlikte — ASIL metrik) {o['ayar_siddet_dagilimi']}")
+    for a in o["ayar_farklari"]:
+        print(f"   ! [{a['siddet']}] {a['ad']}: {a['gercek']}→{a['tahmin']} "
+              f"{a['gercek_ayar']} yerine {a['tahmin_ayar']}")
+    if o["ayar_ayni_ama_plan_uyarisi_kayip"]:
+        print(f"   ~ ayar ayni ama PLAN CEKINCESI kayboldu: "
+              f"{o['ayar_ayni_ama_plan_uyarisi_kayip']}")
     print(f"kNN bozdugu: {o['knn_bozdugu']}")
     print(f"kNN duzelttigi: {o['knn_duzelttigi']}")
     print(f"tessellation kararsiz: {o['tessellation']['kararsiz']}")
@@ -198,8 +260,15 @@ def _verdikt(o: dict) -> str:
                  "sinif verdi — hukum geometriye degil mesh yogunluguna duyarli")
     else:
         p.append("ucgenleme yogunlugu hukmu degistirmiyor")
-    p.append(f"ince (8-sinif) dogruluk %{o['son_ince_dogruluk'] * 100:.0f}, ANALIZ AYARINI "
-             f"belirleyen preset dogrulugu %{o['preset_dogruluk'] * 100:.0f}")
+    p.append(f"ince (8-sinif) dogruluk %{o['son_ince_dogruluk'] * 100:.0f}, mesh preset "
+             f"dogrulugu %{o['preset_dogruluk'] * 100:.0f}")
+    ag = o["ayar_siddet_dagilimi"].get("AGIR", 0)
+    p.append(f"ASIL OLCUT ayar-esdegerligi %{o['ayar_esdegerlik'] * 100:.0f}"
+             + (f" ({ag} vakada REJIM/ANALIZ degisiyor — sonuclar kiyaslanamaz)"
+                if ag else " (rejim/analiz degisen vaka YOK)")
+             + ". Preset dogrulugu tek basina yeterli degil: `ref_bump` artik eylem "
+               "uzayinda ve SINIFTAN degil geometri+butceden geliyor, rejim/analiz "
+               "ise preset esitliginin goremedigi ayri bir fork")
     return ". ".join(p) + "."
 
 

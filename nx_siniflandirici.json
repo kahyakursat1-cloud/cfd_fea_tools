@@ -10,6 +10,126 @@
     "son_ince_dogruluk": 0.829,
     "preset_dogruluk": 1.0,
     "preset_hatalari": [],
+    "ayar_esdegerlik": 0.829,
+    "ayar_siddet_dagilimi": {
+      "ESDEGER": 34,
+      "HAFIF": 7
+    },
+    "ayar_farklari": [
+      {
+        "ad": "tiltrotor_kucuk",
+        "gercek": "tilt_rotor",
+        "tahmin": "ucak",
+        "siddet": "HAFIF",
+        "farkli_anahtarlar": [
+          "hiz_ms"
+        ],
+        "gercek_ayar": {
+          "hiz_ms": 22.0
+        },
+        "tahmin_ayar": {
+          "hiz_ms": 25.0
+        },
+        "plan_uyarisi_degisti": true
+      },
+      {
+        "ad": "tiltrotor_orta_kaba",
+        "gercek": "tilt_rotor",
+        "tahmin": "ucak",
+        "siddet": "HAFIF",
+        "farkli_anahtarlar": [
+          "hiz_ms"
+        ],
+        "gercek_ayar": {
+          "hiz_ms": 22.0
+        },
+        "tahmin_ayar": {
+          "hiz_ms": 25.0
+        },
+        "plan_uyarisi_degisti": true
+      },
+      {
+        "ad": "tiltrotor_orta",
+        "gercek": "tilt_rotor",
+        "tahmin": "ucak",
+        "siddet": "HAFIF",
+        "farkli_anahtarlar": [
+          "hiz_ms"
+        ],
+        "gercek_ayar": {
+          "hiz_ms": 22.0
+        },
+        "tahmin_ayar": {
+          "hiz_ms": 25.0
+        },
+        "plan_uyarisi_degisti": true
+      },
+      {
+        "ad": "tiltrotor_darkanat",
+        "gercek": "tilt_rotor",
+        "tahmin": "ucak",
+        "siddet": "HAFIF",
+        "farkli_anahtarlar": [
+          "hiz_ms"
+        ],
+        "gercek_ayar": {
+          "hiz_ms": 22.0
+        },
+        "tahmin_ayar": {
+          "hiz_ms": 25.0
+        },
+        "plan_uyarisi_degisti": true
+      },
+      {
+        "ad": "kanatlivtol_kucuk",
+        "gercek": "kanatli_vtol",
+        "tahmin": "ucak",
+        "siddet": "HAFIF",
+        "farkli_anahtarlar": [
+          "hiz_ms"
+        ],
+        "gercek_ayar": {
+          "hiz_ms": 20.0
+        },
+        "tahmin_ayar": {
+          "hiz_ms": 25.0
+        },
+        "plan_uyarisi_degisti": true
+      },
+      {
+        "ad": "kanatlivtol_orta",
+        "gercek": "kanatli_vtol",
+        "tahmin": "ucak",
+        "siddet": "HAFIF",
+        "farkli_anahtarlar": [
+          "hiz_ms"
+        ],
+        "gercek_ayar": {
+          "hiz_ms": 20.0
+        },
+        "tahmin_ayar": {
+          "hiz_ms": 25.0
+        },
+        "plan_uyarisi_degisti": true
+      },
+      {
+        "ad": "kanatlivtol_genis",
+        "gercek": "kanatli_vtol",
+        "tahmin": "ucak",
+        "siddet": "HAFIF",
+        "farkli_anahtarlar": [
+          "hiz_ms"
+        ],
+        "gercek_ayar": {
+          "hiz_ms": 20.0
+        },
+        "tahmin_ayar": {
+          "hiz_ms": 25.0
+        },
+        "plan_uyarisi_degisti": true
+      }
+    ],
+    "ayar_ayni_ama_plan_uyarisi_kayip": [],
     "knn_bozdugu": [],
     "knn_duzelttigi": [
       "roket_ld6",
@@ -1489,6 +1609,6 @@
       ]
     }
   ],
-  "verdikt": "⚠️ Kural motoru bagimsiz sette yalniz %66 kaba-sinif dogrulugunda — kendi dagiliminda olculen guven yaniltici. kNN 14 vakayi duzeltti, hic bozmadi. ucgenleme yogunlugu hukmu degistirmiyor. ince (8-sinif) dogruluk %83, ANALIZ AYARINI belirleyen preset dogrulugu %100.",
+  "verdikt": "⚠️ Kural motoru bagimsiz sette yalniz %66 kaba-sinif dogrulugunda — kendi dagiliminda olculen guven yaniltici. kNN 14 vakayi duzeltti, hic bozmadi. ucgenleme yogunlugu hukmu degistirmiyor. ince (8-sinif) dogruluk %83, mesh preset dogrulugu %100. ASIL OLCUT ayar-esdegerligi %83 (rejim/analiz degisen vaka YOK). Preset dogrulugu tek basina yeterli degil: `ref_bump` artik eylem uzayinda ve SINIFTAN degil geometri+butceden geliyor, rejim/analiz ise preset esitliginin goremedigi ayri bir fork.",
   "_uretim": "Üretim: run_journal.exe experiments/nx_geometri_uret.py && python experiments/nx_siniflandirici_testi.py"
 }
