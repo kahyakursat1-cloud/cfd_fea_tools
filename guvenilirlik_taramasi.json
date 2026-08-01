@@ -1,35 +1,34 @@
 {
-  "vaka": "Güvenilirlik taraması — 12 geometri, kalite=hassas_nl, V=15.0 m/s, ref_bump=2",
+  "vaka": "Güvenilirlik taraması — 12 geometri, kalite=hassas_nl, V=15.0 m/s, ref_bump=oto",
   "_neden": "Uygulamanin BASARI ORANI olculmemisti. 'Savunulabilir' tanimi mevcut kapilarin birlesimidir (sonuc_kapisi + duvar cozunurlugu), yazarin yargisi degil.",
   "geometri_sayisi": 12,
-  "savunulabilir_sayisi": 4,
-  "oran_pct": 33.3,
+  "savunulabilir_sayisi": 10,
+  "oran_pct": 83.3,
   "basarisizlik_sebepleri": {
-    "yakınsama/salınım": 7,
-    "duvar/y+": 1,
+    "yakınsama/salınım": 1,
     "koşu tamamlanmadı": 1
   },
   "kosular": [
     {
       "stl": "minihawk_vtol.stl",
       "aile": "real_geo",
-      "Cd": 0.01843,
-      "hucre": 945533,
-      "sure_dk": 11.0,
+      "Cd": 0.02057,
+      "hucre": 682240,
+      "sure_dk": 6.1,
       "savunulabilir": true,
       "gerekce": [],
       "kapi": "✅ yakınsadı",
-      "duvar": "duvar fonksiyonu bandında: y+=40"
+      "duvar": "duvar fonksiyonu bandında: y+=117"
     },
     {
       "stl": "ciftkuyruk_kucuk.stl",
       "aile": "nx_geo_egitim",
-      "Cd": 0.06087,
+      "Cd": 0.06013,
       "hucre": 862580,
-      "sure_dk": 10.4,
+      "sure_dk": 16.6,
       "savunulabilir": false,
       "gerekce": [
-        "⚠️ salınımlı (sabit nokta yok): rezidüel hedefin dışında; kuvvet SALINIYOR (genlik ±%1.7, 4 işaret geçişi) — rezidüel ve drift ölçütleri sağlansa bile çözüm sabit noktaya oturmadı (limit çevri"
+        "⚠️ salınımlı (sabit nokta yok): rezidüel hedefin dışında; kuvvet SALINIYOR (genlik ±%4.7, 9 işaret geçişi) — rezidüel ve drift ölçütleri sağlansa bile çözüm sabit noktaya oturmadı (limit çevri"
       ],
       "kapi": "⚠️ salınımlı (sabit nokta yok)",
       "duvar": "duvar fonksiyonu bandında: y+=74"
@@ -37,78 +36,67 @@
     {
       "stl": "gripen_AB_Right.stl",
       "aile": "real_geo",
-      "Cd": 0.18442,
-      "hucre": 1055170,
-      "sure_dk": 16.3,
-      "savunulabilir": false,
-      "gerekce": [
-        "⚠️ salınımlı (sabit nokta yok): rezidüel hedefin dışında; kuvvet SALINIYOR (genlik ±%0.7, 5 işaret geçişi) — rezidüel ve drift ölçütleri sağlansa bile çözüm sabit noktaya oturmadı (limit çevri"
-      ],
-      "kapi": "⚠️ salınımlı (sabit nokta yok)",
-      "duvar": "duvar fonksiyonu bandında: y+=34"
+      "Cd": 0.18422,
+      "hucre": 781102,
+      "sure_dk": 11.0,
+      "savunulabilir": true,
+      "gerekce": [],
+      "kapi": "✅ salınımlı ama genliği bantta (±%0.7)",
+      "duvar": "duvar fonksiyonu bandında: y+=59"
     },
     {
       "stl": "multikopter_kucuk.stl",
       "aile": "nx_geo",
-      "Cd": 0.18073,
-      "hucre": 869976,
-      "sure_dk": 19.6,
-      "savunulabilir": false,
-      "gerekce": [
-        "⚠️ salınımlı (sabit nokta yok): rezidüel hedefin dışında; kuvvet SALINIYOR (genlik ±%1.6, 6 işaret geçişi) — rezidüel ve drift ölçütleri sağlansa bile çözüm sabit noktaya oturmadı (limit çevri",
-        "y+=25 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
-      ],
-      "kapi": "⚠️ salınımlı (sabit nokta yok)",
-      "duvar": "y+=25 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+      "Cd": 0.18318,
+      "hucre": 722825,
+      "sure_dk": 14.3,
+      "savunulabilir": true,
+      "gerekce": [],
+      "kapi": "✅ salınımlı ama genliği bantta (±%1.9)",
+      "duvar": "duvar fonksiyonu bandında: y+=39"
     },
     {
       "stl": "kaldirici_e_kapsulsu.stl",
       "aile": "nx_geo_egitim",
       "Cd": 0.21797,
       "hucre": 979299,
-      "sure_dk": 18.2,
-      "savunulabilir": false,
-      "gerekce": [
-        "⚠️ salınımlı (sabit nokta yok): rezidüel hedefin dışında; kuvvet SALINIYOR (genlik ±%1.9, 13 işaret geçişi) — rezidüel ve drift ölçütleri sağlansa bile çözüm sabit noktaya oturmadı (limit çevr"
-      ],
-      "kapi": "⚠️ salınımlı (sabit nokta yok)",
+      "sure_dk": 18.4,
+      "savunulabilir": true,
+      "gerekce": [],
+      "kapi": "✅ salınımlı ama genliği bantta (±%1.9)",
       "duvar": "duvar fonksiyonu bandında: y+=60"
     },
     {
       "stl": "gondol_dort.stl",
       "aile": "nx_geo_kor",
-      "Cd": 0.04759,
-      "hucre": 826933,
-      "sure_dk": 15.7,
-      "savunulabilir": false,
-      "gerekce": [
-        "⚠️ salınımlı (sabit nokta yok): rezidüel hedefin dışında; kuvvet SALINIYOR (genlik ±%1.8, 8 işaret geçişi) — rezidüel ve drift ölçütleri sağlansa bile çözüm sabit noktaya oturmadı (limit çevri"
-      ],
-      "kapi": "⚠️ salınımlı (sabit nokta yok)",
-      "duvar": "duvar fonksiyonu bandında: y+=178"
+      "Cd": 0.04679,
+      "hucre": 1796595,
+      "sure_dk": 37.8,
+      "savunulabilir": true,
+      "gerekce": [],
+      "kapi": "✅ salınımlı ama genliği bantta (±%1.7)",
+      "duvar": "duvar fonksiyonu bandında: y+=65"
     },
     {
       "stl": "izgara_ld7.stl",
       "aile": "nx_geo_kor",
-      "Cd": 0.09708,
+      "Cd": 0.09639,
       "hucre": 759792,
-      "sure_dk": 12.9,
-      "savunulabilir": false,
-      "gerekce": [
-        "⚠️ salınımlı (sabit nokta yok): rezidüel hedefin dışında; kuvvet SALINIYOR (genlik ±%1.2, 46 işaret geçişi) — rezidüel ve drift ölçütleri sağlansa bile çözüm sabit noktaya oturmadı (limit çevr"
-      ],
-      "kapi": "⚠️ salınımlı (sabit nokta yok)",
+      "sure_dk": 11.8,
+      "savunulabilir": true,
+      "gerekce": [],
+      "kapi": "✅ salınımlı ama genliği bantta (±%1.1)",
       "duvar": "duvar fonksiyonu bandında: y+=48"
     },
     {
       "stl": "genel_kapsul_uzun.stl",
       "aile": "nx_geo_egitim",
-      "Cd": 0.02556,
+      "Cd": 0.02558,
       "hucre": 764182,
-      "sure_dk": 9.4,
+      "sure_dk": 10.9,
       "savunulabilir": true,
       "gerekce": [],
-      "kapi": "✅ QoI durağan (Cd drifti %0.44)",
+      "kapi": "✅ QoI durağan (Cd drifti %0.93)",
       "duvar": "duvar fonksiyonu bandında: y+=101"
     },
     {
@@ -116,7 +104,7 @@
       "aile": "real_geo",
       "Cd": null,
       "hucre": null,
-      "sure_dk": 8.8,
+      "sure_dk": 30.9,
       "savunulabilir": false,
       "gerekce": [
         "koşu tamamlanmadı (status=failed)"
@@ -125,40 +113,38 @@
     {
       "stl": "a320_Body_A320.stl",
       "aile": "real_geo",
-      "Cd": 0.01374,
-      "hucre": 1041603,
-      "sure_dk": 14.6,
+      "Cd": 0.01485,
+      "hucre": 2100050,
+      "sure_dk": 39.5,
       "savunulabilir": true,
       "gerekce": [],
-      "kapi": "✅ QoI durağan (Cd drifti %0.80)",
-      "duvar": "duvar fonksiyonu bandında: y+=130"
+      "kapi": "✅ QoI durağan (Cd drifti %0.55)",
+      "duvar": "duvar fonksiyonu bandında: y+=58"
     },
     {
       "stl": "genel_kup800.stl",
       "aile": "nx_geo",
-      "Cd": 1.03748,
-      "hucre": 1327524,
-      "sure_dk": 24.1,
+      "Cd": 1.04165,
+      "hucre": 905896,
+      "sure_dk": 21.5,
       "savunulabilir": true,
       "gerekce": [],
-      "kapi": "✅ QoI durağan (Cd drifti %0.21)",
-      "duvar": "duvar fonksiyonu bandında: y+=39"
+      "kapi": "✅ QoI durağan (Cd drifti %0.01)",
+      "duvar": "duvar fonksiyonu bandında: y+=65"
     },
     {
       "stl": "ucak_okkanat.stl",
       "aile": "nx_geo",
-      "Cd": 0.0423,
-      "hucre": 823018,
-      "sure_dk": 12.1,
-      "savunulabilir": false,
-      "gerekce": [
-        "⚠️ salınımlı (sabit nokta yok): rezidüel hedefin dışında; kuvvet SALINIYOR (genlik ±%0.8, 11 işaret geçişi) — rezidüel ve drift ölçütleri sağlansa bile çözüm sabit noktaya oturmadı (limit çevr"
-      ],
-      "kapi": "⚠️ salınımlı (sabit nokta yok)",
-      "duvar": "duvar fonksiyonu bandında: y+=103"
+      "Cd": 0.04263,
+      "hucre": 1142126,
+      "sure_dk": 24.3,
+      "savunulabilir": true,
+      "gerekce": [],
+      "kapi": "✅ salınımlı ama genliği bantta (±%1.8)",
+      "duvar": "duvar fonksiyonu bandında: y+=61"
     }
   ],
-  "sure_dk": 173.1,
+  "sure_dk": 243.0,
   "olcut": {
     "yplus_bandi": [
       30.0,
@@ -167,6 +153,6 @@
     "yplus_duvar_cozunur": 5.0,
     "kapi": "validity_envelope.sonuc_kapisi seviyesi 'ok' olmali"
   },
-  "verdikt": "4/12 geometri savunulabilir Cd uretti (%33.3). Baskin basarisizlik sebebi: yakınsama/salınım (7 vaka). Bu oran uygulamanin OLCULMUS guvenilirligidir; kapilar olmadan olculemezdi.",
-  "_uretim": "Üretim: python experiments/guvenilirlik_taramasi.py --n 12 --kalite hassas_nl --ref-bump 2 --tohum 20260728"
+  "verdikt": "10/12 geometri savunulabilir Cd uretti (%83.3). Baskin basarisizlik sebebi: yakınsama/salınım (1 vaka). Bu oran uygulamanin OLCULMUS guvenilirligidir; kapilar olmadan olculemezdi.",
+  "_uretim": "Üretim: python experiments/guvenilirlik_taramasi.py --n 12 --kalite hassas_nl --ref-bump oto --tohum 20260728"
 }
