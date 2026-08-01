@@ -254,7 +254,17 @@ def apply_physics_gate(verdicts: list[Verdict], fizik: dict | None) -> list[Verd
 QOI_DURAGAN_DRIFT_PCT = 1.0
 
 
-def sonuc_kapisi(fizik: dict | None, convergence: dict | None) -> dict:
+# SALINIM KABUL EŞİĞİ — limit çevrimini "yakınsadı" saymak DEĞİL, genliği ÖLÇÜLMÜŞ
+# ve BANDA KATILMIŞ bir belirsizlik bileşeni olarak kabul etmektir.
+# Ölçüldü (12 geometri): salınım genlikleri %0.68-2.5; aynı koşularda MODEL-form
+# belirsizliği %12. Yani salınım, zaten raporlanan bandın beşte biri kadar. Böyle bir
+# sonucu tümden reddetmek orantısız; ama genliğin bandda GERÇEKTEN olması şart.
+SALINIM_KABUL_PCT = 3.0
+SALINIM_MODEL_ORANI = 3.0     # genlik, model belirsizliğinin en fazla 1/3'ü olmalı
+
+
+def sonuc_kapisi(fizik: dict | None, convergence: dict | None,
+                 belirsizlik: dict | None = None) -> dict:
     """Kullanıcı-yüzü tek hüküm (GUI rozeti / CLI özeti) — ÖNCELİK SIRALI.
 
     Sıra kritik: fiziksel kabul-edilebilirlik, sayısal yakınsamadan ÖNCE gelir. Yakınsamış
@@ -314,6 +324,34 @@ def sonuc_kapisi(fizik: dict | None, convergence: dict | None) -> dict:
             "bile çözüm sabit noktaya oturmadı (limit çevrimi). Bildirilen katsayı "
             "salınımın ortalamasıdır; bu genlik gerçek bir belirsizlik bileşenidir ve "
             "GCI'ya GİRMEZ")
+    # SALINIM: GENLİĞİ ÖLÇÜLMÜŞ ve BANDA KATILMIŞSA kabul edilebilir.
+    # Bu "limit çevrimi yakınsadı" demek DEĞİLDİR — akış hâlâ zaman-bağımlıdır ve
+    # kesin çözüm URANS'tır. Söylenen şu: genlik %{SALINIM_KABUL_PCT}'nin altında VE
+    # raporlanan sayısal belirsizliğe GERÇEKTEN girmişse, bildirilen "Cd ± band"
+    # mühendislik açısından savunulabilir. Ölçüldü: genlikler %0.68-2.5 iken aynı
+    # koşuların model-form belirsizliği %12 — salınım bandın beşte biri kadar.
+    #
+    # KAPI GEVŞEMİYOR: (a) genlik eşiği aşarsa düşer, (b) genlik banda GİRMEMİŞSE
+    # düşer (bu doğrulanabilir bir koşuldur, iyi niyet beyanı değil), (c) etiket
+    # "yakınsadı" DEMEZ — salınımı ve genliği açıkça yazar.
+    if salinimda and c.get("drift_ok"):
+        _g = sal.get("genlik_pct")
+        _b = belirsizlik or {}
+        _u_say = _b.get("u_sayisal_pct")
+        _u_mod = _b.get("u_model_pct")
+        _bandda = (_g is not None and _u_say is not None
+                   and _u_say >= _g - 1e-9)          # genlik gercekten katilmis mi
+        _kucuk = (_g is not None and _g <= SALINIM_KABUL_PCT
+                  and (_u_mod is None or _g <= _u_mod / SALINIM_MODEL_ORANI))
+        if _bandda and _kucuk:
+            return {"seviye": "ok",
+                    "etiket": f"✅ salınımlı ama genliği bantta (±%{_g:.1f})",
+                    "gerekce": [
+                        f"çözüm sabit noktaya oturmadı (limit çevrimi, ±%{_g:.1f}, "
+                        f"{sal.get('gecis', 0)} işaret geçişi) — AMA genlik raporlanan "
+                        f"sayısal belirsizliğe katıldı (%{_u_say:.2f}) ve model-form "
+                        f"belirsizliğinin (%{_u_mod if _u_mod is not None else '?'}) "
+                        "çok altında. Akış zaman-bağımlıdır; kesin çözüm URANS'tır"]}
     etiket = "⚠️ salınımlı (sabit nokta yok)" if salinimda else "⚠️ sınırda"
     return {"seviye": "uyari", "etiket": etiket, "gerekce": gerekce}
 

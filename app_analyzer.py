@@ -998,7 +998,8 @@ class AnalyzerWindow(QMainWindow):
         self.last_result = r
         self.progress.setValue(100)
         self._log("✅ Analiz tamamlandı.")
-        kapi = sonuc_kapisi(getattr(r, "fizik_kabul", None), r.convergence)
+        kapi = sonuc_kapisi(getattr(r, "fizik_kabul", None), r.convergence,
+                            getattr(r, "belirsizlik", None))
         # Fizik-dışı Cd'yi çıplak sayı olarak göstermek mühendisi yanlış sayıya güvendirir
         self._set_metric("cd", f"{r.cd}" + (" ⛔" if kapi["seviye"] == "engel" else ""))
         self._set_metric("cl", f"{r.cl}" if r.cl is not None else "—")

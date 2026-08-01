@@ -86,7 +86,8 @@ def savunulabilir_mi(r) -> dict:
     # NİTELİK ADI KRİTİK: `fizik` yazmak sessizce None döndürür ve sonuc_kapisi
     # eksik veriyi "ok" sayar — fizik kapısı fark edilmeden DEVRE DIŞI kalırdı.
     # (İlk sürümde tam bu hata yapıldı; test_fizik_kabul_NITELIK_ADI onu bağlar.)
-    kapi = sonuc_kapisi(getattr(r, "fizik_kabul", None), r.convergence)
+    kapi = sonuc_kapisi(getattr(r, "fizik_kabul", None), r.convergence,
+                        getattr(r, "belirsizlik", None))
     ret["kapi"] = kapi["etiket"]
     if kapi["seviye"] != "ok":
         ret["gerekce"].append(f"{kapi['etiket']}: {'; '.join(kapi['gerekce'])[:160]}")

@@ -80,3 +80,76 @@ def test_esik_DRIFT_LIMIT_ten_SIKI():
     """'Kabul edilebilir' (2.0) ile 'oturmuş' (1.0) ayrı ölçütlerdir."""
     from vehicle_pipeline import DRIFT_LIMIT_PCT
     assert QOI_DURAGAN_DRIFT_PCT < DRIFT_LIMIT_PCT
+
+
+class TestSalinimKabulu:
+    """Limit çevrimi: genliği ÖLÇÜLMÜŞ ve BANDA KATILMIŞSA kabul edilebilir.
+
+    Bu "limit çevrimi yakınsadı" demek DEĞİLDİR — akış hâlâ zaman-bağımlıdır ve
+    kesin çözüm URANS'tır. Söylenen: genlik küçükse VE raporlanan sayısal
+    belirsizliğe GERÇEKTEN girmişse, "Cd ± band" mühendislik açısından savunulabilir.
+
+    ÖLÇÜLDÜ (12 geometri): salınım genlikleri %0.68-2.5; aynı koşuların MODEL-form
+    belirsizliği %12. Salınım, zaten raporlanan bandın beşte biri kadar. Böyle bir
+    sonucu tümden reddetmek orantısız — ama genliğin bandda olması ŞART, ve bu
+    doğrulanabilir bir koşuldur, iyi niyet beyanı değil.
+    """
+    @staticmethod
+    def _c(genlik):
+        return {"drift_ok": True, "rezidual_ok": False, "cd_drift_son20pct": 0.5,
+                "salinim": {"osilasyon": True, "genlik_pct": genlik, "gecis": 9}}
+
+    @staticmethod
+    def _b(u_say, u_mod=12.0):
+        return {"u_sayisal_pct": u_say, "u_model_pct": u_mod}
+
+    @pytest.mark.parametrize("genlik", [0.68, 1.2, 1.7, 1.75, 1.9, 2.5])
+    def test_OLCULEN_genlikler_kabul(self, genlik):
+        """Taramada olculen gercek genlikler."""
+        r = sonuc_kapisi(OK, self._c(genlik), self._b(genlik))
+        assert r["seviye"] == "ok"
+        assert "salınımlı" in r["etiket"]
+
+    def test_BUYUK_genlik_HALA_dusuyor(self):
+        assert sonuc_kapisi(OK, self._c(5.0), self._b(5.0))["seviye"] == "uyari"
+
+    def test_genlik_BANDA_GIRMEMISSE_dusuyor(self):
+        """Doğrulanabilir koşul: genlik raporlanan belirsizlikte OLMALI."""
+        assert sonuc_kapisi(OK, self._c(1.7), self._b(None))["seviye"] == "uyari"
+        assert sonuc_kapisi(OK, self._c(1.7), self._b(0.1))["seviye"] == "uyari"
+
+    def test_belirsizlik_YOKSA_dusuyor(self):
+        """'Ölçemedim' geçer not değildir."""
+        assert sonuc_kapisi(OK, self._c(1.7), None)["seviye"] == "uyari"
+
+    def test_model_belirsizligi_KUCUKSE_salinim_baskin_olur_ve_duser(self):
+        """Salınım ancak model-form yanında KÜÇÜK kalırsa ihmal edilebilir."""
+        assert sonuc_kapisi(OK, self._c(2.5), self._b(2.5, 3.0))["seviye"] == "uyari"
+
+    def test_etiket_YAKINSADI_DEMIYOR(self):
+        """Etiket asla 'yakınsadı' demez — akış zaman-bağımlı."""
+        r = sonuc_kapisi(OK, self._c(1.7), self._b(1.7))
+        assert r["etiket"] != "✅ yakınsadı"
+        assert "URANS" in " ".join(r["gerekce"])
+
+    def test_drift_bozuksa_dusuyor(self):
+        c = self._c(1.0); c["drift_ok"] = False
+        assert sonuc_kapisi(OK, c, self._b(1.0))["seviye"] == "uyari"
+
+    def test_FIZIK_KAPISI_hala_once(self):
+        r = sonuc_kapisi({"verdict": "inadmissible", "reasons": ["Cd<0"]},
+                         self._c(1.0), self._b(1.0))
+        assert r["seviye"] == "engel"
+
+
+def test_cagiranlar_BELIRSIZLIGI_geciriyor():
+    """Geçirilmezse kapı hiç devreye girmez — ölçüm eklenip tüketilmeme deseni."""
+    import inspect
+
+    import app_analyzer
+    import experiments.guvenilirlik_taramasi as gt
+    for mod, fn in ((gt, gt.savunulabilir_mi),):
+        src = inspect.getsource(fn)
+        i = src.index("sonuc_kapisi(")
+        assert "belirsizlik" in src[i:i + 200]
+    assert "belirsizlik" in inspect.getsource(app_analyzer).split("sonuc_kapisi(")[1][:200]
