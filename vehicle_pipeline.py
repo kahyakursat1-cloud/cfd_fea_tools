@@ -104,6 +104,10 @@ def farfield_domain(preset: dict, alpha_deg: float = 0.0) -> tuple[float, float,
 
 # Mesh kalite / yakınsama eşikleri: constants.py (tek kaynak — yukarıda import edildi).
 DRIFT_LIMIT_PCT = 2.0    # son %20 pencerede |dCd|/Cd
+# QoI-duraganlik MUAFIYETI icin gereken en az iterasyon. Rezidual olcutunden
+# vazgecince tek dayanak QoI tarihcesidir; MiniHawk'ta 103 iterasyonluk bir kosu
+# drift %0.007 ile "duragan" gorunmustu ama seviye Cd'leri 66 KAT saciliyordu.
+QOI_MUAFIYET_MIN_ITER = 200
 
 
 CAD_EXTS = {".step", ".stp", ".iges", ".igs"}
@@ -1060,12 +1064,33 @@ def yakinsama_teshisi(case_dir: Path, forces_history: list, scale: float = 1.0) 
 def seviye_yakinsadi_mi(conv: dict) -> tuple[bool, str]:
     """GCI'ya girmeye uygun mu? Değilse SEBEBİYLE birlikte söyle.
 
-    Ölçüt ana koşununkiyle aynı: rezidüel hedefi + drift + salınım yokluğu.
-    Yalnızca biri bile başarısızsa seviye Richardson fitine GİRMEZ; kayıtta gerekçesiyle
+    Ölçüt ana koşununkiyle aynı: (rezidüel hedefi VEYA QoI-durağanlık) + drift +
+    salınım yokluğu. Başarısızsa seviye Richardson fitine GİRMEZ; kayıtta gerekçesiyle
     kalır (fizik kapısıyla aynı desen — sessiz atlama yok).
     """
     g = []
-    if not conv.get("rezidual_ok"):
+    # QoI-DURAĞANLIK — ana koşuda kurulan ayrım (87751f9, 8dfb6d8) SEVİYELERE de
+    # uygulanır. "residualControl tetiklenmedi" ile "Cd hâlâ hareket ediyor" AYNI
+    # ŞEY DEĞİLDİR; Richardson her seviyenin KENDİ ayrıklaştırmasının yakınsamış
+    # çözümünü ister, bu da QoI'nin oturmasıdır — rezidüel onun vekilidir.
+    #
+    # ÖLÇÜLDÜ (küp, 3 seviye): ince Cd=1.04166, orta Cd=1.04584 — %0.4 fark, yani
+    # büyüklükler oturmuş. Ama orta seviyenin rezidüelleri 1.5-2.6e-4'te platoya
+    # oturmuştu ve KATI rezidüel ölçütü İKİ kaba seviyeyi de eledi: geriye tek
+    # seviye kaldı ve GCI HİÇ hesaplanamadı. Kapı, ölçmeye çalıştığı şeyi
+    # imkânsızlaştırıyordu.
+    from validity_envelope import QOI_DURAGAN_DRIFT_PCT  # TEK KAYNAK
+    _drift = conv.get("cd_drift_son20pct")
+    # MUAFİYET UZUN TARİHÇE İSTER. Rezidüel ölçütünden vazgeçince tek dayanak QoI
+    # tarihçesidir; kısa bir tarihçede "drift küçük" durağanlık KANITI DEĞİLDİR.
+    # ÖLÇÜLDÜ (MiniHawk): 103 iterasyon, son %20 penceresi yalnız ~20 nokta, drift
+    # %0.007 — "durağan" görünüyor. Oysa o kampanyanın seviye Cd'leri 0.00057 /
+    # 0.03765 / 0.01388 idi: 66 KAT saçılma. Çözüm daha başlamamıştı.
+    _duragan = (not (conv.get("salinim") or {}).get("osilasyon")
+                and conv.get("drift_ok")
+                and (conv.get("iterasyon") or 0) >= QOI_MUAFIYET_MIN_ITER
+                and _drift is not None and _drift <= QOI_DURAGAN_DRIFT_PCT)
+    if not conv.get("rezidual_ok") and not _duragan:
         r = conv.get("son_rezidualler") or {}
         kotu = {k: v for k, v in r.items() if k.startswith(("Ux", "Uy", "Uz", "p"))}
         g.append(f"rezidueller hedefin ({RESIDUAL_TARGET:.0e}) uzerinde: {kotu}")
