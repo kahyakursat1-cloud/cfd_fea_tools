@@ -108,6 +108,10 @@ DRIFT_LIMIT_PCT = 2.0    # son %20 pencerede |dCd|/Cd
 # vazgecince tek dayanak QoI tarihcesidir; MiniHawk'ta 103 iterasyonluk bir kosu
 # drift %0.007 ile "duragan" gorunmustu ama seviye Cd'leri 66 KAT saciliyordu.
 QOI_MUAFIYET_MIN_ITER = 200
+# Celik 2008: GCI icin iyilestirme orani r >= 1.3 SART. Altinda kucuk Cd farklari
+# kucuk h farklarina bolunur ve Richardson mertebesi patlar (kup: r=1.08/1.21 iken
+# p=-2.338, GCI=-%3.167 — negatif mertebe ve negatif belirsizlik fiziksel degil).
+GCI_MIN_ORAN = 1.3
 
 
 CAD_EXTS = {".step", ".stp", ".iges", ".igs"}
@@ -1561,7 +1565,16 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         # "hesaplanamadı" oluyordu (küp kampanyası: iki seviye de 70022 hücre).
         basarisiz: list[dict] = []
         GCI_ORANI = 1.5
-        bg_ince = geo["lmax_m"] / q["bg_div"]
+        # KABA SEVİYELER İNCE SEVİYENİN *GERÇEK* ARKA PLANINDAN TÜRETİLİR.
+        # Eskiden NİYET (`lmax/bg_div`) kullanılıyordu; ama `arka_plan_hucre_boyu`
+        # ince seviyeyi bütçe için KABALAŞTIRABİLİYOR ve o zaman seviyeler
+        # birbirine SIKIŞIYOR. ÖLÇÜLDÜ (küp): hedeflenen bg oranı 1.5 iken gerçek
+        # hücre oranları 1.75 / 1.25 çıktı, yani h oranları r32=1.205, r21=1.076 —
+        # Celik 2008'in şartı olan r≥1.3'ün ALTINDA. Küçük Cd farkları küçük h
+        # farklarına bölününce p=-2.338 gibi FİZİKSEL OLMAYAN bir mertebe çıktı
+        # (GCI da -%3.2). Gerçek taban kullanılınca oran korunur.
+        bg_ince = (getattr(case, "bg_bilgi", None) or {}).get(
+            "secilen_m") or geo["lmax_m"] / q["bg_div"]
         # HER SEVİYEYE AYNI İTERASYON BÜTÇESİ. Eski kurulum kaba seviyelere
         # `hizli` preset'inin end_time'ını (200) veriyordu, ince seviyeye 800 —
         # yani kaba seviyeler TASARIM GEREĞİ az-yakınsamış oluyordu. Seviye
@@ -1645,7 +1658,16 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
             return lv["cells"] ** (-1.0 / 3.0)
         if len(levels) >= 3:
             f3, f2, f1 = levels[-3], levels[-2], levels[-1]
-            gci = compute_gci(h(f3), h(f2), h(f1), f3["Cd"], f2["Cd"], f1["Cd"])
+            # İYİLEŞTİRME ORANI KAPISI (Celik 2008: r ≥ 1.3 ŞART).
+            # Seviyeler birbirine yakınsa küçük Cd farkları küçük h farklarına
+            # bölünür ve Richardson mertebesi patlar. ÖLÇÜLDÜ (küp): r21=1.076,
+            # r32=1.205 iken p=-2.338 ve GCI=-%3.167 çıktı — NEGATİF mertebe ve
+            # NEGATİF belirsizlik fiziksel değildir. O sayıyı yayınlamak, hiç
+            # yayınlamamaktan kötüdür.
+            _r21, _r32 = h(f2) / h(f1), h(f3) / h(f2)
+            _oran_ok = _r21 >= GCI_MIN_ORAN and _r32 >= GCI_MIN_ORAN
+            gci = (compute_gci(h(f3), h(f2), h(f1), f3["Cd"], f2["Cd"], f1["Cd"])
+                   if _oran_ok else None)
             # Dejenere seviye: iki kademe pratikte AYNI mesh'i ürettiyse GCI matematiksel
             # olarak tanımsızdır. "hesaplanamadı" demek sebebi gizler; kullanıcı saatlerce
             # compute yakıp neyi düzelteceğini bilemez.
@@ -1660,6 +1682,13 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                            ". Mesh çözünürlüğü tabana dayandı; daha ince bir kalite "
                            "preset'i (--kalite standart/hassas) veya daha büyük "
                            "--seviyeler ile tekrarlayın")
+            elif not _oran_ok:
+                verdikt = (f"⚠️ GCI YAYINLANMADI: iyileştirme oranı yetersiz "
+                           f"(r21={_r21:.2f}, r32={_r32:.2f}; Celik 2008 r≥"
+                           f"{GCI_MIN_ORAN} ister). Seviyeler birbirine çok yakın; "
+                           "küçük Cd farkı küçük h farkına bölününce Richardson "
+                           "mertebesi fiziksel olmayan değerler verir. Seviyeler "
+                           "arası hücre oranını artırın")
             else:
                 verdikt = ("⚠️ GCI HESAPLANAMADI: seviyeler arası Cd farkı sayısal "
                            "gürültü mertebesinde (Richardson tanımsız)")

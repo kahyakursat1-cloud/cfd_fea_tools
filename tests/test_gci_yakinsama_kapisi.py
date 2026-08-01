@@ -167,3 +167,58 @@ def test_GCI_seviyelerine_AYNI_iterasyon_butcesi():
     assert 'MESH_QUALITY["hizli"]["end_time"]' not in blok, (
         "kaba seviye hala kisitli iterasyonla kosuyor")
     assert blok.count('q["end_time"]') >= 2
+
+
+class TestIyilestirmeOrani:
+    """Celik 2008: GCI için r ≥ 1.3 ŞART. Altında Richardson mertebesi patlar.
+
+    ÖLÇÜLDÜ (küp, 3 seviye hepsi yakınsamış):
+        kaba 415.064  h=0.013406  Cd=1.04934
+        orta 726.544  h=0.011124  Cd=1.04583
+        ince 905.896  h=0.010335  Cd=1.04166
+        r21=1.076  r32=1.205   ->  p=-2.338, GCI=-%3.167, asimptotik 2.25
+    NEGATİF mertebe ve NEGATİF belirsizlik fiziksel değildir; o sayıyı yayınlamak
+    hiç yayınlamamaktan KÖTÜDÜR.
+
+    KÖK SEBEP kendi düzeltmemle etkileşim: kaba seviyeler NİYET arka planından
+    (`lmax/bg_div`) türetiliyordu, ince seviye ise bütçe için KABALAŞTIRILIYORDU —
+    aradaki oran sıkışıyordu. Artık kaba seviyeler ince seviyenin GERÇEK arka
+    planından türetiliyor.
+    """
+    def test_esik_Celik_2008(self):
+        from vehicle_pipeline import GCI_MIN_ORAN
+        assert GCI_MIN_ORAN == 1.3
+
+    def test_OLCULEN_oranlar_esigin_ALTINDA(self):
+        N = [415064, 726544, 905896]
+        h = [n ** (-1 / 3) for n in N]
+        r21, r32 = h[1] / h[2], h[0] / h[1]
+        from vehicle_pipeline import GCI_MIN_ORAN
+        assert r21 < GCI_MIN_ORAN and r32 < GCI_MIN_ORAN
+
+    def test_kapi_GCIyi_ENGELLIYOR(self):
+        import inspect
+
+        import vehicle_pipeline as vp
+        src = inspect.getsource(vp.run_vehicle_analysis)
+        i = src.index("_oran_ok = ")
+        blok = src[i:i + 300]
+        assert "if _oran_ok else None" in blok, "oran yetersizken GCI hala hesaplaniyor"
+
+    def test_verdikt_SEBEBI_ve_COZUMU_soyluyor(self):
+        import inspect
+
+        import vehicle_pipeline as vp
+        src = inspect.getsource(vp.run_vehicle_analysis)
+        assert "iyileştirme oranı yetersiz" in src
+        assert "Celik 2008" in src
+        assert "hücre oranını artırın" in src        # ne yapilacagi da yazili
+
+    def test_kaba_seviyeler_GERCEK_arka_plandan_turetiliyor(self):
+        """Niyet kullanılırsa seviyeler bütçe düzeltmesi yüzünden sıkışır."""
+        import inspect
+
+        import vehicle_pipeline as vp
+        src = inspect.getsource(vp.run_vehicle_analysis)
+        i = src.index("bg_ince = ")
+        assert "bg_bilgi" in src[i:i + 200]
