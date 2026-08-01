@@ -144,3 +144,108 @@ class TestOtoRefBump:
         import experiments.guvenilirlik_taramasi as gt
         src = inspect.getsource(gt.main)
         assert '"--ref-bump", default="oto"' in src
+
+
+class TestButceKisiti:
+    """Öneri BÜTÇEYİ de kısıt almalı — yoksa tractable OLMAYAN mesh ister.
+
+    ÖLÇÜLDÜ (su57: 20.8 m, 600 m² yüzey, Re 2.1e7, hücre tavanı 2.5M):
+        bump  beklenen y+   yüzey yüzü    tractable
+          0       3094.5        14.856       ✓
+          1       1547.3        59.424       ✓
+          2        773.6       237.699       ✓
+          3        386.8       950.799       ✓
+          4        193.4     3.803.197       ✗   <- y+ bandda AMA butce disi
+    Eski hâl yalnız y⁺'a bakıp bump=4'ü seçiyordu → snappyHexMesh TIMEOUT,
+    DÖRT koşu boyunca. Saatlerce koşup düşmek yerine baştan söylenmeli.
+
+    Yüzey yüz sayısı İNDİRGENEMEZ: A alanını h boyunda örtmek A/h² yüz eder.
+    Domaini daraltmak, bütçeyi dağıtmak, bölgesel iyileştirme — hiçbiri değiştirmez.
+    """
+    import numpy as _np
+    SU57 = {"d": _np.array([20.8126, 4.915, 15.0647]), "A": 600.075}
+
+    @staticmethod
+    def _oneri(d, A, butce=2_500_000, V=15.0):
+        import numpy as np
+
+        from analysis.openfoam_runner import arka_plan_hucre_boyu
+        from vehicle_pipeline import onerilen_ref_bump
+        L = float(np.max(d)); dom = (5., 15., 5.)
+        dmin = np.array([-dom[0]*L, -dom[2]*L, -dom[2]*L])
+        dmax = np.array([d[0]+dom[1]*L, d[1]+dom[2]*L, d[2]+dom[2]*L])
+        bg, bi = arka_plan_hucre_boyu(dmin, dmax, L/9, butce)
+        return onerilen_ref_bump(bg, 4, V, L, yuzey_alani_m2=A,
+                                 hucre_butcesi=butce,
+                                 arka_plan_hucre=bi["arka_plan_hucre"])
+
+    def test_TRACTABLE_OLMAYAN_kademe_SECILMIYOR(self):
+        o = self._oneri(**self.SU57)
+        assert o["bump"] == 3, "butceyi asan bump=4 secilmis"
+        secilen = next(d for d in o["denemeler"] if d["bump"] == o["bump"])
+        assert secilen["tractable"] is True
+
+    def test_BUTCE_ENGELI_ayri_bir_hukum(self):
+        """'Banda hic girilemiyor' ile 'girilebiliyor ama sigmiyor' AYRI seylerdir."""
+        o = self._oneri(**self.SU57)
+        assert o["butce_engeli"] is True
+        assert "BÜTÇESİNE SIĞMIYOR" in o["neden"]
+        assert "BASINÇ-BASKIN" in o["neden"]      # ne YAPILABILECEGI de yazili
+
+    def test_GECERLILIK_bandiyla_olculuyor_secim_bandiyla_DEGIL(self):
+        """su57'de bump=4 y+=193: secim bandinin (40-150) DISI ama gecerlilik
+        bandinin (30-300) ICI. Dar bantla bakilsaydi butce engeli GORULMEZDI."""
+        from vehicle_pipeline import YPLUS_BANDI, YPLUS_SECIM_BANDI
+        o = self._oneri(**self.SU57)
+        d4 = next(d for d in o["denemeler"] if d["bump"] == 4)
+        y = d4["beklenen_yplus"]
+        assert not (YPLUS_SECIM_BANDI[0] <= y <= YPLUS_SECIM_BANDI[1])
+        assert YPLUS_BANDI[0] <= y <= YPLUS_BANDI[1]
+
+    def test_BUTCE_BUYURSE_hukum_DEGISIYOR(self):
+        """Kisit gercekten butce mi? Tavani buyut, ulasilan y+ duzelmeli.
+
+        OLCULDU (su57): 2.5M -> y+ 387 (gecerlilik bandi DISI)
+                        8M   -> y+ 278 (gecerlilik bandi ICI, savunulabilir)
+                        20M  -> y+ 139 (secim bandi ICI)
+        Yalnizca dar secim bandina bakan bir hukum 8M'de "uretilemez" diyerek
+        YANLIS olurdu — sinir bir esik degil, SUREKLI bir takas."""
+        k = self._oneri(**self.SU57)
+        o8 = self._oneri(**self.SU57, butce=8_000_000)
+        o20 = self._oneri(**self.SU57, butce=20_000_000)
+        assert k["beklenen_yplus"] > o8["beklenen_yplus"] > o20["beklenen_yplus"]
+        assert k.get("gecerlilik_bandinda") is False       # 387 -> band disi
+        assert o8.get("gecerlilik_bandinda") is True       # 278 -> band ici
+        assert o20["bandda"] is True                       # 139 -> secim bandi ici
+
+    def test_GECERLILIK_bandindaysa_URETILEMEZ_DEMIYOR(self):
+        """8M'de y+=278 savunulabilir; 'sürtünme çözülemez' demek yanlis olurdu."""
+        o = self._oneri(**self.SU57, butce=8_000_000)
+        assert "ÜRETİLEMEZ" not in o["neden"]
+        assert "savunulabilir" in o["neden"]
+
+    def test_kucuk_geometri_ETKILENMIYOR(self):
+        import numpy as np
+        o = self._oneri(np.array([0.704, 1.5, 0.08]), 2.1)
+        assert o["bandda"] is True
+
+    def test_yuzey_alani_YOKSA_kisit_uygulanmiyor(self):
+        """Olcum yoksa uydurma bir kisitla kademe kirpilmaz."""
+        import numpy as np
+
+        from analysis.openfoam_runner import arka_plan_hucre_boyu
+        from vehicle_pipeline import onerilen_ref_bump
+        d = self.SU57["d"]
+        L = float(np.max(d))
+        bg, _ = arka_plan_hucre_boyu(np.array([-5*L, -5*L, -5*L]),
+                                     np.array([16*L, 5*L, 5*L]), L/9, 2_500_000)
+        o = onerilen_ref_bump(bg, 4, 15.0, L)
+        assert all(x["tractable"] for x in o["denemeler"])
+
+
+def test_yuzey_yuz_tahmini_INDIRGENEMEZ():
+    """A/h² — alanı o çözünürlükte örtmenin maliyeti."""
+    from vehicle_pipeline import yuzey_yuz_tahmini
+    n = yuzey_yuz_tahmini(600.075, 3.21565, 8)      # su57 bump=4
+    assert 3.7e6 < n < 3.9e6
+    assert yuzey_yuz_tahmini(600.075, 3.21565, 7) == pytest.approx(n / 4, rel=0.01)

@@ -803,9 +803,23 @@ def beklenen_yplus(bg_cell_m: float, ref_max: int, velocity: float,
     return h * utau / (2 * nu) * YPLUS_KALIBRASYON
 
 
+def yuzey_yuz_tahmini(yuzey_alani_m2: float, bg_cell_m: float, ref_max: int) -> int:
+    """O kademede gövde yüzeyinin kaç yüze böleceği — hücre bütçesinin belirleyicisi.
+
+    Bu sayı İNDİRGENEMEZ: A alanını h boyunda hücrelerle örtmek A/h² yüz eder.
+    Domaini daraltmak, bütçeyi dağıtmak, iyileştirmeyi bölgelemek — hiçbiri bunu
+    değiştirmez. su57'de ölçüldü: 600 m² yüzeyi 12.6 mm'de örtmek 3.8 MİLYON yüz.
+    """
+    h = bg_cell_m / (2 ** max(int(ref_max), 0))
+    return int(yuzey_alani_m2 / max(h * h, 1e-12))
+
+
 def onerilen_ref_bump(bg_cell_m: float, ref_max_taban: int, velocity: float,
                       lref_m: float, nu: float = 1.5e-5,
-                      band: tuple = YPLUS_SECIM_BANDI, tavan: int = 4) -> dict:
+                      band: tuple = YPLUS_SECIM_BANDI, tavan: int = 4,
+                      yuzey_alani_m2: float | None = None,
+                      hucre_butcesi: int | None = None,
+                      arka_plan_hucre: int = 0) -> dict:
     """y⁺'ı duvar-fonksiyonu bandına sokan EN UCUZ ref_bump.
 
     NEDEN ML EYLEM UZAYINDA OLMALI: `auto_pilot` yalnız hizli/standart/hassas
@@ -818,19 +832,70 @@ def onerilen_ref_bump(bg_cell_m: float, ref_max_taban: int, velocity: float,
     Her kademe yüzey hücresini yarıya indirir → y⁺ yarıya iner; ama hücre sayısı
     kabaca 8× artar, o yüzden BANDA GİREN İLK kademe seçilir (en ucuz).
     """
-    denemeler = []
+    def _tractable(b: int) -> tuple[bool, int]:
+        """O kademe hücre bütçesine sığar mı? (yalnız YÜZEY yüzleri bile belirleyici)"""
+        if yuzey_alani_m2 is None or not hucre_butcesi:
+            return True, 0
+        n = yuzey_yuz_tahmini(yuzey_alani_m2, bg_cell_m, ref_max_taban + b)
+        return (n + arka_plan_hucre) <= hucre_butcesi, n
+
+    denemeler, uygun = [], []
     for b in range(0, tavan + 1):
         yp = beklenen_yplus(bg_cell_m, ref_max_taban + b, velocity, lref_m, nu)
-        denemeler.append({"bump": b, "beklenen_yplus": round(yp, 1)})
-        if band[0] <= yp <= band[1]:
-            return {"bump": b, "beklenen_yplus": round(yp, 1), "band": list(band),
-                    "denemeler": denemeler, "bandda": True}
-    # Hiçbiri girmiyorsa banda EN YAKIN olanı ver ve bunu AÇIKÇA söyle.
-    en_iyi = min(denemeler, key=lambda d: abs(math.log(max(d["beklenen_yplus"], 1e-9))
-                                              - math.log(math.sqrt(band[0] * band[1]))))
+        tr, n_yuz = _tractable(b)
+        kayit = {"bump": b, "beklenen_yplus": round(yp, 1), "tractable": tr}
+        if yuzey_alani_m2 is not None:
+            kayit["yuzey_yuz_tahmini"] = n_yuz
+        denemeler.append(kayit)
+        if tr:
+            uygun.append(kayit)
+        # BÜTÇEYİ AŞAN KADEME SEÇİLMEZ. Eski hâl yalnız y⁺'a bakıyordu ve
+        # ulaşılamayan hedefte TAVANA yapışıyordu. ÖLÇÜLDÜ (su57, 20.8 m,
+        # 600 m² yüzey, Re 2.1e7): bump=4 y⁺'ı 193'e indiriyor (bandda) ama
+        # yalnızca YÜZEY yüzleri 3.8 MİLYON — tavan 2.5M. Sonuç: snappyHexMesh
+        # TIMEOUT, DÖRT koşu boyunca. Saatlerce koşup düşmek yerine baştan söyle.
+        if tr and band[0] <= yp <= band[1]:
+            return {**kayit, "band": list(band), "denemeler": denemeler,
+                    "bandda": True}
+
+    # Buraya düşmek iki AYRI durumu gizleyebilir; ayrılmalı. VE ölçüt SEÇİM bandı
+    # değil GEÇERLİLİK bandı olmalı — soru "ucuz kademe var mı" değil, "savunulabilir
+    # bir y⁺'a HİÇ ulaşılabiliyor mu". su57'de bump=4 y⁺'ı 193'e indiriyor: seçim
+    # bandının (40-150) dışında ama GEÇERLİLİK bandının (30-300) İÇİNDE. Yani
+    # fiziksel olarak ulaşılabilir, bütçeye sığmıyor — bu iki ayrı hüküm.
+    _butce_engeli = any(YPLUS_BANDI[0] <= d["beklenen_yplus"] <= YPLUS_BANDI[1]
+                        and not d["tractable"] for d in denemeler)
+    havuz = uygun or denemeler
+    en_iyi = min(havuz, key=lambda d: abs(math.log(max(d["beklenen_yplus"], 1e-9))
+                                          - math.log(math.sqrt(band[0] * band[1]))))
+    # SEÇİLEN kademe GEÇERLİLİK bandında mı? Bu, SEÇİM bandından AYRI ve asıl
+    # savunulabilirliği belirleyen soru. Ölçüldü (su57): 8M bütçede ulaşılan y⁺=278
+    # — dar seçim bandının (40-150) dışında ama geçerlilik bandının (30-300) İÇİNDE,
+    # yani sürtünme SAVUNULABILIR şekilde çözülüyor. Yalnız dar banda bakan bir
+    # hüküm burada "üretilemez" diyerek YANLIŞ olurdu.
+    _gecerli = YPLUS_BANDI[0] <= en_iyi["beklenen_yplus"] <= YPLUS_BANDI[1]
+    if _gecerli:
+        neden = (f"ideal seçim bandına ({band[0]:.0f}-{band[1]:.0f}) girilemedi ama "
+                 f"seçilen kademe {en_iyi['bump']} y⁺≈{en_iyi['beklenen_yplus']:.0f} "
+                 f"veriyor — duvar-fonksiyonu GEÇERLİLİK bandının "
+                 f"({YPLUS_BANDI[0]:.0f}-{YPLUS_BANDI[1]:.0f}) içinde, sürtünme "
+                 "savunulabilir şekilde çözülüyor"
+                 + (f". Daha ince kademe hücre bütçesine ({hucre_butcesi:,}) sığmıyor"
+                    if _butce_engeli else ""))
+    elif _butce_engeli:
+        neden = (f"y⁺'ı geçerlilik bandına ({YPLUS_BANDI[0]:.0f}-{YPLUS_BANDI[1]:.0f}) "
+                 f"sokan kademe VAR ama HÜCRE BÜTÇESİNE SIĞMIYOR (tavan "
+                 f"{hucre_butcesi:,}). Bu geometride sürtünme-duyarlı Cd bu bütçeyle "
+                 f"ÜRETİLEMEZ; tractable en iyi kademe {en_iyi['bump']} "
+                 f"(y⁺≈{en_iyi['beklenen_yplus']:.0f}) ile BASINÇ-BASKIN sonuç "
+                 "alınabilir. Yüzey yüz sayısı İNDİRGENEMEZ: alanı o çözünürlükte "
+                 "örtmenin maliyetidir")
+    else:
+        neden = (f"tavan {tavan} kademeye kadar hiçbir ref_bump y⁺'ı "
+                 f"{band[0]:.0f}-{band[1]:.0f} bandına sokmuyor")
     return {**en_iyi, "band": list(band), "denemeler": denemeler, "bandda": False,
-            "neden": (f"tavan {tavan} kademeye kadar hiçbir ref_bump y⁺'ı "
-                      f"{band[0]:.0f}-{band[1]:.0f} bandına sokmuyor")}
+            "gecerlilik_bandinda": _gecerli,
+            "butce_engeli": _butce_engeli, "neden": neden}
 
 
 def measure_yplus(case_dir, patch: str | None = None, timeout=600) -> dict | None:
@@ -1151,8 +1216,15 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
             _dmin = np.array([-_dom[0] * _L, -_dom[2] * _L, -_dom[2] * _L])
             _dmax = np.array([_d[0] + _dom[1] * _L, _d[1] + _dom[2] * _L,
                               _d[2] + _dom[2] * _L])
-            _bg, _ = arka_plan_hucre_boyu(_dmin, _dmax, _L / q["bg_div"], q_max)
-            _oneri = onerilen_ref_bump(_bg, rmax + bump - ref_bump, velocity, _L)
+            _bg, _bgi = arka_plan_hucre_boyu(_dmin, _dmax, _L / q["bg_div"], q_max)
+            # BÜTÇEYİ DE KISIT VER — yalnız y⁺'a bakmak, ulaşılamayan hedefte
+            # tavana yapışıp tractable OLMAYAN bir mesh istemeye yol açıyordu
+            # (su57: bump=4 bandda ama 3.8M yüzey yüzü / 2.5M tavan -> TIMEOUT).
+            _oneri = onerilen_ref_bump(
+                _bg, rmax + bump - ref_bump, velocity, _L,
+                yuzey_alani_m2=geo.get("yuzey_alani_m2"),
+                hucre_butcesi=q_max,
+                arka_plan_hucre=_bgi.get("arka_plan_hucre", 0))
         # sessiz-yutma: kabul — ÖNERİ katmanı; düşerse koşu aynen devam eder,
         # yalnız "şu bump'ı seçseydin" tavsiyesi üretilmez (hüküm üretmez).
         except Exception as e:
