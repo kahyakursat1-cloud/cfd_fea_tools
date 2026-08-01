@@ -173,3 +173,71 @@ class TestAyirtEdiciKanit:
         """Hücre tahmini başarı oranından bağımsızdır; susturulmamalı."""
         o = self._havuz(tmp_path, monkeypatch, [("hassas_nl", True)] * 8)
         assert o["beklenen_hucre"] == 900000
+
+
+class TestTipEtiketi:
+    """Havuz anahtarı KOŞUYA GEÇİLEN tip değil, geometriden SINIFLANDIRILAN tip.
+
+    ÖLÇÜLDÜ (165 kayıt): kaydedilen `vehicle_type` ile sınıflandırılan tip yalnız
+    78'inde uyuşuyor (%47). Güvenilirlik taraması hiç `vehicle_type` geçirmediği
+    için öğrenilebilir 16 kaydın 16'sı da "ucak" yazıyordu — içlerinde 800 mm'lik
+    bir KÜP, bir kapsül ve bir multikopter var. Sorgu tarafı zaten sınıflandırılmış
+    tiple çağırdığından karşılaştırma elma-armut oluyordu.
+    """
+
+    def test_kayit_SINIFLANDIRILAN_tipi_tutuyor(self):
+        import mentor
+        s = {"vehicle_type": "ucak"}                      # çağıranın VARSAYILANI
+        cls = {"tip": "multikopter", "guven": 0.52, "metrik": {}}
+        r = mentor._tip_alanlari(s, cls)
+        assert r["tip"] == "multikopter"                  # havuz anahtarı = ölçüm
+        assert r["tip_kayitli"] == "ucak"                 # provenans korunuyor
+        assert r["tip_celiskisi"] is True                 # çelişki GİZLENMİYOR
+        assert r["tip_guven"] == 0.52
+
+    def test_uyusma_celiski_sayilmiyor(self):
+        import mentor
+        r = mentor._tip_alanlari({"vehicle_type": "roket"},
+                                 {"tip": "roket", "guven": 0.9})
+        assert r["tip_celiskisi"] is False
+
+    def test_hasat_celiski_sayisini_RAPORLUYOR(self):
+        """Sessiz düzeltme olmaz: kaç kaydın etiketi değişti görünmeli."""
+        import inspect
+
+        import gci_advisor
+        import mentor
+        assert "n_tip_celiskisi" in inspect.getsource(mentor.harvest_mesh)
+        assert "n_tip_celiskisi" in inspect.getsource(gci_advisor.harvest)
+
+
+class TestAyrikGeometriSayisi:
+    """n_destek KAYIT sayısıdır, bağımsız vaka sayısı DEĞİL.
+
+    ÖLÇÜLDÜ: öğrenilebilir 16 kaydın 5'i aynı gövde (minihawk; mh_katman, mh_nl,
+    mh_rb2, mh_rb3, minihawk_duzeltme — beş ayrı DİZİN, tek GEOMETRİ). Ayar→sonuç
+    öğrenmesi için o tekrarlar sinyaldir; "16 farklı geometri gördüm" değildir.
+    """
+
+    def test_ayni_gövde_tekrarlari_ayri_geometri_sayilmiyor(self, tmp_path, monkeypatch):
+        import json as _j
+
+        import auto_pilot as ap
+        import mentor
+        m = ap.classify_vehicle({"boyutlar_m": [0.7, 1.5, 0.08], "lmax_m": 1.5,
+                                 "ucgen_sayisi": 5000, "su_gecirmez": True,
+                                 "on_alan_m2": 0.02, "planform_alan_m2": 0.5,
+                                 "yuzey_alani_m2": 1.1, "ince_yassilik": 0.2,
+                                 "radyal_doluluk": 0.4})["metrik"]
+        recs = [{"tur": "cfd", "tip": "ucak", "metrik": m, "kalite": "hassas_nl",
+                 "ok": True, "cells": 900000, "yuzey_cozuldu": True,
+                 "ogrenilebilir": True, "kaynak": f"runs/mh_{i}/sonuc.json",
+                 "dosya": "minihawk_prep.stl"} for i in range(5)]
+        recs.append({**recs[0], "kaynak": "runs/baska/sonuc.json",
+                     "dosya": "a320_prep.stl"})
+        monkeypatch.setattr(mentor, "MESH_MEMORY", tmp_path / "m.jsonl")
+        (tmp_path / "m.jsonl").write_text(
+            "".join(_j.dumps(r) + "\n" for r in recs), encoding="utf-8")
+        o = mentor.advise_mesh(m, "ucak")
+        assert o["n_destek"] == 6
+        assert o["n_ayrik_geometri"] == 2, "aynı gövdenin tekrarları bağımsız sayıldı"

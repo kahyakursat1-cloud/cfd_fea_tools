@@ -39,10 +39,11 @@ def _record_from_sonuc(path: Path) -> dict | None:
         return None
     import auto_pilot as ap
     try:
-        metrik = ap.classify_vehicle(geo)["metrik"]
+        cls = ap.classify_vehicle(geo)
     # sessiz-yutma: kabul — kNN ÖNCÜLÜ kaydı; öncül UQ'ya girmez, hüküm etkilenmez
     except Exception:
         return None
+    metrik = cls["metrik"]
     gci = md.get("gci") or {}
     verdikt_ok = str(md.get("verdikt", "")).startswith("✅")
     unc = s.get("belirsizlik") or {}
@@ -60,8 +61,9 @@ def _record_from_sonuc(path: Path) -> dict | None:
     band = band_from_levels([lv.get("cells") for lv in seviyeler],
                             [lv.get("Cd") for lv in seviyeler])
 
+    import mentor
     rec = {"ts": time.strftime("%Y-%m-%d %H:%M"), "kaynak": str(path),
-           "dosya": geo.get("dosya", ""), "tip": s.get("vehicle_type", "genel"),
+           "dosya": geo.get("dosya", ""), **mentor._tip_alanlari(s, cls),
            "metrik": metrik, "cells_fine": (s.get("mesh") or {}).get("cells"),
            "p": gci.get("p"), "monotonic": gci.get("monotonic"),
            "asimptotik_ok": verdikt_ok, "n_seviye": len(seviyeler),
@@ -76,7 +78,6 @@ def _record_from_sonuc(path: Path) -> dict | None:
     # ÖĞRENİLEBİLİR Mİ? mesh_memory ile AYNI ölçüt: gövde gerçekten çözülmüş mü.
     # Çözülmemiş bir gövdenin GCI'si o gövdenin değil, onun 74-yüzlü gölgesinindir
     # (MiniHawk'ta %379 böyle çıkmıştı).
-    import mentor
     gecerli = mentor._yuzey_gecerlilik(s.get("sinir_tabaka") or {})
     if band is None:
         rec.update(ogrenilebilir=False,
@@ -107,7 +108,8 @@ def harvest(roots=_SCAN_ROOTS) -> dict:
             "n_ogrenilebilir": sum(1 for r in recs if r.get("ogrenilebilir")),
             "n_dislanan": sum(1 for r in recs if not r.get("ogrenilebilir")),
             "n_kayitli_sayi_SAPIYOR": len(sapan),
-            "en_buyuk_sapma_kat": (max(r["sapma_kat"] for r in sapan) if sapan else None)}
+            "en_buyuk_sapma_kat": (max(r["sapma_kat"] for r in sapan) if sapan else None),
+            "n_tip_celiskisi": sum(1 for r in recs if r.get("tip_celiskisi"))}
 
 
 def _load(sadece_gecerli: bool = True) -> list[dict]:
@@ -149,7 +151,11 @@ def advise(metrik: dict, tip: str = "", k: int = 5,
     u_hat = sum(wi * c["u_num_pct"] for wi, c in zip(w, knn)) / ws
     p_asym = sum(wi * (1.0 if c["asimptotik_ok"] else 0.0) for wi, c in zip(w, knn)) / ws
     ps = [c["p"] for c in knn if c.get("p") is not None]
-    guven = round(min(1.0, len(pool) / 12.0) * (1.0 if pool is same_tip else 0.6), 2)
+    # GÜVEN, KAYIT SAYISINDAN DEĞİL AYRIK GEOMETRİ SAYISINDAN. Öğrenme havuzunda
+    # ölçüldü: 16 kaydın 5'i AYNI gövde (minihawk, farklı ayarlarla). Ayar→sonuç
+    # için o tekrarlar sinyaldir, ama "16 bağımsız vaka gördüm" demek değildir.
+    n_geo = len({c.get("dosya") or c.get("kaynak") for c in pool})
+    guven = round(min(1.0, n_geo / 12.0) * (1.0 if pool is same_tip else 0.6), 2)
 
     # AYIRT EDİCİ Mİ? Havuzdaki TÜM koşular aynı sonucu verdiyse "olasılık" bir
     # öğrenme değil, bir SABİTTİR: geometri ne olursa olsun aynı cevap çıkar.
@@ -180,7 +186,8 @@ def advise(metrik: dict, tip: str = "", k: int = 5,
             "asimptotik_olasilik": (round(p_asym, 2) if ayirt_edici else None),
             "ayirt_edici": ayirt_edici,
             "p_gozlenen_komsu": ([round(min(ps), 2), round(max(ps), 2)] if ps else None),
-            "n_destek": len(pool), "komsu": len(knn), "ayni_tip": pool is same_tip,
+            "n_destek": len(pool), "n_ayrik_geometri": n_geo,
+            "komsu": len(knn), "ayni_tip": pool is same_tip,
             "guven": (guven if ayirt_edici else 0.0), "oneri": oneri,
             "etiket": "ÖĞRENİLEN-ÖNCÜL — ölçülen band değil, UQ'ya girmez"}
 

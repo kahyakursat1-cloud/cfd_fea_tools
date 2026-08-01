@@ -44,16 +44,17 @@ def _cfd_record(path: Path) -> dict | None:
         return None
     import auto_pilot as ap
     try:
-        metrik = ap.classify_vehicle(geo)["metrik"]
+        cls = ap.classify_vehicle(geo)
     # sessiz-yutma: kabul — öğrenme kaydı; düşerse vaka kütüphaneye girmez — hüküm üretmez, öneri zayıflar
     except Exception:
         return None
+    metrik = cls["metrik"]
     bl = s.get("sinir_tabaka") or {}
     yp = bl.get("yplus") or {}
     md = s.get("mesh_duyarlilik") or {}
     conv = s.get("convergence") or {}
     return {"tur": "cfd", "ts": time.strftime("%Y-%m-%d %H:%M"), "kaynak": str(path),
-            "tip": s.get("vehicle_type", "genel"), "metrik": metrik,
+            "dosya": geo.get("dosya", ""), "metrik": metrik, **_tip_alanlari(s, cls),
             "kalite": s.get("kalite", ""), "ok": s.get("status") == "ok",
             "cells": (s.get("mesh") or {}).get("cells"),
             "non_ortho": (s.get("mesh") or {}).get("non_ortho_max"),
@@ -74,6 +75,29 @@ def _cfd_record(path: Path) -> dict | None:
             # `yuzey_cozunurlugu` alanı düzeltmeyle geldi; yoksa ölçüm YOK demektir
             # ve "ölçemedim" ≠ "iyi" (bu oturumun tekrarlayan dersi).
             **_yuzey_gecerlilik(bl)}
+
+
+def _tip_alanlari(s: dict, cls: dict) -> dict:
+    """Havuz anahtarı olarak SINIFLANDIRILAN tip kullanılır, koşuya GEÇİLEN değil.
+
+    NEDEN: `vehicle_type` çoğu zaman çağıranın dokunmadığı VARSAYILAN argümandır,
+    bir gözlem değil. ÖLÇÜLDÜ (165 kayıt): kaydedilen tip ile geometriden
+    sınıflandırılan tip yalnız 78'inde uyuşuyor — %47. Güvenilirlik taraması
+    hiç `vehicle_type` geçirmediği için öğrenilebilir 16 kaydın 16'sı da "ucak"
+    yazıyordu; içlerinde 800 mm'lik bir KÜP ve bir multikopter var.
+
+    Sorgu tarafı (auto_pilot) zaten sınıflandırılmış tiple çağırıyor; kayıt
+    tarafının da aynı yordamdan gelmesi karşılaştırmayı elma-elma yapar.
+    Kaydedilen değer `tip_kayitli`de saklanır — çelişki gizlenmez, sayılır.
+
+    UYARI: sınıflandırıcı da mutlak değil ve güveni kalibre DEĞİL (ölçüldü:
+    A320 gövdesi → "genel" güven 1.0). Bu yüzden tip yalnız ÖN-FİLTREdir ve
+    havuz eşiği tutmazsa kNN tüm havuza düşer; asıl iş metrik uzayındadır.
+    """
+    kayitli = s.get("vehicle_type", "genel")
+    return {"tip": cls["tip"], "tip_kayitli": kayitli,
+            "tip_guven": round(float(cls.get("guven", 0.0)), 2),
+            "tip_celiskisi": kayitli != cls["tip"]}
 
 
 def _yuzey_gecerlilik(bl: dict) -> dict:
@@ -101,12 +125,13 @@ def _fea_record(path: Path) -> dict | None:
         return None
     import auto_pilot as ap
     try:
-        metrik = ap.classify_vehicle(geo)["metrik"]
+        cls = ap.classify_vehicle(geo)
     # sessiz-yutma: kabul — öğrenme kaydı; düşerse vaka kütüphaneye girmez — hüküm üretmez, öneri zayıflar
     except Exception:
         return None
+    metrik = cls["metrik"]
     return {"tur": "fea", "ts": time.strftime("%Y-%m-%d %H:%M"), "kaynak": str(path),
-            "tip": s.get("vehicle_type", "genel"), "metrik": metrik,
+            "metrik": metrik, **_tip_alanlari(s, cls),
             "ok": f.get("status") == "ok", "model": f.get("model", ""),
             "mesnet": f.get("mesnet", ""), "dugum": f.get("dugum"),
             "eleman_tipi": f.get("eleman_tipi", ""),
@@ -139,7 +164,9 @@ def harvest_mesh(roots=_SCAN_ROOTS) -> dict:
     return {"n_kayit": len(recs), "n_cfd": n_cfd, "n_fea": len(recs) - n_cfd,
             "n_basarisiz": sum(1 for r in recs if not r["ok"]),
             "n_ogrenilebilir": ogr, "n_dislanan": n_cfd - ogr,
-            "n_yuzey_olculmemis": olculmemis, "dosya": str(MESH_MEMORY)}
+            "n_yuzey_olculmemis": olculmemis,
+            "n_tip_celiskisi": sum(1 for r in recs if r.get("tip_celiskisi")),
+            "dosya": str(MESH_MEMORY)}
 
 
 def _load(tur: str, sadece_gecerli: bool = True) -> list[dict]:
@@ -271,7 +298,14 @@ def advise_mesh(metrik: dict, tip: str = "", k: int = 8,
     return {"onerilen_kalite": onerilen, "kalite_basari": basari,
             "beklenen_hucre": cells[len(cells) // 2] if cells else None,
             "yplus_duzeltme": yplus_duzeltme, "riskler": riskler,
-            "n_destek": len(pool), "komsu": len(knn), "ayni_tip": pool is same,
+            # n_destek KAYIT sayısı; bağımsız vaka sayısı DEĞİL. Ölçüldü: 16 kaydın
+            # 5'i aynı gövde (minihawk, farklı ayarlarla). Ayar→sonuç için tekrarlar
+            # sinyaldir, ama "16 farklı geometri gördüm" demek değildir. Ayraç
+            # koşu DİZİNİ değil GEOMETRİ DOSYASI: beş minihawk koşusu beş ayrı
+            # dizinde ama aynı gövde (mh_katman/mh_nl/mh_rb2/mh_rb3/duzeltme).
+            "n_destek": len(pool),
+            "n_ayrik_geometri": len({c.get("dosya") or c.get("kaynak") for c in pool}),
+            "komsu": len(knn), "ayni_tip": pool is same,
             "etiket": "ÖĞRENİLEN-ÖNCÜL — ayarı kural+onay belirler"}
 
 
