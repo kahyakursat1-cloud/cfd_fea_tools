@@ -385,10 +385,12 @@ def auto_configure(stl_path, out_dir="vehicle_runs/_autoprep",
         gp = _gci_advise(cls["metrik"], tip)
         if gp:
             cfg["gci_onculu"] = gp
+            _pa = gp.get("asimptotik_olasilik")
             uyarilar.append(
                 f"GCI-öncülü ({gp['n_destek']} geçmiş koşu): beklenen sayısal band "
                 f"~%{gp['u_num_beklenen_pct']}, asimptotik-çıkma olasılığı "
-                f"{gp['asimptotik_olasilik']:.0%}. {gp['oneri']}")
+                + (f"{_pa:.0%}" if _pa is not None else "HESAPLANMADI (ayırt edici değil)")
+                + f". {gp['oneri']}")
     except Exception as e:
         # "Öncül bir şey söylemedi" ile "öncül HİÇ ÇALIŞMADI" ayrı durumlar; ikincisi
         # sessizken plan, olmayan bir deneyime dayanıyormuş gibi görünüyordu.

@@ -168,6 +168,59 @@ def least_squares_gci(h_list, f_list):
             "kural": kural, "guvenilir": guvenilir}
 
 
+GCI_MIN_ORAN = 1.3   # Celik (2008): ardisik seviyeler arasi h orani SART
+
+
+def band_from_levels(cells, cds, min_oran=GCI_MIN_ORAN):
+    """Seviye dizisinden SAYISAL BELIRSIZLIK — kuralin TEK KAYNAGI.
+
+    Neden ayri bir fonksiyon: ayni hiyerarsi boru hattinda satir-ici yaziliydi ve
+    ogrenme katmani (gci_advisor) kendi kaydettigi ESKI sayiya guveniyordu. Kural
+    bu oturumda bes kez degisti; kayitlar degismedi. Olculen sonuc:
+      doe_6.90_0.37 seviyeleri 0.548 → 0.778 → 0.819 (p=6.94, asimptotik DEGIL).
+      Kayitli u = %1.40 (asimptotik OLMAYAN Richardson sayisi — bugun REDDEDILIR).
+      Ayni seviyelerden bugunun kurali: 3·Δ/f = %15.2. Onbir kat.
+    Yani oncul, artik uretilmeyen ve on kat iyimser bir tanimla besleniyordu.
+
+    Hiyerarsi (boru hattiyla ayni): LSR (n>=4) > asimptotik Richardson (n>=3,
+    r>=1.3 ve p araliginda) > salinim bandi U=3·Δ_M. Asimptotik OLMAYAN
+    Richardson sayisi HICBIR dalda kullanilmaz.
+
+    Doner: {"u_pct", "kaynak", "yontem", "f_exact"} | None (seviye < 2).
+    """
+    pairs = sorted(((c, f) for c, f in zip(cells, cds) if c and f is not None),
+                   key=lambda t: t[0])
+    if len(pairs) < 2:
+        return None
+    n_cells = [p[0] for p in pairs]
+    f = [p[1] for p in pairs]
+    h = [c ** (-1.0 / 3.0) for c in n_cells]
+    if len(pairs) >= 4:
+        lsr = least_squares_gci(h, f)
+        if lsr:
+            return {"u_pct": lsr["u_pct"], "yontem": "lsr",
+                    "kaynak": f"LSR ({lsr['n']}-seviye; {lsr['kural']})",
+                    "f_exact": lsr["f_exact"]}
+    if len(pairs) >= 3:
+        h3, h2, h1 = h[-3], h[-2], h[-1]
+        if h2 / h1 >= min_oran and h3 / h2 >= min_oran:
+            g = compute_gci(h3, h2, h1, f[-3], f[-2], f[-1])
+            if g and g.get("monotonic") and g.get("p_in_range"):
+                return {"u_pct": g["gci_fine_pct"], "yontem": "richardson",
+                        "kaynak": "GCI (Richardson, asimptotik)",
+                        "f_exact": g["f_exact"]}
+        dm = max(abs(f[i + 1] - f[i]) for i in range(len(f) - 1))
+        return {"u_pct": round(3.0 * dm / (abs(f[-1]) + 1e-12) * 100, 2),
+                "yontem": "salinim",
+                "kaynak": (f"salınımlı yakınsama bandı (Eça-Hoekstra U=3·Δ, "
+                           f"{len(pairs)} seviye) — Richardson asimptotik DEĞİL, "
+                           "mertebesi kullanılmadı"),
+                "f_exact": None}
+    d = abs(f[-1] - f[0]) / (abs(f[-1]) + 1e-12) * 100
+    return {"u_pct": round(d, 1), "yontem": "2-mesh",
+            "kaynak": "2-mesh vekil bant", "f_exact": None}
+
+
 def _fea_val_error_pct(d):
     """fea_validation*.json şemalarından en kötü 'hata_pct'yi çıkar (şema-bağımsız:
     sehim/gerilme/analitik/fem altında farklı yerlerde durur). Recursive tarama."""

@@ -1792,12 +1792,14 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                 # Salınımlı yakınsamada doğru kural Eça-Hoekstra: U = 3·Δ_M
                 # (ekstrapolasyon YOK). Küpte çözülmüş üç seviyeyle %12.3 verir —
                 # %0.045'in aksine gerçek durumu yansıtır.
-                _cds = [lv["Cd"] for lv in levels]
-                _dm = max(abs(_cds[i + 1] - _cds[i]) for i in range(len(_cds) - 1))
-                u_num_pct = round(3.0 * _dm / (abs(_cds[-1]) + 1e-12) * 100, 2)
-                u_kaynak = (f"salınımlı yakınsama bandı (Eça-Hoekstra U=3·Δ, "
-                            f"{len(levels)} seviye) — Richardson asimptotik DEĞİL, "
-                            "mertebesi kullanılmadı")
+                #
+                # Kural artık `report_generator.band_from_levels`ta TEK KAYNAK:
+                # öğrenme katmanı (gci_advisor) aynı kuralı satır-içi kopyalamak
+                # yerine çağırır — kural altıncı kez değişirse ikisi ayrışmasın.
+                from report_generator import band_from_levels
+                _b = band_from_levels([lv["cells"] for lv in levels],
+                                      [lv["Cd"] for lv in levels])
+                u_num_pct, u_kaynak = _b["u_pct"], _b["kaynak"]
                 base.cd_richardson = None
         elif len(levels) == 2:                               # 3. seviye düştü → 2-mesh vekil-bant
             d = abs(levels[-1]["Cd"] - levels[0]["Cd"]) / (abs(levels[-1]["Cd"]) + 1e-12) * 100

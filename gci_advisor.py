@@ -46,17 +46,44 @@ def _record_from_sonuc(path: Path) -> dict | None:
     gci = md.get("gci") or {}
     verdikt_ok = str(md.get("verdikt", "")).startswith("✅")
     unc = s.get("belirsizlik") or {}
-    u_num = unc.get("u_sayisal_pct")
-    if u_num is None:
-        u_num = gci.get("gci_fine_pct", md.get("fark_pct"))
-    if u_num is None:
-        return None
-    return {"ts": time.strftime("%Y-%m-%d %H:%M"), "kaynak": str(path),
-            "dosya": geo.get("dosya", ""), "tip": s.get("vehicle_type", "genel"),
-            "metrik": metrik, "cells_fine": (s.get("mesh") or {}).get("cells"),
-            "p": gci.get("p"), "u_num_pct": round(float(u_num), 2),
-            "monotonic": gci.get("monotonic"), "asimptotik_ok": verdikt_ok,
-            "n_seviye": len(md.get("seviyeler", []))}
+    u_kayitli = unc.get("u_sayisal_pct")
+    if u_kayitli is None:
+        u_kayitli = gci.get("gci_fine_pct", md.get("fark_pct"))
+
+    # KAYDEDİLEN SAYIYA GÜVENİLMEZ, SEVİYELERDEN YENİDEN TÜRETİLİR.
+    # Belirsizlik kuralı bu oturumda beş kez değişti; jsonl kayıtları değişmedi.
+    # Ölçüldü: doe_6.90_0.37 kaydı %1.40 diyordu (asimptotik OLMAYAN Richardson
+    # sayısı — bugün reddedilir); aynı seviyelerden bugünün kuralı %15.2 verir.
+    # Öncül, artık üretilmeyen ve on kat iyimser bir tanımla besleniyordu.
+    seviyeler = md.get("seviyeler") or []
+    from report_generator import band_from_levels
+    band = band_from_levels([lv.get("cells") for lv in seviyeler],
+                            [lv.get("Cd") for lv in seviyeler])
+
+    rec = {"ts": time.strftime("%Y-%m-%d %H:%M"), "kaynak": str(path),
+           "dosya": geo.get("dosya", ""), "tip": s.get("vehicle_type", "genel"),
+           "metrik": metrik, "cells_fine": (s.get("mesh") or {}).get("cells"),
+           "p": gci.get("p"), "monotonic": gci.get("monotonic"),
+           "asimptotik_ok": verdikt_ok, "n_seviye": len(seviyeler),
+           "u_kayitli_pct": (round(float(u_kayitli), 2)
+                             if u_kayitli is not None else None),
+           "u_num_pct": band["u_pct"] if band else None,
+           "u_kaynak": band["kaynak"] if band else None,
+           "yontem": band["yontem"] if band else None}
+    if band and u_kayitli:
+        rec["sapma_kat"] = round(band["u_pct"] / max(abs(float(u_kayitli)), 1e-9), 2)
+
+    # ÖĞRENİLEBİLİR Mİ? mesh_memory ile AYNI ölçüt: gövde gerçekten çözülmüş mü.
+    # Çözülmemiş bir gövdenin GCI'si o gövdenin değil, onun 74-yüzlü gölgesinindir
+    # (MiniHawk'ta %379 böyle çıkmıştı).
+    import mentor
+    gecerli = mentor._yuzey_gecerlilik(s.get("sinir_tabaka") or {})
+    if band is None:
+        rec.update(ogrenilebilir=False,
+                   gecersizlik="seviye Cd/hucre YOK — band yeniden turetilemedi")
+    else:
+        rec.update(gecerli)
+    return rec
 
 
 def harvest(roots=_SCAN_ROOTS) -> dict:
@@ -70,17 +97,30 @@ def harvest(roots=_SCAN_ROOTS) -> dict:
                 recs.append(r)
     GCI_MEMORY.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in recs),
                           encoding="utf-8")
+    # SESSİZ DARALTMA YOK: kaç kayıt öğrenmeye girmiyor ve kaçının kaydedilen sayısı
+    # bugünün kuralından SAPIYOR — ikisi de görünür olmalı. Sapma büyükse öncülün
+    # eski tanımla beslendiği anlaşılır.
+    sapan = [r for r in recs if (r.get("sapma_kat") or 1) >= 2 or
+             (r.get("sapma_kat") or 1) <= 0.5]
     return {"n_kayit": len(recs), "dosya": str(GCI_MEMORY),
-            "asimptotik": sum(1 for r in recs if r["asimptotik_ok"])}
+            "asimptotik": sum(1 for r in recs if r["asimptotik_ok"]),
+            "n_ogrenilebilir": sum(1 for r in recs if r.get("ogrenilebilir")),
+            "n_dislanan": sum(1 for r in recs if not r.get("ogrenilebilir")),
+            "n_kayitli_sayi_SAPIYOR": len(sapan),
+            "en_buyuk_sapma_kat": (max(r["sapma_kat"] for r in sapan) if sapan else None)}
 
 
-def _load() -> list[dict]:
+def _load(sadece_gecerli: bool = True) -> list[dict]:
+    """Öğrenme havuzu. `sadece_gecerli`: gövdesi ÇÖZÜLMEMİŞ ya da bandı yeniden
+    türetilemeyen koşular GİRMEZ — bkz. mentor._load, aynı ölçüt."""
     if not GCI_MEMORY.exists():
         return []
     out = []
     for line in GCI_MEMORY.read_text(encoding="utf-8").splitlines():
         try:
             r = json.loads(line)
+            if sadece_gecerli and not r.get("ogrenilebilir"):
+                continue
             if r.get("metrik") and r.get("u_num_pct") is not None:
                 out.append(r)
         # sessiz-yutma: kabul — bozuk satır atlanır; öncül zayıflar, hüküm etkilenmez
@@ -111,6 +151,14 @@ def advise(metrik: dict, tip: str = "", k: int = 5,
     ps = [c["p"] for c in knn if c.get("p") is not None]
     guven = round(min(1.0, len(pool) / 12.0) * (1.0 if pool is same_tip else 0.6), 2)
 
+    # AYIRT EDİCİ Mİ? Havuzdaki TÜM koşular aynı sonucu verdiyse "olasılık" bir
+    # öğrenme değil, bir SABİTTİR: geometri ne olursa olsun aynı cevap çıkar.
+    # Mentor'daki aynı kusur ölçülmüştü — iki kalite de %100 görünüyordu ve
+    # sıralama beraberlik-bozucuya kalıp ÖLÇÜMLE ÇÜRÜTÜLMÜŞ bir öneri veriyordu.
+    ayirt_edici = len({bool(c["asimptotik_ok"]) for c in knn}) > 1
+    us = [c["u_num_pct"] for c in knn]
+    genis = max(us) > 3.0 * max(min(us), 1e-9)
+
     if p_asym < 0.5:
         oneri = ("Benzer koşularda 3-seviye GCI çoğunlukla asimptotik ÇIKMADI → "
                  "4+ seviye koşup LSR (least_squares_gci, Eça-Hoekstra) kullanın; "
@@ -121,11 +169,19 @@ def advise(metrik: dict, tip: str = "", k: int = 5,
                  "A/B-karşılaştırmalı kullanın.")
     else:
         oneri = "Standart 3-seviye GCI bu geometri sınıfında yeterli görünüyor."
+    if not ayirt_edici:
+        oneri = ("[AYIRT EDİCİ DEĞİL: komşuların hepsi aynı sonucu verdi; bu cevap "
+                 "geometriden değil havuzun tek-yönlülüğünden geliyor] " + oneri)
+    if genis:
+        oneri += (f" NOT: komşu bandları %{min(us):.1f}–%{max(us):.1f} arasında "
+                  "saçılıyor; ortalama bir beklenti DEĞİL, yalnız büyüklük mertebesi.")
     return {"u_num_beklenen_pct": round(u_hat, 1),
-            "asimptotik_olasilik": round(p_asym, 2),
+            "u_komsu_araligi_pct": [round(min(us), 1), round(max(us), 1)],
+            "asimptotik_olasilik": (round(p_asym, 2) if ayirt_edici else None),
+            "ayirt_edici": ayirt_edici,
             "p_gozlenen_komsu": ([round(min(ps), 2), round(max(ps), 2)] if ps else None),
             "n_destek": len(pool), "komsu": len(knn), "ayni_tip": pool is same_tip,
-            "guven": guven, "oneri": oneri,
+            "guven": (guven if ayirt_edici else 0.0), "oneri": oneri,
             "etiket": "ÖĞRENİLEN-ÖNCÜL — ölçülen band değil, UQ'ya girmez"}
 
 

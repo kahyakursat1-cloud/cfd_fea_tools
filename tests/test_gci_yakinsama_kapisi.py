@@ -298,12 +298,18 @@ class TestAsimptotikOlmayanGCIKullanilmaz:
             "asimptotik olmayan GCI'nin sayisi hala kullaniliyor")
 
     def test_salinimli_band_KURALI_var(self):
+        """Kural artik satir-ici DEGIL, report_generator.band_from_levels'ta TEK
+        KAYNAK — ogrenme katmani (gci_advisor) da ayni fonksiyonu cagirsin diye
+        tasindi (kayitli sayilarin 6'si eski tanimdan besleniyordu, en buyuk sapma
+        274 kat). Metin degil DAVRANIS baglanir."""
         import inspect
 
         import vehicle_pipeline as vp
-        src = inspect.getsource(vp.run_vehicle_analysis)
-        assert "Eça-Hoekstra U=3·Δ" in src
-        assert "3.0 * _dm" in src
+        from report_generator import band_from_levels
+        b = band_from_levels([67144, 241135, 905896], [1.08044, 1.03769, 1.04166])
+        assert b["yontem"] == "salinim" and abs(b["u_pct"] - 12.31) < 0.05
+        assert "Eça-Hoekstra U=3·Δ" in b["kaynak"]
+        assert "band_from_levels" in inspect.getsource(vp.run_vehicle_analysis)
 
     def test_OLCULEN_kup_bandi(self):
         """Cozulmus uc seviye: 1.08044 / 1.03769 / 1.04166 -> %12.3"""
@@ -325,5 +331,9 @@ class TestAsimptotikOlmayanGCIKullanilmaz:
 
         import vehicle_pipeline as vp
         src = inspect.getsource(vp.run_vehicle_analysis)
-        i = src.index("Eça-Hoekstra U=3·Δ")
+        i = src.index("band_from_levels")
         assert "base.cd_richardson = None" in src[i:i + 900]
+        # Fonksiyonun kendisi de ekstrapolasyon vermiyor: salinim dalinda f_exact yok.
+        from report_generator import band_from_levels
+        assert band_from_levels([67144, 241135, 905896],
+                                [1.08044, 1.03769, 1.04166])["f_exact"] is None
