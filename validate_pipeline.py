@@ -116,8 +116,40 @@ _GEOM = {
                                             "max": (2.10, 0.30, 0.35), "level": 3}]}),
     # LIFTING çapası: ince-kanat katman güvenle örülmez (hq dersi) → hassas_nl;
     # yüzey-Cd yakınsamazsa wake yolu (iz-momentum) kanıt verebilir (_accept hiyerarşisi).
+    # ref_bump="oto": ÖLÇÜLDÜ ki bump=0'da kanat HİÇ ÇÖZÜLMÜYOR (2026-08-02).
+    #   yüzey hücresi 11.4 mm → 150 mm kiriş boyunca yalnız 13 hücre
+    #   firar kenarı 3.75 mm → hücrenin 0.33 katı (hedef ≥6)
+    #   CL = 0.018, ince-kanat + sonlu-kanat teorisi 0.329 bekler → 18.2 KAT düşük
+    #   Cd = 0.050, beklenen ~0.020
+    #   y⁺ = 407, duvar-fonksiyonu bandının (30-300) dışında
+    # Boru hattının kendi fizik önerisi zaten bump=2 diyordu (y⁺≈105, 33.959 yüz);
+    # çapa kurulumu onu kullanmıyordu.
+    #
+    # DÜZELTME SONRASI ÖLÇÜLDÜ: y⁺ 407→134 (bant içi), yüzey yüzü 2.142→30.321,
+    # Cd 0.050→0.0236 ve Richardson ekstrapolasyonu 0.0211 (beklenen 0.0204, %3).
+    # Yani SÜRÜKLEME çapası artık sağlıklı.
+    #
+    # TAŞIMA İSE BU YOLLA ÇÖZÜLEMİYOR ve sebebi ölçüldü:
+    #   seviye     hücre      Cl      Cd     L/D
+    #    cokkaba    38.903  0.0572  0.0346   1.65
+    #    kaba       97.075  0.0599  0.0278   2.15
+    #    orta      290.382  0.0656  0.0251   2.61
+    #    ince      802.880  0.0705  0.0236   2.98      beklenen L/D ≈ 16.1
+    # Hücre 20.6 KAT artarken Cl yalnız %23 arttı; beklenen 0.329 için 4.7 kat daha
+    # gerekiyor. Sebep firar kenarı: kalınlık 3.6 mm, yüzey hücresi 2.8 mm — TE
+    # 1.3 HÜCRE. Kutta koşulu bir hücrelik firar kenarında kurulamaz, dolayısıyla
+    # sirkülasyon (ve taşıma) doğmaz. Projenin kendi hedefi olan ≥6 hücre için
+    # 0.60 mm hücre, yani YALNIZ YÜZEYDE ~775.000 yüz gerekir (şu anki TÜM mesh
+    # 803 bin hücre) — bu donanımda çözülemez.
+    #
+    # Bu, 2B kanat profilinde zaten ölçülmüş dersin 3B karşılığıdır: taşıyıcı
+    # kesitlerde snappyHexMesh kesme-hücre yaklaşımı yerine gövde-uyumlu yapısal
+    # grid gerekir (TMR/C-grid yolu %1.7 GCI verdi). ÇAPA YALNIZ Cd DOĞRULAR;
+    # ANCHORS["naca0012_wing_ar6"] zaten yalnız Cd referansı taşıyor, yani yanlış
+    # bir iddia YOK — burada kayda geçen, aramanın tekrarlanmaması için ölçümdür.
     "naca0012_wing_ar6": (naca0012_wing, "ucak",
-                          {"alpha_deg": 4.0, "quality": "hassas_nl"}),
+                          {"alpha_deg": 4.0, "quality": "hassas_nl",
+                           "ref_bump": "oto"}),
 }
 
 # Koşulamayan çapalar — gerekçesiyle (dürüst V&V: setup-uyumsuz koşu validasyon değildir).
