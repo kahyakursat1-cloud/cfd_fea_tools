@@ -149,3 +149,40 @@ def test_advise_refuses_thin_data(tmp_path, monkeypatch):
                     "ogrenilebilir": True, "asimptotik_ok": True}) + "\n",
         encoding="utf-8")
     assert ga.advise(metrik, "roket") is None      # n<4 → şeffaf ret, sahte güven yok
+
+
+def test_FARKLI_yontemli_bandlar_tek_sayi_gibi_sunulmuyor(tmp_path, monkeypatch):
+    """`u_num_pct` üç ayrı tanımdan gelir ve aynı büyüklük DEĞİLDİR:
+      lsr      → U = 1.25|δ_RE| + σ, bir EKSTRAPOLASYON hatası
+      salinim  → U = 3·Δ_M, ekstrapolasyon YOK, yalnız veri aralığı
+      2-mesh   → ikisi de değil, vekil bant
+    ÖLÇÜLDÜ (11 kayıt): havuz 4 lsr + 5 salınım + 1 iki-mesh — ağırlıklı ortalama
+    tanımı olmayan bir sayı üretiyordu."""
+    monkeypatch.setattr(ga, "GCI_MEMORY", tmp_path / "mem.jsonl")
+    import auto_pilot as ap
+    metrik = ap.classify_vehicle(_GEO)["metrik"]
+    recs = [{"tip": "roket", "metrik": metrik, "u_num_pct": u, "p": 1.0,
+             "ogrenilebilir": True, "asimptotik_ok": ok, "yontem": y}
+            for u, ok, y in [(2.3, True, "lsr"), (60.0, False, "salinim"),
+                             (3.1, True, "lsr"), (55.0, False, "salinim")]]
+    (tmp_path / "mem.jsonl").write_text(
+        "\n".join(json.dumps(r) for r in recs) + "\n", encoding="utf-8")
+    out = ga.advise(metrik, "roket")
+    assert out["karisik_yontem"] is True
+    assert out["yontem_karisimi"] == ["lsr", "salinim"]
+    assert "FARKLI YÖNTEMLERDEN" in out["oneri"]
+
+
+def test_TEK_yontemli_havuzda_uyari_YOK(tmp_path, monkeypatch):
+    """Kapı yalnız karışımı işaretlemeli; tek tanımlı havuzda gürültü yapmasın."""
+    monkeypatch.setattr(ga, "GCI_MEMORY", tmp_path / "mem.jsonl")
+    import auto_pilot as ap
+    metrik = ap.classify_vehicle(_GEO)["metrik"]
+    recs = [{"tip": "roket", "metrik": metrik, "u_num_pct": u, "p": 1.0,
+             "ogrenilebilir": True, "asimptotik_ok": bool(i % 2), "yontem": "lsr"}
+            for i, u in enumerate((2.3, 3.1, 2.8, 3.4))]
+    (tmp_path / "mem.jsonl").write_text(
+        "\n".join(json.dumps(r) for r in recs) + "\n", encoding="utf-8")
+    out = ga.advise(metrik, "roket")
+    assert out["karisik_yontem"] is False
+    assert "FARKLI YÖNTEMLERDEN" not in out["oneri"]

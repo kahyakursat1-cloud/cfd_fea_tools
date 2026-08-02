@@ -165,6 +165,16 @@ def advise(metrik: dict, tip: str = "", k: int = 5,
     us = [c["u_num_pct"] for c in knn]
     genis = max(us) > 3.0 * max(min(us), 1e-9)
 
+    # BANDLAR AYNI ŞEYİ ÖLÇMÜYOR OLABİLİR. `u_num_pct` üç farklı yöntemden gelir
+    # ve anlamları farklıdır: LSR standart dalı U=1.25|δ|+σ ile bir EKSTRAPOLASYON
+    # hatasıdır; salınım dalı U=3·Δ_M ile yalnız VERİ ARALIĞIDIR (ekstrapolasyon
+    # yok); 2-mesh vekil bant ikisi de değildir. Karışık bir havuzun ağırlıklı
+    # ortalaması, tanımı olmayan bir sayıdır.
+    # ÖLÇÜLDÜ (11 kayıt): 4 lsr, 5 salınım, 1 iki-mesh, 1 türetilemez — yani
+    # havuz zaten karışık ve ortalama sessizce bunları topluyordu.
+    yontemler = {c.get("yontem") for c in knn if c.get("yontem")}
+    karisik_yontem = len(yontemler) > 1
+
     if p_asym < 0.5:
         oneri = ("Benzer koşularda 3-seviye GCI çoğunlukla asimptotik ÇIKMADI → "
                  "4+ seviye koşup LSR (least_squares_gci, Eça-Hoekstra) kullanın; "
@@ -181,8 +191,14 @@ def advise(metrik: dict, tip: str = "", k: int = 5,
     if genis:
         oneri += (f" NOT: komşu bandları %{min(us):.1f}–%{max(us):.1f} arasında "
                   "saçılıyor; ortalama bir beklenti DEĞİL, yalnız büyüklük mertebesi.")
+    if karisik_yontem:
+        oneri += (" DİKKAT: komşu bandları FARKLI YÖNTEMLERDEN geliyor ("
+                  + ", ".join(sorted(yontemler)) + "); LSR ekstrapolasyon hatası, "
+                  "3·Δ ise yalnız veri aralığıdır — ortalamaları aynı büyüklük "
+                  "değildir, tek sayı olarak okunmamalı.")
     return {"u_num_beklenen_pct": round(u_hat, 1),
             "u_komsu_araligi_pct": [round(min(us), 1), round(max(us), 1)],
+            "yontem_karisimi": sorted(yontemler), "karisik_yontem": karisik_yontem,
             "asimptotik_olasilik": (round(p_asym, 2) if ayirt_edici else None),
             "ayirt_edici": ayirt_edici,
             "p_gozlenen_komsu": ([round(min(ps), 2), round(max(ps), 2)] if ps else None),
