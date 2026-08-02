@@ -4,6 +4,43 @@ Chronological record of wiki ingestions, major updates, and system changes.
 
 ---
 
+## [2026-08-02] fix | GCI seviye ailesi TEKDUZE DEGILDI — capa kampanyasi ve olculen sonuc
+
+Seviye kurulumu ayni anda IKI sey yapiyordu: arka plani x1.5 kabalastirmak VE
+iyilestirme seviyesini 1 dusurmek. O zaman yuzey hucresi x3, arka plan x1.5 olur —
+aile TEKDUZE OLCEKLENMEZ ve Richardson'in dayandigi tek h olcegi tanimsiz kalir.
+
+OLCULDU (kup capasi, eski kurulum): yuzey yuzleri 10324 -> 1860 -> 436 -> 176.
+Tekduze x1.5 olsaydi bolen 2.25 olurdu. Olculen bolenler 5.55 / 4.27 / 2.48; iki
+kaba seviye yuzey kapisinin (500) ALTINA dustu ve GCI hic hesaplanamadi.
+
+Duzeltme sonrasi ayni capa (olculen):
+  4 seviye 39,303 / 117,889 / 361,792 / 1,153,464  (govde yuzu 1680/3092/5012)
+  Cd 1.08739 -> 1.08149 -> 1.07635 -> 1.06869  MONOTON
+  LSR p=0.05 -> U = %5.32   |   Cd 1.0687 vs Hoerner 1.05 -> hata %1.78
+  => kabul kapisini ILK KEZ gecti; hata sayisal bandin ICINDE.
+
+Ayrica ON-KAPI eklendi: yuzey_yuz_tahmini ile esigin altina dusecegi ongorulen
+kademe HIC KOSULMAZ, gerekcesiyle kayda gecer. Kampanyada calisti — disk cokkaba
+(tahmini 427 yuz), kanat kaba/cokkaba (419 / 186). Onceki turda bu kademeler
+kosulup saatler harcandiktan SONRA reddediliyordu.
+
+Ve elenen seviyenin gerekcesi 2-seviye dalinda KAYBOLUYORDU: `fizik_disi_seviyeler`
+ve `yuzeyi_cozulmemis_seviyeler` yalniz 3+ seviye dalinda yaziliyordu, kullanici
+gerekcesiz bir "yalniz 2 seviye tamamlandi" goruyordu. Dort eleme sebebi artik tek
+yerde uretilip uc dala da giriyor.
+
+Kalan capalar DURUST sekilde gosterilemedi: disk salinimli, ahmed'in orta seviyesi
+yakinsamadi, kanat 2 seviyeye dustu. Dogrulama bandi %5.95'te kaldi (tarihsel
+maksimum korunur).
+
+ML: GCI ogrenme havuzu 1 -> 5 kayit / 5 ayrik geometri. Danisman esigi gecti ama
+olasilik YAYINLAMIYOR (asimptotik_ok 5/5 False -> "ayirt edici degil", guven 0.0)
+ve bandlarin uc AYRI yontemden geldigini bildiriyor (2-mesh %4.2 / lsr %5.3 /
+salinim %23.2) — ortalamalari ayni buyukluk degil.
+
+---
+
 ## [2026-07-27j] fix | Supersonik rapor kapiyi gostermiyordu + topopt/belge kapanisi
 
 Ayni desen ucuncu kez: KAPI VAR AMA GIRDISINI/HUKMUNU TASIMIYOR.
