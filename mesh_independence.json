@@ -23,5 +23,6 @@
       "cells": "~2M"
     }
   ],
-  "_hukum_kaynagi": "Verdikt bu dosyada SAKLANMAZ; ham seviye verisidir. Hüküm kanonik report_generator.compute_gci + gci_verdict ile hesaplanır (zarf.py '3D araç mesh yakınsama' satırı). Değeri buraya yazmak eşik/algoritma değişince bayatlardı."
+  "_hukum_kaynagi": "Verdikt bu dosyada SAKLANMAZ; ham seviye verisidir. Hüküm kanonik report_generator.compute_gci + gci_verdict ile hesaplanır (zarf.py '3D araç mesh yakınsama' satırı). Değeri buraya yazmak eşik/algoritma değişince bayatlardı.",
+  "_uretilemez": "Depoda bu dosyayi YAZAN kaynak yok. Icerik report_generator.py icinde hardcoded iken elle veri dosyasina tasindi (bkz. _kaynak). Ayakta kalan calisma kosucusu simulation_runner.run_mesh_independence_study coarse/medium/fine = h 0.050/0.025/0.012 seviyelerini tanimlar; burada saklanan seri ise medium/fine/extra = 0.025/0.012/0.006 — EN INCE SEVIYE hicbir scriptte yok, ad-hoc kosulmus. Modern ve yeniden uretilebilir esdegeri: vehicle_pipeline otomatik GCI (gci_minihawk_arac.json, mesh_gci_campaign.json). NOT: bu dosyanin hukmu zaten OLUMSUZ (p=3.898, asimptotik aralik disi) — yani yanlis bir iddiayi tasimiyor, eksik olan yeniden uretilebilirlik."
 }

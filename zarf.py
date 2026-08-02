@@ -51,8 +51,14 @@ def _arac_mesh() -> tuple[str, str]:
         return "⚠️ Belirsiz", "GCI hesaplanamadı (seviyeler ayırt edilemiyor)"
     v = gci_verdict(g)
     guv = "✅" if v.startswith("✅") else "⚠️ Gösterilemedi"
+    # KAYNAĞIN NİTELİĞİ HÜKMÜN PARÇASI: bu seri 2026-06-03 eski boru hattından
+    # (simulation_runner) ad-hoc koşulmuş ve depoda onu YAZAN kod yok — en ince
+    # seviye (h=0.006) hiçbir scriptte tanımlı değil. Hüküm zaten olumsuz, ama
+    # okuyan "bunu tekrar koşarım" sanmasın.
     return guv, (f"MiniHawk 3D snappyHexMesh: GCI %{g['gci_fine_pct']:.2f}, "
-                 f"p={g['p']} ({'asimptotik' if g['p_in_range'] else 'asimptotik aralık DIŞI'})")
+                 f"p={g['p']} ({'asimptotik' if g['p_in_range'] else 'asimptotik aralık DIŞI'})"
+                 " — TARİHSEL veri (2026-06-03, eski boru hattı; yeniden üretilemez, "
+                 "bkz. mesh_independence.json/_uretilemez)")
 
 
 def _kup_arac_gci() -> tuple[str, str]:

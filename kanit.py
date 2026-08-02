@@ -106,20 +106,28 @@ _YAZMA = re.compile(r"json\.dump|write_text|open\([^)]*[\"']w")
 _KALIP = re.compile(r"[\"']([^\"'\n]*\{[^\"'\n]*\}[^\"'\n]*\.json)[\"']")
 
 
-def _kalip_uyuyor(govde: str, ad: str) -> bool:
-    """Kaynaktaki f-string çıktı adı bu kanıt dosyasına uyuyor mu?
+def _kalip_uyuyor(govde: str, ad: str) -> int:
+    """Kaynaktaki f-string çıktı adı bu kanıt dosyasına uyuyor mu? → özgüllük skoru.
 
     `{...}` yer tutucusu dosya-adı parçası kabul edilir (ayraç geçemez), böylece
     `gci_{lbl}.json` → gci_xfine.json EŞLEŞİR ama alt/üst dizinlere taşmaz.
+
+    SKOR = kalıptaki SABİT karakter sayısı. Gerekli, çünkü `gci_{lbl}.json` HER
+    `gci_*.json` ile eşleşiyor: gci_cgrid_base.json için hem exp_gci_xfine.py
+    (`gci_{lbl}.json`) hem exp_cgrid_run.py (`gci_cgrid_{lbl}.json`) uyuyor ve
+    doğru cevap ikincisi. En ÖZGÜL kalıp kazanır. Skorlar eşitse ilk bulunan.
     """
+    en_iyi = 0
     for m in _KALIP.finditer(govde):
+        parcalar = [p for p in re.split(r"(\{[^{}]*\})", m.group(1)) if p]
         desen = "".join(r"[^/\\]*" if p.startswith("{") else re.escape(p)
-                        for p in re.split(r"(\{[^{}]*\})", m.group(1)) if p)
-        if re.fullmatch(desen, ad):
-            i = m.start()
-            if _YAZMA.search(govde[max(0, i - 200):i + 200]):
-                return True
-    return False
+                        for p in parcalar)
+        if not re.fullmatch(desen, ad):
+            continue
+        if _YAZMA.search(govde[max(0, m.start() - 200):m.start() + 200]):
+            en_iyi = max(en_iyi, sum(len(p) for p in parcalar
+                                     if not p.startswith("{")))
+    return en_iyi
 
 
 def uretici_kod(ad: str) -> str:
@@ -132,7 +140,11 @@ def uretici_kod(ad: str) -> str:
 
     BOOL YETMİYOR: "üretici var" demek, onu KOŞMAK için yeterli değil. Yolu döndürmek
     kaydedilmemiş komutu bir satırda yazılabilir hâle getirir.
+
+    LİTERAL eşleşme, ad-kalıbı eşleşmesini her zaman yener; kalıplar arasında en
+    ÖZGÜL olan kazanır (bkz. _kalip_uyuyor).
     """
+    kalip_aday = ("", 0)
     for f in sorted(ROOT.rglob("*.py")):
         # Denetçi KENDİ dokümantasyonuyla eşleşmemeli: bu dosyanın yorumunda örnek
         # olarak `gci_{lbl}.json` geçiyor ve kendini üretici sanıyordu.
@@ -155,9 +167,22 @@ def uretici_kod(ad: str) -> str:
         for m in re.finditer(re.escape(ad), t):
             if _YAZMA.search(t[max(0, m.start() - 200):m.start() + 200]):
                 return yol
-        if _kalip_uyuyor(t, ad):
-            return yol
-    return ""
+        skor = _kalip_uyuyor(t, ad)
+        if skor > kalip_aday[1]:
+            kalip_aday = (yol, skor)
+    return kalip_aday[0]
+
+
+def uretici_kesin(ad: str) -> bool:
+    """Eşleşme LİTERAL mi (dosya adı kaynakta aynen geçiyor) yoksa AD KALIBINDAN
+    mı çıkarıldı? Kalıp eşleşmesi "bu script bu adda bir dosya YAZABİLİR" der;
+    "bu dosyayı üretmiştir" DEMEZ. İki iddia ayrı gösterilmeli."""
+    yol = uretici_kod(ad)
+    if not yol:
+        return False
+    t = (ROOT / yol).read_text(encoding="utf-8", errors="replace")
+    return any(_YAZMA.search(t[max(0, m.start() - 200):m.start() + 200])
+               for m in re.finditer(re.escape(ad), t))
 
 
 def uretici_kod_var(ad: str) -> bool:
@@ -210,6 +235,10 @@ def sinifla(p: Path) -> dict:
     # "yeniden üretilemez" ağır bir iddiadır ve yalnız arama BOŞ dönünce kurulur.
     if kayit["sinif"] == "kanit" and not kayit["uretim"]:
         kayit["uretici"] = uretici_kod(p.name)
+        kayit["uretici_kesin"] = bool(kayit["uretici"]) and uretici_kesin(p.name)
+        # GEREKÇESİZ ❌ bir bilgi vermiyor: "yeniden üretilemez" ile NEDEN
+        # üretilemediği ayrı şeyler ve ikincisi eylem planı üretir.
+        kayit["uretilemez_neden"] = str(d.get("_uretilemez") or "")[:300]
     if kayit["eskimis"]:
         kayit["not"] = "ESKİMİŞ — güncel dosya için _SUPERSEDED notuna bak"
     return kayit
@@ -351,9 +380,15 @@ def tablo(kayitlar: list[dict], yalniz_kanit: bool = True) -> str:
             ur = f"`{x['uretim']}`"
         elif x.get("uretici"):
             # Yol GÖSTERİLİR: "üretici var" demek onu koşmak için yetmiyordu.
-            ur = f"⚠ komut kayıtlı değil — üretici: `{x['uretici']}`"
+            # Kalıptan çıkarılan eşleşme AYRI işaretlenir: "bu script bu adda bir
+            # dosya yazabilir" ile "bu dosyayı üretmiştir" aynı iddia değil.
+            kesin = x.get("uretici_kesin")
+            ur = (f"⚠ komut kayıtlı değil — üretici: `{x['uretici']}`" if kesin else
+                  f"⚠ komut kayıtlı değil — üretici (ad kalıbı): `{x['uretici']}`")
         else:
             ur = "❌ ÜRETİCİ KOD DEPODA YOK — yeniden üretilemez"
+            if x.get("uretilemez_neden"):
+                ur += f" — {x['uretilemez_neden']}"
         sat.append(f"| `{x['dosya']}` | {vaka} | {x['sembol']} {hukum} | {ur} |")
     ozet = {}
     for x in kayitlar:

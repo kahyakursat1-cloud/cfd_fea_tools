@@ -95,5 +95,6 @@
     },
     "kok_neden": "Surtunmesiz (Euler) kut-kure tabani, dogrulanmis uretim mesh'i (382k) DISINDAKI cozunurluklerde kararsiz: kaba->taban yetersiz cozulur->coker; ince->kararsiz taban-resirkulasyonu daha cok cozulur->yine coker. Bu, inviscid kut-taban akislarinin bilinen bir guclugudur. Sadece tek mesh converged oldugundan 3-ag (ve 2-ag) GCI kurulamadi.",
     "cozum": "Viskoz duvar (kΩ-SST, y+~1, prizma katman) gercek sinir tabaka ile tabani stabilize eder ve GCI'yi mumkun kilar -> acik gelecek-is. Rapor bu sonucsuzlugu dürüstçe bildirir (validation solid, verification gelecek-is)."
-  }
+  },
+  "_uretilemez": "Depoda bu dosyayi YAZAN kaynak yok. Icerik tek bir kosunun ciktisi degil, AYRI kampanyalarin elle birlestirilmis ozeti: kure M1.5/2.0/3.0 taramasi, rockets/rocket.stl Cd-Mach, kullanici STEP montaji ve solver_gci denemeleri. Her biri ad-hoc kosulmus; birlestiren script yok. Canli tuketiciler: supersonic_report._read_solver_gci ve experiments/silent_failure_assay.py. Yeniden uretilebilir modern yol: supersonic_slender.py (eksenel-simetri/slender-body) -> supersonic_slender_result.json."
 }

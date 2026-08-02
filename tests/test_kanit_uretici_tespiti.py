@@ -85,3 +85,53 @@ def test_ureticiler_komutu_ARTIK_kendileri_yaziyor():
         p = ROOT / yol
         if p.exists():
             assert '"_uretim"' in p.read_text(encoding="utf-8"), yol
+
+
+class TestOzgullukVeGerekce:
+    """İki ayrı iddia karışıyordu ve ikisi de fazla güçlüydü."""
+
+    def test_EN_OZGUL_kalip_kazaniyor(self, tmp_path, monkeypatch):
+        """`gci_{lbl}.json` HER gci_*.json ile eşleşiyor. gci_cgrid_base.json için
+        hem exp_gci_xfine.py hem exp_cgrid_run.py uyuyor; doğru cevap ikincisi."""
+        monkeypatch.setattr(kanit, "ROOT", tmp_path)
+        _yaz(tmp_path, "a_genel.py", 'Path(f"gci_{lbl}.json").write_text(x)\n')
+        _yaz(tmp_path, "b_ozel.py", 'Path(f"gci_cgrid_{lbl}.json").write_text(x)\n')
+        assert kanit.uretici_kod("gci_cgrid_base.json") == "b_ozel.py"
+        assert kanit.uretici_kod("gci_xfine.json") == "a_genel.py"
+
+    def test_LITERAL_eslesme_kalibi_yeniyor(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(kanit, "ROOT", tmp_path)
+        _yaz(tmp_path, "a_kalip.py", 'Path(f"gci_{lbl}.json").write_text(x)\n')
+        _yaz(tmp_path, "z_literal.py", 'Path("gci_xfine.json").write_text(x)\n')
+        assert kanit.uretici_kod("gci_xfine.json") == "z_literal.py"
+        assert kanit.uretici_kesin("gci_xfine.json") is True
+
+    def test_kalip_eslesmesi_KESIN_sayilmiyor(self, tmp_path, monkeypatch):
+        """"Bu script bu adda bir dosya YAZABİLİR" ile "bu dosyayı ÜRETMİŞTİR"
+        aynı iddia değil; manifest ikisini ayrı göstermeli."""
+        monkeypatch.setattr(kanit, "ROOT", tmp_path)
+        _yaz(tmp_path, "u.py", 'Path(f"gci_{lbl}.json").write_text(x)\n')
+        assert kanit.uretici_kod("gci_xfine.json") == "u.py"
+        assert kanit.uretici_kesin("gci_xfine.json") is False
+
+    def test_URETILEMEZ_gerekcesi_manifeste_giriyor(self, tmp_path, monkeypatch):
+        """Gerekçesiz ❌ bilgi vermiyor; NEDEN üretilemediği eylem planı üretir."""
+        import json as _j
+        monkeypatch.setattr(kanit, "ROOT", tmp_path)
+        p = tmp_path / "olcum.json"
+        p.write_text(_j.dumps({"vaka": "x", "verdikt": "✅ ok",
+                               "_uretilemez": "elle birlestirilmis ozet"}),
+                     encoding="utf-8")
+        k = kanit.sinifla(p)
+        assert k["uretilemez_neden"] == "elle birlestirilmis ozet"
+        assert "elle birlestirilmis ozet" in kanit.tablo([k])
+
+    def test_GERCEK_iki_uretilemez_kanit_gerekce_tasiyor(self):
+        """Depodaki iki gerçek vaka gerekçesiz kalmasın."""
+        import json as _j
+        for ad in ("mesh_independence.json", "supersonic_validation.json"):
+            p = ROOT / ad
+            if p.exists():
+                d = _j.loads(p.read_text(encoding="utf-8"))
+                assert d.get("_uretilemez"), ad
+                assert kanit.uretici_kod(ad) == "", f"{ad} artik uretilebilir mi?"
