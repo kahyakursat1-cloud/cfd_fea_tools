@@ -1,0 +1,167 @@
+{
+  "vaka": "Güvenilirlik taraması — 12 geometri, kalite=hassas_nl, V=15.0 m/s, ref_bump=0",
+  "_neden": "Uygulamanin BASARI ORANI olculmemisti. 'Savunulabilir' tanimi mevcut kapilarin birlesimidir (sonuc_kapisi + duvar cozunurlugu), yazarin yargisi degil.",
+  "geometri_sayisi": 12,
+  "savunulabilir_sayisi": 6,
+  "oran_pct": 50.0,
+  "basarisizlik_sebepleri": {
+    "duvar/y+": 4,
+    "yakınsama/salınım": 1,
+    "koşu tamamlanmadı": 1
+  },
+  "kosular": [
+    {
+      "stl": "minihawk_vtol.stl",
+      "aile": "real_geo",
+      "Cd": 0.02057,
+      "hucre": 682240,
+      "sure_dk": 6.1,
+      "savunulabilir": true,
+      "gerekce": [],
+      "kapi": "✅ yakınsadı",
+      "duvar": "duvar fonksiyonu bandında: y+=117"
+    },
+    {
+      "stl": "ciftkuyruk_kucuk.stl",
+      "aile": "nx_geo_egitim",
+      "Cd": 0.05155,
+      "hucre": 668304,
+      "sure_dk": 5.9,
+      "savunulabilir": false,
+      "gerekce": [
+        "y+=426 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+      ],
+      "kapi": "✅ QoI durağan (Cd drifti %0.02)",
+      "duvar": "y+=426 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+    },
+    {
+      "stl": "gripen_AB_Right.stl",
+      "aile": "real_geo",
+      "Cd": 0.1819,
+      "hucre": 680845,
+      "sure_dk": 9.5,
+      "savunulabilir": true,
+      "gerekce": [],
+      "kapi": "✅ QoI durağan (Cd drifti %0.09)",
+      "duvar": "duvar fonksiyonu bandında: y+=110"
+    },
+    {
+      "stl": "multikopter_kucuk.stl",
+      "aile": "nx_geo",
+      "Cd": 0.18291,
+      "hucre": 668155,
+      "sure_dk": 9.1,
+      "savunulabilir": true,
+      "gerekce": [],
+      "kapi": "✅ QoI durağan (Cd drifti %0.47)",
+      "duvar": "duvar fonksiyonu bandında: y+=79"
+    },
+    {
+      "stl": "kaldirici_e_kapsulsu.stl",
+      "aile": "nx_geo_egitim",
+      "Cd": 0.22213,
+      "hucre": 685053,
+      "sure_dk": 12.1,
+      "savunulabilir": false,
+      "gerekce": [
+        "⚠️ salınımlı (sabit nokta yok): rezidüel hedefin dışında; kuvvet SALINIYOR (genlik ±%3.2, 16 işaret geçişi) — rezidüel ve drift ölçütleri sağlansa bile çözüm sabit noktaya oturmadı (limit çevr"
+      ],
+      "kapi": "⚠️ salınımlı (sabit nokta yok)",
+      "duvar": "duvar fonksiyonu bandında: y+=161"
+    },
+    {
+      "stl": "gondol_dort.stl",
+      "aile": "nx_geo_kor",
+      "Cd": 0.04188,
+      "hucre": 652690,
+      "sure_dk": 5.2,
+      "savunulabilir": false,
+      "gerekce": [
+        "y+=1222 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+      ],
+      "kapi": "✅ yakınsadı",
+      "duvar": "y+=1222 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+    },
+    {
+      "stl": "izgara_ld7.stl",
+      "aile": "nx_geo_kor",
+      "Cd": 0.08866,
+      "hucre": 667372,
+      "sure_dk": 6.4,
+      "savunulabilir": true,
+      "gerekce": [],
+      "kapi": "✅ QoI durağan (Cd drifti %0.28)",
+      "duvar": "duvar fonksiyonu bandında: y+=141"
+    },
+    {
+      "stl": "genel_kapsul_uzun.stl",
+      "aile": "nx_geo_egitim",
+      "Cd": 0.04009,
+      "hucre": 658654,
+      "sure_dk": 6.3,
+      "savunulabilir": false,
+      "gerekce": [
+        "y+=370 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+      ],
+      "kapi": "✅ yakınsadı",
+      "duvar": "y+=370 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+    },
+    {
+      "stl": "su57.stl",
+      "aile": "real_geo",
+      "Cd": 0.08893,
+      "hucre": 673274,
+      "sure_dk": 6.3,
+      "savunulabilir": false,
+      "gerekce": [
+        "y+=3239 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+      ],
+      "kapi": "✅ yakınsadı",
+      "duvar": "y+=3239 duvar-fonksiyonu bandının (30-300) dışında — sürtünme çözülmüyor"
+    },
+    {
+      "stl": "a320_Body_A320.stl",
+      "aile": "real_geo",
+      "Cd": null,
+      "hucre": null,
+      "sure_dk": 2.8,
+      "savunulabilir": false,
+      "gerekce": [
+        "koşu tamamlanmadı (status=failed)"
+      ]
+    },
+    {
+      "stl": "genel_kup800.stl",
+      "aile": "nx_geo",
+      "Cd": 1.04584,
+      "hucre": 726544,
+      "sure_dk": 10.4,
+      "savunulabilir": true,
+      "gerekce": [],
+      "kapi": "✅ QoI durağan (Cd drifti %0.08)",
+      "duvar": "duvar fonksiyonu bandında: y+=113"
+    },
+    {
+      "stl": "ucak_okkanat.stl",
+      "aile": "nx_geo",
+      "Cd": 0.03952,
+      "hucre": 665653,
+      "sure_dk": 5.1,
+      "savunulabilir": true,
+      "gerekce": [],
+      "kapi": "✅ yakınsadı",
+      "duvar": "duvar fonksiyonu bandında: y+=197"
+    }
+  ],
+  "sure_dk": 85.5,
+  "olcut": {
+    "yplus_bandi": [
+      30.0,
+      300.0
+    ],
+    "yplus_duvar_cozunur": 5.0,
+    "kapi": "validity_envelope.sonuc_kapisi seviyesi 'ok' olmali"
+  },
+  "verdikt": "6/12 geometri savunulabilir Cd uretti (%50.0). Baskin basarisizlik sebebi: duvar/y+ (4 vaka). Bu oran uygulamanin OLCULMUS guvenilirligidir; kapilar olmadan olculemezdi.",
+  "_uretim": "Üretim: python experiments/guvenilirlik_taramasi.py --n 12 --kalite hassas_nl --ref-bump 0 --tohum 20260728 --out-root vehicle_runs/_b0 --out tarama_b0.json"
+}

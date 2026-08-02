@@ -380,6 +380,61 @@ def sonuc_kapisi(fizik: dict | None, convergence: dict | None,
     return {"seviye": "uyari", "etiket": etiket, "gerekce": gerekce}
 
 
+# Duvar-fonksiyonu log-bölgesi; dışındaysa sürtünme bileşeni çözülmüyor.
+YPLUS_BANDI = (30.0, 300.0)
+YPLUS_DUVAR_COZUNUR = 5.0
+
+
+def duvar_hukmu(sinir: dict | None) -> tuple[bool, str]:
+    """Duvar çözünürlüğü savunulabilir mi? İki MEŞRU yol var, ikisi de kabul."""
+    s = sinir or {}
+    yp = (s.get("yplus") or {})
+    ort = yp.get("ort") if isinstance(yp, dict) else None
+    kat = s.get("katman_olcumu") or {}
+    if ort is None:
+        return False, f"y+ ölçülemedi ({yp.get('neden') if isinstance(yp, dict) else 'yok'})"
+    if kat.get("durum") == "COKTU":
+        return False, (f"katman ÇÖKTÜ ({kat.get('istenen')} istendi, 0 örüldü) — "
+                       f"duvar-çözünür iddiası geçersiz, y+={ort:.0f}")
+    if kat.get("durum") == "ok" and ort <= YPLUS_DUVAR_COZUNUR:
+        return True, f"duvar-çözünür: {kat['eklenen']} katman, y+={ort:.1f}"
+    if YPLUS_BANDI[0] <= ort <= YPLUS_BANDI[1]:
+        return True, f"duvar fonksiyonu bandında: y+={ort:.0f}"
+    return False, (f"y+={ort:.0f} duvar-fonksiyonu bandının ({YPLUS_BANDI[0]:.0f}-"
+                   f"{YPLUS_BANDI[1]:.0f}) dışında — sürtünme çözülmüyor")
+
+
+def savunulabilir(s: dict) -> dict:
+    """Bir koşu SONUCU (sonuc.json sözlüğü) savunulabilir mi — TEK TANIM.
+
+    NEDEN BURADA: bu hüküm güvenilirlik taramasında yaşıyordu ve ÖĞRENME KATMANI
+    ona hiç ulaşmıyordu. mesh_memory'nin başarı etiketi `status == "ok"` idi, yani
+    "çözücü temiz çıktı" demekti — kapının hükmü değil.
+
+    ÖLÇÜLDÜ (sabit ref_bump=0 taraması, 12 geometri): kapı 6 koşuyu savunulamaz
+    saydı (gondol_dort y⁺=1222, su57 y⁺=3239, çiftkuyruk 426, kapsül 370 …) ama
+    ONİKİSİNİN DE status'ü "ok" idi. Havuz bu etiketle hiçbir zaman ayırt edici
+    olamazdı: kayıt sayısı artıyor, bilgi artmıyordu.
+
+    Döner: {"savunulabilir": bool, "gerekce": [...], "kapi": str, "duvar": str}
+    """
+    ret = {"savunulabilir": False, "gerekce": []}
+    if s.get("status") != "ok" or s.get("cd") is None:
+        ret["gerekce"].append(f"koşu tamamlanmadı (status={s.get('status', '?')})")
+        return ret
+    kapi = sonuc_kapisi(s.get("fizik_kabul"), s.get("convergence"),
+                        s.get("belirsizlik"))
+    ret["kapi"] = kapi["etiket"]
+    if kapi["seviye"] != "ok":
+        ret["gerekce"].append(f"{kapi['etiket']}: {'; '.join(kapi['gerekce'])[:160]}")
+    duvar_ok, duvar_not = duvar_hukmu(s.get("sinir_tabaka"))
+    ret["duvar"] = duvar_not
+    if not duvar_ok:
+        ret["gerekce"].append(duvar_not)
+    ret["savunulabilir"] = not ret["gerekce"]
+    return ret
+
+
 def classify_cfd(vehicle_type: str, alpha_deg: float, mach: float,
                  has_gci_band: bool = False, band_pct: float | None = None) -> list[Verdict]:
     """CFD aerodinamik çıktılarının zarf sınıfı. has_gci_band: 3-mesh asimptotik GCI var mı."""

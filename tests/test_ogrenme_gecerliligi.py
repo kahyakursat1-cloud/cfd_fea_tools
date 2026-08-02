@@ -267,7 +267,7 @@ class TestRefBumpDersi:
         d = mentor._ref_bump_dersi(knn)
         assert d["ref_bump_basari"] == {0: 0.0, 2: 1.0}
         assert "fizik önerisinden SAPILAN 2" in d["ref_bump_notu"]
-        assert "2'i başarısız" in d["ref_bump_notu"]
+        assert "2 tanesi başarısız" in d["ref_bump_notu"]
 
     def test_tek_YONLU_havuzda_ders_YOK(self):
         import mentor

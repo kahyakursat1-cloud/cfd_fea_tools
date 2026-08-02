@@ -148,8 +148,12 @@ def test_cagiranlar_BELIRSIZLIGI_geciriyor():
 
     import app_analyzer
     import experiments.guvenilirlik_taramasi as gt
-    for mod, fn in ((gt, gt.savunulabilir_mi),):
-        src = inspect.getsource(fn)
-        i = src.index("sonuc_kapisi(")
-        assert "belirsizlik" in src[i:i + 200]
+    import validity_envelope
+    # "Savunulabilir" tanımı taramadan validity_envelope'a TEK KAYNAK olarak
+    # taşındı (öğrenme katmanı da aynı hükmü kullansın diye); kapı çağrısı artık
+    # orada. Tarama tarafında da belirsizliğin GEÇİLDİĞİ bağlanır.
+    src = inspect.getsource(validity_envelope.savunulabilir)
+    i = src.index("sonuc_kapisi(")
+    assert "belirsizlik" in src[i:i + 200]
+    assert "belirsizlik" in inspect.getsource(gt.savunulabilir_mi)
     assert "belirsizlik" in inspect.getsource(app_analyzer).split("sonuc_kapisi(")[1][:200]

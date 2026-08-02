@@ -40,12 +40,18 @@ for _akis in (sys.stdout, sys.stderr):
     if hasattr(_akis, "reconfigure"):
         _akis.reconfigure(encoding="utf-8", errors="replace")
 
-from validity_envelope import sonuc_kapisi  # noqa: E402
+# "Savunulabilir" TANIMI ARTIK BURADA DEĞİL: validity_envelope'ta tek kaynak.
+# Sebep ölçüldü — tanım burada yaşarken ÖĞRENME KATMANI ona hiç ulaşamıyordu ve
+# mesh_memory başarıyı `status == "ok"` diye kaydediyordu (bkz. savunulabilir()).
+from validity_envelope import (  # noqa: E402
+    YPLUS_BANDI,
+    YPLUS_DUVAR_COZUNUR,
+    duvar_hukmu,
+    savunulabilir,
+)
 from vehicle_pipeline import run_vehicle_analysis  # noqa: E402
 
-# Duvar-fonksiyonu log-bölgesi. Dışındaysa sürtünme bileşeni çözülmüyor demektir.
-YPLUS_BANDI = (30.0, 300.0)
-YPLUS_DUVAR_COZUNUR = 5.0
+_ = (YPLUS_BANDI, YPLUS_DUVAR_COZUNUR, duvar_hukmu)      # yeniden dışa aktarım
 
 AILELER = ("experiments/nx_geo", "experiments/nx_geo_egitim",
            "experiments/nx_geo_kor", "experiments/real_geo")
@@ -58,45 +64,19 @@ def geometri_havuzu(kok: Path) -> list[Path]:
     return out
 
 
-def duvar_hukmu(sinir: dict | None) -> tuple[bool, str]:
-    """Duvar çözünürlüğü savunulabilir mi? İki MEŞRU yol var, ikisi de kabul."""
-    s = sinir or {}
-    yp = (s.get("yplus") or {})
-    ort = yp.get("ort") if isinstance(yp, dict) else None
-    kat = s.get("katman_olcumu") or {}
-    if ort is None:
-        return False, f"y+ ölçülemedi ({yp.get('neden') if isinstance(yp, dict) else 'yok'})"
-    if kat.get("durum") == "COKTU":
-        return False, (f"katman ÇÖKTÜ ({kat.get('istenen')} istendi, 0 örüldü) — "
-                       f"duvar-çözünür iddiası geçersiz, y+={ort:.0f}")
-    if kat.get("durum") == "ok" and ort <= YPLUS_DUVAR_COZUNUR:
-        return True, f"duvar-çözünür: {kat['eklenen']} katman, y+={ort:.1f}"
-    if YPLUS_BANDI[0] <= ort <= YPLUS_BANDI[1]:
-        return True, f"duvar fonksiyonu bandında: y+={ort:.0f}"
-    return False, (f"y+={ort:.0f} duvar-fonksiyonu bandının ({YPLUS_BANDI[0]:.0f}-"
-                   f"{YPLUS_BANDI[1]:.0f}) dışında — sürtünme çözülmüyor")
-
-
 def savunulabilir_mi(r) -> dict:
-    """Tek koşunun hükmü — TÜM gerekçeler toplanır, ilkinde durulmaz."""
-    ret = {"savunulabilir": False, "gerekce": []}
-    if getattr(r, "status", None) != "ok" or r.cd is None:
-        ret["gerekce"].append(f"koşu tamamlanmadı (status={getattr(r, 'status', '?')})")
-        return ret
-    # NİTELİK ADI KRİTİK: `fizik` yazmak sessizce None döndürür ve sonuc_kapisi
-    # eksik veriyi "ok" sayar — fizik kapısı fark edilmeden DEVRE DIŞI kalırdı.
-    # (İlk sürümde tam bu hata yapıldı; test_fizik_kabul_NITELIK_ADI onu bağlar.)
-    kapi = sonuc_kapisi(getattr(r, "fizik_kabul", None), r.convergence,
-                        getattr(r, "belirsizlik", None))
-    ret["kapi"] = kapi["etiket"]
-    if kapi["seviye"] != "ok":
-        ret["gerekce"].append(f"{kapi['etiket']}: {'; '.join(kapi['gerekce'])[:160]}")
-    duvar_ok, duvar_not = duvar_hukmu(getattr(r, "sinir_tabaka", None))
-    ret["duvar"] = duvar_not
-    if not duvar_ok:
-        ret["gerekce"].append(duvar_not)
-    ret["savunulabilir"] = not ret["gerekce"]
-    return ret
+    """Koşu NESNESİNİ sözlüğe çevirip tek tanıma sorar (validity_envelope).
+
+    NİTELİK ADI KRİTİK: `fizik` yazmak sessizce None döndürür ve sonuc_kapisi
+    eksik veriyi "ok" sayar — fizik kapısı fark edilmeden DEVRE DIŞI kalırdı.
+    (İlk sürümde tam bu hata yapıldı; test_fizik_kabul_NITELIK_ADI onu bağlar.)
+    """
+    return savunulabilir({
+        "status": getattr(r, "status", None), "cd": r.cd,
+        "fizik_kabul": getattr(r, "fizik_kabul", None),
+        "convergence": r.convergence,
+        "belirsizlik": getattr(r, "belirsizlik", None),
+        "sinir_tabaka": getattr(r, "sinir_tabaka", None)})
 
 
 def main() -> int:

@@ -1,0 +1,32 @@
+{
+  "vaka": "Güvenilirlik taraması — 1 geometri, kalite=hassas_nl, V=15.0 m/s, ref_bump=0",
+  "_neden": "Uygulamanin BASARI ORANI olculmemisti. 'Savunulabilir' tanimi mevcut kapilarin birlesimidir (sonuc_kapisi + duvar cozunurlugu), yazarin yargisi degil.",
+  "geometri_sayisi": 1,
+  "savunulabilir_sayisi": 1,
+  "oran_pct": 100.0,
+  "basarisizlik_sebepleri": {},
+  "kosular": [
+    {
+      "stl": "minihawk_vtol.stl",
+      "aile": "real_geo",
+      "Cd": 0.02057,
+      "hucre": 682240,
+      "sure_dk": 6.3,
+      "savunulabilir": true,
+      "gerekce": [],
+      "kapi": "✅ yakınsadı",
+      "duvar": "duvar fonksiyonu bandında: y+=117"
+    }
+  ],
+  "sure_dk": 6.3,
+  "olcut": {
+    "yplus_bandi": [
+      30.0,
+      300.0
+    ],
+    "yplus_duvar_cozunur": 5.0,
+    "kapi": "validity_envelope.sonuc_kapisi seviyesi 'ok' olmali"
+  },
+  "verdikt": "1/1 geometri savunulabilir Cd uretti (%100.0). Bu oran uygulamanin OLCULMUS guvenilirligidir; kapilar olmadan olculemezdi.",
+  "_uretim": "Üretim: python experiments/guvenilirlik_taramasi.py --n 12 --kalite hassas_nl --ref-bump 0 --tohum 20260728"
+}

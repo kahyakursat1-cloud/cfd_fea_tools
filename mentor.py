@@ -55,7 +55,7 @@ def _cfd_record(path: Path) -> dict | None:
     conv = s.get("convergence") or {}
     return {"tur": "cfd", "ts": time.strftime("%Y-%m-%d %H:%M"), "kaynak": str(path),
             "dosya": geo.get("dosya", ""), "metrik": metrik, **_tip_alanlari(s, cls),
-            "kalite": s.get("kalite", ""), "ok": s.get("status") == "ok",
+            "kalite": s.get("kalite", ""), **_basari_etiketi(s),
             "cells": (s.get("mesh") or {}).get("cells"),
             "non_ortho": (s.get("mesh") or {}).get("non_ortho_max"),
             "n_layers": bl.get("katman_sayisi", 0),
@@ -83,6 +83,25 @@ def _cfd_record(path: Path) -> dict | None:
             # `yuzey_cozunurlugu` alanı düzeltmeyle geldi; yoksa ölçüm YOK demektir
             # ve "ölçemedim" ≠ "iyi" (bu oturumun tekrarlayan dersi).
             **_yuzey_gecerlilik(bl)}
+
+
+def _basari_etiketi(s: dict) -> dict:
+    """Öğrenmenin BAŞARI etiketi = KAPININ HÜKMÜ, çözücünün çıkış kodu değil.
+
+    Eski etiket `status == "ok"` idi, yani "çözücü temiz çıktı". ÖLÇÜLDÜ (sabit
+    ref_bump=0 taraması, 12 geometri): kapı 6 koşuyu savunulamaz saydı
+    (gondol_dort y⁺=1222, su57 y⁺=3239, çiftkuyruk 426, kapsül 370, a320, …)
+    ama ONİKİSİNİN DE status'ü "ok" idi — havuz 27 kayda çıktı, hepsi hâlâ
+    "başarılı" göründü. Havuz bu etiketle hiçbir zaman ayırt edici olamazdı:
+    kayıt sayısı artıyor, bilgi artmıyordu.
+
+    Tanım çoğaltılmıyor: validity_envelope.savunulabilir TEK KAYNAK.
+    """
+    from validity_envelope import savunulabilir
+    h = savunulabilir(s)
+    return {"ok": bool(h["savunulabilir"]),
+            "cozucu_bitti": s.get("status") == "ok",   # provenans: eski etiket
+            "basarisizlik": "; ".join(h["gerekce"])[:200] or None}
 
 
 def _tip_alanlari(s: dict, cls: dict) -> dict:
@@ -248,7 +267,7 @@ def _ref_bump_dersi(knn: list) -> dict:
                 "aynı sonucu verdi; kademe seçimi hakkında bilgi taşımıyor")
     elif ayrisan:
         not_ = (f"fizik önerisinden SAPILAN {len(ayrisan)} komşunun "
-                f"{ayrisan_basarisiz}'i başarısız — kademeyi kural seçsin, "
+                f"{ayrisan_basarisiz} tanesi başarısız — kademeyi kural seçsin, "
                 "havuz yalnız denetlesin")
     return {"ref_bump_basari": basari, "ref_bump_notu": not_,
             "ref_bump_kayitli_komsu": len(kayitli)}

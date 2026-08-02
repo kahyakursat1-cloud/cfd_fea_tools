@@ -20,11 +20,19 @@ def _metrik(geo=_GEO_KANAT):
 
 
 def _sonuc(ok=True, kalite="standart", n_layers=0, yp_hedef=None, yp_ort=None):
+    """BAŞARI ETİKETİ ARTIK KAPININ HÜKMÜ (validity_envelope.savunulabilir),
+    çözücünün çıkış kodu değil — bu yüzden fikstür y⁺'ı ve Cd'yi de taşımalı.
+    Eski sürüm yalnız `status` kuruyordu ve ölçüldü ki bu etiket ayırt edici
+    değil: sabit ref_bump=0 taramasında 12 koşunun 12'si de status="ok" iken
+    kapı 6'sını savunulamaz saydı."""
     s = {"status": "ok" if ok else "failed", "vehicle_type": "ucak", "kalite": kalite,
-         "geometry": _GEO_KANAT, "mesh": {"cells": 800000, "non_ortho_max": 55},
+         "cd": 0.35, "geometry": _GEO_KANAT,
+         "mesh": {"cells": 800000, "non_ortho_max": 55},
          "sinir_tabaka": {"katman_sayisi": n_layers, "yplus_hedef": yp_hedef,
-                          "yplus": ({"ort": yp_ort} if yp_ort else None)},
-         "convergence": {"drift_ok": ok}, "uyarilar": []}
+                          "yplus": {"ort": yp_ort if yp_ort else 80.0}},
+         "convergence": {"drift_ok": ok, "rezidual_ok": ok,
+                         "son_rezidualler": {"Ux": "1e-06", "p": "2e-05"}},
+         "uyarilar": []}
     return s
 
 
