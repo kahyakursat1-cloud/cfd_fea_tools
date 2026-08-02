@@ -226,11 +226,14 @@ def test_uretici_kod_yoklugu_ayri_isaretleniyor():
 
 
 def test_manifest_uretilemez_kaniti_acikca_soyluyor():
-    """İki durum manifest metninde AYRI ifade edilmeli."""
+    """İki durum manifest metninde AYRI ifade edilmeli — ve "üretici var" hâlinde
+    YOLU da yazılmalı: ölçüldü ki bool cevap, komutu yazmak için yetmiyor
+    (10 "yeniden üretilemez" kanıdın 8'inin üreticisi duruyordu)."""
     import inspect
     src = inspect.getsource(kanit)
     assert "ÜRETİCİ KOD DEPODA YOK" in src
-    assert "üretici kod depoda var" in src
+    assert "komut kayıtlı değil — üretici:" in src
+    assert "x['uretici']" in src
 
 
 def test_dogrulama_damgasi_bayatligi_temizliyor(tmp_path, monkeypatch):

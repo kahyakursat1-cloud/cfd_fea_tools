@@ -105,6 +105,10 @@ def main():
                             "Asimptotik+TMR-uyumu varsa TASARIM-GRADE.")
     else:
         rec["sonuc"] = "3 seviye tamamlanamadı — kısmi sonuç."
+    # Cikti adi SUF ile hesaplaniyor; literal ad kaynakta gecmedigi icin kanit
+    # denetimi bunu "uretici kod depoda YOK" saniyordu. Komut kanita yaziliyor.
+    rec["_uretim"] = ("Üretim: python tmr_cfd/run_gci_campaign.py"
+                      + (f" {' '.join(sys.argv[1:])}" if sys.argv[1:] else ""))
     out = ROOT / f"tmr_gci_verdict{SUF}.json"
     out.write_text(json.dumps(rec, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"YAZILDI {out.name}", flush=True)

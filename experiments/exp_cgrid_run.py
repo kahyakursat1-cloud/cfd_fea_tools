@@ -108,4 +108,8 @@ else:
         cd2,cl2=parse_cd_cl(ff[-1])
         out["LM"]={"Cd":round(cd2,5),"Cl":round(cl2,4)}; out["status"]="ok"
         print(f"{lbl} LM:  Cd={cd2:.5f} Cl={cl2:.4f}",flush=True)
+# Cikti adi hesaplaniyor; literal ad kaynakta gecmedigi icin kanit denetimi
+# bunu "uretici kod depoda YOK" saniyordu. Komut kanita YAZILIYOR.
+out["_uretim"] = ("Üretim: python experiments/exp_cgrid_run.py "
+                  + " ".join(sys.argv[1:]))
 Path(f"gci_cgrid_{lbl}.json").write_text(json.dumps(out,indent=2))

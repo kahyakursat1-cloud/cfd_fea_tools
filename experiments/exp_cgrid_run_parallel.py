@@ -172,5 +172,9 @@ else:
             out["status"] = "ok"
             print(f"{lbl} LM:  Cd={cd2:.5f} Cl={cl2:.4f}", flush=True)
 
+# Cikti adi hesaplaniyor; literal ad kaynakta gecmedigi icin kanit denetimi
+# bunu "uretici kod depoda YOK" saniyordu. Komut kanita YAZILIYOR.
+out["_uretim"] = ("Üretim: python experiments/exp_cgrid_run_parallel.py "
+                  + " ".join(sys.argv[1:]))
 Path(f"gci_cgridP_{lbl}.json").write_text(json.dumps(out, indent=2))
 print("YAZILDI gci_cgridP_" + lbl + ".json", flush=True)

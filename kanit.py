@@ -99,16 +99,45 @@ _URETIM = re.compile(
 
 _YAZMA = re.compile(r"json\.dump|write_text|open\([^)]*[\"']w")
 
+# Çıktı adı HESAPLANMIŞ olabilir: exp_gci_xfine.py `f"gci_{lbl}.json"` yazıyor ve
+# literal "gci_xfine.json" kaynakta HİÇ geçmiyor. Literal arayan denetim buna
+# "üretici kod depoda YOK — yeniden üretilemez" diyordu; yani aracın İDDİASI
+# KANITINDAN GÜÇLÜYDÜ (bu oturumun tekrarlayan kusuru, bu kez denetleyicide).
+_KALIP = re.compile(r"[\"']([^\"'\n]*\{[^\"'\n]*\}[^\"'\n]*\.json)[\"']")
 
-def uretici_kod_var(ad: str) -> bool:
-    """Depoda bu kanıt dosyasını YAZAN bir kaynak var mı?
+
+def _kalip_uyuyor(govde: str, ad: str) -> bool:
+    """Kaynaktaki f-string çıktı adı bu kanıt dosyasına uyuyor mu?
+
+    `{...}` yer tutucusu dosya-adı parçası kabul edilir (ayraç geçemez), böylece
+    `gci_{lbl}.json` → gci_xfine.json EŞLEŞİR ama alt/üst dizinlere taşmaz.
+    """
+    for m in _KALIP.finditer(govde):
+        desen = "".join(r"[^/\\]*" if p.startswith("{") else re.escape(p)
+                        for p in re.split(r"(\{[^{}]*\})", m.group(1)) if p)
+        if re.fullmatch(desen, ad):
+            i = m.start()
+            if _YAZMA.search(govde[max(0, i - 200):i + 200]):
+                return True
+    return False
+
+
+def uretici_kod(ad: str) -> str:
+    """Depoda bu kanıt dosyasını YAZAN kaynağın yolu (yoksa "").
 
     "Komut kayıtlı değil" iki çok farklı durumu aynı gösteriyordu: (a) üretici script
     duruyor, yalnız kanıta not düşülmemiş — bir satırlık iş; (b) üreten kod depoda HİÇ
     YOK (silinmiş ya da ad-hoc koşulmuş) — kanıt gerçekten yeniden üretilemez. İkincisi
     çok daha ağır ve ayrı görünmeli.
+
+    BOOL YETMİYOR: "üretici var" demek, onu KOŞMAK için yeterli değil. Yolu döndürmek
+    kaydedilmemiş komutu bir satırda yazılabilir hâle getirir.
     """
-    for f in ROOT.rglob("*.py"):
+    for f in sorted(ROOT.rglob("*.py")):
+        # Denetçi KENDİ dokümantasyonuyla eşleşmemeli: bu dosyanın yorumunda örnek
+        # olarak `gci_{lbl}.json` geçiyor ve kendini üretici sanıyordu.
+        if f.name == Path(__file__).name:
+            continue
         if set(f.parts) & {"tests", "__pycache__", ".venv", "Construct2D", "sources"}:
             continue
         try:
@@ -116,15 +145,23 @@ def uretici_kod_var(ad: str) -> bool:
         # sessiz-yutma: kabul — okunamayan kaynak taranmaz; sonuç yalnız 'üretici bulunamadı' tarafına yanılır (temkinli)
         except OSError:
             continue
+        yol = str(f.relative_to(ROOT)).replace("\\", "/")
         for satir in t.splitlines():
             if ad in satir and _YAZMA.search(satir):
-                return True
-        # write_text çok satıra yayılmış olabilir: dosya adı geçen bloğu gevşek tara
-        if ad in t:
-            i = t.index(ad)
-            if _YAZMA.search(t[max(0, i - 200):i + 200]):
-                return True
-    return False
+                return yol
+        # write_text çok satıra yayılmış olabilir: dosya adı geçen HER yeri tara.
+        # İLK geçiş yetmiyordu: ad önce bir sabitte (CIKTI_JSON sözlüğü) geçip
+        # yazma çok aşağıda olduğunda üretici görünmez oluyordu.
+        for m in re.finditer(re.escape(ad), t):
+            if _YAZMA.search(t[max(0, m.start() - 200):m.start() + 200]):
+                return yol
+        if _kalip_uyuyor(t, ad):
+            return yol
+    return ""
+
+
+def uretici_kod_var(ad: str) -> bool:
+    return bool(uretici_kod(ad))
 
 
 def _uretim_komutu(d: dict) -> str:
@@ -169,6 +206,10 @@ def sinifla(p: Path) -> dict:
     kayit["uretim"] = _uretim_komutu(d)
     kayit["dogrulama_ts"] = d.get("_son_dogrulama_ts") or 0
     kayit["sinif"] = "kanit" if (kayit["vaka"] or metin) else "artefakt"
+    # Komut kayıtlıysa üretici zaten bellidir; kayıtsızsa ARANIR ve YOLU YAZILIR.
+    # "yeniden üretilemez" ağır bir iddiadır ve yalnız arama BOŞ dönünce kurulur.
+    if kayit["sinif"] == "kanit" and not kayit["uretim"]:
+        kayit["uretici"] = uretici_kod(p.name)
     if kayit["eskimis"]:
         kayit["not"] = "ESKİMİŞ — güncel dosya için _SUPERSEDED notuna bak"
     return kayit
@@ -308,8 +349,9 @@ def tablo(kayitlar: list[dict], yalniz_kanit: bool = True) -> str:
             hukum = "🕰 ESKİMİŞ — " + hukum
         if x["uretim"]:
             ur = f"`{x['uretim']}`"
-        elif uretici_kod_var(x["dosya"]):
-            ur = "⚠ komut kayıtlı değil (üretici kod depoda var)"
+        elif x.get("uretici"):
+            # Yol GÖSTERİLİR: "üretici var" demek onu koşmak için yetmiyordu.
+            ur = f"⚠ komut kayıtlı değil — üretici: `{x['uretici']}`"
         else:
             ur = "❌ ÜRETİCİ KOD DEPODA YOK — yeniden üretilemez"
         sat.append(f"| `{x['dosya']}` | {vaka} | {x['sembol']} {hukum} | {ur} |")

@@ -57,4 +57,8 @@ else:
         cd2,cl2=parse_cd_cl(ff[-1])
         out["LM"]={"Cd":round(cd2,5),"Cl":round(cl2,4)}; out["status"]="ok"
         print(f"{lbl} LM:  Cd={cd2:.5f} Cl={cl2:.4f}",flush=True)
+# Cikti adi HESAPLANIYOR; literal ad kaynakta hic gecmiyor ve kanit denetimi
+# bunu "uretici kod depoda YOK" saniyordu. Komut artik kanita YAZILIYOR.
+out["_uretim"] = (f"Üretim: python experiments/exp_gci_xfine.py {lbl} "
+                  + " ".join(str(x) for x in sys.argv[2:]))
 Path(f"gci_{lbl}.json").write_text(json.dumps(out,indent=2))
