@@ -822,6 +822,78 @@ def yuzey_yuz_tahmini(yuzey_alani_m2: float, bg_cell_m: float, ref_max: int) -> 
     return int(yuzey_alani_m2 / max(h * h, 1e-12))
 
 
+INCE_OZELLIK_HEDEF_HUCRE = 6
+
+
+def ince_ozellik_hukmu(ince_m: float | None, bg_cell_m: float, ref_max_taban: int,
+                       hedef: int = INCE_OZELLIK_HEDEF_HUCRE, tavan: int = 4,
+                       yuzey_alani_m2: float | None = None,
+                       hucre_butcesi: int | None = None,
+                       arka_plan_hucre: int = 0) -> dict | None:
+    """İnce özellik (firar kenarı, fin) KAÇ HÜCREYLE temsil edilecek — KOŞUDAN ÖNCE.
+
+    Aynı ölçüm koşudan SONRA zaten yapılıyordu (`resolution_warning`), ama o zaman
+    saatler harcanmış oluyor ve uyarı "belki yeterince çözülmüyor" diyip maliyeti
+    söylemiyordu. Burada üç şey birlikte veriliyor: şimdi kaç hücre düşüyor, hedefe
+    hangi kademe ulaşır, ve o kademe bütçeye SIĞAR MI.
+
+    ÖLÇÜLDÜ (NACA0012 AR6 kanat çapası, 2026-08-02) — genelleştirilen ders:
+      firar kenarı 3.6 mm, yüzey hücresi 2.8 mm  →  TE 1.3 HÜCRE
+      hücre 20.6 KAT artarken Cl yalnız %23 arttı (0.0572 → 0.0705, beklenen 0.329)
+      hedef 6 hücre için 0.60 mm hücre, yani YALNIZ YÜZEYDE ~775.000 yüz gerekir
+      (o koşunun TÜM mesh'i 803 bin hücreydi) — bu donanımda çözülemez.
+    Kutta koşulu bir hücrelik firar kenarında kurulamaz; sirkülasyon doğmazsa
+    taşıma da doğmaz. Yani "yetersiz çözünürlük" burada bir NİCELİK hatası değil,
+    fiziğin hiç kurulamamasıdır — ve bunu koşmadan önce söylemek gerekir.
+
+    Döner: None (ince özellik ölçülmemiş) | {"n_hucre", "yeterli", "gereken_bump",
+    "ulasilabilir", "denemeler", "hukum"}.
+    """
+    if not ince_m or ince_m <= 0 or not bg_cell_m or bg_cell_m <= 0:
+        return None
+    denemeler = []
+    gereken = None
+    for b in range(0, tavan + 1):
+        h = bg_cell_m / (2 ** max(ref_max_taban + b, 0))
+        n = ince_m / h
+        yuz = (yuzey_yuz_tahmini(yuzey_alani_m2, bg_cell_m, ref_max_taban + b)
+               if yuzey_alani_m2 else None)
+        # BÜTÇE = yüzey + ARKA PLAN. Yalnız yüzeye bakmak, hacim mesh'ine hiç yer
+        # bırakmayan bir kademeyi "sığar" gösteriyordu (onerilen_ref_bump'ın zaten
+        # kapattığı tuzak: su57'de bump=4 "bandda" ama 3.8M yüz / 2.5M tavan).
+        sigar = (hucre_butcesi is None or yuz is None
+                 or (yuz + arka_plan_hucre) <= hucre_butcesi)
+        denemeler.append({"bump": b, "n_hucre": round(n, 2),
+                          "yuzey_yuz_tahmini": yuz, "butceye_sigar": sigar})
+        if gereken is None and n >= hedef:
+            gereken = b
+    simdiki = denemeler[0]
+    ulasilabilir = (gereken is not None
+                    and denemeler[gereken]["butceye_sigar"])
+    # İKİ ONDALIK: `:.1f` ile 5.99 "6.0" yazılıp aynı cümlede "hedef ≥6" denince
+    # okuyan haklı olarak "neden şikâyet ediyor" diye sorar (multikopter vakasında
+    # görüldü). Gösterilen sayı hükümle çelişmemeli.
+    if simdiki["n_hucre"] >= hedef:
+        hukum = (f"ince özellik {simdiki['n_hucre']:.2f} hücreyle temsil ediliyor "
+                 f"(hedef ≥{hedef}) — yeterli")
+    elif ulasilabilir:
+        hukum = (f"ince özellik yalnız {simdiki['n_hucre']:.2f} hücre (hedef ≥{hedef}); "
+                 f"ref_bump={gereken} ile hedefe ulaşılır ve bütçeye sığar")
+    else:
+        _ger = (f"ref_bump={gereken} gerekir ama bütçeye SIĞMAZ "
+                f"({denemeler[gereken]['yuzey_yuz_tahmini']:,} yüzey yüzü)"
+                if gereken is not None else
+                f"tavan {tavan} kademeye kadar HİÇBİR kademe hedefe ulaşmıyor")
+        hukum = (f"ince özellik yalnız {simdiki['n_hucre']:.2f} hücre (hedef ≥{hedef}) "
+                 f"ve {_ger}. Bu donanımda ÇÖZÜLEMEZ: firar kenarı bir-iki hücreyken "
+                 "Kutta koşulu kurulamaz, sirkülasyon ve TAŞIMA doğmaz. Sürükleme "
+                 "kullanılabilir olabilir; Cl/L-D güvenilir DEĞİLDİR (kanat çapasında "
+                 "ölçüldü: hücre 20.6 kat arttı, Cl yalnız %23)")
+    return {"n_hucre": simdiki["n_hucre"], "yeterli": simdiki["n_hucre"] >= hedef,
+            "gereken_bump": gereken, "ulasilabilir": ulasilabilir,
+            "hedef_hucre": hedef, "denemeler": denemeler, "hukum": hukum}
+
+
 def onerilen_ref_bump(bg_cell_m: float, ref_max_taban: int, velocity: float,
                       lref_m: float, nu: float = 1.5e-5,
                       band: tuple = YPLUS_SECIM_BANDI, tavan: int = 4,
@@ -1287,16 +1359,21 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     # kök-sebep düzeltmesinden SONRA bile varsayılan y⁺=340 veriyor, +2 ise 112.
     # Sınıflandırıcı %95 doğrulukla seçim yapıyordu ama üç seçeneğin ÜÇÜ DE bandın
     # dışındaydı: kazanan kaldıraç eylem uzayında yoktu.
+    # Arka plan hücresi HER İKİ ön-kontrol için de gerekli (ref_bump önerisi ve
+    # ince-özellik hükmü), o yüzden katman durumundan BAĞIMSIZ hesaplanır.
+    _bg_secilen = None
+    _bgi = None
     _oneri = None
-    if n_layers == 0:                      # katmanlıda y⁺'ı katman belirler
-        try:
-            from analysis.openfoam_runner import arka_plan_hucre_boyu
-            _d = np.asarray(geo["boyutlar_m"], dtype=float)
-            _L = float(_d.max())
-            _dmin = np.array([-_dom[0] * _L, -_dom[2] * _L, -_dom[2] * _L])
-            _dmax = np.array([_d[0] + _dom[1] * _L, _d[1] + _dom[2] * _L,
-                              _d[2] + _dom[2] * _L])
-            _bg, _bgi = arka_plan_hucre_boyu(_dmin, _dmax, _L / q["bg_div"], q_max)
+    try:
+        from analysis.openfoam_runner import arka_plan_hucre_boyu
+        _d = np.asarray(geo["boyutlar_m"], dtype=float)
+        _L = float(_d.max())
+        _dmin = np.array([-_dom[0] * _L, -_dom[2] * _L, -_dom[2] * _L])
+        _dmax = np.array([_d[0] + _dom[1] * _L, _d[1] + _dom[2] * _L,
+                          _d[2] + _dom[2] * _L])
+        _bg, _bgi = arka_plan_hucre_boyu(_dmin, _dmax, _L / q["bg_div"], q_max)
+        _bg_secilen = _bg
+        if n_layers == 0:                  # katmanlıda y⁺'ı katman belirler
             # BÜTÇEYİ DE KISIT VER — yalnız y⁺'a bakmak, ulaşılamayan hedefte
             # tavana yapışıp tractable OLMAYAN bir mesh istemeye yol açıyordu
             # (su57: bump=4 bandda ama 3.8M yüzey yüzü / 2.5M tavan -> TIMEOUT).
@@ -1305,14 +1382,37 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                 yuzey_alani_m2=geo.get("yuzey_alani_m2"),
                 hucre_butcesi=q_max,
                 arka_plan_hucre=_bgi.get("arka_plan_hucre", 0))
-        # sessiz-yutma: kabul — ÖNERİ katmanı; düşerse koşu aynen devam eder,
-        # yalnız "şu bump'ı seçseydin" tavsiyesi üretilmez (hüküm üretmez).
-        except Exception as e:
-            _oneri = {"olculemedi": True, "neden": f"{type(e).__name__}: {e}"}
+    # sessiz-yutma: kabul — ÖNERİ katmanı; düşerse koşu aynen devam eder,
+    # yalnız "şu bump'ı seçseydin" tavsiyesi üretilmez (hüküm üretmez).
+    except Exception as e:
+        _oneri = {"olculemedi": True, "neden": f"{type(e).__name__}: {e}"} \
+            if n_layers == 0 else None
     if _oto and _oneri and _oneri.get("bump") is not None:
         ref_bump = _oneri["bump"]
         bump = q["ref_bump"] + ref_bump
         _oneri = {**_oneri, "uygulandi": True}
+
+    # İNCE ÖZELLİK HÜKMÜ — SEÇİLEN kademeyle, ÇÖZÜCÜDEN ÖNCE. Aynı ölçüm koşudan
+    # SONRA da yapılıyor (resolution_warning) ama o zaman saatler harcanmış olur
+    # ve maliyet söylenmez. Kanat çapasında ölçüldü: TE 1.3 hücreyken hücreyi
+    # 20.6 kat artırmak Cl'i yalnız %23 artırdı — çözünürlük eksikliği değil,
+    # fiziğin (Kutta koşulunun) hiç kurulamaması söz konusuydu.
+    _ince = None
+    try:
+        if _bg_secilen:
+            _ince = ince_ozellik_hukmu(
+                geo.get("ince_kalinlik_m") or min(geo["boyutlar_m"]),
+                _bg_secilen, rmax + bump,
+                yuzey_alani_m2=geo.get("yuzey_alani_m2"), hucre_butcesi=q_max,
+                arka_plan_hucre=(_bgi or {}).get("arka_plan_hucre", 0))
+    # sessiz-yutma: kabul — ÖN-UYARI katmanı; düşerse koşu aynen devam eder ve
+    # koşu-sonrası resolution_warning yine ölçer (hüküm kaybolmaz, erken uyarı kaybolur)
+    except Exception:
+        _ince = None
+    if _ince and not _ince["yeterli"]:
+        kurulum_uyarilari.append("İNCE ÖZELLİK: " + _ince["hukum"])
+        if progress_cb:
+            progress_cb(4, "⚠ İNCE ÖZELLİK: " + _ince["hukum"][:120])
 
     case = CFDCase(
         name=stem,
@@ -1512,6 +1612,10 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     base.sinir_tabaka["yuzey_cozunurlugu"] = _yc
     if _oneri:
         base.sinir_tabaka["ref_bump_onerisi"] = {**_oneri, "kullanilan": ref_bump}
+    if _ince:
+        # ÖN-hüküm sonuca da yazılır: koşu-sonrası uyarı "belki çözülmüyor" der,
+        # bu ise kaç hücre düştüğünü ve hedefe ulaşmanın MALİYETİNİ taşır.
+        base.sinir_tabaka["ince_ozellik"] = _ince
     if _katman_sigdirma:
         base.sinir_tabaka["katman_sigdirma"] = _katman_sigdirma
         if _katman_sigdirma.get("kisitlandi"):
