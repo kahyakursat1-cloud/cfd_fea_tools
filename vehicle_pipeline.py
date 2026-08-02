@@ -1144,7 +1144,8 @@ def rezidual_platosu(residuals: dict, dilim: float = 0.15) -> dict:
     return {"plato": plato, "oranlar": oranlar, "n": n_it}
 
 
-def yakinsama_teshisi(case_dir: Path, forces_history: list, scale: float = 1.0) -> dict:
+def yakinsama_teshisi(case_dir: Path, forces_history: list, scale: float = 1.0,
+                      log_adi: str = "log.foamRun") -> dict:
     """Bir koşunun yakınsama hükmü — ANA KOŞU ve GCI SEVİYELERİ için TEK KAYNAK.
 
     Ayrı yazılsaydı iki yol kaçınılmaz olarak ayrışırdı; nitekim ayrışmıştı: ana koşu
@@ -1152,6 +1153,11 @@ def yakinsama_teshisi(case_dir: Path, forces_history: list, scale: float = 1.0) 
     MiniHawk kanıtında görülebilir: `rezidual_ok: false` ve `iterasyon: 103` yazarken
     aynı seviyeler Richardson fitine girip GCI %379 üretti. Yakınsamamış çözümlerden
     hesaplanan mesh-bağımsızlık sayısı, hatayı ayrıklaştırmaya YANLIŞ atfeder.
+
+    `log_adi`: çözücü günlüğünün adı. Varsayılan kanonik katmanınki; eski
+    `simulation_runner` yolu günlüğü `log.solver` diye yazıyor ve sabit ad
+    yüzünden rezidüeller HİÇ bulunamıyordu — yani kapı sessizce "yakınsamadı"
+    diyecekti. Parametre geriye-uyumlu: kanonik çağıranlar değişmez.
     """
     hist = [(t, c * scale) for t, c, _lc, _ in forces_history]
     n = len(hist)
@@ -1159,7 +1165,7 @@ def yakinsama_teshisi(case_dir: Path, forces_history: list, scale: float = 1.0) 
     if n >= 10:
         w = max(2, n // 5)
         drift_pct = abs(hist[-1][1] - hist[-w][1]) / (abs(hist[-1][1]) + 1e-12) * 100
-    residuals = parse_residuals(case_dir / "log.foamRun")
+    residuals = parse_residuals(case_dir / log_adi)
     final_res = {f: (v[-1] if v else None) for f, v in residuals.items()}
     momentum_res = {f: v for f, v in final_res.items()
                     if f.startswith(("Ux", "Uy", "Uz", "p"))}

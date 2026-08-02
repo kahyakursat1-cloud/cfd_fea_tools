@@ -53,6 +53,71 @@ def _wsl_openfoam(wsl_case_dir: str, cmd: str) -> str:
     return f'wsl bash -c "source /opt/openfoam11/etc/bashrc && cd {wsl_case_dir} && {cmd}"'
 
 
+def _kuvvet_tarihcesi(data_lines: list, q: float, S: float) -> list:
+    """forces.dat'in TÜM satırlarından (t, Cd, Cl, 0) tarihçesi.
+
+    `_extract_results` yalnız SON satırı okuyordu; tek nokta yakınsama hakkında
+    hiçbir şey söylemez. Drift, salınım ve limit-çevrim teşhisi tarihçe ister.
+    """
+    import re as _re
+    hist = []
+    for satir in data_lines:
+        nums = _re.findall(r"[-+]?\d+\.?\d*[eE]?[-+]?\d*", satir)
+        if len(nums) < 7:
+            continue
+        try:
+            t = float(nums[0])
+            fx = float(nums[1]) + float(nums[4])
+            fz = float(nums[3]) + float(nums[6])
+        # sessiz-yutma: kabul — bozuk satır tarihçeden düşer; kalan noktalar teşhisi
+        # yine kurar (son satır zaten ayrıca ve SERT ayrıştırılıyor)
+        except ValueError:
+            continue
+        hist.append((t, fx / (q * S), fz / (q * S), 0.0))
+    return hist
+
+
+def _kalan_kapilar(case_dir: Path, hist: list, fizik: dict) -> dict:
+    """Yakınsama + yüzey-çözünürlük + kullanıcı-yüzü hüküm — ARAÇ HATTIYLA AYNI.
+
+    Bu yolda yalnız fizik kapısı vardı. "Cd fiziksel mi" sorusu "Cd OTURDU MU" ve
+    "gövde ÇÖZÜLDÜ MÜ" sorularının yerine geçmez; MiniHawk vakasında ikincisinin
+    yokluğu y⁺≈5000'i ve %379'luk GCI'yı görünmez kılmıştı.
+
+    Tanımlar KOPYALANMIYOR: kanonik fonksiyonlar çağrılıyor. Günlük adları bu
+    yolda farklı (`log.solver`, `log.snappy`) — sabit ad varsayımı sessizce
+    "yakınsamadı" derdi, o yüzden açıkça geçiliyor.
+    """
+    from validity_envelope import sonuc_kapisi
+    from vehicle_pipeline import yakinsama_teshisi, yuzey_yuz_sayisi
+    out: dict = {}
+    try:
+        conv = yakinsama_teshisi(case_dir, hist, 1.0, log_adi="log.solver")
+        out["convergence"] = conv
+    # sessiz-yutma: kabul — teşhis düşerse hüküm ÜRETİLMEZ; aşağıdaki kapı
+    # convergence=None ile çağrılır ve "ölçülemedi" tarafına yanılır
+    except Exception as e:
+        conv = None
+        out["convergence_hatasi"] = f"{type(e).__name__}: {e}"
+    try:
+        from analysis.openfoam_runner import yuzey_cozunurluk_hukmu
+        _sn = case_dir / "log.snappy"
+        out["yuzey_cozunurlugu"] = yuzey_cozunurluk_hukmu(
+            _sn.read_text(errors="ignore") if _sn.exists() else "",
+            yuzey_yuz_sayisi(case_dir, "aircraft"))
+    # sessiz-yutma: kabul — yüzey ölçümü düşerse alan YAZILMAZ; "ölçemedim" ile
+    # "iyi" karışmasın diye varsayılan da konmuyor
+    except Exception as e:
+        out["yuzey_cozunurlugu_hatasi"] = f"{type(e).__name__}: {e}"
+    # BELİRSİZLİK YOK: bu yolda mesh-bağımsızlık çalışması koşulmuyor. None
+    # geçmek "band hesaplanmadı" demektir; uydurma bir sayı koymaktan iyidir.
+    out["sonuc_kapisi"] = sonuc_kapisi(fizik, conv, None)
+    out["belirsizlik_notu"] = ("mesh-bağımsızlık çalışması bu yolda KOŞULMAZ — "
+                               "sayısal belirsizlik bandı YOK; band gerekiyorsa "
+                               "app_analyzer.py (araç hattı) kullanın")
+    return out
+
+
 class SimulationRunner:
     """OpenFOAM simülasyonları yönet"""
 
@@ -559,6 +624,13 @@ writeObj yes;
                         from validity_envelope import force_admissibility
                         results["fizik_kabul"] = force_admissibility(
                             results["Cd"], results["Cl"], results["alpha_deg"])
+                        # KALAN KAPILAR: fizik kapisi tek basinaydi. "Cd fiziksel mi"
+                        # sorusu, "Cd OTURDU MU" ve "govde COZULDU MU" sorularinin
+                        # yerine gecmez — arac hattinda ucu de var, burada yoktu.
+                        # Ayni fonksiyonlar cagriliyor (kopya tanim YOK).
+                        _hist = _kuvvet_tarihcesi(data_lines, q, S)
+                        results.update(_kalan_kapilar(case_dir, _hist,
+                                                      results["fizik_kabul"]))
                     except (IndexError, ValueError) as _e:
                         # SESSIZ ATLAMA YOK: format degisirse Cd/Cl anahtarlari hic
                         # olusmuyordu ve cagiran NEDENINI bilemiyordu — sonuc sozlugu

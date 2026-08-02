@@ -37,7 +37,17 @@ import sessiz_yutma
 # asılma riski getirmez. Bu savunma, çözücü bitmeden kuvvet tarihçesi okunmasını
 # engelleyen yarış-durumu düzeltmesinin parçasıdır (8cdb221).
 # Asıl izlenen sayılar yine DEĞİŞMEDİ: incelenmemiş 25, güven yolunda incelenmemiş 0.
-TABAN_TOPLAM = 82
+#
+# 2026-08-02 — TABAN 82 → 83. Yine GERİLEME DEĞİL: eski motora (`simulation_runner`)
+# araç hattının KAPILARI takılırken `_kuvvet_tarihcesi` içinde bozuk bir forces.dat
+# satırı atlanıyor ve gerekçesi kodda yazılı. Tarihçe TEŞHİS içindir (drift/salınım);
+# tek bozuk satır kalan noktalarla kurulan teşhisi düşürmez, ve SON satır ayrıca
+# SERT ayrıştırılıp hatası `kuvvet_cikarim_hatasi` olarak raporlanır — yani Cd/Cl
+# üreten yol sessiz DEĞİL.
+# Aynı commit'teki diğer iki `except` bloğu sayıya GİRMEDİ çünkü sebebi KAYDEDİYORLAR
+# (`convergence_hatasi`, `yuzey_cozunurlugu_hatasi`) — tarayıcı bunu doğru ayırıyor.
+# Asıl izlenen sayılar DEĞİŞMEDİ: incelenmemiş 25, güven yolunda incelenmemiş 0.
+TABAN_TOPLAM = 83
 TABAN_GUVEN_YOLU = 57
 TABAN_INCELENMEMIS = 25
 TABAN_INCELENMEMIS_GUVEN_YOLU = 0
