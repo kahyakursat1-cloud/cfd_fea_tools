@@ -77,6 +77,51 @@ def _kuvvet_tarihcesi(data_lines: list, q: float, S: float) -> list:
     return hist
 
 
+def _ince_ozellik_onhukmu(case_dir: Path, mesh_gen) -> dict | None:
+    """İnce özellik kaç hücreyle temsil edilecek — MESH'TEN ÖNCE.
+
+    Araç hattındaki `ince_ozellik_hukmu` ile AYNI fonksiyon; incelik STL'den
+    ÖLÇÜLÜR (varsayılmaz), yüzey hücresi bu yolun kendi blockMesh/refinement
+    ayarlarından türetilir.
+    """
+    import re as _re
+
+    import trimesh
+
+    from vehicle_pipeline import estimate_thin_thickness, ince_ozellik_hukmu
+    stl = case_dir / "constant" / "triSurface" / "aircraft.stl"
+    if not stl.exists():
+        return None
+    m = trimesh.load(stl, force="mesh")
+    ince = estimate_thin_thickness(m)
+    bm = mesh_gen.generate_blockmeshdict()
+    hex_ = _re.search(r"hex \(0 1 2 3 4 5 6 7\) \((\d+) (\d+) (\d+)\)", bm)
+    kutu = _re.findall(r"\(\s*(-?[\d.eE+-]+)\s+(-?[\d.eE+-]+)\s+(-?[\d.eE+-]+)\s*\)", bm)
+    if not (ince and hex_ and len(kutu) >= 8):
+        return None
+    xs = [float(k[0]) for k in kutu[:8]]
+    bg = (max(xs) - min(xs)) / int(hex_.group(1))
+    snappy = mesh_gen.generate_snappyhexmeshdict()
+    lvl = _re.search(r"level \((\d+) (\d+)\)", snappy)
+    ref_max = int(lvl.group(2)) if lvl else 4
+    h = ince_ozellik_hukmu(float(ince), bg, ref_max,
+                           yuzey_alani_m2=float(m.area),
+                           hucre_butcesi=int(mesh_gen.max_global_cells))
+    if h and not h["yeterli"]:
+        # TAVSİYE BU YOLDA UYGULANAMAZ. Kanonik hüküm "ref_bump=N ile hedefe
+        # ulaşılır" diyor; ama ref_bump araç hattının ayarı, burada YOK. Bu yolun
+        # tek kaldıracı `mesh_size` ve en ince kademesi ref_max=5'te duruyor.
+        # Uygulanamayan bir tavsiye vermek, hiç vermemekten kötüdür.
+        h = {**h, "bu_yolda_uygulanabilir": False,
+             "hukum": (h["hukum"].split(";")[0]
+                       + f"; bu yolun ayarları (mesh_size, ref_max={ref_max}) "
+                       "hedefe ULAŞAMAZ — `ref_bump` yalnız araç hattında var. "
+                       "İnce kenarlı gövdede Cl/L-D güvenilir DEĞİLDİR; "
+                       "sürükleme kullanılabilir olabilir. Çözünürlük gerekiyorsa "
+                       "`python app_analyzer.py`.")}
+    return h
+
+
 def _kalan_kapilar(case_dir: Path, hist: list, fizik: dict) -> dict:
     """Yakınsama + yüzey-çözünürlük + kullanıcı-yüzü hüküm — ARAÇ HATTIYLA AYNI.
 
@@ -478,6 +523,18 @@ RAS
                                      wind_speed=job.wind_speed, target_yplus=1.0)
             gmsh_script = mesh_gen.generate_gmsh_script()
 
+            # İNCE ÖZELLİK ÖN-HÜKMÜ — MESH'TEN ÖNCE. Araç hattında koşudan önce
+            # veriliyor; burada da verilmeli, yoksa kullanıcı saatler sonra
+            # "gövde çözülmedi" ile karşılaşır. ÖLÇÜLDÜ (kütüphanedeki beş
+            # şablonun beşi, üç mesh ayarının üçü): firar kenarı 0.05-0.65 hücre.
+            # Bütçe-farkındalıklı arka planla 0.80-1.19'a çıktı — YİNE hedefin
+            # (≥6) çok altında. Yani bu yol ince kenarlı gövdelerde Cl/L-D
+            # veremez; söylenmesi gereken şey budur.
+            _on = _ince_ozellik_onhukmu(case_dir, mesh_gen)
+            if _on and not _on.get("yeterli"):
+                print(f"[UYARI] [{job.case_name}] INCE OZELLIK: {_on['hukum'][:150]}")
+            self._son_ince_ozellik = _on
+
             wsl_dir = _to_wsl_path(case_dir)
 
             # blockMesh — arka plan hex kafes
@@ -631,6 +688,10 @@ writeObj yes;
                         _hist = _kuvvet_tarihcesi(data_lines, q, S)
                         results.update(_kalan_kapilar(case_dir, _hist,
                                                       results["fizik_kabul"]))
+                        # ÖN-HÜKÜM SONUCA DA GİRER: koşu öncesi basılan uyarı
+                        # terminalde kaybolur; Cl/L-D okuyan onu görmeli.
+                        if getattr(self, "_son_ince_ozellik", None):
+                            results["ince_ozellik"] = self._son_ince_ozellik
                     except (IndexError, ValueError) as _e:
                         # SESSIZ ATLAMA YOK: format degisirse Cd/Cl anahtarlari hic
                         # olusmuyordu ve cagiran NEDENINI bilemiyordu — sonuc sozlugu

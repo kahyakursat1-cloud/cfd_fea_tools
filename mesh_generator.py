@@ -189,6 +189,10 @@ class MeshGenerator:
         self.wind_speed = wind_speed
         self.target_yplus = target_yplus
         self.refinement_regions = []
+        # snappyHexMeshDict'teki maxGlobalCells ile AYNI sayı olmalı; arka plan
+        # çözünürlüğü de bu bütçeden türetiliyor (bkz. blockMesh üretimi).
+        # Ayrışırsa ya bütçe boş kalır ya tavan aşılır.
+        self.max_global_cells = 5_000_000
 
     def first_layer_thickness(self, nu: float = 1.5e-5, rho: float = 1.225) -> float:
         """Hedef y+ icin prizmatik ilk katman yuksekligi (m).
@@ -523,13 +527,46 @@ class MeshGenerator:
         y_ext =   5 * ref
         z_ext =   5 * ref
 
-        # Hücre sayısı: mesh_size'a göre otomatik ölçekle
-        # mesh_size=0.05→coarse, 0.025→medium, 0.012→fine
+        # ARKA PLAN ÇÖZÜNÜRLÜĞÜ BÜTÇEDEN TÜRETİLİR, sabit tavandan değil.
+        #
+        # Eski kurulum `nx = min(base_cells, 150)`, `ny = nz = nx/2 ≤ 75` diyordu.
+        # ÖLÇÜLDÜ (2026-08-02, kütüphanedeki BEŞ şablonun BEŞİNDE de): en ince
+        # ayarda bile arka plan yalnız 453.962 hücre — 5.000.000 tavanın %9'u.
+        # Domain 30L×10L×10L olduğu için arka plan hücresi 369-984 mm kalıyor ve
+        # 5 iyileştirme kademesinden sonra yüzey hücresi 11.5-30.7 mm oluyor.
+        # Sonuç: firar kenarı 0.05-0.65 HÜCRE — hiçbir şablonda 1'e bile ulaşmıyor.
+        # Yani bütçe yetersiz değildi, KULLANILMIYORDU.
+        #
+        # Kanonik katmanın çözümü `arka_plan_hucre_boyu`: kutu hacmini ve hücre
+        # bütçesini birlikte kullanıp küpe yakın bir taban hücre seçer.
+        # ASLA ESKİSİNDEN KABA OLMAZ: eski çözünürlük taban kabul edilir, yani bu
+        # değişiklik hiçbir koşuyu kötüleştiremez.
         scale = max(0.01, min(0.05, self.base_mesh_size))
         base_cells = int(60 * (0.05 / scale) ** 0.5)   # ~60 @ coarse, ~85 @ medium, ~120 @ fine
-        nx = min(base_cells, 150)
-        ny = min(int(nx * 0.5), 75)
-        nz = ny
+        nx_eski = min(base_cells, 150)
+        ny_eski = min(int(nx_eski * 0.5), 75)
+        try:
+            import numpy as _np
+
+            from analysis.openfoam_runner import arka_plan_hucre_boyu
+            _dmin = _np.array([x_min, -y_ext, -z_ext], dtype=float)
+            _dmax = _np.array([x_max, y_ext, z_ext], dtype=float)
+            # İSTENEN HÜCRE GEOMETRİDEN TÜRETİLİR, eski çözünürlükten DEĞİL.
+            # `arka_plan_hucre_boyu` yalnız KABALAŞTIRIR (bütçeye sığdırmak için);
+            # ona eski hücreyi verirsek çıktı da eski hücredir — ilk denemede tam
+            # bu oldu ve düzeltme beş şablonda da SIFIR kazanç verdi.
+            # Kanonik katmanın ölçeği: gövde boyu / bg_div (5 kaba … 9 hassas).
+            _bg_div = 5.0 if self.base_mesh_size >= 0.04 else (
+                7.0 if self.base_mesh_size >= 0.02 else 9.0)
+            _bg, _ = arka_plan_hucre_boyu(_dmin, _dmax, ref / _bg_div,
+                                          self.max_global_cells)
+            nx = max(nx_eski, int((x_max - x_min) / _bg))
+            ny = max(ny_eski, int(2 * y_ext / _bg))
+            nz = max(ny_eski, int(2 * z_ext / _bg))
+        # sessiz-yutma: kabul — bütçe-farkındalığı bir İYİLEŞTİRMEdir; düşerse
+        # eski (daha kaba ama çalışan) çözünürlüğe dönülür, koşu engellenmez
+        except Exception:
+            nx, ny, nz = nx_eski, ny_eski, ny_eski
 
         return f"""FoamFile
 {{
@@ -612,6 +649,12 @@ boundary
         except Exception:
             le_x, te_x, span_half, wing_thick = 0.24, 0.65, 0.70, 0.05
 
+        # Bütçe TEK KAYNAK: arka plan çözünürlüğü de bu sayıdan türetiliyor
+        # (blockMesh üretimi). Sabit yazılırsa ikisi ayrışır ve ya bütçe boş
+        # kalır ya tavan aşılır.
+        maks_global = int(self.max_global_cells)
+        maks_yerel = max(100_000, maks_global // 5)
+
         return f"""FoamFile
 {{
     version     2.0;
@@ -642,8 +685,8 @@ geometry
 
 castellatedMeshControls
 {{
-    maxLocalCells       1000000;
-    maxGlobalCells      5000000;
+    maxLocalCells       {maks_yerel};
+    maxGlobalCells      {maks_global};   // self.max_global_cells ile TEK KAYNAK
     minRefinementCells  10;
     nCellsBetweenLevels 3;
     resolveFeatureAngle 30;
