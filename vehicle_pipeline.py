@@ -1671,6 +1671,36 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         def _yuzey_cozulmedi(lv):
             return not (lv.get("yuzey") or {}).get("cozuldu", True)
 
+        def _red_kayitlari(basarisiz, dislanan, yakinsamayan, yuzeysiz, dejenere=None):
+            """Elenen seviyelerin gerekçeleri — HER dalda aynı.
+
+            KUSUR ÖLÇÜLDÜ (çapa kampanyası, küp): kaba seviyeler yüzey kapısında
+            reddedildi (gövde 176 ve 436 yüz, eşik 500) ve kapı DOĞRU çalıştı; ama
+            gerekçe yalnız 3+ seviye dalında kaydediliyordu. Hayatta kalan seviye
+            2'ye düşünce `fizik_disi` ve `yuzeyi_cozulmemis` listeleri sessizce
+            düşüyor ve kullanıcı gerekçesiz bir "yalnız 2 seviye tamamlandı"
+            görüyordu. Kapının hükmü tüketicisine ulaşmıyordu — bu oturumda on
+            ikinci kez, bu kez kendi eklediğim kapılarda.
+            """
+            def _blok(lvs, alan):
+                return [{"ad": lv["ad"], "cells": lv["cells"], "Cd": lv["Cd"],
+                         "gerekce": ("; ".join((lv.get("fizik") or {}).get("reasons", []))
+                                     if alan == "fizik"
+                                     else (lv.get(alan) or {}).get("gerekce", ""))}
+                        for lv in lvs]
+            out = {}
+            if basarisiz:
+                out["basarisiz_seviyeler"] = basarisiz
+            if dejenere:
+                out["dejenere_seviyeler"] = dejenere
+            if dislanan:
+                out["fizik_disi_seviyeler"] = _blok(dislanan, "fizik")
+            if yuzeysiz:
+                out["yuzeyi_cozulmemis_seviyeler"] = _blok(yuzeysiz, "yuzey")
+            if yakinsamayan:
+                out["yakinsamayan_seviyeler"] = _blok(yakinsamayan, "yakinsama")
+            return out
+
         dislanan = [lv for lv in levels if _fizik_disi(lv)]
         yakinsamayan = [lv for lv in levels if not _fizik_disi(lv) and _yakinsamadi(lv)]
         yuzeysiz = [lv for lv in levels
@@ -1718,28 +1748,11 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
             else:
                 verdikt = ("⚠️ GCI HESAPLANAMADI: seviyeler arası Cd farkı sayısal "
                            "gürültü mertebesinde (Richardson tanımsız)")
-            base.mesh_duyarlilik = {"seviyeler": levels, "gci": gci, "verdikt": verdikt}
-            if basarisiz:
-                base.mesh_duyarlilik["basarisiz_seviyeler"] = basarisiz
-            if dejenere:
-                base.mesh_duyarlilik["dejenere_seviyeler"] = dejenere
-            if dislanan:
-                base.mesh_duyarlilik["fizik_disi_seviyeler"] = [
-                    {"ad": lv["ad"], "cells": lv["cells"], "Cd": lv["Cd"],
-                     "gerekce": "; ".join((lv.get("fizik") or {}).get("reasons", []))}
-                    for lv in dislanan]
-            if yuzeysiz:
-                base.mesh_duyarlilik["yuzeyi_cozulmemis_seviyeler"] = [
-                    {"ad": lv["ad"], "cells": lv["cells"], "Cd": lv["Cd"],
-                     "gerekce": (lv.get("yuzey") or {}).get("gerekce", "")}
-                    for lv in yuzeysiz]
-            if yakinsamayan:
-                # SESSİZ ATLAMA YOK: dışlanan seviye kayıtta gerekçesiyle kalır,
-                # yoksa kullanıcı "3 seviye koştum, GCI yok" görür ve sebebini bilemez.
-                base.mesh_duyarlilik["yakinsamayan_seviyeler"] = [
-                    {"ad": lv["ad"], "cells": lv["cells"], "Cd": lv["Cd"],
-                     "gerekce": (lv.get("yakinsama") or {}).get("gerekce", "")}
-                    for lv in yakinsamayan]
+            # SESSİZ ATLAMA YOK: dışlanan seviye kayıtta gerekçesiyle kalır,
+            # yoksa kullanıcı "3 seviye koştum, GCI yok" görür ve sebebini bilemez.
+            base.mesh_duyarlilik = {"seviyeler": levels, "gci": gci, "verdikt": verdikt,
+                                    **_red_kayitlari(basarisiz, dislanan,
+                                                     yakinsamayan, yuzeysiz, dejenere)}
             lsr = (least_squares_gci([h(lv) for lv in levels], [lv["Cd"] for lv in levels])
                    if len(levels) >= 4 else None)
             if lsr:
@@ -1805,17 +1818,23 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
             d = abs(levels[-1]["Cd"] - levels[0]["Cd"]) / (abs(levels[-1]["Cd"]) + 1e-12) * 100
             u_num_pct = round(d, 1)
             u_kaynak = "2-mesh vekil bant"
+            # DÜŞEN SEVİYENİN GEREKÇESİ BU DALDA DA YAZILIR. Eskiden yalnız
+            # `basarisiz` (koşu çökmesi) ve `yakinsamayan` görünüyordu; fizik ve
+            # YÜZEY kapısıyla elenenler sessizce kayboluyordu. Küp çapasında tam
+            # bu oldu: iki kaba seviye 176/436 yüzle reddedildi ve kayıtta
+            # gerekçesiz "yalnız 2 seviye tamamlandı" kaldı.
+            _red = _red_kayitlari(basarisiz, dislanan, yakinsamayan, yuzeysiz)
+            _ozet = ([f"{b['ad']} ({b['sebep'][:60]})" for b in basarisiz]
+                     + [f"{lv['ad']} (fizik-dışı)" for lv in dislanan]
+                     + [f"{lv['ad']} (yakınsamadı)" for lv in yakinsamayan]
+                     + [f"{lv['ad']} (yüzey çözülmedi: "
+                        f"{(lv.get('yuzey') or {}).get('yuzey_yuz')} yüz)"
+                        for lv in yuzeysiz])
             base.mesh_duyarlilik = {
                 "seviyeler": levels, "fark_pct": u_num_pct,
                 "yorum": "yalnız 2 seviye tamamlandı — vekil bant, GCI değil"
-                         + ("; DÜŞEN SEVİYE: "
-                            + "; ".join(f"{b['ad']} ({b['sebep'][:80]})" for b in basarisiz)
-                            if basarisiz else ""),
-                **({"basarisiz_seviyeler": basarisiz} if basarisiz else {}),
-                **({"yakinsamayan_seviyeler": [
-                    {"ad": lv["ad"], "cells": lv["cells"], "Cd": lv["Cd"],
-                     "gerekce": (lv.get("yakinsama") or {}).get("gerekce", "")}
-                    for lv in yakinsamayan]} if yakinsamayan else {})}
+                         + ("; DÜŞEN SEVİYE: " + "; ".join(_ozet) if _ozet else ""),
+                **_red}
         else:
             # "Yetersiz seviye" tek başına eyleme geçirilebilir bilgi değil — NEDEN
             # yetersiz kaldığı yazılmalı. Yakınsama kapısı eklendikten sonra en olası
@@ -1826,16 +1845,16 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                 _ned.append(f"{len(yakinsamayan)} seviye YAKINSAMADI")
             if dislanan:
                 _ned.append(f"{len(dislanan)} seviye fizik-dışı")
+            # YÜZEY KAPISI BU ÖZETTE DE YOKTU — çapa kampanyasında en sık eleme
+            # sebebi oydu ve sayımda hiç görünmüyordu.
+            if yuzeysiz:
+                _ned.append(f"{len(yuzeysiz)} seviyenin gövdesi ÇÖZÜLMEDİ")
             if basarisiz:
                 _ned.append(f"{len(basarisiz)} seviye koşamadı")
             base.mesh_duyarlilik = {
                 "durum": "yetersiz seviye — bant hesaplanamadı"
                          + (" (" + ", ".join(_ned) + ")" if _ned else ""),
-                **({"yakinsamayan_seviyeler": [
-                    {"ad": lv["ad"], "cells": lv["cells"], "Cd": lv["Cd"],
-                     "gerekce": (lv.get("yakinsama") or {}).get("gerekce", "")}
-                    for lv in yakinsamayan]} if yakinsamayan else {}),
-                **({"basarisiz_seviyeler": basarisiz} if basarisiz else {})}
+                **_red_kayitlari(basarisiz, dislanan, yakinsamayan, yuzeysiz)}
 
     # Birleşik belirsizlik (ASME V&V 20): U_total = √(U_sayısal² + U_model²).
     # Salınım genliği sayısal bileşene RSS ile katılır (Eça-Hoekstra salınım kuralı ruhu).
