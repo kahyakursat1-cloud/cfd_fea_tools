@@ -20,7 +20,7 @@ import trimesh
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from validation_anchors import _BAND_FILE, ANCHORS  # noqa: E402
-from vehicle_pipeline import run_vehicle_analysis  # noqa: E402
+from vehicle_pipeline import GCI_MIN_ORAN, run_vehicle_analysis  # noqa: E402
 
 
 def ahmed_body() -> trimesh.Trimesh:
@@ -175,10 +175,48 @@ def _gci_asimptotik(gci: dict | None) -> bool:
                 and asy is not None and 0.5 <= asy <= 2.0)
 
 
-def _accept(gci: dict, lsr: dict | None, cd_richardson, cd_fine, wake: dict | None = None):
+def _sinirlayan_band(levels: list | None) -> dict | None:
+    """Salınımlı 3-seviye dizisi için EKSTRAPOLASYONSUZ bant: U = 3·Δ_M (E&H 2014).
+
+    NEDEN GEREKLİ: kabul hiyerarşisi yalnız EKSTRAPOLE EDEN yolları tanıyordu
+    (asimptotik GCI, ≥4-seviye LSR). Salınımlı üçlü hiçbirine girmiyor ve
+    "mesh-bağımsızlığı gösterilemedi" oluyordu — hatta değerler birbirine ÇOK
+    yakınken bile.
+
+    ÖLÇÜLDÜ (disk çapası): 66.858 / 203.798 / 648.569 hücrede Cd = 1.2049 /
+    1.19256 / 1.20956. On kat hücre aralığında saçılma %1.4; h oranları 1.450 ve
+    1.471 (Celik r≥1.3 SAĞLANIYOR). Bant U = 3·Δ_M = %4.22, Hoerner'a sapma
+    %3.38 — yani sapma bandın İÇİNDE. Bu, "yakınsamış değer" kanıtı değildir ama
+    SINIRLAMA kanıtıdır ve çapanın işi tam olarak budur.
+
+    KAPI GEVŞEMİYOR — üç şart birlikte aranır:
+      (a) en az 3 seviye (hepsi zaten fizik/yakınsama/yüzey kapılarından geçmiş),
+      (b) ardışık h oranlarının HEPSİ ≥ 1.3; yoksa küçük Δ sahte-dar bant üretir
+          (küpte ölçülmüştü: r=1.076'da p=-2.338 ve GCI=-%3.2),
+      (c) bant < LSR_U_MAX_PCT, yani model-öncülünden dar.
+    Ekstrapolasyon YOK: kestirim f_ince'dir, "Richardson değeri" DEĞİL.
+    """
+    if not levels or len(levels) < 3:
+        return None
+    c = [lv.get("cells") for lv in levels]
+    f = [lv.get("Cd") for lv in levels]
+    if any(x in (None, 0) for x in c) or any(x is None for x in f):
+        return None
+    r = [(c[i + 1] / c[i]) ** (1.0 / 3.0) for i in range(len(c) - 1)]
+    if min(r) < GCI_MIN_ORAN:
+        return None
+    dm = max(abs(f[i + 1] - f[i]) for i in range(len(f) - 1))
+    u = 3.0 * dm / max(abs(f[-1]), 1e-12) * 100
+    return {"u_pct": round(u, 2), "f": f[-1], "n": len(f),
+            "r_min": round(min(r), 3)}
+
+
+def _accept(gci: dict, lsr: dict | None, cd_richardson, cd_fine, wake: dict | None = None,
+            levels: list | None = None):
     """Çapa kabul kararı: (kabul_mü, cd_pred, yontem). Hiyerarşi: yüzey-GCI asimptotik >
     wake-GCI asimptotik (iz-momentum 2. mertebe — yüzey entegrasyonu çökerken drag kanıtı
-    verebilir) > yüzey-LSR dar (U<%15) > wake-LSR dar; hiçbiri yoksa RED."""
+    verebilir) > yüzey-LSR dar (U<%15) > wake-LSR dar > SINIRLAYAN band (salınımlı ≥3
+    seviye, ekstrapolasyonsuz); hiçbiri yoksa RED."""
     if _gci_asimptotik(gci) and cd_richardson and cd_richardson > 0:
         return True, cd_richardson, "GCI (3-mesh, asimptotik)"
     wgci = (wake or {}).get("gci") or {}
@@ -189,6 +227,11 @@ def _accept(gci: dict, lsr: dict | None, cd_richardson, cd_fine, wake: dict | No
     wlsr = (wake or {}).get("lsr")
     if wlsr and wlsr.get("u_pct", 1e9) < LSR_U_MAX_PCT and wlsr.get("f_exact", 0) > 0:
         return True, wlsr["f_exact"], f"wake-LSR ({wlsr['n']}-seviye, U=%{wlsr['u_pct']})"
+    sb = _sinirlayan_band(levels)
+    if sb and sb["u_pct"] < LSR_U_MAX_PCT and sb["f"] > 0:
+        return True, sb["f"], (f"SINIRLAYAN band ({sb['n']}-seviye salınımlı, "
+                               f"U=3·Δ=%{sb['u_pct']}, r_min={sb['r_min']}) — "
+                               "ekstrapolasyon YOK, kestirim en ince seviyedir")
     return False, cd_fine, None
 
 
@@ -217,7 +260,8 @@ def _run_anchor(name: str, velocity: float, out_root: str) -> dict | None:
     # yoksa çapa model hatasını ayırt edemez).
     md = r.mesh_duyarlilik or {}
     converged, cd_pred, yontem = _accept(md.get("gci") or {}, md.get("lsr"),
-                                         r.cd_richardson, r.cd, md.get("wake"))
+                                         r.cd_richardson, r.cd, md.get("wake"),
+                                         md.get("seviyeler"))
     if not converged or cd_pred is None or cd_pred <= 0:
         return {"durum": "REDDEDİLDİ — mesh-bağımsızlığı gösterilemedi (banda yazılmaz)",
                 "regime": spec["regime"], "Cd_ref": spec["Cd"], "Cd_ince": r.cd,
