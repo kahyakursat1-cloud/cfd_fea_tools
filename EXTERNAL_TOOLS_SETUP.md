@@ -10,9 +10,12 @@
 
 Eğer sadece **GUI test** etmek istiyorsan:
 ```bash
-python app_parametric.py
+python app_analyzer.py
 ```
 Bu çalışır (dış yazılımlar olmadan da GUI açılır).
+
+> ⚠️ **2026-08-02:** Giriş noktası `app_analyzer.py` olarak değişti. Eski `app_parametric.py`'nin analiz sekmeleri çözücüyü hiç çağırmıyor, sahte ilerleme çubuğuyla "tamamlandı" yazıyordu; FEA sekmesi gerilmeyi `yük/100×2.5` ile uydurup "GÜVENLİ" hükmü veriyordu. O yollar artık gerekçeli ret veriyor. `app_parametric.py` yalnız geometri/malzeme kurulumu için kullanılabilir.
+
 
 **Gerçek simülasyon** yapabilmek için şu adımları takip et.
 
@@ -227,10 +230,14 @@ Tüm kurulumlar tamam ise:
 
 ```bash
 cd D:\bilsem_beyin\cfd_fea_tools
-python app_parametric.py
+python app_analyzer.py
 ```
 
-6 tab'ın tümü **tamamen fonksiyonel** olacak:
+Analiz stüdyosu (kapılı yol) açılır.
+
+> ⚠️ **2026-08-02:** Eski `app_parametric.py` için "6 tab'ın tümü tamamen fonksiyonel" ifadesi YANLIŞTI — CFD sekmesi çözücüyü hiç çağırmıyor, FEA sekmesi gerilmeyi uyduruyordu. Aşağıdaki liste dış araçların kurulu olduğunu gösterir, o GUI'nin analiz yaptığını DEĞİL.
+
+Kurulu olması gereken dış araçlar:
 1. ✅ Konfigürasyon
 2. ✅ Mesh (GMSH ile)
 3. ✅ CFD (OpenFOAM ile)

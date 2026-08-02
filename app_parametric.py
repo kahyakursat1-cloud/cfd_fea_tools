@@ -1,7 +1,26 @@
 """
-CFD/FEA Parametric Analysis Tool
-Sabit kanat roket, drone, İHA için parametrik simülasyon
+CFD/FEA Parametric Analysis Tool — GEOMETRİ/MALZEME ARAYÜZÜ (analiz YOK)
+Sabit kanat roket, drone, İHA için parametrik kurulum
 PySide6 GUI — Teal & Navy Cyberpunk Tema
+
+⛔ ANALİZ SEKMELERİ DEVRE DIŞI. Sebebi ölçüldü (2026-08-02):
+
+`_start_simulation` bir SimulationJob kuruyor ama `runner.run_simulation(job)`
+satırı YORUMDA bırakılmıştı; ardından 101 adımlık sahte bir ilerleme döngüsü
+(`time.sleep(0.05)`) koşup "✅ Simülasyon tamamlandı!" yazıyordu. Çözücü HİÇ
+çağrılmıyordu. Sonuç tablosu bu yüzden boştu — hiçbir yerde satır eklenmiyordu.
+
+`_run_fea_analysis` daha ağırdı: gerilmeyi `yük/100*2.5` ile "hesaplayıp" ondan
+emniyet faktörü çıkarıyor ve **"✅ GÜVENLİ"** yazıyordu; doğal frekanslar ise
+`5.0 + i*2.5` aritmetik dizisiydi. Geometri yok, mesh yok, CalculiX yok.
+
+Bu, bu depodaki diğer kusurların TERSİ: orada hüküm hesaplanıp tüketicisine
+ulaşmıyordu; burada hesap yapılmadan hüküm veriliyordu. Bir yapı için uydurma
+gerilmeden "GÜVENLİ" demek, bir analiz aracının verebileceği en tehlikeli çıktı.
+
+MOTOR SAĞLAM: `simulation_runner.run_simulation` gerçek (case kurar, mesh üretir,
+kuvvetleri ayrıştırır, fizik kapısından geçirir). Sahte olan yalnız bu GUI'nin
+onu ÇAĞIRMAYAN katmanıydı. Gerçek + KAPILI yol: `python app_analyzer.py`.
 """
 
 import json
@@ -38,11 +57,27 @@ from aircraft_geometry import AircraftLibrary
 from material_database import MaterialLibrary
 from material_editor_gui import MaterialManagerTab
 from mesh_generator import MeshGenerator
-from simulation_runner import SimulationJob, SimulationRunner
+from simulation_runner import SimulationRunner  # SimulationJob: B adiminda geri gelecek
 
 # Unified malzeme kütüphanesi (advanced JSON-backed DB).
 # fea_runner.MATERIAL_LIBRARY (dict) eski API; GUI ise MaterialLibrary objesi bekliyor.
 MATERIAL_LIBRARY = MaterialLibrary()
+
+# Sahte çıktı üreten yolların TEK reddi. Metin tek yerde durur ki dal başına
+# ayrışmasın ve testle bağlanabilsin.
+DEMO_RET_BASLIK = "Bu ekran ANALİZ YAPMIYOR"
+DEMO_RET_METNI = (
+    "Bu sekme sonuç ÜRETMEZ ve daha önce sonuç ürettiğini SANDIRIYORDU.\n\n"
+    "Ölçülen durum:\n"
+    "  • CFD: çözücü hiç çağrılmıyordu; ilerleme çubuğu ve "
+    "'✅ Simülasyon tamamlandı!' mesajı sahteydi (time.sleep döngüsü).\n"
+    "  • FEA: gerilme 'yük/100×2.5' ile uydurulup ondan emniyet faktörü ve "
+    "'✅ GÜVENLİ' hükmü çıkarılıyordu; frekanslar 5.0+i×2.5 dizisiydi.\n\n"
+    "Gerçek ve KAPILI analiz yolu:\n"
+    "    python app_analyzer.py\n\n"
+    "O yol fizik, yakınsama, yüzey-çözünürlük ve ince-özellik kapılarından geçer "
+    "ve sonucu sayısal belirsizlik bandıyla birlikte verir."
+)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # COLOR THEME
@@ -610,47 +645,23 @@ Kütle: {self.current_aircraft.mass_properties()['total_mass']:.2f} kg
         except Exception as e:
             self.mesh_log.append(f"❌ Hata: {str(e)}")
 
+    def _demo_reddi(self, log_alani=None):
+        """Sahte sonuç ÜRETMEK yerine ne olduğunu söyle ve gerçek yola yönlendir."""
+        if log_alani is not None:
+            log_alani.clear()
+            log_alani.append("⛔ " + DEMO_RET_BASLIK)
+            log_alani.append(DEMO_RET_METNI)
+        QMessageBox.warning(self, DEMO_RET_BASLIK, DEMO_RET_METNI)
+
     def _start_simulation(self):
-        """Simülasyonu başlat"""
-        if not self.current_aircraft:
-            QMessageBox.warning(self, "Hata", "Önce uçak seçin")
-            return
+        """CFD BAŞLATMAZ — sebebi modül başlığında ölçümüyle yazılı.
 
-        self.sim_log.clear()
-        self.start_btn.setEnabled(False)
-        self.stop_btn.setEnabled(True)
-
-        self.sim_log.append(f"🚀 Simülasyon başlatılıyor: {self.current_aircraft.name}")
-        self.sim_log.append(f"Solver: {self.solver_combo.currentText()}")
-        self.sim_log.append(f"Rüzgar: {self.wind_speed.value()} m/s\n")
-
-        # Simülasyon job
-        job = SimulationJob(
-            case_name=f"{self.current_aircraft.name.replace(' ', '_')}",
-            aircraft=self.current_aircraft,
-            solver=self.solver_combo.currentText(),
-            mesh_size=self.mesh_size.value(),
-            wind_speed=self.wind_speed.value(),
-            analysis_type="aerodinamik",
-            num_processors=self.num_processors.value()
-        )
-
-        # (Gerçek uygulamada: runner.run_simulation(job))
+        Eski gövde `runner.run_simulation(job)` satırını YORUMDA bırakıp 101
+        adımlık `time.sleep` döngüsü koşuyor ve "✅ Simülasyon tamamlandı!"
+        yazıyordu. İlerleme çubuğunu doldurmak analiz yapmak değildir.
+        """
         self.progress_bar.setValue(0)
-
-        # Simülasyon simülasyonu
-        for i in range(101):
-            self.progress_bar.setValue(i)
-            self.sim_log.append(f"[{i}%] Simülasyon devam ediyor...")
-            QApplication.processEvents()
-
-            import time
-            time.sleep(0.05)
-
-        self.sim_log.append("✅ Simülasyon tamamlandı!")
-        self.progress_bar.setValue(100)
-        self.start_btn.setEnabled(True)
-        self.stop_btn.setEnabled(False)
+        self._demo_reddi(self.sim_log)
 
     def _reset_simulation(self):
         """Sıfırla"""
@@ -659,8 +670,8 @@ Kütle: {self.current_aircraft.mass_properties()['total_mass']:.2f} kg
         self.results_table.setRowCount(0)
 
     def _generate_report(self):
-        """Rapor oluştur"""
-        QMessageBox.information(self, "Rapor", "Rapor oluşturuluyor...")
+        """RAPOR ÜRETMEZ — "Rapor oluşturuluyor..." diyip hiçbir şey yapmıyordu."""
+        self._demo_reddi()
 
     def _create_fea_tab(self) -> QWidget:
         """FEA (Yapısal Analiz) Tab'ı"""
@@ -720,33 +731,14 @@ Kütle: {self.current_aircraft.mass_properties()['total_mass']:.2f} kg
         return widget
 
     def _run_fea_analysis(self):
-        """FEA analizi çalıştır"""
-        self.fea_log.clear()
-        self.fea_log.append("🚀 FEA Analizi başlatılıyor...\n")
+        """FEA ÇALIŞTIRMAZ — sebebi modül başlığında ölçümüyle yazılı.
 
-        material_name = self.fea_material_combo.currentText()
-        material = MATERIAL_LIBRARY.get_material(material_name)
-
-        self.fea_log.append(f"Malzeme: {material.name}")
-        self.fea_log.append(f"Analiz Tipi: {self.fea_analysis_combo.currentText()}")
-        self.fea_log.append(f"Yük: {self.fea_load.value()} Pa\n")
-
-        # Simüle edilmiş sonuçlar
-        max_stress = self.fea_load.value() / 100 * 2.5  # Basit hesaplama
-        safety_factor = material.yield_strength / max_stress if max_stress > 0 else float('inf')
-
-        self.fea_log.append("📊 Sonuçlar:")
-        self.fea_log.append(f"  • Maks. Gerilme: {max_stress:.2f} MPa")
-        self.fea_log.append(f"  • Emniyet Faktörü: {safety_factor:.2f}")
-        self.fea_log.append(f"  • Durum: {'✅ GÜVENLI' if safety_factor > 1.5 else '⚠️ UYARI'}\n")
-
-        if self.fea_analysis_combo.currentText() == "FREQUENCY":
-            self.fea_log.append("🔊 Doğal Frekanslar (ilk 5 mod):")
-            for i in range(min(5, self.fea_modes.value())):
-                freq = 5.0 + i * 2.5  # Simüle edilmiş
-                self.fea_log.append(f"  • Mod {i+1}: {freq:.2f} Hz")
-
-        self.fea_log.append("\n✅ FEA Analizi Tamamlandı!")
+        Eski gövde gerilmeyi `yük/100*2.5` ile uyduruyor, ondan emniyet faktörü
+        hesaplayıp "✅ GÜVENLİ" yazıyor ve `5.0 + i*2.5` dizisini "Doğal
+        Frekanslar" diye sunuyordu. Uydurma bir gerilmeden güvenlik hükmü vermek,
+        bir analiz aracının verebileceği en tehlikeli çıktıdır.
+        """
+        self._demo_reddi(self.fea_log)
 
     def _generate_fea_report(self):
         """FEA Raporu oluştur"""
@@ -767,7 +759,7 @@ Poisson Oranı: {material.poisson_ratio}
 Yoğunluk: {material.density} kg/m³
 Akma Gerilmesi: {material.yield_strength} MPa
 
-ANALIZ PARAMETRELERİ
+SEÇİLEN PARAMETRELER (yalnız kurulum — KOŞULMADI)
 -------------------
 Analiz Tipi: {self.fea_analysis_combo.currentText()}
 Yük: {self.fea_load.value()} Pa
@@ -775,8 +767,9 @@ Mod Sayısı: {self.fea_modes.value()}
 
 SONUÇLAR
 --------
-Analiz başarıyla tamamlandı.
-Sonuçlar FEA simülasyon alanında görüntülenebilir.
+⛔ YOK. Bu ekran FEA çalıştırmaz; eski sürüm "Analiz başarıyla tamamlandı"
+yazıyordu ama ortada analiz yoktu (gerilme yük/100×2.5 ile uyduruluyordu).
+Gerçek ve kapılı yapısal analiz: `python app_analyzer.py`.
 """
 
         QMessageBox.information(self, "FEA Raporu", report)

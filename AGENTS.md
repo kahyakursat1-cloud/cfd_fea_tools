@@ -19,7 +19,14 @@ docs/                       → Türkçe rehberler (OpenFOAM, CalculiX)
 constants.py                → proje-geneli eşikler (TEK KAYNAK)
 ```
 **İki-hızlı uyarı:** eski `simulation_runner.py`/`app_parametric.py` + standalone V&V
-scriptleri `analysis/`'i kullanmaz, kendi iskelesini tekrarlar (çalışır; refactor ayrı iş).
+scriptleri `analysis/`'i kullanmaz, kendi iskelesini tekrarlar (refactor ayrı iş).
+
+**DÜZELTME (2026-08-02):** "çalışır" ifadesi `app_parametric.py` için YANLIŞTI —
+analiz sekmeleri çözücüyü hiç çağırmıyor, sahte ilerleme çubuğuyla "tamamlandı"
+yazıyordu; FEA sekmesi gerilmeyi `yük/100×2.5` ile uydurup "GÜVENLİ" hükmü
+veriyordu. Artık gerekçeli ret verip `app_analyzer.py`'ye yönlendiriyorlar.
+Motor (`simulation_runner.run_simulation`) gerçek; sahte olan GUI katmanıydı.
+Kullanıcıya önerilecek giriş noktası: **`python app_analyzer.py`**.
 
 ## Teknik Bağlam
 - **CFD:** simpleFoam / icoFoam / shockFluid; mesh bağımsızlık analizi zorunlu; yakınsama: residuals < 1e-4

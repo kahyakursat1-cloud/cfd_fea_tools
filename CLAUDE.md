@@ -20,7 +20,14 @@ constants.py      → proje-geneli eşikler (TEK KAYNAK)
 ```
 **İki-hızlı uyarı:** `simulation_runner.py` + `app_parametric.py` (eski Parametrik GUI)
 ve standalone V&V scriptleri (`transition_polar`, `cgrid_*`, `rocket_cfd`) `analysis/`'i
-KULLANMAZ — kendi case iskelesini tekrarlar. Çalışıyorlar; refactor riskli, ayrı iş.
+KULLANMAZ — kendi case iskelesini tekrarlar. Refactor riskli, ayrı iş.
+
+**DÜZELTME (2026-08-02):** "Çalışıyorlar" ifadesi `app_parametric.py` için YANLIŞTI.
+Analiz sekmeleri çözücüyü hiç çağırmıyor, sahte ilerleme çubuğuyla "tamamlandı"
+yazıyordu; FEA sekmesi gerilmeyi `yük/100×2.5` ile uydurup ondan "GÜVENLİ" hükmü
+veriyordu. O yollar artık gerekçeli ret veriyor ve `app_analyzer.py`'ye yönlendiriyor.
+`simulation_runner.run_simulation` motoru GERÇEK; sahte olan yalnız GUI katmanıydı.
+Kullanıcıya önerilecek giriş noktası: **`python app_analyzer.py`**.
 
 ## Teknik Bağlam
 - **CFD:** simpleFoam / icoFoam; mesh bağımsızlık analizi zorunlu; yakınsama: residuals < 1e-4

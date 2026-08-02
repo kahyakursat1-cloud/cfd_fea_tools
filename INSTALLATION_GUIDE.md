@@ -59,9 +59,12 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 # 3. Bağımlılıkları yükle
 pip install -e .[gui,viz]
 
-# 4. GUI'yi başlat
-python app_parametric.py
+# 4. GUI'yi başlat (analiz stüdyosu — kapılı yol)
+python app_analyzer.py
 ```
+
+> ⚠️ **2026-08-02:** Giriş noktası `app_analyzer.py` olarak değişti. Eski `app_parametric.py`'nin analiz sekmeleri çözücüyü hiç çağırmıyor, sahte ilerleme çubuğuyla "tamamlandı" yazıyordu; FEA sekmesi gerilmeyi `yük/100×2.5` ile uydurup "GÜVENLİ" hükmü veriyordu. O yollar artık gerekçeli ret veriyor. `app_parametric.py` yalnız geometri/malzeme kurulumu için kullanılabilir.
+
 
 ---
 
@@ -286,7 +289,7 @@ Beklenen çıktı:
 ✅ fea_runner                — OK
 ✅ mesh_to_cfd               — OK
 ✅ blender_synthetic_generator — OK
-✅ app_parametric            — OK
+✅ app_parametric            — OK (yalnız geometri/malzeme; analiz YOK)
 
 SONUÇ: 9 passed, 0 failed
 ```
@@ -319,8 +322,11 @@ RESULTS: 8/8 tests passed
 ### 3. GUI Başlatma
 
 ```bash
-python app_parametric.py
+python app_analyzer.py
 ```
+
+> ⚠️ **2026-08-02:** Giriş noktası `app_analyzer.py` olarak değişti. Eski `app_parametric.py`'nin analiz sekmeleri çözücüyü hiç çağırmıyor, sahte ilerleme çubuğuyla "tamamlandı" yazıyordu; FEA sekmesi gerilmeyi `yük/100×2.5` ile uydurup "GÜVENLİ" hükmü veriyordu. O yollar artık gerekçeli ret veriyor. `app_parametric.py` yalnız geometri/malzeme kurulumu için kullanılabilir.
+
 
 ---
 
@@ -424,7 +430,7 @@ RUN pip install -e .[gui,viz]
 # GUI port
 EXPOSE 5000
 
-CMD ["python", "app_parametric.py"]
+CMD ["python", "app_analyzer.py"]
 ```
 
 **Çalıştır:**
@@ -441,7 +447,7 @@ docker run -it --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix cfd-fea
 ### 1. GUI'yi Aç
 
 ```bash
-python app_parametric.py
+python app_analyzer.py
 ```
 
 ### 2. Konfigürasyon Sekmesi
