@@ -25,7 +25,10 @@ def test_seviyeler_sabit_oranla_ayrisir():
 
 
 def test_kademeler_farkli_oranlar_kullanir():
-    oranlar = re.findall(r'\("(?:orta|kaba|cokkaba)",\s*\d+,\s*(GCI_ORANI[^,]*)', SRC)
+    # Kademe demeti artık (ad, oran, end_time): iyileştirme-seviyesi düşürme
+    # (`dref`) KALDIRILDI, çünkü arka planla birlikte düşünce aile TEKDÜZE
+    # ölçeklenmiyordu (bkz. test_seviye_tekduze_olcekleme).
+    oranlar = re.findall(r'\("(?:orta|kaba|cokkaba)",\s*(GCI_ORANI[^,]*)', SRC)
     assert len(set(oranlar)) == len(oranlar) >= 2, f"kademeler aynı oranı paylaşıyor: {oranlar}"
 
 

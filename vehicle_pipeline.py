@@ -1587,19 +1587,44 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         #
         # Kısmak yanlış ekonomi: kaba mesh iterasyon başına DAHA UCUZ (415k vs
         # 906k hücre), ama az-yakınsamışlığı BÜTÜN çalışmayı götürüyor.
-        kademeler = [("orta", 1, GCI_ORANI, q["end_time"]),
-                     ("kaba", 2, GCI_ORANI ** 2, q["end_time"])]
+        # SEVİYE AİLESİ TEKDÜZE ÖLÇEKLENİR. Eski kurulum hem arka planı ×1.5
+        # kabalaştırıyor HEM iyileştirme seviyesini 1 düşürüyordu; o zaman yüzey
+        # hücresi ×3, arka plan ×1.5 olur — aile TEKDÜZE DEĞİLDİR ve Richardson'ın
+        # dayandığı tek h ölçeği tanımsız kalır.
+        #
+        # ÖLÇÜLDÜ (küp çapası, eski kurulum): yüzey yüzleri 10324 → 1860 → 436 → 176.
+        # Tekdüze ×1.5 olsaydı bölen 2.25 olurdu (10324 → 4588 → 2039 → 906);
+        # ölçülen bölenler 5.55 / 4.27 / 2.48. İki kaba seviye yüzey kapısının
+        # (500 yüz) altına düştü ve GCI hiç hesaplanamadı — yani ÇİFT kabalaştırma
+        # hem V&V varsayımını bozuyor hem çalışmayı imkânsızlaştırıyordu.
+        #
+        # Yalnız arka plan ölçeklenince her hücre aynı oranla büyür: h oranı tam
+        # GCI_ORANI olur (Celik 2008 r≥1.3 şartı sağlanır) ve yüzey çözünürlüğü
+        # kademe başına yalnız 2.25 kat düşer.
+        from analysis.openfoam_runner import YUZEY_YUZ_ESIGI
+        _yuzey_alan = geo.get("yuzey_alani_m2")
+        kademeler = [("orta", GCI_ORANI, q["end_time"]),
+                     ("kaba", GCI_ORANI ** 2, q["end_time"])]
         if mesh_levels >= 4:
-            kademeler.append(("cokkaba", 3, GCI_ORANI ** 3, q["end_time"]))
-        for ad, dref, oran, et in kademeler:
+            kademeler.append(("cokkaba", GCI_ORANI ** 3, q["end_time"]))
+        for ad, oran, et in kademeler:
+            # ÖN-KAPI: bu kademe yüzey eşiğinin altına düşecekse KOŞULMAZ. Reddi
+            # koşudan SONRA öğrenmek saatlerce CFD harcamak demek (küp: iki seviye).
+            _yuz_tah = (yuzey_yuz_tahmini(_yuzey_alan, bg_ince * oran, rmax + bump)
+                        if _yuzey_alan else None)
+            if _yuz_tah is not None and _yuz_tah < YUZEY_YUZ_ESIGI:
+                basarisiz.append({
+                    "ad": ad, "sebep": f"KOŞULMADI — tahmini gövde yüzü {_yuz_tah} "
+                    f"(eşik {YUZEY_YUZ_ESIGI}); bu kademede gövde temsil edilemez"})
+                continue
             if progress_cb:
                 progress_cb(80, f"Mesh-bağımsızlık: {ad} seviye koşusu…")
             lvl = CFDCase(
                 name=f"{stem}_{ad}", stl_path=stl_path, velocity=velocity,
                 flow_direction=(math.cos(a), 0.0, math.sin(a)), rho=rho,
                 domain_upstream=_dom[0], domain_downstream=_dom[1], domain_lateral=_dom[2],
-                refinement_min=max(1, rmin + bump - dref),
-                refinement_max=max(1, rmax + bump - dref),
+                refinement_min=max(1, rmin + bump),
+                refinement_max=max(1, rmax + bump),
                 end_time=et, max_global_cells=q_max,
                 bg_cell_size=bg_ince * oran,
                 n_layers=n_layers, first_layer_thickness=case.first_layer_thickness,

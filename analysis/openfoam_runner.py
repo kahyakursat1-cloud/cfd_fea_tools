@@ -301,6 +301,13 @@ def parse_iyilestirme_acligi(log_text: str) -> dict:
             "limit": int(m[0]) if m else None}
 
 
+YUZEY_YUZ_ESIGI = 500
+"""Gövde yamasının kabul edilebilir en az yüz sayısı. Çağıranların da bu sayıyı
+BİLMESİ gerekiyor: GCI seviyesi üretirken eşiğin altına düşecek bir kademeyi
+koşmak, saatlerce CFD harcayıp sonunda reddedilmek demektir (çapa kampanyasında
+küp kaba seviyeleri 176 ve 436 yüzle böyle harcandı)."""
+
+
 def yuzey_cozunurluk_hukmu(log_snappy: str, yuzey_yuz: int | None,
                            en_kucuk_boyut_m: float | None = None) -> dict:
     """Gövde GERÇEKTEN çözüldü mü? NİYET değil, SONUÇ ölçülür.
@@ -316,7 +323,7 @@ def yuzey_cozunurluk_hukmu(log_snappy: str, yuzey_yuz: int | None,
             f"snappyHexMesh iyilestirme butcesini TUKETTI (limit {ac['limit']}, "
             f"{ac['kez']} kez) — arka plan mesh'i tek basina tavani doldurmus, "
             "govde yuzeyi HIC iyilestirilmemis olabilir")
-    if yuzey_yuz is not None and yuzey_yuz < 500:
+    if yuzey_yuz is not None and yuzey_yuz < YUZEY_YUZ_ESIGI:
         gerekce.append(f"govde yamasi yalnizca {yuzey_yuz} yuz — bu cozunurlukte "
                        "kamburluk/egrilik temsil EDILEMEZ")
     return {"cozuldu": not gerekce, "gerekce": gerekce,

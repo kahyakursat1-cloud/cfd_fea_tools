@@ -80,5 +80,10 @@ def test_dusen_seviye_sessizce_atilmaz():
 def test_dusen_seviye_sebebi_bos_kalmaz():
     """Sebep metni boşsa 'bilinmiyor' yazılmalı — boş string hiçbir şey söylemez."""
     src = inspect.getsource(vehicle_pipeline.run_vehicle_analysis)
-    i = src.index("basarisiz.append")
+    # İKİ AYRI `basarisiz.append` var: (a) ön-kapı — kademe yüzey eşiğinin altına
+    # düşeceği için HİÇ KOŞULMADI, sebebi zaten açık metin; (b) koşu düştü, sebep
+    # stderr'den geliyor ve BOŞ olabilir. Boş kalma riski yalnız ikincisinde.
+    i = src.index("basarisiz.append", src.index("_sebep = "))
     assert "bilinmiyor" in src[max(0, i - 400):i + 200]
+    j = src.index("basarisiz.append")
+    assert "KOŞULMADI" in src[max(0, j - 300):j + 300], "ön-kapı sebebi açık değil"
