@@ -1558,7 +1558,33 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     if mesh_sensitivity:
         from report_generator import compute_gci, gci_verdict, least_squares_gci
         cells_fine = (meshq or {}).get("cells")
-        levels = [{"ad": "ince", "cells": cells_fine, "Cd": cd}] if cells_fine else []
+        # İNCE SEVİYE DE AYNI KAPILARDAN GEÇER. Ana koşunun sonucu seviye listesine
+        # KOŞULSUZ ekleniyordu; oysa kaba seviyeler fizik/yakınsama/yüzey kapılarından
+        # geçmek zorundaydı. Kapı eşitsiz uygulanıyordu.
+        #
+        # ÖLÇÜLDÜ (Ahmed çapası): `orta` seviye "rezidüeller hedefin üzerinde
+        # (Uy=1.08e-03, p=1.21e-03)" diye REDDEDİLDİ; aynı koşunun `ince` seviyesi
+        # Uy=1.54e-03, p=1.46e-03 ile DAHA KÖTÜ yakınsamışken sorgusuz kabul edildi
+        # ve GCI (=%275) tam onun üzerine kuruldu. Kalan üç çapada ince seviye
+        # kapıyı zaten geçiyor — düzeltme dar hedefli.
+        #
+        # İnce seviye düşerse çalışma HİÇ koşulmaz: band raporlanan Cd'ye ait
+        # olmalıdır; onun altındaki mesh ailesine ait bir band yanıltıcıdır. Yan
+        # fayda: kaba seviyeler de koşulmaz (Ahmed'de üç koşu boşa gitmişti).
+        _ince_conv_ok, _ince_conv_neden = seviye_yakinsadi_mi(conv)
+        _ince_fizik_disi = (base.fizik_kabul or {}).get("verdict") == "inadmissible"
+        _ince_yuzey_ok = (_yc or {}).get("cozuldu", True)
+        _ince_red = None
+        if not _ince_fizik_disi and not _ince_conv_ok:
+            _ince_red = f"ince seviye YAKINSAMADI: {_ince_conv_neden}"
+        elif _ince_fizik_disi:
+            _ince_red = ("ince seviye FİZİK-DIŞI: "
+                         + "; ".join((base.fizik_kabul or {}).get("reasons", [])))
+        elif not _ince_yuzey_ok:
+            _ince_red = ("ince seviyenin gövdesi ÇÖZÜLMEDİ: "
+                         + "; ".join((_yc or {}).get("gerekce", [])))
+        levels = ([{"ad": "ince", "cells": cells_fine, "Cd": cd}]
+                  if cells_fine and not _ince_red else [])
         # Seviye ayrımı SABİT ORAN ile (Celik 2008: r ≥ 1.3). Eski kurulum taban hücreyi
         # `lmax / max(3, bg_div - ddiv)` ile kırpıyordu; bg_div=5 (hizli) presetinde orta
         # ve kaba seviyeler AYNI 3'e düşüp aynı mesh'i üretiyor, GCI sessizce
@@ -1607,6 +1633,8 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                      ("kaba", GCI_ORANI ** 2, q["end_time"])]
         if mesh_levels >= 4:
             kademeler.append(("cokkaba", GCI_ORANI ** 3, q["end_time"]))
+        if _ince_red:                      # referans seviye düştü → aile anlamsız
+            kademeler = []
         for ad, oran, et in kademeler:
             # ÖN-KAPI: bu kademe yüzey eşiğinin altına düşecekse KOŞULMAZ. Reddi
             # koşudan SONRA öğrenmek saatlerce CFD harcamak demek (küp: iki seviye).
@@ -1877,8 +1905,12 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
             if basarisiz:
                 _ned.append(f"{len(basarisiz)} seviye koşamadı")
             base.mesh_duyarlilik = {
-                "durum": "yetersiz seviye — bant hesaplanamadı"
-                         + (" (" + ", ".join(_ned) + ")" if _ned else ""),
+                "durum": ("mesh-bağımsızlık ÇALIŞMASI YAPILMADI — " + _ince_red
+                          + ". Band raporlanan Cd'ye ait olmalıdır; referans "
+                            "seviye kapıdan geçmeden aile anlamsızdır")
+                         if _ince_red else
+                         ("yetersiz seviye — bant hesaplanamadı"
+                          + (" (" + ", ".join(_ned) + ")" if _ned else "")),
                 **_red_kayitlari(basarisiz, dislanan, yakinsamayan, yuzeysiz)}
 
     # Birleşik belirsizlik (ASME V&V 20): U_total = √(U_sayısal² + U_model²).

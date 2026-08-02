@@ -35,12 +35,12 @@ def test_IKI_seviye_dali_YUZEY_gerekcesini_tasiyor():
 
 
 def test_YETERSIZ_seviye_dali_YUZEYI_sayiyor():
-    d = _dal('"durum": "yetersiz seviye')
-    # sayım listesi bu dalın hemen üstünde kuruluyor
-    ust = _SRC[max(0, _SRC.index('"durum": "yetersiz seviye') - 900):
-               _SRC.index('"durum": "yetersiz seviye')]
+    # Metin artık koşullu: ince seviye kapıdan geçmediyse "ÇALIŞMASI YAPILMADI",
+    # aksi halde "yetersiz seviye". Sayım listesi ikisinin de üstünde kuruluyor.
+    i = _SRC.index("yetersiz seviye — bant hesaplanamadı")
+    ust = _SRC[max(0, i - 1200):i]
     assert "yuzeysiz" in ust and "ÇÖZÜLMEDİ" in ust
-    assert "_red_kayitlari(" in d
+    assert "_red_kayitlari(" in _SRC[i:i + 700]
 
 
 def test_UC_dal_da_ayni_dort_listeyi_kapsiyor():
