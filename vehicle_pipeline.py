@@ -1033,6 +1033,45 @@ def parse_residuals(log: Path) -> dict:
     return hist
 
 
+PLATO_ORANI = 0.7      # son dilim / önceki dilim ≥ bu ise düşüş DURMUŞ sayılır
+
+
+def rezidual_platosu(residuals: dict, dilim: float = 0.15) -> dict:
+    """Rezidüeller hâlâ DÜŞÜYOR mu, yoksa PLATOYA mı oturdu?
+
+    NEDEN GEREKLİ: kapı yalnız SON rezidüeli hedefle kıyaslıyordu ve reddedince
+    "rezidueller hedefin üzerinde" diyordu. Bu mesaj YANLIŞ ÇÖZÜME yönlendirir —
+    okuyan "demek ki daha uzun koşmalıyım" diye anlar. Oysa iki tamamen farklı
+    durum aynı cümleyle anlatılıyordu: (a) bütçe yetmedi, düşüş sürüyor;
+    (b) limit çevrimi, düşüş durdu — daha fazla iterasyon HİÇBİR ŞEY değiştirmez.
+
+    ÖLÇÜLDÜ (Ahmed 25° çapası, 800 iterasyon):
+      Uy  %50→%75→%90→%100 dilim ortalamaları  2.99e-3 → 1.62e-3 → 1.69e-3 → 1.67e-3
+      p                                        1.64e-3 → 8.71e-4 → 9.41e-4 → 9.71e-4
+    Son ~200 iterasyonda düşüş durmuş, p hafif YÜKSELMİŞ. Ahmed gövdesinin 25°
+    eğiminde iz kararsızdır; kararlı RANS'ın sabit noktası yoktur.
+
+    Döner: {"plato": bool, "oranlar": {alan: son/onceki}, "n": iterasyon}
+    """
+    oranlar, n_it = {}, 0
+    for alan, v in (residuals or {}).items():
+        if not alan.startswith(("Ux", "Uy", "Uz", "p")) or not v:
+            continue
+        n = len(v)
+        n_it = max(n_it, n)
+        w = max(3, int(n * dilim))
+        if n < 2 * w:
+            continue
+        son = sum(v[-w:]) / w
+        onceki = sum(v[-2 * w:-w]) / w
+        oranlar[alan] = round(son / max(onceki, 1e-30), 3)
+    # PLATO = ölçülebilen alanların ÇOĞUNLUĞU düşmeyi bırakmış. Tek alana bakmak
+    # yanıltır: p oturmuşken Uy hâlâ düşüyor olabilir.
+    plato = bool(oranlar) and sum(1 for r in oranlar.values()
+                                  if r >= PLATO_ORANI) > len(oranlar) / 2
+    return {"plato": plato, "oranlar": oranlar, "n": n_it}
+
+
 def yakinsama_teshisi(case_dir: Path, forces_history: list, scale: float = 1.0) -> dict:
     """Bir koşunun yakınsama hükmü — ANA KOŞU ve GCI SEVİYELERİ için TEK KAYNAK.
 
@@ -1056,6 +1095,7 @@ def yakinsama_teshisi(case_dir: Path, forces_history: list, scale: float = 1.0) 
                                         for v in momentum_res.values())
     return {
         "iterasyon": n,
+        "rezidual_platosu": rezidual_platosu(residuals),
         "cd_drift_son20pct": round(drift_pct, 3) if drift_pct is not None else None,
         "drift_ok": drift_pct is not None and drift_pct < DRIFT_LIMIT_PCT,
         "son_rezidualler": {k: (f"{v:.2e}" if v is not None else None)
@@ -1097,7 +1137,18 @@ def seviye_yakinsadi_mi(conv: dict) -> tuple[bool, str]:
     if not conv.get("rezidual_ok") and not _duragan:
         r = conv.get("son_rezidualler") or {}
         kotu = {k: v for k, v in r.items() if k.startswith(("Ux", "Uy", "Uz", "p"))}
-        g.append(f"rezidueller hedefin ({RESIDUAL_TARGET:.0e}) uzerinde: {kotu}")
+        # AYNI CÜMLE İKİ FARKLI DERDE ÇARE ÖNERİYORDU. "hedefin üzerinde" okuyan
+        # "daha uzun koşayım" diye anlar; oysa düşüş DURMUŞSA bu hiçbir şey
+        # değiştirmez (Ahmed: son 200 iterasyonda Uy 1.69e-3 → 1.67e-3, p yükseldi).
+        _pl = conv.get("rezidual_platosu") or {}
+        if _pl.get("plato"):
+            g.append(f"rezidueller PLATOYA OTURDU (limit cevrimi) {kotu} — "
+                     f"dusus durmus (son/onceki dilim {_pl.get('oranlar')}), "
+                     "DAHA COK ITERASYON COZMEZ: akis zaman-bagimlidir (URANS) "
+                     "ya da bu vaka kararli-RANS capasi olarak uygun degildir")
+        else:
+            g.append(f"rezidueller hedefin ({RESIDUAL_TARGET:.0e}) uzerinde: {kotu}"
+                     " — dusus SURUYOR, iterasyon butcesi yetersiz")
     if not conv.get("drift_ok"):
         g.append(f"Cd drifti son %20'de {conv.get('cd_drift_son20pct')}% "
                  f"(sinir {DRIFT_LIMIT_PCT}%)")
