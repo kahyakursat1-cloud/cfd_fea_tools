@@ -115,8 +115,24 @@ else:
     else:
         ff=sorted((case/"postProcessing"/"forces").glob("*/forces.dat"),key=lambda f:float(f.parent.name))
         cd2,cl2=parse_cd_cl(ff[-1])
-        out["LM"]={"Cd":round(cd2,5),"Cl":round(cl2,4)}; out["status"]="ok"
-        print(f"{lbl} LM:  Cd={cd2:.5f} Cl={cl2:.4f}",flush=True)
+        out["LM"]={"Cd":round(cd2,5),"Cl":round(cl2,4)}
+        # FIZIK KAPISI — "FOAM FATAL yok ve log End ile bitti" YAKINSADI DEMEK
+        # DEGIL. OLCULDU (teshis_ilkhucre, Re=3.5e5 + ilk hucre 8e-6):
+        #   SST Cd=-0.24224 (negatif surukleme)  LM Cd=-691205  Cl=-11352049
+        # ve script bunu `status: ok` diye KANIT dosyasina yazdi. Iraksamis bir
+        # cozumun "basarili" kaydedilmesi, kanit kutuphanesine cop sokar.
+        from validity_envelope import force_admissibility
+        _fz=force_admissibility(cd2,cl2,alpha)
+        out["fizik_kabul"]=_fz
+        if _fz.get("verdict")=="inadmissible":
+            out["status"]="fizik_disi"
+            print(f"{lbl} LM: FIZIK-DISI Cd={cd2:.5g} Cl={cl2:.5g} — "
+                  +"; ".join(_fz.get("reasons",[])),flush=True)
+        else:
+            out["status"]="ok"
+            print(f"{lbl} LM:  Cd={cd2:.5f} Cl={cl2:.4f}",flush=True)
+    # SST asamasi da ayni kapidan gecer: negatif Cd oradan da geliyordu.
+    out["SST_fizik"]=__import__("validity_envelope").force_admissibility(cd1,cl1,alpha)
 # Cikti adi hesaplaniyor; literal ad kaynakta gecmedigi icin kanit denetimi
 # bunu "uretici kod depoda YOK" saniyordu. Komut kanita YAZILIYOR.
 out["_uretim"] = ("Üretim: python experiments/exp_cgrid_run.py "
