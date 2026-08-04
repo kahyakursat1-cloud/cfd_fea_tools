@@ -47,7 +47,15 @@ import sessiz_yutma
 # Aynı commit'teki diğer iki `except` bloğu sayıya GİRMEDİ çünkü sebebi KAYDEDİYORLAR
 # (`convergence_hatasi`, `yuzey_cozunurlugu_hatasi`) — tarayıcı bunu doğru ayırıyor.
 # Asıl izlenen sayılar DEĞİŞMEDİ: incelenmemiş 25, güven yolunda incelenmemiş 0.
-TABAN_TOPLAM = 83
+#
+# 2026-08-02 (2) — TABAN 83 → 84. GERİLEME DEĞİL: XFOIL kesit yolu eklendi ve
+# `_oku_polar` tablonun BAŞLIK satırlarını (alpha/CL/CD, ---- ayracı) atlıyor.
+# Bunlar sayıya çevrilemez; atlanmaları beklenen davranıştır ve veri KAYBI
+# oluşturmaz — istenen ile dönen açılar ayrıca karşılaştırılıp eksik açı
+# `yakinsamayan_alfa` olarak RAPORLANIR (XFOIL yakınsamayan açıyı tabloya hiç
+# yazmaz, yani boş satır "denenmedi" değil "YAKINSAMADI" demektir).
+# İzlenen sayılar DEĞİŞMEDİ: incelenmemiş 25, güven yolunda incelenmemiş 0.
+TABAN_TOPLAM = 84
 TABAN_GUVEN_YOLU = 57
 TABAN_INCELENMEMIS = 25
 TABAN_INCELENMEMIS_GUVEN_YOLU = 0

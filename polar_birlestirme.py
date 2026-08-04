@@ -145,23 +145,42 @@ def birlesik_polar(vlm_polar: list[dict], kesit: list[dict], *,
 
 
 def _depo_verisi() -> dict:
-    """Depodaki kanıtlarla dene — sayılar KANITTAN, elle yazılmaz."""
+    """Depodaki kanıtlarla dene — sayılar KANITTAN, elle yazılmaz.
+
+    KESİT KAYNAĞI ÖNCELİĞİ: XFOIL kesiti kanadın kendi Re'sinde üretilmişse o
+    kullanılır; yoksa eski RANS/O-grid verisine düşülür. Düşülürse engeller
+    (Re uyuşmazlığı, mesh-bağımsızlık yok) zaten devreye girer ve mutlak
+    sürükleme yayınlanmaz — sessiz bir geri düşüş DEĞİLDİR.
+    """
     vlm = json.loads((HERE / "vspaero_polar.json").read_text(encoding="utf-8"))
-    tr = json.loads((HERE / "transition_results.json").read_text(encoding="utf-8"))
-    gci = json.loads((HERE / "gci_airfoil.json").read_text(encoding="utf-8"))
-    kesit = [{"alpha": float(a), **v} for a, v in tr.items()
-             if a.lstrip("-").isdigit() and isinstance(v, dict)]
     from aircraft_geometry import AircraftLibrary
     ac = AircraftLibrary().get_template("mini_hawk")()
     kiris = ac.wing.root_chord()
     re_kanat = 15.0 * kiris / 1.5e-5
-    # Kesit verisinin Re'si referans kaydından okunur (elle yazılmaz).
+
+    xf = HERE / "kesit_re35e4.json"
+    if xf.exists():
+        d = json.loads(xf.read_text(encoding="utf-8"))
+        pb = d.get("panel_bagimsizligi") or {}
+        return {"vlm_polar": vlm["polar"], "kesit": d["polar"],
+                "re_kanat": re_kanat, "re_kesit": float(d["re"]),
+                # XFOIL'de mesh yok; AYRIKLASTIRMA parametresi PANEL SAYISIDIR ve
+                # bandi OLCULDU. "Bagimsiz" iddiasi olcume dayanir, varsayima degil.
+                "kesit_cd_mesh_bagimsiz": bool(pb) and pb["en_kotu_sapma_pct"] < 5.0,
+                "kesit_cd_band_pct": pb.get("en_kotu_sapma_pct"),
+                "kesit_kaynagi": f"XFOIL ({d.get('yontem', '')})",
+                "kiris": kiris}
+
+    tr = json.loads((HERE / "transition_results.json").read_text(encoding="utf-8"))
+    gci = json.loads((HERE / "gci_airfoil.json").read_text(encoding="utf-8"))
+    kesit = [{"alpha": float(a), **v} for a, v in tr.items()
+             if a.lstrip("-").isdigit() and isinstance(v, dict)]
     ref = (gci.get("reference") or {}).get("kaynak", "")
     re_kesit = 3.4e6 if "3.4e6" in ref else 0.0
-    # Cd mesh-bağımsız MI: gci_airfoil kendi notunda söylüyor.
-    bagimsiz = "asimptotik" in str(gci.get("note", "")) and False
     return {"vlm_polar": vlm["polar"], "kesit": kesit, "re_kanat": re_kanat,
-            "re_kesit": re_kesit, "kesit_cd_mesh_bagimsiz": bagimsiz,
+            "re_kesit": re_kesit, "kesit_cd_mesh_bagimsiz": False,
+            "kesit_cd_band_pct": None,
+            "kesit_kaynagi": "RANS O-grid (Re=3.4e6 — kanadin Re'si DEGIL)",
             "kiris": kiris}
 
 
@@ -172,13 +191,17 @@ def main() -> int:
     d = _depo_verisi()
     out = birlesik_polar(d["vlm_polar"], d["kesit"],
                          re_kanat=d["re_kanat"], re_kesit=d["re_kesit"],
-                         kesit_cd_mesh_bagimsiz=d["kesit_cd_mesh_bagimsiz"])
+                         kesit_cd_mesh_bagimsiz=d["kesit_cd_mesh_bagimsiz"],
+                         kesit_cd_band_pct=d.get("kesit_cd_band_pct"))
     print(f"MiniHawk kiris={d['kiris']:.3f} m, V=15 m/s → Re={d['re_kanat']:.2e}")
-    print(f"2B kesit verisi Re={d['re_kesit']:.2e}\n")
+    print(f"2B kesit: {d.get('kesit_kaynagi', '?')}  Re={d['re_kesit']:.2e}"
+          + (f"  ayrıklaştırma bandı %{d['kesit_cd_band_pct']}"
+             if d.get("kesit_cd_band_pct") is not None else "") + "\n")
     for n in out["noktalar"]:
         s = f"  α={n['alpha']:>5.1f}°  Cl={n['Cl']:.4f}  CDi={n['CDi']:.5f}"
         if "Cd_toplam" in n:
-            s += f"  Cd={n['Cd_toplam']:.5f}"
+            s += (f"  Cd_profil={n['Cd_profil']:.5f}  Cd={n['Cd_toplam']:.5f}"
+                  + (f" ±%{n['Cd_band_pct']}" if "Cd_band_pct" in n else ""))
         print(s)
         for k in ("uyari", "Cd_notu"):
             if k in n:

@@ -70,6 +70,24 @@ ARACLAR: dict[str, dict] = {
         "varsayilan": ([r"C:\Program Files\OpenRocket\OpenRocket.jar"] if WINDOWS
                        else ["/opt/openrocket/OpenRocket.jar"]),
     },
+    "xfoil": {
+        # NEDEN EKLENDİ: düşük-Re geçişli 2B kesit poları RANS'la üretilemedi.
+        # ÖLÇÜLDÜ (Re=3.5e5, C-grid): ilk hücre 3e-5 → yakınsıyor ama Cl 0.17-0.32
+        # (beklenen ~0.44); 8e-6 → IRAKSIYOR (Cd=-691205). Kurulumun relaxation'ı
+        # Re=3.4e6 için elle ayarlanmış ve 10 kat farklı Re'ye taşınmıyor.
+        # XFOIL'in panel + e^N yöntemi tam bu rejim için tasarlandı.
+        # WSL'de: sudo apt install xfoil   (Debian/Ubuntu paketi, 6.99)
+        "aciklama": "XFOIL 6.99 — 2B kesit poları (panel + e^N geçiş)",
+        "env": "XFOIL_EXE",
+        "path_isim": ["xfoil"],
+        # Windows'ta da varsayilan VERILIR: bu makinede XFOIL WSL icinde kurulu ve
+        # `\\wsl$` UNC yolu Windows tarafindan gorulebilir. Bos birakmak "aranacak
+        # yer yok" demek olurdu; `bul()` NEREYE BAKTIGINI her zaman soylemeli.
+        "varsayilan": ([r"\\wsl$\Ubuntu\usr\bin\xfoil"] if WINDOWS
+                       else ["/usr/bin/xfoil", "/usr/local/bin/xfoil"]),
+        "wsl": True,          # Windows'ta WSL üzerinden sürülür
+        "zorunlu": False,
+    },
     "java_home": {
         "aciklama": "JVM kökü — orhelper JAVA_HOME ister",
         "env": "JAVA_HOME", "dizin": True,

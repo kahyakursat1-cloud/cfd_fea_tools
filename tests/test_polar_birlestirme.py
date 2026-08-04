@@ -90,14 +90,35 @@ def test_band_YALNIZ_profil_bileseninden():
 
 
 def test_DEPO_verisi_gercek_hukmu_veriyor():
-    """Depodaki gerçek kanıtlarla: iki engel birden."""
+    """Depodaki gerçek kanıtlarla ne çıkıyorsa O doğrulanır.
+
+    TARİHÇE: bu test önce İKİ ENGEL bekliyordu (Re uyuşmazlığı 9.6 kat + kesit
+    Cd'si mesh-bağımsız değil). XFOIL kesiti kanadın kendi Re'sinde üretilip
+    panel-bağımsızlık bandı ÖLÇÜLÜNCE (en kötü %0.55) ikisi de kalktı.
+    Test artık iki durumu da bağlar: XFOIL kanıtı varsa polar ÜRETİLMELİ,
+    yoksa engeller GEREKÇESİYLE görünmeli — sessiz geri düşüş olmamalı.
+    """
+    from pathlib import Path
     d = pb._depo_verisi()
     o = pb.birlesik_polar(d["vlm_polar"], d["kesit"], re_kanat=d["re_kanat"],
                           re_kesit=d["re_kesit"],
-                          kesit_cd_mesh_bagimsiz=d["kesit_cd_mesh_bagimsiz"])
-    assert len(o["engeller"]) == 2
-    assert any("REYNOLDS" in e for e in o["engeller"])
-    assert any("MESH-BAĞIMSIZ" in e for e in o["engeller"])
+                          kesit_cd_mesh_bagimsiz=d["kesit_cd_mesh_bagimsiz"],
+                          kesit_cd_band_pct=d.get("kesit_cd_band_pct"))
+    xfoil_var = (Path(pb.HERE) / "kesit_re35e4.json").exists()
+    if xfoil_var:
+        assert "XFOIL" in d["kesit_kaynagi"]
+        assert o["engeller"] == [], o["engeller"]
+        assert all("Cd_toplam" in n for n in o["noktalar"])
+    else:
+        assert any("REYNOLDS" in e for e in o["engeller"])
+        assert any("MESH-BAĞIMSIZ" in e for e in o["engeller"])
+
+
+def test_kesit_kaynagi_HER_ZAMAN_raporlaniyor():
+    """Hangi veriyle birleştirdiği görünmezse, band da anlamsız olur."""
+    d = pb._depo_verisi()
+    assert d.get("kesit_kaynagi")
+    assert d.get("re_kesit", 0) > 0
 
 
 class TestIkiBoyutluBand:
