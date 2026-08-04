@@ -98,3 +98,44 @@ def test_DEPO_verisi_gercek_hukmu_veriyor():
     assert len(o["engeller"]) == 2
     assert any("REYNOLDS" in e for e in o["engeller"])
     assert any("MESH-BAĞIMSIZ" in e for e in o["engeller"])
+
+
+class TestIkiBoyutluBand:
+    """2B çalışmada temsili hücre boyu h = N^(-1/2), N^(-1/3) DEĞİL.
+
+    3B formülünü 2B veriye uygulamak SESSİZ bir hatadır: (200,60,100) →
+    (260,78,130) ailesinde gerçek h oranı 1.30 iken N^(-1/3) 1.19 verir. Celik'in
+    r≥1.3 şartı SAĞLANDIĞI HALDE sağlanmadı görünür, gözlenen mertebe p yanlış
+    çıkar ve band şişer.
+
+    ÖLÇÜLDÜ (aynı sentetik veri): boyut=3 → U=%19.92, boyut=2 → U=%9.80. İki kat.
+    """
+
+    _C = [32000, 54080, 91260, 154880]
+    _CD = [0.0130, 0.0119, 0.0114, 0.0112]
+
+    def test_boyut_bandi_DEGISTIRIYOR(self):
+        from report_generator import band_from_levels
+        u3 = band_from_levels(self._C, self._CD, boyut=3)["u_pct"]
+        u2 = band_from_levels(self._C, self._CD, boyut=2)["u_pct"]
+        assert u3 > 1.8 * u2, (u3, u2)
+
+    def test_2B_ailede_oran_sarti_SAGLANIYOR(self):
+        r = [(self._C[i + 1] / self._C[i]) ** 0.5 for i in range(3)]
+        assert min(r) >= 1.29                       # tasarlanan r≈1.3
+        r3 = [(self._C[i + 1] / self._C[i]) ** (1 / 3) for i in range(3)]
+        assert max(r3) < 1.3, "3B formülü şartı YANLIŞ ihlal ettiriyor"
+
+    def test_varsayilan_3_KALDI(self):
+        """Mevcut 3B çağıranların anlamı değişmemeli."""
+        import inspect
+
+        from report_generator import band_from_levels
+        assert inspect.signature(band_from_levels).parameters["boyut"].default == 3
+
+    def test_kampanya_2B_bandi_ISTIYOR(self):
+        """Kampanya scripti boyut=2 geçmezse bandı iki kat şişirir."""
+        from pathlib import Path
+        p = Path(__file__).resolve().parent.parent / "experiments" / "kesit_re35e4.py"
+        if p.exists():
+            assert "boyut=2" in p.read_text(encoding="utf-8")

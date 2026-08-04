@@ -171,7 +171,7 @@ def least_squares_gci(h_list, f_list):
 GCI_MIN_ORAN = 1.3   # Celik (2008): ardisik seviyeler arasi h orani SART
 
 
-def band_from_levels(cells, cds, min_oran=GCI_MIN_ORAN):
+def band_from_levels(cells, cds, min_oran=GCI_MIN_ORAN, boyut=3):
     """Seviye dizisinden SAYISAL BELIRSIZLIK — kuralin TEK KAYNAGI.
 
     Neden ayri bir fonksiyon: ayni hiyerarsi boru hattinda satir-ici yaziliydi ve
@@ -186,6 +186,12 @@ def band_from_levels(cells, cds, min_oran=GCI_MIN_ORAN):
     r>=1.3 ve p araliginda) > salinim bandi U=3·Δ_M. Asimptotik OLMAYAN
     Richardson sayisi HICBIR dalda kullanilmaz.
 
+    `boyut`: 2 ya da 3. Temsili hucre boyu h = N^(-1/boyut). 2B calismada 3B
+    formulunu kullanmak SESSIZ bir hatadir: (200,60,100)->(260,78,130) ailesinde
+    gercek h orani 1.30 iken N^(-1/3) 1.19 verir, yani Celik'in r>=1.3 sarti
+    saglandigi halde SAGLANMADI gorunur ve gozlenen mertebe p de yanlis cikar.
+    Varsayilan 3 — mevcut cagiranlarin anlami degismez.
+
     Doner: {"u_pct", "kaynak", "yontem", "f_exact"} | None (seviye < 2).
     """
     pairs = sorted(((c, f) for c, f in zip(cells, cds) if c and f is not None),
@@ -194,7 +200,7 @@ def band_from_levels(cells, cds, min_oran=GCI_MIN_ORAN):
         return None
     n_cells = [p[0] for p in pairs]
     f = [p[1] for p in pairs]
-    h = [c ** (-1.0 / 3.0) for c in n_cells]
+    h = [c ** (-1.0 / float(boyut)) for c in n_cells]
     if len(pairs) >= 4:
         lsr = least_squares_gci(h, f)
         if lsr:
