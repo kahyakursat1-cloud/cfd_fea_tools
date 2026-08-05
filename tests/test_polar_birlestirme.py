@@ -219,3 +219,69 @@ class TestProfilAracinProfiliMi:
         d = pb._depo_verisi()
         assert d.get("arac_profili"), "aracin profili okunmuyor"
         assert d.get("kesit_profili"), "kesit profili okunmuyor"
+
+
+class TestSpanVerimi:
+    """VLM'in İNDÜKLENEN DİRENCİ hiç doğrulanmamıştı.
+
+    `vlm_capa` VLM'i sade DİKDÖRTGEN kanatta doğruladı ve orada doğrulanan şey
+    TAŞIMA EĞİMİYDİ. Birleştirici ise Cd_toplam'a CDi'yi de VLM'den katıyor.
+    ÖLÇÜLDÜ (alan/açıklık/AR inşa edilen geometriden sabit doğrulanmış):
+    taper 1.0/0.85/0.7/0.5 → e = 1.032/1.129/1.268/1.601. Düzlemsel kanatta
+    e≤1 matematiksel sınırdır. Kamburluk, gövde, kuyruk, uç kümelemesi, iz
+    gevşetmesi, panel sayısı ve ince/kalın yüzey ayrı ayrı elendi.
+    """
+
+    _KANIT = {"1.0": 1.0322, "0.85": 1.129, "0.7": 1.2681, "0.5": 1.6006}
+
+    def test_fiziksel_olmayan_e_MUTLAK_Cd_engelliyor(self):
+        # CDi'yi yariya bolmek e'yi ikiye katlar
+        bozuk = [{**p, "Cd_i": p["Cd_i"] / 2} for p in _VLM]
+        o = pb.birlesik_polar(bozuk, _KESIT, **_UYUMLU, vlm_ar=6.0)
+        assert any("SPAN VERİMİ" in e or "İNDÜKLENEN" in e for e in o["engeller"])
+        assert all("Cd_toplam" not in n for n in o["noktalar"])
+        assert all("Cl" in n for n in o["noktalar"])       # TAŞIMA etkilenmez
+
+    def test_saglikli_e_engel_URETMIYOR(self):
+        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, vlm_ar=6.0)
+        assert not any("İNDÜKLENEN" in e for e in o["engeller"])
+
+    def test_ar_verilmezse_KONTROL_EDILMEDI_deniyor(self):
+        """Sessiz atlama, geçmiş hükmüyle aynı şey değildir."""
+        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU)
+        assert any("KONTROL EDİLMEDİ" in u for u in o["uyarilar"])
+
+    def test_TAPER_kapisi_arac_polari_gecse_de_ateşliyor(self):
+        """Tam araç polarında e≤1 GEÇMESİ temize çıkarmaz: ölçüldü ki izole
+        kanat e=1.19 iken tam araç e=0.89 — kuyruk ihlali maskeliyor."""
+        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, vlm_ar=6.0,
+                              vlm_taper=0.7, taper_kaniti=self._KANIT)
+        assert not any("İNDÜKLENEN" in e for e in o["engeller"])   # polar temiz
+        assert any("TAPER" in e for e in o["engeller"])            # planform degil
+        assert all("Cd_toplam" not in n for n in o["noktalar"])
+
+    def test_taper_1_engel_URETMIYOR(self):
+        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, vlm_ar=6.0,
+                              vlm_taper=1.0, taper_kaniti=self._KANIT)
+        assert not any("TAPER" in e for e in o["engeller"])
+
+    def test_kanit_KAPSAMIYORSA_ekstrapolasyon_YOK(self):
+        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, vlm_ar=6.0,
+                              vlm_taper=0.3, taper_kaniti=self._KANIT)
+        assert any("KAPSAMIYOR" in u for u in o["uyarilar"])
+        assert not any("TAPER'DA SAPIYOR" in e for e in o["engeller"])
+
+    def test_kanit_DOSYADAN_geliyor_koda_gomulu_DEGIL(self):
+        """Sayılar değişirse kapı da değişmeli; tersi olursa kapı eskir."""
+        import inspect
+        # YORUM SATIRLARI HARIC: olculen sayilarin GEREKCEDE yazili olmasi
+        # istenen seydir; yasak olan KARAR MANTIGINDA sabit durmalaridir.
+        kod = "\n".join(s.split("#")[0] for s in
+                        inspect.getsource(pb.birlesik_polar).splitlines())
+        for e in ("1.268", "1.601", "1.129"):
+            assert e not in kod, f"olculen deger {e} karar mantigina GOMULMUS"
+
+    def test_span_verimi_TANIMI(self):
+        # eliptik: CDi = Cl²/(π·AR) → e = 1
+        assert abs(pb.span_verimi(0.5, 0.5 ** 2 / (3.14159265 * 6.0), 6.0) - 1.0) < 1e-6
+        assert pb.span_verimi(0.0, 0.0, 6.0) is None

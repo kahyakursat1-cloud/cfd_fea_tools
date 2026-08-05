@@ -390,11 +390,17 @@ if __name__ == "__main__":
         cikti = {
             "vaka": f"VSPAERO VLM polar — {a.name}, alfalar={alphas}",
             "polar": res,
-            "_kisit": ("KAMBURLUK UYGULANMIYOR: _set_naca_profile(apply_camber=False) "
-                       "— OpenVSP 3.50.4 VLM kamburlu kesitte yuksek alfada iraksiyor. "
+            "_kisit": ("KAMBURLUK UYGULANMIYOR: _set_naca_profile(apply_camber=False). "
                        "Sonuc: alpha_L0 URETILEMEZ ve Cl(0)=0.0 bir OLCUM DEGIL, "
-                       "kurulumun dogrudan sonucudur. Bu polar YALNIZ tasima egimi ve "
-                       "induklenen direnc icin gecerlidir; mutlak Cl OpenFOAM'dan gelir."),
+                       "kurulumun dogrudan sonucudur. "
+                       "IRAKSAMA GEREKCESI KISMEN CURUDU (olculdu 2026-08-05): "
+                       "apply_camber=True MiniHawk'ta alpha=0/2/4/6/8'de TEMIZ "
+                       "yakinsiyor (Cl(0)=0.2926). Yuksek alfa denenmedi, yani "
+                       "iraksama iddiasi alpha>8 icin ACIK KALIYOR. "
+                       "INDUKLENEN DIRENC AYRI BIR SORUN: bu kurulumda span verimi "
+                       "Munk sinirini asiyor (taper 0.7 -> e=1.268), bkz. "
+                       "vlm_taper_capa.json. Bu polar tasima EGIMI icin gecerlidir; "
+                       "CDi mutlak surukleme hesabina KATILAMAZ."),
             "_uretim": "Üretim: python pipeline.py vspaero " + " ".join(str(x) for x in alphas),
         }
         # encoding ACIK olmali: Windows'ta varsayilan cp1254 ve ensure_ascii=False ile

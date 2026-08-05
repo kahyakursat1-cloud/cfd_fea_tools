@@ -23,6 +23,9 @@ sessizce yutmak, bu depoda avlanan kusurun ta kendisidir. Kapılar:
   3. MESH-BAĞIMSIZ kesit Cd'si yakınsamış mı — değilse MUTLAK Cd üretilmez
   4. α ÖRTÜŞMESİ   ekstrapolasyon yok
   5. LİNEER BÖLGE  2B geçiş modeli α≥10°'de bozuluyor (ölçüldü: Cl hatası %45)
+  6. PROFİL EŞLEŞMESİ kesit verisi ARACIN profiline mi ait
+  7. SPAN VERİMİ   VLM'in CDi'si Munk sınırını (e≤1) aşıyor mu — ölçüldü ki
+                   sivriltilmiş kanatta aşıyor (taper 0.7 → e=1.268)
 
 CLI:  python polar_birlestirme.py            (depodaki kanıtlarla dener)
 """
@@ -45,6 +48,43 @@ LINEER_ALFA_MAX = 8.0
 # alpha=0'da |Cl| bu esigin ustundeyse kesit KAMBURLU sayilir. Simetrik profil
 # alpha=0'da tam sifir verir; sayisal gurultu bu esigin cok altindadir.
 KAMBUR_ESIGI = 0.02
+
+# Span verimi e = Cl²/(π·AR·CDi). Düzlemsel kanatta e ≤ 1 MATEMATİKSEL sınırdır
+# (Munk); eliptik yükleme üst sınırdır, aşılamaz.
+E_UST_SINIR = 1.0
+# Engel eşiği sınırın kendisi DEĞİL, çünkü ölçüldü ki VLM temiz dikdörtgen
+# kanatta bile e=1.032 veriyor ve bu fazlalık panel inceltmesiyle AZALIYOR
+# (28 panel 1.100 → 80 panel 1.032, bkz. vlm_taper_capa). O mertebe ayrıklaştırma
+# kaymasıdır. Taper etkisi FARKLI mertebede ve inceltmeyle kapanmıyor
+# (taper 0.7 → 1.268, taper 0.5 → 1.601). Eşik ikisini ayırır.
+E_ENGEL_ESIGI = 1.05
+
+
+def span_verimi(cl: float, cdi: float, ar: float) -> float | None:
+    """e = Cl²/(π·AR·CDi). Taşımasız/direncsiz noktada tanımsız."""
+    if not cdi or not cl or not ar:
+        return None
+    return cl ** 2 / (3.141592653589793 * ar * cdi)
+
+
+def _e_taperde(kanit: dict, taper: float) -> float | None:
+    """Ölçülen taper→e tablosundan ara değer. Tablo dışına ÇIKILMAZ."""
+    if not kanit:
+        return None
+    t = sorted(float(k) for k in kanit)
+    if not t or taper < t[0] or taper > t[-1]:
+        return None
+    for i in range(len(t) - 1):
+        if t[i] <= taper <= t[i + 1]:
+            e0, e1 = float(kanit[_anahtar(kanit, t[i])]), float(kanit[_anahtar(kanit, t[i + 1])])
+            if t[i + 1] == t[i]:
+                return e0
+            return e0 + (e1 - e0) * (taper - t[i]) / (t[i + 1] - t[i])
+    return None
+
+
+def _anahtar(kanit: dict, deger: float) -> str:
+    return next(k for k in kanit if abs(float(k) - deger) < 1e-12)
 
 
 def _simetrik_mi(polar: list[dict], cl_anahtar: str = "Cl") -> bool | None:
@@ -98,7 +138,10 @@ def birlesik_polar(vlm_polar: list[dict], kesit: list[dict], *,
                    vlm_band_pct: float | None = None,
                    vlm_band_kaynagi: str | None = None,
                    kesit_profili: str | None = None,
-                   arac_profili: str | None = None) -> dict:
+                   arac_profili: str | None = None,
+                   vlm_ar: float | None = None,
+                   vlm_taper: float | None = None,
+                   taper_kaniti: dict | None = None) -> dict:
     """VLM + 2B kesit → 3B polar. Kapılardan geçmeyen bileşen ÜRETİLMEZ.
 
     Döner: {"noktalar": [...], "engeller": [...], "uyarilar": [...], "verdikt"}
@@ -142,6 +185,61 @@ def birlesik_polar(vlm_polar: list[dict], kesit: list[dict], *,
         engeller.append(
             "KESİT Cd MESH-BAĞIMSIZ DEĞİL: bu veriden MUTLAK profil sürüklemesi "
             "üretilmez. (Taşıma etkilenmez — Cl mesh'e çok daha az duyarlıdır.)")
+
+    # VLM'İN İNDÜKLENEN DİRENCİ FİZİKSEL Mİ? Bu kapı yoktu: `vlm_capa` VLM'i
+    # SADE DİKDÖRTGEN kanatta doğrulamıştı ve orada doğrulanan şey TAŞIMA
+    # EĞİMİYDİ. Birleştirici ise Cd_toplam'a CDi'yi de VLM'den katıyor.
+    #
+    # ÖLÇÜLDÜ (vlm_taper_capa, alan/açıklık/AR inşa edilen geometriden sabit
+    # doğrulanmış): taper 1.0→0.5 arasında e = 1.032 / 1.129 / 1.268 / 1.601.
+    # Teorik beklenti CDi'nin %1-2 düşmesiydi; ölçülen %30. MiniHawk taper=0.7,
+    # yani CDi'si ~%23 DÜŞÜK. Kamburluk, gövde, kuyruk, uç kümelemesi, iz
+    # gevşetmesi ve panel sayısı ayrı ayrı elendi.
+    e_ler = [(float(p["alpha"]), span_verimi(float(p.get("Cl", 0.0)),
+                                             float(p.get("Cd_i", 0.0)), vlm_ar))
+             for p in vlm_polar] if vlm_ar else []
+    e_asan = [(a, e) for a, e in e_ler if e is not None and e > E_ENGEL_ESIGI]
+    e_sinir_ustu = [(a, e) for a, e in e_ler
+                    if e is not None and E_UST_SINIR < e <= E_ENGEL_ESIGI]
+    if e_asan:
+        engeller.append(
+            "VLM İNDÜKLENEN DİRENCİ FİZİKSEL DEĞİL: span verimi "
+            + ", ".join(f"α={a:g}°→e={e:.3f}" for a, e in e_asan)
+            + f" — düzlemsel kanatta e≤{E_UST_SINIR} matematiksel sınırdır (Munk). "
+              "CDi bu kadar düşükse Cd_toplam da düşük çıkar; mutlak sürükleme "
+              "yayınlanmaz. Ölçüm ve elenen adaylar: vlm_taper_capa.json")
+    elif e_sinir_ustu:
+        uyarilar.append(
+            "SPAN VERİMİ SINIRIN HAFİF ÜSTÜNDE: "
+            + ", ".join(f"α={a:g}°→e={e:.3f}" for a, e in e_sinir_ustu)
+            + f" (engel eşiği {E_ENGEL_ESIGI}). Bu mertebe VLM'in panel "
+              "ayrıklaştırma kayması olarak ölçüldü ve inceltmeyle azalıyor; "
+              "CDi optimist tarafta, Cd_toplam ALT SINIR gibi okunmalı")
+    elif not e_ler:
+        uyarilar.append(
+            "SPAN VERİMİ KONTROL EDİLMEDİ: vlm_ar verilmedi, dolayısıyla VLM'in "
+            "indüklenen direncinin fiziksel sınır içinde olup olmadığı BİLİNMİYOR")
+
+    # TAM ARAÇ POLARINDA e≤1 GEÇMESİ TEMİZE ÇIKARMAZ. Munk sınırı TEK DÜZLEMSEL
+    # yüzey için teoremdir; kanat+kuyruk sisteminde değil. ÖLÇÜLDÜ (MiniHawk):
+    # izole kanat e=1.19 (İHLAL) iken tam araç e=0.89 — kuyruk, taşımaya az
+    # katkı verip direnç eklediği için ihlali MASKELİYOR. Bu yüzden taper kusuru
+    # AYRI kapıdır ve poların kendisine değil, KANAT PLANFORMUNA bakar.
+    if vlm_taper is not None and taper_kaniti:
+        e_taper = _e_taperde(taper_kaniti, vlm_taper)
+        if e_taper is None:
+            uyarilar.append(
+                f"TAPER KANITI KAPSAMIYOR: kanat taper={vlm_taper:g}, ölçülen "
+                f"taperler {sorted(taper_kaniti)}. CDi sapması bu planformda "
+                "ölçülmedi — ekstrapolasyon yapılmaz")
+        elif e_taper > E_ENGEL_ESIGI:
+            engeller.append(
+                f"VLM CDi TAPER'DA SAPIYOR: kanat taper={vlm_taper:g} ve bu "
+                f"taperde izole kanatta span verimi e={e_taper:.3f} ÖLÇÜLDÜ "
+                f"(sınır {E_UST_SINIR}). CDi ~%{(1 - 1 / e_taper) * 100:.0f} DÜŞÜK "
+                "çıkıyor; mutlak sürükleme yayınlanmaz. Tam aracın polarında e "
+                "sınırın altında görünebilir — kuyruk ihlali maskeler, temize "
+                "çıkarmaz. Ölçüm: vlm_taper_capa.json")
 
     polar2b = kesit_polari(kesit)
     noktalar = []
@@ -227,6 +325,16 @@ def _depo_verisi() -> dict:
     arac_profili = getattr(getattr(ac.wing, "airfoil", None), "name", None)
     kiris = ac.wing.root_chord()
     re_kanat = 15.0 * kiris / 1.5e-5
+    # AR span verimi kapisi icin GEREKLI. Dataclass'taki aspect_ratio alanina
+    # DEGIL, aciklik/alandan turetilene bakilir: ikisi celisirse VLM'in
+    # gordugu geometri span/alandir.
+    vlm_ar = ac.wing.span ** 2 / ac.wing.area
+    vlm_taper = getattr(ac.wing, "taper_ratio", None)
+    # TAPER KANITI DOSYADAN OKUNUR, KODA GOMULMEZ: sayilar degisirse kapi da
+    # degisir, tersi degil.
+    _tc = HERE / "vlm_taper_capa.json"
+    taper_kaniti = (json.loads(_tc.read_text(encoding="utf-8")).get("span_verimi")
+                    if _tc.exists() else None)
 
     xf = HERE / "kesit_re35e4.json"
     if xf.exists():
@@ -245,7 +353,8 @@ def _depo_verisi() -> dict:
                 "vlm_band_kaynagi": vlm_band_kaynagi,
                 "arac_profili": arac_profili,
                 "kesit_profili": f"NACA{d.get('naca')}" if d.get("naca") else None,
-                "kiris": kiris}
+                "vlm_ar": vlm_ar, "vlm_taper": vlm_taper,
+                "taper_kaniti": taper_kaniti, "kiris": kiris}
 
     tr = json.loads((HERE / "transition_results.json").read_text(encoding="utf-8"))
     gci = json.loads((HERE / "gci_airfoil.json").read_text(encoding="utf-8"))
@@ -259,7 +368,8 @@ def _depo_verisi() -> dict:
             "kesit_kaynagi": "RANS O-grid (Re=3.4e6 — kanadin Re'si DEGIL)",
             "vlm_band_pct": vlm_band, "vlm_band_kaynagi": vlm_band_kaynagi,
             "arac_profili": arac_profili, "kesit_profili": "NACA0012",
-            "kiris": kiris}
+            "vlm_ar": vlm_ar, "vlm_taper": vlm_taper,
+            "taper_kaniti": taper_kaniti, "kiris": kiris}
 
 
 def main() -> int:
@@ -275,6 +385,9 @@ def main() -> int:
                          vlm_band_kaynagi=d.get("vlm_band_kaynagi"),
                          kesit_profili=d.get("kesit_profili"),
                          arac_profili=d.get("arac_profili"),
+                         vlm_ar=d.get("vlm_ar"),
+                         vlm_taper=d.get("vlm_taper"),
+                         taper_kaniti=d.get("taper_kaniti"),
                          **{k: d[k] for k in ("kesit_simetrik", "vlm_simetrik")
                             if d.get(k) is not None})
     print(f"MiniHawk kiris={d['kiris']:.3f} m, V=15 m/s → Re={d['re_kanat']:.2e}")

@@ -1,0 +1,71 @@
+{
+  "vaka": "VLM induklenen direnci — taper suurmesi, AR=5, alpha=4, panel=80",
+  "_neden": "vlm_capa dikdortgen kanatta TASIMA egimini dogruladi; CDi'yi DOGRULAMADI. Birlestirici CDi'yi de VLM'den aliyor ve gercek kanatlar sivriltilmis.",
+  "olcum": [
+    {
+      "taper": 1.0,
+      "Cl": 0.268962,
+      "CDi": 0.0044618,
+      "span_verimi_e": 1.0322,
+      "insa_edilen": {
+        "TotalSpan": 1.5,
+        "TotalArea": 0.45,
+        "TotalAR": 5.0
+      }
+    },
+    {
+      "taper": 0.85,
+      "Cl": 0.272842,
+      "CDi": 0.0041977,
+      "span_verimi_e": 1.129,
+      "insa_edilen": {
+        "TotalSpan": 1.5,
+        "TotalArea": 0.45,
+        "TotalAR": 5.0
+      }
+    },
+    {
+      "taper": 0.7,
+      "Cl": 0.276066,
+      "CDi": 0.0038262,
+      "span_verimi_e": 1.2681,
+      "insa_edilen": {
+        "TotalSpan": 1.5,
+        "TotalArea": 0.45,
+        "TotalAR": 5.0
+      }
+    },
+    {
+      "taper": 0.5,
+      "Cl": 0.280848,
+      "CDi": 0.0031373,
+      "span_verimi_e": 1.6006,
+      "insa_edilen": {
+        "TotalSpan": 1.5,
+        "TotalArea": 0.45,
+        "TotalAR": 5.0
+      }
+    }
+  ],
+  "span_verimi": {
+    "1.0": 1.0322,
+    "0.85": 1.129,
+    "0.7": 1.2681,
+    "0.5": 1.6006
+  },
+  "e_max": 1.6006,
+  "sinir": {
+    "munk_duzlemsel": 1.0,
+    "engel_esigi": 1.05
+  },
+  "elenen_adaylar": [
+    "kamburluk",
+    "govde+kuyruk",
+    "uc kumelemesi",
+    "iz gevsetmesi (WakeNumIter 1..10)",
+    "ince/kalin yuzey (ThinGeomSet etkisiz)"
+  ],
+  "_kisit": "KOK NEDEN BULUNMADI — bulunan sey ETKININ TAPER'A BAGLI oldugudur. Panel inceltmesi ihlali azaltiyor (28 panelde e=1.100, 80 panelde 1.032 dikdortgende) ama sifirlamiyor; taper etkisi ayri bir mertebede ve inceltmeyle kapanmiyor. Bu olcum alpha=4'te tek noktadir; alpha bagimligi olculmedi.",
+  "_uretim": "Üretim: python experiments/vlm_taper_capa.py",
+  "verdikt": "⛔ span verimi e: taper 1.0→1.0322, taper 0.85→1.129, taper 0.7→1.2681, taper 0.5→1.6006. Duzlemsel kanatta e≤1.0 MATEMATIKSEL SINIRDIR (Munk). IHLAL: taper=0.85: e=1.129; taper=0.7: e=1.2681; taper=0.5: e=1.6006 — bu kurulumda VLM'in CDi'si sivriltilmis kanatta MUTLAK SURUKLEMEYE KATILAMAZ."
+}
