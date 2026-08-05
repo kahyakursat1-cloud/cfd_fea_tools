@@ -113,6 +113,23 @@ def aircraft_to_vsp(aircraft, vsp3_path: str = None) -> str:
     if naca_code:
         _set_naca_profile(wing_id, naca_code)
 
+    # İNSİDANS (kanat montaj açısı). ÖNCEDEN HİÇ UYGULANMIYORDU: dataclass 5
+    # şablonda `incidence` tanımlıyor ama depoda onu OKUYAN tek satır yoktu —
+    # yani beyan edilen geometri sessizce düşüyordu. ÖLÇÜLDÜ: inşa edilen
+    # modelde Y_Rel_Rotation=0, Twist=0 ve simetrik kesitte Cl(0°) TAM sıfır.
+    # İşaret konvansiyonu tahmin edilmedi, ölçüldü: +2° → Cl(0)=+0.1291,
+    # −2° → −0.1291 (Twist yolu 0.1291 ile aynı sonucu veriyor).
+    #
+    # UYGULANMIYOR — ve bu bir ihmal değil, ÖLÇÜLMÜŞ bir kısıt. İki yol da
+    # tam araçta VSPAERO'yu bozuyor:
+    #   Y_Rel_Rotation=2  → Cl=3.88, CDi=−5.18 (negatif indüklenen direnç)
+    #   Twist=2 (tüm XSec) → CDi α=0'da 0.00972, α=4'te 0.00998; indüklenen
+    #                        direnç Cl² ile ölçeklenmeli, DÜZ duruyor
+    # İzole kanatta ikisi de temiz çalışıyor ve aynı sonucu veriyor
+    # (+2° → Cl(0)=+0.1291), yani sorun konvansiyonda değil gövde/kuyrukla
+    # etkileşimde. Yanlış sayı yayınlamaktansa eksik geometri yayınlanır;
+    # eksiklik `_kisit` alanında ADI GEÇEREK taşınır.
+
     # Simetri: sol-sağ
     vsp.SetParmValUpdate(vsp.FindParm(wing_id, "Sym_Planar_Flag", "Sym"),
                          vsp.SYM_XZ)
@@ -315,6 +332,13 @@ def run_vspaero_polar(aircraft, alphas=(0, 4, 8, 12, 16), mach: float = 0.05,
             "uc_kumeleme": VLM_UC_KUMELEME,
             "panel_uygulanan_kanat": panel_uygulanan,
         })
+    # KABUL EDILEBILIRLIK KAPISI — tanim `validity_envelope`'ta (deponun
+    # "savunulabilir" tek evi); burada yalnizca UYGULANIR.
+    from validity_envelope import vlm_kabul_edilebilir
+    for n in out:
+        gerekce = vlm_kabul_edilebilir(n)
+        if gerekce:
+            n["kabul_edilemez"] = gerekce
     return out
 
 
@@ -382,7 +406,10 @@ if __name__ == "__main__":
         print(f"VSPAERO VLM polar: alphas={alphas}", flush=True)
         res = run_vspaero_polar(a, alphas=alphas)
         for r in res:
-            print(f"  alpha={r['alpha']}: Cl={r['Cl']} Cd_i={r['Cd_i']} Cm={r['Cm']}", flush=True)
+            print(f"  alpha={r['alpha']}: Cl={r['Cl']} Cd_i={r['Cd_i']} Cm={r['Cm']}"
+                  + (f"  ⛔ {r['kabul_edilemez']}" if r.get("kabul_edilemez") else ""),
+                  flush=True)
+        reddedilen = [r for r in res if r.get("kabul_edilemez")]
         # DÜZ LİSTE DEĞİL, SÖZLÜK: liste hâlinde kanit.py bunu "artefakt" sınıfına
         # atıyordu — yani üretici komutu ve KISITI hiçbir yerde kayıtlı değildi.
         # En yanıltıcı olanı kamburluk kısıtı: bu yolda Cl(0°) TANIM GEREĞİ 0'dır,
@@ -400,7 +427,14 @@ if __name__ == "__main__":
                        "INDUKLENEN DIRENC AYRI BIR SORUN: bu kurulumda span verimi "
                        "Munk sinirini asiyor (taper 0.7 -> e=1.268), bkz. "
                        "vlm_taper_capa.json. Bu polar tasima EGIMI icin gecerlidir; "
-                       "CDi mutlak surukleme hesabina KATILAMAZ."),
+                       "CDi mutlak surukleme hesabina KATILAMAZ. "
+                       "INSIDANS UYGULANMIYOR: dataclass 2 derece diyor ama iki "
+                       "uygulama yolu da tam aracta VSPAERO'yu bozuyor (olculdu: "
+                       "Y_Rel_Rotation -> CDi=-5.18; Twist -> CDi alfa ile sabit). "
+                       "Yani bu polar 0 derece insidansli bir kanada aittir."),
+            "kabul_edilemez_noktalar": [
+                {"alpha": r["alpha"], "gerekce": r["kabul_edilemez"]}
+                for r in reddedilen],
             "_uretim": "Üretim: python pipeline.py vspaero " + " ".join(str(x) for x in alphas),
         }
         # encoding ACIK olmali: Windows'ta varsayilan cp1254 ve ensure_ascii=False ile

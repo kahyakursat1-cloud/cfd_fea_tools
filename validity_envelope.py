@@ -608,3 +608,31 @@ def banner_md(verdicts: list[Verdict]) -> str:
             lines.append(f"> {_ICON[x.klass]} **{x.quantity}:** {x.message}")
     lines.append("")
     return "\n".join(lines)
+
+
+# ── VLM (VSPAERO) kabul edilebilirliği ───────────────────────────────────────
+# İndüklenen direnç negatif OLAMAZ; |Cl| bu mertebeyi aşarsa çözüm ıraksamıştır
+# (ince kanatta stall öncesi Cl ~1.5'i geçmez).
+CL_SACMA_ESIGI = 3.0
+
+
+def vlm_kabul_edilebilir(nokta: dict) -> str | None:
+    """Iraksamis VLM noktasi icin GEREKCE dondur; saglamsa None.
+
+    NEDEN: VLM yolu iraksamis bir kosuyu HICBIR kontrolden gecirmeden kanit
+    dosyasina yaziyordu. OLCULDU (insidans denemesi, 2026-08-05): Cl=3.8814,
+    CDi=-5.184165, Cm=-147.28 degerleri vspaero_polar.json'a yazildi ve dosya
+    "polar" olarak yayinlandi. Ayni kusur C-grid kosucusunda da bulunmustu
+    (iraksak kosu icin status: ok yaziliyordu) — orada kapatilmis, VLM yolunda
+    ACIK kalmisti.
+    """
+    cl, cdi = nokta.get("Cl"), nokta.get("Cd_i")
+    if cl is None or cdi is None:
+        return "Cl veya Cd_i sonuçta yok"
+    if cdi < 0:
+        return (f"NEGATIF INDUKLENEN DIRENC (CDi={cdi:g}) — fiziksel olarak "
+                "imkansiz, cozum iraksamis")
+    if abs(cl) > CL_SACMA_ESIGI:
+        return (f"|Cl|={abs(cl):g} > {CL_SACMA_ESIGI} — ince kanatta stall "
+                "oncesi bu mertebe gorulmez, cozum iraksamis")
+    return None

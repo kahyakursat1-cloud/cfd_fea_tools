@@ -178,3 +178,46 @@ class TestGercekGeometriYakinsamasi:
         # Band, GERCEK ARACIN kendi panel serisinden turemeli.
         assert d["kanonik_band"]["u_pct"] == band
         assert d["sablon"] != "dikdortgen_capa"
+
+
+class TestIraksamaKapisi:
+    """VLM yolu IRAKSAMIS kosuyu hicbir kontrolden gecirmeden yayinliyordu.
+
+    ÖLÇÜLDÜ (insidans denemesi, 2026-08-05): Y_Rel_Rotation ile insidans
+    uygulanınca VSPAERO Cl=3.8814, CDi=−5.184165, Cm=−147.28 verdi ve bu
+    değerler vspaero_polar.json'a "polar" olarak YAZILDI. Negatif indüklenen
+    direnç fiziksel olarak imkânsızdır. Aynı kusur C-grid koşucusunda
+    kapatılmıştı; VLM yolunda açık kalmıştı.
+    """
+
+    def test_negatif_CDi_REDDEDILIYOR(self):
+        from validity_envelope import vlm_kabul_edilebilir
+        g = vlm_kabul_edilebilir({"alpha": 0.0, "Cl": 3.8814, "Cd_i": -5.184165})
+        assert g and "NEGATIF" in g
+
+    def test_sacma_Cl_REDDEDILIYOR(self):
+        from validity_envelope import vlm_kabul_edilebilir
+        assert vlm_kabul_edilebilir({"Cl": 3.8814, "Cd_i": 0.01})
+
+    def test_saglikli_nokta_GECIYOR(self):
+        from validity_envelope import vlm_kabul_edilebilir
+        assert vlm_kabul_edilebilir({"Cl": 0.19335, "Cd_i": 0.00268}) is None
+
+    def test_eksik_alan_SESSIZ_GECMIYOR(self):
+        from validity_envelope import vlm_kabul_edilebilir
+        assert vlm_kabul_edilebilir({"Cl": 0.2})
+
+    def test_URETIM_yolu_kapiyi_UYGULUYOR(self):
+        """Tanım var ama çağrılmıyorsa kapı değil, süstür."""
+        src = (ROOT / "openvsp_bridge.py").read_text(encoding="utf-8")
+        assert "vlm_kabul_edilebilir" in src
+        assert "kabul_edilemez" in src
+
+    def test_YAYINLANAN_polar_kapidan_gecmis(self):
+        import json
+        p = ROOT / "vspaero_polar.json"
+        if not p.exists():
+            return
+        from validity_envelope import vlm_kabul_edilebilir
+        for n in json.loads(p.read_text(encoding="utf-8"))["polar"]:
+            assert vlm_kabul_edilebilir(n) is None, (n, "kabul edilemez nokta YAYINDA")
