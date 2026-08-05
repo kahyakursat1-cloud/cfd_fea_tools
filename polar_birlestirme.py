@@ -76,7 +76,8 @@ def birlesik_polar(vlm_polar: list[dict], kesit: list[dict], *,
                    kesit_cd_band_pct: float | None = None,
                    kesit_simetrik: bool = True, vlm_simetrik: bool = True,
                    delta_entegrasyon: float = 0.0,
-                   vlm_band_pct: float | None = None) -> dict:
+                   vlm_band_pct: float | None = None,
+                   vlm_band_kaynagi: str | None = None) -> dict:
     """VLM + 2B kesit → 3B polar. Kapılardan geçmeyen bileşen ÜRETİLMEZ.
 
     Döner: {"noktalar": [...], "engeller": [...], "uyarilar": [...], "verdikt"}
@@ -138,13 +139,18 @@ def birlesik_polar(vlm_polar: list[dict], kesit: list[dict], *,
     else:
         for n in noktalar:
             n["Cl_band_pct"] = vlm_band_pct
+        # METIN KANITTAN URETILIR, SABIT YAZILMAZ. Ilk surumde olculen seri
+        # metne GOMULMUSTU; uc kumelemesi eklenip seri monotonlasinca metin
+        # "dizi MONOTON DEGIL" demeye DEVAM ETTI — yani rapor, uzerinde
+        # calistigi veriyle celisiyordu. Bu depoda avlanan kusurun rapor
+        # katmanindaki hali.
         uyarilar.append(
             f"TAŞIMA BANDI ÖLÇÜLDÜ: ±%{vlm_band_pct} — bu bir DOĞRULAMA bandı "
-            "değil, VLM'in bu geometrideki PANEL SAÇILMASIdır. Ölçüldü "
-            "(MiniHawk): 20/40/60/80 panelde Cl(8°) = 0.1417 / 0.3866 / 0.3815 / "
-            "0.4324 — dizi MONOTON DEĞİL, yani yakınsamış bir değer YOK. Temiz "
-            "dikdörtgen kanat çapasındaki %1.22'lik doğrulama bandı buraya "
-            "TAŞINAMAZ; taşınsaydı olmayan bir kesinlik yayınlanırdı.")
+            "DEĞİL, VLM'in bu geometrideki PANEL AYRIKLAŞTIRMA bandıdır"
+            + (f" ({vlm_band_kaynagi})" if vlm_band_kaynagi else "")
+            + ". Temiz dikdörtgen kanat çapasındaki doğrulama bandı buraya "
+              "TAŞINAMAZ; taşınsaydı olmayan bir kesinlik yayınlanırdı. Ayrıntı: "
+              "vlm_panel_yakinsamasi.json")
 
     verdikt = ("3B polar üretildi (Cl + Cd)" if not engeller else
                "YALNIZ TAŞIMA üretildi — mutlak sürükleme için engeller var: "
@@ -167,9 +173,17 @@ def _depo_verisi() -> dict:
     # VLM TASIMA BANDI: capadaki %1.22 TEMIZ kanata aittir ve gercek araca
     # tasinmaz. Bu geometrinin KENDI panel sacilmasi olculduyse o kullanilir.
     _pk = HERE / "vlm_panel_yakinsamasi.json"
-    vlm_band = None
+    vlm_band = vlm_band_kaynagi = None
     if _pk.exists():
-        vlm_band = json.loads(_pk.read_text(encoding="utf-8")).get("vlm_band_pct")
+        _d = json.loads(_pk.read_text(encoding="utf-8"))
+        vlm_band = _d.get("vlm_band_pct")
+        _kb = _d.get("kanonik_band") or {}
+        _y = _d.get("yakinsama") or {}
+        vlm_band_kaynagi = (
+            f"{_kb.get('kaynak', 'panel serisi')}; dizi "
+            f"{'monoton' if _y.get('monoton') else 'MONOTON DEGIL'}, "
+            f"paneller {_d.get('paneller')}, uc kumeleme "
+            f"{(_d.get('kayitlar') or [{}])[-1].get('uc_kumeleme')}")
     from aircraft_geometry import AircraftLibrary
     ac = AircraftLibrary().get_template("mini_hawk")()
     kiris = ac.wing.root_chord()
@@ -187,6 +201,7 @@ def _depo_verisi() -> dict:
                 "kesit_cd_band_pct": pb.get("en_kotu_sapma_pct"),
                 "kesit_kaynagi": f"XFOIL ({d.get('yontem', '')})",
                 "vlm_band_pct": vlm_band,
+                "vlm_band_kaynagi": vlm_band_kaynagi,
                 "kiris": kiris}
 
     tr = json.loads((HERE / "transition_results.json").read_text(encoding="utf-8"))
@@ -200,6 +215,7 @@ def _depo_verisi() -> dict:
             "kesit_cd_band_pct": None,
             "kesit_kaynagi": "RANS O-grid (Re=3.4e6 — kanadin Re'si DEGIL)",
                 "vlm_band_pct": vlm_band,
+                "vlm_band_kaynagi": vlm_band_kaynagi,
             "kiris": kiris}
 
 
@@ -212,7 +228,8 @@ def main() -> int:
                          re_kanat=d["re_kanat"], re_kesit=d["re_kesit"],
                          kesit_cd_mesh_bagimsiz=d["kesit_cd_mesh_bagimsiz"],
                          kesit_cd_band_pct=d.get("kesit_cd_band_pct"),
-                         vlm_band_pct=d.get("vlm_band_pct"))
+                         vlm_band_pct=d.get("vlm_band_pct"),
+                         vlm_band_kaynagi=d.get("vlm_band_kaynagi"))
     print(f"MiniHawk kiris={d['kiris']:.3f} m, V=15 m/s → Re={d['re_kanat']:.2e}")
     print(f"2B kesit: {d.get('kesit_kaynagi', '?')}  Re={d['re_kesit']:.2e}"
           + (f"  ayrıklaştırma bandı %{d['kesit_cd_band_pct']}"

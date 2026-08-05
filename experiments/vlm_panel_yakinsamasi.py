@@ -5,18 +5,31 @@ NEDEN AYRI BİR ÖLÇÜM: `vlm_capa.py` sade dikdörtgen kanatta VLM'i doğrulad
 TEMİZ bir geometriydi. Gerçek araçta gövde + ana kanat + yatay/dikey kuyruk
 birlikte çözülüyor ve yakınsama davranışı AYNI OLMAK ZORUNDA DEĞİL.
 
-ÖLÇÜLDÜ (MiniHawk, AR=5.00, α=0/4/8):
-    panel   Cl(4)     Cl(8)     CDi(8)     e(8)      ΔCl(8)
-      20   0.08095   0.14173   0.017322   0.0738      —
-      40   0.19272   0.38661   0.011472   0.8294   +172.8%
-      60   0.19412   0.38149   0.010531   0.8798     -1.3%
-      80   0.21254   0.43241   0.014411   0.8260    +13.4%
+ÖLÇÜM 1 — DÜZGÜN ARALIKLI PANEL (OutCluster=1.0), MiniHawk AR=5.00:
+    panel   Cl(8)     e(8)      ΔCl(8)
+      20   0.14173   0.0738      —
+      40   0.38661   0.8294   +172.8%
+      60   0.38149   0.8798     -1.3%
+      80   0.43241   0.8260    +13.4%
+40→60 neredeyse oturuyor ama 60→80 yeniden sıçrıyor: dizi MONOTON DEĞİL, yani
+YAKINSAMIŞ bir Cl YOK. Yalnız son iki kademeye bakmak "oturmuş" derdi.
 
-40→60 neredeyse oturuyor (%1.3) ama 60→80 yeniden %13.4 sıçrıyor: dizi MONOTON
-DEĞİL, yani bu geometride VLM'in YAKINSAMIŞ bir Cl'i YOK. Çapadaki %1.22'lik
-doğrulama bandı buraya TAŞINAMAZ; taşınırsa olduğundan kesin bir sayı yayınlanır.
+ÖLÇÜM 2 — UÇ KÜMELEMESİ eklendi (OutCluster taraması, 40/60/80 panel):
+    1.00 → monoton DEĞİL, saçılma %11.78
+    0.50 → monoton, saçılma %4.65   (ama e salınıyor: 0.91/0.92/0.62)
+    0.25 → monoton, saçılma %2.07   (e 1.04/0.94/0.93, düzenli)
+Düzgün dağılım uç girdabının gradyanını yakalayamıyordu. 0.25 ile:
+    panel   Cl(8)     e(8)
+      20   0.45664   0.6407
+      40   0.41122   1.0369
+      60   0.40295   0.9405
+      80   0.40288   0.9311
+Dizi monoton, son adım %0.02.
 
-Dürüst kullanım: Cl bir SINIRLAMA olarak alınır, bandı da panel saçılmasıdır.
+BAND KANONİK KURALDAN: son-adım farkı (%0.02) bir band DEĞİLDİR — iki kademenin
+yakın olması ayrıklaştırma hatasının sıfıra yakın olduğunu kanıtlamaz. Panel 1B
+bir ayrıklaştırma parametresidir (h~1/N), `band_from_levels(boyut=1)` uygulanır:
+LSR 4-seviye → U = %2.18. Yayınlanan band budur.
 
     conda run -n openvsp python experiments/vlm_panel_yakinsamasi.py [--sablon mini_hawk]
 Çıktı: vlm_panel_yakinsamasi.json
@@ -47,8 +60,10 @@ def calistir(sablon: str = "mini_hawk") -> dict:
         ob.VLM_SPAN_PANEL = panel
         p = ob.run_vspaero_polar(ac, alphas=ALFALAR)
         d = {round(x["alpha"], 1): x for x in p}
-        satir = {"panel": panel, "uygulanan": (p[0].get("panel_uygulanan_kanat")
-                                               if p else None)}
+        satir = {"panel": panel,
+                 "uc_kumeleme": (p[0].get("uc_kumeleme") if p else None),
+                 "uygulanan": (p[0].get("panel_uygulanan_kanat")
+                               if p else None)}
         for a in ALFALAR:
             x = d.get(round(a, 1), {})
             satir[f"Cl_{a:g}"] = x.get("Cl")
@@ -88,20 +103,39 @@ def calistir(sablon: str = "mini_hawk") -> dict:
         "_uretim": (f"Üretim: conda run -n openvsp python "
                     f"experiments/vlm_panel_yakinsamasi.py --sablon {sablon}"),
     }
+    # BAND KANONIK KURALDAN, KENDI HEURISTIGIMDEN DEGIL. Ilk surum bandi "son
+    # kademe degisimi" olarak veriyordu ve kumeleme duzeltmesinden sonra %0.02
+    # cikti — FAZLA IYIMSER: iki kademenin birbirine yakin olmasi ayriklastirma
+    # hatasinin sifira yakin oldugunu KANITLAMAZ (GCI'nin emniyet faktoru tam
+    # bu yuzden var). `band_from_levels` depodaki TEK kural kaynagi; panel
+    # sayisi 1B bir ayriklastirma parametresi oldugu icin boyut=1 (h ~ 1/N).
+    # OLCULDU: ayni seride kanonik kural %2.18, heuristik %0.02 diyordu.
+    from report_generator import band_from_levels
+    kanonik = (band_from_levels(list(PANELLER)[:len(seri)], seri, boyut=1)
+               if len(seri) >= 2 else None)
+    rec["kanonik_band"] = kanonik
+
     if monoton is None:
         rec["verdikt"] = "Yetersiz kademe — hüküm verilemez."
         rec["vlm_band_pct"] = None
-    elif monoton and degisim is not None and degisim < 2.0:
-        rec["verdikt"] = (f"✅ Panel yakinsamis: dizi monoton, son kademe degisimi "
-                          f"%{degisim}. VLM Cl'i bu geometride kullanilabilir.")
-        rec["vlm_band_pct"] = degisim
+    elif monoton and kanonik and kanonik["u_pct"] < 5.0:
+        rec["verdikt"] = (
+            f"✅ Panel yakinsamis: dizi monoton, son kademe degisimi %{degisim}. "
+            f"Band KANONIK kuraldan: {kanonik['kaynak']} -> U=%{kanonik['u_pct']} "
+            f"(son-adim heuristigi %{degisim} derdi — fazla iyimser). "
+            "VLM Cl'i bu geometride kullanilabilir.")
+        rec["vlm_band_pct"] = kanonik["u_pct"]
     else:
         rec["verdikt"] = (
             f"⚠️ Panel YAKINSAMAMIS: dizi {'monoton DEGIL' if not monoton else 'monoton'}"
             + (f", son kademe degisimi %{degisim}" if degisim is not None else "")
-            + f". En ince uc kademenin sacilmasi %{sacilma}. VLM Cl'i bu geometride "
-              "YAKINSAMIS bir deger DEGILDIR; band olarak bu sacilma tasinmalidir.")
-        rec["vlm_band_pct"] = sacilma
+            + f". En ince uc kademenin sacilmasi %{sacilma}"
+            + (f", kanonik kural %{kanonik['u_pct']}" if kanonik else "")
+            + ". VLM Cl'i bu geometride YAKINSAMIS bir deger DEGILDIR; band olarak "
+              "bunlarin BUYUGU tasinmalidir.")
+        rec["vlm_band_pct"] = max([x for x in (sacilma,
+                                               kanonik["u_pct"] if kanonik else None)
+                                   if x is not None], default=None)
     return rec
 
 

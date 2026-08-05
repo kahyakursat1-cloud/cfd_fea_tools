@@ -31,7 +31,16 @@ import openvsp as vsp  # noqa: E402 — DLL dizini eklendikten sonra import edil
 # VLM span-panel sayisi. Varsayilan YAKINSAMAMIS: olculdu ki span verimi e=1.0788
 # (eliptik ust sinir 1.0 — fiziksel olarak imkansiz) ve tasima egimi ~%6.6 yuksek.
 # 40 panelde e=0.9954 ile sinir icine giriliyor (bkz. experiments/vlm_capa.py).
-VLM_SPAN_PANEL = 40
+VLM_SPAN_PANEL = 80
+# ACIKLIK YONUNDE UC KUMELEMESI. Panel dagilimi DUZGUN ARALIKLI idi
+# (OutCluster=1.0) ve uc girdabinin guclu gradyanini yakalayamiyordu: MiniHawk'ta
+# Cl(8) serisi 40/60/80 panelde 0.3866/0.3815/0.4324 — MONOTON DEGIL, sacilma
+# %11.78. Uca sikistirinca (OLCULDU):
+#   OutCluster 1.00  ->  monoton DEGIL, sacilma %11.78
+#   OutCluster 0.50  ->  monoton,       sacilma  %4.65  (ama e salinan: 0.91/0.92/0.62)
+#   OutCluster 0.25  ->  monoton,       sacilma  %2.07  (e 1.04/0.94/0.93, duzenli)
+# 0.25'te son iki kademe farki %0.02 — oturmus. Band 5.7 KAT daraldi.
+VLM_UC_KUMELEME = 0.25
 
 
 def aircraft_to_vsp(aircraft, vsp3_path: str = None) -> str:
@@ -220,12 +229,17 @@ def _vspaero_setup_vlm(aircraft):
     return n_ayar
 
 
-def _panel_yogunlugu_ata(panel: int) -> list[str]:
-    """Kanat geometrilerine span-panel sayisini ata; KACINA UYGULANDIGINI DONDUR.
+def _panel_yogunlugu_ata(panel: int, uc_kumeleme: float = None) -> list[str]:
+    """Kanat geometrilerine span-panel sayisi + UC KUMELEMESI ata; KACINA
+    UYGULANDIGINI DONDUR.
 
     Sessiz `except: pass` yerine SAYIM: uygulanamayan geometri gorunur olmali,
-    yoksa "duzeltme kondu ama ise yaramadi" durumu yine gizlenir.
+    yoksa "duzeltme kondu ama ise yaramadi" durumu yine gizlenir — nitekim bir
+    kez gizlendi (panel ayari ComputeGeometry'den SONRA yapilmisti ve sonuc
+    birebir ayni cikti).
     """
+    if uc_kumeleme is None:
+        uc_kumeleme = VLM_UC_KUMELEME
     uygulanan = []
     for gid in vsp.FindGeoms():
         if vsp.GetGeomTypeName(gid) != "Wing":
@@ -236,6 +250,9 @@ def _panel_yogunlugu_ata(panel: int) -> list[str]:
             if not pid:
                 continue
             vsp.SetParmValUpdate(pid, panel)
+            kid = vsp.GetXSecParm(xs, "OutCluster")
+            if kid:
+                vsp.SetParmValUpdate(kid, uc_kumeleme)
             if abs(vsp.GetParmVal(pid) - panel) < 1e-9:
                 uygulanan.append(vsp.GetGeomName(gid))
         # sessiz-yutma: kabul — bu geometri parmi tasimiyorsa VARSAYILAN panelle
@@ -295,6 +312,7 @@ def run_vspaero_polar(aircraft, alphas=(0, 4, 8, 12, 16), mach: float = 0.05,
             # Hangi panelle kosuldugu sonuca yazilmazsa ayni sessiz hata tekrar
             # fark edilmez.
             "span_panel": VLM_SPAN_PANEL,
+            "uc_kumeleme": VLM_UC_KUMELEME,
             "panel_uygulanan_kanat": panel_uygulanan,
         })
     return out

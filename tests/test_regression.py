@@ -22,15 +22,18 @@ GOLDEN = {
     "coupling_conservation": 3.9e-15,
     "cfd_alpha4_Cl": 0.4124,           # run_aoa_polar.py 4 (OpenFOAM)
     "cfd_alpha4_Cd": 0.03795,
-    # 0.0625 -> 0.0483: VLM PANEL YOGUNLUGU duzeltildi (VLM_SPAN_PANEL=40).
-    # Eski deger VARSAYILAN panelle uretilmisti ve o kurulumda span verimi
-    # e=1.08 cikiyordu — eliptik yukleme MATEMATIKSEL UST SINIRDIR (e=1), yani
-    # eski egim FIZIKSEL OLARAK IMKANSIZ bir cozumden geliyordu. Yakinsamis
-    # panelde e=0.82-0.83 (sinir icinde). Bu bir GERILEME DEGIL, duzeltmedir.
-    # UYARI: bu geometride panel dizisi MONOTON DEGIL (20/40/60/80'de Cl(8) =
-    # 0.1417/0.3866/0.3815/0.4324, en ince uc kademe sacilmasi %11.8), yani
-    # altin deger de o band icinde okunmali (bkz. vlm_panel_yakinsamasi.json).
-    "vspaero_cl_slope": 0.0483,        # OpenVSP VLM, alpha 0/4/8, 40 span-panel
+    # VLM egimi IKI ASAMADA duzeldi (ikisi de GERILEME DEGIL):
+    #   0.0625 -> 0.0483  panel yogunlugu (varsayilan YAKINSAMAMIS: span verimi
+    #                     e=1.08 cikiyordu, oysa eliptik yukleme MATEMATIKSEL
+    #                     UST SINIRDIR (e=1) — yani eski egim fiziksel olarak
+    #                     IMKANSIZ bir cozumden geliyordu)
+    #   0.0483 -> 0.0504  UC KUMELEMESI (OutCluster 1.0 -> 0.25). Duzgun aralikli
+    #                     dagilim uc girdabinin gradyanini yakalamiyordu; Cl(8)
+    #                     serisi MONOTON DEGILDI (0.1417/0.3866/0.3815/0.4324,
+    #                     sacilma %11.78). Kumeleme ile monoton: 0.4566/0.4112/
+    #                     0.4030/0.4029, band %2.18 (band_from_levels, boyut=1).
+    # Altin deger o %2.18'lik band icinde okunmali (vlm_panel_yakinsamasi.json).
+    "vspaero_cl_slope": 0.0504,        # OpenVSP VLM, alpha 0/4/8, 80 span-panel + uc kumeleme 0.25
     "openrocket_apogee_m": 50.5,       # rockets/simple.ork
     "validate_fea_defl_err_pct": 0.05, # ankastre kiriş, CalculiX
     "fea_wing_limit_SF": 1.61,         # kanat yapısal, kritik gust
