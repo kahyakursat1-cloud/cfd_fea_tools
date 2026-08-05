@@ -1,0 +1,193 @@
+{
+  "vaka": "VLM çapası — VSPAERO sonlu-kanat taşıma eğimi vs Prandtl lifting-line (AR taraması, dikdörtgen kanat)",
+  "_neden": "polar_birlestirme 3B tasimayi VLM'den aliyor ama VLM bu depoda hicbir referansa karsi dogrulanmamisti; Cl 'literatur-oncul' etiketiyle cikiyordu. Bu capa o etiketi OLCUME cevirir.",
+  "olcut": "1/a_3B = 1/a_2B + (1+tau)/(pi*AR). 1/AR'ye karsi DOGRU olmali ve KESISIMI 1/a_2B vermeli; ince-kanat teorisinde a_2B = 2*pi. Grafik/tablo degeri KULLANILMAZ — olcut kapali-formdur.",
+  "AR_listesi": [
+    4.0,
+    6.0,
+    8.0,
+    12.0
+  ],
+  "alfalar": [
+    0.0,
+    2.0,
+    4.0,
+    6.0
+  ],
+  "span_panel": 40,
+  "kayitlar": [
+    {
+      "AR": 4.0,
+      "noktalar": [
+        {
+          "alpha": 0.0,
+          "Cl": 0.0,
+          "Cd_i": 0.0
+        },
+        {
+          "alpha": 2.0,
+          "Cl": 0.124388,
+          "Cd_i": 0.0012257
+        },
+        {
+          "alpha": 4.0,
+          "Cl": 0.24866,
+          "Cd_i": 0.0048961
+        },
+        {
+          "alpha": 6.0,
+          "Cl": 0.372626,
+          "Cd_i": 0.0109999
+        }
+      ],
+      "a_3B_per_rad": 3.5585,
+      "span_verimi_e": [
+        1.0045,
+        1.005,
+        1.0045
+      ]
+    },
+    {
+      "AR": 6.0,
+      "noktalar": [
+        {
+          "alpha": 0.0,
+          "Cl": 0.0,
+          "Cd_i": 0.0
+        },
+        {
+          "alpha": 2.0,
+          "Cl": 0.145978,
+          "Cd_i": 0.0011357
+        },
+        {
+          "alpha": 4.0,
+          "Cl": 0.291775,
+          "Cd_i": 0.0045376
+        },
+        {
+          "alpha": 6.0,
+          "Cl": 0.437178,
+          "Cd_i": 0.0101965
+        }
+      ],
+      "a_3B_per_rad": 4.17495,
+      "span_verimi_e": [
+        0.9954,
+        0.9953,
+        0.9944
+      ]
+    },
+    {
+      "AR": 8.0,
+      "noktalar": [
+        {
+          "alpha": 0.0,
+          "Cl": 0.0,
+          "Cd_i": 0.0
+        },
+        {
+          "alpha": 2.0,
+          "Cl": 0.160052,
+          "Cd_i": 0.0010355
+        },
+        {
+          "alpha": 4.0,
+          "Cl": 0.319908,
+          "Cd_i": 0.0041378
+        },
+        {
+          "alpha": 6.0,
+          "Cl": 0.479368,
+          "Cd_i": 0.0092983
+        }
+      ],
+      "a_3B_per_rad": 4.57782,
+      "span_verimi_e": [
+        0.9843,
+        0.9841,
+        0.9833
+      ]
+    },
+    {
+      "AR": 12.0,
+      "noktalar": [
+        {
+          "alpha": 0.0,
+          "Cl": 0.0,
+          "Cd_i": 0.0
+        },
+        {
+          "alpha": 2.0,
+          "Cl": 0.175766,
+          "Cd_i": 0.0008522
+        },
+        {
+          "alpha": 4.0,
+          "Cl": 0.351318,
+          "Cd_i": 0.0034043
+        },
+        {
+          "alpha": 6.0,
+          "Cl": 0.526439,
+          "Cd_i": 0.0076446
+        }
+      ],
+      "a_3B_per_rad": 5.02733,
+      "span_verimi_e": [
+        0.9616,
+        0.9617,
+        0.9616
+      ]
+    }
+  ],
+  "uyum": {
+    "kesisim_1_over_a": 0.157229,
+    "a_2B_olculen_per_rad": 6.3601,
+    "a_2B_teori_per_rad": 6.2832,
+    "hata_pct": 1.22,
+    "dogrusal_R2": 0.999833,
+    "tau_ima_edilen": 0.5531
+  },
+  "span_verimi_max": 1.005,
+  "panel_yakinsamasi": {
+    "AR": 6.0,
+    "kosular": [
+      {
+        "span_panel": "varsayilan",
+        "a_3B_per_rad": 4.45227,
+        "e_max": 1.0788
+      },
+      {
+        "span_panel": 12,
+        "a_3B_per_rad": 4.29074,
+        "e_max": 1.028
+      },
+      {
+        "span_panel": 24,
+        "a_3B_per_rad": 4.23411,
+        "e_max": 1.0045
+      },
+      {
+        "span_panel": 40,
+        "a_3B_per_rad": 4.17495,
+        "e_max": 0.9954
+      }
+    ],
+    "e_araligi": [
+      0.9954,
+      1.0788
+    ],
+    "a_sapma_pct": 6.642,
+    "yorum": "e panel ile 1'e yaklasiyorsa AYRIKLASTIRMA, sabit kaliyorsa SISTEMATIK model hatasidir."
+  },
+  "_kisit": "Bu bir DOGRULAMA (verification) calismasidir: VLM potansiyel-akis TEORISIYLE karsilastirilir. Viskoz gercekle farki (model-form) AYRI bir sorudur ve bu capa onu OLCMEZ. Ayrica VSPAERO kamburlu kesitte yuksek alfada iraksadigi icin capa SIMETRIK/duz kanattir.",
+  "_uretim": "Üretim: conda run -n openvsp python experiments/vlm_capa.py",
+  "span_verimi_asimi": {
+    "e_max": 1.005,
+    "asim": 0.005,
+    "panel_kaymasi": 0.0834,
+    "sinif": "artik ayriklastirma"
+  },
+  "verdikt": "✅ 1/a-1/AR dogrusalligi R²=0.99983; kesisimden a_2B=6.3601/rad, teori 2π=6.2832 (sapma %1.22); span verimi max e=1.005 (artik ayriklastirma, asim +0.0050 < panel kaymasi 0.0834)"
+}

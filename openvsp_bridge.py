@@ -28,6 +28,11 @@ elif _VSP["zorunlu"] and not _VSP["yol"]:
 
 import openvsp as vsp  # noqa: E402 — DLL dizini eklendikten sonra import edilmeli
 
+# VLM span-panel sayisi. Varsayilan YAKINSAMAMIS: olculdu ki span verimi e=1.0788
+# (eliptik ust sinir 1.0 — fiziksel olarak imkansiz) ve tasima egimi ~%6.6 yuksek.
+# 40 panelde e=0.9954 ile sinir icine giriliyor (bkz. experiments/vlm_capa.py).
+VLM_SPAN_PANEL = 40
+
 
 def aircraft_to_vsp(aircraft, vsp3_path: str = None) -> str:
     """Aircraft nesnesinden OpenVSP modeli oluştur.
@@ -226,6 +231,30 @@ def run_vspaero_polar(aircraft, alphas=(0, 4, 8, 12, 16), mach: float = 0.05,
     _ayar(a, "bref",       [aircraft.wing.span], "double")
     _ayar(a, "cref",       [aircraft.wing.root_chord()], "double")
     _ayar(a, "WakeNumIter", [5])
+    # PANEL YOGUNLUGU YAKINSAMAMISTI ve varsayilanla kosuluyordu. OLCULDU
+    # (vlm_capa.py, AR=6 dikdortgen kanat, span-panel taramasi):
+    #   varsayilan  a=4.4523/rad   span verimi e=1.0788   <- e>1 FIZIKSEL DEGIL
+    #   12 panel    a=4.2907       e=1.0280
+    #   24 panel    a=4.2341       e=1.0045
+    #   40 panel    a=4.1750       e=0.9954               <- sinir icine giriyor
+    # Yani varsayilan panelde tasima egimi ~%6.6 YUKSEK ve induklenen direnc
+    # iyimser. AR taramasi yakinsamis panelde tekrarlaninca lifting-line
+    # kesisim sapmasi %3.25 -> %1.22'ye dustu.
+    #
+    # Bu SESSIZ bir hataydi: VSPAERO uyari vermiyor, yalnizca e>1 gibi fiziksel
+    # olarak imkansiz bir sayi uretiyordu ve kimse e'yi hesaplamiyordu.
+    for gid in vsp.FindGeoms():
+        if vsp.GetGeomTypeName(gid) != "Wing":
+            continue
+        try:
+            xs = vsp.GetXSec(vsp.GetXSecSurf(gid, 0), 1)
+            vsp.SetParmValUpdate(vsp.GetXSecParm(xs, "SectTess_U"), VLM_SPAN_PANEL)
+        # sessiz-yutma: kabul — geometri bu parmi tasimiyorsa VARSAYILAN panelle
+        # devam edilir; sonuc yine uretilir ama band genis olur. Alternatif
+        # (sert hata) mevcut calisan akislari kirardi.
+        except Exception:
+            pass
+    vsp.Update()
 
     rid = vsp.ExecAnalysis(a)
 

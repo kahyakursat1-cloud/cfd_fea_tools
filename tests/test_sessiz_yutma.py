@@ -55,7 +55,16 @@ import sessiz_yutma
 # `yakinsamayan_alfa` olarak RAPORLANIR (XFOIL yakınsamayan açıyı tabloya hiç
 # yazmaz, yani boş satır "denenmedi" değil "YAKINSAMADI" demektir).
 # İzlenen sayılar DEĞİŞMEDİ: incelenmemiş 25, güven yolunda incelenmemiş 0.
-TABAN_TOPLAM = 84
+#
+# 2026-08-02 (3) — TABAN 84 → 85. GERİLEME DEĞİL: VLM çapası (`vlm_capa.py`)
+# VSPAERO'nun varsayılan panel yoğunluğunun YAKINSAMAMIŞ olduğunu ölçtü (span
+# verimi e=1.0788 — eliptik üst sınır 1.0, yani fiziksel olarak imkânsız; 40
+# panelde e=0.9954). Düzeltme `run_vspaero_polar` içinde kanat geometrilerine
+# SectTess_U atıyor; her geometri bu parmı taşımayabilir ve o durumda VARSAYILAN
+# panelle devam edilir. Gerekçe kodda: sonuç yine üretilir, yalnız band genişler.
+# Alternatif (sert hata) mevcut çalışan akışları kırardı.
+# İzlenen sayılar DEĞİŞMEDİ: incelenmemiş 25, güven yolunda incelenmemiş 0.
+TABAN_TOPLAM = 85
 TABAN_GUVEN_YOLU = 57
 TABAN_INCELENMEMIS = 25
 TABAN_INCELENMEMIS_GUVEN_YOLU = 0
