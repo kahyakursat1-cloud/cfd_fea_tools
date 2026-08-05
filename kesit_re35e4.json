@@ -1,111 +1,96 @@
 {
-  "vaka": "NACA0012 2B kesit poları — XFOIL 9-e^N, Re=3.5e+05",
+  "vaka": "NACA2412 2B kesit poları — XFOIL 9-e^N, Re=3.5e+05",
   "_neden": "Dusuk-Re gecisli kesit polari RANS ile uretilemedi: ilk hucre 3e-5'te Cl 0.17-0.32 (beklenen ~0.44), 8e-6'da IRAKSAMA (Cd=-691205). Kurulumun relaxation'i Re=3.4e6 icin elle ayarlanmisti ve 10 kat farkli Re'ye tasinmiyor.",
   "yontem": "XFOIL 6.99, panel + e^N (N_krit=9), ITER=200",
   "re": 350000.0,
   "mach": 0.0,
-  "naca": "0012",
+  "naca": "2412",
   "panel": 0,
   "polar": [
     {
-      "alpha": 0.0,
-      "Cl": 0.0,
-      "Cd": 0.00708,
-      "Cdp": 0.00171,
+      "alpha": -2.0,
+      "Cl": 0.0257,
+      "Cd": 0.0084,
+      "Cdp": 0.00181,
       "fizik": "ok"
     },
     {
-      "alpha": 1.0,
-      "Cl": 0.1041,
-      "Cd": 0.00737,
-      "Cdp": 0.0018,
+      "alpha": 0.0,
+      "Cl": 0.2279,
+      "Cd": 0.00724,
+      "Cdp": 0.00173,
       "fizik": "ok"
     },
     {
       "alpha": 2.0,
-      "Cl": 0.2239,
+      "Cl": 0.5143,
       "Cd": 0.0081,
-      "Cdp": 0.00199,
+      "Cdp": 0.00162,
       "fizik": "ok"
     },
     {
-      "alpha": 3.0,
-      "Cl": 0.3724,
-      "Cd": 0.00906,
-      "Cdp": 0.00217,
-      "fizik": "ok"
-    },
-    {
-      "alpha": 5.0,
-      "Cl": 0.6286,
-      "Cd": 0.01128,
-      "Cdp": 0.00248,
+      "alpha": 4.0,
+      "Cl": 0.7044,
+      "Cd": 0.00926,
+      "Cdp": 0.00169,
       "fizik": "ok"
     },
     {
       "alpha": 6.0,
-      "Cl": 0.7117,
-      "Cd": 0.01281,
-      "Cdp": 0.00309,
-      "fizik": "ok"
-    },
-    {
-      "alpha": 7.0,
-      "Cl": 0.7919,
-      "Cd": 0.01459,
-      "Cdp": 0.00407,
+      "Cl": 0.8939,
+      "Cd": 0.01107,
+      "Cdp": 0.00211,
       "fizik": "ok"
     },
     {
       "alpha": 8.0,
-      "Cl": 0.87,
-      "Cd": 0.01672,
-      "Cdp": 0.00538,
+      "Cl": 1.0614,
+      "Cd": 0.01548,
+      "Cdp": 0.00392,
       "fizik": "ok"
     }
   ],
   "fizik_disi": [],
   "istenen_alfa": [
+    -2.0,
     0.0,
-    1.0,
     2.0,
-    3.0,
-    5.0,
+    4.0,
     6.0,
-    7.0,
     8.0
   ],
   "yakinsamayan_alfa": [],
+  "tekil_tekrar": true,
   "uyarilar": [],
   "_kisit": "XFOIL bir RANS IKAMESI DEGILDIR: 2B, sikistirilamaz, ince-tabaka etkilesimli. Lineer bolgede (|alpha| <= 8 derece) tasarim-oncesi icin uygundur; stall yakininda ve sonrasinda kullanilmaz. N_krit gecis yerini ve dolayisiyla Cd'yi DOGRUDAN belirler — secim raporlanir.",
-  "_uretim": "Üretim: python xfoil_kesit.py --naca 0012 --re 350000 --alfa 0 1 2 3 5 6 7 8",
-  "_xfoil_stdout_kuyruk": "    CL =  0.8700\n      Cm =  0.0036     CD =  0.01672   =>   CDf =  0.00720    CDp =  0.00951\n      9.000    7.7960   0.016718   0.001317   0.002582   0.001265    0.0574     #\n\n Point added to stored polar  1\n Point written to save file  /tmp/tmp.TcYtyQxlTN/polar.txt                   \n Dump file unspecified or not available\n\n.OPERva   c>  \n Polar accumulation disabled\n\n.OPERv   c>  \n XFOIL   c>  ",
+  "_uretim": "Üretim: python xfoil_kesit.py --naca 2412 --re 350000 --alfa -2 0 2 4 6 8",
+  "_xfoil_stdout_kuyruk": "    CL =  1.0614\n      Cm = -0.0394     CD =  0.01548   =>   CDf =  0.00726    CDp =  0.00821\n      9.000    4.2236   0.015476   0.001799   0.002186   0.000388    0.1168     #\n\n Point added to stored polar  1\n Point written to save file  /tmp/tmp.a3vS5P7r6m/polar.txt                   \n Dump file unspecified or not available\n\n.OPERva   c>  \n Polar accumulation disabled\n\n.OPERv   c>  \n XFOIL   c>  ",
   "panel_bagimsizligi": {
     "paneller": [
       0,
       200,
       300
     ],
-    "ortak_alfa": 8,
-    "en_kotu_sapma_pct": 0.548,
+    "ortak_alfa": 6,
+    "en_kotu_sapma_pct": 0.239,
     "ayrinti": [
+      {
+        "alpha": -2.0,
+        "Cd": [
+          0.0084,
+          0.00839,
+          0.00838
+        ],
+        "sapma_pct": 0.239
+      },
       {
         "alpha": 0.0,
         "Cd": [
-          0.00708,
-          0.00708,
-          0.00708
+          0.00724,
+          0.00725,
+          0.00725
         ],
-        "sapma_pct": 0.0
-      },
-      {
-        "alpha": 1.0,
-        "Cd": [
-          0.00737,
-          0.00737,
-          0.00737
-        ],
-        "sapma_pct": 0.0
+        "sapma_pct": 0.138
       },
       {
         "alpha": 2.0,
@@ -117,52 +102,34 @@
         "sapma_pct": 0.123
       },
       {
-        "alpha": 3.0,
+        "alpha": 4.0,
         "Cd": [
-          0.00906,
-          0.00906,
-          0.00907
+          0.00926,
+          0.00926,
+          0.00927
         ],
-        "sapma_pct": 0.11
-      },
-      {
-        "alpha": 5.0,
-        "Cd": [
-          0.01128,
-          0.01128,
-          0.01129
-        ],
-        "sapma_pct": 0.089
+        "sapma_pct": 0.108
       },
       {
         "alpha": 6.0,
         "Cd": [
-          0.01281,
-          0.01284,
-          0.01284
+          0.01107,
+          0.01107,
+          0.01108
         ],
-        "sapma_pct": 0.234
-      },
-      {
-        "alpha": 7.0,
-        "Cd": [
-          0.01459,
-          0.01465,
-          0.01467
-        ],
-        "sapma_pct": 0.548
+        "sapma_pct": 0.09
       },
       {
         "alpha": 8.0,
         "Cd": [
-          0.01672,
-          0.01671,
-          0.01674
+          0.01548,
+          0.0155,
+          0.0155
         ],
-        "sapma_pct": 0.18
+        "sapma_pct": 0.129
       }
     ],
     "yorum": "Bu, kesit Cd'sinin AYRIKLASTIRMA bandidir (RANS'taki mesh-bagimsizligin karsiligi). MODEL-FORM hatasi DEGIL: XFOIL'in deneyle uyumu ayri bir sorudur."
   },
-  "verdikt": "8/8 acida yakinsak ve fiziksel sonuc. Kesit verisi polar_birlestirme'ye VERILEBILIR (lineer bolge)."
+  "verdikt": "6/6 acida yakinsak ve fiziksel sonuc. Kesit verisi polar_birlestirme'ye VERILEBILIR (lineer bolge)."
 }

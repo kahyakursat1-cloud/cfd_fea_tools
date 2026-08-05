@@ -42,6 +42,25 @@ RE_TOLERANS = 2.0
 LINEER_ALFA_MAX = 8.0
 
 
+# alpha=0'da |Cl| bu esigin ustundeyse kesit KAMBURLU sayilir. Simetrik profil
+# alpha=0'da tam sifir verir; sayisal gurultu bu esigin cok altindadir.
+KAMBUR_ESIGI = 0.02
+
+
+def _simetrik_mi(polar: list[dict], cl_anahtar: str = "Cl") -> bool | None:
+    """alpha=0 noktasindan simetri hukmu. VARSAYILAN DEGIL OLCUM.
+
+    NEDEN: kesit/VLM simetri bayraklari cagirana birakilmisti ve varsayilan
+    ikisi de True idi. Uc bilesen kendi arasinda tutarli gorunuyordu ama HICBIRI
+    araca bakmiyordu (MiniHawk NACA2412 iken kesit NACA0012 uretilmisti).
+    Bayrak veriden turetilirse o sinif hata kapida yakalanir.
+    """
+    for n in polar:
+        if abs(float(n.get("alpha", 99))) < 1e-6:
+            return abs(float(n.get(cl_anahtar, 0.0))) < KAMBUR_ESIGI
+    return None
+
+
 def _re_olcek(re_hedef: float, re_kaynak: float) -> float:
     """Türbülanslı sürtünme sürüklemesinin Reynolds ölçeklemesi (Cf ~ Re^-0.2).
 
@@ -77,7 +96,9 @@ def birlesik_polar(vlm_polar: list[dict], kesit: list[dict], *,
                    kesit_simetrik: bool = True, vlm_simetrik: bool = True,
                    delta_entegrasyon: float = 0.0,
                    vlm_band_pct: float | None = None,
-                   vlm_band_kaynagi: str | None = None) -> dict:
+                   vlm_band_kaynagi: str | None = None,
+                   kesit_profili: str | None = None,
+                   arac_profili: str | None = None) -> dict:
     """VLM + 2B kesit → 3B polar. Kapılardan geçmeyen bileşen ÜRETİLMEZ.
 
     Döner: {"noktalar": [...], "engeller": [...], "uyarilar": [...], "verdikt"}
@@ -91,6 +112,23 @@ def birlesik_polar(vlm_polar: list[dict], kesit: list[dict], *,
             f"KESİT TİPİ UYUŞMUYOR: 2B veri {'simetrik' if kesit_simetrik else 'kamburlu'}, "
             f"VLM {'simetrik' if vlm_simetrik else 'kamburlu'} — α_L0 kayması "
             "birinde var birinde yok; polarlar aynı eğriye ait değil")
+
+    # PROFİL ARACIN PROFİLİ Mİ? Yukarıdaki kapı 2B veri ile VLM KURULUMUNU
+    # karşılaştırır; ikisi de simetrikse geçer. Ama HİÇBİRİ aracın GERÇEK
+    # profiline bakmıyordu.
+    #
+    # ÖLÇÜLDÜ (MiniHawk): aracın kanadı NACA2412 (KAMBURLU) ama üretilen XFOIL
+    # kesiti NACA0012 (SİMETRİK) ve VLM koşusunda kamburluk KAPALI. Üç bileşen
+    # kendi aralarında tutarlıydı, hiçbiri araçla tutarlı değildi. Sonuç: polar
+    # "MiniHawk planformlu SİMETRİK-kesitli bir kanadın" polarıdır — MiniHawk'ın
+    # değil. Kamburluk α_L0'ı kaydırır, yani Cl(0)≠0 olur ve tüm eğri ötelenir.
+    if kesit_profili and arac_profili and kesit_profili != arac_profili:
+        engeller.append(
+            f"PROFİL ARACIN PROFİLİ DEĞİL: 2B kesit verisi {kesit_profili}, aracın "
+            f"kanadı {arac_profili}. Bu polar {kesit_profili} kesitli bir kanada "
+            "aittir; kamburluk farkı α_L0'ı kaydırır ve TÜM eğriyi öteler. "
+            f"Kesit verisi {arac_profili} için üretilmeli "
+            f"(xfoil_kesit.py --naca {arac_profili.replace('NACA', '')})")
 
     oran = max(re_kanat, re_kesit) / max(min(re_kanat, re_kesit), 1.0)
     if oran > RE_TOLERANS:
@@ -186,6 +224,7 @@ def _depo_verisi() -> dict:
             f"{(_d.get('kayitlar') or [{}])[-1].get('uc_kumeleme')}")
     from aircraft_geometry import AircraftLibrary
     ac = AircraftLibrary().get_template("mini_hawk")()
+    arac_profili = getattr(getattr(ac.wing, "airfoil", None), "name", None)
     kiris = ac.wing.root_chord()
     re_kanat = 15.0 * kiris / 1.5e-5
 
@@ -194,6 +233,8 @@ def _depo_verisi() -> dict:
         d = json.loads(xf.read_text(encoding="utf-8"))
         pb = d.get("panel_bagimsizligi") or {}
         return {"vlm_polar": vlm["polar"], "kesit": d["polar"],
+                "kesit_simetrik": _simetrik_mi(d["polar"]),
+                "vlm_simetrik": _simetrik_mi(vlm["polar"]),
                 "re_kanat": re_kanat, "re_kesit": float(d["re"]),
                 # XFOIL'de mesh yok; AYRIKLASTIRMA parametresi PANEL SAYISIDIR ve
                 # bandi OLCULDU. "Bagimsiz" iddiasi olcume dayanir, varsayima degil.
@@ -202,6 +243,8 @@ def _depo_verisi() -> dict:
                 "kesit_kaynagi": f"XFOIL ({d.get('yontem', '')})",
                 "vlm_band_pct": vlm_band,
                 "vlm_band_kaynagi": vlm_band_kaynagi,
+                "arac_profili": arac_profili,
+                "kesit_profili": f"NACA{d.get('naca')}" if d.get("naca") else None,
                 "kiris": kiris}
 
     tr = json.loads((HERE / "transition_results.json").read_text(encoding="utf-8"))
@@ -214,8 +257,8 @@ def _depo_verisi() -> dict:
             "re_kesit": re_kesit, "kesit_cd_mesh_bagimsiz": False,
             "kesit_cd_band_pct": None,
             "kesit_kaynagi": "RANS O-grid (Re=3.4e6 — kanadin Re'si DEGIL)",
-                "vlm_band_pct": vlm_band,
-                "vlm_band_kaynagi": vlm_band_kaynagi,
+            "vlm_band_pct": vlm_band, "vlm_band_kaynagi": vlm_band_kaynagi,
+            "arac_profili": arac_profili, "kesit_profili": "NACA0012",
             "kiris": kiris}
 
 
@@ -229,7 +272,11 @@ def main() -> int:
                          kesit_cd_mesh_bagimsiz=d["kesit_cd_mesh_bagimsiz"],
                          kesit_cd_band_pct=d.get("kesit_cd_band_pct"),
                          vlm_band_pct=d.get("vlm_band_pct"),
-                         vlm_band_kaynagi=d.get("vlm_band_kaynagi"))
+                         vlm_band_kaynagi=d.get("vlm_band_kaynagi"),
+                         kesit_profili=d.get("kesit_profili"),
+                         arac_profili=d.get("arac_profili"),
+                         **{k: d[k] for k in ("kesit_simetrik", "vlm_simetrik")
+                            if d.get(k) is not None})
     print(f"MiniHawk kiris={d['kiris']:.3f} m, V=15 m/s → Re={d['re_kanat']:.2e}")
     print(f"2B kesit: {d.get('kesit_kaynagi', '?')}  Re={d['re_kesit']:.2e}"
           + (f"  ayrıklaştırma bandı %{d['kesit_cd_band_pct']}"

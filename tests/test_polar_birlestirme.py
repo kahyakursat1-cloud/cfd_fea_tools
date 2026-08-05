@@ -92,26 +92,37 @@ def test_band_YALNIZ_profil_bileseninden():
 def test_DEPO_verisi_gercek_hukmu_veriyor():
     """Depodaki gerçek kanıtlarla ne çıkıyorsa O doğrulanır.
 
-    TARİHÇE: bu test önce İKİ ENGEL bekliyordu (Re uyuşmazlığı 9.6 kat + kesit
-    Cd'si mesh-bağımsız değil). XFOIL kesiti kanadın kendi Re'sinde üretilip
-    panel-bağımsızlık bandı ÖLÇÜLÜNCE (en kötü %0.55) ikisi de kalktı.
-    Test artık iki durumu da bağlar: XFOIL kanıtı varsa polar ÜRETİLMELİ,
-    yoksa engeller GEREKÇESİYLE görünmeli — sessiz geri düşüş olmamalı.
+    TARİHÇE — engeller sırayla kapandı ve YENİSİ açıldı:
+      1. Re uyuşmazlığı (9.6 kat)      → XFOIL kesiti uçuş Re'sinde üretildi
+      2. Kesit Cd mesh-bağımsız değil  → panel-bağımsızlık ölçüldü (%0.55)
+      3. Profil aracın profili değil   → kesit NACA2412'ye çevrildi
+      4. KESİT TİPİ UYUŞMUYOR          → AÇIK: kesit kamburlu, VLM kamburluğu
+         KAPALI koşuyor (OpenVSP 3.50.4 kamburlu kesitte yüksek α'da ıraksıyor).
+
+    Test SABİT bir sonuç değil, TUTARLILIK bağlar: engel varsa BİLİNEN engel
+    listesinden olmalı ve mutlak Cd yayınlanmamalı; engel yoksa polar tam
+    olmalı. Böylece yeni bir engel sessizce eklenemez.
     """
-    from pathlib import Path
+    BILINEN = ("REYNOLDS", "MESH-BAĞIMSIZ", "PROFİL", "KESİT TİPİ")
     d = pb._depo_verisi()
-    o = pb.birlesik_polar(d["vlm_polar"], d["kesit"], re_kanat=d["re_kanat"],
-                          re_kesit=d["re_kesit"],
-                          kesit_cd_mesh_bagimsiz=d["kesit_cd_mesh_bagimsiz"],
-                          kesit_cd_band_pct=d.get("kesit_cd_band_pct"))
-    xfoil_var = (Path(pb.HERE) / "kesit_re35e4.json").exists()
-    if xfoil_var:
-        assert "XFOIL" in d["kesit_kaynagi"]
-        assert o["engeller"] == [], o["engeller"]
-        assert all("Cd_toplam" in n for n in o["noktalar"])
+    o = pb.birlesik_polar(
+        d["vlm_polar"], d["kesit"], re_kanat=d["re_kanat"],
+        re_kesit=d["re_kesit"],
+        kesit_cd_mesh_bagimsiz=d["kesit_cd_mesh_bagimsiz"],
+        kesit_cd_band_pct=d.get("kesit_cd_band_pct"),
+        kesit_profili=d.get("kesit_profili"), arac_profili=d.get("arac_profili"),
+        **{k: d[k] for k in ("kesit_simetrik", "vlm_simetrik")
+           if d.get(k) is not None})
+    for e in o["engeller"]:
+        assert any(b in e for b in BILINEN), f"ADI KONMAMIS engel: {e}"
+    if o["engeller"]:
+        assert all("Cd_toplam" not in n for n in o["noktalar"])
+        assert "YALNIZ TAŞIMA" in o["verdikt"]
     else:
-        assert any("REYNOLDS" in e for e in o["engeller"])
-        assert any("MESH-BAĞIMSIZ" in e for e in o["engeller"])
+        assert all("Cd_toplam" in n for n in o["noktalar"])
+        assert "3B polar üretildi" in o["verdikt"]
+    # TASIMA her durumda uretilir — engeller yalniz MUTLAK SURUKLEMEYI keser.
+    assert all("Cl" in n for n in o["noktalar"])
 
 
 def test_kesit_kaynagi_HER_ZAMAN_raporlaniyor():
@@ -160,3 +171,51 @@ class TestIkiBoyutluBand:
         p = Path(__file__).resolve().parent.parent / "experiments" / "kesit_re35e4.py"
         if p.exists():
             assert "boyut=2" in p.read_text(encoding="utf-8")
+
+
+class TestProfilAracinProfiliMi:
+    """Kapılar bileşenleri BİRBİRİYLE karşılaştırıyordu, ARAÇLA değil.
+
+    ÖLÇÜLDÜ (MiniHawk): aracın kanadı NACA2412 (kamburlu) iken üretilen XFOIL
+    kesiti NACA0012 (simetrik) ve VLM koşusunda kamburluk KAPALI idi. Üç bileşen
+    kendi arasında tutarlıydı — `kesit_simetrik == vlm_simetrik` kapısı GEÇİYORDU
+    — ama hiçbiri araçla tutarlı değildi. Yayınlanan polar "MiniHawk planformlu
+    SİMETRİK kesitli bir kanadın" polarıydı, MiniHawk'ın değil.
+    """
+
+    def test_profil_uyusmazligi_MUTLAK_Cd_engelliyor(self):
+        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU,
+                              kesit_profili="NACA0012", arac_profili="NACA2412")
+        assert any("PROFİL ARACIN PROFİLİ DEĞİL" in e for e in o["engeller"])
+        assert all("Cd_toplam" not in n for n in o["noktalar"])
+
+    def test_profil_eslesince_engel_YOK(self):
+        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU,
+                              kesit_profili="NACA2412", arac_profili="NACA2412")
+        assert not any("PROFİL" in e for e in o["engeller"])
+
+    def test_engel_metni_COZUMU_soyluyor(self):
+        """Gerekçesiz ret eylem üretmez; hangi komutun koşulacağı yazılmalı."""
+        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU,
+                              kesit_profili="NACA0012", arac_profili="NACA2412")
+        e = next(x for x in o["engeller"] if "PROFİL" in x)
+        assert "--naca 2412" in e
+
+    def test_simetri_bayragi_VERIDEN_turetiliyor(self):
+        """Bayrak çağırana bırakılınca varsayılan ikisi de True idi ve uyumsuzluk
+        görünmüyordu. α=0'daki Cl ölçümdür, varsayım değil."""
+        kamburlu = [{"alpha": 0.0, "Cl": 0.2279, "Cd": 0.00724},
+                    {"alpha": 4.0, "Cl": 0.7044, "Cd": 0.00926}]
+        simetrik = [{"alpha": 0.0, "Cl": 0.0, "Cd": 0.00708},
+                    {"alpha": 4.0, "Cl": 0.53, "Cd": 0.01013}]
+        assert pb._simetrik_mi(kamburlu) is False
+        assert pb._simetrik_mi(simetrik) is True
+        assert pb._simetrik_mi([{"alpha": 4.0, "Cl": 0.5}]) is None   # α=0 yoksa hüküm YOK
+
+    def test_DEPO_verisi_gercek_profilleri_tasiyor(self):
+        from pathlib import Path
+        if not (Path(pb.HERE) / "kesit_re35e4.json").exists():
+            return
+        d = pb._depo_verisi()
+        assert d.get("arac_profili"), "aracin profili okunmuyor"
+        assert d.get("kesit_profili"), "kesit profili okunmuyor"
