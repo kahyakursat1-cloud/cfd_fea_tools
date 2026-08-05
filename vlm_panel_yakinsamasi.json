@@ -1,0 +1,98 @@
+{
+  "vaka": "VLM panel yakınsaması — mini_hawk (GERÇEK araç, AR=5.00)",
+  "_neden": "vlm_capa TEMIZ dikdortgen kanatta VLM'i dogruladi (%1.22). Gercek aracta govde + kanat + kuyruk birlikte cozuluyor ve yakinsama davranisi ayni olmak ZORUNDA DEGIL. Capadaki bandi buraya tasimak, olmayan bir kesinlik yayinlamak olurdu.",
+  "sablon": "mini_hawk",
+  "AR": 5.0,
+  "paneller": [
+    20,
+    40,
+    60,
+    80
+  ],
+  "alfalar": [
+    0.0,
+    4.0,
+    8.0
+  ],
+  "kayitlar": [
+    {
+      "panel": 20,
+      "uygulanan": [
+        "MainWing",
+        "HTail",
+        "VTail"
+      ],
+      "Cl_0": 0.0,
+      "CDi_0": 0.0,
+      "Cl_4": 0.08095,
+      "CDi_4": 0.003967,
+      "e_4": 0.1052,
+      "Cl_8": 0.14173,
+      "CDi_8": 0.017322,
+      "e_8": 0.0738
+    },
+    {
+      "panel": 40,
+      "uygulanan": [
+        "MainWing",
+        "HTail",
+        "VTail"
+      ],
+      "Cl_0": 0.0,
+      "CDi_0": 0.0,
+      "Cl_4": 0.19272,
+      "CDi_4": 0.002891,
+      "e_4": 0.8179,
+      "Cl_8": 0.38661,
+      "CDi_8": 0.011472,
+      "e_8": 0.8294
+    },
+    {
+      "panel": 60,
+      "uygulanan": [
+        "MainWing",
+        "HTail",
+        "VTail"
+      ],
+      "Cl_0": 0.0,
+      "CDi_0": 0.0,
+      "Cl_4": 0.19412,
+      "CDi_4": 0.002697,
+      "e_4": 0.8895,
+      "Cl_8": 0.38149,
+      "CDi_8": 0.010531,
+      "e_8": 0.8798
+    },
+    {
+      "panel": 80,
+      "uygulanan": [
+        "MainWing",
+        "HTail",
+        "VTail"
+      ],
+      "Cl_0": 0.0,
+      "CDi_0": 0.0,
+      "Cl_4": 0.21254,
+      "CDi_4": 0.003636,
+      "e_4": 0.7909,
+      "Cl_8": 0.43241,
+      "CDi_8": 0.014411,
+      "e_8": 0.826
+    }
+  ],
+  "yakinsama": {
+    "referans": "Cl_8",
+    "seri": [
+      0.14173,
+      0.38661,
+      0.38149,
+      0.43241
+    ],
+    "monoton": false,
+    "son_kademe_degisimi_pct": 13.35,
+    "son3_sacilma_pct": 11.78
+  },
+  "_uretim": "Üretim: conda run -n openvsp python experiments/vlm_panel_yakinsamasi.py --sablon mini_hawk",
+  "verdikt": "⚠️ Panel YAKINSAMAMIS: dizi monoton DEGIL, son kademe degisimi %13.35. En ince uc kademenin sacilmasi %11.78. VLM Cl'i bu geometride YAKINSAMIS bir deger DEGILDIR; band olarak bu sacilma tasinmalidir.",
+  "vlm_band_pct": 11.78
+}

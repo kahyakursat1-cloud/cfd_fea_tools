@@ -84,3 +84,63 @@ def test_DOGRULAMA_ile_GECERLEME_karistirilmiyor():
         return
     assert "verification" in d["_kisit"]
     assert "OLCMEZ" in d["_kisit"] or "ÖLÇMEZ" in d["_kisit"]
+
+
+class TestGercekGeometriYakinsamasi:
+    """Çapa TEMİZ kanatta geçti; gerçek araçta yakınsama AYNI OLMAK ZORUNDA DEĞİL.
+
+    ÖLÇÜLDÜ (MiniHawk, AR=5.00): 20/40/60/80 panelde Cl(8°) = 0.1417 / 0.3866 /
+    0.3815 / 0.4324. 40→60 %1.3 (neredeyse oturmuş) ama 60→80 yeniden %13.4
+    sıçrıyor — dizi MONOTON DEĞİL, yakınsamış bir değer YOK.
+
+    Bu ölçüm olmasaydı çapadaki %1.22'lik doğrulama bandı gerçek araca taşınır
+    ve olmayan bir kesinlik yayınlanırdı.
+    """
+
+    def test_MONOTON_olmayan_dizi_yakinsamis_sayilmiyor(self):
+        """Tek bir çift ("son iki kademe %1.3 fark") salınan diziyi 'oturmuş'
+        gösterebilir — GCI tarafında da alınan ders."""
+        import json
+        p = ROOT / "vlm_panel_yakinsamasi.json"
+        if not p.exists():
+            return
+        d = json.loads(p.read_text(encoding="utf-8"))
+        y = d["yakinsama"]
+        assert y["monoton"] is False
+        assert y["son_kademe_degisimi_pct"] > 2.0
+        assert "YAKINSAMAMIS" in d["verdikt"]
+
+    def test_band_SACILMADAN_turetiliyor(self):
+        import json
+        p = ROOT / "vlm_panel_yakinsamasi.json"
+        if not p.exists():
+            return
+        d = json.loads(p.read_text(encoding="utf-8"))
+        assert d["vlm_band_pct"] == d["yakinsama"]["son3_sacilma_pct"]
+        assert d["vlm_band_pct"] > 5.0        # çapadaki %1.22'den ÇOK daha geniş
+
+    def test_birlestirici_OLCULEN_bandi_tasiyor(self):
+        import polar_birlestirme as pb
+        if not (ROOT / "vlm_panel_yakinsamasi.json").exists():
+            return
+        d = pb._depo_verisi()
+        assert d.get("vlm_band_pct") is not None
+        o = pb.birlesik_polar(d["vlm_polar"], d["kesit"], re_kanat=d["re_kanat"],
+                              re_kesit=d["re_kesit"],
+                              kesit_cd_mesh_bagimsiz=d["kesit_cd_mesh_bagimsiz"],
+                              kesit_cd_band_pct=d.get("kesit_cd_band_pct"),
+                              vlm_band_pct=d["vlm_band_pct"])
+        assert all("Cl_band_pct" in n for n in o["noktalar"])
+        assert any("TAŞIMA BANDI ÖLÇÜLDÜ" in u for u in o["uyarilar"])
+        assert any("DOĞRULAMA bandı" in u and "değil" in u for u in o["uyarilar"])
+
+    def test_capa_bandi_gercek_araca_TASINMIYOR(self):
+        """%1.22 temiz kanata aittir; birleştirici onu kullanmamalı."""
+        import json
+        pk = ROOT / "vlm_panel_yakinsamasi.json"
+        capa = ROOT / "vlm_capa.json"
+        if not (pk.exists() and capa.exists()):
+            return
+        band = json.loads(pk.read_text(encoding="utf-8"))["vlm_band_pct"]
+        capa_hata = json.loads(capa.read_text(encoding="utf-8"))["uyum"]["hata_pct"]
+        assert band > 5 * capa_hata, (band, capa_hata)

@@ -1,0 +1,34 @@
+{
+  "vaka": "VSPAERO VLM polar — MiniHawk UAV, alfalar=[0.0, 4.0, 8.0]",
+  "polar": [
+    {
+      "alpha": 0.0,
+      "Cl": 0.0,
+      "Cd_i": 0.0,
+      "Cm": 0.00061,
+      "LD_i": null,
+      "method": "VSPAERO_VLM"
+    },
+    {
+      "alpha": 4.0,
+      "Cl": 0.2435,
+      "Cd_i": 0.003473,
+      "Cm": 0.10702,
+      "LD_i": -0.07,
+      "method": "VSPAERO_VLM"
+    },
+    {
+      "alpha": 8.0,
+      "Cl": 0.49975,
+      "Cd_i": 0.014698,
+      "Cm": 0.35418,
+      "LD_i": -0.14,
+      "method": "VSPAERO_VLM"
+    }
+  ],
+  "_kisit": "KAMBURLUK UYGULANMIYOR: _set_naca_profile(apply_camber=False) — OpenVSP 3.50.4 VLM kamburlu kesitte yuksek alfada iraksiyor. Sonuc: alpha_L0 URETILEMEZ ve Cl(0)=0.0 bir OLCUM DEGIL, kurulumun dogrudan sonucudur. Bu polar YALNIZ tasima egimi ve induklenen direnc icin gecerlidir; mutlak Cl OpenFOAM'dan gelir.",
+  "_uretim": "Üretim: python pipeline.py vspaero 0.0 4.0 8.0",
+  "_SUPERSEDED": "vspaero_polar.json (yakinsamis panel, VLM_SPAN_PANEL=40). Bu dosya DUZELTME ONCESI durumu saklar.",
+  "verdikt": "⚠️ ESKIMIS — VARSAYILAN panel yogunluguyla uretildi. Span verimi e=1.087 (alfa=4) ve 1.082 (alfa=8): eliptik yukleme MATEMATIKSEL UST SINIRDIR (e=1), yani bu degerler FIZIKSEL OLARAK IMKANSIZ. Yakinsamis panelde (40) Cl %21-23 duser ve e 0.82-0.83'e iner. Karsilastirma icin saklaniyor; KULLANILMAZ.",
+  "_neden": "Panel duzeltmesinin etkisini olcebilmek icin duzeltme oncesi polar saklandi. Ilk duzeltme denemesi YANLIS YERE (ComputeGeometry'den SONRA) konmustu ve sonuc birebir ayni cikti; bu dosya o karsilastirmayi mumkun kildi."
+}

@@ -206,8 +206,44 @@ def _vspaero_setup_vlm(aircraft):
     Trefftz alanlari fiziksel; secim ACIKCA degistirilmiyor.
     """
     aircraft_to_vsp(aircraft)
+    # PANEL YOGUNLUGU BURADA ATANMALI — `VSPAEROComputeGeometry`'DEN ONCE.
+    # ComputeGeometry, VSPAERO'nun kullanacagi panel/DegenGeom dosyasini URETIR;
+    # ondan SONRA yapilan tessellation degisikligi coktan yazilmis geometriyi
+    # ETKILEMEZ. Ilk denemede kod tam da oraya konmustu ve sonuc BIREBIR AYNI
+    # cikti (Cl/CDi %0.00 degisim, span verimi hala 1.08) — yani duzeltme
+    # SESSIZCE hicbir sey yapmisti. Parm'in kendisi calisiyor (olculdu: 6.0->40.0),
+    # kusur SIRALAMADAYDI.
+    n_ayar = _panel_yogunlugu_ata(VLM_SPAN_PANEL)
+    vsp.Update()
     vsp.SetAnalysisInputDefaults("VSPAEROComputeGeometry")
     vsp.ExecAnalysis("VSPAEROComputeGeometry")
+    return n_ayar
+
+
+def _panel_yogunlugu_ata(panel: int) -> list[str]:
+    """Kanat geometrilerine span-panel sayisini ata; KACINA UYGULANDIGINI DONDUR.
+
+    Sessiz `except: pass` yerine SAYIM: uygulanamayan geometri gorunur olmali,
+    yoksa "duzeltme kondu ama ise yaramadi" durumu yine gizlenir.
+    """
+    uygulanan = []
+    for gid in vsp.FindGeoms():
+        if vsp.GetGeomTypeName(gid) != "Wing":
+            continue
+        try:
+            xs = vsp.GetXSec(vsp.GetXSecSurf(gid, 0), 1)
+            pid = vsp.GetXSecParm(xs, "SectTess_U")
+            if not pid:
+                continue
+            vsp.SetParmValUpdate(pid, panel)
+            if abs(vsp.GetParmVal(pid) - panel) < 1e-9:
+                uygulanan.append(vsp.GetGeomName(gid))
+        # sessiz-yutma: kabul — bu geometri parmi tasimiyorsa VARSAYILAN panelle
+        # devam edilir; ADI listede GORUNMEZ, yani sonuc "kac kanada uygulandi"
+        # sayisindan anlasilir (eski surumde sessizce yutuluyordu).
+        except Exception:
+            continue
+    return uygulanan
 
 
 def run_vspaero_polar(aircraft, alphas=(0, 4, 8, 12, 16), mach: float = 0.05,
@@ -219,7 +255,7 @@ def run_vspaero_polar(aircraft, alphas=(0, 4, 8, 12, 16), mach: float = 0.05,
     """
     import os
     os.makedirs(output_dir, exist_ok=True)
-    _vspaero_setup_vlm(aircraft)
+    panel_uygulanan = _vspaero_setup_vlm(aircraft)
 
     a = "VSPAEROSweep"
     vsp.SetAnalysisInputDefaults(a)
@@ -231,30 +267,6 @@ def run_vspaero_polar(aircraft, alphas=(0, 4, 8, 12, 16), mach: float = 0.05,
     _ayar(a, "bref",       [aircraft.wing.span], "double")
     _ayar(a, "cref",       [aircraft.wing.root_chord()], "double")
     _ayar(a, "WakeNumIter", [5])
-    # PANEL YOGUNLUGU YAKINSAMAMISTI ve varsayilanla kosuluyordu. OLCULDU
-    # (vlm_capa.py, AR=6 dikdortgen kanat, span-panel taramasi):
-    #   varsayilan  a=4.4523/rad   span verimi e=1.0788   <- e>1 FIZIKSEL DEGIL
-    #   12 panel    a=4.2907       e=1.0280
-    #   24 panel    a=4.2341       e=1.0045
-    #   40 panel    a=4.1750       e=0.9954               <- sinir icine giriyor
-    # Yani varsayilan panelde tasima egimi ~%6.6 YUKSEK ve induklenen direnc
-    # iyimser. AR taramasi yakinsamis panelde tekrarlaninca lifting-line
-    # kesisim sapmasi %3.25 -> %1.22'ye dustu.
-    #
-    # Bu SESSIZ bir hataydi: VSPAERO uyari vermiyor, yalnizca e>1 gibi fiziksel
-    # olarak imkansiz bir sayi uretiyordu ve kimse e'yi hesaplamiyordu.
-    for gid in vsp.FindGeoms():
-        if vsp.GetGeomTypeName(gid) != "Wing":
-            continue
-        try:
-            xs = vsp.GetXSec(vsp.GetXSecSurf(gid, 0), 1)
-            vsp.SetParmValUpdate(vsp.GetXSecParm(xs, "SectTess_U"), VLM_SPAN_PANEL)
-        # sessiz-yutma: kabul — geometri bu parmi tasimiyorsa VARSAYILAN panelle
-        # devam edilir; sonuc yine uretilir ama band genis olur. Alternatif
-        # (sert hata) mevcut calisan akislari kirardi.
-        except Exception:
-            pass
-    vsp.Update()
 
     rid = vsp.ExecAnalysis(a)
 
@@ -278,6 +290,12 @@ def run_vspaero_polar(aircraft, alphas=(0, 4, 8, 12, 16), mach: float = 0.05,
             "Cm":    round(cm[i], 5) if i < len(cm) else None,
             "LD_i":  round(ld[i], 2) if i < len(ld) and ld[i] else None,
             "method": "VSPAERO_VLM",
+            # AYRIKLASTIRMA KAYDA GECER: ilk denemede panel ayari YANLIS YERDE
+            # (ComputeGeometry'den SONRA) yapilmisti ve sonuc birebir ayni cikti.
+            # Hangi panelle kosuldugu sonuca yazilmazsa ayni sessiz hata tekrar
+            # fark edilmez.
+            "span_panel": VLM_SPAN_PANEL,
+            "panel_uygulanan_kanat": panel_uygulanan,
         })
     return out
 
