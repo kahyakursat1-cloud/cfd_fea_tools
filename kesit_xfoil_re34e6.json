@@ -1,0 +1,61 @@
+{
+  "vaka": "NACA0012 2B kesit poları — XFOIL 9-e^N, Re=3.4e+06",
+  "_neden": "Dusuk-Re gecisli kesit polari RANS ile uretilemedi: ilk hucre 3e-5'te Cl 0.17-0.32 (beklenen ~0.44), 8e-6'da IRAKSAMA (Cd=-691205). Kurulumun relaxation'i Re=3.4e6 icin elle ayarlanmisti ve 10 kat farkli Re'ye tasinmiyor.",
+  "yontem": "XFOIL 6.99, panel + e^N (N_krit=9), ITER=200",
+  "re": 3400000.0,
+  "mach": 0.0,
+  "naca": "0012",
+  "panel": 0,
+  "polar": [
+    {
+      "alpha": 0.0,
+      "Cl": 0.0,
+      "Cd": 0.00508,
+      "Cdp": 0.00025,
+      "fizik": "ok"
+    },
+    {
+      "alpha": 2.0,
+      "Cl": 0.2236,
+      "Cd": 0.00534,
+      "Cdp": 0.00038,
+      "fizik": "ok"
+    },
+    {
+      "alpha": 4.0,
+      "Cl": 0.4438,
+      "Cd": 0.00614,
+      "Cdp": 0.00084,
+      "fizik": "ok"
+    },
+    {
+      "alpha": 6.0,
+      "Cl": 0.6584,
+      "Cd": 0.00735,
+      "Cdp": 0.00158,
+      "fizik": "ok"
+    },
+    {
+      "alpha": 8.0,
+      "Cl": 0.892,
+      "Cd": 0.00897,
+      "Cdp": 0.00252,
+      "fizik": "ok"
+    }
+  ],
+  "fizik_disi": [],
+  "istenen_alfa": [
+    0.0,
+    2.0,
+    4.0,
+    6.0,
+    8.0
+  ],
+  "yakinsamayan_alfa": [],
+  "tekil_tekrar": true,
+  "uyarilar": [],
+  "_kisit": "XFOIL bir RANS IKAMESI DEGILDIR: 2B, sikistirilamaz, ince-tabaka etkilesimli. Lineer bolgede (|alpha| <= 8 derece) tasarim-oncesi icin uygundur; stall yakininda ve sonrasinda kullanilmaz. N_krit gecis yerini ve dolayisiyla Cd'yi DOGRUDAN belirler — secim raporlanir.",
+  "_uretim": "Üretim: python xfoil_kesit.py --naca 0012 --re 3.4e+06 --alfa 0 2 4 6 8",
+  "_xfoil_stdout_kuyruk": "    CL =  0.8920\n      Cm =  0.0008     CD =  0.00897   =>   CDf =  0.00486    CDp =  0.00410\n      9.000    4.1653   0.008969   0.000453   0.000481   0.000027    0.0277     #\n\n Point added to stored polar  1\n Point written to save file  /tmp/tmp.Yhyhzt58Qy/polar.txt                   \n Dump file unspecified or not available\n\n.OPERva   c>  \n Polar accumulation disabled\n\n.OPERv   c>  \n XFOIL   c>  ",
+  "verdikt": "5/5 acida yakinsak ve fiziksel sonuc. Kesit verisi polar_birlestirme'ye VERILEBILIR (lineer bolge)."
+}

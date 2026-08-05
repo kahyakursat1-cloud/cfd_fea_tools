@@ -94,7 +94,8 @@ def _oku_polar(metin: str) -> list[dict]:
 
 def polar(naca: str = "0012", re: float = 3.5e5, mach: float = 0.0,
           alfalar: tuple[float, ...] = (0, 2, 4, 6, 8),
-          lineer_max: float = 8.0, panel: int = 0) -> dict:
+          lineer_max: float = 8.0, panel: int = 0,
+          tekrar: bool = True) -> dict:
     """Kesit poları + YAKINSAMA ve FİZİK yargısı.
 
     XFOIL yakınsamayan açıyı polar tablosuna HİÇ yazmaz — yani eksik satır bir
@@ -128,6 +129,23 @@ def polar(naca: str = "0012", re: float = 3.5e5, mach: float = 0.0,
     noktalar = _oku_polar(tablo)
     donen = {round(n["alpha"], 3) for n in noktalar}
     eksik = [a for a in alfalar if round(float(a), 3) not in donen]
+
+    # YAKINSAMAYAN ACIYI TEK BASINA YENIDEN DENE. XFOIL PACC suprumunde bir
+    # onceki cozumu baslangic tahmini olarak TASIR; o tahmin kotuyse nokta duser.
+    # OLCULDU (NACA0012, Re=3.4e6): alpha=4 suprumde YAKINSAMADI ama tek basina
+    # kosunca Cl=0.4438 / Cd=0.00614 ile yakinsadi — ve o aci referansin
+    # (Ladson) tanimli oldugu tam aciydi. Yani devam-yolu artefakti yuzunden
+    # DOGRULAMA yapilamaz hale geliyordu.
+    if eksik and tekrar:
+        kurtarilan = []
+        for a in list(eksik):
+            tek = polar(naca, re, mach, (a,), lineer_max, panel, tekrar=False)
+            if tek["polar"]:
+                kurtarilan += tek["polar"]
+        if kurtarilan:
+            noktalar = sorted(noktalar + kurtarilan, key=lambda n: n["alpha"])
+            donen = {round(n["alpha"], 3) for n in noktalar}
+            eksik = [a for a in alfalar if round(float(a), 3) not in donen]
 
     from validity_envelope import force_admissibility
     fizik_disi = []
@@ -164,6 +182,7 @@ def polar(naca: str = "0012", re: float = 3.5e5, mach: float = 0.0,
         "re": re, "mach": mach, "naca": naca, "panel": panel,
         "polar": gecerli, "fizik_disi": fizik_disi,
         "istenen_alfa": list(alfalar), "yakinsamayan_alfa": eksik,
+        "tekil_tekrar": tekrar,
         "uyarilar": uyarilar,
         "_kisit": ("XFOIL bir RANS IKAMESI DEGILDIR: 2B, sikistirilamaz, "
                    "ince-tabaka etkilesimli. Lineer bolgede (|alpha| <= "

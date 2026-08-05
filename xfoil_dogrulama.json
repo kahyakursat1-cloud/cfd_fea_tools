@@ -1,0 +1,25 @@
+{
+  "vaka": "XFOIL model-form dogrulamasi — NACA0012, Re=3.4e+06, alpha=4, referans: Ladson NACA0012, Re=3.4e6",
+  "_neden": "Panel-bagimsizligi (%0.55) AYRIKLASTIRMA bandidir; XFOIL'in gercegi ne kadar tutturdugunu SOYLEMEZ. Birlestirici kesit Cd'sini mutlak suruklemeye kattigi icin model-form hatasi bilinmeli. Referans depoda zaten var (gci_airfoil.reference), ezberden alintilanmadi.",
+  "referans": {
+    "Cd_free": 0.0064,
+    "Cd_turb": 0.0092,
+    "Cl": 0.44,
+    "kaynak": "Ladson NACA0012, Re=3.4e6"
+  },
+  "re": 3400000.0,
+  "alpha": 4.0,
+  "xfoil": {
+    "Cl": 0.4438,
+    "Cd": 0.00614
+  },
+  "sapma_pct": {
+    "Cl": 0.86,
+    "Cd_vs_serbest_gecis": -4.06,
+    "Cd_vs_tam_turbulans": -33.26
+  },
+  "model_form_band_pct": 4.06,
+  "_kisit": "DOGRULAMA Re=3.4e+06'DA YAPILDI. Birlestiricinin kullandigi kesit verisi Re=3.5e5'tedir — bu band oraya ONCUL olarak tasinir, OLCUM olarak DEGIL. Dusuk Re'de laminer kabarcik baskin ve XFOIL'in hatasi FARKLI olabilir; ayni Re'de deneysel referans bulunursa dogrulama orada tekrarlanmalidir. Ayrica N_krit=9 secimi gecis yerini belirler ve referans tunelin turbulans seviyesiyle uyumlu olmayabilir.",
+  "_uretim": "Üretim: python experiments/xfoil_dogrulama.py",
+  "verdikt": "✅ XFOIL vs Ladson NACA0012, Re=3.4e6: Cl 0.4438 vs 0.44 (%+0.86), Cd 0.00614 vs 0.0064 serbest-gecis (%-4.06) / 0.0092 tam-turbulans (%-33.26). Model-form bandi %4.06 — bu Re'de OLCULDU."
+}
