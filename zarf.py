@@ -226,6 +226,50 @@ def s_yp(s: dict) -> float:
     return s.get("yplus_olculen") or s["yplus_hedef"]
 
 
+def _fsi_diverjans() -> tuple[str, str]:
+    """2-yönlü FSI'nin ÇAPASI — zarfta hiç görünmüyordu.
+
+    Yetenek listesinde "aeroelastik ıraksama tespiti" yazıyordu ama zarf
+    tablosunda FSI'ye ait TEK SATIR yoktu; yani ölçüm vardı, tüketiciye
+    ulaşmıyordu. Kanıt: kapalı-form q_div = (π/2L)²·GJ/(c·e·CLα).
+    """
+    d = _json("fsi_divergence.json")
+    h = abs(float(d["q_div_hata_pct"]))
+    ykn = d.get("fsi_yakinsama") or {}
+    guv = "✅ Yüksek" if h < 1.0 else ("⚠️ Bantlı" if h < 5.0 else "❓ Ölçülemedi")
+    return guv, (
+        f"Statik aeroelastik burulma diverjansı ↔ kapalı-form: "
+        f"q_div = {d['q_div_FE_Pa']:.0f} Pa vs analitik {d['q_div_analitik_Pa']:.0f} Pa "
+        f"→ %{h:.2f}; uç-burulma hatası %{abs(float(d['tip_twist_hata_pct_0p5qdiv'])):.2f} "
+        f"(0.5·q_div'de). Bağlaşım 0.95·q_div'de yakınsıyor, 1.05·q_div'de "
+        f"{'yakınsamıyor' if not ykn.get('q_1.05_qdiv', True) else 'yakınsıyor'} — "
+        "eşik doğru tespit ediliyor. KISIT: 1B burulma FE ↔ quasi-steady "
+        "thin-airfoil; ccx/CFD BAĞLAŞIMI DEĞİL, partisyonlu şemanın kendisi "
+        "doğrulanıyor"
+    )
+
+
+def _topopt() -> tuple[str, str]:
+    """Topoloji optimizasyonunun DOĞRULAMA DURUMU — ayrımı net söyler.
+
+    Adjoint gradyanı sonlu-farkla doğrulanmıştır (KOD doğrulaması). Bu, çıkan
+    tasarımın yapısal olarak optimal ya da üretilebilir olduğunu GÖSTERMEZ;
+    ikisi ayrı sorulardır ve satır bunu karıştırmaz.
+    """
+    d2 = _json("stress_topopt_lbracket.json")
+    d3 = _json("stress_topopt3d_bench.json")
+    return "⚠️ Kod doğrulandı, fiziksel geçerleme YOK", (
+        f"Gerilme farkındalıklı SIMP: 2B tepe von Mises {d2['peak_eta_vm_compliance']} "
+        f"→ {d2['peak_eta_vm_stress']} (%{d2['tepe_azalma_pct']} azalma), "
+        f"3B {d3['peak_eta_vm_compliance']} → {d3['peak_eta_vm_stress']} "
+        f"(%{d3['tepe_azalma_pct']}). Adjoint gradyanı FD ile doğrulandı "
+        "(2B ~1e-7, 3B <1e-4) — bu KOD doğrulamasıdır. YOK: mesh-bağımsız "
+        "topoloji, minimum özellik boyutu kısıtı, çoklu yük durumu, üretim "
+        "kısıtı, ve optimize geometrinin BAĞIMSIZ yeniden-mesh + FEA ile "
+        "tekrar doğrulanması. Sonuç ARAŞTIRMA seviyesidir"
+    )
+
+
 SATIRLAR = [
     ("Bağlı akış, 2D airfoil mutlak $C_d$ (M<0.3)", _airfoil_cd),
     ("Bağlı akış, 2D airfoil taşıma $C_l$ (α=8°)", _tasima_a8),
@@ -238,6 +282,8 @@ SATIRLAR = [
     ("Araç tipi sınıflandırma (geometri → analiz ayarı)", _siniflandirici),
     ("Yapısal — lineer statik (kiriş)", _kiris),
     ("Yapısal — gerilme konsantrasyonu ($K_t$)", _kt),
+    ("Aeroelastik — burulma diverjansı (2-yönlü FSI şeması)", _fsi_diverjans),
+    ("Topoloji optimizasyonu — gerilme farkındalıklı", _topopt),
     ("Stall / $C_{L,max}$", None),
     ("Ayrılmış akış — yeniden-yapışma uzunluğu (2D basamak)", _ayrilmis_akis),
     ("y⁺<1 transition (duvar-çözünür)", None),

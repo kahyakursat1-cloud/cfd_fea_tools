@@ -399,7 +399,30 @@ def duvar_hukmu(sinir: dict | None) -> tuple[bool, str]:
     if kat.get("durum") == "ok" and ort <= YPLUS_DUVAR_COZUNUR:
         return True, f"duvar-çözünür: {kat['eklenen']} katman, y+={ort:.1f}"
     if YPLUS_BANDI[0] <= ort <= YPLUS_BANDI[1]:
-        return True, f"duvar fonksiyonu bandında: y+={ort:.0f}"
+        # ORTALAMA YETMEZ. Ozet istatistik dagilimi gizler: MiniHawk'ta
+        # ort=129 (bandda) iken min=6.7 ve max=424 — ikisi de band DISI.
+        # Yuzeyin yarisi y+=20, yarisi y+=240 olsa ortalama yine "iyi" gorunur
+        # ama duvar modeli iki bolgede de tutarsiz calisir.
+        #
+        # UST ve ALT ASIM AYRI DEGERLENDIRILIR, cunku fizikleri farklidir:
+        #   min < 30  DURMA NOKTASINDA KACINILMAZDIR (u_tau -> 0). Tek basina
+        #             ret sebebi degildir; kaydedilir.
+        #   max > 300 log-bolgesinin USTUNE cikildigini gosterir — orada duvar
+        #             fonksiyonu gecerli degildir ve surtunme yanlis cozulur.
+        _mx = yp.get("max")
+        _mn = yp.get("min")
+        _not = []
+        if isinstance(_mn, (int, float)) and _mn < YPLUS_BANDI[0]:
+            _not.append(f"min={_mn:.0f} bandin ALTINDA (durma noktasinda beklenir)")
+        if isinstance(_mx, (int, float)) and _mx > YPLUS_BANDI[1]:
+            return False, (
+                f"y+ ORTALAMASI bandda ({ort:.0f}) ama max={_mx:.0f} "
+                f"log-bolgesinin ustunde — yuzeyin bir kisminda duvar fonksiyonu "
+                "gecersiz. Ortalama tek basina yeterli degildir. "
+                "(NOT: bant-ici YUZEY ALANI ORANI olculmuyor; yPlus.dat yalniz "
+                "min/max/ortalama veriyor.)")
+        return True, (f"duvar fonksiyonu bandında: y+={ort:.0f}"
+                      + (" [" + "; ".join(_not) + "]" if _not else ""))
     return False, (f"y+={ort:.0f} duvar-fonksiyonu bandının ({YPLUS_BANDI[0]:.0f}-"
                    f"{YPLUS_BANDI[1]:.0f}) dışında — sürtünme çözülmüyor")
 

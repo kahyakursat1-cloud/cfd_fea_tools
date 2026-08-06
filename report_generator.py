@@ -41,6 +41,10 @@ TOL_FEA_PCT = 5.0    # analitik kiris sehimi
 TOL_FEA_SUITE_PCT = 8.0   # kanonik FEA V&V suite (en kotu ~%4.8 ozagirlik kok-konsantrasyonu)
 GCI_PASS_PCT = 5.0
 P_RANGE = (0.5, 3.0)  # gozlemlenen mertebe makul araligi (teorik ~2)
+P_TEORIK = 2.0        # ikinci mertebeden sema icin beklenen mertebe
+# p bu oranin ALTINDA kalirsa "aralikta" olsa bile KALITE BAYRAGI kaldirilir:
+# 0.5 -> teorigin yarisindan azi supheli sayilir (NACA0012: p=0.666 = %33).
+P_TEORIK_ORAN = 0.5
 _ = (CD_MAX_PLAUSIBLE, CD_MAX_STREAMLINED, CL_MAX_PLAUSIBLE,
      force_admissibility)                                       # yeniden disa aktarim
 
@@ -258,8 +262,21 @@ def gci_verdict(gci):
         problems.append(f"asimptotik oran {asy} (≈1 beklenir)")
     if gci["gci_fine_pct"] >= GCI_PASS_PCT:
         problems.append(f"GCI={gci['gci_fine_pct']}% ≥ {GCI_PASS_PCT}%")
+    # MERTEBE ARALIKTA OLABILIR AMA TEORIKTEN UZAK OLABILIR. P_RANGE alt siniri
+    # 0.5; ikinci mertebeden bir sema icin teorik p~2. p=0.666 "araliktadir" ama
+    # teorigin ucte biridir ve bu, asimptotik bolgeye TAM GIRILMEDIGININ ya da
+    # baska hata kaynaklarinin (iterasyon, sinir kosulu, homotetik olmayan aile)
+    # baskin oldugunun isaretidir. GCI kucuk cikabilir ve YANILTIR.
+    # Bu bir ENGEL DEGIL, adi konmus bir KALITE BAYRAGIDIR.
+    _p = gci.get("p")
+    _uyari = ""
+    if not problems and isinstance(_p, (int, float)) and _p < P_TEORIK_ORAN * P_TEORIK:
+        _uyari = (f" ⚠️ ancak p={_p} teorik mertebenin (~{P_TEORIK:g}) "
+                  f"{_p / P_TEORIK:.0%}'i — asimptotik bölgeye tam girilmemiş "
+                  "olabilir; GCI küçük çıksa da bu bir kalite bayrağıdır")
     if not problems:
-        return f"✅ Yakınsadı (GCI<{GCI_PASS_PCT}%, monoton, p makul, asimptotik oran≈1)"
+        return (f"✅ Yakınsadı (GCI<{GCI_PASS_PCT}%, monoton, p makul, "
+                f"asimptotik oran≈1){_uyari}")
     return "⚠️ Mesh bağımsızlığı GÖSTERİLEMEDİ: " + "; ".join(problems)
 
 
