@@ -234,6 +234,90 @@ def _knn(pool: list[dict], metrik: dict, k: int) -> list[tuple[float, dict]]:
     return sorted(((d2(c), c) for c in pool), key=lambda t: t[0])[:k]
 
 
+def _geometri_anahtari(c: dict) -> str:
+    return str(c.get("dosya") or c.get("kaynak") or id(c))
+
+
+def _ayrik_geometriler(pool: list[dict]) -> list[dict]:
+    """Geometri başına TEK kayıt — mesafe istatistiği için.
+
+    ÖLÇÜLDÜ: havuz 31 kayıt ama yalnız 17 AYRIK geometri; aynı gövdenin farklı
+    ayarlarla tekrar koşuları ayrı kayıt olarak duruyor ve öznitelik vektörleri
+    BİREBİR AYNI. Sonuç: 31 kaydın 26'sının en-yakın-komşu mesafesi TAM SIFIR.
+    Eşiği bu dağılımdan türetmek, yarısı sıfır olan bir dağılımdan türetmektir.
+
+    Sonuç istatistiği (ayar→başarı) için tekrarlar DEĞERLİDİR ve korunur;
+    burada yalnız GEOMETRİ UZAYI yoğunluğu ölçülür.
+    """
+    gorulen: dict[str, dict] = {}
+    for c in pool:
+        gorulen.setdefault(_geometri_anahtari(c), c)
+    return list(gorulen.values())
+
+
+def _havuz_en_yakin_mesafeler(pool: list[dict]) -> list[float]:
+    """AYRIK geometrilerin en-yakın-komşu mesafeleri (leave-one-out).
+
+    OOD eşiği UYDURULMAZ: havuzun kendi yoğunluğundan türetilir. Bir sorgu,
+    havuz üyelerinin birbirine olan tipik uzaklığından belirgin daha uzaksa
+    o sorgu havuzun KAPSAMADIĞI bir bölgededir.
+    """
+    import auto_pilot as ap
+    fv = [ap._features(c["metrik"]) for c in _ayrik_geometriler(pool)]
+    out = []
+    for i, a in enumerate(fv):
+        d = [sum((x - y) ** 2 for x, y in zip(a, b))
+             for j, b in enumerate(fv) if j != i]
+        if d:
+            out.append(min(d) ** 0.5)
+    return sorted(out)
+
+
+# Sorgunun en yakın komşusu, havuzun kendi en-yakın-mesafelerinin bu yüzdeliğini
+# aşarsa DAĞILIM DIŞI sayılır. %90: havuz üyelerinin onda dokuzu birbirine bundan
+# daha yakın; sorgu daha uzaksa havuzun örneklemediği bir bölgededir.
+OOD_YUZDELIK = 0.90
+
+
+def _ood_hukmu(pool: list[dict], knn: list) -> dict:
+    """Sorgu havuzun kapsadığı bölgede mi? Öneri güvenilirliği buradan gelir.
+
+    NEDEN: `_knn` uzaklık NE OLURSA OLSUN k komşu döndürüyordu. Hiçbir şeye
+    benzemeyen bir geometri de kendinden emin görünen bir öneri alıyordu;
+    öneriyle birlikte MESAFE gösterilmediği için kullanıcı bunu göremiyordu.
+    """
+    if not knn:
+        return {"durum": "komşu yok", "guvenilir": False}
+    d_sorgu = knn[0][0] ** 0.5
+    havuz = _havuz_en_yakin_mesafeler(pool)
+    if len(havuz) < 3:
+        return {"durum": "havuz çok küçük — eşik türetilemedi",
+                "en_yakin_mesafe": round(d_sorgu, 4), "guvenilir": False}
+    esik = havuz[min(int(len(havuz) * OOD_YUZDELIK), len(havuz) - 1)]
+    disarida = d_sorgu > esik
+    # KOMŞULAR KAÇ AYRI GÖVDEDEN? k=8 komşu, 2 gövdenin 8 koşusu olabilir.
+    # "8 komşu" iyi desteklenmiş görünür ama aslında iki geometridir.
+    komsu_ayrik = len({_geometri_anahtari(c) for _, c in knn})
+    return {
+        "en_yakin_mesafe": round(d_sorgu, 4),
+        "havuz_esigi": round(esik, 4),
+        "havuz_medyan_mesafe": round(havuz[len(havuz) // 2], 4),
+        "havuz_ayrik_geometri": len(havuz) + 1,
+        "komsu_ayrik_geometri": komsu_ayrik,
+        "komsu_kayit": len(knn),
+        "yuzdelik": OOD_YUZDELIK,
+        "dagilim_disi": disarida,
+        "guvenilir": not disarida and komsu_ayrik >= 2,
+        "durum": (f"DAĞILIM DIŞI: en yakın komşu {d_sorgu:.3f} uzaklıkta, havuzun kendi "
+                  f"%{OOD_YUZDELIK * 100:.0f} yüzdeliği {esik:.3f}. Bu geometri havuzun örneklemediği "
+                  "bir bölgede; öneri YALNIZ BAŞLANGIÇ AYARIDIR ve otomatik "
+                  "karara GİRMEZ")
+        if disarida else
+        (f"havuz kapsamında: en yakın komşu {d_sorgu:.3f}, eşik {esik:.3f}"
+         ),
+    }
+
+
 def _ref_bump_dersi(knn: list) -> dict:
     """Komşuların ref_bump→sonuç geçmişi ve FİZİK KURALIYLA ÇELİŞKİSİ.
 
@@ -373,6 +457,11 @@ def advise_mesh(metrik: dict, tip: str = "", k: int = 8,
             "n_destek": len(pool),
             "n_ayrik_geometri": len({c.get("dosya") or c.get("kaynak") for c in pool}),
             "komsu": len(knn), "ayni_tip": pool is same,
+            # OOD HÜKMÜ ÖNERİYLE BİRLİKTE GİDER. Mesafe gösterilmezse kullanıcı
+            # "hiçbir şeye benzemeyen geometri" ile "havuzun tam ortasındaki
+            # geometri" arasındaki farkı göremez; ikisi de aynı özgüvenle
+            # sunulurdu.
+            "ood": _ood_hukmu(pool, knn),
             "etiket": "ÖĞRENİLEN-ÖNCÜL — ayarı kural+onay belirler"}
 
 
@@ -399,6 +488,7 @@ def advise_fea(metrik: dict, k: int = 6, min_support: int = MIN_SUPPORT) -> dict
             "tekillik_beklentisi": round(tekillik_orani, 2),
             "mekanizma_riski": round(mekanizma_orani, 2), "notlar": notlar,
             "n_destek": len(pool), "komsu": len(knn),
+            "ood": _ood_hukmu(pool, knn),
             "etiket": "ÖĞRENİLEN-ÖNCÜL — ayarı kural+onay belirler"}
 
 
