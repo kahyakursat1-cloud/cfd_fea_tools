@@ -307,19 +307,35 @@ def parse_iyilestirme_acligi(log_text: str) -> dict:
 
 
 YUZEY_YUZ_ESIGI = 500
-"""Gövde yamasının kabul edilebilir en az yüz sayısı. Çağıranların da bu sayıyı
-BİLMESİ gerekiyor: GCI seviyesi üretirken eşiğin altına düşecek bir kademeyi
-koşmak, saatlerce CFD harcayıp sonunda reddedilmek demektir (çapa kampanyasında
-küp kaba seviyeleri 176 ve 436 yüzle böyle harcandı)."""
+"""Gövde yamasının MUTLAK tabanı — geometriden bağımsız. Bu tek başına KABA bir
+ölçüttür: 500 yüz, 4 m'lik bir kanadı da 4 cm'lik bir fini de "yeterli" sayar.
+Asıl ölçüt aşağıdaki geometri-göreli kriterdir; bu sayı yalnızca hiçbir
+geometride savunulamayacak alt sınırı tutar. Çağıranların da bunu BİLMESİ
+gerekiyor: GCI seviyesi üretirken eşiğin altına düşecek bir kademeyi koşmak,
+saatlerce CFD harcayıp sonunda reddedilmek demektir (çapa kampanyasında küp kaba
+seviyeleri 176 ve 436 yüzle böyle harcandı)."""
+
+OZELLIK_BASINA_HUCRE = 4
+"""En küçük geometrik özellik boyunca istenen en az yüzey hücresi. 4 hücre, bir
+özelliğin eğriliğini parçalı-lineer temsil edebilmenin pratik alt sınırıdır (2
+hücre yalnız bir basamak, 3 hücre tek kırılım verir). Kaynak: snappyHexMesh
+`nCellsBetweenLevels` varsayılanı da aynı mertebededir (3)."""
 
 
 def yuzey_cozunurluk_hukmu(log_snappy: str, yuzey_yuz: int | None,
-                           en_kucuk_boyut_m: float | None = None) -> dict:
+                           en_kucuk_boyut_m: float | None = None,
+                           yuzey_alani_m2: float | None = None) -> dict:
     """Gövde GERÇEKTEN çözüldü mü? NİYET değil, SONUÇ ölçülür.
 
     Mevcut `resolution_warning` yüzey hücresini (lmax/bg_div)/2^ref_max diye
     NİYETTEN hesaplıyordu — yani iyileştirmenin uygulandığını VARSAYIYOR. MiniHawk'ta
     0.010 m rapor edip "sorun yok" derken snappy 0.167 m teslim etmişti.
+
+    ÖLÇÜT GEOMETRİYE GÖRELİDİR. Sabit yüz sayısı, aynı sayıyı 4 m'lik kanada da
+    4 cm'lik fine de uygular. Yüzey alanı ve en küçük özellik verilirse tipik
+    yüzey hücresi h=√(A/N) ölçülür ve h ≤ özellik/4 istenir; verilmezse bu ölçüt
+    UYGULANMADI diye yazılır — sessizce "geçti" sayılmaz. `en_kucuk_boyut_m`
+    imzada zaten vardı ama gövdede HİÇ kullanılmıyordu.
     """
     ac = parse_iyilestirme_acligi(log_snappy)
     gerekce = []
@@ -329,10 +345,41 @@ def yuzey_cozunurluk_hukmu(log_snappy: str, yuzey_yuz: int | None,
             f"{ac['kez']} kez) — arka plan mesh'i tek basina tavani doldurmus, "
             "govde yuzeyi HIC iyilestirilmemis olabilir")
     if yuzey_yuz is not None and yuzey_yuz < YUZEY_YUZ_ESIGI:
-        gerekce.append(f"govde yamasi yalnizca {yuzey_yuz} yuz — bu cozunurlukte "
-                       "kamburluk/egrilik temsil EDILEMEZ")
+        gerekce.append(f"govde yamasi yalnizca {yuzey_yuz} yuz — mutlak tabanin "
+                       f"({YUZEY_YUZ_ESIGI}) altinda, hicbir geometride savunulamaz")
+
+    goreli: dict = {"uygulandi": False}
+    if yuzey_yuz and yuzey_alani_m2 and en_kucuk_boyut_m:
+        h = math.sqrt(yuzey_alani_m2 / yuzey_yuz)
+        h_gereken = en_kucuk_boyut_m / OZELLIK_BASINA_HUCRE
+        n_gereken = int(math.ceil(yuzey_alani_m2 / (h_gereken * h_gereken)))
+        hucre_sayisi = en_kucuk_boyut_m / h
+        goreli = {"uygulandi": True, "h_yuzey_m": round(h, 6),
+                  "h_gereken_m": round(h_gereken, 6),
+                  "en_kucuk_ozellik_m": en_kucuk_boyut_m,
+                  "gereken_yuz": n_gereken,
+                  "ozellik_basina_hucre": round(hucre_sayisi, 2),
+                  "ozellik_cozuldu": bool(hucre_sayisi >= OZELLIK_BASINA_HUCRE)}
+        if hucre_sayisi < OZELLIK_BASINA_HUCRE:
+            goreli["hukum"] = (
+                f"EN KUCUK OZELLIK COZULMEDI: yuzey hucresi h={h * 1000:.2f} mm, "
+                f"ozellik {en_kucuk_boyut_m * 1000:.2f} mm boyunca yalnizca "
+                f"{hucre_sayisi:.2f} hucre var (gereken {OZELLIK_BASINA_HUCRE}); "
+                f"~{n_gereken:,} yuz gerekirdi, {yuzey_yuz:,} var. Bu ozellik "
+                "geometrik olarak YOK sayilmistir — ince firar kenari, kenar "
+                "yuvarlatmasi ya da kucuk cikinti temsil edilmiyor ve surtunme/"
+                "form surukleme bilesenleri bundan etkilenir.")
+    else:
+        goreli["neden"] = ("yuzey alani ve/veya en kucuk ozellik verilmedi — "
+                           "geometri-goreli olcum YAPILMADI")
+    # NEDEN ENGELLEYICI DEGIL: en ince ozellik (0.5-1.5 mm firar kenari) uzerine
+    # 4 hucre istemek, 0.7 m'lik bir kanatta ~13 milyon yuzey yuzu demektir. Bu
+    # hex-mesh'in bilinen siniridir, o kosunun kusuru degil. Engelleyici yapmak
+    # her ince-kesitli kosuyu reddederdi ve kapi bilgi TASIMAZ hale gelirdi.
+    # Ama SESSIZ de kalamaz: olcum her zaman raporlanir ve tuketiciler
+    # `geometri_goreli.ozellik_cozuldu` alanini okuyabilir.
     return {"cozuldu": not gerekce, "gerekce": gerekce,
-            "yuzey_yuz": yuzey_yuz, **ac}
+            "yuzey_yuz": yuzey_yuz, "geometri_goreli": goreli, **ac}
 
 
 def _write_block_mesh(case_dir: Path, dmin: np.ndarray, dmax: np.ndarray,

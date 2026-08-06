@@ -135,7 +135,14 @@ def _yuzey_gecerlilik(bl: dict) -> dict:
                 "ogrenilebilir": False,
                 "gecersizlik": "yuzey cozunurlugu OLCULMEMIS (duzeltme oncesi kosu)"}
     ok = bool(yc.get("cozuldu"))
+    # EN KUCUK OZELLIK ayri bir bilgidir ve engelleyici DEGILDIR: kapiyi gecen
+    # bir kosuda bile ince firar kenari temsil edilmemis olabilir (arsivde 3/12).
+    # Havuz bunu tasimazsa, iki kosu "ayni ayar, ayni geometri" gorunup farkli
+    # Cd verir ve komsuluk yaniltir.
+    gr = yc.get("geometri_goreli") or {}
     return {"yuzey_cozuldu": ok, "ogrenilebilir": ok,
+            "ozellik_basina_hucre": gr.get("ozellik_basina_hucre"),
+            "ozellik_cozuldu": gr.get("ozellik_cozuldu"),
             **({} if ok else
                {"gecersizlik": "; ".join(yc.get("gerekce", []))[:160]})}
 
