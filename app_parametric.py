@@ -754,7 +754,7 @@ Tarih: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 MALZEME BİLGİLERİ
 -----------------
 Adı: {material.name}
-Elastiklik Modülü: {material.youngs_modulus} MPa
+Elastiklik Modülü: {material.youngs_modulus} GPa
 Poisson Oranı: {material.poisson_ratio}
 Yoğunluk: {material.density} kg/m³
 Akma Gerilmesi: {material.yield_strength} MPa

@@ -20,6 +20,7 @@ from pathlib import Path
 
 import numpy as np
 
+from .birim_kapisi import pa_dogrula
 from .tet_mesher import TetMesh
 
 
@@ -36,6 +37,15 @@ class FEAMaterial:
     yield_strength_pa: float = 0.0  # post-process için
     thermal_expansion_per_k: float = 0.0   # α (1/K); >0 ise termal genleşme etkin
     engineering_constants: tuple | None = None  # 9'lu ortotropik takım (Pa)
+
+    def __post_init__(self):
+        # BİRİM KAPISI. Bu depoda `youngs_modulus` adı üç katmanda üç birim
+        # taşıyor: material_database GPa, fea_runner MPa, burası Pa. Yanlış
+        # katmandan gelen bir sayı CalculiX'i rahatsız etmez — sehimi 10³ ya da
+        # 10⁹ kat kaydırıp "geçerli görünen" bir sonuç üretir. Kapı sayının
+        # BÜYÜKLÜĞÜNE bakar; sessiz düzeltme YAPMAZ, reddeder.
+        pa_dogrula(self.name, self.youngs_modulus_pa, self.density_kg_m3,
+                   self.yield_strength_pa or None)
 
     @classmethod
     def from_gpa(cls, name: str, e_gpa: float, nu: float, rho: float,
