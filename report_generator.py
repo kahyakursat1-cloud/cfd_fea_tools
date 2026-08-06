@@ -652,10 +652,19 @@ class VVReport:
         if tmr_gci and tmr_gci.get("seviyeler"):
             g = tmr_gci
             gci = g.get("gci", {})
-            md.append("## 1d. TMR Drag GCI — Mutlak Cd Çözüm-Doğrulama (VALIDATED)\n")
+            # BASLIK VE HUKUM VERIDEN TURETILIR. Eski surum basliga kosulsuz
+            # "(VALIDATED)" yaziyor, sonda kosulsuz "verification KESIN" ve
+            # "tasarim-grade" diyordu — GCI ne derse desin. Kanit kotulesirse
+            # rapor yine "dogrulandi" derdi.
+            _yakinsak = bool(gci.get("monotonic") and gci.get("p_in_range")
+                             and gci.get("gci_fine_pct", 1e9) < 5.0)
+            md.append("## 1d. TMR Drag GCI — Mutlak Cd Çözüm-Doğrulama "
+                      + ("(VALIDATED)\n" if _yakinsak else "(YAKINSAMADI)\n"))
             md.append("Bespoke O/C-grid'de mutlak Cd mesh-yakınsamıyordu (1b/1c: p≈0.2, "
                       "asimptotik-dışı). **NASA TMR doğrulanmış C-grid ailesi** (`plot3dToFoam`, "
-                      "500c far-field, y⁺<1) + tam-türbülans SST ile **çözüldü**.\n")
+                      "500c far-field, y⁺<1) + tam-türbülans SST ile "
+                      + ("**çözüldü**.\n" if _yakinsak else
+                         "denendi; bu kanıtta **yakınsama gösterilemedi**.\n"))
             md.append("| Grid | Hücre | $C_d$ |")
             md.append("|------|-------|-------|")
             for lv in g["seviyeler"]:
@@ -663,12 +672,23 @@ class VVReport:
             md.append(f"\n- **Gözlenen mertebe** p = {gci.get('p')}  ")
             md.append(f"- **Asimptotik oran** = {gci.get('asymptotic')} (≈1 → asimptotik aralık)  ")
             md.append(f"- **GCI (ince)** = {gci.get('gci_fine_pct')}%  ")
-            md.append(f"- **Richardson** $C_d$ = {gci.get('f_exact'):.5f} vs TMR/CFL3D ≈ "
-                      f"{g.get('TMR_referans_SST_alpha0', 0.00809)} "
-                      f"(+%{abs(gci.get('f_exact', 0) - 0.00809) / 0.00809 * 100:.1f}, kod-saçılımı)  ")
-            md.append(f"\n> **{g.get('strict_gci_verdict', '')}** — mutlak $C_d$ artık "
-                      "mesh-yakınsamış (verification KESİN); validation TMR'ye kod-saçılımı "
-                      "(~%3-4) düzeyinde. Bu geometride absolute Cd **tasarım-grade**.\n")
+            # SAPMA, GOSTERILEN REFERANSTAN hesaplanir. Eski surum referansi
+            # kanittan okuyup GOSTERIYOR ama yuzdeyi SABIT 0.00809'a gore
+            # hesapliyordu; kanit degisirse gosterilen referans ile yuzde
+            # AYRISIRDI. Ayrica isaret "+" olarak sabitti.
+            _ref = float(g.get("TMR_referans_SST_alpha0") or 0.00809)
+            _fe = gci.get("f_exact")
+            if _fe is not None and _ref:
+                _sapma = (_fe - _ref) / _ref * 100
+                md.append(f"- **Richardson** $C_d$ = {_fe:.5f} vs TMR/CFL3D ≈ "
+                          f"{_ref} ({_sapma:+.1f}%, kod-saçılımı)  ")
+            md.append(f"\n> **{g.get('strict_gci_verdict', '')}** — "
+                      + ("mutlak $C_d$ mesh-yakınsamış (verification KESİN); "
+                         "validation TMR'ye kod-saçılımı düzeyinde. Bu geometride "
+                         "absolute Cd **tasarım-grade**.\n" if _yakinsak else
+                         "bu kanıtta mesh-yakınsaması GÖSTERİLEMEDİ "
+                         f"(p={gci.get('p')}, GCI=%{gci.get('gci_fine_pct')}); "
+                         "mutlak $C_d$ tasarım-grade DEĞİLDİR.\n"))
 
         # 2. Validation
         if validation:
@@ -705,14 +725,25 @@ class VVReport:
             for fv in fea_validations:
                 vaka = fv.get("vaka", "?")
                 err = _fea_val_error_pct(fv)
-                passed = "GECTI" in (fv.get("sonuc", "") or "")
+                # HÜKÜM ÖLÇÜMDEN, METİNDEN DEĞİL. Eski sürüm işareti kanıt
+                # metninde "GECTI" geçip geçmemesine bakarak veriyordu: %40
+                # hatalı bir vaka metninde öyle yazıyorsa ✅ alırdı. Eşik
+                # (TOL_FEA_SUITE_PCT) hemen altta hesaplanıyor ama satır
+                # hükmünde KULLANILMIYORDU.
+                if err is not None:
+                    passed = err <= TOL_FEA_SUITE_PCT
+                    isaret = "✅" if passed else "❌"
+                else:
+                    # Hata ÇIKARILAMADI: "geçti" de denmez, "kaldı" da.
+                    passed = False
+                    isaret = "❓"
                 n_pass += int(passed)
                 if err is not None:
                     worst_all = max(worst_all, err)
                 err_s = f"%{err:.1f}" if err is not None else "—"
                 formul = (fv.get("analitik") or {}).get("formul") \
                     or (fv.get("sehim") or {}).get("formul") or "—"
-                md.append(f"| {vaka} | `{formul}` | {err_s} | {'✅' if passed else '⚠️'} |")
+                md.append(f"| {vaka} | `{formul}` | {err_s} | {isaret} |")
             md.append(f"\n*{n_pass}/{len(fea_validations)} vaka geçti; en kötü hata "
                       f"%{worst_all:.1f} (suite kabul eşiği %{TOL_FEA_SUITE_PCT:.0f}). "
                       "Doğrulanan mekanizmalar: uç-yük/sehim (kiriş), gerilme-konsantrasyonu "

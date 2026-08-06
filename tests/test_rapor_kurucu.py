@@ -184,3 +184,93 @@ class TestKanonikBand:
         rapor.build(mesh_indep=hucresiz)
         md = _oku(rapor)
         assert "KANONİK" not in md
+
+
+class TestTmrBolumu:
+    """Sabit metin, veriyle çelişebilir — TMR bölümünde üç yerde çelişiyordu.
+
+    ÖLÇÜLDÜ: başlıkta koşulsuz "(VALIDATED)", sonda koşulsuz "verification
+    KESİN" ve "tasarım-grade"; GCI ne derse desin. Ayrıca sapma yüzdesi
+    GÖSTERİLEN referanstan değil SABİT 0.00809'dan hesaplanıyordu ve işaret
+    "+" olarak sabitti.
+    """
+
+    _IYI = {"seviyeler": [{"grid": "449", "cells": 57344, "Cd": 0.0082006},
+                          {"grid": "897", "cells": 229376, "Cd": 0.0083074},
+                          {"grid": "1793", "cells": 917504, "Cd": 0.0083747}],
+            "gci": {"p": 0.666, "gci_fine_pct": 1.7133, "monotonic": True,
+                    "asymptotic": 0.992, "f_exact": 0.00849, "p_in_range": True},
+            "TMR_referans_SST_alpha0": 0.00809,
+            "strict_gci_verdict": "Yakınsadı"}
+
+    def test_YAKINSAMAYAN_kanitta_VALIDATED_denmiyor(self, rapor):
+        kotu = {**self._IYI,
+                "gci": {**self._IYI["gci"], "monotonic": False,
+                        "p_in_range": False, "gci_fine_pct": 42.0},
+                "strict_gci_verdict": "Yakınsamadı"}
+        rapor.build(tmr_gci=kotu)
+        md = _oku(rapor)
+        assert "(VALIDATED)" not in md, "yakınsamayan kanıtta başlık VALIDATED"
+        assert "tasarım-grade DEĞİLDİR" in md
+        assert "verification KESİN" not in md
+
+    def test_YAKINSAYAN_kanitta_VALIDATED(self, rapor):
+        rapor.build(tmr_gci=self._IYI)
+        md = _oku(rapor)
+        assert "(VALIDATED)" in md
+        assert "tasarım-grade" in md
+
+    def test_SAPMA_gosterilen_referanstan(self, rapor):
+        """Referans kanıttan okunup gösteriliyorsa yüzde de ONDAN hesaplanmalı."""
+        farkli = {**self._IYI, "TMR_referans_SST_alpha0": 0.0090}
+        rapor.build(tmr_gci=farkli)
+        md = _oku(rapor)
+        beklenen = (0.00849 - 0.0090) / 0.0090 * 100
+        assert f"{beklenen:+.1f}%" in md, "sapma gösterilen referanstan hesaplanmıyor"
+        assert "0.009" in md
+
+    def test_NEGATIF_sapma_isareti_DOGRU(self, rapor):
+        """Richardson referanstan KÜÇÜKSE '+' yazılmamalı."""
+        farkli = {**self._IYI, "TMR_referans_SST_alpha0": 0.0090}
+        rapor.build(tmr_gci=farkli)
+        md = _oku(rapor)
+        # TMR BOLUMUNE capala: "Richardson" zarf tablosunda da geciyor.
+        bolum = md[md.index("## 1d."):]
+        i = bolum.index("**Richardson**")
+        assert "-" in bolum[i:i + 160], "negatif sapma '+' ile gösteriliyor"
+        assert "+" not in bolum[i:i + 160].split("kod-saçılımı")[0]
+
+
+class TestFeaSuiteHukmu:
+    """✅/❌ ÖLÇÜMDEN gelmeli, kanıt METNİNDEN değil.
+
+    ÖLÇÜLDÜ: işaret `"GECTI" in fv["sonuc"]` ile veriliyordu — %40 hatalı bir
+    vaka metninde öyle yazıyorsa ✅ alırdı. Eşik (TOL_FEA_SUITE_PCT) hemen
+    altta hesaplanıyor ama satır hükmünde kullanılmıyordu.
+    """
+
+    def test_METIN_GECTI_dese_de_HATA_buyukse_kaliyor(self, rapor):
+        sahte = [{"vaka": "uydurma", "sonuc": "GECTI — harika",
+                  "analitik": {"formul": "x"}, "sehim": {"hata_pct": 40.0}}]
+        rapor.build(fea_validations=sahte)
+        md = _oku(rapor)
+        satir = next(s for s in md.splitlines() if "uydurma" in s)
+        assert "❌" in satir, f"olcum %40 iken metne bakip gecirdi: {satir}"
+
+    def test_HATA_kucukse_geciyor(self, rapor):
+        iyi = [{"vaka": "gercekci", "sonuc": "",
+                "analitik": {"formul": "x"}, "sehim": {"hata_pct": 1.0}}]
+        rapor.build(fea_validations=iyi)
+        md = _oku(rapor)
+        satir = next(s for s in md.splitlines() if "gercekci" in s)
+        assert "✅" in satir, "olcum iyi iken metin bos diye kaldi"
+
+    def test_HATA_cikarilamazsa_UCUNCU_durum(self, rapor):
+        """'Ölçülemedi' ne geçti ne kaldı demektir."""
+        belirsiz = [{"vaka": "semasiz", "sonuc": "GECTI",
+                     "analitik": {"formul": "x"}}]
+        rapor.build(fea_validations=belirsiz)
+        md = _oku(rapor)
+        satir = next(s for s in md.splitlines() if "semasiz" in s)
+        assert "❓" in satir, "hata cikarilamazken kesin hukum veriliyor"
+        assert "✅" not in satir
