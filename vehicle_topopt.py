@@ -36,6 +36,25 @@ from vehicle_fea import CONSTRAINT_PRESETS, _map_pressure_to_tet
 
 RHO_MIN = 0.05
 
+# TO TEPE GERİLMESİ AĞ-BAĞIMLIDIR ve bu ÖLÇÜLDÜ (topopt_bagimsiz_dogrulama.json):
+# aynı ikili tasarım 1×→3× incelen bağımsız gridde tepe von Mises'i %47 büyüttü ve
+# son iki seviye arasında %15.7 sapma bıraktı — reentrant köşe gerilme tekilliği,
+# yakınsamıyor. Kompliyans ise %1.5 içinde yakınsadı. Sonuç: TO'nun kendi gridinde
+# okunan SF, ince ağda o kadar DÜŞER. Bu yüzden "güvenli" hükmü ham 1.5 eşiğiyle
+# değil, ölçülen büyümeyle şişirilmiş eşikle verilir.
+_TEPE_AG_BUYUMESI_DOSYA = Path(__file__).resolve().parent / "topopt_bagimsiz_dogrulama.json"
+_TEPE_AG_BUYUMESI_VARSAYILAN = 0.47
+
+
+def _ag_buyumesi() -> tuple[float, str]:
+    """(tepe σ büyüme oranı, kaynak). Kanıt dosyası varsa ONDAN, yoksa ölçülen sabit."""
+    if _TEPE_AG_BUYUMESI_DOSYA.exists():
+        d = json.loads(_TEPE_AG_BUYUMESI_DOSYA.read_text(encoding="utf-8"))
+        v = (d.get("2_ayriklastirma") or {}).get("sigma_r1_r3_degisim_pct")
+        if isinstance(v, (int, float)) and v > 0:
+            return float(v) / 100.0, "ölçülen (topopt_bagimsiz_dogrulama.json, r=1→3)"
+    return _TEPE_AG_BUYUMESI_VARSAYILAN, "ölçülen sabit (L-braket, r=1→3)"
+
 
 def _stress_gate(sa: dict) -> dict:
     """Kompliyans-OPTIMAL tasarımın STRES kapısı (#2: kompliyans-körlüğünü açık flag'le).
@@ -57,9 +76,24 @@ def _stress_gate(sa: dict) -> dict:
     if sf is None:
         return {"durum": "değerlendirilemedi", "SF": None,
                 "mesaj": "Stres okunamadı (mesh/çözüm); kompliyans-min stresi GARANTİ ETMEZ."}
-    if sf >= 1.5:
+    buyume, kaynak = _ag_buyumesi()
+    esik_ag = 1.5 * (1 + buyume)
+    if sf >= esik_ag:
         return {"durum": "güvenli", "SF": sf,
-                "mesaj": f"✅ Kompliyans-optimal tasarım stres-güvenli (SF_temsili={sf}≥1.5)."}
+                "ag_marji": {"buyume_pct": round(buyume * 100, 1), "esik": round(esik_ag, 2),
+                             "kaynak": kaynak},
+                "mesaj": f"✅ Kompliyans-optimal tasarım stres-güvenli (SF_temsili={sf} ≥ "
+                         f"{esik_ag:.2f} = 1.5×(1+%{buyume * 100:.0f} ağ marjı))."}
+    if sf >= 1.5:
+        return {"durum": "ag_marjinda", "SF": sf,
+                "ag_marji": {"buyume_pct": round(buyume * 100, 1), "esik": round(esik_ag, 2),
+                             "kaynak": kaynak},
+                "mesaj": f"🟡 SF={sf} ham 1.5 eşiğini geçiyor ama AĞ MARJINI geçmiyor "
+                         f"({esik_ag:.2f}). TO gridinde okunan tepe gerilme yakınsamış "
+                         f"DEĞİLDİR: aynı tasarım 3× ince bağımsız gridde tepe von Mises'i "
+                         f"%{buyume * 100:.0f} büyüttü ({kaynak}) — o durumda SF "
+                         f"≈{sf / (1 + buyume):.2f}'ye düşer. 'Güvenli' denemez; tasarımı "
+                         "yuvarlatılmış (filet) geometriyle ve bağımsız ağda yeniden analiz et."}
     if sf >= 1.0:
         return {"durum": "marjinal", "SF": sf,
                 "mesaj": f"⚠️ Marjinal (1≤SF={sf}<1.5). Kompliyans-min stresi KONTROL ETMEZ — "

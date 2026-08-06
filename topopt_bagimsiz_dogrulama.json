@@ -1,0 +1,137 @@
+{
+  "vaka": "Topoloji optimizasyonu — optimizasyon sonrası BAĞIMSIZ yeniden-analiz",
+  "_neden": "TO'nun raporladigi tepe gerilme, optimizasyonun KENDI gridinde ve KENDI gri alani uzerinde hesaplanir. Imal edilecek parca ikilidir ve analiz agi baskadir. Ayni agla dogrulamak DAIRESELDIR.",
+  "olcek_dogrulamasi": {
+    "seviyeler": [
+      {
+        "n": 6,
+        "ndof": 1911,
+        "c_birim": 6.040494811058858,
+        "c_fiz": 36.24296886635315
+      },
+      {
+        "n": 9,
+        "ndof": 5700,
+        "c_birim": 4.078601288247134,
+        "c_fiz": 36.707411594224205
+      },
+      {
+        "n": 12,
+        "ndof": 12675,
+        "c_birim": 3.0737228159361556,
+        "c_fiz": 36.884673791233865
+      }
+    ],
+    "son_iki_sapma_pct": 0.48,
+    "ilk_son_sapma_pct": 1.77,
+    "gecti": true,
+    "_anlam": "Ölçekli kompliyans ağ inceldikçe sabitleniyorsa c_fiz=(N/L)·c_birim dönüşümü doğrudur; yanlış olsaydı N ile monoton ıraksardı."
+  },
+  "kurulum": {
+    "vaka": "3B L-braket",
+    "volfrac": 0.4,
+    "rmin_fiziksel": 0.08333333333333333,
+    "to_gridleri": [
+      "16x16x2",
+      "24x24x3"
+    ],
+    "ortak_degerlendirme_gridi": "48x48x6",
+    "esik": "HACİM-KORUYAN (gri ile ikili aynı hacim)"
+  },
+  "1_esikleme_hatasi": {
+    "16x16x2": {
+      "gri": {
+        "c_fiz": 1032.9460934613342,
+        "sigma_tepe_fiz": 420.9057187871089,
+        "hacim_fraksiyonu": 0.4375,
+        "ndof": 2601,
+        "ne": 512
+      },
+      "ikili": {
+        "c_fiz": 720.6138728854519,
+        "sigma_tepe_fiz": 188.49802964939542,
+        "hacim_fraksiyonu": 0.39453125,
+        "ndof": 2601,
+        "ne": 512
+      },
+      "sigma_degisim_pct": -55.22,
+      "c_degisim_pct": -30.24
+    },
+    "24x24x3": {
+      "gri": {
+        "c_fiz": 1355.1458003432972,
+        "sigma_tepe_fiz": 605.8705295927255,
+        "hacim_fraksiyonu": 0.4375,
+        "ndof": 7500,
+        "ne": 1728
+      },
+      "ikili": {
+        "c_fiz": 951.7929408419927,
+        "sigma_tepe_fiz": 302.23534476804616,
+        "hacim_fraksiyonu": 0.4039351851851852,
+        "ndof": 7500,
+        "ne": 1728
+      },
+      "sigma_degisim_pct": -50.12,
+      "c_degisim_pct": -29.76
+    }
+  },
+  "2_ayriklastirma": {
+    "tasarim": "24x24x3 gerilme-min, ikili",
+    "seviyeler": [
+      {
+        "c_fiz": 951.7929408419927,
+        "sigma_tepe_fiz": 302.23534476804616,
+        "hacim_fraksiyonu": 0.4039351851851852,
+        "ndof": 7500,
+        "ne": 1728,
+        "r": 1,
+        "grid": "24x24x3"
+      },
+      {
+        "c_fiz": 999.5329001399072,
+        "sigma_tepe_fiz": 383.1437552427931,
+        "hacim_fraksiyonu": 0.4039351851851852,
+        "ndof": 50421,
+        "ne": 13824,
+        "r": 2,
+        "grid": "48x48x6"
+      },
+      {
+        "c_fiz": 1014.3689218772149,
+        "sigma_tepe_fiz": 443.17293358896666,
+        "hacim_fraksiyonu": 0.4039351851851852,
+        "ndof": 159870,
+        "ne": 46656,
+        "r": 3,
+        "grid": "72x72x9"
+      }
+    ],
+    "kompliyans_son_iki_sapma_pct": 1.48,
+    "sigma_son_iki_sapma_pct": 15.67,
+    "sigma_r1_r3_degisim_pct": 46.6
+  },
+  "3_optimum_ag_bagimliligi": {
+    "ortak_gridde": {
+      "16x16x2": {
+        "c_fiz": 818.3655091854332,
+        "sigma_tepe_fiz": 354.4692740013048,
+        "hacim_fraksiyonu": 0.39453125,
+        "ndof": 50421,
+        "ne": 13824
+      },
+      "24x24x3": {
+        "c_fiz": 999.5329001399072,
+        "sigma_tepe_fiz": 383.1437552427931,
+        "hacim_fraksiyonu": 0.4039351851851852,
+        "ndof": 50421,
+        "ne": 13824
+      }
+    },
+    "kompliyans_farki_pct": 22.14,
+    "sigma_tepe_farki_pct": 8.09
+  },
+  "_uretim": "Üretim: python experiments/topopt_bagimsiz_dogrulama.py",
+  "verdikt": "Eşikleme (gri→ikili, 24 grid): σ_tepe %-50.1, c %-29.8. Bağımsız yeniden-analiz (r=1→3): kompliyans son-iki sapma %1.5 (YAKINSIYOR), tepe gerilme %+47 ve son-iki sapma %15.7 — YAKINSAMIYOR (reentrant köşe gerilme tekilliği; tepe σ ağ-bağımlıdır ve mutlak bir kabul ölçütü olarak KULLANILAMAZ). Optimumun ağ-bağımlılığı: 16x16x2 vs 24x24x3 tasarımları ortak 48 gridinde kompliyansta %+22.1 ayrışıyor.",
+  "_kisit": "Bu bir DOGRULAMA (verification) olcumudur, validasyon degil: deneysel referans yok. Ikili tasarim eleman-bolunmesiyle tasindigi icin geometri KAYIPSIZ korunur; yani olculen fark yalnizca ayriklastirmadandir (yeniden-mesh'in geometri yaklasimi karismaz). Merdiven-basamakli sinir gercek imalattaki yuvarlatmayi temsil etmez — gercek parcada tepe gerilme filet yaricapina baglidir ve bu betik onu OLCMEZ."
+}

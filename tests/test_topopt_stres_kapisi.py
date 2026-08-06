@@ -30,8 +30,22 @@ def test_akma_asildi_kompliyans_korlugu_adlandirilir():
     assert "stress_topopt" in r["mesaj"], "çözüm yolu gösterilmeli"
 
 
+# EŞİK ARTIK 1.5 DEĞİL: TO gridinde okunan tepe gerilme yakınsamamıştır
+# (topopt_bagimsiz_dogrulama.json — aynı tasarım 3× ince ağda %47 daha yüksek
+# tepe von Mises verdi). 1.5 ile ölçülen büyümenin şişirdiği eşik arasındaki
+# aralık artık ayrı bir hâldir: "ag_marjinda".
+@pytest.mark.parametrize("carpan,beklenen", [
+    (1.05, "güvenli"), (0.99, "ag_marjinda"), (None, None)])
+def test_esik_sinirlari_ag_marjiyla(carpan, beklenen):
+    if carpan is None:
+        return
+    from vehicle_topopt import _ag_buyumesi
+    esik = 1.5 * (1 + _ag_buyumesi()[0])
+    assert _stress_gate({"emniyet_faktoru_temsili": esik * carpan})["durum"] == beklenen
+
+
 @pytest.mark.parametrize("sf,beklenen", [
-    (1.5, "güvenli"), (1.49, "marjinal"), (1.0, "marjinal"), (0.99, "akma_asildi")])
+    (1.49, "marjinal"), (1.0, "marjinal"), (0.99, "akma_asildi")])
 def test_esik_sinirlari(sf, beklenen):
     assert _stress_gate({"emniyet_faktoru_temsili": sf})["durum"] == beklenen
 
@@ -39,13 +53,13 @@ def test_esik_sinirlari(sf, beklenen):
 def test_tekillik_robust_sf_tercih_edilir():
     """TO geometrisi jagged → tepe SF büyük olasılıkla SAHTE tekillik. Temsili SF
     varsa o kullanılmalı, tepe değil."""
-    r = _stress_gate({"emniyet_faktoru_temsili": 2.0, "emniyet_faktoru": 0.4})
-    assert r["SF"] == 2.0 and r["durum"] == "güvenli"
+    r = _stress_gate({"emniyet_faktoru_temsili": 4.0, "emniyet_faktoru": 0.4})
+    assert r["SF"] == 4.0 and r["durum"] == "güvenli"
 
 
 def test_temsili_yoksa_tepeye_duser():
     r = _stress_gate({"emniyet_faktoru": 1.8})
-    assert r["SF"] == 1.8 and r["durum"] == "güvenli"
+    assert r["SF"] == 1.8 and r["durum"] == "ag_marjinda"
 
 
 def test_sf_okunamazsa_guvenli_denmez():
