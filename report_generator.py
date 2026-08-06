@@ -198,7 +198,14 @@ def band_from_levels(cells, cds, min_oran=GCI_MIN_ORAN, boyut=3):
 
     Doner: {"u_pct", "kaynak", "yontem", "f_exact"} | None (seviye < 2).
     """
-    pairs = sorted(((c, f) for c, f in zip(cells, cds) if c and f is not None),
+    # SONLU OLMAYAN DEGER SESSIZCE GECIYORDU: NaN'li bir seri `u_pct: nan`
+    # uretip SAYI GIBI yayimlaniyordu. NaN her karsilastirmada False dondugu
+    # icin asagidaki monotonluk/mertebe kapilarinin hicbiri onu yakalamaz.
+    # Bozuk seviye ATILIR; geriye 2'den az kalirsa band URETILMEZ.
+    pairs = sorted(((c, f) for c, f in zip(cells, cds)
+                    if c and f is not None
+                    and isinstance(f, (int, float)) and math.isfinite(float(f))
+                    and isinstance(c, (int, float)) and math.isfinite(float(c))),
                    key=lambda t: t[0])
     if len(pairs) < 2:
         return None

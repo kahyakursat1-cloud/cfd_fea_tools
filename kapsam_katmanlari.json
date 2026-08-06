@@ -1,9 +1,9 @@
 {
   "katmanlar": {
     "Karar & V&V motoru": {
-      "ifade": 1909,
-      "kapsanan": 1148,
-      "pct": 60.1
+      "ifade": 1954,
+      "kapsanan": 1295,
+      "pct": 66.3
     },
     "Otomasyon & öğrenme": {
       "ifade": 598,
@@ -31,9 +31,9 @@
       "pct": 24.6
     },
     "TOPLAM": {
-      "ifade": 17303,
-      "kapsanan": 7319,
-      "pct": 42.3
+      "ifade": 17348,
+      "kapsanan": 7466,
+      "pct": 43.0
     }
   },
   "_uretim": "Üretim: python -m pytest tests/ -q --cov=. --cov-report=json:cov.json && python experiments/kapsam_katmanlari.py"

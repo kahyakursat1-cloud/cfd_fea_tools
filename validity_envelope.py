@@ -652,6 +652,12 @@ def vlm_kabul_edilebilir(nokta: dict) -> str | None:
     cl, cdi = nokta.get("Cl"), nokta.get("Cd_i")
     if cl is None or cdi is None:
         return "Cl veya Cd_i sonuçta yok"
+    # NaN/inf SESSIZCE GECIYORDU: `cdi < 0` ve `abs(cl) > 3` NaN icin False
+    # doner, yani bozuk sayi "kabul edilebilir" sayilirdi. Karsilastirmaya
+    # dayanan her kapinin ilk isi sayinin SONLU oldugunu dogrulamaktir.
+    for ad, v in (("Cl", cl), ("Cd_i", cdi)):
+        if not isinstance(v, (int, float)) or not math.isfinite(float(v)):
+            return f"{ad}={v} SONLU BIR SAYI DEGIL (NaN/inf) — cozum iraksamis"
     if cdi < 0:
         return (f"NEGATIF INDUKLENEN DIRENC (CDi={cdi:g}) — fiziksel olarak "
                 "imkansiz, cozum iraksamis")
