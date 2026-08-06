@@ -147,3 +147,40 @@ def test_KANIT_dosyalari_semasi_BOZULMAMIS():
             bulunan += 1
             assert 0 <= h < 100, f"{p.name}: makul olmayan hata {h}"
     assert bulunan >= 3, f"yalnız {bulunan} kanıttan hata çıkarılabildi — şema kaymış olabilir"
+
+
+class TestKanonikBand:
+    """Band TEK KAYNAKTAN gelmeli: `band_from_levels` hiyerarşisi.
+
+    ÖLÇÜLDÜ (küp, 4 kademe): rapor 3-kademe Richardson'ı tek başına basıyordu
+    (%3.15) ama kanonik kural LSR ile %58.33 (asimptotik-altı, p<0.5) diyor —
+    18.5 kat, ve rapor İYİMSER olanı gösteriyordu. Hiyerarşi tam da "iyi
+    görünen üç kademeyi seçmeyi" engellemek için var.
+    """
+
+    _MESH = TestRaporTutarliligi._MESH
+
+    def test_KANONIK_band_raporda(self, rapor):
+        from report_generator import band_from_levels
+        beklenen = band_from_levels([m["cells"] for m in self._MESH],
+                                    [m["Cd"] for m in self._MESH], boyut=3)
+        rapor.build(mesh_indep=self._MESH)
+        md = _oku(rapor)
+        assert f"{beklenen['u_pct']}" in md, "kanonik band raporda yok"
+        assert beklenen["yontem"] in md or beklenen["kaynak"][:12] in md
+
+    def test_IYIMSER_3_kademe_UYARIYLA_veriliyor(self, rapor):
+        """3-kademe GCI kanonikten belirgin küçükse rapor bunu SÖYLEMELİ;
+        iki sayıyı yan yana gerekçesiz koymak okuyucuyu yanıltır."""
+        rapor.build(mesh_indep=self._MESH)
+        md = _oku(rapor)
+        assert "yalnız BİLGİ" in md or "yalnız BILGI" in md
+        assert "Geçerli olan kanonik banddır" in md
+
+    def test_HUCRE_yoksa_kanonik_band_IDDIA_EDILMIYOR(self, rapor):
+        """cells verilmezse h^-3 tabanı kurulamaz; band uydurulmamalı."""
+        hucresiz = [{k: v for k, v in m.items() if k != "cells"}
+                    for m in self._MESH]
+        rapor.build(mesh_indep=hucresiz)
+        md = _oku(rapor)
+        assert "KANONİK" not in md

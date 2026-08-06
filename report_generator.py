@@ -536,12 +536,38 @@ class VVReport:
             for m in sorted(mesh_indep, key=lambda x: -x["h"]):
                 md.append(f"| {m.get('name','-')} | {m['h']:.4f} | "
                           f"{m.get('cells','-')} | {m['Cd']:.4f} | {m.get('Cl','-')} |")
+            # BAND KANONİK KURALDAN. Rapor 3-kademe Richardson'ı TEK BAŞINA
+            # basıyordu; oysa depo genelinde band `band_from_levels`
+            # hiyerarşisinden gelir (n≥4 → LSR > Richardson > 3·Δ_M > vekil).
+            # Hiyerarşi tam da "iyi görünen üç kademeyi seçmeyi" engellemek için
+            # vardır. ÖLÇÜLDÜ (küp, 4 kademe): kanonik U=%58.33 (LSR,
+            # asimptotik-altı p<0.5) iken rapor %3.15 basıyordu — 18.5 kat ve
+            # rapor İYİMSER olanı gösteriyordu.
+            _kanonik = None
+            _hucre = [m.get("cells") for m in mesh_indep]
+            if all(isinstance(c, (int, float)) and c for c in _hucre):
+                _kanonik = band_from_levels(
+                    _hucre, [m["Cd"] for m in mesh_indep], boyut=3)
+            if _kanonik:
+                md.append(f"\n**Ayrıklaştırma belirsizliği (KANONİK):** "
+                          f"U = {_kanonik['u_pct']}%  ")
+                md.append(f"**Yöntem:** {_kanonik['kaynak']}  ")
+                md.append(f"**Ekstrapolasyon:** $C_d$ = {_kanonik['f_exact']:.4f}\n")
             if gci:
-                md.append(f"\n**Richardson ekstrapolasyon:** $C_d$ = {gci['f_exact']:.4f}  ")
-                md.append(f"**Gözlemlenen mertebe** p = {gci['p']}  ")
-                md.append(f"**GCI (fine)** = {gci['gci_fine_pct']}%  ")
-                md.append(f"**Asimptotik oran** = {gci.get('asymptotic')}  ")
-                md.append(f"**Sonuç:** {gci_verdict(gci)}\n")
+                _etiket = ("3-kademe Richardson (yalnız BİLGİ — band yukarıdaki "
+                           "kanonik kuraldan)" if _kanonik else "Richardson")
+                md.append(f"\n**{_etiket}:** $C_d$ = {gci['f_exact']:.4f}, "
+                          f"p = {gci['p']}, GCI = {gci['gci_fine_pct']}%, "
+                          f"asimptotik oran = {gci.get('asymptotic')}  ")
+                if _kanonik and _kanonik["u_pct"] > 2 * gci["gci_fine_pct"]:
+                    md.append(
+                        f"> ⚠️ 3-kademe GCI (%{gci['gci_fine_pct']}) kanonik "
+                        f"banddan (%{_kanonik['u_pct']}) BELİRGİN küçük. "
+                        "Kanonik kural tüm kademeleri birlikte değerlendirir; "
+                        "üç kademenin asimptotik görünmesi ailenin asimptotik "
+                        "olduğunu göstermez. **Geçerli olan kanonik banddır.**\n")
+                else:
+                    md.append(f"**Sonuç:** {gci_verdict(gci)}\n")
             md.append("![Mesh Convergence](figures/mesh_convergence.png)\n")
 
         # 1b. 2D airfoil GCI (O-grid, gecis modeli)
