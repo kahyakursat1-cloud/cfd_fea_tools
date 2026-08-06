@@ -11,5 +11,7 @@
     "Cl": 0.4194
   },
   "status": "ok",
-  "_not": "Stage-2 ilk denemede FPE tuzagi (FOAM_SIGFPE bashrc bos-tanimli) yuzunden cokmustu; unset ile manuel yeniden kosuldu, End ile tamamlandi. Konsolide veri: gci_airfoil.json"
+  "_not": "Stage-2 ilk denemede FPE tuzagi (FOAM_SIGFPE bashrc bos-tanimli) yuzunden cokmustu; unset ile manuel yeniden kosuldu, End ile tamamlandi. Konsolide veri: gci_airfoil.json",
+  "_uretim": "Üretim: python experiments/exp_gci_xfine.py xxfine 572 286 26 170 6000 10000",
+  "_uretim_notu": "Komut URETICI IMZASINDAN turetildi; dosyadaki `mesh` alani argumanlari birebir tasiyor. Sayilar YENIDEN HESAPLANMADI."
 }

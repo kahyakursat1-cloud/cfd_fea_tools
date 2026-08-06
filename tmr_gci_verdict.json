@@ -30,5 +30,7 @@
   "strict_gci_verdict": "✅ Yakınsadı (GCI<5.0%, monoton, p makul, asimptotik oran≈1)",
   "Cd_richardson": 0.00849,
   "TMR_referans_SST_alpha0": 0.00809,
-  "sonuc": "Cd_richardson=0.00849 vs TMR≈0.00809. p=0.666, GCI_ince=1.7133%. Asimptotik+TMR-uyum varsa mutlak Cd TASARIM-GRADE."
+  "sonuc": "Cd_richardson=0.00849 vs TMR≈0.00809. p=0.666, GCI_ince=1.7133%. Asimptotik+TMR-uyum varsa mutlak Cd TASARIM-GRADE.",
+  "_uretim": "Üretim: python tmr_cfd/run_gci_campaign.py 0",
+  "_uretim_notu": "Komut URETICI KODDAN turetildi (run_gci_campaign.py: ALPHA=argv[1], SUF ve cikti adi ondan). Bu kayit o script uretim-komutunu kendi yazmaya baslamadan ONCE uretilmisti; sayilar YENIDEN HESAPLANMADI."
 }

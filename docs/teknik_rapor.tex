@@ -1,25 +1,36 @@
-% Derleme:  pdflatex teknik_rapor.tex  (iki kez, referanslar icin)
+% Derleme:  pdflatex teknik_rapor.tex   (iki kez)
+% Figürler:  python experiments/rapor_figurleri.py   (docs/figurler/*.pdf)
 \documentclass[11pt,a4paper]{article}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[turkish,shorthands=off]{babel}
 \usepackage{lmodern}
-\usepackage[margin=2.4cm]{geometry}
+\usepackage[margin=2.3cm]{geometry}
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
 \usepackage{longtable}
 \usepackage{array}
+\usepackage{graphicx}
 \usepackage{xcolor}
+\usepackage{colortbl}
 \usepackage{listings}
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric,arrows.meta,positioning,fit,backgrounds,calc}
 \usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{0.6em}{}
+\titlespacing*{\section}{0pt}{14pt}{6pt}
 
 \definecolor{kod}{gray}{0.95}
 \definecolor{iyi}{RGB}{0,110,60}
 \definecolor{orta}{RGB}{175,110,0}
 \definecolor{kotu}{RGB}{160,0,0}
+\definecolor{iyibg}{RGB}{226,242,232}
+\definecolor{ortabg}{RGB}{252,242,222}
+\definecolor{kotubg}{RGB}{250,228,228}
+\definecolor{lacivert}{RGB}{31,78,121}
 
 \lstset{
   basicstyle=\ttfamily\footnotesize,
@@ -35,449 +46,602 @@
 \newcommand{\yuksek}{\textcolor{iyi}{\textbf{Yüksek}}}
 \newcommand{\bantli}{\textcolor{orta}{\textbf{Bantlı}}}
 \newcommand{\disi}{\textcolor{kotu}{\textbf{Kapsam dışı}}}
+\newcommand{\ev}{\textcolor{iyi}{\textbf{\checkmark}}}
+\newcommand{\hy}{\textcolor{kotu}{\textbf{--}}}
+\newcommand{\ks}{\textcolor{orta}{\textbf{kısmî}}}
 
-\title{\textbf{CFD/FEA Analiz Paketi}\\[2mm]
-\large Teknik Rapor: Yetenekler, Çalışma İlkesi ve Kullanım Alanları}
-\author{}
-\date{6 Ağustos 2026}
+% Ortak kutu stilleri
+\tikzset{
+  kutu/.style={draw, rounded corners=2pt, align=center, minimum height=8mm,
+               font=\footnotesize, inner xsep=5pt},
+  ok/.style={-{Latex[length=2mm]}, thick, gray!70},
+  kapi/.style={draw, diamond, aspect=2.1, align=center, font=\scriptsize,
+               inner sep=1pt, fill=orange!12},
+}
 
 \begin{document}
-\maketitle
-\thispagestyle{empty}
 
-\begin{abstract}
-\noindent
-Bu paket, katı modelden mühendislik hükmüne uzanan bütünleşik bir akışkanlar
-(OpenFOAM) ve yapısal (CalculiX) analiz hattıdır. Ayırt edici özelliği çözücü
-çeşitliliği değil, \emph{her sayının yanında ölçülmüş bir belirsizlik bandı ve
-o bandın nereden geldiğini söyleyen bir gerekçe taşımasıdır}. Paket, savunulamaz
-bir sonucu üretmeyi reddeder; reddederken nedenini ve düzeltme adımını yazar.
-Kod tabanı 29.000 satır Python, 107 test dosyası ve 987 geçen testten oluşur.
-Doğrulama zarfı 14 koşulda ölçülmüştür: analitik kapalı-formlara karşı yapısal
-hata \%0--4.8, NASA Turbulence Modeling Resource'a karşı 2B profil sürüklemesi
-GCI \%1.7, künt cisim sürüklemesi literatüre karşı \%6.0.
-\end{abstract}
+% ══════════════════════════════ KAPAK ══════════════════════════════
+\begin{titlepage}
+\centering
+\vspace*{6mm}
 
-\vspace{4mm}
+{\Large\bfseries Açıklanabilir Mühendislik Simülasyon Platformu\par}
+\vspace{3mm}
+{\large Yerleşik Doğrulama, Geçerleme ve Belirsizlik Nicelemesiyle CFD/FEA\par}
+\vspace{2mm}
+{\footnotesize\itshape Explainable Engineering Simulation Platform with
+Built-in Verification, Validation and Uncertainty Quantification\par}
 
-\section{Bu Paket Ne Yapar}
+\vspace{8mm}
+\rule{0.82\textwidth}{0.6pt}
+\vspace{5mm}
 
-Üç soruyu yanıtlar:
+% ── Şekil 1: uçtan uca akış
+\begin{tikzpicture}[node distance=3.2mm]
+\node[kutu, fill=blue!8]  (a) {CAD / STL};
+\node[kutu, fill=blue!8, right=of a]  (b) {Mesh};
+\node[kutu, fill=green!10, right=of b] (c) {OpenFOAM};
+\node[kutu, fill=green!10, right=of c] (d) {CalculiX};
+\node[kutu, fill=purple!10, below=6mm of d] (e) {Doğrulama};
+\node[kutu, fill=purple!10, left=of e] (f) {Belirsizlik};
+\node[kutu, fill=orange!16, left=of f] (g) {\textbf{Karar}};
+\node[kutu, fill=gray!14, left=of g] (h) {PDF rapor};
+\draw[ok] (a)--(b); \draw[ok] (b)--(c); \draw[ok] (c)--(d);
+\draw[ok] (d.south) -- (e.north);
+\draw[ok] (e)--(f); \draw[ok] (f)--(g); \draw[ok] (g)--(h);
+\end{tikzpicture}
 
-\begin{enumerate}
-  \item \textbf{Bu cisim havada/suda nasıl davranır?} Sürükleme, taşıma,
-        moment, basınç dağılımı, ayrılma bölgeleri, sınır tabaka durumu.
-  \item \textbf{Bu yapı bu yükü taşır mı?} Gerilme, deplasman, güvenlik
-        faktörü, burkulma, modal frekans, termal gerilme.
-  \item \textbf{Bu sayıya ne kadar güvenebilirim?} Ayrıklaştırma belirsizliği,
-        model-form sapması, geçerlilik zarfı, ve sayının tasarım kararında
-        kullanılıp kullanılamayacağı.
-\end{enumerate}
+\vspace{2mm}
+{\scriptsize\textbf{Şekil 1.} Uçtan uca akış. Ayırt edici olan son üç kutudur:
+sayı üretildikten sonra \emph{belirsizliği ölçülür}, \emph{geçerliliği
+sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 
-Üçüncü soru, paketi tipik bir CFD sarmalayıcısından ayıran şeydir. Ticari ve
-akademik yazılımların çoğu birinci ve ikinci soruyu yanıtlar; üçüncüsünü
-kullanıcıya bırakır. Burada üçüncü soru \emph{kodun kendisinde} yaşar ve
-yanıtı olumsuzsa sayı yayımlanmaz.
+\vspace{7mm}
 
-\section{Mimari}
-
-\subsection{Katmanlar}
-
-\begin{center}
-\begin{tikzpicture}[
-  kutu/.style={draw, rounded corners=2pt, align=center, minimum height=9mm,
-               font=\footnotesize, inner xsep=4pt},
-  ok/.style={-{Latex[length=2mm]}, thick, gray}
-]
-\node[kutu, fill=blue!8, minimum width=34mm] (geo) {Geometri\\ STL/OBJ/STEP/IGES};
-\node[kutu, fill=blue!8, minimum width=34mm, right=6mm of geo] (par) {Parametrik\\ \texttt{aircraft\_geometry}};
-\node[kutu, fill=blue!8, minimum width=34mm, right=6mm of par] (vsp) {OpenVSP\\ köprüsü};
-
-\node[kutu, fill=orange!12, minimum width=112mm, below=7mm of par] (oto)
-  {\textbf{Otomasyon} \;\; \texttt{auto\_pilot} (rejim/ayar seçimi) \;\;$\cdot$\;\;
-   \texttt{mentor} (kNN öğrenme) \;\;$\cdot$\;\; \texttt{gci\_advisor}};
-
-\node[kutu, fill=green!10, minimum width=53mm, below=7mm of oto.south west, anchor=north west]
-  (cfd) {\textbf{CFD} \;\; \texttt{analysis/openfoam\_runner}\\
-         blockMesh $\rightarrow$ snappyHexMesh $\rightarrow$ foamRun};
-\node[kutu, fill=green!10, minimum width=53mm, below=7mm of oto.south east, anchor=north east]
-  (fea) {\textbf{FEA} \;\; \texttt{analysis/ccx\_runner}\\
-         tet mesh $\rightarrow$ CalculiX $\rightarrow$ frd};
-
-\node[kutu, fill=purple!10, minimum width=112mm, below=7mm of $(cfd.south)!0.5!(fea.south)$]
-  (vv) {\textbf{V\&V / UQ} \;\; GCI (Celik) $\cdot$ LSR (Eça--Hoekstra) $\cdot$
-        \texttt{validity\_envelope} $\cdot$ \texttt{zarf}};
-
-\node[kutu, fill=gray!12, minimum width=112mm, below=7mm of vv] (rap)
-  {\textbf{Çıktı} \;\; \texttt{report\_generator} (Markdown/PDF) $\cdot$ VTK/ParaView $\cdot$ JSON kanıt};
-
-\draw[ok] (geo.south) -- ++(0,-3mm) -| (oto.north);
-\draw[ok] (par.south) -- (oto.north);
-\draw[ok] (vsp.south) -- ++(0,-3mm) -| (oto.north);
-\draw[ok] (oto.south) -- ++(0,-2mm) -| (cfd.north);
-\draw[ok] (oto.south) -- ++(0,-2mm) -| (fea.north);
+% ── Şekil 2: katmanlı mimari
+\begin{tikzpicture}[node distance=4mm]
+\node[kutu, fill=gray!12, minimum width=86mm] (gui) {\textbf{Arayüz} \;\;
+  \texttt{app\_analyzer} (GUI) \;\;$\cdot$\;\; CLI};
+\node[kutu, fill=orange!12, minimum width=86mm, below=of gui] (oto)
+  {\textbf{Otomasyon} \;\; \texttt{auto\_pilot} $\cdot$ \texttt{mentor} $\cdot$
+   \texttt{gci\_advisor}};
+\node[kutu, fill=blue!8, minimum width=86mm, below=of oto] (cek)
+  {\textbf{Çekirdek} \;\; \texttt{analysis/} — case iskelesi, mesh, çözücü sürücüleri};
+\node[kutu, fill=green!10, minimum width=41mm, below=of cek.south west,
+      anchor=north west] (cfd) {\textbf{CFD} OpenFOAM 11};
+\node[kutu, fill=green!10, minimum width=41mm, below=of cek.south east,
+      anchor=north east] (fea) {\textbf{FEA} CalculiX};
+\node[kutu, fill=purple!10, minimum width=86mm,
+      below=6mm of $(cfd.south)!0.5!(fea.south)$] (vv)
+  {\textbf{V\&V / UQ} \;\; GCI $\cdot$ LSR $\cdot$ \texttt{validity\_envelope}};
+\node[kutu, fill=gray!14, minimum width=86mm, below=of vv] (out)
+  {\textbf{Çıktı} \;\; rapor $\cdot$ VTK $\cdot$ JSON kanıt};
+\draw[ok] (gui)--(oto); \draw[ok] (oto)--(cek);
+\draw[ok] (cek.south) -- ++(0,-2mm) -| (cfd.north);
+\draw[ok] (cek.south) -- ++(0,-2mm) -| (fea.north);
 \draw[ok] (cfd.south) -- ++(0,-2mm) -| (vv.north);
 \draw[ok] (fea.south) -- ++(0,-2mm) -| (vv.north);
-\draw[ok] (vv.south) -- (rap.north);
-\draw[ok, dashed] (cfd.east) -- node[above, font=\scriptsize] {FSI} (fea.west);
+\draw[ok] (vv)--(out);
+\end{tikzpicture}
+
+\vspace{2mm}
+{\scriptsize\textbf{Şekil 2.} Katmanlı mimari. \texttt{analysis/} kanonik
+çekirdektir; yeni kod case iskelesini tekrar yazmaz.\par}
+
+\vfill
+{\footnotesize
+OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
+29.023 satır Python $\cdot$ 107 test dosyası $\cdot$ 987 geçen test\\[3mm]
+6 Ağustos 2026\par}
+\end{titlepage}
+
+% ══════════════════════════════ ÖZET ══════════════════════════════
+\section*{Özet}
+
+Bu platform, katı modelden mühendislik hükmüne uzanan bütünleşik bir akışkanlar
+(OpenFOAM) ve yapısal (CalculiX) analiz hattıdır. Ayırt edici özelliği çözücü
+çeşitliliği değil, \textbf{her sayının yanında ölçülmüş bir belirsizlik bandı ve
+o bandın nereden geldiğini söyleyen bir gerekçe taşımasıdır}. Savunulamaz bir
+sonuç üretilmez; üretilmediğinde nedeni ve düzeltme adımı yazılır.
+
+Doğrulama zarfı 14 koşulda ölçülmüştür. Yapısal çözüm altı bağımsız kapalı-forma
+karşı \%0{,}0--4{,}8 hata verir; 2B profil sürüklemesi NASA Turbulence Modeling
+Resource'a karşı GCI \%1{,}7 ile yakınsar; künt cisim sürüklemesi Hoerner'e
+karşı \%6{,}0 sapar. Bu sayıların hiçbiri rapora elle yazılmamıştır: her biri
+kanıt dosyasından okunur ve raporla senkron olduğu testle bağlanır.
+
+% ══════════════════════════════ 1 ══════════════════════════════
+\section{Neden Bu Platform}
+
+\subsection*{Problem}
+
+Bir CFD koşusu \emph{her zaman} bir sayı verir. Mesh gövdeyi 8 yüzle temsil
+etse de, rezidüeller platoya oturmuş olsa da, ilk hücre sınır tabakayı yutsa da
+bir $C_d$ çıkar. Bu sayının anlamlı olup olmadığına karar vermek ayrı bir iştir
+ve tipik iş akışında \emph{tamamen mühendise} bırakılır. Mühendis deneyimliyse
+yakalar; değilse yakalamaz --- ve eğitim ile yarışma ortamlarında çoğunlukla
+değildir.
+
+\subsection*{Çözüm}
+
+Karar zincirini yazılıma taşımak:
+
+\begin{center}
+\begin{tikzpicture}[node distance=3mm]
+% Tipik
+\node[font=\scriptsize\bfseries] (t1) {TİPİK CFD};
+\node[kutu, fill=gray!10, below=2mm of t1] (t2) {Çözücü};
+\node[kutu, fill=gray!10, below=of t2] (t3) {Sayı};
+\node[kutu, fill=kotubg, below=of t3] (t4) {Mühendis\\karar verir};
+\draw[ok] (t2)--(t3); \draw[ok] (t3)--(t4);
+% Bu paket
+\node[font=\scriptsize\bfseries, right=34mm of t1] (b1) {BU PLATFORM};
+\node[kutu, fill=gray!10, below=2mm of b1] (b2) {Çözücü};
+\node[kutu, fill=gray!10, below=of b2] (b3) {Sayı};
+\node[kutu, fill=purple!10, below=of b3] (b4) {+ Belirsizlik};
+\node[kutu, fill=purple!10, below=of b4] (b5) {+ Geçerlilik};
+\node[kutu, fill=iyibg, below=of b5] (b6) {\textbf{Karar} (yayımla / RET)};
+\node[kutu, fill=gray!14, below=of b6] (b7) {Gerekçeli rapor};
+\draw[ok] (b2)--(b3); \draw[ok] (b3)--(b4); \draw[ok] (b4)--(b5);
+\draw[ok] (b5)--(b6); \draw[ok] (b6)--(b7);
 \end{tikzpicture}
 \end{center}
 
-\subsection{Kanonik katman}
+\noindent{\scriptsize\textbf{Şekil 3.} Fark, çözücüde değil çözücüden
+\emph{sonrasındadır}.\par}
 
-\texttt{analysis/} dizini ortak çekirdektir: \texttt{CFDCase} veri sınıfı, case
-iskelesi kurulumu, mesh kalite kapısı, CalculiX yazıcı ve \texttt{.frd}
-ayrıştırıcısı burada yaşar. Yeni CFD/FEA kodu bu katmanı kullanır; case
-iskelesini yeniden yazmaz.
+\subsection*{Sonuç}
 
-Depoda \emph{iki hızlı} bir durum vardır ve raporda gizlenmemelidir: eski
-\texttt{simulation\_runner.py} ile bazı bağımsız V\&V betikleri bu katmanı
-kullanmaz, kendi iskelesini tekrarlar. Bu bilinen bir teknik borçtur.
+Platform üç soruyu yanıtlar: (i) bu cisim akışta nasıl davranır, (ii) bu yapı bu
+yükü taşır mı, (iii) \emph{bu sayıya ne kadar güvenilir}. Üçüncüsü kodun
+kendisinde yaşar.
 
-\section{Yetenekler}
+% ══════════════════════════════ 2 ══════════════════════════════
+\section{Karar Motoru}
 
-\subsection{Akışkanlar (CFD)}
+Platformun kalbi, ham çözücü çıktısını yayımlanabilir bir mühendislik sayısına
+çeviren karar zinciridir. Her düğüm bir \emph{kapıdır}: geçilemezse sayı
+yayımlanmaz ve ret gerekçesi rapora yazılır.
 
-\begin{itemize}
-  \item \textbf{Çözücü:} OpenFOAM 11, \texttt{foamRun}/\texttt{incompressibleFluid},
-        kararlı-durum SIMPLE. Türbülans: $k$--$\omega$ SST (varsayılan),
-        $k$--$\varepsilon$, ve geçiş modeli $k$--$\omega$ SST LM
-        ($\gamma$--$\mathrm{Re}_{\theta}$).
-  \item \textbf{Mesh:} \texttt{blockMesh} arka planı $+$ \texttt{snappyHexMesh}
-        yüzey/kenar iyileştirmesi $+$ isteğe bağlı prizma katmanı. Arka plan
-        hücresi \emph{bütçeden} boyutlandırılır (Bölüm~\ref{sec:kapilar}).
-  \item \textbf{Araç hattı:} \texttt{vehicle\_pipeline} bir STL'den tam bir
-        analiz üretir: tip önseti (uçak / roket / multikopter / araba / genel),
-        far-field alanı, referans alanı, yakınsama izleme, y$^+$ ölçümü,
-        mesh duyarlılık kampanyası ve mühendis raporu.
-  \item \textbf{Polar taraması:} tek mesh üzerinde çoklu hücum açısı
-        $\rightarrow$ $C_L$/$C_D$/$C_m$ eğrileri.
-  \item \textbf{Panel/VLM yolu:} OpenVSP VSPAERO ile saniyeler mertebesinde
-        taşıma eğimi ve panel yakınsaması; ince kanatta RANS'ın Kutta koşulunu
-        kuramadığı durumlarda taşıma buradan alınır.
-  \item \textbf{2B kesit:} XFOIL 6.99 sürücüsü (panel $+$ $e^N$ geçiş,
-        $N_{\mathrm{krit}}=9$), panel-bağımsızlık ölçümü dâhil.
-  \item \textbf{Aktüatör disk:} pervane itkisi kaynak terimi olarak.
-\end{itemize}
+\begin{center}
+\begin{tikzpicture}[node distance=5mm, kapi/.append style={minimum height=8mm}]
+% ── 1. sıra: geometri → mesh → çözücü
+\node[kutu, fill=blue!8] (g0) {Geometri};
+\node[kapi, right=5mm of g0] (k1) {beyan\\= inşa?};
+\node[kutu, fill=blue!8, right=5mm of k1] (m) {Mesh};
+\node[kapi, right=5mm of m] (k2) {yüzey\\$\geq$500 yüz?};
+\node[kutu, fill=green!10, right=5mm of k2] (s) {Çözücü};
+\foreach \a/\b in {g0/k1, k1/m, m/k2, k2/s} \draw[ok] (\a)--(\b);
 
-\subsection{Yapısal (FEA)}
+% ── 2. sıra: çözüm sonrası (sağdan sola)
+\node[kapi, below=13mm of s] (k3) {yakınsadı mı?};
+\node[kapi, left=5mm of k3] (k4) {fizik\\makul mü?};
+\node[kutu, fill=purple!10, left=5mm of k4] (u) {Belirsizlik\\GCI / LSR};
+\node[kapi, left=5mm of u] (k5) {band bu\\ayara ait mi?};
+\draw[ok] (s.south) -- (k3.north);
+\foreach \a/\b in {k3/k4, k4/u, u/k5} \draw[ok] (\a)--(\b);
 
-\begin{itemize}
-  \item \textbf{Çözücü:} CalculiX, \texttt{.inp} formatı; üretim elemanı C3D10
-        (kuadratik tetrahedron).
-  \item \textbf{Yük mekanizmaları (beşi de doğrulanmış):} nokta/dağıtılmış
-        kuvvet, basınç (tutarlı-yük: T6 yüzeyinde kenar-orta düğüme $A/3$),
-        gövde kuvveti (yerçekimi / manevra $n\cdot g$), termal genleşme
-        (\texttt{*EXPANSION}$+$\texttt{*TEMPERATURE}), ve burkulma (stabilite).
-  \item \textbf{Malzeme veritabanı:} \texttt{materials.json} (10 malzeme),
-        kaynaklı ve sürümlü.
-  \item \textbf{Tekillik bekçisi:} keskin köşedeki sayısal tekilliği gerçek
-        gerilme konsantrasyonundan ayırır; ayırmadan tepe gerilme raporlanmaz.
-\end{itemize}
+% ── 3. sıra: zarf → yayımla
+\node[kapi, below=13mm of k5] (k6) {zarf\\içinde mi?};
+\node[kutu, fill=iyibg, right=6mm of k6] (y)
+  {\textbf{YAYIMLA} — sayı + ölçülmüş band};
+\node[kutu, fill=kotubg, right=6mm of y] (r)
+  {\textbf{RET} — adı konmuş\\gerekçe + düzeltme};
+\draw[ok] (k5.south) -- (k6.north);
+\draw[ok] (k6)--(y);
 
-\subsection{Kuplaj ve optimizasyon}
+% ── ret hattı: her kapıdan aşağı, ortak yola
+\draw[kotu!65, thick] ($(k1.south)+(0,-4mm)$) -- ($(k2.south)+(0,-4mm)$);
+\foreach \k in {k1, k2} \draw[kotu!65] (\k.south) -- ($(\k.south)+(0,-4mm)$);
+\draw[kotu!65, thick] ($(k5.south)+(0,-4mm)$) -- ($(k3.south)+(0,-4mm)$);
+\foreach \k in {k3, k4, k5} \draw[kotu!65] (\k.south) -- ($(\k.south)+(0,-4mm)$);
+\draw[ok, kotu!65] ($(k2.south)+(0,-4mm)$) -| ($(r.north)+(-6mm,0)$);
+\draw[ok, kotu!65] ($(k3.south)+(0,-4mm)$) -| (r.north);
+\draw[ok, kotu!65] (k6.south) -- ++(0,-4mm) -| ($(r.south)+(6mm,0)$);
+\node[font=\scriptsize\itshape, kotu, anchor=west]
+  at ($(k1.south)+(-8mm,-6mm)$) {herhangi bir kapı geçilemezse};
+\end{tikzpicture}
+\end{center}
 
-\begin{itemize}
-  \item \textbf{1-yönlü FSI:} CFD yüzey basıncı $\rightarrow$ FEA düğüm
-        kuvvetleri. Korunum makine hassasiyetinde test edilir.
-  \item \textbf{2-yönlü FSI:} Aitken ivmelendirmeli ilmek; aeroelastik
-        ıraksama (divergence) tespiti.
-  \item \textbf{Topoloji optimizasyonu:} SIMP, CFD-yüklü, gerilme kısıtlı
-        (3B adjoint gerilme motoru sonlu-farkla doğrulanmış).
-\end{itemize}
+\noindent{\scriptsize\textbf{Şekil 4.} Karar motoru. Kırmızı oklar ret
+yollarıdır; her biri \emph{adı konmuş} bir gerekçe üretir. Kapıların bir kısmı
+çözücüden \emph{önce} çalışır ve boşa geçecek saatleri engeller.\par}
 
-\subsection{Otomasyon ve öğrenme}
+\subsection{Koşudan önceki kapılar}
 
-\begin{itemize}
-  \item \texttt{auto\_pilot}: geometriden rejim, hız, mesh kalitesi, viskoz/
-        inviscid seçimi ve referans alanını \emph{deterministik} olarak seçer;
-        plan $+$ gerekçe döner, kullanıcı onaylar.
-  \item \texttt{mentor}: geçmiş koşulardan kNN ile öğrenir. Öğrenme etiketi
-        çözücünün çıkış kodu değil, \emph{geçerlilik kapısının hükmüdür} ---
-        başarısız koşular negatif ders olarak kalır.
-  \item \texttt{gci\_advisor}: yeni bir geometri için beklenen belirsizliği
-        geçmiş kampanyalardan öngörür; bu öngörü UQ'ya \emph{girmez}, yalnız
-        planlamaya yardım eder.
-  \item \texttt{kanit}: her JSON kanıt dosyasının üretici komutunu denetler;
-        yeniden üretilemeyen kanıtı işaretler.
-\end{itemize}
-
-\section{Nasıl Çalışır: Kapılar Mimarisi}
-\label{sec:kapilar}
-
-Paketin çekirdek fikri şudur: \emph{bir ölçüm, onu tüketen yere ulaşmıyorsa
-yapılmamış sayılır.} Bu yüzden her aşamada, sonucu kesen kapılar vardır.
-Kapılar koşudan \emph{önce} (bütçe koruması) ve \emph{sonra} (hüküm) çalışır.
-
-\subsection{Koşudan önce}
-
-\begin{itemize}
+\begin{itemize}\setlength\itemsep{1pt}
+  \item \textbf{Beyan = inşa:} dataclass'ın söylediği geometri modele ulaştı mı.
+        Ölçüldü: \texttt{fuselage.diameter} hesaplanıyor ama hiçbir yere
+        yazılmıyordu; 0{,}08\,m beyan edilen gövde 2{,}50$\times$3{,}00\,m
+        inşa ediliyordu ve 1{,}5\,m açıklıklı kanat onun içinde kalıyordu.
   \item \textbf{Arka plan bütçesi:} arka plan mesh'i hücre tavanının en fazla
-        \%25'ini yiyebilir; aşarsa hücre \emph{kabalaştırılır}. Gerekçe
-        ölçülmüştür: bu kapı yokken MiniHawk koşusunda 38{,}2$\times$22{,}5$\times$21{,}1~m
-        alana serilen düzgün arka plan 3{,}94~M hücre üretiyor,
-        \texttt{snappyHexMesh} 1{,}2~M'lik tavanı daha ilk adımda aşıyor ve
-        \emph{hiçbir} yüzey iyileştirmesi yapamıyordu. Uçağın tamamı 74 yüzle
-        temsil ediliyordu.
-  \item \textbf{Yüzey çözünürlüğü ön-kapısı:} bir kademede gövdenin tahmini
-        yüz sayısı 500'ün altına düşecekse o kademe \emph{koşulmaz}. Reddi
-        koşudan sonra öğrenmek saatlerce CFD harcamak demektir.
-  \item \textbf{İnce özellik hükmü:} firar kenarı gibi ince özelliklerin kaç
-        hücreyle temsil edileceği önceden hesaplanır. Hedef $\geq 6$ hücredir;
-        ulaşılamıyorsa taşımanın güvenilmez olacağı \emph{baştan} söylenir.
-  \item \textbf{y$^+$ kademesi:} y$^+$'ı duvar-fonksiyonu bandına (30--300)
-        sokan en ucuz iyileştirme kademesi geometri başına hesaplanır
-        (\texttt{-{}-ref-bump oto}).
+        \%25'ini yiyebilir; aşarsa hücre \emph{kabalaştırılır}. Bu kapı yokken
+        \texttt{snappyHexMesh} tavanı ilk adımda aşıyor ve hiçbir yüzey
+        iyileştirmesi yapamıyordu (uçak 74 yüzle temsil edildi).
+  \item \textbf{Yüzey ön-kapısı:} gövdenin tahmini yüz sayısı 500'ün altına
+        düşecek kademe \emph{koşulmaz}.
+  \item \textbf{İnce özellik hükmü:} firar kenarının kaç hücreyle temsil
+        edileceği önceden hesaplanır; hedef $\geq6$ hücredir.
+  \item \textbf{y$^+$ kademesi:} y$^+$'ı 30--300 bandına sokan en ucuz kademe
+        geometri başına seçilir (\texttt{-{}-ref-bump oto}).
 \end{itemize}
 
-\subsection{Koşudan sonra}
+\subsection{Koşudan sonraki kapılar}
 
-\begin{itemize}
+\begin{itemize}\setlength\itemsep{1pt}
   \item \textbf{Yakınsama:} rezidüel eşiği \emph{tek başına} yeterli sayılmaz.
         Rezidüellerin platoya oturması (limit çevrimi) ile bütçenin bitmesi
         ayrıştırılır; ilki için ``daha çok iterasyon'' önerilmez, çünkü çözmez.
   \item \textbf{Fiziksel kabul:} negatif sürükleme, negatif indüklenen direnç,
-        saçma $|C_L|$ gibi değerler kanıt dosyasına \emph{yazılamaz}.
-  \item \textbf{Mesh kalitesi:} \texttt{maxNonOrthogonality} $<70$,
-        \texttt{maxSkewness} $<4$.
+        saçma $|C_L|$ kanıt dosyasına \emph{yazılamaz}.
+  \item \textbf{Band aidiyeti:} yakınsama bandı bir \emph{aile} için ölçülür;
+        üretim ayarı o ailenin kademesi değilse band o sayıya ait değildir.
   \item \textbf{Geçerlilik zarfı:} her büyüklük DOĞRULANMIŞ / EĞİLİM /
-        ZARF-DIŞI olarak sınıflanır ve raporun en başına çocuk-okunur bir
-        uyarı bloğu konur.
+        ZARF-DIŞI olarak sınıflanır.
 \end{itemize}
 
-\subsection{Belirsizlik hiyerarşisi}
+% ══════════════════════════════ 3 ══════════════════════════════
+\section{Belirsizlik Nicelemesi}
 
-Ayrıklaştırma belirsizliği tek bir kaynaktan üretilir
-(\texttt{band\_from\_levels}) ve kademe sayısına göre şu sırayla düşer:
+\subsection*{Problem}
 
-\begin{center}
+Ayrıklaştırma belirsizliği tek bir formülle verilemez: kademe sayısı, dizinin
+monotonluğu ve gözlenen mertebe $p$ hangi yöntemin geçerli olduğunu belirler.
+Yanlış yöntem sessiz bir hatadır.
+
+\subsection*{Çözüm}
+
+Tek kaynak (\texttt{band\_from\_levels}) ve açık bir hiyerarşi:
+
+\begin{center}\small
 \begin{tabular}{@{}lll@{}}
 \toprule
-\textbf{Koşul} & \textbf{Yöntem} & \textbf{Kaynak} \\
+\textbf{Koşul} & \textbf{Yöntem} & \textbf{Dayanak} \\
 \midrule
 $n \geq 4$ kademe & En küçük kareler (LSR) & Eça \& Hoekstra 2014 \\
-$n = 3$, monoton, $r \geq 1.3$ & Richardson $+$ GCI & Celik ve ark.\ 2008 \\
+$n = 3$, monoton, $r \geq 1{,}3$ & Richardson + GCI & Celik ve ark.\ 2008 \\
 salınımlı & $U = 3\Delta_M$ & --- \\
-$n = 2$ & vekil bant (bandın kendisi işaretli) & --- \\
+$n = 2$ & vekil bant (işaretli) & --- \\
 \bottomrule
 \end{tabular}
 \end{center}
 
 Temsili hücre boyu $h = N^{-1/d}$ ile hesaplanır ve $d$ \emph{çalışmanın
-boyutudur}: hacim mesh'inde 3, 2B gridde 2, panel sayısında 1. Yanlış $d$
-sessiz bir hatadır --- aynı veride $d{=}3$ ile $U=\%19{,}92$, $d{=}2$ ile
-$U=\%9{,}80$ ölçülmüştür.
+boyutudur}: hacim mesh'inde 3, 2B gridde 2, panel sayısında 1. Aynı veride
+$d{=}3$ ile $U=\%19{,}92$, $d{=}2$ ile $U=\%9{,}80$ ölçülmüştür.
+
+\subsection*{Sonuç}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{figurler/fig_mesh_yakinsama.pdf}
+\caption{Mesh yakınsaması ve Richardson ekstrapolasyonu. Sol: küp, 4 kademe,
+$p=2{,}386$, asimptotik oran $0{,}96$; Richardson sınırı Hoerner referansına
+\%6{,}0 uzaklıkta. Sağ: NASA TMR NACA0012, $p=0{,}666$, GCI \%1{,}71. Gölgeli
+bant GCI'dır. \emph{Veri:} \texttt{gci\_kup\_arac.json},
+\texttt{tmr\_gci\_verdict.json}.}
+\end{figure}
 
 \subsection{Ayrıklaştırma ailesi kuralı}
 
-Bir yakınsama bandı bir \emph{aile} için ölçülür. Üretim ayarı o ailenin bir
-kademesi değilse band o sayıya ait değildir ve kapı devreye girer. Ayrıca aile
-\emph{tek parametreli} olmalıdır: iki yönü aynı anda farklı oranlarda
-değiştirmek Richardson'ın dayandığı varsayımı bozar.
+Aile \emph{tek parametreli} olmalıdır. Bu kuralın maliyeti ölçülmüştür: VLM
+panel çalışmasında yalnız açıklık yönü inceltildiğinde dizi yakınsama
+gösteremedi, çünkü sabit tutulan kiriş yönünün kendi gürültüsü (\%1{,}9)
+açıklık adımlarından (\%0{,}5--1{,}2) büyüktü.
 
-Bu kuralın maliyeti ölçülmüştür. VLM panel çalışmasında yalnız açıklık yönü
-inceltildiğinde (20$\rightarrow$120 panel) dizi yakınsama gösteremedi
-($p<0{,}5$, $U=\%28{,}32$); çünkü sabit tutulan kiriş yönünün kendi gürültüsü
-(\%1{,}9) açıklık adımlarından (\%0{,}5--1{,}2) büyüktü. İki yön birlikte
-1{,}35 katıyla inceltilince ($40\times17 \rightarrow 98\times42$) dizi
-monotonlaştı ve $U=\%1{,}36$'ya indi --- band 20{,}8 kat daraldı.
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{figurler/fig_ayriklastirma_ailesi.pdf}
+\caption{Sabit tutulan yön bandın tabanını belirler. Sol: yalnız açıklık
+inceltilmiş aile, asimptotik-altı ($p<0{,}5$), $U=\%28{,}32$. Sağ: iki yön
+birlikte $\times1{,}35$ inceltilmiş aile, monoton ve süper-yakınsak
+($p>2{,}1$), $U=\%1{,}36$. \emph{Veri:}
+\texttt{vlm\_iki\_yonlu\_yakinsama.json}.}
+\end{figure}
 
+\subsection{Yakınsama: rezidüel yetmez}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{figurler/fig_yakinsama_tarihcesi.pdf}
+\caption{Gerçek koşudan kuvvet tarihçesi (MiniHawk). Yakınsama hükmü yalnız
+rezidüellerden değil, ilgi-büyüklüğünün son \%20 penceredeki sürüklenmesinden de
+verilir. \emph{Veri:} \texttt{postProcessing/forceCoeffs1}.}
+\end{figure}
+
+\clearpage
+
+% ══════════════════════════════ 4 ══════════════════════════════
 \section{Doğrulanmış Zarf}
 
-Aşağıdaki tablo koddan üretilir (\texttt{python zarf.py}) ve README ile
-senkron olduğu testle bağlanır. Her satır bir \emph{ölçüme} dayanır; ``beyan''
-işaretli satırların kanıt dosyası yoktur ve öyle olduğu yazılıdır.
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.96\textwidth]{figurler/fig_dogrulama_capalari.pdf}
+\caption{Doğrulama çapaları. Her çubuk bağımsız bir kapalı-form ya da deneysel
+referansa karşı ölçülmüş MUTLAK sapmadır; kesikli çizgi \%5'tir. Sapmalar kanıt
+dosyalarından okunur, rapora elle yazılmaz.}
+\end{figure}
+
+\noindent Aşağıdaki tablo koddan üretilir (\texttt{python zarf.py}) ve README
+ile senkron olduğu testle bağlanır.
 
 \begingroup
 \footnotesize
 \setlength{\tabcolsep}{4pt}
-\begin{longtable}{@{}p{58mm}p{26mm}p{72mm}@{}}
+\renewcommand{\arraystretch}{1.15}
+\begin{longtable}{@{}p{50mm}p{20mm}p{80mm}@{}}
 \toprule
 \textbf{Koşul} & \textbf{Güvenilirlik} & \textbf{Ölçülen kanıt} \\
 \midrule
 \endhead
-2B profil mutlak $C_d$ ($M<0{,}3$, bağlı akış) & \yuksek &
-NASA TMR NACA0012, $\alpha=0^\circ$: GCI \%1{,}7 ($p=0{,}666$); TMR sapması \%4{,}9 \\
-\addlinespace
+\rowcolor{iyibg}
+2B profil mutlak $C_d$ ($M<0{,}3$) & \yuksek &
+NASA TMR NACA0012, $\alpha=0^\circ$: GCI \%1{,}7 ($p=0{,}666$); TMR sapması \%3{,}5 \\
+\rowcolor{ortabg}
 2B profil taşıma $C_l$ ($\alpha=8^\circ$) & \bantli &
-En ince grid (917.504 hücre) $C_l=0{,}8556$ vs TMR $0{,}862 \rightarrow \%0{,}7$;
-ancak 3-grid serisi ıraksıyor ($p=-2{,}463$), Richardson uygulanamadı \\
-\addlinespace
+En ince grid $C_l=0{,}8556$ vs TMR $0{,}862$ ($\%0{,}7$); 3-grid serisi ıraksıyor
+($p=-2{,}463$) \\
+\rowcolor{iyibg}
 Cilt sürtünmesi $C_f$ --- y$^+$ duyarlılığı & \yuksek &
-Düz levha $\leftrightarrow$ Schlichting 1/7-kuvvet: ilk hücre $\leq\delta_{99}$
-iken hata $\leq\%8$ (7 kademe); ilk hücre $3{,}0\,\delta_{99}$ olunca
-(y$^+\approx864$) hata $-\%40$ \\
-\addlinespace
+Schlichting 1/7-kuvvet: ilk hücre $\leq\delta_{99}$ iken hata $\leq\%8$;
+$3{,}0\,\delta_{99}$ olunca $-\%40$ \\
+\rowcolor{ortabg}
 3B künt cisim $C_d$ & \bantli &
-Küp (Hoerner 1{,}05): $C_d=1{,}113$, sapma \%6{,}03; Richardson GCI \%3{,}1
-($p=2{,}386$, asimptotik); 4-kademe LSR $U=\%58$ \\
-\addlinespace
+Küp (Hoerner 1{,}05): $C_d=1{,}113$, sapma \%6{,}03; GCI \%3{,}1 ($p=2{,}386$);
+4-kademe LSR $U=\%58$ \\
+\rowcolor{ortabg}
 3B araç $C_d$ --- V\&V/UQ bandı & \bantli & Ölçülen validasyon bandı: bluff \%6{,}0 \\
-\addlinespace
-3B ince-kanatlı İHA --- araç hattı & \bantli &
-MiniHawk (güncel): $C_d=0{,}0192$, gövde yüzeyi 24.477 yüz, y$^+_{\mathrm{ort}}=129$
-(bant içinde). Mesh-bağımsızlık bandı YOK: ince kademe yakınsamadı
-(rezidüeller platoda, limit çevrimi) \\
-\addlinespace
+\rowcolor{ortabg}
+3B ince-kanatlı İHA & \bantli &
+MiniHawk: $C_d=0{,}0192$, yüzey 24.477 yüz, y$^+_{\mathrm{ort}}=129$ (bant
+içinde); mesh-bağımsızlık bandı YOK (limit çevrimi) \\
+\rowcolor{ortabg}
 Ayrılmış akış --- yeniden yapışma & \bantli &
-Geriye-basamaklı akış $\leftrightarrow$ Driver \& Seegmiller 1985
-($\mathrm{Re}_H=37500$): $X_r/H=5{,}54$ vs deney $6{,}26 \rightarrow -\%12$ \\
-\addlinespace
-Yapısal --- lineer statik (kiriş) & \yuksek &
-Ankastre kiriş $\leftrightarrow$ Euler--Bernoulli: sehim \%1{,}0, gerilme \%3{,}9 \\
-\addlinespace
-Yapısal --- basınç yükü (hoop) & \yuksek &
-İç-basınçlı silindir $\leftrightarrow$ Lamé: \%1{,}3 (T6 tutarlı-yük) \\
-\addlinespace
-Yapısal --- gerilme konsantrasyonu & \yuksek &
-Delikli plaka $K_t \leftrightarrow$ Heywood: \%1{,}7 (C3D10, 6637 eleman) \\
-\addlinespace
-Yapısal --- termal gerilme & \yuksek &
-Engellenmiş genleşme $\leftrightarrow \sigma=E\alpha\Delta T$: \%0{,}0 \\
-\addlinespace
-Yapısal --- burkulma & \yuksek &
-Euler kolonu (ankastre-serbest, $K=2$): \%0{,}2 \\
-\addlinespace
-Yapısal --- öz-ağırlık & \yuksek &
-Gövde kuvveti $\leftrightarrow \rho g L$: sehim \%0{,}2, gerilme \%4{,}8 \\
-\addlinespace
+Driver \& Seegmiller 1985 ($\mathrm{Re}_H=37500$): $X_r/H=5{,}54$ vs $6{,}26$
+($-\%12$) \\
+\rowcolor{iyibg}
+Yapısal --- lineer statik & \yuksek & Euler--Bernoulli: sehim \%1{,}0, gerilme \%3{,}9 \\
+\rowcolor{iyibg}
+Yapısal --- basınç yükü (hoop) & \yuksek & Lamé: \%1{,}3 (T6 tutarlı-yük) \\
+\rowcolor{iyibg}
+Yapısal --- gerilme konsantrasyonu & \yuksek & Heywood $K_t$: \%1{,}7 (C3D10, 6637 eleman) \\
+\rowcolor{iyibg}
+Yapısal --- termal gerilme & \yuksek & $\sigma=E\alpha\Delta T$: \%0{,}0 \\
+\rowcolor{iyibg}
+Yapısal --- burkulma & \yuksek & Euler kolonu ($K=2$): \%0{,}2 \\
+\rowcolor{iyibg}
+Yapısal --- öz-ağırlık & \yuksek & $\rho g L$: sehim \%0{,}2, gerilme \%4{,}8 \\
+\rowcolor{iyibg}
 Araç tipi sınıflandırma & \yuksek &
-Tam kör üçüncü NX ailesi (27 geometri): preset doğruluğu \%96, kural tek
-başına \%70 \\
-\addlinespace
+Tam kör NX ailesi (27 geometri): preset \%96, kural tek başına \%70 \\
+\rowcolor{ortabg}
 Stall / $C_{L,\max}$ & \bantli & Beyan: $\pm2$--$3^\circ$, $\pm\%15$ --- kanıt dosyası YOK \\
-\addlinespace
+\rowcolor{kotubg}
 y$^+<1$ duvar-çözünür geçiş & \disi & C-grid / DES gerekir \\
 \bottomrule
 \end{longtable}
 \endgroup
 
-\section{Bilinen Sınırlar}
+% ══════════════════════════════ 5 ══════════════════════════════
+\section{ASME V\&V 20 Karşılaştırması}
 
-Bunlar kusur değil, ölçülmüş kapsam sınırlarıdır; raporlarda da böyle görünür.
+Rakip ticari yazılımlarla özellik matrisi \emph{bilerek konmadı}: bu platform
+doğrulanabilir iddia ilkesi üzerine kuruludur ve üçüncü taraf ürünlerin özellik
+kapsamını burada ölçemeyiz. Onun yerine, ölçülebilir bir ölçüt kullanılmıştır:
+ASME V\&V 20-2009'un gerektirdiği adımlardan kaçı \emph{otomatik} yapılıyor.
 
-\begin{description}
-  \item[İnce firar kenarı.] Bu donanımda (RTX 4060 sınıfı dizüstü) ince
-        kanatlı bir İHA'nın firar kenarı 1--2 hücreyle temsil edilir. Kutta
-        koşulu ağla kurulur; kurulamazsa sirkülasyon ve dolayısıyla
-        \emph{taşıma} doğmaz. Ölçüldü: hücre sayısı 20{,}6 kat arttığında
-        $C_l$ yalnız \%23 arttı. Hedef çözünürlük için yalnız yüzeyde
-        $\sim775.000$ yüz gerekir. Bu yüzden ince kanatta taşıma VLM/panel
-        yolundan, sürükleme ise birleştirmeden alınır.
-  \item[Kararlı-RANS uygunluğu.] Bazı vakalarda rezidüeller platoya oturur ve
-        kuvvetler limit çevrimine girer. Bu bir yakınsama eksikliği değil,
-        akışın zaman-bağımlı olduğunun işaretidir; URANS gerekir.
-  \item[Süpersonik mutlak $C_d$.] 3B-açık çözüm bu donanımda ulaşılamaz;
-        eksenel-simetri/ince-cisim kuramıyla ele alınabilir rejim ayrıdır.
-  \item[Panel yönteminin indüklenen direnci.] VSPAERO'nun iki $C_{Di}$ çıktısı
-        da taşıyıcı-çizgi kuramından sapar (yakın-alan $-\%21$, Trefftz
-        $+\%62$; Trefftz değeri sivriltilmiş kanatta $e>1$ ile Munk sınırını
-        ihlal eder). Bu yüzden indüklenen direnç kuramdan üretilir; kuram
-        eliptik planformda $e=1{,}00000$ vererek kendini doğrular.
-  \item[Model-form belirsizliği.] Halen büyük ölçüde literatür-öncüldür
-        (\%12 mertebesi); hat-özgü validasyon sürüyor.
-\end{description}
-
-\section{Nerelerde Kullanılabilir}
-
-\subsection{Eğitim (BİLSEM ve dengi)}
-
-Paketin \texttt{mentor} katmanı BYF/ÖYG/PROJE seviyelerine göre öğretici
-kutular üretir ve geçerlilik banner'ı ``bu sayı tasarımda kullanılır mı''
-sorusunu açıkça yanıtlar. Öğrencinin yanlış bir sayıyla roket/kanat
-tasarlamasını engellemek açık bir tasarım hedefidir. Tipik kullanım: kanat
-profili karşılaştırması, gövde biçimi--sürükleme ilişkisi, basit yapısal
-kontrol.
-
-\subsection{Yarışma takımları (TEKNOFEST vb.)}
-
-Ön-tasarım döngüsü: STL $\rightarrow$ birkaç saatte $C_d$/$C_L$ bandı
-$\rightarrow$ yapısal kontrol $\rightarrow$ rapor. Polar taraması ve aktüatör
-disk desteği iticili konfigürasyonlar için yeterlidir. Önemli uyarı: ince
-kanatta mutlak taşıma için VLM yolu kullanılmalıdır.
-
-\subsection{Akademik çalışma}
-
-Doğrulama çapaları (NASA TMR, Hoerner, Driver \& Seegmiller, Schlichting,
-Lamé, Heywood, Euler) ve V\&V raporlama düzeni MDPI/IEEE beklentileriyle
-uyumludur. GCI ve LSR bantları, kademe aileleri ve gözlenen mertebe $p$
-doğrudan raporlanabilir biçimde saklanır. Her kanıt dosyası kendi üretim
-komutunu taşır; \texttt{kanit.py} yeniden üretilemeyen kanıtı işaretler.
-
-\subsection{Endüstriyel ön-tasarım}
-
-Kavramsal aşamada eğilim analizi ve tasarım-alanı taraması için uygundur.
-Sertifikasyon veya nihai tasarım doğrulaması için \emph{uygun değildir};
-zarf tablosu hangi büyüklüğün hangi bantla geldiğini açıkça söyler.
-
-\subsection{Uygun olmadığı yerler}
-
-Duvar-çözünür geçiş ($y^+<1$) çalışmaları, yüksek Mach ayrılmalı akışlar,
-çok-fazlı akış, yanma, ve zaman-çözünür aeroakustik bu paketin kapsamı
-dışındadır.
-
-\section{Kullanım}
-
-\subsection{Kurulum}
-
-\begin{lstlisting}
-OpenFOAM 11        WSL2 (Ubuntu) uzerinde
-CalculiX (ccx)     yerel ya da WSL
-Python 3.13        numpy, scipy, trimesh, vtk, PyQt
-opsiyonel          OpenVSP (conda ortami), XFOIL 6.99, gmsh
-\end{lstlisting}
-
-\subsection{Tipik komutlar}
-
-\begin{lstlisting}
-# Ana arayuz (arac analiz studyosu)
-python app_analyzer.py
-
-# Katti model -> CFD -> rapor, y+ kademesini otomatik sec
-python vehicle_pipeline.py model.stl --tip ucak --hiz 15 \
-       --kalite standart --ref-bump oto --duyarlilik --seviyeler 4
-
-# Polar taramasi
-python vehicle_polar.py model.stl --alfalar 0 4 8 12
-
-# Yapisal kontrol (CFD basincindan)
-python vehicle_fea.py --case vehicle_runs/model --malzeme AL6061
-
-# Dogrulama zarfini yeniden uret
-python zarf.py --yaz
-
-# Kanit butunlugu denetimi
-python kanit.py --eksik
-\end{lstlisting}
-
-\section{Kalite Güvencesi}
-
-\begin{center}
-\begin{tabular}{@{}lr@{}}
+\begin{center}\footnotesize
+\begin{tabular}{@{}p{72mm}ccp{38mm}@{}}
 \toprule
-Kod satırı (kök $+$ \texttt{analysis/}) & 29.023 \\
-Kök modül & 76 \\
-Deney/çapa betiği (\texttt{experiments/}) & 51 \\
-Test dosyası & 107 \\
-Geçen test & 987 \\
-Atlanan test (harici bağımlılık/fixture) & 6 \\
+\textbf{V\&V 20 adımı} & \textbf{Otomatik} & \textbf{Kapı} & \textbf{Modül} \\
+\midrule
+Kod doğrulama (kapalı-form karşılaştırma) & \ev & \ev & 6 FEA çapası \\
+Çözüm doğrulama --- ayrıklaştırma (GCI) & \ev & \ev & \texttt{band\_from\_levels} \\
+Çözüm doğrulama --- iterasyon yakınsaması & \ev & \ev & plato/drift ayrımı \\
+Girdi belirsizliği yayılımı & \hy & \hy & planlanan \\
+Deneysel referansla geçerleme & \ks & \ev & \texttt{zarf} (14 koşul) \\
+Geçerlilik alanı (validation domain) beyanı & \ev & \ev & \texttt{validity\_envelope} \\
+Model-form belirsizliği & \ks & \ev & \%12 literatür-öncül \\
+Sonucun izlenebilirliği (üretim komutu) & \ev & \ev & \texttt{kanit} \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-Testlerin ayırt edici yanı, \emph{sabit sonuç yerine niyet bağlamalarıdır}.
-Örneğin bir test ``$C_d$ şu değere eşit olsun'' demez; ``rapor metni kendi
-ölçtüğü seriyle çelişmesin'', ``ölçülmemiş bir band sıfır sayılmasın'',
-``engel varsa mutlak sürükleme yayımlanmasın'' der. Böylece ölçüm değiştiğinde
-test kırılmaz, ama \emph{tutarlılık} bozulduğunda kırılır.
+\noindent Sekiz adımın beşi tam, ikisi kısmî otomatiktir; girdi belirsizliği
+yayılımı henüz yoktur ve bu açıkça beyan edilir.
 
+% ══════════════════════════════ 6 ══════════════════════════════
+\section{Örnek Vaka Çalışmaları}
+
+\subsection{Vaka 1 --- MiniHawk İHA: kapıların iş başında olduğu koşu}
+
+\textbf{Problem.} 1{,}5\,m açıklıklı, NACA2412 kanatlı bir İHA'nın sürüklemesi
+ve taşıması.
+
+\textbf{Süreç.} İlk kampanya bir $C_d$ üretti ($0{,}01388$) ve GCI \%379 ile
+uyardı. Kapı zinciri kök nedeni buldu: araç yüzeyi mesh'te 8/144/74 yüzle
+temsil ediliyordu; ``GCI yüksek'' ve ``y$^+=5399$'' bunun \emph{sonucuydu}.
+Arka plan bütçesi düzeltildikten ve y$^+$ kademesi otomatik seçildikten sonra:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+& \textbf{eski kayıt} & \textbf{bump 0} & \textbf{\texttt{-{}-ref-bump oto}} \\
+\midrule
+Gövde yüzeyi (yüz) & 74 & 509 & \textbf{24.477} \\
+y$^+$ ortalama & 5399 & 803 & \textbf{129} \\
+Hücre & 1{,}86\,M & 312\,k & 454\,k \\
+$C_d$ & 0{,}01388 & 0{,}04529 & 0{,}01923 \\
+$C_l$ & 0{,}01433 & 0{,}04568 & 0{,}09152 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Sonuç.} Aynı donanımda \emph{altı kat az hücreyle} yüzey ilk kez
+çözüldü. Kalan engel dürüstçe açık: ince kademe kararlı-duruma oturmuyor (limit
+çevrimi), yani mesh-bağımsızlık bandı hâlâ yok ve $C_l$ kamburluğu çözemiyor.
+
+\subsection{Vaka 2 --- İnce kanatta taşıma: RANS'ın yapamadığı}
+
+\textbf{Problem.} İnce kanatta RANS mutlak taşımayı veremiyor.
+
+\textbf{Ölçüm.} Firar kenarı 1{,}3 hücre iken hücre sayısı 20{,}6 kat
+artırıldığında $C_l$ yalnız \%23 arttı (beklenen \%329). Hedef çözünürlük için
+yalnız yüzeyde $\sim$775.000 yüz gerekiyor.
+
+\textbf{Çözüm.} Taşıma, Kutta koşulunu firar kenarında \emph{analitik} dayatan
+VLM/panel yolundan alınır; profil sürüklemesi 2B XFOIL kesitinden, indüklenen
+direnç ise taşıyıcı-çizgi kuramından gelir. Birleştirme yalnız parçalar uyumluysa
+yapılır: profil eşleşmesi, Reynolds, kamburluk tipi, $\alpha$ örtüşmesi ve
+band aidiyeti ayrı kapılardır.
+
+\subsection{Vaka 3 --- Küp: literatüre karşı bantlı kabul}
+
+\textbf{Problem.} 3B araç hattının künt cisimde ne kadar doğru olduğu.
+
+\textbf{Sonuç.} Dört kademeli aile monoton, $p=2{,}386$, asimptotik oran
+$0{,}96$; Richardson sınırı $C_d=1{,}141$, ölçülen en ince $1{,}113$, Hoerner
+referansı $1{,}05$. Sapma \%6{,}0 ve GCI \%3{,}1 --- yani sonuç
+\emph{bantlı kabul} edilir, ``doğrulandı'' denmez.
+
+% ══════════════════════════════ 7 ══════════════════════════════
+\section{Bilinen Sınırlar ve Yol Haritası}
+
+\subsection{Ölçülmüş sınırlar}
+
+\begin{description}\setlength\itemsep{1pt}
+  \item[İnce firar kenarı.] Bu donanımda 1--2 hücre; Kutta koşulu kurulamaz,
+        taşıma doğmaz (Vaka 2).
+  \item[Kararlı-RANS uygunluğu.] Bazı vakalarda rezidüeller platoya oturur ve
+        kuvvetler limit çevrimine girer --- URANS gerekir.
+  \item[Süpersonik mutlak $C_d$.] 3B-açık çözüm bu donanımda ulaşılamaz.
+  \item[Panel yönteminin indüklenen direnci.] VSPAERO'nun iki $C_{Di}$ çıktısı
+        da kuramdan sapar (yakın-alan $-\%21$, Trefftz $+\%62$); bu yüzden
+        indüklenen direnç kuramdan üretilir.
+  \item[Model-form belirsizliği.] Halen literatür-öncül (\%12 mertebesi).
+  \item[Teknik borç --- iki hızlı katman.] \texttt{simulation\_runner.py} ve
+        bazı bağımsız V\&V betikleri \texttt{analysis/} çekirdeğini kullanmaz,
+        case iskelesini tekrarlar.
+\end{description}
+
+\subsection{Yol haritası}
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}llp{86mm}@{}}
+\toprule
+\textbf{Sürüm} & \textbf{Öncelik} & \textbf{İçerik} \\
+\midrule
+v1.1 & yüksek & Eski çözücü sarmalayıcısının kaldırılması; tüm yolların
+                \texttt{analysis/} çekirdeğine taşınması \\
+v1.2 & yüksek & URANS yolu --- limit çevrimine giren vakalar için zaman-çözünür
+                çözüm ve kuvvet ortalaması \\
+v1.3 & orta   & Girdi belirsizliği yayılımı (V\&V 20'nin eksik adımı) \\
+v1.4 & orta   & Hat-özgü model-form validasyonu; \%12 literatür-öncülünün
+                ölçümle değiştirilmesi \\
+v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanması;
+                GPU hızlandırma \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ══════════════════════════════ 8 ══════════════════════════════
+\section{Kullanım Alanları}
+
+\begin{description}\setlength\itemsep{2pt}
+  \item[Eğitim (BİLSEM ve dengi).] \texttt{mentor} katmanı BYF/ÖYG/PROJE
+        seviyelerine göre öğretici kutular üretir; geçerlilik banner'ı ``bu sayı
+        tasarımda kullanılır mı'' sorusunu açıkça yanıtlar. Öğrencinin yanlış
+        bir sayıyla roket ya da kanat tasarlamasını engellemek açık bir tasarım
+        hedefidir.
+  \item[Yarışma takımları.] Ön-tasarım döngüsü: STL $\rightarrow$ birkaç saatte
+        $C_d$/$C_L$ bandı $\rightarrow$ yapısal kontrol $\rightarrow$ rapor.
+        İnce kanatta mutlak taşıma için VLM yolu kullanılmalıdır.
+  \item[Akademik çalışma.] Doğrulama çapaları ve V\&V raporlama düzeni
+        MDPI/IEEE beklentileriyle uyumludur; GCI/LSR bantları, kademe aileleri
+        ve gözlenen mertebe $p$ doğrudan raporlanabilir biçimde saklanır.
+  \item[Endüstriyel ön-tasarım.] Kavramsal aşamada eğilim analizi ve
+        tasarım-alanı taraması için uygundur. Sertifikasyon ya da nihai tasarım
+        doğrulaması için \emph{uygun değildir}.
+  \item[Uygun olmadığı yerler.] Duvar-çözünür geçiş ($y^+<1$), yüksek Mach
+        ayrılmalı akış, çok-fazlı akış, yanma, zaman-çözünür aeroakustik.
+\end{description}
+
+% ══════════════════════════════ 9 ══════════════════════════════
+\section{Kalite Güvencesi}
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrl@{}}
+\toprule
+\textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
+\midrule
+Kod satırı (kök + \texttt{analysis/}) & 29.023 & dosya sayımı \\
+Kök modül & 76 & \\
+Deney / çapa betiği & 51 & \texttt{experiments/} \\
+Test dosyası & 107 & \texttt{tests/} \\
+Geçen test & 987 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1015 & \texttt{-{}-cov} \\
+Satır kapsamı & \textbf{\%42} & 17.303 ifade, 9.984 kapsanmamış \\
+Süit süresi & $\sim$5 dk & 8 çekirdek \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent\textbf{Kapsam neden \%42.} Kapsanmayan kodun büyük kısmı ancak dış
+çözücülerle çalışan yollardır: OpenFOAM/WSL sürücüsü, CalculiX koşumu,
+OpenVSP/XFOIL köprüleri ve PyQt arayüzü. Bunlar birim testiyle değil,
+\emph{çapa koşularıyla} sınanır --- ve o koşuların sonuçları kanıt dosyalarına
+yazılıp testlerle bağlanır (örn.\ yayımlanan \texttt{vspaero\_polar.json}'un
+kabul kapısından geçtiği testle doğrulanır). Yani karar mantığı ve V\&V
+katmanı yüksek kapsamlıdır; düşük kapsam dış-süreç sarmalayıcılarındadır. Sayı
+olduğu gibi verilmiştir çünkü ``\%85 kapsam'' demek için testi kolay olanı
+sayıp zoru dışarıda bırakmak, bu raporun savunduğu ilkenin tersi olurdu.
+
+Testlerin ayırt edici yanı, sabit sonuç yerine \emph{niyet} bağlamalarıdır. Bir
+test ``$C_d$ şu değere eşit olsun'' demez; ``rapor metni kendi ölçtüğü seriyle
+çelişmesin'', ``ölçülmemiş bir band sıfır sayılmasın'', ``engel varsa mutlak
+sürükleme yayımlanmasın'' der. Böylece ölçüm değiştiğinde test kırılmaz, ama
+\emph{tutarlılık} bozulduğunda kırılır.
+
+Ayrıca depo kendi kod hijyenini de sınar: \emph{sessiz yutma} sayacı, gerekçesiz
+\texttt{except} bloklarının sayısının artmasını engeller. Bu raporun figürlerini
+üreten betik ilk yazımında o sayacı tetikledi ve düzeltildi --- yani mekanizma
+raporun kendi üretim zincirinde de çalışmaktadır.
+
+\subsection*{Kurulum ve tipik komutlar}
+
+\begin{lstlisting}
+OpenFOAM 11      WSL2 (Ubuntu)         CalculiX (ccx)   yerel ya da WSL
+Python 3.13      numpy scipy trimesh vtk PyQt
+opsiyonel        OpenVSP (conda), XFOIL 6.99, gmsh
+\end{lstlisting}
+
+\begin{lstlisting}
+python app_analyzer.py                       # ana arayuz
+python vehicle_pipeline.py model.stl --tip ucak --hiz 15 \
+       --kalite standart --ref-bump oto --duyarlilik --seviyeler 4
+python vehicle_polar.py model.stl --alfalar 0 4 8 12
+python vehicle_fea.py --case vehicle_runs/model --malzeme AL6061
+python zarf.py --yaz                         # dogrulama zarfini uret
+python kanit.py --eksik                      # kanit butunlugu denetimi
+python experiments/rapor_figurleri.py        # bu raporun figurleri
+\end{lstlisting}
+
+% ══════════════════════════════ 10 ══════════════════════════════
 \section{Sonuç}
 
-Paketin değeri, ürettiği sayılardan çok \emph{üretmeyi reddettiği} sayılardadır.
-Bir CFD koşusu her zaman bir sayı verir; o sayının anlamlı olup olmadığını
-söylemek ayrı bir iştir ve bu paket o işi otomatikleştirir. Ölçülmüş
+Platformun değeri, ürettiği sayılardan çok \emph{üretmeyi reddettiği}
+sayılardadır. Bir CFD koşusu her zaman bir sayı verir; o sayının anlamlı olup
+olmadığını söylemek ayrı bir iştir ve burada otomatikleştirilmiştir. Ölçülmüş
 belirsizlik bandı, adı konmuş kapsam sınırı ve yeniden üretilebilir kanıt
-dosyası; üçü bir arada olduğunda sonuç eğitimde güvenle, yarışmada hızla,
+dosyası --- üçü bir arada olduğunda sonuç eğitimde güvenle, yarışmada hızla,
 akademide savunulabilir biçimde kullanılabilir.
+
+\vspace{4mm}
+\noindent\rule{\textwidth}{0.4pt}\\[1mm]
+{\footnotesize Bu rapordaki tüm sayılar ve figürler depodaki kanıt
+dosyalarından üretilmiştir. Figürler için:
+\texttt{python experiments/rapor\_figurleri.py}. Zarf tablosu için:
+\texttt{python zarf.py}.\par}
 
 \end{document}

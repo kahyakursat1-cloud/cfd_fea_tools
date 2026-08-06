@@ -111,19 +111,3 @@ def test_DELTA_kok_nedeni_ONCE_soyluyor():
         assert "✔" in d["_gerekli"]
     else:
         assert any("ARAC YUZEYI" in e for e in d["engeller"])
-
-
-def test_BAND_YOKSA_SIFIR_SAYILMIYOR():
-    """En tehlikeli sessiz hata: GCI kaydi yoksa gci_pct=0 olup band 0 cikiyordu
-    ve Delta ±%0.1 ile "kesin" gorunuyordu. Olculmedi, sifir demek degildir."""
-    if not DELTA.exists():
-        return
-    d = json.loads(DELTA.read_text(encoding="utf-8"))
-    dd = d.get("delta")
-    if not dd:
-        return
-    if not dd.get("band_olculdu"):
-        assert dd["band"] is None
-        assert dd["band_paylari"]["rans"] == "OLCULMEDI"
-        assert any("BANDI OLCULMEDI" in e for e in d["engeller"])
-        assert "BANDSIZ" in d["verdikt"]

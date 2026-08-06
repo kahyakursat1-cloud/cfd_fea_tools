@@ -46,7 +46,19 @@
       "rans": "OLCULMEDI",
       "birlestirme": 2.7e-05
     },
-    "kestirime_orani": 3.57
+    "kestirime_orani": 3.57,
+    "alt_sinir_bandi": {
+      "deger": 0.000471,
+      "pct": 1.94,
+      "iceren_bilesenler": [
+        "RANS salınım-genliği %1.42",
+        "birlestirme %0.3"
+      ],
+      "eksik_bilesenler": [
+        "RANS ayriklastirma (mesh) belirsizligi"
+      ],
+      "_anlam": "ALT SINIRDIR: yalnizca OLCULMUS bilesenleri icerir. Ayriklastirma bileseni eklendiginde gercek band BUYUR, kucullmez."
+    }
   },
   "mesh_teshisi": {
     "yuzey_yuzleri": [
@@ -71,10 +83,9 @@
     "monoton": true
   },
   "engeller": [
-    "RANS BANDI OLCULMEDI: mesh-bagimsizlik calismasi yok (mesh-bağımsızlık ÇALIŞMASI YAPILMADI — ince seviye YAKINSAMADI: rezidueller PLATOYA OTURDU (limit cevrimi) {'Ux': '2.91e-06', 'Uy': '6.30e-04', 'Uz': '2.26e-05', 'p': '2.18e-04'} — dusus durmus (son/onceki dilim {'Ux': 0.782, 'Uy': 0.939, 'Uz': 0.974, 'p': 0.942}), DAHA COK ITERASYON COZMEZ: akis zaman-bagimlidir (URANS) ya da bu vaka kararli-RANS capasi olarak uygun degildir; kuvvet salinimi (limit cevrimi) — sabit noktaya oturmamis. Band raporlanan Cd'ye ait olmalıdır; referans seviye kapıdan geçmeden aile anlamsızdır). Delta'nin bandi HESAPLANAMAZ — bandsiz bir fark, kesin bir fark DEGILDIR",
-    "ARAC YUZEYI MESH'TE YOK: minihawk_cokkaba=None, minihawk_kaba=8, minihawk_orta=144, minihawk=24477 yuz (esik 500). Cd/Cl bu kademelerden SAYI DEGIL; asagidaki GCI ve y+ engelleri bunun SONUCUDUR. Ayrinti: minihawk_mesh_teshisi.json"
+    "RANS BANDI OLCULMEDI: mesh-bagimsizlik calismasi yok (mesh-bağımsızlık ÇALIŞMASI YAPILMADI — ince seviye YAKINSAMADI: rezidueller PLATOYA OTURDU (limit cevrimi) {'Ux': '2.91e-06', 'Uy': '6.30e-04', 'Uz': '2.26e-05', 'p': '2.18e-04'} — dusus durmus (son/onceki dilim {'Ux': 0.782, 'Uy': 0.939, 'Uz': 0.974, 'p': 0.942}), DAHA COK ITERASYON COZMEZ: akis zaman-bagimlidir (URANS) ya da bu vaka kararli-RANS capasi olarak uygun degildir; kuvvet salinimi (limit cevrimi) — sabit noktaya oturmamis. Band raporlanan Cd'ye ait olmalıdır; referans seviye kapıdan geçmeden aile anlamsızdır). Delta'nin TAM bandi HESAPLANAMAZ — bandsiz bir fark, kesin bir fark DEGILDIR. Yalniz OLCULMUS bilesenlerden ALT SINIR: ±0.00047 (±%1.9)"
   ],
-  "verdikt": "⛔ Δ HESAPLANDI ama KULLANILAMAZ: 0.02425 BANDSIZ — RANS mesh-bagimsizlik calismasi yok, belirsizlik OLCULMEDI (sifir DEGIL). Duz-levha kestirimi 0.00679, olculen onun 3.6 kati. Engeller: RANS BANDI OLCULMEDI | ARAC YUZEYI MESH'TE YOK",
+  "verdikt": "⛔ Δ HESAPLANDI ama KULLANILAMAZ: 0.02425 TAM BAND YOK; olculmus bilesenlerden ALT SINIR ±0.00047 (±%1.9), AYRIKLASTIRMA bileseni eksik — gercek band bundan BUYUK. Duz-levha kestirimi 0.00679, olculen onun 3.6 kati. Engeller: RANS BANDI OLCULMEDI",
   "_gerekli": "SIRA ONEMLI. (0) ✔ arac yuzeyi COZULDU (24,477 yuz) | (1) mesh-bagimsizlik bandi YOK — mesh-bağımsızlık ÇALIŞMASI YAPILMADI — ince seviye YAKINSAMADI: rezidueller PLATOYA OTURDU (limit cevrimi) {'Ux': '2.91e-06', 'Uy': '6.30e-04', 'Uz': '2.26e-05', 'p': '2.18e-04'} — dusus durmus (son/onceki dilim {'Ux': 0.782, 'Uy': 0.939, 'Uz': 0.974, 'p': 0.942}), DAHA COK ITERASYON COZMEZ: akis zaman-bagimlidir (URANS) ya da bu vaka kararli-RANS capasi olarak uygun degildir; kuvvet salinimi (limit cevrimi) — sabit noktaya oturmamis. Band raporlanan Cd'ye ait olmalıdır; referans seviye kapıdan geçmeden aile anlamsızdır | (2) ✔ y+ ortalama 129 | (3) Cl uyusmuyor: RANS 0.0915 vs birlestirme 0.1270 (2B beklenti ~0.25)",
   "_uretim": "Üretim: python experiments/delta_entegrasyon.py"
 }

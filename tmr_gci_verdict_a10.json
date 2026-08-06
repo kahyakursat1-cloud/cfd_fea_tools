@@ -37,5 +37,7 @@
   },
   "strict_gci_verdict": "⚠️ Mesh bağımsızlığı GÖSTERİLEMEDİ: p=-3.165 makul aralik (0.5, 3.0) disi — asimptotik aralikta degil",
   "Cl_richardson": 1.068151,
-  "sonuc": "Cl_richardson=1.06815 vs TMR 1.0778 (%0.9). p=-3.165, GCI_ince=-0.4375%, asimptotik=1.0031. Asimptotik+TMR-uyumu varsa TASARIM-GRADE."
+  "sonuc": "Cl_richardson=1.06815 vs TMR 1.0778 (%0.9). p=-3.165, GCI_ince=-0.4375%, asimptotik=1.0031. Asimptotik+TMR-uyumu varsa TASARIM-GRADE.",
+  "_uretim": "Üretim: python tmr_cfd/run_gci_campaign.py 10",
+  "_uretim_notu": "Komut URETICI KODDAN turetildi (run_gci_campaign.py: ALPHA=argv[1], SUF ve cikti adi ondan). Bu kayit o script uretim-komutunu kendi yazmaya baslamadan ONCE uretilmisti; sayilar YENIDEN HESAPLANMADI."
 }

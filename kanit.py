@@ -93,6 +93,12 @@ def _hukum(d: dict) -> tuple[str, str]:
 _URETIM = re.compile(
     r"(?:Üretim|Uretim|Reproduce)\s*:\s*"
     r"((?:[A-Z][A-Z0-9_]*=\S+\s+)*"                  # isteğe bağlı ortam değişkenleri
+    # `conda run -n <ortam>` ONEKI: OpenVSP/XFOIL kanitlari ayri bir conda
+    # ortamindan uretiliyor ve komut o onekle KAYITLI. Onek tanınmadigi icin
+    # denetleyici "komut kayitli degil" diyordu — yani YENIDEN URETILEBILIR bir
+    # kanit, uretilemez gibi raporlaniyordu (olculdu: vlm_capa,
+    # vlm_panel_yakinsamasi, vlm_iki_yonlu_yakinsama).
+    r"(?:conda\s+run\s+(?:-n\s+\S+\s+|--no-capture-output\s+)*)?"
     r"(?:python|bash|sh|\"?[^\"\n]*run_journal[^\"\n]*?\.exe\"?)"
     r"[^\"\n]{3,160}?)(?=\.\s|\.$|$|\")")
 

@@ -46,6 +46,7 @@ def _rans() -> dict:
     return {"Cd": d["Cd"], "Cl": d["Cl"], "aref": d["aref_m2"],
             "aref_mode": d.get("aref_mode"), "gci": d.get("gci") or {},
             "band_yok_nedeni": d.get("band_yok_nedeni"),
+            "belirsizlik": d.get("belirsizlik") or {},
             "yuzey_cozunurlugu": d.get("yuzey_cozunurlugu") or {},
             "yplus": d.get("yplus") or {}, "verdikt": d.get("verdikt", "")}
 
@@ -142,6 +143,30 @@ def calistir() -> dict:
         band_r = cd_rans_kanat_tabani * (gci_pct / 100.0) if band_olculdu else None
         band_d = ((band_r ** 2 + band_b ** 2) ** 0.5
                   if band_r is not None else None)
+
+        # BILESEN AYRIMI. "Band olculmedi" demek de FAZLA KABA: RANS kaydinda
+        # OLCULMUS bir sayisal bilesen var (salinim genligi %1.42) ama o
+        # AYRIKLASTIRMA bandi DEGIL. Iki ayri bilesen tek kelimeye sikistirilirsa
+        # ya olculmus bir sey yok sayilir ya da olculmemis bir sey varmis gibi
+        # gosterilir. Ikisi de yanlis; ayrildilar.
+        alt_sinir = None
+        if not band_olculdu:
+            _u = r.get("belirsizlik") or {}
+            _sal = _u.get("u_sayisal_pct")
+            if _sal:
+                _br = cd_rans_kanat_tabani * (float(_sal) / 100.0)
+                _alt = (_br ** 2 + band_b ** 2) ** 0.5
+                alt_sinir = {
+                    "deger": round(_alt, 6),
+                    "pct": round(_alt / abs(delta) * 100, 2) if delta else None,
+                    "iceren_bilesenler": [
+                        f"RANS {_u.get('u_sayisal_kaynak', 'sayisal')} %{_sal}",
+                        f"birlestirme %{b['nokta'].get('Cd_band_pct', 0)}"],
+                    "eksik_bilesenler": ["RANS ayriklastirma (mesh) belirsizligi"],
+                    "_anlam": ("ALT SINIRDIR: yalnizca OLCULMUS bilesenleri "
+                               "icerir. Ayriklastirma bileseni eklendiginde "
+                               "gercek band BUYUR, kucullmez."),
+                }
         kestirim = rec["islak_alan"]["Cd_parazit_kestirimi"]
         rec["delta"] = {
             "deger": round(delta, 6),
@@ -153,13 +178,17 @@ def calistir() -> dict:
                 "rans": round(band_r, 6) if band_r is not None else "OLCULMEDI",
                 "birlestirme": round(band_b, 6)},
             "kestirime_orani": round(delta / kestirim, 2) if kestirim else None,
+            "alt_sinir_bandi": alt_sinir,
         }
         if not band_olculdu:
             engeller.append(
                 "RANS BANDI OLCULMEDI: mesh-bagimsizlik calismasi yok"
                 + (f" ({r['band_yok_nedeni']})" if r.get("band_yok_nedeni") else "")
-                + ". Delta'nin bandi HESAPLANAMAZ — bandsiz bir fark, kesin bir "
-                  "fark DEGILDIR")
+                + ". Delta'nin TAM bandi HESAPLANAMAZ — bandsiz bir fark, kesin "
+                  "bir fark DEGILDIR"
+                + (f". Yalniz OLCULMUS bilesenlerden ALT SINIR: "
+                   f"±{alt_sinir['deger']:.5f} (±%{alt_sinir['pct']:.1f})"
+                   if alt_sinir else ""))
 
     # KAPILAR — Delta'nin KULLANILABILIR olmasi icin RANS'in savunulabilir
     # olmasi gerekir; RANS'in kendi verdikti bunu zaten reddediyor.
@@ -206,11 +235,15 @@ def calistir() -> dict:
     rec["engeller"] = engeller
     if engeller and "delta" in rec:
         d = rec["delta"]
+        _as = d.get("alt_sinir_bandi")
         _b = (f"± {d['band']:.5f} (±%{d['band_pct']:.0f}) — band degerin "
               f"{d['band'] / abs(d['deger']):.1f} KATI"
               if d.get("band") is not None else
-              "BANDSIZ — RANS mesh-bagimsizlik calismasi yok, belirsizlik "
-              "OLCULMEDI (sifir DEGIL)")
+              (f"TAM BAND YOK; olculmus bilesenlerden ALT SINIR "
+               f"±{_as['deger']:.5f} (±%{_as['pct']:.1f}), AYRIKLASTIRMA "
+               f"bileseni eksik — gercek band bundan BUYUK"
+               if _as else
+               "BANDSIZ — belirsizlik OLCULMEDI (sifir DEGIL)"))
         rec["verdikt"] = (
             f"⛔ Δ HESAPLANDI ama KULLANILAMAZ: {d['deger']:.5f} {_b}. "
             f"Duz-levha kestirimi {rec['islak_alan']['Cd_parazit_kestirimi']:.5f}, "

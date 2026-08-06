@@ -8,5 +8,7 @@
     "Cd": 0.00868,
     "Cl": 0.4225
   },
-  "status": "ok"
+  "status": "ok",
+  "_uretim": "Üretim: python experiments/exp_gci_xfine.py",
+  "_uretim_notu": "Komut URETICI IMZASINDAN turetildi; dosyadaki `mesh` alani argumanlari birebir tasiyor. Sayilar YENIDEN HESAPLANMADI."
 }

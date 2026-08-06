@@ -12,5 +12,17 @@
     "Cd": 0.00165,
     "Cl": 0.5488
   },
-  "status": "ok"
+  "status": "ok",
+  "_uretim_eksik": {
+    "uretici": "experiments/exp_cgrid_run.py",
+    "bilinen_argumanlar": "base 200 60 100 3000 9000",
+    "kayitli_olmayan": [
+      "R_dom",
+      "L_wk",
+      "nu",
+      "ilk_hucre",
+      "alpha"
+    ],
+    "neden": "Tam komut UYDURULMADI: bu betikler far-field yaricapi, wake uzunlugu, viskozite, ilk hucre ve alfa'yi da konumsal arguman olarak aliyor ve bunlar kanit dosyasina yazilmamis. Eksik argumanla yazilan bir 'uretim komutu', olmayan bir tekrarlanabilirlik iddiasi olurdu."
+  }
 }
