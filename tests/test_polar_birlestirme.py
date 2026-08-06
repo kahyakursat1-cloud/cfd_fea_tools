@@ -117,6 +117,56 @@ def test_bandin_ucu_veri_disinda_ise_SESSIZ_GECMIYOR():
     assert "Cd_band_notu" in n or "Cd_band_tasima_pct" in n
 
 
+class TestBandAilesi:
+    """Yakınsama bandı bir AİLE için ölçülür; başka bir ayara taşınamaz.
+
+    Bu depoda aynı sınıf hata iki kez çıktı: temiz kanat çapasının bandını
+    gerçek araca taşımak, ve tek yönlü ailenin bandını iki yönlü aileye
+    taşımak. İkincisi ölçüldü: tek yönlü %28.32 (p<0.5), iki yönlü %1.36
+    (p>2.1) — 20.8 kat fark.
+    """
+
+    _AILE = [{"span": 40, "kiris": 17}, {"span": 98, "kiris": 42}]
+
+    def test_ayar_aile_disindaysa_ENGEL(self):
+        vlm = [{**p, "span_panel": 80, "kiris_panel": 33} for p in _VLM]
+        o = pb.birlesik_polar(vlm, _KESIT, **_UYUMLU, vlm_ar=5.0, vlm_taper=0.7,
+                              vlm_ok_acisi=2.0, vlm_band_pct=1.36,
+                              band_ailesi=self._AILE)
+        assert any("BAND BU AYARA AIT DEGIL" in e for e in o["engeller"])
+        assert all("Cd_toplam" not in n for n in o["noktalar"])
+
+    def test_ayar_ailenin_kademesiyse_ENGEL_YOK(self):
+        vlm = [{**p, "span_panel": 98, "kiris_panel": 42} for p in _VLM]
+        o = pb.birlesik_polar(vlm, _KESIT, **_UYUMLU, vlm_ar=5.0, vlm_taper=0.7,
+                              vlm_ok_acisi=2.0, vlm_band_pct=1.36,
+                              band_ailesi=self._AILE)
+        assert not any("BAND BU AYARA" in e for e in o["engeller"])
+
+    def test_ayar_kayitli_degilse_SESSIZ_GECMIYOR(self):
+        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, vlm_ar=5.0, vlm_taper=0.7,
+                              vlm_ok_acisi=2.0, vlm_band_pct=1.36,
+                              band_ailesi=self._AILE)
+        assert any("DOGRULANAMIYOR" in u for u in o["uyarilar"])
+
+    def test_KAYNAK_DOSYA_ADI_veriden_geliyor(self):
+        """Band iki yönlü aileye geçince metin hâlâ tek yönlü dosyayı
+        gösteriyordu — raporun kendi verisiyle çelişmesinin aynısı."""
+        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, vlm_band_pct=1.36,
+                              band_kaynak_dosyasi="vlm_iki_yonlu_yakinsama.json")
+        u = next(x for x in o["uyarilar"] if "TAŞIMA BANDI ÖLÇÜLDÜ" in x)
+        assert "vlm_iki_yonlu_yakinsama.json" in u
+        assert "vlm_panel_yakinsamasi.json" not in u
+
+    def test_DEPO_iki_yonlu_aileyi_TERCIH_ediyor(self):
+        from pathlib import Path
+        if not (Path(pb.HERE) / "vlm_iki_yonlu_yakinsama.json").exists():
+            return
+        d = pb._depo_verisi()
+        assert d.get("band_kaynak_dosyasi") == "vlm_iki_yonlu_yakinsama.json"
+        assert d.get("band_ailesi")
+
+
 def test_DEPO_verisi_gercek_hukmu_veriyor():
     """Depodaki gerçek kanıtlarla ne çıkıyorsa O doğrulanır.
 

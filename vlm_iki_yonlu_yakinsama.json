@@ -1,0 +1,125 @@
+{
+  "vaka": "VLM panel yakınsaması — AÇIKLIK + KİRİŞ birlikte, mini_hawk",
+  "_neden": "Tek yonde inceltmek yakinsama gosteremiyordu: kiris yonu tek basina Cl(8)'i %1.9 oynatiyor ve aciklik serisinin ince adimlari (%0.5-1.2) o gurultunun ALTINDA kaliyordu.",
+  "kademeler": [
+    {
+      "span": 40,
+      "kiris": 17,
+      "toplam": 680
+    },
+    {
+      "span": 54,
+      "kiris": 23,
+      "toplam": 1242
+    },
+    {
+      "span": 73,
+      "kiris": 31,
+      "toplam": 2263
+    },
+    {
+      "span": 98,
+      "kiris": 42,
+      "toplam": 4116
+    }
+  ],
+  "h_oranlari": [
+    1.351,
+    1.35,
+    1.349
+  ],
+  "kayitlar": [
+    {
+      "span_panel": 40,
+      "kiris_panel": 17,
+      "toplam_panel": 680,
+      "span_uygulanan": [
+        "MainWing",
+        "HTail",
+        "VTail"
+      ],
+      "kiris_uygulanan": [
+        "MainWing",
+        "HTail",
+        "VTail"
+      ],
+      "Cl_0": 0.13725,
+      "Cl_4": 0.46145,
+      "Cl_8": 0.74833
+    },
+    {
+      "span_panel": 54,
+      "kiris_panel": 23,
+      "toplam_panel": 1242,
+      "span_uygulanan": [
+        "MainWing",
+        "HTail",
+        "VTail"
+      ],
+      "kiris_uygulanan": [
+        "MainWing",
+        "HTail",
+        "VTail"
+      ],
+      "Cl_0": 0.13442,
+      "Cl_4": 0.43318,
+      "Cl_8": 0.73611
+    },
+    {
+      "span_panel": 73,
+      "kiris_panel": 31,
+      "toplam_panel": 2263,
+      "span_uygulanan": [
+        "MainWing",
+        "HTail",
+        "VTail"
+      ],
+      "kiris_uygulanan": [
+        "MainWing",
+        "HTail",
+        "VTail"
+      ],
+      "Cl_0": 0.12607,
+      "Cl_4": 0.42768,
+      "Cl_8": 0.73527
+    },
+    {
+      "span_panel": 98,
+      "kiris_panel": 42,
+      "toplam_panel": 4116,
+      "span_uygulanan": [
+        "MainWing",
+        "HTail",
+        "VTail"
+      ],
+      "kiris_uygulanan": [
+        "MainWing",
+        "HTail",
+        "VTail"
+      ],
+      "Cl_0": 0.127,
+      "Cl_4": 0.42709,
+      "Cl_8": 0.73073
+    }
+  ],
+  "referans": "Cl_8",
+  "seri": [
+    0.74833,
+    0.73611,
+    0.73527,
+    0.73073
+  ],
+  "monoton": true,
+  "son_kademe_degisimi_pct": 0.62,
+  "kanonik_band": {
+    "u_pct": 1.36,
+    "yontem": "lsr",
+    "kaynak": "LSR (4-seviye; süper-yakınsak (p>2.1): p=2 sabit, U=1.25|δ₂|+σ₂+|Δf0|)",
+    "f_exact": 0.727573
+  },
+  "tek_yonlu_band_pct": 28.32,
+  "_kisit": "Band panel AYRIKLASTIRMA bandidir, DOGRULAMA bandi DEGIL. VLM'in kendi model-form payi ayri olculdu (ciplak kanatta tasima egimi kurama gore -%10). Ayrica bu aile TAM ARAC icindir; temiz kanat capasinin bandi buraya tasinmaz.",
+  "_uretim": "Üretim: conda run -n openvsp python experiments/vlm_iki_yonlu_yakinsama.py",
+  "vlm_band_pct": 1.36,
+  "verdikt": "✅ İki yönlü aile: Cl_8 = 0.74833 / 0.73611 / 0.73527 / 0.73073, dizi monoton, son kademe %0.62. Kanonik band %1.36 (lsr). Tek yonlu aile %28.32 vermisti — band 20.8 KAT daraldi."
+}

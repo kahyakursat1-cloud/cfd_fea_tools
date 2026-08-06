@@ -31,7 +31,7 @@ import openvsp as vsp  # noqa: E402 — DLL dizini eklendikten sonra import edil
 # VLM span-panel sayisi. Varsayilan YAKINSAMAMIS: olculdu ki span verimi e=1.0788
 # (eliptik ust sinir 1.0 — fiziksel olarak imkansiz) ve tasima egimi ~%6.6 yuksek.
 # 40 panelde e=0.9954 ile sinir icine giriliyor (bkz. experiments/vlm_capa.py).
-VLM_SPAN_PANEL = 80
+VLM_SPAN_PANEL = 98
 # ACIKLIK YONUNDE UC KUMELEMESI. Panel dagilimi DUZGUN ARALIKLI idi
 # (OutCluster=1.0) ve uc girdabinin guclu gradyanini yakalayamiyordu: MiniHawk'ta
 # Cl(8) serisi 40/60/80 panelde 0.3866/0.3815/0.4324 — MONOTON DEGIL, sacilma
@@ -48,6 +48,15 @@ VLM_UC_KUMELEME = 0.25
 # verisiyle birlestirme o yuzden reddediliyordu. Yuksek alfa DENENMEDI —
 # LINEER_ALFA_MAX=8 zaten ustunu birlestirmeye sokmuyor.
 VLM_KAMBUR = True
+# KIRIS YONU PANELI. Once SABITTI (varsayilan ~33) ve yalniz aciklik
+# inceltiliyordu; o aile YAKINSAMA GOSTEREMIYORDU cunku sabit tutulan yonun
+# kendi gurultusu (Cl(8)'de %1.9) aciklik adimlarindan (%0.5-1.2) BUYUKTU.
+# Iki yon birlikte inceltilince (40x17 -> 98x42, her kademe 1.35 kat):
+#   tek yonlu aile  U = %28.32  (p<0.5, asimptotik-alti)
+#   iki yonlu aile  U =  %1.36  (p>2.1, monoton)  -> band 20.8 KAT daraldi
+# Uretim ayari o ailenin EN INCE kademesidir; baska bir ayar secilirse
+# yayinlanan band artik o ayara ait olmaz (bkz. polar_birlestirme band kapisi).
+VLM_KIRIS_PANEL = 42
 
 
 def aircraft_to_vsp(aircraft, vsp3_path: str = None, kambur: bool = False) -> str:
@@ -386,7 +395,8 @@ def _vspaero_setup_vlm(aircraft):
     return n_ayar, sapmalar
 
 
-def _panel_yogunlugu_ata(panel: int, uc_kumeleme: float = None) -> list[str]:
+def _panel_yogunlugu_ata(panel: int, uc_kumeleme: float = None,
+                         kiris_panel: int = None) -> list[str]:
     """Kanat geometrilerine span-panel sayisi + UC KUMELEMESI ata; KACINA
     UYGULANDIGINI DONDUR.
 
@@ -397,6 +407,8 @@ def _panel_yogunlugu_ata(panel: int, uc_kumeleme: float = None) -> list[str]:
     """
     if uc_kumeleme is None:
         uc_kumeleme = VLM_UC_KUMELEME
+    if kiris_panel is None:
+        kiris_panel = VLM_KIRIS_PANEL
     uygulanan = []
     for gid in vsp.FindGeoms():
         if vsp.GetGeomTypeName(gid) != "Wing":
@@ -410,6 +422,11 @@ def _panel_yogunlugu_ata(panel: int, uc_kumeleme: float = None) -> list[str]:
             kid = vsp.GetXSecParm(xs, "OutCluster")
             if kid:
                 vsp.SetParmValUpdate(kid, uc_kumeleme)
+            # KIRIS YONU: sabit tutulan yon bandin tabanini belirliyordu.
+            if kiris_panel:
+                wid = vsp.FindParm(gid, "Tess_W", "Shape")
+                if wid:
+                    vsp.SetParmValUpdate(wid, kiris_panel)
             if abs(vsp.GetParmVal(pid) - panel) < 1e-9:
                 uygulanan.append(vsp.GetGeomName(gid))
         # sessiz-yutma: kabul — bu geometri parmi tasimiyorsa VARSAYILAN panelle
@@ -469,6 +486,7 @@ def run_vspaero_polar(aircraft, alphas=(0, 4, 8, 12, 16), mach: float = 0.05,
             # Hangi panelle kosuldugu sonuca yazilmazsa ayni sessiz hata tekrar
             # fark edilmez.
             "span_panel": VLM_SPAN_PANEL,
+            "kiris_panel": VLM_KIRIS_PANEL,
             "uc_kumeleme": VLM_UC_KUMELEME,
             "panel_uygulanan_kanat": panel_uygulanan,
             # BEYAN-INSA SAPMALARI SONUCA YAZILIR: govde capinin hic

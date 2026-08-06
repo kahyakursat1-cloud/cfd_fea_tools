@@ -181,6 +181,8 @@ def birlesik_polar(vlm_polar: list[dict], kesit: list[dict], *,
                    vlm_ar: float | None = None,
                    vlm_taper: float | None = None,
                    vlm_ok_acisi: float | None = None,
+                   band_ailesi: list[dict] | None = None,
+                   band_kaynak_dosyasi: str | None = None,
                    taper_kaniti: dict | None = None) -> dict:
     """VLM + 2B kesit → 3B polar. Kapılardan geçmeyen bileşen ÜRETİLMEZ.
 
@@ -345,6 +347,26 @@ def birlesik_polar(vlm_polar: list[dict], kesit: list[dict], *,
                 "sınırın altında görünebilir — kuyruk ihlali maskeler, temize "
                 "çıkarmaz. Ölçüm: vlm_taper_capa.json")
 
+    # BAND BU AYARIN AILESINE MI AIT? Yakinsama calismasi bir AILE icin band
+    # verir; uretim baska bir ayarda kosuyorsa o band O SAYIYA ait degildir.
+    # Bu depoda tam bu sinif hata iki kez cikti (capa bandini gercek araca
+    # tasimak, tek yonlu bandi iki yonlu aileye tasimak).
+    if vlm_band_pct is not None and band_ailesi:
+        ayar = next(((p.get("span_panel"), p.get("kiris_panel"))
+                     for p in vlm_polar if p.get("span_panel")), None)
+        aile = {(k.get("span"), k.get("kiris")) for k in band_ailesi}
+        if ayar and None not in ayar and ayar not in aile:
+            engeller.append(
+                f"BAND BU AYARA AIT DEGIL: polar {ayar[0]}x{ayar[1]} panelle "
+                f"kosulmus ama band ailesi {sorted(aile)}. Yakinsama bandi bir "
+                "AILE icin olculur; aile disindaki bir ayara tasinmasi, "
+                "olculmemis bir kesinlik yayinlamaktir. Ya uretim ayari ailenin "
+                "bir kademesine cekilmeli ya da o ayar icin aile olculmeli")
+        elif not ayar:
+            uyarilar.append(
+                "POLARIN PANEL AYARI KAYITLI DEGIL: yayinlanan bandin bu koşuya "
+                "ait olup olmadigi DOGRULANAMIYOR (eski kanit dosyasi)")
+
     polar2b = kesit_polari(kesit)
     noktalar = []
     for p in vlm_polar:
@@ -425,8 +447,10 @@ def birlesik_polar(vlm_polar: list[dict], kesit: list[dict], *,
             "DEĞİL, VLM'in bu geometrideki PANEL AYRIKLAŞTIRMA bandıdır"
             + (f" ({vlm_band_kaynagi})" if vlm_band_kaynagi else "")
             + ". Temiz dikdörtgen kanat çapasındaki doğrulama bandı buraya "
-              "TAŞINAMAZ; taşınsaydı olmayan bir kesinlik yayınlanırdı. Ayrıntı: "
-              "vlm_panel_yakinsamasi.json")
+              "TAŞINAMAZ; taşınsaydı olmayan bir kesinlik yayınlanırdı."
+            # KAYNAK DOSYA ADI DA SABIT YAZILMAZ: band iki yonlu aileye
+            # gecince metin hala TEK YONLU dosyayi gosteriyordu.
+            + f" Ayrıntı: {band_kaynak_dosyasi or 'panel yakınsama kanıtı'}")
 
     verdikt = ("3B polar üretildi (Cl + Cd)" if not engeller else
                "YALNIZ TAŞIMA üretildi — mutlak sürükleme için engeller var: "
@@ -449,9 +473,25 @@ def _depo_verisi() -> dict:
     vlm = json.loads((HERE / "vspaero_polar.json").read_text(encoding="utf-8"))
     # VLM TASIMA BANDI: capadaki %1.22 TEMIZ kanata aittir ve gercek araca
     # tasinmaz. Bu geometrinin KENDI panel sacilmasi olculduyse o kullanilir.
+    # IKI YONLU AILE VARSA O KULLANILIR. Tek yonlu aile (yalniz aciklik)
+    # YAKINSAMA GOSTEREMIYORDU: sabit tutulan kiris yonunun kendi gurultusu
+    # (%1.9) aciklik adimlarindan (%0.5-1.2) buyuktu ve band %28.32'de
+    # takiliyordu. Iki yon birlikte inceltilince %1.36 (20.8 kat).
+    _iki = HERE / "vlm_iki_yonlu_yakinsama.json"
     _pk = HERE / "vlm_panel_yakinsamasi.json"
     vlm_band = vlm_band_kaynagi = None
-    if _pk.exists():
+    band_ailesi = band_kaynak_dosyasi = None
+    if _iki.exists():
+        _d = json.loads(_iki.read_text(encoding="utf-8"))
+        vlm_band = _d.get("vlm_band_pct")
+        _kb = _d.get("kanonik_band") or {}
+        band_ailesi = _d.get("kademeler")
+        band_kaynak_dosyasi = _iki.name
+        vlm_band_kaynagi = (
+            f"{_kb.get('kaynak', 'panel serisi')}; dizi "
+            f"{'monoton' if _d.get('monoton') else 'MONOTON DEGIL'}, "
+            f"IKI YONLU aile {[(k['span'], k['kiris']) for k in band_ailesi or []]}")
+    elif _pk.exists():
         _d = json.loads(_pk.read_text(encoding="utf-8"))
         vlm_band = _d.get("vlm_band_pct")
         _kb = _d.get("kanonik_band") or {}
@@ -459,8 +499,9 @@ def _depo_verisi() -> dict:
         vlm_band_kaynagi = (
             f"{_kb.get('kaynak', 'panel serisi')}; dizi "
             f"{'monoton' if _y.get('monoton') else 'MONOTON DEGIL'}, "
-            f"paneller {_d.get('paneller')}, uc kumeleme "
+            f"TEK YONLU aile (yalniz aciklik) {_d.get('paneller')}, uc kumeleme "
             f"{(_d.get('kayitlar') or [{}])[-1].get('uc_kumeleme')}")
+        band_kaynak_dosyasi = _pk.name
     from aircraft_geometry import AircraftLibrary
     ac = AircraftLibrary().get_template("mini_hawk")()
     arac_profili = getattr(getattr(ac.wing, "airfoil", None), "name", None)
@@ -496,7 +537,8 @@ def _depo_verisi() -> dict:
                 "arac_profili": arac_profili,
                 "kesit_profili": f"NACA{d.get('naca')}" if d.get("naca") else None,
                 "vlm_ar": vlm_ar, "vlm_taper": vlm_taper,
-                "vlm_ok_acisi": vlm_ok_acisi,
+                "vlm_ok_acisi": vlm_ok_acisi, "band_ailesi": band_ailesi,
+                "band_kaynak_dosyasi": band_kaynak_dosyasi,
                 "taper_kaniti": taper_kaniti, "kiris": kiris}
 
     tr = json.loads((HERE / "transition_results.json").read_text(encoding="utf-8"))
@@ -531,6 +573,8 @@ def main() -> int:
                          vlm_ar=d.get("vlm_ar"),
                          vlm_taper=d.get("vlm_taper"),
                          vlm_ok_acisi=d.get("vlm_ok_acisi"),
+                         band_ailesi=d.get("band_ailesi"),
+                         band_kaynak_dosyasi=d.get("band_kaynak_dosyasi"),
                          taper_kaniti=d.get("taper_kaniti"),
                          **{k: d[k] for k in ("kesit_simetrik", "vlm_simetrik")
                             if d.get(k) is not None})

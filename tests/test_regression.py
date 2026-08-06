@@ -47,7 +47,9 @@ GOLDEN = {
     #                     0.07579. Kuram (tasiyici-cizgi) 0.07661 — %1 icinde.
     # Altin deger BEKLENMEDIK DEGISIMI yakalar, DOGRULUGU onaylamaz — dogruluk
     # hukmu `polar_birlestirme`nin tasima-egimi kapisinda verilir.
-    "vspaero_cl_slope": 0.0758,        # OpenVSP VLM, alpha 0/4/8, 80 span-panel + uc kumeleme 0.25 + kamburluk
+    # Panel ayari 80 -> 98x42'ye cikti (iki yonlu yakinsamis kademe); egim
+    # 0.0758 -> 0.0755, yani %0.4 — tolerans icinde, altin deger DEGISMEDI.
+    "vspaero_cl_slope": 0.0758,        # OpenVSP VLM, alpha 0/4/8, 98x42 panel + uc kumeleme 0.25 + kamburluk
     "openrocket_apogee_m": 50.5,       # rockets/simple.ork
     "validate_fea_defl_err_pct": 0.05, # ankastre kiriş, CalculiX
     "fea_wing_limit_SF": 1.61,         # kanat yapısal, kritik gust
