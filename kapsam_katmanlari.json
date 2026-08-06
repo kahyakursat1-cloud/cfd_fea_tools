@@ -1,24 +1,24 @@
 {
   "katmanlar": {
     "Karar & V&V motoru": {
-      "ifade": 1954,
-      "kapsanan": 1295,
-      "pct": 66.3
+      "ifade": 1974,
+      "kapsanan": 1315,
+      "pct": 66.6
     },
     "Otomasyon & öğrenme": {
-      "ifade": 598,
-      "kapsanan": 462,
-      "pct": 77.3
+      "ifade": 627,
+      "kapsanan": 490,
+      "pct": 78.1
     },
     "Analiz çekirdeği": {
-      "ifade": 1285,
-      "kapsanan": 960,
-      "pct": 74.7
+      "ifade": 1350,
+      "kapsanan": 1022,
+      "pct": 75.7
     },
     "Araç hattı": {
-      "ifade": 2436,
-      "kapsanan": 1263,
-      "pct": 51.8
+      "ifade": 2452,
+      "kapsanan": 1276,
+      "pct": 52.0
     },
     "Dış-süreç köprüleri": {
       "ifade": 1188,
@@ -31,9 +31,9 @@
       "pct": 24.6
     },
     "TOPLAM": {
-      "ifade": 17348,
-      "kapsanan": 7466,
-      "pct": 43.0
+      "ifade": 17924,
+      "kapsanan": 7787,
+      "pct": 43.4
     }
   },
   "_uretim": "Üretim: python -m pytest tests/ -q --cov=. --cov-report=json:cov.json && python experiments/kapsam_katmanlari.py"

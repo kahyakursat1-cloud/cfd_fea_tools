@@ -132,7 +132,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-29.023 satır Python $\cdot$ 108 test dosyası $\cdot$ 1009 geçen test\\[3mm]
+29.767 satır Python $\cdot$ 119 test dosyası $\cdot$ 1142 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -342,10 +342,19 @@ $\pm\%0{,}1$ ile ``kesin'' göründü ve test tarafından yakalandı.
         \%25'ini yiyebilir; aşarsa hücre \emph{kabalaştırılır}. Bu kapı yokken
         \texttt{snappyHexMesh} tavanı ilk adımda aşıyor ve hiçbir yüzey
         iyileştirmesi yapamıyordu (uçak 74 yüzle temsil edildi).
-  \item \textbf{Yüzey ön-kapısı:} gövdenin tahmini yüz sayısı 500'ün altına
-        düşecek kademe \emph{koşulmaz}.
-  \item \textbf{İnce özellik hükmü:} firar kenarının kaç hücreyle temsil
-        edileceği önceden hesaplanır; hedef $\geq6$ hücredir.
+  \item \textbf{Yüzey ön-kapısı:} gövdenin tahmini yüz sayısı mutlak tabanın
+        (500) altına düşecek kademe \emph{koşulmaz}. Bu taban tek başına kaba
+        bir ölçüttür --- aynı sayıyı 4\,m'lik kanada da 4\,cm'lik fine uygular
+        --- ve yanına geometriye göreli ölçüt konmuştur.
+  \item \textbf{İnce özellik hükmü:} tipik yüzey hücresi $h=\sqrt{A/N}$ ile en
+        küçük geometrik özellik karşılaştırılır; özellik boyunca $<4$ hücre
+        varsa o özellik geometrik olarak yoktur. Ölçüt \emph{engelleyici
+        değildir}: 1\,mm'lik firar kenarına 4 hücre istemek 0{,}7\,m'lik bir
+        kanatta $\sim$13 milyon yüzey yüzü demektir; bu hex-mesh'in bilinen
+        sınırıdır, o koşunun kusuru değil. Sessiz de değildir --- koşu arşivinin
+        tamamı ölçüldü ve 12 koşunun 3'ünde en küçük özelliğin temsil
+        edilmediği sayıyla kayda geçti (MiniHawk 0{,}17 hücre/özellik, A320
+        gövdesi 0{,}94).
   \item \textbf{y$^+$ kademesi:} y$^+$'ı 30--300 bandına sokan en ucuz kademe
         geometri başına seçilir (\texttt{-{}-ref-bump oto}).
 \end{itemize}
@@ -357,7 +366,20 @@ $\pm\%0{,}1$ ile ``kesin'' göründü ve test tarafından yakalandı.
         Rezidüellerin platoya oturması (limit çevrimi) ile bütçenin bitmesi
         ayrıştırılır; ilki için ``daha çok iterasyon'' önerilmez, çünkü çözmez.
   \item \textbf{Fiziksel kabul:} negatif sürükleme, negatif indüklenen direnç,
-        saçma $|C_L|$ kanıt dosyasına \emph{yazılamaz}.
+        saçma $|C_L|$ kanıt dosyasına \emph{yazılamaz}. Taşıma sınırı tek bir
+        sayı değildir: tek-elemanlı 2B kesit 2{,}2; çok-elemanlı yüksek-taşıma
+        4{,}5; sonlu düz kanat 1{,}8; künt cisim 0{,}8. Önceki tek eşik (3{,}0)
+        iki yönde de yanlıştı --- slat+flap kesitini haksız reddediyor,
+        AR$\approx$6 bir kanadın fiziksel tavanının iki katı bir sayıyı sessizce
+        geçiriyordu. Rejim beyan edilmezse en gevşek sınır uygulanır \emph{ve
+        kapının o koşuda zayıf olduğu çıktıya yazılır}.
+  \item \textbf{Birim kapısı:} malzeme sabitleri, birim etiketine değil
+        \emph{büyüklüğüne} bakılarak denetlenir. Bu depoda \texttt{youngs\_modulus}
+        adı üç katmanda üç birim taşıyor (GPa / MPa / Pa) ve yanlış katmandan
+        gelen sayıyı CalculiX reddetmez --- sehimi $10^3$ ya da $10^9$ kat
+        kaydırıp ``geçerli görünen'' bir sonuç üretir. Kapı $E$, $E/\sigma_y$ ve
+        $E/\rho$ bantlarını birlikte kullanır; hangi birimin tutarlı olacağını
+        \emph{söyler} ama düzeltmeyi \emph{uygulamaz}.
   \item \textbf{Band aidiyeti:} yakınsama bandı bir \emph{aile} için ölçülür;
         üretim ayarı o ailenin kademesi değilse band o sayıya ait değildir.
   \item \textbf{Geçerlilik zarfı:} her büyüklük DOĞRULANMIŞ / EĞİLİM /
@@ -608,10 +630,10 @@ ASME V\&V 20-2009'un gerektirdiği adımlardan kaçı \emph{otomatik} yapılıyo
 Kod doğrulama (kapalı-form karşılaştırma) & \ev & \ev & 6 FEA çapası \\
 Çözüm doğrulama --- ayrıklaştırma (GCI) & \ev & \ev & \texttt{band\_from\_levels} \\
 Çözüm doğrulama --- iterasyon yakınsaması & \ev & \ev & plato/drift ayrımı \\
-Girdi belirsizliği yayılımı & \hy & \hy & planlanan \\
+Girdi belirsizliği yayılımı & \ev & \ev & \texttt{girdi\_belirsizligi} (4 girdi) \\
 Deneysel referansla geçerleme & \ks & \ev & \texttt{zarf} (14 koşul) \\
 Geçerlilik alanı (validation domain) beyanı & \ev & \ev & \texttt{validity\_envelope} \\
-Model-form belirsizliği & \ks & \ev & \%12 literatür-öncül \\
+Model-form belirsizliği & \ks & \ev & rejime ayrıldı; 1/4 hücre ölçüldü \\
 Sonucun izlenebilirliği (üretim komutu) & \ev & \ev & \texttt{kanit} \\
 \bottomrule
 \end{tabular}
@@ -773,6 +795,47 @@ nedeni yazılıdır: kaba köşe çözünürlüğü, ekstrüzyon yönünde seyre
 gerilme-TO'da MMA'ya göre zayıflığı. Yön doğru ve adjoint doğrulanmış; ama
 ``3B'de de \%7 kazanç'' denmemiştir çünkü ölçülen bu değildir.
 
+\subsection*{Optimizasyon sonrası bağımsız yeniden-analiz}
+
+Yukarıdaki sayılar optimizasyonun \emph{kendi} gridinde ve \emph{kendi} gri
+(ara-yoğunluklu) alanı üzerinde hesaplanır. İmal edilecek parça ise ikilidir ve
+analiz ağı başkadır; aynı ağla doğrulamak dairesel bir iddiadır. CFD tarafında
+mesh-bağımsızlığı zorunluyken TO tarafında bu hiç sorulmamıştı. L-braket üzerinde
+üç hata ayrıştırıldı (hacim-koruyan eşik, kayıpsız eleman-bölünmesi):
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrl@{}}
+\toprule
+\textbf{Hata kaynağı} & \textbf{Ölçülen} & \textbf{Yorum} \\
+\midrule
+Eşikleme (gri $\rightarrow$ ikili) & $\sigma_{\max}\ \%-50$ & aynı grid, aynı hacim \\
+                                   & $c\ \%-30$ & SIMP ara yoğunlukları atılınca \\
+Ayrıklaştırma ($1\times\!\rightarrow\!3\times$) & $c$: son-iki \%1{,}5 & kompliyans \textbf{yakınsıyor} \\
+                                   & $\sigma_{\max}$: \%+47 & tepe gerilme \textbf{yakınsamıyor} \\
+Optimumun ağ-bağımlılığı & $c$ farkı \%22 & 16 ve 24 gridinin tasarımları, ortak 48 gridinde \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Ölçek dönüşümü ($c_{\text{fiz}}=(N/L)\,c_{\text{birim}}$,
+$\sigma_{\text{fiz}}=(N/L)^2\sigma_{\text{birim}}$) varsayılmadı; tam dolu bir
+ankastre kirişte üç çözünürlükte ölçüldü (son-iki sapma \%0{,}48).
+
+\noindent\textbf{Sonucu var.} Tepe von Mises reentrant köşede tekilliğe koştuğu
+için mutlak bir kabul ölçütü olamaz. Stres kapısı artık ham $SF\geq1{,}5$'e
+``güvenli'' demiyor: eşik ölçülen büyümeyle şişiriliyor
+($1{,}5\times1{,}47=2{,}21$) ve arada kalan emniyet faktörleri
+\texttt{ag\_marjinda} hâliyle işaretlenip ince ağda nereye düşecekleri
+yazılıyor.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{../topopt_bagimsiz_dogrulama.png}
+\caption{TO çıktısı (gri), eşiklenmiş imal edilebilir tasarım (ikili) ve aynı
+ikili tasarımın incelen bağımsız ağdaki tepkisi. Kompliyans yakınsar; tepe
+gerilme tekilliğe koşar. \emph{Veri:} \texttt{topopt\_bagimsiz\_dogrulama.json}.}
+\end{figure}
+
 \subsection*{Araç hattına bağlanması}
 
 \texttt{vehicle\_topopt} aynı SIMP motorunu CFD yüzey basınçlarıyla besler:
@@ -783,17 +846,23 @@ altında çalışır. Gerilme kısıtı da bu yolda geçerlidir.
 % ══════════════════════════════ 6C ══════════════════════════════
 \section{Performans}
 
-Boru hattı aşama süresi kaydetmez; her aşama kendi logunu bitince yazdığı için
-ardışık logların değişim zamanları aşama sınırlarını verir. Aşağıdaki ölçüm bu
-yöntemle, tek bir gerçek koşudan alınmıştır --- bir kıyaslama (benchmark)
-değil, \emph{maliyet dağılımı} göstergesidir.
+Çözücü artık her aşamanın başlangıcını, bitişini, durumunu ve dönüş kodunu
+\emph{kendisi} kaydeder (\texttt{CFDResult.asama\_sureleri}). Bu, önceki dolaylı
+yöntemin --- ardışık log dosyalarının değişim zamanları --- yerini alır: o
+yöntem aşamanın kendi süresini değil, iki dosyaya dokunma anı arasındaki farkı
+ölçüyordu ve arada geçen kopyalama, bekleme ya da kuyruk süresi aşamaya
+yazılıyordu. Figür telemetri varsa onu kullanır, yoksa eski yönteme düşer
+\emph{ve hangi yöntemle üretildiğini başlığına yazar}. Aşağıdaki ölçüm tek bir
+gerçek koşudan alınmıştır; bir kıyaslama (benchmark) değil, \emph{maliyet
+dağılımı} göstergesidir.
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=\textwidth]{figurler/fig_asama_sureleri.pdf}
 \caption{Aşama süreleri (MiniHawk, 454k hücre, 8 çekirdek). Çözücü ve mesh
 adaptasyonu toplamın büyük kısmını alır; V\&V ve rapor katmanı ölçülebilir bir
-ek maliyet getirmez. \emph{Yöntem:} log dosyalarının değişim zamanları.}
+ek maliyet getirmez. \emph{Yöntem} figürün başlığında yazılıdır; arşivdeki bu
+koşu telemetri eklenmeden önce yapıldığı için dolaylı yöntemle çizilmiştir.}
 \end{figure}
 
 \noindent\textbf{Ölçek notu.} Bu koşu \texttt{-{}-ref-bump oto} ile y$^+$'ı
@@ -809,14 +878,25 @@ takası \emph{sayıyla} sunar.
 
 \begin{description}\setlength\itemsep{1pt}
   \item[İnce firar kenarı.] Bu donanımda 1--2 hücre; Kutta koşulu kurulamaz,
-        taşıma doğmaz (Vaka 2).
+        taşıma doğmaz (Vaka 2). Artık koşu başına sayıyla kayıtlı: arşivdeki 12
+        koşunun 3'ünde en küçük geometrik özellik yüzey hücresinden küçük
+        (MiniHawk 0{,}17 hücre/özellik). Bu koşuların $C_d$'si o özelliği
+        \emph{içermez} ve yayımlanan band onu kapsamaz.
+  \item[TO tepe gerilmesi.] Reentrant köşede tekilliğe koşar: aynı ikili tasarım
+        $3\times$ ince bağımsız ağda \%47 daha yüksek tepe von Mises verir ve son
+        iki seviye arasında \%15{,}7 sapma bırakır. Kompliyans \%1{,}5 içinde
+        yakınsar. Tepe $\sigma$ mutlak bir kabul ölçütü olarak kullanılamaz.
   \item[Kararlı-RANS uygunluğu.] Bazı vakalarda rezidüeller platoya oturur ve
         kuvvetler limit çevrimine girer --- URANS gerekir.
   \item[Süpersonik mutlak $C_d$.] 3B-açık çözüm bu donanımda ulaşılamaz.
   \item[Panel yönteminin indüklenen direnci.] VSPAERO'nun iki $C_{Di}$ çıktısı
         da kuramdan sapar (yakın-alan $-\%21$, Trefftz $+\%62$); bu yüzden
         indüklenen direnç kuramdan üretilir.
-  \item[Model-form belirsizliği.] Halen literatür-öncül (\%12 mertebesi).
+  \item[Model-form belirsizliği.] Rejim$\times$duvar işlemi tablosuna ayrıldı ama
+        dört hücrenin yalnız biri ölçüldü (2B bağlı akış, \%3{,}52, $n{=}1$
+        çapa). Kalan üç hücre literatür-öncülüyle çalışır (\%5--20); iki çapa
+        duvar işlemi kayıtlı olmadığı için hiçbir hücreye \emph{atanamadı} ---
+        tahmin edilmedi, listelendi.
   \item[Teknik borç --- iki hızlı katman.] \texttt{simulation\_runner.py} ve
         bazı bağımsız V\&V betikleri \texttt{analysis/} çekirdeğini kullanmaz,
         case iskelesini tekrarlar.
@@ -833,9 +913,11 @@ v1.1 & yüksek & Eski çözücü sarmalayıcısının kaldırılması; tüm yoll
                 \texttt{analysis/} çekirdeğine taşınması \\
 v1.2 & yüksek & URANS yolu --- limit çevrimine giren vakalar için zaman-çözünür
                 çözüm ve kuvvet ortalaması \\
-v1.3 & orta   & Girdi belirsizliği yayılımı (V\&V 20'nin eksik adımı) \\
-v1.4 & orta   & Hat-özgü model-form validasyonu; \%12 literatür-öncülünün
-                ölçümle değiştirilmesi \\
+v1.3 & orta   & İş kuyruğu, iptal ve devam-ettirme; kaynak kotaları \\
+v1.4 & orta   & Model-form öncülünün kalan hücrelerinin ölçümle değiştirilmesi
+                (rejime ayrılan tablonun boş kalan gözleri) \\
+v1.5 & orta   & Docker/Conda kilidi ile yeniden-üretilebilir ortam;
+                hücre$\times$çekirdek$\times$RAM başarım matrisi \\
 v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanması;
                 GPU hızlandırma \\
 \bottomrule
@@ -872,13 +954,13 @@ v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanm
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 29.023 & dosya sayımı \\
-Kök modül & 76 & \\
-Deney / çapa betiği & 53 & \texttt{experiments/} \\
-Test dosyası & 108 & \texttt{tests/} \\
-Geçen test & 1009 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1031 & \texttt{-{}-cov} \\
-Satır kapsamı & \textbf{\%42} & 17.303 ifade, 9.984 kapsanmamış \\
+Kod satırı (kök + \texttt{analysis/}) & 29.767 & dosya sayımı \\
+Kök modül & 77 & \\
+Deney / çapa betiği & 57 & \texttt{experiments/} \\
+Test dosyası & 119 & \texttt{tests/} \\
+Geçen test & 1142 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1142 & \texttt{-{}-cov} \\
+Satır kapsamı & \textbf{\%43} & 17.924 ifade, 10.137 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
 \end{tabular}
@@ -893,14 +975,14 @@ dış-süreç sarmalayıcıları aynı kaba girer. Katman ayrımı
 \toprule
 \textbf{Katman} & \textbf{Kapsam} & \textbf{İfade} \\
 \midrule
-\rowcolor{iyibg} Otomasyon \& öğrenme & \%77 & 598 \\
-\rowcolor{iyibg} Analiz çekirdeği (\texttt{analysis/}) & \%75 & 1.285 \\
-\rowcolor{ortabg} Karar \& V\&V motoru & \%60 & 1.909 \\
-\rowcolor{ortabg} Araç hattı & \%52 & 2.436 \\
+\rowcolor{iyibg} Otomasyon \& öğrenme & \%78 & 627 \\
+\rowcolor{iyibg} Analiz çekirdeği (\texttt{analysis/}) & \%76 & 1.350 \\
+\rowcolor{iyibg} Karar \& V\&V motoru & \%67 & 1.974 \\
+\rowcolor{ortabg} Araç hattı & \%52 & 2.452 \\
 \rowcolor{ortabg} Dış-süreç köprüleri & \%40 & 1.188 \\
 \rowcolor{kotubg} Arayüz (GUI) & \%25 & 1.530 \\
 \midrule
-TOPLAM & \%42 & 17.303 \\
+TOPLAM & \%43 & 17.924 \\
 \bottomrule
 \end{tabular}
 \end{center}
