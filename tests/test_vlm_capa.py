@@ -115,14 +115,32 @@ class TestGercekGeometriYakinsamasi:
         assert d["vlm_band_pct"] == kb["u_pct"]
         assert d["vlm_band_pct"] > d["yakinsama"]["son_kademe_degisimi_pct"]
 
-    def test_UC_KUMELEMESI_yakinsamayi_duzeltti(self):
+    def test_UC_KUMELEMESI_her_kademeye_UYGULANIYOR(self):
+        """Kümeleme kademelerin BİRİNE uygulanmazsa aile tek-parametreli olmaz
+        ve Richardson'ın dayandığı varsayım kırılır."""
         import json
         p = ROOT / "vlm_panel_yakinsamasi.json"
         if not p.exists():
             return
         d = json.loads(p.read_text(encoding="utf-8"))
-        assert d["yakinsama"]["monoton"] is True
         assert all(k.get("uc_kumeleme") == 0.25 for k in d["kayitlar"])
+
+    def test_VERDIKT_olculen_monotonlukla_TUTARLI(self):
+        """SABİT SONUÇ BAĞLANMAZ — kamburluk açılınca dizi salınımlı oldu ve
+        "monoton" diyen test kırıldı. Bağlanması gereken şey, raporun kendi
+        verisiyle çelişmemesi."""
+        import json
+        p = ROOT / "vlm_panel_yakinsamasi.json"
+        if not p.exists():
+            return
+        d = json.loads(p.read_text(encoding="utf-8"))
+        monoton = d["yakinsama"]["monoton"]
+        seri = d["yakinsama"]["seri"]
+        gercek = (all(a <= b for a, b in zip(seri, seri[1:]))
+                  or all(a >= b for a, b in zip(seri, seri[1:])))
+        assert monoton == gercek, "monotonluk hükmü seriyle çelişiyor"
+        if not monoton:
+            assert "YAKINSAMAMIS" in d["verdikt"] or "YAKINSAMAMIŞ" in d["verdikt"]
 
     def test_URETIM_yolu_kumelemeyi_kullaniyor(self):
         src = (ROOT / "openvsp_bridge.py").read_text(encoding="utf-8")

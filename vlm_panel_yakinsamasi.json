@@ -7,7 +7,9 @@
     20,
     40,
     60,
-    80
+    80,
+    100,
+    120
   ],
   "alfalar": [
     0.0,
@@ -23,14 +25,15 @@
         "HTail",
         "VTail"
       ],
-      "Cl_0": 0.0,
-      "CDi_0": 0.0,
-      "Cl_4": 0.22043,
-      "CDi_4": 0.00517,
-      "e_4": 0.5983,
-      "Cl_8": 0.45664,
-      "CDi_8": 0.020718,
-      "e_8": 0.6407
+      "Cl_0": 0.28933,
+      "CDi_0": 0.029222,
+      "e_0": 0.1824,
+      "Cl_4": 0.48498,
+      "CDi_4": 0.022,
+      "e_4": 0.6806,
+      "Cl_8": 0.68135,
+      "CDi_8": 0.026082,
+      "e_8": 1.1331
     },
     {
       "panel": 40,
@@ -40,14 +43,15 @@
         "HTail",
         "VTail"
       ],
-      "Cl_0": 0.0,
-      "CDi_0": 0.0,
-      "Cl_4": 0.20355,
-      "CDi_4": 0.002552,
-      "e_4": 1.0336,
-      "Cl_8": 0.41122,
-      "CDi_8": 0.010382,
-      "e_8": 1.0369
+      "Cl_0": 0.28641,
+      "CDi_0": 0.004753,
+      "e_0": 1.0987,
+      "Cl_4": 0.47082,
+      "CDi_4": 0.012226,
+      "e_4": 1.1543,
+      "Cl_8": 0.65259,
+      "CDi_8": 0.02378,
+      "e_8": 1.1401
     },
     {
       "panel": 60,
@@ -57,14 +61,15 @@
         "HTail",
         "VTail"
       ],
-      "Cl_0": 0.0,
-      "CDi_0": 0.0,
-      "Cl_4": 0.19657,
-      "CDi_4": 0.002641,
-      "e_4": 0.9314,
-      "Cl_8": 0.40295,
-      "CDi_8": 0.010991,
-      "e_8": 0.9405
+      "Cl_0": 0.28359,
+      "CDi_0": 0.004672,
+      "e_0": 1.0959,
+      "Cl_4": 0.4624,
+      "CDi_4": 0.011466,
+      "e_4": 1.1871,
+      "Cl_8": 0.64935,
+      "CDi_8": 0.023538,
+      "e_8": 1.1404
     },
     {
       "panel": 80,
@@ -74,35 +79,74 @@
         "HTail",
         "VTail"
       ],
-      "Cl_0": 0.0,
-      "CDi_0": 0.0,
-      "Cl_4": 0.19335,
-      "CDi_4": 0.00268,
-      "e_4": 0.888,
-      "Cl_8": 0.40288,
-      "CDi_8": 0.011098,
-      "e_8": 0.9311
+      "Cl_0": 0.28575,
+      "CDi_0": 0.005026,
+      "e_0": 1.0343,
+      "Cl_4": 0.46955,
+      "CDi_4": 0.011641,
+      "e_4": 1.2057,
+      "Cl_8": 0.65501,
+      "CDi_8": 0.02339,
+      "e_8": 1.1677
+    },
+    {
+      "panel": 100,
+      "uc_kumeleme": 0.25,
+      "uygulanan": [
+        "MainWing",
+        "HTail",
+        "VTail"
+      ],
+      "Cl_0": 0.29319,
+      "CDi_0": 0.004794,
+      "e_0": 1.1415,
+      "Cl_4": 0.469,
+      "CDi_4": 0.011541,
+      "e_4": 1.2133,
+      "Cl_8": 0.64596,
+      "CDi_8": 0.022985,
+      "e_8": 1.1557
+    },
+    {
+      "panel": 120,
+      "uc_kumeleme": 0.25,
+      "uygulanan": [
+        "MainWing",
+        "HTail",
+        "VTail"
+      ],
+      "Cl_0": 0.27677,
+      "CDi_0": 0.005361,
+      "e_0": 0.9096,
+      "Cl_4": 0.45901,
+      "CDi_4": 0.011121,
+      "e_4": 1.2061,
+      "Cl_8": 0.63933,
+      "CDi_8": 0.022659,
+      "e_8": 1.1484
     }
   ],
   "yakinsama": {
     "referans": "Cl_8",
     "seri": [
-      0.45664,
-      0.41122,
-      0.40295,
-      0.40288
+      0.68135,
+      0.65259,
+      0.64935,
+      0.65501,
+      0.64596,
+      0.63933
     ],
-    "monoton": true,
-    "son_kademe_degisimi_pct": 0.02,
-    "son3_sacilma_pct": 2.07
+    "monoton": false,
+    "son_kademe_degisimi_pct": 1.03,
+    "son3_sacilma_pct": 2.45
   },
   "_uretim": "Üretim: conda run -n openvsp python experiments/vlm_panel_yakinsamasi.py --sablon mini_hawk",
-  "verdikt": "✅ Panel yakinsamis: dizi monoton, son kademe degisimi %0.02. Band KANONIK kuraldan: LSR (4-seviye; süper-yakınsak (p>2.1): p=2 sabit, U=1.25|δ₂|+σ₂+|Δf0|) -> U=%2.18 (son-adim heuristigi %0.02 derdi — fazla iyimser). VLM Cl'i bu geometride kullanilabilir.",
-  "vlm_band_pct": 2.18,
   "kanonik_band": {
-    "u_pct": 2.18,
+    "u_pct": 19.72,
     "yontem": "lsr",
-    "kaynak": "LSR (4-seviye; süper-yakınsak (p>2.1): p=2 sabit, U=1.25|δ₂|+σ₂+|Δf0|)",
-    "f_exact": 0.397441
-  }
+    "kaynak": "LSR (6-seviye; salınımlı/karışık: ekstrapolasyon yok, U=3·Δ_M)",
+    "f_exact": 0.63933
+  },
+  "verdikt": "⚠️ Panel YAKINSAMAMIS: dizi monoton DEGIL, son kademe degisimi %1.03. En ince uc kademenin sacilmasi %2.45, kanonik kural %19.72. VLM Cl'i bu geometride YAKINSAMIS bir deger DEGILDIR; band olarak bunlarin BUYUGU tasinmalidir.",
+  "vlm_band_pct": 19.72
 }

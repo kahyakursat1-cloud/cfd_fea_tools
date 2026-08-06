@@ -788,14 +788,25 @@ class VVReport:
             md.append("## 7. VSPAERO VLM Çapraz-Doğrulama (Hızlı)\n")
             md.append("Bağımsız ikinci yöntem (vortex-lattice, inviscid, ~saniyeler). "
                       "Lift **eğimini** OpenFOAM'dan bağımsız doğrular.\n")
-            # KISIT RAPORDA GÖRÜNMELİ: bu yolda kamburluk uygulanmıyor (OpenVSP 3.50.4
-            # VLM kamburlu kesitte ıraksıyor), dolayısıyla Cl(0°)=0 bir ÖLÇÜM DEĞİL.
-            # Kısıt yazılmadığında okuyucu bunu OpenFOAM'ın Cl'iyle kıyaslayıp
-            # "VSPAERO taşıma bulamadı" diye yanlış sonuca varır.
-            md.append("> ⚠️ **Kısıt:** bu yolda kanat profiline kamburluk uygulanmaz. "
-                      "$C_L(0°)=0$ kurulumun sonucudur, ölçüm değildir; $α_{L0}$ bu "
-                      "yöntemle üretilemez. Yalnız **eğim** ve **indüklenen direnç** "
-                      "geçerlidir — mutlak $C_L$ OpenFOAM'dan gelir.\n")
+            # KISIT VERİDEN TÜRETİLİR, SABİT YAZILMAZ. Eski sürüm "kamburluk
+            # uygulanmaz" ve "indüklenen direnç geçerlidir" diyordu; kamburluk
+            # açıldıktan ve CDi kurama devredildikten sonra İKİSİ DE yanlış oldu
+            # ama metin aynı kaldı — raporun kendi verisiyle çelişmesi bu depoda
+            # bir kez daha yakalanmıştı (VLM band metni).
+            _cl0 = next((v["Cl"] for v in vok if abs(float(v["alpha"])) < 1e-6), None)
+            _kamburlu = _cl0 is not None and abs(_cl0) > 0.02
+            md.append(
+                "> ⚠️ **Kısıt:** " + (
+                    f"kanat profiline kamburluk UYGULANIYOR ($C_L(0°)={_cl0:.4f}$), "
+                    "yani $α_{L0}$ üretilebilir."
+                    if _kamburlu else
+                    "bu yolda kanat profiline kamburluk uygulanmaz. "
+                    "$C_L(0°)=0$ kurulumun sonucudur, ölçüm değildir; $α_{L0}$ bu "
+                    "yöntemle üretilemez.")
+                + " **İndüklenen direnç bu tablodan alınmaz:** VSPAERO'nun her iki "
+                  "$C_{Di}$ çıktısı da taşıyıcı-çizgi kuramından sapıyor (yakın-alan "
+                  "%−21, Trefftz %+62; `vlm_induklenen_capa.json`). Aşağıdaki "
+                  "$C_{Di}$ sütunu KAYIT içindir; birleştirici kuramdan üretir.\n")
             md.append("| α (°) | $C_L$ (VLM) | $C_{Di}$ (induced) |")
             md.append("|-------|-------------|--------------------|")
             for v in sorted(vok, key=lambda x: x["alpha"]):

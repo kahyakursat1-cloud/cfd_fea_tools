@@ -9,6 +9,8 @@ Bu modül yeni CFD koşmaz, mevcut kanıtları birleştirir. Ama körlemesine de
 birleştirme parçalar UYUMLUYSA geçerlidir ve uyumsuzluğu sessizce yutmak bu
 depoda avlanan kusurun ta kendisidir.
 """
+import math
+
 import polar_birlestirme as pb
 
 _VLM = [{"alpha": 0.0, "Cl": 0.0, "Cd_i": 0.0},
@@ -89,6 +91,32 @@ def test_band_YALNIZ_profil_bileseninden():
     assert n4["Cd_band_pct"] < 1.71                  # CDi bandı seyreltiyor
 
 
+def test_TASIMA_BANDI_Cd_ye_TASINIYOR():
+    """Cd_profil Cl'DE değerlendiriliyor ve CDi ∝ Cl²; taşımadaki belirsizlik
+    doğrudan sürüklemeye geçer. Eski sürüm yalnız kesit bandını taşıyordu —
+    kamburluk açılınca taşıma bandı %2.18'den %19.72'ye çıktı ve bu ihmal
+    baskın terimi düşürmek olurdu."""
+    bandsiz = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, vlm_ar=5.0,
+                                vlm_taper=0.7, vlm_ok_acisi=2.0)
+    bandli = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, vlm_ar=5.0,
+                               vlm_taper=0.7, vlm_ok_acisi=2.0, vlm_band_pct=15.0)
+    a = next(x for x in bandsiz["noktalar"] if x["alpha"] == 4.0)
+    b = next(x for x in bandli["noktalar"] if x["alpha"] == 4.0)
+    assert b["Cd_band_pct"] > a["Cd_band_pct"], "taşıma bandı Cd'ye geçmiyor"
+    assert b["Cd_band_tasima_pct"] > 0
+    # kareler toplamı: bileşenlerin HER BİRİNDEN büyük, TOPLAMLARINDAN küçük
+    assert b["Cd_band_pct"] >= b["Cd_band_tasima_pct"]
+    assert b["Cd_band_pct"] <= a["Cd_band_pct"] + b["Cd_band_tasima_pct"]
+
+
+def test_bandin_ucu_veri_disinda_ise_SESSIZ_GECMIYOR():
+    """Ölçülemeyen katkı, sıfır katkı gibi gösterilmez."""
+    o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, vlm_ar=5.0, vlm_taper=0.7,
+                          vlm_ok_acisi=2.0, vlm_band_pct=500.0)
+    n = next(x for x in o["noktalar"] if x["alpha"] == 8.0)
+    assert "Cd_band_notu" in n or "Cd_band_tasima_pct" in n
+
+
 def test_DEPO_verisi_gercek_hukmu_veriyor():
     """Depodaki gerçek kanıtlarla ne çıkıyorsa O doğrulanır.
 
@@ -96,14 +124,18 @@ def test_DEPO_verisi_gercek_hukmu_veriyor():
       1. Re uyuşmazlığı (9.6 kat)      → XFOIL kesiti uçuş Re'sinde üretildi
       2. Kesit Cd mesh-bağımsız değil  → panel-bağımsızlık ölçüldü (%0.55)
       3. Profil aracın profili değil   → kesit NACA2412'ye çevrildi
-      4. KESİT TİPİ UYUŞMUYOR          → AÇIK: kesit kamburlu, VLM kamburluğu
-         KAPALI koşuyor (OpenVSP 3.50.4 kamburlu kesitte yüksek α'da ıraksıyor).
+      4. Kesit tipi uyuşmuyor          → VLM'de kamburluk AÇILDI (α≤8'de
+         yakınsadığı ölçüldü); karşılığında taşıma bandı %2.18 → %19.72
+      5. VLM CDi taper'da sapıyor      → CDi kurama devredildi (lifting_line)
+      6. VLM TAŞIMA EĞİMİ SAPIYOR      → AÇIK: ölçülen 0.04616/°, kuram
+         0.07661/° (−%40). Çıplak kanat −%10; farkı GÖVDE getiriyor.
 
     Test SABİT bir sonuç değil, TUTARLILIK bağlar: engel varsa BİLİNEN engel
     listesinden olmalı ve mutlak Cd yayınlanmamalı; engel yoksa polar tam
     olmalı. Böylece yeni bir engel sessizce eklenemez.
     """
-    BILINEN = ("REYNOLDS", "MESH-BAĞIMSIZ", "PROFİL", "KESİT TİPİ")
+    BILINEN = ("REYNOLDS", "MESH-BAĞIMSIZ", "PROFİL", "KESİT TİPİ",
+               "İNDÜKLENEN", "TAPER", "TAŞIMA EĞİMİ")
     d = pb._depo_verisi()
     o = pb.birlesik_polar(
         d["vlm_polar"], d["kesit"], re_kanat=d["re_kanat"],
@@ -111,6 +143,8 @@ def test_DEPO_verisi_gercek_hukmu_veriyor():
         kesit_cd_mesh_bagimsiz=d["kesit_cd_mesh_bagimsiz"],
         kesit_cd_band_pct=d.get("kesit_cd_band_pct"),
         kesit_profili=d.get("kesit_profili"), arac_profili=d.get("arac_profili"),
+        vlm_ar=d.get("vlm_ar"), vlm_taper=d.get("vlm_taper"),
+        vlm_ok_acisi=d.get("vlm_ok_acisi"), taper_kaniti=d.get("taper_kaniti"),
         **{k: d[k] for k in ("kesit_simetrik", "vlm_simetrik")
            if d.get(k) is not None})
     for e in o["engeller"]:
@@ -234,16 +268,28 @@ class TestSpanVerimi:
 
     _KANIT = {"1.0": 1.0322, "0.85": 1.129, "0.7": 1.2681, "0.5": 1.6006}
 
+    # Kuram kullanilamayan planform (buyuk ok acisi) — VLM'in CDi'sine DUSULUR
+    # ve kapilar ancak O ZAMAN engel olur.
+    _KURAMSIZ = {"vlm_ar": 6.0, "vlm_ok_acisi": 30.0}
+
     def test_fiziksel_olmayan_e_MUTLAK_Cd_engelliyor(self):
         # CDi'yi yariya bolmek e'yi ikiye katlar
         bozuk = [{**p, "Cd_i": p["Cd_i"] / 2} for p in _VLM]
-        o = pb.birlesik_polar(bozuk, _KESIT, **_UYUMLU, vlm_ar=6.0)
+        o = pb.birlesik_polar(bozuk, _KESIT, **_UYUMLU, **self._KURAMSIZ)
         assert any("SPAN VERİMİ" in e or "İNDÜKLENEN" in e for e in o["engeller"])
         assert all("Cd_toplam" not in n for n in o["noktalar"])
         assert all("Cl" in n for n in o["noktalar"])       # TAŞIMA etkilenmez
 
+    def test_kuram_kullanilirken_VLM_ihlali_KAYDA_geciyor(self):
+        """Kullanılmayan bir sayının bozuk olması sessizce yutulmaz."""
+        bozuk = [{**p, "Cd_i": p["Cd_i"] / 2} for p in _VLM]
+        o = pb.birlesik_polar(bozuk, _KESIT, **_UYUMLU, vlm_ar=6.0,
+                              vlm_taper=0.7, vlm_ok_acisi=2.0)
+        assert not any("İNDÜKLENEN" in e for e in o["engeller"])
+        assert any("kullanılmadı" in u for u in o["uyarilar"])
+
     def test_saglikli_e_engel_URETMIYOR(self):
-        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, vlm_ar=6.0)
+        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, **self._KURAMSIZ)
         assert not any("İNDÜKLENEN" in e for e in o["engeller"])
 
     def test_ar_verilmezse_KONTROL_EDILMEDI_deniyor(self):
@@ -254,19 +300,19 @@ class TestSpanVerimi:
     def test_TAPER_kapisi_arac_polari_gecse_de_ateşliyor(self):
         """Tam araç polarında e≤1 GEÇMESİ temize çıkarmaz: ölçüldü ki izole
         kanat e=1.19 iken tam araç e=0.89 — kuyruk ihlali maskeliyor."""
-        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, vlm_ar=6.0,
+        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, **self._KURAMSIZ,
                               vlm_taper=0.7, taper_kaniti=self._KANIT)
         assert not any("İNDÜKLENEN" in e for e in o["engeller"])   # polar temiz
         assert any("TAPER" in e for e in o["engeller"])            # planform degil
         assert all("Cd_toplam" not in n for n in o["noktalar"])
 
     def test_taper_1_engel_URETMIYOR(self):
-        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, vlm_ar=6.0,
+        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, **self._KURAMSIZ,
                               vlm_taper=1.0, taper_kaniti=self._KANIT)
         assert not any("TAPER" in e for e in o["engeller"])
 
     def test_kanit_KAPSAMIYORSA_ekstrapolasyon_YOK(self):
-        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, vlm_ar=6.0,
+        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, **self._KURAMSIZ,
                               vlm_taper=0.3, taper_kaniti=self._KANIT)
         assert any("KAPSAMIYOR" in u for u in o["uyarilar"])
         assert not any("TAPER'DA SAPIYOR" in e for e in o["engeller"])
@@ -280,6 +326,68 @@ class TestSpanVerimi:
                         inspect.getsource(pb.birlesik_polar).splitlines())
         for e in ("1.268", "1.601", "1.129"):
             assert e not in kod, f"olculen deger {e} karar mantigina GOMULMUS"
+
+    def test_CDi_KURAMDAN_geliyor_VLM_den_degil(self):
+        """VSPAERO'nun iki CDi'si de kuramdan sapıyor (yakın-alan −21%,
+        Trefftz +62%); aralarından seçim keyfî olurdu."""
+        import lifting_line as ll
+        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, vlm_ar=5.0, vlm_taper=0.7,
+                              vlm_ok_acisi=2.0)
+        n4 = next(x for x in o["noktalar"] if x["alpha"] == 4.0)
+        beklenen = ll.induklenen_direnc(n4["Cl"], 5.0, 0.7)
+        assert abs(n4["CDi"] - beklenen) < 1e-6
+        assert "taşıyıcı-çizgi" in n4["CDi_kaynagi"]
+        assert n4["CDi_vlm"] != n4["CDi"], "VLM'in sayısı da kayda geçmeli"
+
+    def test_kuram_gecersizse_VLM_e_dusuluyor_ama_SESSIZ_DEGIL(self):
+        """Düşük AR'de taşıyıcı-çizgi kullanılamaz; geri düşüş ADI GEÇEREK olur."""
+        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, vlm_ar=3.0, vlm_taper=0.7)
+        assert any("KURAMDAN ÜRETİLEMEDİ" in u for u in o["uyarilar"])
+        n4 = next(x for x in o["noktalar"] if x["alpha"] == 4.0)
+        assert "VLM" in n4["CDi_kaynagi"]
+
+    def test_kuram_kullanilinca_taper_ENGEL_OLMUYOR(self):
+        """Engel, VLM'in CDi'si KULLANILDIĞI için vardı; kullanılmıyorsa
+        engel değil KAYIT olmalı."""
+        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, vlm_ar=5.0, vlm_taper=0.7,
+                              vlm_ok_acisi=2.0, taper_kaniti=self._KANIT)
+        assert not any("TAPER" in e for e in o["engeller"])
+        n4 = next(x for x in o["noktalar"] if x["alpha"] == 4.0)
+        assert "Cd_toplam" in n4
+
+    def test_YONTEM_metni_kullanilan_kaynagi_soyluyor(self):
+        o = pb.birlesik_polar(_VLM, _KESIT, **_UYUMLU, vlm_ar=5.0, vlm_taper=0.7,
+                              vlm_ok_acisi=2.0)
+        assert "taşıyıcı-çizgi" in o["yontem"]
+        assert o["CDi_yontemi"] == o["noktalar"][0]["CDi_kaynagi"]
+
+    def test_TASIMA_EGIMI_kurama_karsi_olculuyor(self):
+        """CDi kapısını kurarken çıktı: aynı hakem TAŞIMAYI da yargılayabiliyordu
+        ve kimse sormamıştı. ÖLÇÜLDÜ (MiniHawk, kuram 0.07661/°):
+        çıplak kanat 0.06908 (−%10), kanat+gövde 0.03538 (−%54),
+        tam araç 0.04595 (−%40). Gövde eğimi YARIYA indiriyor."""
+        dusuk = [{"alpha": 0.0, "Cl": 0.0, "Cd_i": 0.0},
+                 {"alpha": 8.0, "Cl": 0.37, "Cd_i": 0.011}]      # 0.046/° → −%40
+        o = pb.birlesik_polar(dusuk, _KESIT, **_UYUMLU, vlm_ar=5.0,
+                              vlm_taper=0.7, vlm_ok_acisi=2.0)
+        assert any("TAŞIMA EĞİMİ" in e for e in o["engeller"])
+        assert all("Cd_toplam" not in n for n in o["noktalar"])
+
+    def test_kuramla_uyumlu_egim_GECIYOR(self):
+        import lifting_line as ll
+        egim = ll.tasima_egimi(5.0, 0.7) * math.pi / 180.0
+        iyi = [{"alpha": 0.0, "Cl": 0.0, "Cd_i": 0.0},
+               {"alpha": 8.0, "Cl": egim * 8, "Cd_i": 0.012}]
+        o = pb.birlesik_polar(iyi, _KESIT, **_UYUMLU, vlm_ar=5.0,
+                              vlm_taper=0.7, vlm_ok_acisi=2.0)
+        assert not any("TAŞIMA EĞİMİ" in e for e in o["engeller"])
+
+    def test_egim_esikleri_OLCULMUS_paydan_buyuk(self):
+        """VLM'in kendi model-form payı (−%10) engel eşiğinin altında kalmalı,
+        yoksa kapı her zaman reddeder."""
+        assert pb.EGIM_UYARI_PCT > 10.0
+        assert pb.EGIM_ENGEL_PCT > pb.EGIM_UYARI_PCT
+        assert pb.EGIM_ENGEL_PCT < 40.0            # olculen govde sapmasinin altinda
 
     def test_span_verimi_TANIMI(self):
         # eliptik: CDi = Cl²/(π·AR) → e = 1

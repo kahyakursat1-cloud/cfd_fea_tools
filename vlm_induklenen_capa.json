@@ -1,0 +1,176 @@
+{
+  "vaka": "VSPAERO induklenen direnci vs tasiyici-cizgi — AR=5, alpha=4",
+  "_neden": "VSPAERO IKI CDi veriyor (yakin-alan ve Trefftz) ve birlestirici Trefftz olani kullaniyordu. Hangisinin dogru oldugu HAKEMSIZ belirlenemez.",
+  "hakem": {
+    "yontem": "Prandtl tasiyici-cizgi, Glauert Fourier (kapali form)",
+    "kendini_dogrulama": {
+      "eliptik_planform_e": 1.0,
+      "beklenen": 1.0
+    }
+  },
+  "olcum": [
+    {
+      "taper": 1.0,
+      "e_kuram": 0.963,
+      "e_yakin_alan": 0.8071,
+      "e_trefftz": 1.0322,
+      "sapma_pct": {
+        "yakin_alan": -16.2,
+        "trefftz": 7.2
+      },
+      "noktalar": [
+        {
+          "alpha": 2.0,
+          "CLtot": 0.1344948,
+          "CLwtot": 0.1345114,
+          "CDi": 0.0014254,
+          "CDiw": 0.0011153,
+          "e_yakin_alan": 0.8079,
+          "e_trefftz": 1.0328
+        },
+        {
+          "alpha": 4.0,
+          "CLtot": 0.2690128,
+          "CLwtot": 0.2689931,
+          "CDi": 0.0057079,
+          "CDiw": 0.0044626,
+          "e_yakin_alan": 0.8071,
+          "e_trefftz": 1.0322
+        },
+        {
+          "alpha": 6.0,
+          "CLtot": 0.4033132,
+          "CLwtot": 0.4035379,
+          "CDi": 0.012859,
+          "CDiw": 0.010033,
+          "e_yakin_alan": 0.8053,
+          "e_trefftz": 1.0333
+        }
+      ]
+    },
+    {
+      "taper": 0.85,
+      "e_kuram": 0.9728,
+      "e_yakin_alan": 0.7864,
+      "e_trefftz": 1.1289,
+      "sapma_pct": {
+        "yakin_alan": -19.2,
+        "trefftz": 16.0
+      },
+      "noktalar": [
+        {
+          "alpha": 2.0,
+          "CLtot": 0.1363172,
+          "CLwtot": 0.136339,
+          "CDi": 0.0015052,
+          "CDiw": 0.0010537,
+          "e_yakin_alan": 0.7859,
+          "e_trefftz": 1.1231
+        },
+        {
+          "alpha": 4.0,
+          "CLtot": 0.2726473,
+          "CLwtot": 0.2728028,
+          "CDi": 0.0060177,
+          "CDiw": 0.0041967,
+          "e_yakin_alan": 0.7864,
+          "e_trefftz": 1.1289
+        },
+        {
+          "alpha": 6.0,
+          "CLtot": 0.4089906,
+          "CLwtot": 0.409322,
+          "CDi": 0.0135945,
+          "CDiw": 0.0095035,
+          "e_yakin_alan": 0.7833,
+          "e_trefftz": 1.1223
+        }
+      ]
+    },
+    {
+      "taper": 0.7,
+      "e_kuram": 0.9818,
+      "e_yakin_alan": 0.7916,
+      "e_trefftz": 1.2682,
+      "sapma_pct": {
+        "yakin_alan": -19.4,
+        "trefftz": 29.2
+      },
+      "noktalar": [
+        {
+          "alpha": 2.0,
+          "CLtot": 0.1379758,
+          "CLwtot": 0.138004,
+          "CDi": 0.0015255,
+          "CDiw": 0.0009595,
+          "e_yakin_alan": 0.7945,
+          "e_trefftz": 1.2636
+        },
+        {
+          "alpha": 4.0,
+          "CLtot": 0.2758344,
+          "CLwtot": 0.2760432,
+          "CDi": 0.0061189,
+          "CDiw": 0.0038252,
+          "e_yakin_alan": 0.7916,
+          "e_trefftz": 1.2682
+        },
+        {
+          "alpha": 6.0,
+          "CLtot": 0.4135432,
+          "CLwtot": 0.414185,
+          "CDi": 0.0137525,
+          "CDiw": 0.0086471,
+          "e_yakin_alan": 0.7917,
+          "e_trefftz": 1.263
+        }
+      ]
+    },
+    {
+      "taper": 0.5,
+      "e_kuram": 0.9911,
+      "e_yakin_alan": 0.7872,
+      "e_trefftz": 1.6014,
+      "sapma_pct": {
+        "yakin_alan": -20.6,
+        "trefftz": 61.6
+      },
+      "noktalar": [
+        {
+          "alpha": 2.0,
+          "CLtot": 0.1403601,
+          "CLwtot": 0.1404,
+          "CDi": 0.0016008,
+          "CDiw": 0.0007881,
+          "e_yakin_alan": 0.7835,
+          "e_trefftz": 1.5923
+        },
+        {
+          "alpha": 4.0,
+          "CLtot": 0.2805308,
+          "CLwtot": 0.2808527,
+          "CDi": 0.0063644,
+          "CDiw": 0.0031358,
+          "e_yakin_alan": 0.7872,
+          "e_trefftz": 1.6014
+        },
+        {
+          "alpha": 6.0,
+          "CLtot": 0.4205689,
+          "CLwtot": 0.421621,
+          "CDi": 0.0143365,
+          "CDiw": 0.0070996,
+          "e_yakin_alan": 0.7854,
+          "e_trefftz": 1.594
+        }
+      ]
+    }
+  ],
+  "en_kotu_sapma_pct": {
+    "yakin_alan": 20.6,
+    "trefftz": 61.6
+  },
+  "_kisit": "Tasiyici-cizgi DUZ, orta/yuksek AR kanat kuramidir; ok acisi ve dihedral MODELLENMEZ, kalinlik ve viskozite yoktur. AR=5'te makul, AR<4 ya da buyuk ok acisinda kullanilmaz (lifting_line.gecerli_mi bunu soyler). Karsilastirma alpha=4'te yapildi; e her iki VSPAERO ciktisinda da alfa ile ~%0.5 icinde sabit oldugu icin tek nokta temsil ediyor.",
+  "_uretim": "Üretim: python experiments/vlm_induklenen_capa.py",
+  "verdikt": "⛔ VSPAERO'nun HER IKI induklenen direnci de kuramdan sapiyor: yakin-alan en kotu %21 (sistematik DUSUK e = YUKSEK CDi), Trefftz en kotu %62 (e>1 ile Munk sinirini ihlal ediyor ve sapma taper'la buyuyor). Ikisi arasindan secim yapilmaz; induklenen direnc DOGRULANMIS kuramdan uretilir (lifting_line.induklenen_direnc). Hakem eliptik planformda e=1.00000 vererek kendini dogruladi."
+}

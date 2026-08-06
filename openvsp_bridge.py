@@ -41,9 +41,16 @@ VLM_SPAN_PANEL = 80
 #   OutCluster 0.25  ->  monoton,       sacilma  %2.07  (e 1.04/0.94/0.93, duzenli)
 # 0.25'te son iki kademe farki %0.02 — oturmus. Band 5.7 KAT daraldi.
 VLM_UC_KUMELEME = 0.25
+# VLM'DE KAMBURLUK. Eskiden kapaliydi ve gerekce "OpenVSP 3.50.4 kamburlu
+# kesitte yuksek alfada iraksiyor" idi. OLCULDU (2026-08-05): MiniHawk'ta
+# alpha=0/2/4/6/8'de TEMIZ yakinsiyor, Cl(0)=0.2926 ve alpha_L0 uretilebiliyor.
+# Kapali birakmak, kamburlu bir kanadi SIMETRIK diye yayinlamak demekti; kesit
+# verisiyle birlestirme o yuzden reddediliyordu. Yuksek alfa DENENMEDI —
+# LINEER_ALFA_MAX=8 zaten ustunu birlestirmeye sokmuyor.
+VLM_KAMBUR = True
 
 
-def aircraft_to_vsp(aircraft, vsp3_path: str = None) -> str:
+def aircraft_to_vsp(aircraft, vsp3_path: str = None, kambur: bool = False) -> str:
     """Aircraft nesnesinden OpenVSP modeli oluştur.
     Döndürür: .vsp3 dosya yolu (kaydedilmişse)
 
@@ -111,7 +118,7 @@ def aircraft_to_vsp(aircraft, vsp3_path: str = None) -> str:
     # NACA 4-digit profil atama
     naca_code = _parse_naca_name(af.name)
     if naca_code:
-        _set_naca_profile(wing_id, naca_code)
+        _set_naca_profile(wing_id, naca_code, apply_camber=kambur)
 
     # İNSİDANS (kanat montaj açısı). ÖNCEDEN HİÇ UYGULANMIYORDU: dataclass 5
     # şablonda `incidence` tanımlıyor ama depoda onu OKUYAN tek satır yoktu —
@@ -187,8 +194,14 @@ def export_stl(aircraft, output_path: str, tess_w: int = 16, tess_u: int = 8) ->
 
     tess_w: kanat chord yönü tessellation (16 = ince)
     tess_u: gövde çevre tessellation (8 = ince)
+
+    KAMBURLUK AÇIK: `_set_naca_profile` docstring'i "STL/OpenFOAM için doğru
+    geometri" diyordu ama bu yol `aircraft_to_vsp`'yi kamburluksuz çağırıyordu —
+    yani o dal hiç koşmuyordu ve RANS için üretilen STL, NACA2412 kanadı
+    SİMETRİK olarak dışa veriyordu. VLM'deki ıraksama gerekçesi burayı hiç
+    bağlamaz: STL'de çözücü yok.
     """
-    aircraft_to_vsp(aircraft)
+    aircraft_to_vsp(aircraft, kambur=True)
 
     # Tessellation kalitesini artır
     geom_ids = vsp.FindGeoms()
@@ -231,7 +244,7 @@ def _vspaero_setup_vlm(aircraft):
     GeomSet/ThinGeomSet uzerinden yapiliyor. Varsayilan bu modelde takilmiyor ve
     Trefftz alanlari fiziksel; secim ACIKCA degistirilmiyor.
     """
-    aircraft_to_vsp(aircraft)
+    aircraft_to_vsp(aircraft, kambur=VLM_KAMBUR)
     # PANEL YOGUNLUGU BURADA ATANMALI — `VSPAEROComputeGeometry`'DEN ONCE.
     # ComputeGeometry, VSPAERO'nun kullanacagi panel/DegenGeom dosyasini URETIR;
     # ondan SONRA yapilan tessellation degisikligi coktan yazilmis geometriyi
@@ -417,21 +430,20 @@ if __name__ == "__main__":
         cikti = {
             "vaka": f"VSPAERO VLM polar — {a.name}, alfalar={alphas}",
             "polar": res,
-            "_kisit": ("KAMBURLUK UYGULANMIYOR: _set_naca_profile(apply_camber=False). "
-                       "Sonuc: alpha_L0 URETILEMEZ ve Cl(0)=0.0 bir OLCUM DEGIL, "
-                       "kurulumun dogrudan sonucudur. "
-                       "IRAKSAMA GEREKCESI KISMEN CURUDU (olculdu 2026-08-05): "
-                       "apply_camber=True MiniHawk'ta alpha=0/2/4/6/8'de TEMIZ "
-                       "yakinsiyor (Cl(0)=0.2926). Yuksek alfa denenmedi, yani "
-                       "iraksama iddiasi alpha>8 icin ACIK KALIYOR. "
-                       "INDUKLENEN DIRENC AYRI BIR SORUN: bu kurulumda span verimi "
-                       "Munk sinirini asiyor (taper 0.7 -> e=1.268), bkz. "
-                       "vlm_taper_capa.json. Bu polar tasima EGIMI icin gecerlidir; "
-                       "CDi mutlak surukleme hesabina KATILAMAZ. "
+            "_kisit": (f"KAMBURLUK: {'UYGULANIYOR' if VLM_KAMBUR else 'UYGULANMIYOR'} "
+                       "(VLM_KAMBUR). Kapaliyken Cl(0)=0.0 bir OLCUM DEGILDI, "
+                       "kurulumun dogrudan sonucuydu; acikken alpha_L0 uretilebilir. "
+                       "Eski 'yuksek alfada iraksiyor' gerekcesi alpha<=8'de OLCUMLE "
+                       "curudu, alpha>8 icin DENENMEDI. "
+                       "INDUKLENEN DIRENC BU DOSYADAN ALINMAZ: VSPAERO'nun her iki "
+                       "CDi'si de tasiyici-cizgi kuramindan sapiyor (yakin-alan %-21, "
+                       "Trefftz %+62; bkz. vlm_induklenen_capa.json). Birlestirici "
+                       "CDi'yi kuramdan uretir. Bu polar TASIMA icin kullanilir. "
                        "INSIDANS UYGULANMIYOR: dataclass 2 derece diyor ama iki "
                        "uygulama yolu da tam aracta VSPAERO'yu bozuyor (olculdu: "
                        "Y_Rel_Rotation -> CDi=-5.18; Twist -> CDi alfa ile sabit). "
                        "Yani bu polar 0 derece insidansli bir kanada aittir."),
+            "kamburluk": VLM_KAMBUR,
             "kabul_edilemez_noktalar": [
                 {"alpha": r["alpha"], "gerekce": r["kabul_edilemez"]}
                 for r in reddedilen],

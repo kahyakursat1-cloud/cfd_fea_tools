@@ -29,7 +29,16 @@ Dizi monoton, son adım %0.02.
 BAND KANONİK KURALDAN: son-adım farkı (%0.02) bir band DEĞİLDİR — iki kademenin
 yakın olması ayrıklaştırma hatasının sıfıra yakın olduğunu kanıtlamaz. Panel 1B
 bir ayrıklaştırma parametresidir (h~1/N), `band_from_levels(boyut=1)` uygulanır:
-LSR 4-seviye → U = %2.18. Yayınlanan band budur.
+LSR 4-seviye → U = %2.18.
+
+ÖLÇÜM 3 — KAMBURLUK AÇILDIKTAN SONRA (VLM_KAMBUR=True): yukarıdaki %2.18
+KAMBURLUKSUZ koşuya aitti, yani SİMETRİK kesitli bir kanadın bandıydı. Aracın
+kanadı NACA2412; kamburluk açılınca dizi SALINIYOR ve inceltmek düzeltmiyor:
+    20/40/60/80    → 0.68135 / 0.65259 / 0.64935 / 0.65501,  U=%14.66
+    60/80/100/120  → 0.64935 / 0.65501 / 0.64596 / 0.63933,  U=%7.36
+Küçük bandı yayınlamak aileyi sonuca göre seçmek olurdu; bütün kademeler tek
+ailede toplanır. Doğru geometriyle bandın GENİŞ olması, yanlış geometriyle dar
+olmasına yeğdir — ikincisi olmayan bir kesinliktir.
 
     conda run -n openvsp python experiments/vlm_panel_yakinsamasi.py [--sablon mini_hawk]
 Çıktı: vlm_panel_yakinsamasi.json
@@ -45,7 +54,11 @@ HERE = Path(__file__).resolve().parent
 KOK = HERE.parent
 sys.path.insert(0, str(KOK))
 
-PANELLER = (20, 40, 60, 80)
+# KADEME AİLESİ BAND'A GÖRE SEÇİLMEZ. Kamburluk açıldıktan sonra dizi salınımlı
+# çıktı ve iki aile ölçüldü: 20/40/60/80 → U=%14.66, 60/80/100/120 → U=%7.36.
+# Küçük olanı yayınlamak, aileyi sonuca göre seçmek olurdu. Bütün ölçülen
+# kademeler TEK ailede toplanır; kanonik kural hepsine uygulanır.
+PANELLER = (20, 40, 60, 80, 100, 120)
 ALFALAR = (0.0, 4.0, 8.0)
 
 

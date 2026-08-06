@@ -32,8 +32,17 @@ GOLDEN = {
     #                     serisi MONOTON DEGILDI (0.1417/0.3866/0.3815/0.4324,
     #                     sacilma %11.78). Kumeleme ile monoton: 0.4566/0.4112/
     #                     0.4030/0.4029, band %2.18 (band_from_levels, boyut=1).
-    # Altin deger o %2.18'lik band icinde okunmali (vlm_panel_yakinsamasi.json).
-    "vspaero_cl_slope": 0.0504,        # OpenVSP VLM, alpha 0/4/8, 80 span-panel + uc kumeleme 0.25
+    #   0.0504 -> 0.0462  KAMBURLUK ACILDI (VLM_KAMBUR=True). Onceki tum degerler
+    #                     SIMETRIK kesitli bir kanada aitti; aracin kanadi
+    #                     NACA2412. Kamburluk alpha<=8'de temiz yakinsiyor
+    #                     (olculdu), ama dizi salinimli oldugu icin band %2.18 ->
+    #                     %19.72'ye cikti (6 kademe: 20..120 panel).
+    # DIKKAT: bu altin deger DOGRU demek DEGIL. Ayni sayi `polar_birlestirme`nin
+    # tasima-egimi kapisi tarafindan REDDEDILIYOR: kuram 0.07661/derece,
+    # olculen 0.04616 (-%40). Farki GOVDE getiriyor (ciplak kanat -%10,
+    # kanat+govde -%54). Altin deger BEKLENMEDIK DEGISIMI yakalar, dogrulugu
+    # onaylamaz — dogruluk hukmu kapida verilir.
+    "vspaero_cl_slope": 0.0462,        # OpenVSP VLM, alpha 0/4/8, 80 span-panel + uc kumeleme 0.25 + kamburluk
     "openrocket_apogee_m": 50.5,       # rockets/simple.ork
     "validate_fea_defl_err_pct": 0.05, # ankastre kiriş, CalculiX
     "fea_wing_limit_SF": 1.61,         # kanat yapısal, kritik gust

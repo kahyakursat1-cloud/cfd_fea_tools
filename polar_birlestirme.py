@@ -12,7 +12,19 @@ yoktur, dolayısıyla bu tıkanıklık VLM'de hiç oluşmaz. Havacılıkta ön-t
 standart iş bölümü budur:
 
     Cl_3B(α)  ← VLM (sonlu-kanat düzeltmesi zaten içinde)
-    Cd_3B(α)  = Cd_profil(Cl) [2B viskoz] + CDi [VLM] + Δ_entegrasyon [3B RANS]
+    Cd_3B(α)  = Cd_profil(Cl) [2B viskoz] + CDi [KURAM] + Δ_entegrasyon [3B RANS]
+
+CDi NEDEN VLM'DEN DEĞİL: VSPAERO iki indüklenen direnç veriyor ve ölçüldü ki
+İKİSİ DE taşıyıcı-çizgi kuramından sapıyor (AR=5, α=4):
+    taper   kuram   yakın-alan      Trefftz
+     1.00   0.963   0.807 (−16%)   1.032  (+7%)
+     0.70   0.982   0.792 (−19%)   1.268 (+29%)
+     0.50   0.991   0.787 (−21%)   1.601 (+62%)
+Trefftz değeri e>1 ile Munk sınırını ihlal ediyor ve sapma taper'la büyüyor.
+İkisi arasından seçim keyfî olurdu; CDi doğrulanmış kuramdan üretilir
+(`lifting_line`, eliptik planformda e=1.00000 ile kendini doğrular). Kuram bu
+planformda geçerli değilse (düşük AR, büyük ok açısı) VLM'in sayısına DÜŞÜLÜR
+ve kapılar o zaman ENGEL olur — sessiz geri düşüş yok.
 
 BU MODÜL YENİ CFD KOŞMAZ; mevcut kanıtları birleştirir. Ama körlemesine
 birleştirmez — birleştirme ancak parçalar UYUMLUYSA geçerlidir ve uyumsuzluğu
@@ -32,6 +44,7 @@ CLI:  python polar_birlestirme.py            (depodaki kanıtlarla dener)
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -58,6 +71,32 @@ E_UST_SINIR = 1.0
 # kaymasıdır. Taper etkisi FARKLI mertebede ve inceltmeyle kapanmıyor
 # (taper 0.7 → 1.268, taper 0.5 → 1.601). Eşik ikisini ayırır.
 E_ENGEL_ESIGI = 1.05
+
+
+# Taşıma eğiminin kuramdan sapma eşikleri. VLM'in KENDİ model-form payı ÖLÇÜLDÜ:
+# çıplak kanatta −%10 (kalınlık + sonlu panel). Uyarı eşiği onun hemen üstünde,
+# engel eşiği ise gövdenin getirdiği −%40/−%54 mertebesinin altındadır — ikisini
+# AYIRIR.
+EGIM_UYARI_PCT = 12.0
+EGIM_ENGEL_PCT = 20.0
+
+
+def _vlm_egimi(polar: list[dict]) -> float | None:
+    """Lineer bölgedeki (α ≤ LINEER_ALFA_MAX) Cl-α eğimi, 1/derece.
+
+    En az iki nokta gerekir; uçlardan alınır çünkü aradaki eğrilik zaten
+    lineer bölge sınırıyla dışlanmıştır.
+    """
+    n = sorted((p for p in polar
+                if p.get("Cl") is not None
+                and abs(float(p["alpha"])) <= LINEER_ALFA_MAX),
+               key=lambda p: float(p["alpha"]))
+    if len(n) < 2:
+        return None
+    da = float(n[-1]["alpha"]) - float(n[0]["alpha"])
+    if abs(da) < 1e-9:
+        return None
+    return (float(n[-1]["Cl"]) - float(n[0]["Cl"])) / da
 
 
 def span_verimi(cl: float, cdi: float, ar: float) -> float | None:
@@ -141,6 +180,7 @@ def birlesik_polar(vlm_polar: list[dict], kesit: list[dict], *,
                    arac_profili: str | None = None,
                    vlm_ar: float | None = None,
                    vlm_taper: float | None = None,
+                   vlm_ok_acisi: float | None = None,
                    taper_kaniti: dict | None = None) -> dict:
     """VLM + 2B kesit → 3B polar. Kapılardan geçmeyen bileşen ÜRETİLMEZ.
 
@@ -201,7 +241,71 @@ def birlesik_polar(vlm_polar: list[dict], kesit: list[dict], *,
     e_asan = [(a, e) for a, e in e_ler if e is not None and e > E_ENGEL_ESIGI]
     e_sinir_ustu = [(a, e) for a, e in e_ler
                     if e is not None and E_UST_SINIR < e <= E_ENGEL_ESIGI]
-    if e_asan:
+
+    # İNDÜKLENEN DİRENÇ ARTIK VLM'DEN ALINMIYOR. Ölçüldü ki VSPAERO'nun İKİ
+    # çıktısı da kuramdan sapıyor (vlm_induklenen_capa, AR=5, α=4):
+    #   taper   kuram   yakın-alan      Trefftz
+    #    1.00   0.963   0.807 (−16%)   1.032  (+7%)
+    #    0.70   0.982   0.792 (−19%)   1.268 (+29%)
+    #    0.50   0.991   0.787 (−21%)   1.601 (+62%)
+    # Aralarından seçmek keyfî olurdu; hakem taşıyıcı-çizgi kuramıdır ve
+    # KENDİNİ DOĞRULUYOR (eliptik planform → e=1.00000). Kuram geçerli değilse
+    # (düşük AR, büyük ok açısı) VLM'in sayısına DÜŞÜLÜR ve o zaman aşağıdaki
+    # kapılar ENGEL olur — sessiz bir geri düşüş değildir.
+    cdi_kuramsal = None
+    cdi_yontem = "VLM (VSPAERO CDiw)"
+    if vlm_ar:
+        import lifting_line as _ll
+
+        # TAŞIMA EĞİMİ DE KURAMA KARŞI ÖLÇÜLÜR. CDi kapısını kurarken ortaya
+        # çıktı: aynı hakem taşımayı da yargılayabiliyordu ve kimse sormamıştı.
+        # ÖLÇÜLDÜ (MiniHawk planformu, AR=5, taper 0.7, kuram 0.07661/°):
+        #   çıplak kanat (gövde YOK)  0.06908/°  → −%10   (VLM'in model-form payı)
+        #   kanat + gövde             0.03538/°  → −%54
+        #   tam araç                  0.04595/°  → −%40
+        # Gövdeyi eklemek eğimi YARIYA indiriyor — gövde taşımayı bu kadar
+        # düşüremez. Kusur VSPAERO'daki kalın gövde temsilinde; yeri burası
+        # değil ama SONUÇ buradan geçiyor, o yüzden kapı burada.
+        _egim = _vlm_egimi(vlm_polar)
+        if _egim is not None and not _ll.gecerli_mi(vlm_ar, vlm_ok_acisi or 0.0):
+            _kuram = _ll.tasima_egimi(vlm_ar, vlm_taper or 1.0) * math.pi / 180.0
+            _sapma = (_egim / _kuram - 1) * 100
+            if abs(_sapma) > EGIM_ENGEL_PCT:
+                engeller.append(
+                    f"VLM TAŞIMA EĞİMİ KURAMDAN SAPIYOR: ölçülen {_egim:.5f}/°, "
+                    f"taşıyıcı-çizgi {_kuram:.5f}/° (%{_sapma:+.0f}). Eşik "
+                    f"%±{EGIM_ENGEL_PCT:g} ve VLM'in kendi model-form payı ÖLÇÜLDÜ "
+                    f"(çıplak kanat −%10). Bu mertebede sapma Cl'i, Cl üzerinden "
+                    "Cd_profil'i ve Cl² üzerinden CDi'yi birlikte kaydırır; mutlak "
+                    "sürükleme yayınlanmaz. Ölçüldü ki farkı GÖVDE getiriyor "
+                    "(çıplak kanat −%10, kanat+gövde −%54)")
+            elif abs(_sapma) > EGIM_UYARI_PCT:
+                uyarilar.append(
+                    f"VLM TAŞIMA EĞİMİ kuramdan %{_sapma:+.0f} sapıyor "
+                    f"({_egim:.5f}/° vs {_kuram:.5f}/°) — eşiğin altında ama "
+                    "band okunurken hesaba katılmalı")
+
+        _neden = _ll.gecerli_mi(vlm_ar, vlm_ok_acisi or 0.0)
+        if _neden:
+            uyarilar.append(
+                f"İNDÜKLENEN DİRENÇ KURAMDAN ÜRETİLEMEDİ: {_neden}. VLM'in kendi "
+                "CDi'si kullanılıyor ve o sayı kurama karşı ölçülmüş sapma taşıyor "
+                "(vlm_induklenen_capa.json)")
+        else:
+            _e = _ll.span_verimi(vlm_ar, vlm_taper if vlm_taper else 1.0)
+            cdi_kuramsal = _e
+            cdi_yontem = (f"taşıyıcı-çizgi (Glauert), e={_e:.4f} "
+                          f"— AR={vlm_ar:.2f}, taper={vlm_taper or 1.0:g}")
+
+    if cdi_kuramsal is not None:
+        if e_asan or e_sinir_ustu:
+            uyarilar.append(
+                "VLM'İN KENDİ CDi'Sİ FİZİKSEL DEĞİL (kullanılmadı): span verimi "
+                + ", ".join(f"α={a:g}°→e={e:.3f}" for a, e in (e_asan + e_sinir_ustu))
+                + f" — düzlemsel kanatta e≤{E_UST_SINIR} matematiksel sınırdır "
+                  "(Munk). İndüklenen direnç kuramdan üretildiği için bu sapma "
+                  "sonuca GİRMİYOR; kayda geçiyor")
+    elif e_asan:
         engeller.append(
             "VLM İNDÜKLENEN DİRENCİ FİZİKSEL DEĞİL: span verimi "
             + ", ".join(f"α={a:g}°→e={e:.3f}" for a, e in e_asan)
@@ -225,7 +329,7 @@ def birlesik_polar(vlm_polar: list[dict], kesit: list[dict], *,
     # izole kanat e=1.19 (İHLAL) iken tam araç e=0.89 — kuyruk, taşımaya az
     # katkı verip direnç eklediği için ihlali MASKELİYOR. Bu yüzden taper kusuru
     # AYRI kapıdır ve poların kendisine değil, KANAT PLANFORMUNA bakar.
-    if vlm_taper is not None and taper_kaniti:
+    if vlm_taper is not None and taper_kaniti and cdi_kuramsal is None:
         e_taper = _e_taperde(taper_kaniti, vlm_taper)
         if e_taper is None:
             uyarilar.append(
@@ -246,8 +350,14 @@ def birlesik_polar(vlm_polar: list[dict], kesit: list[dict], *,
     for p in vlm_polar:
         a = float(p["alpha"])
         cl = float(p.get("Cl", 0.0))
-        cdi = float(p.get("Cd_i", 0.0))
-        n = {"alpha": a, "Cl": round(cl, 5), "CDi": round(cdi, 6)}
+        cdi_vlm = float(p.get("Cd_i", 0.0))
+        # KURAM VARSA O KULLANILIR — VLM'in sayısı kayda geçer ama hesaba girmez.
+        cdi = (cl ** 2 / (3.141592653589793 * vlm_ar * cdi_kuramsal)
+               if cdi_kuramsal is not None else cdi_vlm)
+        n = {"alpha": a, "Cl": round(cl, 5), "CDi": round(cdi, 6),
+             "CDi_kaynagi": cdi_yontem}
+        if cdi_kuramsal is not None:
+            n["CDi_vlm"] = round(cdi_vlm, 6)
         if a > LINEER_ALFA_MAX:
             n["uyari"] = (f"α={a}° lineer bölge dışında (>{LINEER_ALFA_MAX}°); 2B geçiş "
                           "modeli burada bozuluyor — ÖLÇÜLDÜ: α=10°'de Cl hatası %45")
@@ -260,11 +370,41 @@ def birlesik_polar(vlm_polar: list[dict], kesit: list[dict], *,
             else:
                 n["Cd_profil"] = round(cd0, 6)
                 n["Cd_toplam"] = round(cd0 + cdi + delta_entegrasyon, 6)
-                if kesit_cd_band_pct is not None and n["Cd_toplam"] > 0:
-                    # Band YALNIZ profil bileşenine ait; CDi'nin kendi bandı VLM
-                    # doğrulaması olmadan bilinmiyor ve uydurulmuyor.
-                    n["Cd_band_pct"] = round(
-                        kesit_cd_band_pct * cd0 / n["Cd_toplam"], 2)
+                if n["Cd_toplam"] > 0:
+                    # BANDLAR BİRLEŞTİRİLİR. Eski sürüm YALNIZ kesit bandını
+                    # taşıyordu ve taşıma bandını hiç katmıyordu — oysa Cd_profil
+                    # Cl'DE değerlendiriliyor ve CDi ∝ Cl². Yani Cl'deki
+                    # belirsizlik doğrudan Cd'ye geçer. Kamburluk açıldıktan
+                    # sonra taşıma bandı ±%2.18'den ±%19.72'ye çıktı ve bu ihmal
+                    # artık baskın terimi düşürmek olurdu.
+                    pay = []
+                    if kesit_cd_band_pct is not None:
+                        pay.append(kesit_cd_band_pct * cd0 / n["Cd_toplam"])
+                    if vlm_band_pct:
+                        # Cl'i band kadar oynat, Cd_toplam'ı YENİDEN kur; profil
+                        # bileşeninin eğimi lineer olmadığı için türev
+                        # varsayılmaz, iki uçta hesaplanır.
+                        sapmalar = []
+                        for isaret in (1.0, -1.0):
+                            cl_s = cl * (1 + isaret * vlm_band_pct / 100.0)
+                            cd0_s = _ara_deger(polar2b, cl_s)
+                            if cd0_s is None:
+                                continue
+                            cdi_s = (cl_s ** 2 / (3.141592653589793 * vlm_ar
+                                                  * cdi_kuramsal)
+                                     if cdi_kuramsal is not None else cdi)
+                            sapmalar.append(
+                                abs(cd0_s + cdi_s - (cd0 + cdi)) / n["Cd_toplam"])
+                        if sapmalar:
+                            pay.append(max(sapmalar) * 100.0)
+                            n["Cd_band_tasima_pct"] = round(max(sapmalar) * 100.0, 2)
+                        else:
+                            n["Cd_band_notu"] = (
+                                "taşıma bandının ucu 2B veri aralığının dışına "
+                                "düşüyor — bandın Cd'ye katkısı ÖLÇÜLEMEDİ")
+                    if pay:
+                        n["Cd_band_pct"] = round(
+                            sum(p ** 2 for p in pay) ** 0.5, 2)
         noktalar.append(n)
 
     if vlm_band_pct is None:
@@ -293,7 +433,8 @@ def birlesik_polar(vlm_polar: list[dict], kesit: list[dict], *,
                + " | ".join(e.split(":")[0] for e in engeller))
     return {"noktalar": noktalar, "engeller": engeller, "uyarilar": uyarilar,
             "verdikt": verdikt,
-            "yontem": ("Cl_3B ← VLM; Cd_3B = Cd_profil(Cl) [2B viskoz] + CDi [VLM]"
+            "CDi_yontemi": cdi_yontem,
+            "yontem": (f"Cl_3B ← VLM; Cd_3B = Cd_profil(Cl) [2B viskoz] + CDi [{cdi_yontem}]"
                        + (" + Δ_entegrasyon [3B RANS]" if delta_entegrasyon else ""))}
 
 
@@ -330,6 +471,7 @@ def _depo_verisi() -> dict:
     # gordugu geometri span/alandir.
     vlm_ar = ac.wing.span ** 2 / ac.wing.area
     vlm_taper = getattr(ac.wing, "taper_ratio", None)
+    vlm_ok_acisi = getattr(ac.wing, "sweep_angle", 0.0)
     # TAPER KANITI DOSYADAN OKUNUR, KODA GOMULMEZ: sayilar degisirse kapi da
     # degisir, tersi degil.
     _tc = HERE / "vlm_taper_capa.json"
@@ -354,6 +496,7 @@ def _depo_verisi() -> dict:
                 "arac_profili": arac_profili,
                 "kesit_profili": f"NACA{d.get('naca')}" if d.get("naca") else None,
                 "vlm_ar": vlm_ar, "vlm_taper": vlm_taper,
+                "vlm_ok_acisi": vlm_ok_acisi,
                 "taper_kaniti": taper_kaniti, "kiris": kiris}
 
     tr = json.loads((HERE / "transition_results.json").read_text(encoding="utf-8"))
@@ -387,6 +530,7 @@ def main() -> int:
                          arac_profili=d.get("arac_profili"),
                          vlm_ar=d.get("vlm_ar"),
                          vlm_taper=d.get("vlm_taper"),
+                         vlm_ok_acisi=d.get("vlm_ok_acisi"),
                          taper_kaniti=d.get("taper_kaniti"),
                          **{k: d[k] for k in ("kesit_simetrik", "vlm_simetrik")
                             if d.get(k) is not None})
