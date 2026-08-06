@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-29.767 satır Python $\cdot$ 119 test dosyası $\cdot$ 1142 geçen test\\[3mm]
+29.949 satır Python $\cdot$ 121 test dosyası $\cdot$ 1172 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -1052,7 +1052,7 @@ v1.1 & yüksek & Eski çözücü sarmalayıcısının kaldırılması; tüm yoll
                 \texttt{analysis/} çekirdeğine taşınması \\
 v1.2 & yüksek & URANS yolu --- limit çevrimine giren vakalar için zaman-çözünür
                 çözüm ve kuvvet ortalaması \\
-v1.3 & orta   & İş kuyruğu, iptal ve devam-ettirme; kaynak kotaları \\
+v1.3 & orta   & Kaynak kotaları (RAM/süre); kuyruk için öncelik ve zamanlama \\
 v1.4 & orta   & Model-form öncülünün kalan hücrelerinin ölçümle değiştirilmesi
                 (rejime ayrılan tablonun boş kalan gözleri) \\
 v1.5 & orta   & Docker/Conda kilidi ile yeniden-üretilebilir ortam;
@@ -1093,13 +1093,13 @@ v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanm
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 29.767 & dosya sayımı \\
+Kod satırı (kök + \texttt{analysis/}) & 29.949 & dosya sayımı \\
 Kök modül & 77 & \\
-Deney / çapa betiği & 57 & \texttt{experiments/} \\
-Test dosyası & 119 & \texttt{tests/} \\
-Geçen test & 1142 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1142 & \texttt{-{}-cov} \\
-Satır kapsamı & \textbf{\%43} & 17.924 ifade, 10.137 kapsanmamış \\
+Deney / çapa betiği & 58 & \texttt{experiments/} \\
+Test dosyası & 121 & \texttt{tests/} \\
+Geçen test & 1172 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1172 & \texttt{-{}-cov} \\
+Satır kapsamı & \textbf{\%44} & 18.021 ifade, 10.012 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
 \end{tabular}
@@ -1119,9 +1119,9 @@ dış-süreç sarmalayıcıları aynı kaba girer. Katman ayrımı
 \rowcolor{iyibg} Karar \& V\&V motoru & \%67 & 1.974 \\
 \rowcolor{ortabg} Araç hattı & \%52 & 2.452 \\
 \rowcolor{ortabg} Dış-süreç köprüleri & \%40 & 1.188 \\
-\rowcolor{kotubg} Arayüz (GUI) & \%25 & 1.530 \\
+\rowcolor{ortabg} Arayüz (GUI) & \%35 & 1.569 \\
 \midrule
-TOPLAM & \%43 & 17.924 \\
+TOPLAM & \%44 & 18.021 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1151,6 +1151,38 @@ Ayrıca depo kendi kod hijyenini de sınar: \emph{sessiz yutma} sayacı, gerekç
 üreten betik ilk yazımında o sayacı tetikledi ve düzeltildi --- yani mekanizma
 raporun kendi üretim zincirinde de çalışmaktadır.
 
+\subsection{Toplu koşu ve kesinti kurtarması}
+
+Bir CFD koşusu saatler sürer; beş varyantı sıraya alıp gitmek olağan iş
+akışıdır. Kuyruk tek bir worker'ı dosya kilidiyle tekilleştirir --- CFD zaten
+makineyi doyurduğu için paralel worker anlamsızdır --- ve iş başına disk
+bekçisi uygular. Asıl mesele kesinti hâlidir ve bu raporun hazırlandığı oturumda
+\emph{gerçekten yaşandı}: makine koşu ortasında kapandı.
+
+\begin{reddedilir}{Sessiz kalsaydı ne olurdu}
+Kilit dosyası diskte kalır ve kilit sahibinin canlı olup olmadığına kimse
+bakmadığı için kuyruk \emph{kalıcı} olarak bloke olurdu. Dahası, ``koşuyor''
+durumunda kalan iş bir daha ele alınmazdı: worker yalnızca ``bekliyor'' işlere
+bakar. İş sessizce kaybolurdu.
+\end{reddedilir}
+
+Kurtarmanın iki kuralı vardır ve ikisi de bu raporun genel ilkesinin
+uygulamasıdır:
+
+\begin{enumerate}\setlength\itemsep{1pt}
+  \item \textbf{Süreç durumu sorulamıyorsa kilit devralınmaz.}
+        ``Bilmiyorum'' ile ``ölü'' aynı şey değildir; karıştırmak, koşan bir
+        worker'ın üstüne ikinci worker salmak olurdu. Bayat kilit
+        (sahibi ölü) devralınır, belirsiz kilit bırakılır.
+  \item \textbf{Yarım iş sessizce yeniden koşulmaz.} Koşu saatler sürmüş ve
+        yarım bir case dizini bırakmış olabilir; hangisinin atılacağı
+        kullanıcının kararıdır. İş \texttt{yarim} olarak işaretlenir, nedeni
+        yazılır ve \texttt{devam} ile \emph{açıkça} kuyruğa geri alınır.
+\end{enumerate}
+
+\noindent Kilit durumu ve yarım iş sayısı arayüzde de görünür: bayat kilit
+sessiz kalsaydı kullanıcı ``worker koşuyor'' sanıp bekleyecekti.
+
 \subsection*{Kurulum ve tipik komutlar}
 
 \begin{lstlisting}
@@ -1167,6 +1199,9 @@ python vehicle_polar.py model.stl --alfalar 0 4 8 12
 python vehicle_fea.py --case vehicle_runs/model --malzeme AL6061
 python zarf.py --yaz                         # dogrulama zarfini uret
 python kanit.py --eksik                      # kanit butunlugu denetimi
+python kuyruk.py ekle model.stl --kalite hassas   # topluma is ekle
+python kuyruk.py calis | listele | kilit          # worker / durum
+python kuyruk.py devam                            # yarim kalanlari geri al
 python experiments/rapor_figurleri.py        # bu raporun figurleri
 \end{lstlisting}
 
@@ -1217,10 +1252,11 @@ hat, GPU \\
 \end{center}
 
 \begin{dikkat}{Bu sürümde kapanmamış olanlar}
-Model-form belirsizliğinin dört hücresinden üçü hâlâ literatür-öncülü;
-arayüz katmanının test kapsamı \%25; iş kuyruğu, iptal/devam ve kaynak kotası
-yok; başarım ölçümü tek vakadan ibaret. Yol haritası bunları v1.1--v1.5
-aralığına yerleştirir ve hiçbiri ``yakında'' diye geçiştirilmemiştir.
+Model-form belirsizliğinin dört hücresinden üçü hâlâ literatür-öncülü; kuyrukta
+disk bekçisi var ama RAM/süre kotası yok; başarım ölçümü tek vakadan ibaret;
+eski çözücü sarmalayıcısı hâlâ \texttt{analysis/} çekirdeğini kullanmıyor. Yol
+haritası bunları v1.1--v1.5 aralığına yerleştirir ve hiçbiri ``yakında'' diye
+geçiştirilmemiştir.
 \end{dikkat}
 
 \vspace{4mm}

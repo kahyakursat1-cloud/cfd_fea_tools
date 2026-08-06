@@ -26,14 +26,14 @@
       "pct": 40.4
     },
     "Arayüz (GUI)": {
-      "ifade": 1530,
-      "kapsanan": 376,
-      "pct": 24.6
+      "ifade": 1569,
+      "kapsanan": 552,
+      "pct": 35.2
     },
     "TOPLAM": {
-      "ifade": 17924,
-      "kapsanan": 7787,
-      "pct": 43.4
+      "ifade": 18021,
+      "kapsanan": 8009,
+      "pct": 44.4
     }
   },
   "_uretim": "Üretim: python -m pytest tests/ -q --cov=. --cov-report=json:cov.json && python experiments/kapsam_katmanlari.py"
