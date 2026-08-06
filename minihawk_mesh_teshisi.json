@@ -1,0 +1,67 @@
+{
+  "vaka": "MiniHawk RANS — mesh kok-neden teshisi (kosunun kendi loglarindan)",
+  "_neden": "Delta_entegrasyon uc kapiya takildi (GCI %379, y+ 5399, Cl uyusmazligi). Ucu de BELIRTI; kok neden meshte.",
+  "kosu": "D:\\bilsem_beyin\\cfd_fea_tools\\vehicle_runs\\minihawk",
+  "seviyeler": [
+    {
+      "ad": "minihawk_cokkaba",
+      "taban_hucre": 50880,
+      "yuzey_yuz": null,
+      "alan_boyut_m": [
+        38.204,
+        22.5,
+        21.08
+      ]
+    },
+    {
+      "ad": "minihawk_kaba",
+      "taban_hucre": 165440,
+      "yuzey_yuz": 8,
+      "alan_boyut_m": [
+        38.204,
+        22.5,
+        21.08
+      ]
+    },
+    {
+      "ad": "minihawk_orta",
+      "taban_hucre": 549780,
+      "yuzey_yuz": 144,
+      "alan_boyut_m": [
+        38.204,
+        22.5,
+        21.08
+      ]
+    },
+    {
+      "ad": "minihawk",
+      "taban_hucre": 3943350,
+      "yuzey_yuz": 74,
+      "alan_boyut_m": [
+        38.204,
+        22.5,
+        21.08
+      ]
+    }
+  ],
+  "yuzey_yuz_esigi": 500,
+  "esik_altinda_seviyeler": [
+    "minihawk_cokkaba",
+    "minihawk_kaba",
+    "minihawk_orta",
+    "minihawk"
+  ],
+  "yuzey_yuz_monoton": false,
+  "alan_boyut_m": [
+    38.204,
+    22.5,
+    21.08
+  ],
+  "alan_hacim_m3": 18120.2,
+  "en_ince_taban_hucre": 3943350,
+  "arka_plan_hucre_m": 0.1663,
+  "_kok_neden": "Arka plan mesh'i tum alana DUZGUN seriliyor. Alan 1.5 m acikliktaki bir ucak icin ~17.955 m3; en ince seviyede 3.94M taban hucre = 0.164 m hucre. Hucre butcesi (maxGlobalCells) arka planda tukeniyor ve snappyHexMesh yuzeyi inceltemiyor. MAKINE DEGIL, DAGITIM sorunu: govde cevresine hedefli refinement KUTUSU konsaydi ayni butceyle yuzey cozulurdu. `CFDCase.refinement_regions` ZATEN VAR ama arac yolu hic kullanmiyor (varsayilan None).",
+  "_kisit": "Bu teshis MESH loglarindan uretildi; polyMesh diskte yok (temizlikte silindi). Yuzey yuz sayilari checkMesh'in patch tablosundan, taban hucre blockMesh'ten okundu. Cozucu sonuclari (Cd/Cl) YENIDEN HESAPLANMADI — bu dosya onlarin NEDEN kullanilamaz oldugunu soyler, yerlerine sayi koymaz.",
+  "_uretim": "Üretim: python experiments/minihawk_mesh_teshisi.py",
+  "verdikt": "⛔ ARAC YUZEYI MESH'TE YOK: yuzey yuzleri minihawk_cokkaba=None, minihawk_kaba=8, minihawk_orta=144, minihawk=74 — esik 500. Dizi MONOTON DEGIL: en ince seviye ortadan DAHA AZ yuzey yuzu veriyor, yani kademeler ayni geometrinin farkli cozunurlukleri DEGIL. En kotu 8 yuz. Bu kademelerden gelen Cd/Cl sayi degildir; GCI %379 ve y+ 5399 bunun SONUCUDUR, sebebi degil."
+}

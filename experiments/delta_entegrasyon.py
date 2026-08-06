@@ -145,6 +145,26 @@ def calistir() -> dict:
 
     # KAPILAR — Delta'nin KULLANILABILIR olmasi icin RANS'in savunulabilir
     # olmasi gerekir; RANS'in kendi verdikti bunu zaten reddediyor.
+    # KOK NEDEN VARSA ONCE O SOYLENIR. "GCI yuksek" bir BELIRTI; teshis dosyasi
+    # varsa arac yuzeyinin mesh'te olup olmadigini soyler ve o daha temeldir.
+    _t = KOK / "minihawk_mesh_teshisi.json"
+    if _t.exists():
+        t = json.loads(_t.read_text(encoding="utf-8"))
+        rec["mesh_teshisi"] = {
+            "yuzey_yuzleri": [(k["ad"], k.get("yuzey_yuz")) for k in
+                              t.get("seviyeler", [])],
+            "esik": t.get("yuzey_yuz_esigi"),
+            "monoton": t.get("yuzey_yuz_monoton"),
+        }
+        if t.get("esik_altinda_seviyeler"):
+            engeller.append(
+                "ARAC YUZEYI MESH'TE YOK: "
+                + ", ".join(f"{ad}={y}" for ad, y in
+                            rec["mesh_teshisi"]["yuzey_yuzleri"])
+                + f" yuz (esik {t.get('yuzey_yuz_esigi')}). Cd/Cl bu "
+                  "kademelerden SAYI DEGIL; asagidaki GCI ve y+ engelleri bunun "
+                  "SONUCUDUR. Ayrinti: minihawk_mesh_teshisi.json")
+
     if gci_pct > 15.0:
         engeller.append(
             f"RANS MESH-BAGIMSIZ DEGIL: GCI %{gci_pct:.0f}"
@@ -183,11 +203,15 @@ def calistir() -> dict:
         rec["verdikt"] = (f"✅ Δ = {d['deger']:.5f} ± {d['band']:.5f} "
                           f"(±%{d['band_pct']:.0f}), kanat alani tabaninda")
     rec["_gerekli"] = (
-        "Delta'nin KULLANILABILIR olmasi icin: (1) RANS mesh-bagimsizligi "
-        "gosterilmeli (GCI < %15, monoton seri), (2) y+ 30-300 bandina "
-        "cekilmeli (prizma katmani), (3) RANS'in Cl'i kamburlugu cozmeli — su "
-        "an alpha=0'da 0.0143 verirken 2B beklenti ~0.25. Ucu de MESH "
-        "COZUNURLUGU sorunudur; geometri artik dogru.")
+        "SIRA ONEMLI. (0) ONCE ARAC YUZEYI COZULMELI: en ince seviye 74 yuz "
+        "veriyor, esik 500. Kok neden dagitim — alan 1.5 m ucak icin 38x22.5x21 m "
+        "ve arka plan mesh'i oraya DUZGUN seriliyor (0.166 m hucre), butce "
+        "yuzeye ulasmadan tukeniyor. `CFDCase.refinement_regions` zaten var ama "
+        "arac yolu kullanmiyor; govde cevresine hedefli kutu ayni butceyle "
+        "yuzeyi cozer. (1) sonra mesh-bagimsizligi (GCI<%15, monoton), "
+        "(2) y+ 30-300 (prizma katmani), (3) Cl kamburlugu cozmeli (su an "
+        "alpha=0'da 0.0143, 2B beklenti ~0.25). 1-3 ancak 0 saglaninca "
+        "anlamlidir; geometri artik dogru.")
     rec["_uretim"] = "Üretim: python experiments/delta_entegrasyon.py"
     return rec
 

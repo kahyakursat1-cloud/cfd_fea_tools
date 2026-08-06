@@ -47,12 +47,35 @@
     },
     "kestirime_orani": 2.22
   },
+  "mesh_teshisi": {
+    "yuzey_yuzleri": [
+      [
+        "minihawk_cokkaba",
+        null
+      ],
+      [
+        "minihawk_kaba",
+        8
+      ],
+      [
+        "minihawk_orta",
+        144
+      ],
+      [
+        "minihawk",
+        74
+      ]
+    ],
+    "esik": 500,
+    "monoton": false
+  },
   "engeller": [
+    "ARAC YUZEYI MESH'TE YOK: minihawk_cokkaba=None, minihawk_kaba=8, minihawk_orta=144, minihawk=74 yuz (esik 500). Cd/Cl bu kademelerden SAYI DEGIL; asagidaki GCI ve y+ engelleri bunun SONUCUDUR. Ayrinti: minihawk_mesh_teshisi.json",
     "RANS MESH-BAGIMSIZ DEGIL: GCI %379, seri MONOTON DEGIL. Delta bu bandi AYNEN devralir",
     "y+ BANT DISI: ortalama 5399 (hedef 30-300). Ilk hucre sinir tabakayi yutuyor, CILT SURTUNMESI COZULMUYOR — Delta'nin baskin terimi tam da o",
     "AYNI DURUMDA DEGILLER: RANS Cl=0.0143, birlestirme Cl=0.1270. RANS kamburlugu cozemiyor (mesh), yani iki sayi ayni aerodinamik noktaya ait degil"
   ],
-  "verdikt": "⛔ Δ HESAPLANDI ama KULLANILAMAZ: 0.01504 ± 0.09070 (±%603) — band degerin 6.0 KATI. Duz-levha kestirimi 0.00679, olculen onun 2.2 kati. Engeller: RANS MESH-BAGIMSIZ DEGIL | y+ BANT DISI | AYNI DURUMDA DEGILLER",
-  "_gerekli": "Delta'nin KULLANILABILIR olmasi icin: (1) RANS mesh-bagimsizligi gosterilmeli (GCI < %15, monoton seri), (2) y+ 30-300 bandina cekilmeli (prizma katmani), (3) RANS'in Cl'i kamburlugu cozmeli — su an alpha=0'da 0.0143 verirken 2B beklenti ~0.25. Ucu de MESH COZUNURLUGU sorunudur; geometri artik dogru.",
+  "verdikt": "⛔ Δ HESAPLANDI ama KULLANILAMAZ: 0.01504 ± 0.09070 (±%603) — band degerin 6.0 KATI. Duz-levha kestirimi 0.00679, olculen onun 2.2 kati. Engeller: ARAC YUZEYI MESH'TE YOK | RANS MESH-BAGIMSIZ DEGIL | y+ BANT DISI | AYNI DURUMDA DEGILLER",
+  "_gerekli": "SIRA ONEMLI. (0) ONCE ARAC YUZEYI COZULMELI: en ince seviye 74 yuz veriyor, esik 500. Kok neden dagitim — alan 1.5 m ucak icin 38x22.5x21 m ve arka plan mesh'i oraya DUZGUN seriliyor (0.166 m hucre), butce yuzeye ulasmadan tukeniyor. `CFDCase.refinement_regions` zaten var ama arac yolu kullanmiyor; govde cevresine hedefli kutu ayni butceyle yuzeyi cozer. (1) sonra mesh-bagimsizligi (GCI<%15, monoton), (2) y+ 30-300 (prizma katmani), (3) Cl kamburlugu cozmeli (su an alpha=0'da 0.0143, 2B beklenti ~0.25). 1-3 ancak 0 saglaninca anlamlidir; geometri artik dogru.",
   "_uretim": "Üretim: python experiments/delta_entegrasyon.py"
 }
