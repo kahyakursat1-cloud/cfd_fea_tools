@@ -1,0 +1,40 @@
+{
+  "katmanlar": {
+    "Karar & V&V motoru": {
+      "ifade": 1909,
+      "kapsanan": 1148,
+      "pct": 60.1
+    },
+    "Otomasyon & öğrenme": {
+      "ifade": 598,
+      "kapsanan": 462,
+      "pct": 77.3
+    },
+    "Analiz çekirdeği": {
+      "ifade": 1285,
+      "kapsanan": 960,
+      "pct": 74.7
+    },
+    "Araç hattı": {
+      "ifade": 2436,
+      "kapsanan": 1263,
+      "pct": 51.8
+    },
+    "Dış-süreç köprüleri": {
+      "ifade": 1188,
+      "kapsanan": 480,
+      "pct": 40.4
+    },
+    "Arayüz (GUI)": {
+      "ifade": 1530,
+      "kapsanan": 376,
+      "pct": 24.6
+    },
+    "TOPLAM": {
+      "ifade": 17303,
+      "kapsanan": 7319,
+      "pct": 42.3
+    }
+  },
+  "_uretim": "Üretim: python -m pytest tests/ -q --cov=. --cov-report=json:cov.json && python experiments/kapsam_katmanlari.py"
+}

@@ -276,8 +276,16 @@ def fig_mesh_convergence(meshes, out_path):
 
     fig, ax = plt.subplots(figsize=(4.5, 3.2))
     ax.plot(h, cd, "o-", color="#1f4e79", mfc="white", ms=6, lw=1.3)
-    gci = compute_gci(h[-1], h[1] if len(h) > 2 else h[-1], h[0],
-                      cd[-1], cd[1] if len(cd) > 2 else cd[-1], cd[0])
+    # EN İNCE ÜÇ KADEME. Eski sürüm `h[-1]`i (EN KABA) kaba kademe olarak
+    # alıyordu ve 4+ kademeli ailede aradaki kademeyi ATLIYORDU: oran sabitliği
+    # (r21 ≈ r32) bozuluyor, yani Richardson'ın dayandığı varsayım kırılıyordu.
+    # ÖLÇÜLDÜ (küp, 4 kademe): rapor p=0.97 / GCI=%10.61 basıyordu, oysa
+    # kanonik hesap ve `gci_kup_arac.json` kanıtı p=2.386 / GCI=%3.15 diyor.
+    # Rapor, deponun KENDİ kanıtıyla çelişen bir sayı yayımlıyordu.
+    if len(h) >= 3:
+        gci = compute_gci(h[2], h[1], h[0], cd[2], cd[1], cd[0])
+    else:
+        gci = compute_gci(h[-1], h[-1], h[0], cd[-1], cd[-1], cd[0])
     if gci:
         ax.axhline(gci["f_exact"], ls="--", color="#c00000", lw=1,
                    label=f"Richardson: Cd={gci['f_exact']:.4f}")

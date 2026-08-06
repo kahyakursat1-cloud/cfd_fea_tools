@@ -232,6 +232,60 @@ def fig_yakinsama_tarihcesi() -> Path | None:
     return p
 
 
+# ── 5. Aşama süreleri — koşu loglarının zaman damgalarından ─────────────────
+
+# Boru hattı aşama süresi KAYDETMİYOR; her aşama kendi logunu bitince yazdığı
+# için ardışık logların değişim zamanları aşama sınırlarını verir. Bu bir
+# DUVAR-SAATİ ölçümüdür (bu donanımda, bu koşuda) ve öyle yazılır.
+ASAMALAR = [
+    ("surfaceFeatures", "log.surfaceFeatures"),
+    ("blockMesh", "log.blockMesh"),
+    ("snappyHexMesh", "log.snappyHexMesh"),
+    ("checkMesh", "log.checkMesh"),
+    ("decomposePar", "log.decomposePar"),
+    ("foamRun (SIMPLE, 8 çekirdek)", "log.foamRun"),
+    ("reconstructPar", "log.reconstructPar"),
+    ("son-işlem (yüzey/kesit)", "log.yuzeyBasinc"),
+]
+
+
+def fig_asama_sureleri() -> Path | None:
+    kok = KOK / "vehicle_runs" / "minihawk" / "minihawk"
+    if not kok.is_dir():
+        return None
+    kayit = [(ad, (kok / dosya).stat().st_mtime)
+             for ad, dosya in ASAMALAR if (kok / dosya).exists()]
+    if len(kayit) < 4:
+        return None
+    kayit.sort(key=lambda t: t[1])
+    t0 = kayit[0][1]
+    adlar, sureler = [], []
+    onceki = t0
+    for ad, ts in kayit[1:]:
+        adlar.append(ad)
+        sureler.append(max(ts - onceki, 0.0))
+        onceki = ts
+    toplam = onceki - t0
+
+    fig, ax = plt.subplots(figsize=(7.4, 2.9))
+    renk = ["#1f4e79" if "foamRun" in a else ("#4a7ba7" if "snappy" in a
+                                              else "#8fb3d0") for a in adlar]
+    ax.barh(adlar[::-1], sureler[::-1], color=renk[::-1], height=0.62)
+    for i, s in enumerate(sureler[::-1]):
+        ax.text(s + toplam * 0.012, i, f"{s:.0f} s ({s / toplam * 100:.0f}%)",
+                va="center", fontsize=8)
+    ax.set_xlabel("duvar-saati süresi (s)")
+    ax.set_xlim(0, max(sureler) * 1.32)
+    ax.set_title(f"Aşama süreleri — MiniHawk, 454k hücre, toplam "
+                 f"{toplam / 60:.1f} dk (8 çekirdek)", fontsize=9.5)
+    ax.grid(axis="y", visible=False)
+
+    p = CIKTI / "fig_asama_sureleri.pdf"
+    fig.savefig(p)
+    plt.close(fig)
+    return p
+
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -245,6 +299,7 @@ def main() -> int:
                                     "vlm_iki_yonlu_yakinsama.json")),
         (fig_dogrulama_capalari, ("fea_validation.json", "gci_kup_arac.json")),
         (fig_yakinsama_tarihcesi, ()),
+        (fig_asama_sureleri, ()),
     ):
         yok = [g for g in gerekli if not (KOK / g).exists()]
         if yok:
