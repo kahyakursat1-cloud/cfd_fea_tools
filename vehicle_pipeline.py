@@ -1541,7 +1541,12 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     # FİZİK KAPISI — zarf sınıfından ve mesh/iterasyon ölçütlerinden ÖNCE gelir: sayısal
     # olarak kusursuz yakınsamış bir koşu da fizik-dışı Cd üretebilir (kaba gridde negatif
     # basınç sürüklemesi). Bu hüküm listenin BAŞINDA durur ki mühendis ilk onu görsün.
-    fizik = force_admissibility(cd, cl, alpha_deg)
+    # REJIM BEYAN EDILIR: tek bir |Cl|<3 esigi hem cok-elemanli yuksek-tasimayi
+    # haksiz reddediyor hem de AR=6 duz kanadin fiziksel tavaninin (~1.5) 2 kati
+    # bir sayiyi sessizce geciriyordu.
+    from validity_envelope import rejim_arac_tipinden
+    fizik = force_admissibility(cd, cl, alpha_deg,
+                                rejim=rejim_arac_tipinden(vehicle_type))
     base.fizik_kabul = fizik
     if fizik["verdict"] != "ok":
         etiket = ("SONUÇ FİZİK KAPISINDAN GEÇMEDİ" if fizik["verdict"] == "inadmissible"
@@ -1620,7 +1625,10 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     from analysis.openfoam_runner import yuzey_cozunurluk_hukmu
     _sn = case_dir / "log.snappyHexMesh"
     _yc = yuzey_cozunurluk_hukmu(_sn.read_text(errors="ignore") if _sn.exists() else "",
-                                 yuzey_yuz_sayisi(case_dir, _patch))
+                                 yuzey_yuz_sayisi(case_dir, _patch),
+                                 en_kucuk_boyut_m=(geo.get("min_ozellik_m")
+                                                   or geo.get("ince_kalinlik_m")),
+                                 yuzey_alani_m2=geo.get("yuzey_alani_m2"))
     base.sinir_tabaka["yuzey_cozunurlugu"] = _yc
     if _oneri:
         base.sinir_tabaka["ref_bump_onerisi"] = {**_oneri, "kullanilan": ref_bump}

@@ -151,7 +151,8 @@ def polar(naca: str = "0012", re: float = 3.5e5, mach: float = 0.0,
     fizik_disi = []
     gecerli = []
     for n in noktalar:
-        f = force_admissibility(n["Cd"], n["Cl"], n["alpha"])
+        f = force_admissibility(n["Cd"], n["Cl"], n["alpha"],
+                                rejim="2b_tek_elemanli")   # XFOIL tek kesit
         n["fizik"] = f["verdict"]
         (gecerli if f["verdict"] != "inadmissible" else fizik_disi).append(n)
 

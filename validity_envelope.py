@@ -28,7 +28,29 @@ MACH_INCOMP = 0.3
 # 0.5'lik tek eşiğin künt cisimleri haksız yere reddettiğini gösterdi.
 CD_MAX_PLAUSIBLE = 2.5      # EVRENSEL fizik sınırı — üstü hiçbir araç sınıfında makul değil
 CD_MAX_STREAMLINED = 0.5    # profil/kanat/ince gövde bilindiğinde çağıran bunu geçirir
-CL_MAX_PLAUSIBLE = 3.0      # 2D basit kesit CLmax ~1.6-2.0; üstü şüpheli
+# TAŞIMA SINIRI TEK SAYI OLAMAZ. 3.0'lık evrensel eşik iki yönde de yanlıştı:
+# çok-elemanlı yüksek-taşıma kesitini (slat+flap, CLmax 3.5-4.5) HAKSIZ reddediyor,
+# AR=6 düz bir kanadın fiziksel tavanı ~1.5 iken 2× yanlış bir sayıyı SESSİZCE
+# geçiriyordu. Sınır rejime bağlıdır ve her biri kaynaklıdır.
+CL_MAX_REJIM = {
+    # tek-elemanlı 2B kesit: NACA 4/5-haneli CLmax 1.5-1.8 (Abbott & von Doenhoff,
+    # Theory of Wing Sections); modern laminer kesitlerde ~2.0'a çıkar
+    "2b_tek_elemanli": 2.2,
+    # çok-elemanlı yüksek-taşıma: slat+çift flap CLmax 3.5-4.5 (A.M.O. Smith 1975,
+    # "High-Lift Aerodynamics"); üst sınır olarak 4.5
+    "2b_cok_elemanli": 4.5,
+    # sonlu düz kanat: 3B kayıp nedeniyle CLmax_3B ≈ 0.9·CLmax_2B, artı indüklenmiş
+    # açı kaybı — AR 5-10 için 1.4-1.6 (Anderson, Aircraft Performance and Design)
+    "3b_duz_kanat": 1.8,
+    # delta / kırlangıç: girdap taşıması ile doğrusal-ötesi kazanç (Polhamus 1966)
+    "3b_delta": 1.6,
+    # künt cisim: taşıma tasarım amacı değil; ölçülen yan/taşıma kuvveti küçüktür
+    "kunt": 0.8,
+}
+# REJİM BEYAN EDİLMEZSE en gevşek sınır uygulanır — çünkü daha sıkı bir sınır
+# uygulamak, hangi rejimde olduğunu bilmediğimiz geçerli bir sonucu reddetmek olur.
+# Bunun bedeli kapının zayıflamasıdır ve bu SÖYLENİR (bkz. force_admissibility).
+CL_MAX_PLAUSIBLE = max(CL_MAX_REJIM.values())
 
 _TR = {VALIDATED: "DOĞRULANMIŞ", TREND: "YALNIZ-EĞİLİM", OUT: "ZARF-DIŞI"}
 _ICON = {VALIDATED: "✅", TREND: "🟡", OUT: "🔴"}
@@ -158,7 +180,28 @@ def geometry_sanity(geo: dict, vehicle_type: str = "genel",
     return u
 
 
-def force_admissibility(Cd, Cl=None, alpha=None, cd_max=CD_MAX_PLAUSIBLE):
+_ARAC_REJIMI = {"ucak": "3b_duz_kanat", "roket": "kunt", "multikopter": "kunt",
+                "araba": "kunt", "genel": "kunt"}
+
+
+def rejim_arac_tipinden(vehicle_type: str | None) -> str | None:
+    """Araç tipi → taşıma-sınırı rejimi. Bilinmeyen tip için None (kapı gevşer,
+    ve gevşediği SÖYLENİR) — tahminle bir rejime atamak, hangi sınırın
+    uygulandığını gizler."""
+    return _ARAC_REJIMI.get(vehicle_type or "")
+
+
+def cl_siniri(rejim: str | None) -> tuple[float, str]:
+    """(|Cl| üst sınırı, kaynak metni). Rejim bilinmiyorsa EN GEVŞEK sınır."""
+    if rejim in CL_MAX_REJIM:
+        return CL_MAX_REJIM[rejim], f"rejim='{rejim}'"
+    return CL_MAX_PLAUSIBLE, (
+        f"REJİM BEYAN EDİLMEDİ ({rejim!r}) — en gevşek sınır ({CL_MAX_PLAUSIBLE}) "
+        "uygulandı; bu kapı zayıftır ve 3B düz kanat için ~2.5× fazla toleranslıdır")
+
+
+def force_admissibility(Cd, Cl=None, alpha=None, cd_max=CD_MAX_PLAUSIBLE,
+                        rejim: str | None = None):
     """Kuvvet katsayıları FİZİKSEL olarak kabul edilebilir mi? (zarf sınıfından ÖNCE gelir)
 
     İterasyon yakınsaması ve mesh kalitesi SAYISAL ölçütlerdir; fiziksel imkânsızlığı
@@ -190,14 +233,22 @@ def force_admissibility(Cd, Cl=None, alpha=None, cd_max=CD_MAX_PLAUSIBLE):
         elif abs(Cd) > cd_max:
             reasons.append(f"makul olmayan sürükleme mertebesi (Cd={Cd:.4f} > {cd_max})")
             verdict = "inadmissible"
+    cl_max, cl_kaynak = cl_siniri(rejim)
     if Cl is not None:
-        if abs(Cl) > CL_MAX_PLAUSIBLE:
-            reasons.append(f"makul olmayan taşıma (|Cl|={abs(Cl):.2f} > {CL_MAX_PLAUSIBLE})")
+        if abs(Cl) > cl_max:
+            reasons.append(f"makul olmayan taşıma (|Cl|={abs(Cl):.2f} > {cl_max}; "
+                           f"{cl_kaynak})")
             verdict = "inadmissible"
         elif alpha is not None and abs(alpha) > 2.0 and Cl * alpha < 0 and verdict != "inadmissible":
             reasons.append(f"taşıma işareti hücum açısıyla ters (α={alpha}°, Cl={Cl:.3f})")
             verdict = "suspect"
-    return {"verdict": verdict, "reasons": reasons}
+    out = {"verdict": verdict, "reasons": reasons}
+    if Cl is not None:
+        # KAPININ NE KADAR SIKI OLDUĞU da bir çıktıdır: rejim beyan edilmediyse
+        # "fizik kapısı geçti" cümlesi çok daha az şey söylüyor demektir.
+        out["cl_kapisi"] = {"sinir": cl_max, "rejim": rejim, "kaynak": cl_kaynak,
+                            "beyan_edildi": rejim in CL_MAX_REJIM}
+    return out
 
 
 SF_MAKUL_UST = 100.0        # üstü: dikkat çekilir ama REDDEDİLMEZ (bkz. aşağıdaki not)

@@ -609,7 +609,8 @@ class VVReport:
                 # 2D airfoil: akış-yönlü geometri bilindiği için DAR sınır (künt-cisim
                 # toleransı burada yanlış-negatif üretir)
                 adm = force_admissibility(lv.get("Cd"), lv.get("Cl"), airfoil_gci.get("alpha"),
-                                          cd_max=CD_MAX_STREAMLINED)
+                                          cd_max=CD_MAX_STREAMLINED,
+                                          rejim="2b_tek_elemanli")
                 if adm["verdict"] == "ok":
                     adm_s = "✅ kabul"
                 else:

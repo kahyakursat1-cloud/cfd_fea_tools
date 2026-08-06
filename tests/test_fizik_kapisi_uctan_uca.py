@@ -120,7 +120,9 @@ def test_pipeline_uyariyi_listenin_basina_koyar():
 
     import vehicle_pipeline
     src = inspect.getsource(vehicle_pipeline.run_vehicle_analysis)
-    i_fizik = src.index("force_admissibility(cd, cl, alpha_deg)")
+    # cagri rejim beyaniyla cok satira yayildi (bkz. test_cl_rejim_siniri);
+    # capa cagrinin BASLANGICINA tutunur, tam metnine degil.
+    i_fizik = src.index("force_admissibility(cd, cl, alpha_deg,")
     i_mesh = src.index("Mesh non-ortogonallik")
     assert i_fizik < i_mesh
     assert np.isfinite(0.0)  # numpy importu testin ortam kontrolü

@@ -22,7 +22,7 @@ from pathlib import Path
 import matplotlib
 import numpy as np
 
-from validity_envelope import force_admissibility
+from validity_envelope import force_admissibility, rejim_arac_tipinden
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -129,7 +129,9 @@ def run_polar(stl_path, vehicle_type="ucak", velocity=25.0, alphas=(-4, 0, 4, 8)
         cl_s = round(cl * scale, 5) if ok and cl is not None else None
         # Fizik kapısı NOKTA BAZINDA: tek bir fizik-dışı α, lift eğimini ve L/D'yi
         # sessizce bozar — o nokta polardan dışlanır, gerekçesi satırda kalır.
-        fz = force_admissibility(cd_s, cl_s, a_deg) if ok else {"verdict": "ok", "reasons": []}
+        fz = (force_admissibility(cd_s, cl_s, a_deg,
+                                  rejim=rejim_arac_tipinden(vehicle_type))
+              if ok else {"verdict": "ok", "reasons": []})
         rows.append({"alpha": a_deg,
                      "Cl": cl_s,
                      "Cd": cd_s,

@@ -240,6 +240,7 @@ relaxationFactors{ equations{ U 0.3; k 0.2; omega 0.2; gammaInt 0.2; ReThetat 0.
         # (wake kumelemesi yok). Hukum sonuca YAZILIR, sessizce SUCCESS olmaz.
         from validity_envelope import CD_MAX_STREAMLINED, force_admissibility
         fz = force_admissibility(round(sim["Cd"],5), round(sim["Cl"],4), alpha_deg,
+                                 rejim="2b_tek_elemanli",
                                  cd_max=CD_MAX_STREAMLINED)   # NACA0012 = akis-yonlu
         out = {"alpha":alpha_deg, "Cl":round(sim["Cl"],4), "Cd":round(sim["Cd"],5),
                "fizik":fz,
