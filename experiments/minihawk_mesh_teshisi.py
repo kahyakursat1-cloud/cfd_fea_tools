@@ -21,9 +21,15 @@ seriliyor; en ince seviyede 3.94M taban hücre demek 0.164 m hücre demek. Hücr
 bütçesi (maxGlobalCells) arka planda tükeniyor ve snappyHexMesh yüzeyi
 inceltemiyor.
 
-MAKİNE DEĞİL, DAĞITIM SORUNU: gövde çevresine hedefli bir refinement KUTUSU
-konsaydı aynı bütçeyle yüzey çözülebilirdi. `CFDCase.refinement_regions` zaten
-var ama araç yolu HİÇ KULLANMIYOR (varsayılan None).
+KUSUR ZATEN BULUNMUŞ VE DÜZELTİLMİŞ (commit b62980c, `arka_plan_hucre_boyu`):
+arka plan artık bütçenin en fazla %25'ini yiyecek şekilde KABALAŞTIRILIYOR ve
+kaba seviyeler ince seviyenin GERÇEK arka planından türetiliyor. snappy'nin
+"No cells marked for refinement since reached limit" satırı da ayrıca
+ayrıştırılıyor (`parse_iyilestirme_acligi`).
+
+DOLAYISIYLA BU DOSYA BİR KUSUR RAPORU DEĞİL: depoda DURAN `gci_minihawk_arac.json`
+kaydının O DÜZELTMEDEN ÖNCEKİ boru hattıyla üretildiğini ve bu yüzden
+kullanılamaz olduğunu gösterir. Gereken şey kod değişikliği değil, YENİDEN KOŞU.
 
     python experiments/minihawk_mesh_teshisi.py
 Çıktı: minihawk_mesh_teshisi.json
@@ -100,13 +106,20 @@ def calistir() -> dict:
         "en_ince_taban_hucre": en_ince.get("taban_hucre") if en_ince else None,
         "arka_plan_hucre_m": round(bg_hucre, 4) if bg_hucre else None,
         "_kok_neden": (
-            "Arka plan mesh'i tum alana DUZGUN seriliyor. Alan 1.5 m acikliktaki "
-            "bir ucak icin ~17.955 m3; en ince seviyede 3.94M taban hucre = "
-            "0.164 m hucre. Hucre butcesi (maxGlobalCells) arka planda tukeniyor "
-            "ve snappyHexMesh yuzeyi inceltemiyor. MAKINE DEGIL, DAGITIM sorunu: "
-            "govde cevresine hedefli refinement KUTUSU konsaydi ayni butceyle "
-            "yuzey cozulurdu. `CFDCase.refinement_regions` ZATEN VAR ama arac "
-            "yolu hic kullanmiyor (varsayilan None)."),
+            "Arka plan mesh'i tum alana DUZGUN seriliyordu. Alan 1.5 m "
+            "acikliktaki bir ucak icin ~18.120 m3; en ince seviyede 3.94M taban "
+            "hucre = 0.166 m hucre. Hucre butcesi (maxGlobalCells) arka planda "
+            "tukeniyor ve snappyHexMesh yuzeyi inceltemiyordu."),
+        "_zaten_duzeltildi": (
+            "KOD TARAFINDA COZULMUS (commit b62980c, analysis/openfoam_runner."
+            "arka_plan_hucre_boyu): arka plan bütçenin en fazla "
+            "ARKA_PLAN_BUTCE_PAYI=%25'ini yiyecek sekilde KABALASTIRILIYOR; kaba "
+            "seviyeler ince seviyenin GERCEK arka planindan tureiliyor; snappy'nin "
+            "'No cells marked for refinement since reached limit' satiri "
+            "parse_iyilestirme_acligi ile ayrica olculuyor. Bu dosya bir KUSUR "
+            "RAPORU DEGIL — depoda duran gci_minihawk_arac.json kaydinin O "
+            "DUZELTMEDEN ONCEKI boru hattiyla uretildigini gosterir."),
+        "_gereken": "Kod degisikligi DEGIL, YENIDEN KOSU.",
         "_kisit": ("Bu teshis MESH loglarindan uretildi; polyMesh diskte yok "
                    "(temizlikte silindi). Yuzey yuz sayilari checkMesh'in patch "
                    "tablosundan, taban hucre blockMesh'ten okundu. Cozucu "
@@ -122,7 +135,9 @@ def calistir() -> dict:
            "veriyor, yani kademeler ayni geometrinin farkli cozunurlukleri "
            "DEGIL. " if not monoton else "")
         + f"En kotu {min(olculen) if olculen else 0} yuz. Bu kademelerden gelen "
-          "Cd/Cl sayi degildir; GCI %379 ve y+ 5399 bunun SONUCUDUR, sebebi degil.")
+          "Cd/Cl sayi degildir; GCI %379 ve y+ 5399 bunun SONUCUDUR, sebebi "
+          "degil. KUSUR KOD TARAFINDA ZATEN DUZELTILDI (b62980c); bu KAYIT "
+          "duzeltmeden ONCEKI boru hattina ait. GEREKEN: yeniden kosu.")
     return rec
 
 

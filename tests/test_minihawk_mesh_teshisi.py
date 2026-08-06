@@ -45,7 +45,31 @@ def test_BELIRTI_ile_SEBEP_ayriliyor():
     if not d:
         return
     assert "SONUCUDUR" in d["verdikt"]
-    assert "refinement" in d["_kok_neden"] or "kutu" in d["_kok_neden"]
+    assert "arka plan" in d["_kok_neden"].lower()
+
+
+def test_ZATEN_DUZELTILMIS_oldugu_yaziyor():
+    """Bu bir kusur raporu DEĞİL: kök neden kodda çözülmüş (b62980c,
+    arka_plan_hucre_boyu bütçenin %25'i). Kayıt o düzeltmeden ÖNCEKİ boru
+    hattına ait. Dosya yeni bir kusur ima ederse okuyucu var olmayan bir işi
+    yapmaya kalkar."""
+    d = _d()
+    if not d:
+        return
+    assert "b62980c" in d.get("_zaten_duzeltildi", "")
+    assert "YENIDEN KOSU" in d.get("_gereken", "").upper()
+    assert "DUZELTILDI" in d["verdikt"]
+
+
+def test_DUZELTME_kodda_GERCEKTEN_var():
+    """Kanıt "düzeltildi" diyorsa kod da öyle demeli."""
+    from analysis.openfoam_runner import ARKA_PLAN_BUTCE_PAYI, arka_plan_hucre_boyu
+    assert 0 < ARKA_PLAN_BUTCE_PAYI <= 0.5
+    # Butceyi asan bir istek KABALASTIRILMALI (asla inceltilmemeli).
+    boy, bilgi = arka_plan_hucre_boyu((0, 0, 0), (38.2, 22.5, 21.1), 0.1663,
+                                      1_200_000)
+    assert bilgi["kabalastirildi"], "arka plan butce icin kabalastirilmiyor"
+    assert bilgi["arka_plan_hucre"] <= 1_200_000
 
 
 def test_YAMA_YOK_ile_SIFIR_YUZ_ayri():
