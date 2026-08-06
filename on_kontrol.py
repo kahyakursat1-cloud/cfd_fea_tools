@@ -21,7 +21,11 @@ from pathlib import Path
 # ray-tabanlı et-kalınlığı ölçümü sessizce bbox yedeğine düşüyor ve çağıran bunu ÖLÇÜM
 # sanıyordu (MiniHawk'ta "ince özellik 80 mm" aslında gövde çapıydı).
 ZORUNLU_PY = ["numpy", "scipy", "matplotlib", "trimesh", "gmsh", "yaml",
-              "rtree", "shapely", "mapbox_earcut", "manifold3d"]
+              "rtree", "shapely", "mapbox_earcut", "manifold3d",
+              # psutil: kuyruk kilidinin sahibi PID hala yasiyor mu. Yoksa
+              # "sorulamadi" donulur ve BAYAT KILIT DEVRALINMAZ — makine
+              # kapanmasindan sonra kuyruk kalici bloke kalir.
+              "psutil"]
 SECMELI_PY = {"PySide6": "GUI (app_analyzer / launcher)",
               "pandas": "tablo/rapor yardımcıları",
               "plotly": "etkileşimli figürler"}

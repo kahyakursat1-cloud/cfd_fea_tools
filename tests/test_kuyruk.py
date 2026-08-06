@@ -55,11 +55,17 @@ def test_worker_marks_failure_and_continues(izole):
     assert isler["patlar.stl"]["durum"] == "hata"
     assert "mesh çöktü" in isler["patlar.stl"]["sonuc"]["hata"]
     assert isler["saglam.stl"]["durum"] == "bitti"   # biri çöktü, kuyruk devam etti
-    assert ozet == {"bitti": 1, "hata": 1, "atlandi_disk": 0}
+    assert {k: ozet[k] for k in ("bitti", "hata", "atlandi_disk")} ==         {"bitti": 1, "hata": 1, "atlandi_disk": 0}
+    assert ozet["yarim_bulundu"] == 0
 
 
 def test_second_worker_blocked_by_lock(izole):
-    kuyruk.KILIT.write_text("12345")
+    # KILIT SAHIBI YASIYOR OLMALI: rastgele bir PID artik yeterli degil, cunku
+    # bayat kilit (olu sahip) bilerek DEVRALINIYOR — makine kapanmasindan sonra
+    # kuyrugun kalici bloke kalmasi bu depoda yasandi. Bkz.
+    # tests/test_kuyruk_kurtarma.py.
+    import os
+    kuyruk.KILIT.write_text(str(os.getpid()))
     r = kuyruk.calis(runner=lambda p: {"status": "ok"})
     assert r["durum"] == "kilitli"
     kuyruk.KILIT.unlink()

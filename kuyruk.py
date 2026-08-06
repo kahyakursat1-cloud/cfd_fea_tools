@@ -15,6 +15,7 @@ GUI: app_analyzer 'Kuyruğa Ekle' + KuyrukDialog.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import time
@@ -64,7 +65,8 @@ def listele() -> list[dict]:
 
 def temizle(hepsi: bool = False) -> int:
     """bitti/hata işleri (hepsi=True: tümünü) kuyruktan düşür; kalan sayısı döner."""
-    isler = [] if hepsi else [i for i in _yukle() if i["durum"] in ("bekliyor", "kosuyor")]
+    isler = ([] if hepsi else
+             [i for i in _yukle() if i["durum"] in ("bekliyor", "kosuyor", "yarim")])
     _kaydet(isler)
     return len(isler)
 
@@ -74,14 +76,101 @@ def _disk_gb() -> float:
     return shutil.disk_usage(HERE).free / 1e9
 
 
+def _surec_yasiyor(pid: int) -> bool | None:
+    """PID canlı mı? Bilinemiyorsa None — 'bilmiyorum' ile 'ölü' KARIŞTIRILMAZ,
+    çünkü ölü sanıp kilidi almak koşan bir worker'ın üstüne ikinci worker salar.
+
+    Tek mekanizma psutil'dir. Elle yazılmış yedekler (posix `os.kill(pid, 0)`,
+    Windows ctypes `OpenProcess`) kaçınılmaz olarak geniş `except` blokları
+    getiriyordu ve bu depo sessiz-yutmayı sayıyla sınırlıyor. psutil yoksa
+    dürüst cevap "sorulamadı"dır; kilit o zaman güvenli tarafta bırakılır.
+    (Windows'ta `os.kill(pid, 0)` zaten kullanılamaz: sinyal göndermez,
+    süreci ÖLDÜRÜR.)
+    """
+    if pid <= 0:
+        return False
+    if importlib.util.find_spec("psutil") is None:
+        return None
+    import psutil
+    return psutil.pid_exists(pid)
+
+
+def kilit_durumu() -> dict:
+    """Kilit kimde ve o süreç hâlâ yaşıyor mu?"""
+    if not KILIT.exists():
+        return {"kilitli": False}
+    ham = KILIT.read_text(encoding="utf-8", errors="ignore").strip()
+    pid = int(ham) if ham.isdigit() else -1
+    yasiyor = _surec_yasiyor(pid)
+    return {"kilitli": True, "pid": pid, "yasiyor": yasiyor,
+            "bayat": yasiyor is False,
+            "_not": ("kilit sahibi süreç YOK — bayat kilit (çökme/kapanma)"
+                     if yasiyor is False else
+                     "kilit sahibi yaşıyor" if yasiyor else
+                     "süreç durumu SORULAMADI — kilit güvenli tarafta bırakıldı")}
+
+
 def _kilit_al() -> bool:
+    """Kilidi al. BAYAT KİLİT DEVRALINIR: worker çökerse ya da makine kapanırsa
+    (bu depoda ölçüldü — oturum ortasında bilgisayar kapandı) kilit dosyası
+    diskte kalıyordu ve kuyruk KALICI olarak bloke oluyordu; kimse PID'in canlı
+    olup olmadığına bakmıyordu. Süreç durumu SORULAMIYORSA kilit devralınmaz."""
     try:
         fd = os.open(KILIT, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         os.write(fd, str(os.getpid()).encode())
         os.close(fd)
         return True
     except FileExistsError:
-        return False
+        d = kilit_durumu()
+        if not d.get("bayat"):
+            return False
+        KILIT.unlink(missing_ok=True)
+        try:
+            fd = os.open(KILIT, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.write(fd, str(os.getpid()).encode())
+            os.close(fd)
+            return True
+        except FileExistsError:
+            return False
+
+
+def iptal(is_id: str) -> dict:
+    """Bekleyen işi iptal et. KOŞAN iş iptal EDİLMEZ: çözücü ayrı bir süreçtir
+    ve yarım bırakılan case dizini 'başarısız' ile 'hiç koşmadı'yı karıştırır."""
+    for i in _yukle():
+        if i["id"] == is_id:
+            if i["durum"] != "bekliyor":
+                return {"ok": False, "durum": i["durum"],
+                        "mesaj": f"yalnız 'bekliyor' işler iptal edilir (bu: {i['durum']})"}
+            _guncelle(is_id, durum="iptal", iptal_ts=time.strftime("%Y-%m-%d %H:%M"))
+            return {"ok": True, "durum": "iptal"}
+    return {"ok": False, "mesaj": f"iş bulunamadı: {is_id}"}
+
+
+def yarim_isaretle() -> list[str]:
+    """Kilit sahibi ölmüşken 'kosuyor' kalan işleri YARIM diye işaretle.
+
+    Bunlar sessizce yeniden koşulmaz: koşu saatler sürmüş ve yarım bir case
+    dizini bırakmış olabilir; hangisinin atılıp hangisinin sürdürüleceği
+    kullanıcının kararıdır. `devam()` açıkça çağrılır."""
+    d = kilit_durumu()
+    if d.get("kilitli") and not d.get("bayat"):
+        return []
+    yarim = [i["id"] for i in _yukle() if i["durum"] == "kosuyor"]
+    for is_id in yarim:
+        _guncelle(is_id, durum="yarim",
+                  yarim_neden="worker süreci sonlandı (çökme/kapanma) — koşu tamamlanmadı")
+    return yarim
+
+
+def devam(is_id: str | None = None) -> int:
+    """Yarım kalan işleri yeniden kuyruğa al (hepsi ya da tek bir iş)."""
+    n = 0
+    for i in _yukle():
+        if i["durum"] == "yarim" and (is_id is None or i["id"] == is_id):
+            _guncelle(i["id"], durum="bekliyor", devam_ts=time.strftime("%Y-%m-%d %H:%M"))
+            n += 1
+    return n
 
 
 def _guncelle(is_id: str, **alanlar) -> None:
@@ -95,9 +184,13 @@ def _guncelle(is_id: str, **alanlar) -> None:
 def calis(runner=None, once: bool = False) -> dict:
     """Worker: bekleyen işleri SIRAYLA koş. runner enjekte edilebilir (test);
     varsayılan run_vehicle_analysis. once=True → tek iş koşup çık (test/adım-adım)."""
+    # BAYAT KILIT + YARIM IS: once tespit, sonra kilit. Sirasi onemli — kilidi
+    # aldiktan sonra bakarsak "kilit sahibi olmus mu" sorusunu kendimize sorarız.
+    _yarim = yarim_isaretle()
     if not _kilit_al():
-        return {"durum": "kilitli", "mesaj": f"başka worker aktif ({KILIT})"}
-    ozet = {"bitti": 0, "hata": 0, "atlandi_disk": 0}
+        return {"durum": "kilitli", "mesaj": f"başka worker aktif ({KILIT})",
+                "kilit": kilit_durumu()}
+    ozet = {"bitti": 0, "hata": 0, "atlandi_disk": 0, "yarim_bulundu": len(_yarim)}
     try:
         if runner is None:
             from vehicle_pipeline import run_vehicle_analysis
@@ -140,8 +233,9 @@ if __name__ == "__main__":
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     cli = argparse.ArgumentParser()
-    cli.add_argument("komut", choices=["ekle", "listele", "calis", "temizle"])
-    cli.add_argument("stl", nargs="?")
+    cli.add_argument("komut", choices=["ekle", "listele", "calis", "temizle",
+                                       "iptal", "devam", "kilit"])
+    cli.add_argument("stl", nargs="?", help="ekle icin STL; iptal/devam icin is id")
     cli.add_argument("--tip", default="ucak")
     cli.add_argument("--hiz", type=float, default=30.0)
     cli.add_argument("--alpha", type=float, default=0.0)
@@ -165,5 +259,14 @@ if __name__ == "__main__":
                   + (f"  Cd={i['sonuc'].get('cd')}" if i.get("sonuc") else ""))
     elif args.komut == "temizle":
         print("kalan:", temizle())
+    elif args.komut == "iptal":
+        if not args.stl:
+            sys.exit("iptal icin is id gerekli")
+        print(json.dumps(iptal(args.stl), indent=2, ensure_ascii=False))
+    elif args.komut == "devam":
+        yarim_isaretle()
+        print(f"{devam(args.stl)} is yeniden kuyruga alindi")
+    elif args.komut == "kilit":
+        print(json.dumps(kilit_durumu(), indent=2, ensure_ascii=False))
     else:
         print(json.dumps(calis(), indent=2, ensure_ascii=False))

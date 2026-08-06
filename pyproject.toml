@@ -31,6 +31,8 @@ dependencies = [
     "manifold3d>=2.0",     # katı boolean birleşim; yoksa gövdeler BİRLEŞMEZ
                            # ve STL su-geçirmez olmaz (snappy kaçak yüzey görür)
     "gmsh>=4.11",
+    "psutil>=5.9",       # kuyruk kilidi: PID canli mi. Yoksa kilit devralinmaz
+                         # ("sorulamadi" -> guvenli taraf) ve bayat kilit kalir.
 ]
 
 [project.optional-dependencies]
