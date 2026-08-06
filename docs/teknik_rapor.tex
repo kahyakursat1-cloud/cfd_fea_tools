@@ -132,7 +132,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-29.023 satır Python $\cdot$ 107 test dosyası $\cdot$ 987 geçen test\\[3mm]
+29.023 satır Python $\cdot$ 108 test dosyası $\cdot$ 1009 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -197,6 +197,57 @@ Platform üç soruyu yanıtlar: (i) bu cisim akışta nasıl davranır, (ii) bu 
 yükü taşır mı, (iii) \emph{bu sayıya ne kadar güvenilir}. Üçüncüsü kodun
 kendisinde yaşar.
 
+% ══════════════════════════════ 1B ══════════════════════════════
+\section{Yetenekler}
+
+Aşağıdaki tablo kapsamı özetler; ayırt edici olanlar kendi bölümlerinde
+ayrıntılanır.
+
+\begingroup\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}p{31mm}p{68mm}p{50mm}@{}}
+\toprule
+\textbf{Alan} & \textbf{Yetenek} & \textbf{Not / bölüm} \\
+\midrule
+\multicolumn{3}{@{}l}{\textbf{Akışkanlar (CFD)}}\\
+Çözücü & OpenFOAM 11, \texttt{incompressibleFluid}, kararlı-durum SIMPLE &
+  $k$--$\omega$ SST, $k$--$\varepsilon$, SST~LM geçiş \\
+Mesh & \texttt{blockMesh} + \texttt{snappyHexMesh} + prizma katmanı &
+  arka plan \emph{bütçeden} boyutlandırılır (\S3) \\
+Araç hattı & STL $\rightarrow$ tip önseti $\rightarrow$ far-field $\rightarrow$
+  çözüm $\rightarrow$ rapor & uçak / roket / multikopter / araba \\
+Polar & tek mesh, çoklu $\alpha$ $\rightarrow$ $C_L$/$C_D$/$C_m$ & \\
+Panel / VLM & OpenVSP VSPAERO --- saniyeler mertebesinde taşıma &
+  ince kanatta RANS'ın yapamadığı (\S8, Vaka 2) \\
+2B kesit & XFOIL 6.99, panel + $e^N$ ($N_{krit}=9$) & panel-bağımsızlık ölçülür \\
+Pervane & aktüatör disk (itki kaynak terimi) & \\
+\midrule
+\multicolumn{3}{@{}l}{\textbf{Yapısal (FEA)}}\\
+Çözücü & CalculiX, C3D10 (kuadratik tetrahedron) & \\
+Yük mekanizmaları & kuvvet, basınç, gövde kuvveti ($n\!\cdot\!g$), termal,
+  burkulma & \textbf{beşi de kapalı-forma karşı doğrulanmış} (\S6) \\
+Basınç yükü & T6 yüzeyinde tutarlı-yük (kenar-orta $A/3$) & Lamé ile \%1{,}3 \\
+Tekillik bekçisi & sayısal tekilliği gerçek $K_t$'den ayırır &
+  ayrılmadan tepe gerilme raporlanmaz \\
+Malzeme & \texttt{materials.json}, kaynaklı ve sürümlü & 10 malzeme \\
+\midrule
+\multicolumn{3}{@{}l}{\textbf{Kuplaj ve optimizasyon}}\\
+1-yönlü FSI & CFD yüzey basıncı $\rightarrow$ FEA düğüm kuvvetleri &
+  korunum makine hassasiyetinde test edilir \\
+2-yönlü FSI & Aitken ivmelendirmeli ilmek & aeroelastik ıraksama tespiti \\
+Topoloji opt. & SIMP, CFD-yüklü, \emph{gerilme farkındalıklı} &
+  adjoint FD-doğrulanmış (\S7) \\
+\midrule
+\multicolumn{3}{@{}l}{\textbf{Otomasyon, V\&V ve çıktı}}\\
+Otopilot & geometriden rejim/mesh/referans seçimi (deterministik) & plan + gerekçe \\
+Mentor & kNN öğrenme + BYF/ÖYG/PROJE öğretici katmanı & \S6B \\
+V\&V / UQ & GCI, LSR, geçerlilik zarfı, karar motoru & \S2--\S5 \\
+İzlenebilirlik & her kanıt kendi üretim komutunu taşır & \texttt{kanit.py} \\
+Çıktı & Markdown/PDF rapor, VTK/ParaView, JSON kanıt & \\
+\bottomrule
+\end{tabular}
+\endgroup
+
 % ══════════════════════════════ 2 ══════════════════════════════
 \section{Karar Motoru}
 
@@ -248,6 +299,38 @@ yayımlanmaz ve ret gerekçesi rapora yazılır.
 yollarıdır; her biri \emph{adı konmuş} bir gerekçe üretir. Kapıların bir kısmı
 çözücüden \emph{önce} çalışır ve boşa geçecek saatleri engeller.\par}
 
+\subsection{Karar mantığı --- gerçek kod}
+
+Karar bir \emph{puan} değil, sıralı bir yeterlilik zinciridir. Puan kullanmamak
+bilinçli bir tercihtir: ağırlıklandırılmış bir skor, kötü bir mesh'i iyi bir
+yakınsamayla telafi ettirir. Kapı mantığında telafi yoktur.
+
+\begin{lstlisting}
+karar(sonuc):
+    engeller = []
+    # 1) Geometri beyan = insa mi
+    for s in geometri_kiyasla(arac):        engeller += [s]
+    # 2) Yuzey cozunurlugu (KOSUDAN ONCE tahmin, SONRA olcum)
+    if yuzey_yuz < YUZEY_YUZ_ESIGI:         engeller += ["yuzey cozulmemis"]
+    # 3) Yakinsama: plato mu, butce mi
+    if not drift_ok and rezidual_platosu():  engeller += ["limit cevrimi"]
+    # 4) Fiziksel kabul
+    if Cd <= 0 or CDi < 0 or |Cl| > 3:      engeller += ["fizik disi"]
+    # 5) Ayriklastirma bandi ve AIDIYETI
+    U = band_from_levels(kademeler, boyut)   # LSR > GCI > 3*dM > vekil
+    if ayar not in band_ailesi:             engeller += ["band bu ayara ait degil"]
+    # 6) Gecerlilik zarfi
+    sinif = validity_envelope(buyukluk, kosullar)   # DOGRULANMIS/EGILIM/DISI
+
+    if engeller:  return RET(engeller, duzeltme_adimi(engeller))
+    return YAYIMLA(deger, U, sinif)
+\end{lstlisting}
+
+\noindent Belirsizlik bileşenleri de \emph{toplanmaz, ayrıştırılır}: ölçülmüş
+bileşenler alt sınır verir, ölçülmemiş olan adıyla yazılır. ``Ölçülmedi'' ile
+``sıfır'' aynı şey değildir --- bu ayrım bir kez kaybolduğunda bir fark
+$\pm\%0{,}1$ ile ``kesin'' göründü ve test tarafından yakalandı.
+
 \subsection{Koşudan önceki kapılar}
 
 \begin{itemize}\setlength\itemsep{1pt}
@@ -280,6 +363,92 @@ yollarıdır; her biri \emph{adı konmuş} bir gerekçe üretir. Kapıların bir
   \item \textbf{Geçerlilik zarfı:} her büyüklük DOĞRULANMIŞ / EĞİLİM /
         ZARF-DIŞI olarak sınıflanır.
 \end{itemize}
+
+% ══════════════════════════════ 2B ══════════════════════════════
+\section{Açıklanabilirlik: Reddin Anatomisi}
+
+Platformun iddiası ``sonuç açıklanabilir''dir. Bu iddianın sınandığı yer, kabul
+değil \emph{ret}tir: bir koşu reddedildiğinde kullanıcı ne öğreniyor?
+
+Aşağıdakiler gerçek koşu çıktılarından \emph{birebir} alınmıştır.
+
+\begin{lstlisting}
+KOSULMADI - tahmini govde yuzu 210 (esik 500); bu kademede govde
+temsil edilemez
+\end{lstlisting}
+
+\noindent Üç bilgi birden: \emph{ne} oldu (koşulmadı), \emph{ölçüm} (210 vs
+500), \emph{neden} (gövde temsil edilemez). Kritik olan, bunun koşudan
+\emph{önce} söylenmesidir --- o kademe için saatlerce CFD harcanmamıştır.
+
+\begin{lstlisting}
+INCE OZELLIK: ince ozellik yalniz 1.06 hucre (hedef >=6) ve ref_bump=3
+gerekir ama butceye SIGMAZ (1,937,567 yuzey yuzu). Bu donanimda
+COZULEMEZ: firar kenari bir-iki hucreyken Kutta kosulu kurulamaz,
+sirkulasyon ve TASIMA dogmaz. Surukleme kullanilabilir olabilir;
+Cl/L-D guvenilir DEGILDIR (kanat capasinda olculdu: hucre 20.6 kat
+artti, Cl yalniz %23)
+\end{lstlisting}
+
+\noindent Bu mesaj dört şeyi birden yapar: (i) ölçümü verir (1{,}06 hücre),
+(ii) çözümü hesaplar ve \emph{maliyetini} söyler (1{,}9\,M yüzey yüzü,
+sığmaz), (iii) fiziksel mekanizmayı açıklar (Kutta koşulu $\rightarrow$
+sirkülasyon $\rightarrow$ taşıma), (iv) \textbf{hangi büyüklüğün hâlâ
+kullanılabilir olduğunu} ayırır --- sürükleme evet, taşıma hayır. Toptan
+``analiz başarısız'' demek bu bilgiyi yok ederdi.
+
+\begin{lstlisting}
+BAND BU AYARA AIT DEGIL: polar 80x33 panelle kosulmus ama band ailesi
+[(40,17),(54,23),(73,31),(98,42)]. Yakinsama bandi bir AILE icin
+olculur; aile disindaki bir ayara tasinmasi, olculmemis bir kesinlik
+yayinlamaktir.
+\end{lstlisting}
+
+\noindent Bu, klasik bir sessiz hatanın açık hâlidir: bir çalışmadan çıkan
+bandın başka bir ayara taşınması. Rapor bunu yakaladığında sayı yayımlanmaz.
+
+\subsection{Mekanizma kendi raporunu da denetler}
+
+Açıklanabilirlik iddiası, ancak mekanizma \emph{kendi çıktısına} da uygulandığında
+inandırıcıdır. Bu raporun hazırlanışı sırasında kapsam ölçümü mantıksal
+katmanlara ayrıldı ve ``karar mantığı test edilmiş, raporu \emph{yazan} kod
+edilmemiş'' sonucu çıktı. Oraya bakınca rapor kurucusunda dört kusur bulundu:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}p{52mm}p{50mm}p{40mm}@{}}
+\toprule
+\textbf{Kusur} & \textbf{Ölçülen çelişki} & \textbf{Düzeltme} \\
+\midrule
+Kademe üçlüsü yanlış seçiliyordu (en kaba + ikinci-en-ince) &
+Küp: rapor $p{=}0{,}97$, GCI \%10{,}61; kanıt dosyası $p{=}2{,}386$, \%3{,}15 &
+En ince üç kademe \\
+\addlinespace
+Band kanonik hiyerarşiden alınmıyordu &
+Küp: kanonik LSR $U{=}\%58{,}33$, rapor \%3{,}15 --- 18{,}5 kat, iyimser yönde &
+\texttt{band\_from\_levels}; ayrışma varsa uyarı \\
+\addlinespace
+TMR bölümünde koşulsuz ``VALIDATED'' ve ``tasarım-grade'' &
+GCI kötü olsa da aynı metin basılıyordu &
+Hüküm GCI'den türetilir \\
+\addlinespace
+FEA suite işareti kanıt \emph{metninden} (\texttt{"GECTI" in sonuc}) &
+\%40 hatalı bir vaka metninde öyle yazıyorsa \checkmark\ alırdı &
+Ölçülen hata $\leq$ eşik; çıkarılamazsa üçüncü durum \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Dördü de aynı sınıftandır: \emph{tek kaynağın atlanması}. Ve dördü de
+platformun en görünür yerindeydi --- yayımlanan raporun kendisinde. Bunları
+bulduran şey kapsam \emph{yüzdesi} değil, kapsamın \emph{nerede} düşük olduğunu
+sormaktı.
+
+\subsection*{Neden bu bir paradigma farkı}
+
+Geleneksel iş akışında ret mesajı çözücüden gelir (``divergence detected'') ve
+\emph{mühendislik} anlamı taşımaz. Burada ret, mühendislik diliyle ve eylem
+adımıyla birlikte üretilir. Fark, hata mesajının kalitesinde değil,
+\emph{kimin karar verdiğindedir}.
 
 % ══════════════════════════════ 3 ══════════════════════════════
 \section{Belirsizlik Nicelemesi}
@@ -505,6 +674,134 @@ $0{,}96$; Richardson sınırı $C_d=1{,}141$, ölçülen en ince $1{,}113$, Hoer
 referansı $1{,}05$. Sapma \%6{,}0 ve GCI \%3{,}1 --- yani sonuç
 \emph{bantlı kabul} edilir, ``doğrulandı'' denmez.
 
+% ══════════════════════════════ 6B ══════════════════════════════
+\section{Öğrenen Katman: \texttt{mentor}}
+
+\subsection*{Problem}
+
+Mesh ve çözücü ayarları geometriye bağlıdır ve doğru ayar deneyimle bulunur.
+Bir öğrenci ya da yarışma takımı bu deneyime sahip değildir; her yeni geometride
+aynı hataları tekrarlar.
+
+\subsection*{Çözüm}
+
+\texttt{mentor}, geçmiş koşuları kNN ile indeksler ve yeni bir geometri için
+komşu koşuların ayarlarını önerir. Üç tasarım kararı bunu sıradan bir
+öneri motorundan ayırır:
+
+\begin{enumerate}\setlength\itemsep{1pt}
+  \item \textbf{Etiket, çözücünün çıkış kodu değil geçerlilik kapısının
+        hükmüdür.} Ölçüldü: 12 koşunun 12'si \texttt{status=ok} ile bitmişken
+        kapı 6'sını reddediyordu. Etiket çıkış koduna bağlıyken havuz
+        ``her koşu başarılı'' diyordu --- yani hiçbir şey öğrenmiyordu.
+  \item \textbf{Başarısız koşular silinmez, negatif ders olarak kalır.}
+        y$^+$'ın hedefin 5 katını aşması ``katman çökmesi'' imzası olarak
+        öğrenilir.
+  \item \textbf{Öneri UQ'ya girmez.} \texttt{gci\_advisor} yeni bir geometri
+        için beklenen belirsizliği öngörür, ama bu öngörü \emph{rapor edilen
+        banda dâhil edilmez}; yalnız planlamaya yardım eder. Öngörülen
+        belirsizlik, ölçülen belirsizlik değildir.
+\end{enumerate}
+
+Ayrıca \texttt{mentor} BYF/ÖYG/PROJE seviyelerine göre öğretici kutular üretir:
+aynı ret mesajı, öğrenciye kavramsal, ileri kullanıcıya sayısal biçimde sunulur.
+
+% ══════════════════════════════ 6BB ══════════════════════════════
+\section{Topoloji Optimizasyonu --- Gerilme Farkındalıklı}
+
+\subsection*{Problem}
+
+Klasik SIMP topoloji optimizasyonu \emph{kompliyansı} (rijitliği) minimize eder
+ve gerilmeye kördür. Sonuç, toplamda rijit ama girintili köşede yüksek gerilme
+yığılması taşıyan bir tasarımdır --- yani yapı ``en az esneyen'' hâline gelirken
+kırılmaya en yakın noktası iyileşmez. Havacılıkta kritik olan çoğunlukla
+ikincisidir.
+
+\subsection*{Çözüm}
+
+Amaç fonksiyonu von Mises gerilmesinin P-norm toplayıcısıyla değiştirilir
+($P=8$ 2B, $P=12$ 3B), qp-relaksasyonu ($q=0{,}5$) ile gerilme tekilliği
+giderilir ve duyarlılık \textbf{adjoint} yöntemle hesaplanır. Optimizasyon
+kriteri OC'dir; 3B'de gerilme-amacı tek başına salındığı için kompliyans
+tasarımından \emph{sıcak başlatma} yapılır (Le ve ark.\ 2010).
+
+\subsection*{Doğrulama --- kritik adım}
+
+Gerilme tabanlı TO'da hata en sık \emph{adjoint gradyanında} olur ve sessizdir:
+yanlış gradyan yine bir tasarım üretir, sadece yanlış olanı. Bu yüzden gradyan
+sonlu-farkla karşılaştırılır ve test altyapısına bağlanır:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Motor} & \textbf{Adjoint--FD uyumu} & \textbf{Test} \\
+\midrule
+2B (\texttt{stress\_topopt2d}) & $\sim10^{-7}$ & \texttt{test\_stress\_topopt2d} \\
+3B (\texttt{stress\_topopt3d}) & $<10^{-4}$ & \texttt{test\_stress\_topopt3d} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Sonuç}
+
+Aynı hacim kısıtında ($V_f=0{,}4$), gerilme-min tasarımı tepe von Mises'i
+düşürür:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+\textbf{Vaka} & \textbf{Kompliyans-min} & \textbf{Gerilme-min} &
+\textbf{Azalma} & \textbf{Boyut} \\
+\midrule
+2B L-bracket & $\eta_{vM}=2{,}678$ & $2{,}482$ & $-\%7{,}3$ & $48^2$ ızgara \\
+3B L-bracket & $\eta_{vM}=0{,}788$ & $0{,}762$ & $-\%3{,}3$ & $24{\times}24{\times}4$, 9375 SD \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.86\textwidth]{../stress_topopt_lbracket.png}
+\caption{2B L-bracket. Solda kompliyans-min: girintili köşe keskin kalır ve
+tepe gerilme oradadır. Sağda gerilme-min: köşe yuvarlanır, malzeme yük yoluna
+yeniden dağılır. Aynı hacim, \%7{,}3 daha düşük tepe gerilme.
+\emph{Veri:} \texttt{stress\_topopt\_lbracket.json}.}
+\end{figure}
+
+\noindent\textbf{Dürüst kayıt.} 3B azalma (\%3{,}3) 2B'nin yarısından azdır ve
+nedeni yazılıdır: kaba köşe çözünürlüğü, ekstrüzyon yönünde seyreltme ve OC'nin
+gerilme-TO'da MMA'ya göre zayıflığı. Yön doğru ve adjoint doğrulanmış; ama
+``3B'de de \%7 kazanç'' denmemiştir çünkü ölçülen bu değildir.
+
+\subsection*{Araç hattına bağlanması}
+
+\texttt{vehicle\_topopt} aynı SIMP motorunu CFD yüzey basınçlarıyla besler:
+CFD $\rightarrow$ basınç $\rightarrow$ FEA yükü $\rightarrow$ topoloji. Böylece
+optimizasyon varsayılan bir yük yerine \emph{hesaplanmış} aerodinamik yük
+altında çalışır. Gerilme kısıtı da bu yolda geçerlidir.
+
+% ══════════════════════════════ 6C ══════════════════════════════
+\section{Performans}
+
+Boru hattı aşama süresi kaydetmez; her aşama kendi logunu bitince yazdığı için
+ardışık logların değişim zamanları aşama sınırlarını verir. Aşağıdaki ölçüm bu
+yöntemle, tek bir gerçek koşudan alınmıştır --- bir kıyaslama (benchmark)
+değil, \emph{maliyet dağılımı} göstergesidir.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{figurler/fig_asama_sureleri.pdf}
+\caption{Aşama süreleri (MiniHawk, 454k hücre, 8 çekirdek). Çözücü ve mesh
+adaptasyonu toplamın büyük kısmını alır; V\&V ve rapor katmanı ölçülebilir bir
+ek maliyet getirmez. \emph{Yöntem:} log dosyalarının değişim zamanları.}
+\end{figure}
+
+\noindent\textbf{Ölçek notu.} Bu koşu \texttt{-{}-ref-bump oto} ile y$^+$'ı
+banda sokan kademede yapılmıştır (24.477 yüzey yüzü). Daha kaba bir kademe
+(bump 0) aynı geometride 312k hücre ve belirgin daha kısa süre verir, ama y$^+$
+banda girmez --- yani süre, doğrulukla doğrudan takas edilir ve platform bu
+takası \emph{sayıyla} sunar.
+
 % ══════════════════════════════ 7 ══════════════════════════════
 \section{Bilinen Sınırlar ve Yol Haritası}
 
@@ -577,25 +874,50 @@ v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanm
 \midrule
 Kod satırı (kök + \texttt{analysis/}) & 29.023 & dosya sayımı \\
 Kök modül & 76 & \\
-Deney / çapa betiği & 51 & \texttt{experiments/} \\
-Test dosyası & 107 & \texttt{tests/} \\
-Geçen test & 987 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1015 & \texttt{-{}-cov} \\
+Deney / çapa betiği & 53 & \texttt{experiments/} \\
+Test dosyası & 108 & \texttt{tests/} \\
+Geçen test & 1009 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1031 & \texttt{-{}-cov} \\
 Satır kapsamı & \textbf{\%42} & 17.303 ifade, 9.984 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\noindent\textbf{Kapsam neden \%42.} Kapsanmayan kodun büyük kısmı ancak dış
-çözücülerle çalışan yollardır: OpenFOAM/WSL sürücüsü, CalculiX koşumu,
-OpenVSP/XFOIL köprüleri ve PyQt arayüzü. Bunlar birim testiyle değil,
-\emph{çapa koşularıyla} sınanır --- ve o koşuların sonuçları kanıt dosyalarına
-yazılıp testlerle bağlanır (örn.\ yayımlanan \texttt{vspaero\_polar.json}'un
-kabul kapısından geçtiği testle doğrulanır). Yani karar mantığı ve V\&V
-katmanı yüksek kapsamlıdır; düşük kapsam dış-süreç sarmalayıcılarındadır. Sayı
-olduğu gibi verilmiştir çünkü ``\%85 kapsam'' demek için testi kolay olanı
-sayıp zoru dışarıda bırakmak, bu raporun savunduğu ilkenin tersi olurdu.
+\noindent\textbf{Toplam yüzde tek başına yanıltıcıdır} --- karar mantığı ile
+dış-süreç sarmalayıcıları aynı kaba girer. Katman ayrımı
+(\texttt{experiments/kapsam\_katmanlari.py}) nerede düşük olduğunu söyler:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\textbf{Katman} & \textbf{Kapsam} & \textbf{İfade} \\
+\midrule
+\rowcolor{iyibg} Otomasyon \& öğrenme & \%77 & 598 \\
+\rowcolor{iyibg} Analiz çekirdeği (\texttt{analysis/}) & \%75 & 1.285 \\
+\rowcolor{ortabg} Karar \& V\&V motoru & \%60 & 1.909 \\
+\rowcolor{ortabg} Araç hattı & \%52 & 2.436 \\
+\rowcolor{ortabg} Dış-süreç köprüleri & \%40 & 1.188 \\
+\rowcolor{kotubg} Arayüz (GUI) & \%25 & 1.530 \\
+\midrule
+TOPLAM & \%42 & 17.303 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Fonksiyon düzeyinde bakıldığında tablo bir kez daha ayrışır:
+belirsizlik matematiği fiilen tamdır (\texttt{band\_from\_levels} \%100,
+\texttt{least\_squares\_gci} \%100, \texttt{compute\_gci} \%92,
+\texttt{gci\_verdict} \%94); kapsanmayan, \emph{raporu yazan} koddu
+(\texttt{VVReport.build} \%38). Doğru matematikle yanlış rapor mümkündür ---
+ve öyleydi (bkz.\ \S2.4, dört kusur).
+
+Düşük kapsamın büyük kısmı dış çözücülerle çalışan yollardır: OpenFOAM/WSL
+sürücüsü, CalculiX koşumu, OpenVSP/XFOIL köprüleri, PyQt arayüzü. Bunlar birim
+testiyle değil \emph{çapa koşularıyla} sınanır ve o koşuların sonuçları kanıt
+dosyalarına yazılıp testlerle bağlanır. Sayı olduğu gibi verilmiştir: ``\%85
+kapsam'' demek için testi kolay olanı sayıp zoru dışarıda bırakmak, bu raporun
+savunduğu ilkenin tersi olurdu.
 
 Testlerin ayırt edici yanı, sabit sonuç yerine \emph{niyet} bağlamalarıdır. Bir
 test ``$C_d$ şu değere eşit olsun'' demez; ``rapor metni kendi ölçtüğü seriyle
