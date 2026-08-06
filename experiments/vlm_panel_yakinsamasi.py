@@ -40,6 +40,15 @@ Küçük bandı yayınlamak aileyi sonuca göre seçmek olurdu; bütün kademele
 ailede toplanır. Doğru geometriyle bandın GENİŞ olması, yanlış geometriyle dar
 olmasına yeğdir — ikincisi olmayan bir kesinliktir.
 
+ÖLÇÜM 4 — GÖVDE ÇAPI DÜZELTİLDİKTEN SONRA: salınım GEOMETRİ ARTEFAKTIYMIŞ.
+Gövde 2.5 m yerine beyan edilen 0.08 m olarak kurulunca dizi MONOTONLAŞTI:
+    20..120 panel → 0.79144 / 0.76179 / 0.74191 / 0.73629 / 0.73287 / 0.72394
+Ama hâlâ inişte (son kademe %1.22) ve gözlenen mertebe p<0.5, band %28.32.
+NEDENİ ÖLÇÜLDÜ: KİRİŞ yönü (Tess_W 17/25/33/49) Cl(8)'i %1.9 oynatıyor ve
+monoton değil. Açıklık serisinin ince kademelerindeki adımlar (%0.5–1.2) bu
+gürültünün ALTINDA kalıyor — yani tek yönde inceltmek burada yakınsama
+gösteremez; iki yön birlikte inceltilmedikçe band bu tabanın altına inmez.
+
     conda run -n openvsp python experiments/vlm_panel_yakinsamasi.py [--sablon mini_hawk]
 Çıktı: vlm_panel_yakinsamasi.json
 """

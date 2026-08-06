@@ -239,3 +239,49 @@ class TestIraksamaKapisi:
         from validity_envelope import vlm_kabul_edilebilir
         for n in json.loads(p.read_text(encoding="utf-8"))["polar"]:
             assert vlm_kabul_edilebilir(n) is None, (n, "kabul edilemez nokta YAYINDA")
+
+
+class TestBeyanInsaKiyasi:
+    """Dataclass'in DEDIGI ile INSA EDILEN model karsilastirilmali.
+
+    Bu depoda ayni sinif kusur İKİ KEZ yakalandı ve ikisi de SESSİZDİ:
+      `incidence`  5 şablonda tanımlı, okuyan tek satır yok
+      `diameter`   `D = fus.diameter` hesaplanıyor ama hiçbir yere yazılmıyor;
+                   dataclass 0.08 m derken inşa edilen gövde 2.50 m GENİŞ ve
+                   3.00 m YÜKSEKTİ — 1.5 m açıklıktaki kanat İÇİNDE kalıyordu.
+    İkisi de ancak sonuç garip çıkınca fark edildi. ÖLÇÜLDÜ (düzeltmeden önce/
+    sonra, VLM taşıma eğimi 1/°): çıplak kanat 0.06961 sabit; kanat+gövde
+    0.03544 → 0.07050; tam araç 0.04595 → 0.07579 (kuram 0.07661).
+    """
+
+    def test_KIYAS_fonksiyonu_uretim_yolunda_CAGRILIYOR(self):
+        src = (ROOT / "openvsp_bridge.py").read_text(encoding="utf-8")
+        assert "def geometri_kiyasla" in src
+        assert "geometri_kiyasla(aircraft)" in src, "tanımlı ama çağrılmıyor"
+        assert "geometri_sapmalari" in src, "sonuca yazılmıyor"
+
+    def test_CAP_gercekten_atanıyor(self):
+        """Sessiz düşüşün kaynağı: D hesaplanıp kullanılmıyordu."""
+        src = (ROOT / "openvsp_bridge.py").read_text(encoding="utf-8")
+        assert "Ellipse_Height" in src and "Ellipse_Width" in src
+
+    def test_YAYINLANAN_polarda_geometri_sapmasi_KAYITLI(self):
+        import json
+        p = ROOT / "vspaero_polar.json"
+        if not p.exists():
+            return
+        d = json.loads(p.read_text(encoding="utf-8"))
+        n = (d.get("polar") or [{}])[0]
+        if "geometri_sapmalari" not in n:
+            return                      # eski kanıt dosyası; yeniden üretilince gelir
+        import re
+        src = (ROOT / "openvsp_bridge.py").read_text(encoding="utf-8")
+        blok = src[src.index("UYGULANMAYAN_ALANLAR = {"):]
+        bilinen = set(re.findall(r'"([a-z_]+\.[a-z_]+)":', blok[:1400]))
+        for s2 in n["geometri_sapmalari"]:
+            # Kalan sapma BİLİNEN ve gerekçesi yazılı olmalı; yenisi sessizce
+            # eklenemez. Yalnızca-bilgi kayıtları (gerçeklenen zarf) hariç.
+            if s2.get("yalnizca_bilgi"):
+                assert s2.get("not"), "bilgi kaydi gerekcesiz"
+                continue
+            assert s2.get("olcut") in bilinen, f"ADI KONMAMIS sapma: {s2}"

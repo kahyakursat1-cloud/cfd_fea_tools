@@ -25,15 +25,15 @@
         "HTail",
         "VTail"
       ],
-      "Cl_0": 0.28933,
-      "CDi_0": 0.029222,
-      "e_0": 0.1824,
-      "Cl_4": 0.48498,
-      "CDi_4": 0.022,
-      "e_4": 0.6806,
-      "Cl_8": 0.68135,
-      "CDi_8": 0.026082,
-      "e_8": 1.1331
+      "Cl_0": 0.16402,
+      "CDi_0": 0.001917,
+      "e_0": 0.8934,
+      "Cl_4": 0.47662,
+      "CDi_4": 0.011628,
+      "e_4": 1.2437,
+      "Cl_8": 0.79144,
+      "CDi_8": 0.031263,
+      "e_8": 1.2755
     },
     {
       "panel": 40,
@@ -43,15 +43,15 @@
         "HTail",
         "VTail"
       ],
-      "Cl_0": 0.28641,
-      "CDi_0": 0.004753,
-      "e_0": 1.0987,
-      "Cl_4": 0.47082,
-      "CDi_4": 0.012226,
-      "e_4": 1.1543,
-      "Cl_8": 0.65259,
-      "CDi_8": 0.02378,
-      "e_8": 1.1401
+      "Cl_0": 0.15306,
+      "CDi_0": 0.00221,
+      "e_0": 0.6749,
+      "Cl_4": 0.45307,
+      "CDi_4": 0.010798,
+      "e_4": 1.2102,
+      "Cl_8": 0.76179,
+      "CDi_8": 0.033707,
+      "e_8": 1.0961
     },
     {
       "panel": 60,
@@ -61,15 +61,15 @@
         "HTail",
         "VTail"
       ],
-      "Cl_0": 0.28359,
-      "CDi_0": 0.004672,
-      "e_0": 1.0959,
-      "Cl_4": 0.4624,
-      "CDi_4": 0.011466,
-      "e_4": 1.1871,
-      "Cl_8": 0.64935,
-      "CDi_8": 0.023538,
-      "e_8": 1.1404
+      "Cl_0": 0.13402,
+      "CDi_0": 0.00189,
+      "e_0": 0.605,
+      "Cl_4": 0.43756,
+      "CDi_4": 0.009915,
+      "e_4": 1.2293,
+      "Cl_8": 0.74191,
+      "CDi_8": 0.028481,
+      "e_8": 1.2303
     },
     {
       "panel": 80,
@@ -79,15 +79,15 @@
         "HTail",
         "VTail"
       ],
-      "Cl_0": 0.28575,
-      "CDi_0": 0.005026,
-      "e_0": 1.0343,
-      "Cl_4": 0.46955,
-      "CDi_4": 0.011641,
-      "e_4": 1.2057,
-      "Cl_8": 0.65501,
-      "CDi_8": 0.02339,
-      "e_8": 1.1677
+      "Cl_0": 0.12995,
+      "CDi_0": 0.001539,
+      "e_0": 0.6985,
+      "Cl_4": 0.43139,
+      "CDi_4": 0.009798,
+      "e_4": 1.2092,
+      "Cl_8": 0.73629,
+      "CDi_8": 0.028012,
+      "e_8": 1.2321
     },
     {
       "panel": 100,
@@ -97,15 +97,15 @@
         "HTail",
         "VTail"
       ],
-      "Cl_0": 0.29319,
-      "CDi_0": 0.004794,
-      "e_0": 1.1415,
-      "Cl_4": 0.469,
-      "CDi_4": 0.011541,
-      "e_4": 1.2133,
-      "Cl_8": 0.64596,
-      "CDi_8": 0.022985,
-      "e_8": 1.1557
+      "Cl_0": 0.12717,
+      "CDi_0": 0.001466,
+      "e_0": 0.7023,
+      "Cl_4": 0.42891,
+      "CDi_4": 0.009439,
+      "e_4": 1.2408,
+      "Cl_8": 0.73287,
+      "CDi_8": 0.028051,
+      "e_8": 1.2189
     },
     {
       "panel": 120,
@@ -115,38 +115,38 @@
         "HTail",
         "VTail"
       ],
-      "Cl_0": 0.27677,
-      "CDi_0": 0.005361,
-      "e_0": 0.9096,
-      "Cl_4": 0.45901,
-      "CDi_4": 0.011121,
-      "e_4": 1.2061,
-      "Cl_8": 0.63933,
-      "CDi_8": 0.022659,
-      "e_8": 1.1484
+      "Cl_0": 0.12866,
+      "CDi_0": 0.001054,
+      "e_0": 0.9998,
+      "Cl_4": 0.42338,
+      "CDi_4": 0.009479,
+      "e_4": 1.2039,
+      "Cl_8": 0.72394,
+      "CDi_8": 0.027669,
+      "e_8": 1.2058
     }
   ],
   "yakinsama": {
     "referans": "Cl_8",
     "seri": [
-      0.68135,
-      0.65259,
-      0.64935,
-      0.65501,
-      0.64596,
-      0.63933
+      0.79144,
+      0.76179,
+      0.74191,
+      0.73629,
+      0.73287,
+      0.72394
     ],
-    "monoton": false,
-    "son_kademe_degisimi_pct": 1.03,
-    "son3_sacilma_pct": 2.45
+    "monoton": true,
+    "son_kademe_degisimi_pct": 1.22,
+    "son3_sacilma_pct": 1.71
   },
   "_uretim": "Üretim: conda run -n openvsp python experiments/vlm_panel_yakinsamasi.py --sablon mini_hawk",
   "kanonik_band": {
-    "u_pct": 19.72,
+    "u_pct": 28.32,
     "yontem": "lsr",
-    "kaynak": "LSR (6-seviye; salınımlı/karışık: ekstrapolasyon yok, U=3·Δ_M)",
-    "f_exact": 0.63933
+    "kaynak": "LSR (6-seviye; asimptotik-altı (p<0.5): ekstrapolasyon yok, U=3·Δ_M+σ)",
+    "f_exact": 0.72394
   },
-  "verdikt": "⚠️ Panel YAKINSAMAMIS: dizi monoton DEGIL, son kademe degisimi %1.03. En ince uc kademenin sacilmasi %2.45, kanonik kural %19.72. VLM Cl'i bu geometride YAKINSAMIS bir deger DEGILDIR; band olarak bunlarin BUYUGU tasinmalidir.",
-  "vlm_band_pct": 19.72
+  "verdikt": "⚠️ Panel YAKINSAMAMIS: dizi monoton, son kademe degisimi %1.22. En ince uc kademenin sacilmasi %1.71, kanonik kural %28.32. VLM Cl'i bu geometride YAKINSAMIS bir deger DEGILDIR; band olarak bunlarin BUYUGU tasinmalidir.",
+  "vlm_band_pct": 28.32
 }

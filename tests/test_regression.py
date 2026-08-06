@@ -37,12 +37,17 @@ GOLDEN = {
     #                     NACA2412. Kamburluk alpha<=8'de temiz yakinsiyor
     #                     (olculdu), ama dizi salinimli oldugu icin band %2.18 ->
     #                     %19.72'ye cikti (6 kademe: 20..120 panel).
-    # DIKKAT: bu altin deger DOGRU demek DEGIL. Ayni sayi `polar_birlestirme`nin
-    # tasima-egimi kapisi tarafindan REDDEDILIYOR: kuram 0.07661/derece,
-    # olculen 0.04616 (-%40). Farki GOVDE getiriyor (ciplak kanat -%10,
-    # kanat+govde -%54). Altin deger BEKLENMEDIK DEGISIMI yakalar, dogrulugu
-    # onaylamaz — dogruluk hukmu kapida verilir.
-    "vspaero_cl_slope": 0.0462,        # OpenVSP VLM, alpha 0/4/8, 80 span-panel + uc kumeleme 0.25 + kamburluk
+    #   0.0462 -> 0.0758  GOVDE CAPI ARTIK ATANIYOR. `D = fus.diameter`
+    #                     hesaplanip hicbir yere yazilmiyordu; dataclass 0.08 m
+    #                     derken insa edilen govde 2.50 m GENIS, 3.00 m YUKSEKTI
+    #                     (OpenVSP varsayilan Ellipse_Width/Height) ve 1.5 m
+    #                     acikliktaki kanat ICINDE kaliyordu. Duzeltmeden once/
+    #                     sonra egim: ciplak kanat 0.06961 (degismedi),
+    #                     kanat+govde 0.03544 -> 0.07050, tam arac 0.04595 ->
+    #                     0.07579. Kuram (tasiyici-cizgi) 0.07661 — %1 icinde.
+    # Altin deger BEKLENMEDIK DEGISIMI yakalar, DOGRULUGU onaylamaz — dogruluk
+    # hukmu `polar_birlestirme`nin tasima-egimi kapisinda verilir.
+    "vspaero_cl_slope": 0.0758,        # OpenVSP VLM, alpha 0/4/8, 80 span-panel + uc kumeleme 0.25 + kamburluk
     "openrocket_apogee_m": 50.5,       # rockets/simple.ork
     "validate_fea_defl_err_pct": 0.05, # ankastre kiriş, CalculiX
     "fea_wing_limit_SF": 1.61,         # kanat yapısal, kritik gust

@@ -93,6 +93,25 @@ def aircraft_to_vsp(aircraft, vsp3_path: str = None, kambur: bool = False) -> st
     except Exception:
         pass
 
+    # ÇAP ATANMALI. `D = fus.diameter` yukarıda HESAPLANIYORDU ama hiçbir yerde
+    # KULLANILMIYORDU; gövde OpenVSP'nin VARSAYILAN kesitiyle kuruluyordu.
+    # ÖLÇÜLDÜ (MiniHawk, 2026-08-06): dataclass 0.08 m çap derken inşa edilen
+    # gövde 2.50 m GENİŞ ve 3.00 m YÜKSEKTİ (Ellipse_Width/Height varsayılanı) —
+    # 1.5 m açıklıklı kanat bu cismin İÇİNDE kalıyordu. Sonuç sessiz değildi ama
+    # yeri de belli değildi: VLM taşıma eğimi çıplak kanatta 0.06908/° iken
+    # kanat+gövdede 0.03544/°'ye düşüyordu (kurama göre −%54). Çapı 0.01'e
+    # çekmek sonucu BİREBİR AYNI bırakıyordu — parametrenin hiç ulaşmadığının
+    # kanıtı buydu.
+    _atanan_kesit = 0
+    for _i in range(n_xsec):
+        _xs = vsp.GetXSec(xsurf_fus, _i)
+        for _ad in ("Ellipse_Height", "Ellipse_Width"):
+            _pid = vsp.GetXSecParm(_xs, _ad)
+            if _pid:
+                vsp.SetParmValUpdate(_pid, D)
+                _atanan_kesit += 1
+    vsp.Update()
+
     # ── ANA KANAT ────────────────────────────────────────────────────────
     wing_id = vsp.AddGeom("WING")
     vsp.SetGeomName(wing_id, "MainWing")
@@ -237,6 +256,113 @@ def _ayar(analiz: str, ad: str, deger, tip: str = "int"):
      "double": vsp.SetDoubleAnalysisInput}[tip](analiz, ad, deger)
 
 
+GEOMETRI_TOLERANS = 0.05      # beyan ile inşa arasındaki kabul edilebilir bağıl fark
+
+# BEYAN EDİLİP UYGULANMAYAN ALANLAR — bilerek ve gerekçeyle. Liste boş bırakmak
+# yerine ADI GEÇSİN diye burada: `diameter` de bir zamanlar bu listede olsaydı
+# gövdenin 2.5 m çıktığı çok daha erken görülürdü.
+UYGULANMAYAN_ALANLAR = {
+    "wing.incidence":
+        "iki uygulama yolu da tam araçta VSPAERO'yu bozuyor "
+        "(Y_Rel_Rotation → CDi=−5.18; Twist → CDi α ile sabit)",
+    "empennage.h_distance":
+        "kuyruk X konumu L*0.88 ile SABİT KODLU; dataclass 'gövde sonundan' "
+        "diyor ama 0.8 m gövdede 0.6 değeri iki farklı şekilde okunabiliyor "
+        "(x=0.2 veya x=1.4) — semantik netleşmeden eşlenmez",
+    "empennage.v_distance": "dikey kuyruk konumu için aynı belirsizlik",
+    "fuselage.nose_type":
+        "burun profili (cone/ogive/...) OpenVSP kesitine eşlenmiyor; "
+        "varsayılan burun kullanılıyor",
+    "fuselage.nose_length": "burun uzunluğu XSec konumlarına eşlenmiyor",
+}
+
+
+def geometri_kiyasla(aircraft, tolerans: float = GEOMETRI_TOLERANS) -> list[dict]:
+    """Dataclass'in DEDIGI ile INSA EDILEN modeli kiyasla; sapmalari dondur.
+
+    NEDEN BU FONKSIYON VAR: bu depoda ayni sinif kusur IKI KEZ yakalandi ve
+    ikisi de SESSIZDI —
+      `incidence`  5 sablonda tanimli, okuyan tek satir yok (olculdu:
+                   Y_Rel_Rotation=0, Twist=0, simetrik kesitte Cl(0) TAM sifir)
+      `diameter`   hesaplaniyor (`D = fus.diameter`) ama hicbir yere yazilmiyor;
+                   dataclass 0.08 m derken insa edilen govde 2.50 m GENIS,
+                   3.00 m YUKSEKTI ve 1.5 m acikliktaki kanat ICINDE kaliyordu.
+                   Sonuc: VLM tasima egimi kanat+govdede %-54 (kurama gore).
+    Ikisi de ancak SONUC garip cikinca fark edildi. Beyan-insa kiyasi bu sinifi
+    kaynaginda yakalar.
+    """
+    fus, wing = aircraft.fuselage, aircraft.wing
+    beklenen = {"kanat_aciklik": wing.span, "kanat_alan": wing.area,
+                "govde_uzunluk": fus.length, "govde_cap": fus.diameter}
+    olculen: dict[str, float] = {}
+    for gid in vsp.FindGeoms():
+        ad = vsp.GetGeomName(gid)
+        if ad == "MainWing":
+            for anahtar, parm in (("kanat_aciklik", "TotalSpan"),
+                                  ("kanat_alan", "TotalArea")):
+                pid = vsp.FindParm(gid, parm, "WingGeom")
+                if pid:
+                    olculen[anahtar] = vsp.GetParmVal(pid)
+        elif ad == "Fuselage":
+            mx, mn = vsp.GetGeomBBoxMax(gid), vsp.GetGeomBBoxMin(gid)
+            olculen["govde_uzunluk"] = mx.x() - mn.x()
+            # ÇAP KESİT PARMINDAN OKUNUR, SINIR KUTUSUNDAN DEĞİL. Soru "beyan
+            # modele ULAŞTI MI"; sınır kutusu buna yanıt vermiyor çünkü yüzey
+            # nokta-burun ile elips kesit arasında şişiyor. ÖLÇÜLDÜ: kesitlerin
+            # hepsi 0.08 iken kutu 0.1035 (%29 fazla) — kutuya bakan ilk sürüm
+            # DÜZELMİŞ bir parametreyi hatalı diye işaretliyordu.
+            _xs_surf = vsp.GetXSecSurf(gid, 0)
+            _capler = []
+            for _i in range(vsp.GetNumXSec(_xs_surf)):
+                _xs = vsp.GetXSec(_xs_surf, _i)
+                for _p in ("Ellipse_Height", "Ellipse_Width"):
+                    _pid = vsp.GetXSecParm(_xs, _p)
+                    if _pid:
+                        _capler.append(vsp.GetParmVal(_pid))
+            if _capler:
+                olculen["govde_cap"] = max(_capler)
+            olculen["govde_zarf_cap"] = max(mx.y() - mn.y(), mx.z() - mn.z())
+    sapmalar = []
+    for anahtar, bekle in beklenen.items():
+        if not bekle:
+            continue
+        olcu = olculen.get(anahtar)
+        if olcu is None:
+            # SESSIZ ATLAMA YOK: olculemeyen olcut, gecmis olcut degildir.
+            sapmalar.append({"olcut": anahtar, "beyan": round(bekle, 5),
+                             "insa": None, "olculemedi": True,
+                             "not": "insa edilen modelde karsiligi bulunamadi "
+                                    "(geom silinmis ya da parm adi degismis)"})
+            continue
+        bagil = abs(olcu - bekle) / abs(bekle)
+        if bagil > tolerans:
+            sapmalar.append({"olcut": anahtar, "beyan": round(bekle, 5),
+                             "insa": round(olcu, 5),
+                             "bagil_fark_pct": round(bagil * 100, 1)})
+    # Gerceklenen zarf KAYDA gecer: kesit dogru olsa da yuzey sisiyor ve
+    # OpenFOAM'a giden STL o zarftir. Sapma degil, BILGI.
+    if olculen.get("govde_zarf_cap") and beklenen.get("govde_cap"):
+        _asim = olculen["govde_zarf_cap"] / beklenen["govde_cap"] - 1
+        if _asim > tolerans:
+            sapmalar.append({"olcut": "govde_zarf_cap", "beyan": fus.diameter,
+                             "insa": round(olculen["govde_zarf_cap"], 5),
+                             "bagil_fark_pct": round(_asim * 100, 1),
+                             "yalnizca_bilgi": True,
+                             "not": "kesit parmi DOGRU; fark yuzeyin nokta-burun "
+                                    "ile elips kesit arasinda sismesinden geliyor"})
+
+    # Boyuttan okunamayan ama BEYAN EDILIP UYGULANMAYAN alanlar da sapmadir;
+    # sessiz kalmalari bu depoda iki kez pahaliya patladi.
+    for yol, neden in UYGULANMAYAN_ALANLAR.items():
+        nesne, alan = yol.split(".")
+        kaynak = getattr(aircraft, nesne, None)
+        deger = getattr(kaynak, alan, None) if kaynak is not None else None
+        if deger:
+            sapmalar.append({"olcut": yol, "beyan": deger, "insa": None,
+                             "uygulanmiyor": True, "not": neden})
+    return sapmalar
+
+
 def _vspaero_setup_vlm(aircraft):
     """VSPAERO geometriyi hazirlar.
 
@@ -254,9 +380,10 @@ def _vspaero_setup_vlm(aircraft):
     # kusur SIRALAMADAYDI.
     n_ayar = _panel_yogunlugu_ata(VLM_SPAN_PANEL)
     vsp.Update()
+    sapmalar = geometri_kiyasla(aircraft)
     vsp.SetAnalysisInputDefaults("VSPAEROComputeGeometry")
     vsp.ExecAnalysis("VSPAEROComputeGeometry")
-    return n_ayar
+    return n_ayar, sapmalar
 
 
 def _panel_yogunlugu_ata(panel: int, uc_kumeleme: float = None) -> list[str]:
@@ -302,7 +429,7 @@ def run_vspaero_polar(aircraft, alphas=(0, 4, 8, 12, 16), mach: float = 0.05,
     """
     import os
     os.makedirs(output_dir, exist_ok=True)
-    panel_uygulanan = _vspaero_setup_vlm(aircraft)
+    panel_uygulanan, geom_sapmalari = _vspaero_setup_vlm(aircraft)
 
     a = "VSPAEROSweep"
     vsp.SetAnalysisInputDefaults(a)
@@ -344,6 +471,9 @@ def run_vspaero_polar(aircraft, alphas=(0, 4, 8, 12, 16), mach: float = 0.05,
             "span_panel": VLM_SPAN_PANEL,
             "uc_kumeleme": VLM_UC_KUMELEME,
             "panel_uygulanan_kanat": panel_uygulanan,
+            # BEYAN-INSA SAPMALARI SONUCA YAZILIR: govde capinin hic
+            # uygulanmadigi ancak tasima egimi kurama vurulunca fark edilmisti.
+            "geometri_sapmalari": geom_sapmalari,
         })
     # KABUL EDILEBILIRLIK KAPISI — tanim `validity_envelope`'ta (deponun
     # "savunulabilir" tek evi); burada yalnizca UYGULANIR.
