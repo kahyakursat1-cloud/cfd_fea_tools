@@ -249,8 +249,20 @@ ASAMALAR = [
 ]
 
 
-def fig_asama_sureleri() -> Path | None:
-    kok = KOK / "vehicle_runs" / "minihawk" / "minihawk"
+def asama_verisi(kosu: Path) -> tuple[list[str], list[float], int | None, str] | None:
+    """(adlar, süreler, hücre, yöntem) — DOĞRUDAN TELEMETRİ varsa o, yoksa
+    dosya zaman damgası. Zaman-damgası yöntemi yalnız aşama SINIRLARINI verir ve
+    dosyaya dokunan her şey (kopyalama, yedekleme) tarafından bozulur; çözücü
+    artık kendi sürelerini yazdığı için o tercih edilir."""
+    sj = kosu / "sonuc.json"
+    if sj.exists():
+        d = json.loads(sj.read_text(encoding="utf-8"))
+        tel = d.get("asama_sureleri")
+        if tel:
+            return ([x["asama"] for x in tel], [float(x["sure_s"]) for x in tel],
+                    (d.get("mesh") or {}).get("cells"),
+                    "doğrudan telemetri (çözücünün kendi ölçümü)")
+    kok = kosu / kosu.name
     if not kok.is_dir():
         return None
     kayit = [(ad, (kok / dosya).stat().st_mtime)
@@ -258,17 +270,28 @@ def fig_asama_sureleri() -> Path | None:
     if len(kayit) < 4:
         return None
     kayit.sort(key=lambda t: t[1])
-    t0 = kayit[0][1]
     adlar, sureler = [], []
-    onceki = t0
+    onceki = kayit[0][1]
     for ad, ts in kayit[1:]:
         adlar.append(ad)
         sureler.append(max(ts - onceki, 0.0))
         onceki = ts
-    toplam = onceki - t0
+    return adlar, sureler, None, "log dosyası zaman damgaları (DOLAYLI — üst sınır)"
 
+
+def fig_asama_sureleri() -> Path | None:
+    v = asama_verisi(KOK / "vehicle_runs" / "minihawk")
+    return _asama_cizimi(*v) if v else None
+
+
+def _asama_cizimi(adlar, sureler, hucre, yontem) -> Path | None:
+    if len(adlar) < 3:
+        return None
+    toplam = sum(sureler)
+    if toplam <= 0:
+        return None
     fig, ax = plt.subplots(figsize=(7.4, 2.9))
-    renk = ["#1f4e79" if "foamRun" in a else ("#4a7ba7" if "snappy" in a
+    renk = ["#1f4e79" if "foamRun" in a else ("#4a7ba7" if "snappy" in a.lower()
                                               else "#8fb3d0") for a in adlar]
     ax.barh(adlar[::-1], sureler[::-1], color=renk[::-1], height=0.62)
     for i, s in enumerate(sureler[::-1]):
@@ -276,8 +299,9 @@ def fig_asama_sureleri() -> Path | None:
                 va="center", fontsize=8)
     ax.set_xlabel("duvar-saati süresi (s)")
     ax.set_xlim(0, max(sureler) * 1.32)
-    ax.set_title(f"Aşama süreleri — MiniHawk, 454k hücre, toplam "
-                 f"{toplam / 60:.1f} dk (8 çekirdek)", fontsize=9.5)
+    ax.set_title("Aşama süreleri — MiniHawk"
+                 + (f", {hucre:,} hücre" if hucre else "")
+                 + f", toplam {toplam / 60:.1f} dk  [{yontem}]", fontsize=9)
     ax.grid(axis="y", visible=False)
 
     p = CIKTI / "fig_asama_sureleri.pdf"

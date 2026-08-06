@@ -1273,6 +1273,11 @@ class VehicleAnalysisResult:
     validity: dict | None = None    # geçerlilik-zarfı verdict'i (okula-güvenli kapı)
     fizik_kabul: dict | None = None  # fiziksel kabul-edilebilirlik kapısı (zarf sınıfından ÖNCE)
     kurulum: list | None = None      # kurulum kapısı (ölçek/eksen/A_ref) — raporun EN ÜSTÜNDE
+    # ASAMA TELEMETRISI — cozucunun KENDI olcumu. Once yoktu ve sureler rapor
+    # icin log dosyalarinin DEGISIM ZAMANLARINDAN cikariliyordu; o yontem
+    # dosyaya dokunan her sey tarafindan bozulur ve yalniz asama SINIRLARINI
+    # verir. Artik her asama kendi baslangic/bitisini ve donus kodunu yazar.
+    asama_sureleri: list | None = None
 
 
 def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg=0.0,
@@ -1510,6 +1515,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     base.drag_N = round(cd * aref * q_dyn, 3)
     base.mesh = meshq
     base.convergence = conv
+    base.asama_sureleri = getattr(res, "asama_sureleri", None) or None
 
     # Far-field iz-momentum Cd (2.-mertebe). Tek mesh'te yüzey-Cd ile UYUŞMASI yakınsama
     # göstergesi (3-mesh GCI'nin ucuz vekili); AYRIŞMASI az-çözünürlük flag'i.

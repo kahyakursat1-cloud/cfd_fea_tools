@@ -151,6 +151,11 @@ class CFDResult:
     cm: float | None = None
     forces_history: list[tuple[int, float, float, float]] = field(default_factory=list)
     log_files: list[Path] = field(default_factory=list)
+    # ASAMA TELEMETRISI — DOGRUDAN olculur. Once bu yoktu ve sureler rapor
+    # icin LOG DOSYALARININ DEGISIM ZAMANLARINDAN cikariliyordu; o yontem
+    # dosyaya dokunan her sey (kopyalama, yedekleme, senkron) tarafindan
+    # bozulur ve yalniz asama SINIRLARINI verir, kaynak kullanimini vermez.
+    asama_sureleri: list[dict] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -1160,6 +1165,7 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
     case_dir = build_case(case, out_dir)
     wsl_dir = windows_to_wsl_path(case_dir)
     log_files: list[Path] = []
+    asama_sureleri: list[dict] = []
     all_stdout = []
     all_stderr = []
 
@@ -1197,6 +1203,7 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
               tmo: int) -> subprocess.CompletedProcess | None:
         if progress_callback:
             progress_callback(percent, msg)
+        _t0 = time.time()
         # WSL-içi GNU timeout ile sar: süre aşılırsa WSL kendi süreç ağacını öldürür
         # (Windows-tarafı tmo backstop, biraz daha yüksek). Orphan'ı kökten önler.
         wrapped, bins = _wrap_timeout(command, tmo)
@@ -1205,7 +1212,14 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
         except subprocess.TimeoutExpired as e:
             all_stderr.append(f"TIMEOUT in {log_name}: {e}")
             _wsl_kill(bins, exec_dir)            # Windows-tarafı aşımı: WSL orphan'larını öldür
+            asama_sureleri.append({"asama": log_name.replace("log.", ""),
+                                   "sure_s": round(time.time() - _t0, 2),
+                                   "durum": "ZAMAN ASIMI", "tmo_s": tmo})
             return None
+        asama_sureleri.append({"asama": log_name.replace("log.", ""),
+                               "sure_s": round(time.time() - _t0, 2),
+                               "durum": "ok" if r.returncode == 0 else "hata",
+                               "donus_kodu": r.returncode})
         log_files.append(case_dir / log_name)
         all_stdout.append(f"--- {log_name} ---\n{r.stdout}")
         if r.stderr:
@@ -1269,7 +1283,7 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
     # 1) surfaceFeatures
     r = _step(10, "surfaceFeatures...", "surfaceFeatures", "log.surfaceFeatures", 120)
     if r is None or r.returncode != 0:
-        return _ret(CFDResult(case_dir=case_dir, success=False,
+        return _ret(CFDResult(asama_sureleri=asama_sureleri, case_dir=case_dir, success=False,
                               return_code=-1 if r is None else r.returncode,
                               stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
                               log_files=log_files))
@@ -1277,7 +1291,7 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
     # 2) blockMesh
     r = _step(20, "blockMesh...", "blockMesh", "log.blockMesh", 120)
     if r is None or r.returncode != 0:
-        return _ret(CFDResult(case_dir=case_dir, success=False,
+        return _ret(CFDResult(asama_sureleri=asama_sureleri, case_dir=case_dir, success=False,
                               return_code=-1 if r is None else r.returncode,
                               stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
                               log_files=log_files))
@@ -1286,7 +1300,7 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
     r = _step(40, "snappyHexMesh (mesh adapsiyonu, en uzun adım)...",
               "snappyHexMesh -overwrite", "log.snappyHexMesh", 1800)
     if r is None or r.returncode != 0:
-        return _ret(CFDResult(case_dir=case_dir, success=False,
+        return _ret(CFDResult(asama_sureleri=asama_sureleri, case_dir=case_dir, success=False,
                               return_code=-1 if r is None else r.returncode,
                               stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
                               log_files=log_files))
@@ -1307,7 +1321,7 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
         if mq["verdict"] == "reject":
             all_stderr.append("Mesh kalitesiz, çözücüye GÖNDERİLMEDİ: "
                               + "; ".join(mq["reasons"]))
-            return _ret(CFDResult(case_dir=case_dir, success=False, return_code=-2,
+            return _ret(CFDResult(asama_sureleri=asama_sureleri, case_dir=case_dir, success=False, return_code=-2,
                                   stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
                                   log_files=log_files))
 
@@ -1315,7 +1329,7 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
     if (case_dir / "system" / "topoSetDict").exists():
         r = _step(57, "topoSet (pervane diski)...", "topoSet", "log.topoSet", 300)
         if r is None or r.returncode != 0:
-            return _ret(CFDResult(case_dir=case_dir, success=False,
+            return _ret(CFDResult(asama_sureleri=asama_sureleri, case_dir=case_dir, success=False,
                                   return_code=-1 if r is None else r.returncode,
                                   stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
                                   log_files=log_files))
@@ -1339,7 +1353,7 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
         r = _step(60, f"decomposePar ({n} işlemci)...",
                   "decomposePar -force", "log.decomposePar", 300)
         if r is None or r.returncode != 0:
-            return _ret(CFDResult(case_dir=case_dir, success=False,
+            return _ret(CFDResult(asama_sureleri=asama_sureleri, case_dir=case_dir, success=False,
                                   return_code=-1 if r is None else r.returncode,
                                   stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
                                   log_files=log_files))
@@ -1348,7 +1362,7 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
             f"mpirun --oversubscribe -np {n} foamRun -parallel",
             max(timeout - 600, 600), f"foamRun (paralel SIMPLE, {n} çekirdek, Cd-izlemeli)...")
         if rc != 0:
-            return _ret(CFDResult(case_dir=case_dir, success=False, return_code=rc,
+            return _ret(CFDResult(asama_sureleri=asama_sureleri, case_dir=case_dir, success=False, return_code=rc,
                                   stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
                                   log_files=log_files))
         _step(95, "reconstructPar...", "reconstructPar -latestTime",
@@ -1360,7 +1374,7 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
         rc = _foam_run_early_stop("foamRun", max(timeout - 600, 600),
                                   "foamRun (seri SIMPLE, Cd-yakınsama izlemeli)...")
         if rc != 0:
-            return _ret(CFDResult(case_dir=case_dir, success=False, return_code=rc,
+            return _ret(CFDResult(asama_sureleri=asama_sureleri, case_dir=case_dir, success=False, return_code=rc,
                                   stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
                                   log_files=log_files))
 
@@ -1374,7 +1388,7 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
         diverg = divergence_in_log(solver_log.read_text(errors="ignore"))
         if diverg:
             all_stderr.append(f"DIVERJANS: {diverg} — sonuç güvenilmez")
-            return CFDResult(case_dir=case_dir, success=False, return_code=-2,
+            return CFDResult(asama_sureleri=asama_sureleri, case_dir=case_dir, success=False, return_code=-2,
                              stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
                              log_files=log_files)
 
@@ -1385,7 +1399,7 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
         progress_callback(100, "CFD tamamlandı")
 
     return CFDResult(
-        case_dir=case_dir, success=True, return_code=0,
+        case_dir=case_dir, success=True, return_code=0, asama_sureleri=asama_sureleri,
         stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
         cd=cd, cl=cl, cm=cm, forces_history=history, log_files=log_files,
     )
