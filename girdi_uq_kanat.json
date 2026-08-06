@@ -1,0 +1,69 @@
+{
+  "vaka": "Girdi belirsizliği yayılımı — MiniHawk kanat Cd, alpha=4°, V=15 m/s",
+  "_neden": "ASME V&V 20'nin sekiz adimindan biri EKSIKTI. Bu yol ucuz ve turevlenebilir oldugu icin duyarliliklar MERKEZI SONLU FARKLA olculebiliyor.",
+  "model": {
+    "AR": 5.0,
+    "taper": 0.7,
+    "e_tasiyici_cizgi": 0.98181,
+    "re_kesit": 350000.0
+  },
+  "girdiler": [
+    {
+      "ad": "hiz",
+      "nominal": 15.0,
+      "u": 0.02,
+      "bagil": true,
+      "u_mutlak": 0.3,
+      "kaynak": "pitot/anemometre tipik ±%2 (kalibrasyonsuz)"
+    },
+    {
+      "ad": "nu",
+      "nominal": 1.5e-05,
+      "u": 0.03,
+      "bagil": true,
+      "u_mutlak": 4.5e-07,
+      "kaynak": "sıcaklık ±5 °C → kinematik viskozite ±%3"
+    },
+    {
+      "ad": "alfa",
+      "nominal": 4.0,
+      "u": 0.5,
+      "bagil": false,
+      "u_mutlak": 0.5,
+      "kaynak": "montaj/ölçüm toleransı ±0.5°"
+    },
+    {
+      "ad": "kiris",
+      "nominal": 0.35294117647058826,
+      "u": 0.01,
+      "bagil": true,
+      "u_mutlak": 0.00352941,
+      "kaynak": "STL/CAD ölçek ve imalat toleransı ±%1"
+    }
+  ],
+  "Cd_nominal": 0.019653,
+  "u_girdi_mutlak": 0.002204,
+  "u_girdi_pct": 11.217,
+  "paylar": {
+    "hiz": 3.13e-05,
+    "nu": 4.695e-05,
+    "alfa": 0.00220356,
+    "kiris": 1.565e-05
+  },
+  "baskin_girdi": "alfa",
+  "toplam_belirsizlik": {
+    "u_toplam_pct": 11.299,
+    "olculen_bilesenler": {
+      "girdi": 11.217,
+      "ayriklastirma_panel": 1.36
+    },
+    "olculmeyen_bilesenler": [
+      "model_form"
+    ],
+    "alt_sinir_mi": true,
+    "_anlam": "ALT SINIR: ölçülmeyen bileşen(ler) var, gerçek belirsizlik bundan BÜYÜKTÜR."
+  },
+  "_kisit": "Birinci mertebe (ASME V&V 20 §7); girdiler BAĞIMSIZ varsayıldı, korelasyon ve ikinci mertebe etkiler ihmal edildi. Türevler merkezi sonlu farkla ÖLÇÜLDÜ. RANS YOLUNDA YAYILMADI: girdi basina iki kosu gerekir ve her kosu saatler surer; bu donanimda tractable degil. Model-form bileseni de OLCULMEDI (hat-ozgu validasyon yok) — toplam bu yuzden ALT SINIRDIR.",
+  "_uretim": "Üretim: python experiments/girdi_uq_kanat.py",
+  "verdikt": "Cd = 0.01965 ± 0.00220 (girdi kaynakli %11.22); baskin girdi: alfa. Ayriklastirma ile birlesince %11.299 — ve bu bir ALT SINIRDIR (olculmeyen: model_form)."
+}

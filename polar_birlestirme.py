@@ -427,7 +427,30 @@ def birlesik_polar(vlm_polar: list[dict], kesit: list[dict], *,
                     if pay:
                         n["Cd_band_pct"] = round(
                             sum(p ** 2 for p in pay) ** 0.5, 2)
+                        # BU BAND YALNIZ SAYISALDIR. Girdi belirsizligi (hiz,
+                        # viskozite, hucum acisi, olcek) BURAYA GIRMEZ; olculdu
+                        # ki alpha=4'te girdi katkisi %11.22, yani yayimlanan
+                        # %1.74'un 6.5 KATI ve BASKIN terim. "Cd = X ± %1.74"
+                        # yazip birakmak, olmayan bir kesinlik yayimlamakti.
+                        n["Cd_band_kapsam"] = "sayısal (ayrıklaştırma) — girdi ve model-form HARİÇ"
         noktalar.append(n)
+
+
+    # GIRDI BELIRSIZLIGI KANITI VARSA SOYLENIR. ASME V&V 20'nin bu adimi
+    # eksikti; olculdugu yerde yayimlanan bandin ne kadarini KAPSAMADIGI
+    # gorunmelidir.
+    _guq = HERE / "girdi_uq_kanat.json"
+    if _guq.exists():
+        _g = json.loads(_guq.read_text(encoding="utf-8"))
+        _up = _g.get("u_girdi_pct")
+        _al = _g.get("vaka", "")
+        if _up:
+            uyarilar.append(
+                f"GİRDİ BELİRSİZLİĞİ ÖLÇÜLDÜ ve YUKARIDAKİ BANDA DAHİL DEĞİL: "
+                f"±%{_up} (baskın girdi: {_g.get('baskin_girdi')}). Yayımlanan "
+                f"Cd bandı YALNIZ ayrıklaştırmadır. Ölçüm α=4°'de yapıldı ve "
+                f"diğer α'lara TAŞINMAZ. Ayrıntı: girdi_uq_kanat.json "
+                f"({_al})")
 
     if vlm_band_pct is None:
         uyarilar.append(
