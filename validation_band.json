@@ -1,4 +1,7 @@
 {
+  "attached_2d": {
+    "wall_resolved": 3.52
+  },
   "bluff": {
     "wall_resolved": 5.95
   }

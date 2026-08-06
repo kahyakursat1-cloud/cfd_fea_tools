@@ -1,0 +1,85 @@
+{
+  "vaka": "Model-form belirsizliği — rejim × duvar işlemi, ÖLÇÜLEN çapalardan",
+  "_neden": "Deger LITERATUR-ONCULUYDU ve rejimden bagimsiz uygulaniyordu. Bagli akis, ayrilmis akis ve kunt cisim ayni model-form hatasini tasimaz.",
+  "capalar": [
+    {
+      "capa": "küp",
+      "rejim": "bluff",
+      "sapma_pct": 6.03,
+      "yplus_ort": null,
+      "referans": "Hoerner 1965, Fluid-Dynamic Drag; Re>1e4 Re-bagimsiz"
+    },
+    {
+      "capa": "NACA0012 α=0 (2B, bağlı akış)",
+      "rejim": "attached_2d",
+      "sapma_pct": 3.52,
+      "yplus_ort": 1.0,
+      "referans": "NASA TMR / CFL3D"
+    },
+    {
+      "capa": "geriye-basamak (kOmegaSST)",
+      "rejim": "separated",
+      "sapma_pct": 11.58,
+      "yplus_ort": null,
+      "referans": "Driver & Seegmiller, AIAA J. 23(2), 1985 — deneysel"
+    }
+  ],
+  "olculen_hucreler": {
+    "attached_2d": {
+      "wall_resolved": {
+        "u_pct": 3.52,
+        "n_capa": 1,
+        "capalar": [
+          {
+            "ad": "NACA0012 α=0 (2B, bağlı akış)",
+            "sapma_pct": 3.52,
+            "referans": "NASA TMR / CFL3D"
+          }
+        ],
+        "_anlam": "TEK ÇAPA — dağılım değil, tek ölçüm"
+      }
+    }
+  },
+  "atanamayan_capalar": [
+    {
+      "capa": "küp",
+      "rejim": "bluff",
+      "sapma_pct": 6.03,
+      "neden": "duvar işlemi (y⁺) kanıtta KAYITLI DEĞİL — hücreye atanmadı, TAHMİN edilmedi"
+    },
+    {
+      "capa": "geriye-basamak (kOmegaSST)",
+      "rejim": "separated",
+      "sapma_pct": 11.58,
+      "neden": "duvar işlemi (y⁺) kanıtta KAYITLI DEĞİL — hücreye atanmadı, TAHMİN edilmedi"
+    }
+  ],
+  "oncul_kalan_hucreler": [
+    {
+      "rejim": "lifting",
+      "duvar": "wall_resolved",
+      "oncul_pct": 5.0
+    },
+    {
+      "rejim": "lifting",
+      "duvar": "wall_function",
+      "oncul_pct": 12.0
+    },
+    {
+      "rejim": "bluff",
+      "duvar": "wall_function",
+      "oncul_pct": 20.0
+    }
+  ],
+  "_kisit": "Bir capanin sapmasi, o rejimdeki model-form hatasinin BIR ORNEGIDIR. N=1 olan hucrede dagilim IDDIA EDILMEZ. Duvar islemi kayitli olmayan capa hucreye ATANMAZ — tahmin edilmez. Ayrica sapma, referansin KENDI deneysel belirsizligini de icerir ve o ayristirilmamistir.",
+  "_uretim": "Üretim: python experiments/model_form_bandi.py",
+  "verdikt": "3 capa toplandi; 1 hucre OLCULDU, 2 capa atanamadi, 3 hucre ONCUL kaldi. attached_2d.wall_resolved=%3.52 (n=1)",
+  "_yazilan": {
+    "attached_2d": {
+      "wall_resolved": 3.52
+    },
+    "bluff": {
+      "wall_resolved": 5.95
+    }
+  }
+}

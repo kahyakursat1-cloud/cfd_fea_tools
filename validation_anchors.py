@@ -56,6 +56,13 @@ ANCHORS = {
 _MODEL_U_PCT = {
     "lifting": {"wall_resolved": 5.0, "wall_function": 12.0},
     "bluff":   {"wall_resolved": 10.0, "wall_function": 20.0},
+    # AYRILMIŞ AKIŞ AYRI BİR REJİMDİR ve bunu ölçtük: geriye-basamaklı akışta
+    # kOmegaSST yeniden-yapışmayı %11.58 kaçırıyor (Driver & Seegmiller 1985).
+    # Bağlı akışın model-form hatasını ayrılmış akışa taşımak, RANS'ın en zayıf
+    # olduğu rejimi en güçlü olduğu rejimin bandıyla raporlamak olurdu.
+    "separated": {"wall_resolved": 12.0, "wall_function": 25.0},
+    # 2B bağlı akış — TMR C-grid ailesinde ÖLÇÜLDÜ (%3.5, y⁺<1).
+    "attached_2d": {"wall_resolved": 5.0, "wall_function": 12.0},
 }
 _BAND_FILE = HERE / "validation_band.json"
 
@@ -74,10 +81,32 @@ def model_uncertainty_pct(regime: str, wall_resolved: bool) -> dict:
             band = json.loads(_BAND_FILE.read_text(encoding="utf-8"))
             v = band.get(regime, {}).get(key)
             if v is not None:
-                return {"u_model_pct": round(float(v), 2), "kaynak": "ölçülen (validation_band.json)"}
+                # KAC CAPADAN geldigi de soylenir: n=1 bir DAGILIM degil, tek
+                # olcumdur ve okuyucu bunu bilmelidir.
+                n = None
+                ay = HERE / "model_form_bandi.json"
+                if ay.exists():
+                    d = json.loads(ay.read_text(encoding="utf-8"))
+                    n = ((d.get("olculen_hucreler") or {})
+                         .get(regime, {}).get(key, {}).get("n_capa"))
+                return {"u_model_pct": round(float(v), 2),
+                        "kaynak": ("ölçülen (validation_band.json"
+                                   + (f", n={n} çapa" if n else "") + ")"),
+                        "n_capa": n}
+        # sessiz-yutma: kabul — ölçülen band okunamazsa ÖNCÜLE düşülür ve
+        # kaynak etiketi bunu zaten söyler; sayı uydurulmaz.
         except Exception:
             pass
-    return {"u_model_pct": _MODEL_U_PCT.get(regime, _MODEL_U_PCT["bluff"])[key],
+    # BILINMEYEN REJIM SESSIZCE 'bluff' SAYILIYORDU. Kunt cisim oncululu
+    # (%10/20) tanimadigimiz her rejime uygulanmis oluyordu ve etikette bunun
+    # izi YOKTU. Artik rejimin taninmadigi ACIKCA yazilir.
+    if regime not in _MODEL_U_PCT:
+        return {"u_model_pct": _MODEL_U_PCT["bluff"][key],
+                "kaynak": (f"literatür-öncül — REJİM TANINMADI ('{regime}'), "
+                           "künt cisim önculü uygulandı; bu bir ÖLÇÜM DEĞİL "
+                           "ve rejim-uygunluğu DOĞRULANMAMIŞTIR"),
+                "rejim_taninmadi": True}
+    return {"u_model_pct": _MODEL_U_PCT[regime][key],
             "kaynak": "literatür-öncül (pipeline-validasyonu beklemede)"}
 
 
