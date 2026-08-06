@@ -40,12 +40,18 @@ def test_YUZEY_YUZ_monotonlugu_OLCULUYOR():
 
 
 def test_BELIRTI_ile_SEBEP_ayriliyor():
-    """GCI ve y+ SONUÇ; sebep yüzeyin çözülmemesi. Rapor bunu söylemeli."""
+    """GCI ve y+ SONUÇ; sebep yüzeyin çözülmemesi. Yüzey ÇÖZÜLMEMİŞSE rapor
+    bunu söylemeli; çözülmüşse o cümleyi TEKRARLAMAMALI (rapor kendi verisiyle
+    çelişmemeli)."""
     d = _d()
     if not d:
         return
-    assert "SONUCUDUR" in d["verdikt"]
     assert "arka plan" in d["_kok_neden"].lower()
+    if d.get("yuzey_cozuldu"):
+        assert "COZULDU" in d["verdikt"]
+        assert "MESH'TE YOK" not in d["verdikt"]
+    else:
+        assert "SONUCUDUR" in d["verdikt"]
 
 
 def test_ZATEN_DUZELTILMIS_oldugu_yaziyor():
@@ -58,7 +64,7 @@ def test_ZATEN_DUZELTILMIS_oldugu_yaziyor():
         return
     assert "b62980c" in d.get("_zaten_duzeltildi", "")
     assert "YENIDEN KOSU" in d.get("_gereken", "").upper()
-    assert "DUZELTILDI" in d["verdikt"]
+    assert "b62980c" in d["verdikt"]
 
 
 def test_DUZELTME_kodda_GERCEKTEN_var():
@@ -77,9 +83,11 @@ def test_YAMA_YOK_ile_SIFIR_YUZ_ayri():
     d = _d()
     if not d:
         return
+    # Hukum yalniz GUNCEL kademelerden verilir; bayatlar kayitta kalir.
     for k in d["seviyeler"]:
-        if k.get("yuzey_yuz") is None:
+        if k.get("yuzey_yuz") is None and k["ad"] in d["guncel_seviyeler"]:
             assert k["ad"] in d["esik_altinda_seviyeler"]
+    assert set(d["guncel_seviyeler"]).isdisjoint(d["bayat_seviyeler"])
 
 
 def test_KISIT_yeniden_hesaplama_IDDIA_ETMIYOR():
@@ -95,7 +103,27 @@ def test_DELTA_kok_nedeni_ONCE_soyluyor():
     if not DELTA.exists() or not KANIT.exists():
         return
     d = json.loads(DELTA.read_text(encoding="utf-8"))
-    assert any("ARAC YUZEYI MESH'TE YOK" in e for e in d["engeller"])
-    # Kok neden LISTENIN BASINDA olmali: sira eylem sirasini belirliyor.
-    assert "ARAC YUZEYI" in d["engeller"][0]
     assert "(0)" in d["_gerekli"], "gerekli adimlar sirali degil"
+    # Adimlar OLCUMDEN turetilmeli: yuzey cozulduyse (0) ISARETLI olmali,
+    # cozulmediyse ENGEL listesinde adi gecmeli.
+    t = json.loads(KANIT.read_text(encoding="utf-8")) if KANIT.exists() else {}
+    if t.get("yuzey_cozuldu"):
+        assert "✔" in d["_gerekli"]
+    else:
+        assert any("ARAC YUZEYI" in e for e in d["engeller"])
+
+
+def test_BAND_YOKSA_SIFIR_SAYILMIYOR():
+    """En tehlikeli sessiz hata: GCI kaydi yoksa gci_pct=0 olup band 0 cikiyordu
+    ve Delta ±%0.1 ile "kesin" gorunuyordu. Olculmedi, sifir demek degildir."""
+    if not DELTA.exists():
+        return
+    d = json.loads(DELTA.read_text(encoding="utf-8"))
+    dd = d.get("delta")
+    if not dd:
+        return
+    if not dd.get("band_olculdu"):
+        assert dd["band"] is None
+        assert dd["band_paylari"]["rans"] == "OLCULMEDI"
+        assert any("BANDI OLCULMEDI" in e for e in d["engeller"])
+        assert "BANDSIZ" in d["verdikt"]

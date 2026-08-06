@@ -106,14 +106,33 @@ def _minihawk_gci() -> tuple[str, str]:
     bir kanıtı değil, GÜNCEL ölçümü raporluyor — sonuç yine olumsuz ama ölçülmüş.
     """
     d = _json("gci_minihawk_arac.json")
-    g = d["gci"]
+    g = d.get("gci") or {}
     yp = (d.get("yplus") or {}).get("ort")
-    sev = d["seviyeler"]
-    cd_ler = ", ".join(f"{s['cells']:,}→{s['Cd']:.4f}" for s in sev if s.get("Cd") is not None)
+    sev = d.get("seviyeler") or []
     red = d.get("fizik_disi_seviyeler") or []
+    yz = (d.get("yuzey_cozunurlugu") or {}).get("yuzey_yuz")
+    # BAND YOKSA SATIR YINE YAZILIR. Kanit semasi degisti: mesh-bagimsizlik
+    # calismasi kosulamadiginda `seviyeler` None gelir. Eski surum burada
+    # TypeError verip "kanit dosyasi sema disi" yaziyordu — yani GUNCEL bir
+    # olcum, OKUNAMADI diye rapordan dusuyordu.
+    if d.get("band_yok_nedeni"):
+        _y = ""
+        if yp:
+            _bandda = 30.0 <= yp <= 300.0
+            _y = (f"Ölçülen y⁺ ort **{yp:.0f}** — duvar-fonksiyonu bandı (30-300) "
+                  + ("İÇİNDE. " if _bandda else "DIŞINDA → sürtünme çözülmüyor. "))
+        return "⚠️ Bant yok", (
+            f"MiniHawk (güncel koşu): Cd={d['Cd']:.4f}, Cl={d['Cl']:.4f}"
+            + (f", gövde yüzeyi {yz:,} yüz ile çözüldü" if yz else "")
+            + (f", ref_bump={d['ref_bump']}" if d.get("ref_bump") is not None else "")
+            + ". Mesh bağımsızlık BANDI YOK — " + str(d["band_yok_nedeni"])[:180]
+            + ". " + _y
+            + f"Cl={d['Cl']:.4f} oysa NACA2412 α=0'da ~0.25 — kamburluk hâlâ "
+              "çözülmüyor; sınır ince-özellik (firar kenarı) çözünürlüğünde")
+    cd_ler = ", ".join(f"{s['cells']:,}→{s['Cd']:.4f}" for s in sev if s.get("Cd") is not None)
     return "❌ Yakınsamadı", (
         f"MiniHawk (2026-07-28, DOĞRU geometri): 4 seviye {cd_ler} — GCI "
-        f"%{g['gci_fine_pct']:.0f}, seri MONOTON DEĞİL → mesh bağımsızlığı YOK. "
+        f"%{g.get('gci_fine_pct', 0):.0f}, seri MONOTON DEĞİL → mesh bağımsızlığı YOK. "
         + (f"En kaba seviye ({red[0]['cells']:,} hücre) fizik kapısında reddedildi "
            "(Cd=0). " if red else "")
         + (f"Ölçülen y⁺ ort **{yp:.0f}** (bant 30-300): düz levha çapasında ilk hücre "

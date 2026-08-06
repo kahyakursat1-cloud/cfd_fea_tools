@@ -11,7 +11,8 @@
         38.204,
         22.5,
         21.08
-      ]
+      ],
+      "bayat": true
     },
     {
       "ad": "minihawk_kaba",
@@ -21,7 +22,8 @@
         38.204,
         22.5,
         21.08
-      ]
+      ],
+      "bayat": true
     },
     {
       "ad": "minihawk_orta",
@@ -31,39 +33,45 @@
         38.204,
         22.5,
         21.08
-      ]
+      ],
+      "bayat": true
     },
     {
       "ad": "minihawk",
-      "taban_hucre": 3943350,
-      "yuzey_yuz": 74,
+      "taban_hucre": 306936,
+      "yuzey_yuz": 24477,
       "alan_boyut_m": [
         38.204,
         22.5,
         21.08
-      ]
+      ],
+      "bayat": false
     }
   ],
-  "yuzey_yuz_esigi": 500,
-  "esik_altinda_seviyeler": [
-    "minihawk_cokkaba",
-    "minihawk_kaba",
-    "minihawk_orta",
+  "guncel_seviyeler": [
     "minihawk"
   ],
-  "yuzey_yuz_monoton": false,
+  "bayat_seviyeler": [
+    "minihawk_cokkaba",
+    "minihawk_kaba",
+    "minihawk_orta"
+  ],
+  "yuzey_yuz_esigi": 500,
+  "esik_altinda_seviyeler": [],
+  "yuzey_yuz_monoton": true,
   "alan_boyut_m": [
     38.204,
     22.5,
     21.08
   ],
   "alan_hacim_m3": 18120.2,
-  "en_ince_taban_hucre": 3943350,
-  "arka_plan_hucre_m": 0.1663,
+  "en_ince_taban_hucre": 549780,
+  "arka_plan_hucre_m": 0.3206,
   "_kok_neden": "Arka plan mesh'i tum alana DUZGUN seriliyordu. Alan 1.5 m acikliktaki bir ucak icin ~18.120 m3; en ince seviyede 3.94M taban hucre = 0.166 m hucre. Hucre butcesi (maxGlobalCells) arka planda tukeniyor ve snappyHexMesh yuzeyi inceltemiyordu.",
   "_zaten_duzeltildi": "KOD TARAFINDA COZULMUS (commit b62980c, analysis/openfoam_runner.arka_plan_hucre_boyu): arka plan bütçenin en fazla ARKA_PLAN_BUTCE_PAYI=%25'ini yiyecek sekilde KABALASTIRILIYOR; kaba seviyeler ince seviyenin GERCEK arka planindan tureiliyor; snappy'nin 'No cells marked for refinement since reached limit' satiri parse_iyilestirme_acligi ile ayrica olculuyor. Bu dosya bir KUSUR RAPORU DEGIL — depoda duran gci_minihawk_arac.json kaydinin O DUZELTMEDEN ONCEKI boru hattiyla uretildigini gosterir.",
   "_gereken": "Kod degisikligi DEGIL, YENIDEN KOSU.",
   "_kisit": "Bu teshis MESH loglarindan uretildi; polyMesh diskte yok (temizlikte silindi). Yuzey yuz sayilari checkMesh'in patch tablosundan, taban hucre blockMesh'ten okundu. Cozucu sonuclari (Cd/Cl) YENIDEN HESAPLANMADI — bu dosya onlarin NEDEN kullanilamaz oldugunu soyler, yerlerine sayi koymaz.",
   "_uretim": "Üretim: python experiments/minihawk_mesh_teshisi.py",
-  "verdikt": "⛔ ARAC YUZEYI MESH'TE YOK: yuzey yuzleri minihawk_cokkaba=None, minihawk_kaba=8, minihawk_orta=144, minihawk=74 — esik 500. Dizi MONOTON DEGIL: en ince seviye ortadan DAHA AZ yuzey yuzu veriyor, yani kademeler ayni geometrinin farkli cozunurlukleri DEGIL. En kotu 8 yuz. Bu kademelerden gelen Cd/Cl sayi degildir; GCI %379 ve y+ 5399 bunun SONUCUDUR, sebebi degil. KUSUR KOD TARAFINDA ZATEN DUZELTILDI (b62980c); bu KAYIT duzeltmeden ONCEKI boru hattina ait. GEREKEN: yeniden kosu."
+  "verdikt": "✅ ARAC YUZEYI COZULDU: minihawk=24477 — esik 500. Yeniden kosu (b62980c sonrasi boru hatti + --ref-bump oto) yuzeyi cozdu. Bayat kademe dizinleri ['minihawk_cokkaba', 'minihawk_kaba', 'minihawk_orta'] eski kampanyadan kalmadir ve hukme GIRMEZ.",
+  "yuzey_cozuldu": true
 }

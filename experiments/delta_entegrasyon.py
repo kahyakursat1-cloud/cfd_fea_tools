@@ -45,6 +45,8 @@ def _rans() -> dict:
     d = json.loads((KOK / "gci_minihawk_arac.json").read_text(encoding="utf-8"))
     return {"Cd": d["Cd"], "Cl": d["Cl"], "aref": d["aref_m2"],
             "aref_mode": d.get("aref_mode"), "gci": d.get("gci") or {},
+            "band_yok_nedeni": d.get("band_yok_nedeni"),
+            "yuzey_cozunurlugu": d.get("yuzey_cozunurlugu") or {},
             "yplus": d.get("yplus") or {}, "verdikt": d.get("verdikt", "")}
 
 
@@ -132,16 +134,32 @@ def calistir() -> dict:
         cd_b = b["nokta"]["Cd_toplam"]
         delta = cd_rans_kanat_tabani - cd_b
         band_b = cd_b * (b["nokta"].get("Cd_band_pct", 0.0) / 100.0)
-        band_r = cd_rans_kanat_tabani * (gci_pct / 100.0)
-        band_d = (band_r ** 2 + band_b ** 2) ** 0.5
+        # ÖLÇÜLMEDİ, SIFIR DEMEK DEĞİL. Ilk surumde GCI yoksa gci_pct=0 olup
+        # band_r=0 cikiyordu ve Delta ±%0.1 ile YAYINLANIYORDU — yani band
+        # OLCULMEDIGI icin MUKEMMEL KESINLIK gibi gorunuyordu. Tam da bu depoda
+        # avlanan kusur.
+        band_olculdu = bool(gci_pct) and not r.get("band_yok_nedeni")
+        band_r = cd_rans_kanat_tabani * (gci_pct / 100.0) if band_olculdu else None
+        band_d = ((band_r ** 2 + band_b ** 2) ** 0.5
+                  if band_r is not None else None)
         kestirim = rec["islak_alan"]["Cd_parazit_kestirimi"]
         rec["delta"] = {
-            "deger": round(delta, 6), "band": round(band_d, 6),
-            "band_pct": round(band_d / abs(delta) * 100, 1) if delta else None,
-            "band_paylari": {"rans": round(band_r, 6),
-                             "birlestirme": round(band_b, 6)},
+            "deger": round(delta, 6),
+            "band": round(band_d, 6) if band_d is not None else None,
+            "band_olculdu": band_olculdu,
+            "band_pct": (round(band_d / abs(delta) * 100, 1)
+                         if band_d is not None and delta else None),
+            "band_paylari": {
+                "rans": round(band_r, 6) if band_r is not None else "OLCULMEDI",
+                "birlestirme": round(band_b, 6)},
             "kestirime_orani": round(delta / kestirim, 2) if kestirim else None,
         }
+        if not band_olculdu:
+            engeller.append(
+                "RANS BANDI OLCULMEDI: mesh-bagimsizlik calismasi yok"
+                + (f" ({r['band_yok_nedeni']})" if r.get("band_yok_nedeni") else "")
+                + ". Delta'nin bandi HESAPLANAMAZ — bandsiz bir fark, kesin bir "
+                  "fark DEGILDIR")
 
     # KAPILAR — Delta'nin KULLANILABILIR olmasi icin RANS'in savunulabilir
     # olmasi gerekir; RANS'in kendi verdikti bunu zaten reddediyor.
@@ -188,12 +206,15 @@ def calistir() -> dict:
     rec["engeller"] = engeller
     if engeller and "delta" in rec:
         d = rec["delta"]
+        _b = (f"± {d['band']:.5f} (±%{d['band_pct']:.0f}) — band degerin "
+              f"{d['band'] / abs(d['deger']):.1f} KATI"
+              if d.get("band") is not None else
+              "BANDSIZ — RANS mesh-bagimsizlik calismasi yok, belirsizlik "
+              "OLCULMEDI (sifir DEGIL)")
         rec["verdikt"] = (
-            f"⛔ Δ HESAPLANDI ama KULLANILAMAZ: {d['deger']:.5f} ± {d['band']:.5f} "
-            f"(±%{d['band_pct']:.0f}) — band degerin "
-            f"{d['band']/abs(d['deger']):.1f} KATI. Duz-levha kestirimi "
-            f"{rec['islak_alan']['Cd_parazit_kestirimi']:.5f}, olculen onun "
-            f"{d['kestirime_orani']:.1f} kati. Engeller: "
+            f"⛔ Δ HESAPLANDI ama KULLANILAMAZ: {d['deger']:.5f} {_b}. "
+            f"Duz-levha kestirimi {rec['islak_alan']['Cd_parazit_kestirimi']:.5f}, "
+            f"olculen onun {d['kestirime_orani']:.1f} kati. Engeller: "
             + " | ".join(e.split(":")[0] for e in engeller))
     elif engeller:
         rec["verdikt"] = "⛔ Δ HESAPLANAMADI: " + " | ".join(
@@ -202,16 +223,26 @@ def calistir() -> dict:
         d = rec["delta"]
         rec["verdikt"] = (f"✅ Δ = {d['deger']:.5f} ± {d['band']:.5f} "
                           f"(±%{d['band_pct']:.0f}), kanat alani tabaninda")
-    rec["_gerekli"] = (
-        "SIRA ONEMLI. (0) ONCE ARAC YUZEYI COZULMELI: en ince seviye 74 yuz "
-        "veriyor, esik 500. Kok neden dagitim — alan 1.5 m ucak icin 38x22.5x21 m "
-        "ve arka plan mesh'i oraya DUZGUN seriliyor (0.166 m hucre), butce "
-        "yuzeye ulasmadan tukeniyor. `CFDCase.refinement_regions` zaten var ama "
-        "arac yolu kullanmiyor; govde cevresine hedefli kutu ayni butceyle "
-        "yuzeyi cozer. (1) sonra mesh-bagimsizligi (GCI<%15, monoton), "
-        "(2) y+ 30-300 (prizma katmani), (3) Cl kamburlugu cozmeli (su an "
-        "alpha=0'da 0.0143, 2B beklenti ~0.25). 1-3 ancak 0 saglaninca "
-        "anlamlidir; geometri artik dogru.")
+
+    # GEREKLI ADIMLAR OLCUMDEN URETILIR, SABIT YAZILMAZ. Ilk surumde metin
+    # "en ince seviye 74 yuz veriyor" diye SABITTI; ref_bump duzeltmesinden
+    # sonra yuzey 24.477 yuze cikti ve metin kendi verisiyle CELISTI.
+    _yz = (r.get("yuzey_cozunurlugu") or {}).get("yuzey_yuz")
+    _adim = []
+    if _yz and not (r.get("yuzey_cozunurlugu") or {}).get("cozuldu"):
+        _adim.append(f"(0) ARAC YUZEYI COZULMELI — olculen {_yz:,} yuz")
+    elif _yz:
+        _adim.append(f"(0) ✔ arac yuzeyi COZULDU ({_yz:,} yuz)")
+    _adim.append("(1) mesh-bagimsizlik bandi YOK — " + (r.get("band_yok_nedeni") or
+                 f"GCI %{gci_pct:.0f}"))
+    if yplus_ort:
+        _ok = 30.0 <= yplus_ort <= 300.0
+        _adim.append(f"(2) {'✔ ' if _ok else ''}y+ ortalama {yplus_ort:.0f}"
+                     + ("" if _ok else " — bant 30-300 disi"))
+    if cl_b is not None and r["Cl"] is not None:
+        _adim.append(f"(3) Cl uyusmuyor: RANS {r['Cl']:.4f} vs birlestirme "
+                     f"{cl_b:.4f} (2B beklenti ~0.25)")
+    rec["_gerekli"] = "SIRA ONEMLI. " + " | ".join(_adim)
     rec["_uretim"] = "Üretim: python experiments/delta_entegrasyon.py"
     return rec
 

@@ -9,12 +9,12 @@
     "_neden": "Ortak tabana cevrilmeden cikarilan fark anlamsizdir; 1.72 katlik bu uyumsuzluk daha once Delta'nin cikarilmasini engellemisti."
   },
   "rans": {
-    "Cd_kendi_tabani": 0.01388,
-    "Cd_kanat_tabani": 0.023904,
-    "Cl": 0.01433,
-    "gci_fine_pct": 379.4432,
+    "Cd_kendi_tabani": 0.01923,
+    "Cd_kanat_tabani": 0.033118,
+    "Cl": 0.09152,
+    "gci_fine_pct": 0.0,
     "monoton": false,
-    "yplus_ort": 5398.59
+    "yplus_ort": 129.05
   },
   "birlestirme": {
     "alpha": 0.0,
@@ -38,14 +38,15 @@
     "Cd_parazit_kestirimi": 0.006785
   },
   "delta": {
-    "deger": 0.015039,
-    "band": 0.090704,
-    "band_pct": 603.1,
+    "deger": 0.024253,
+    "band": null,
+    "band_olculdu": false,
+    "band_pct": null,
     "band_paylari": {
-      "rans": 0.090704,
+      "rans": "OLCULMEDI",
       "birlestirme": 2.7e-05
     },
-    "kestirime_orani": 2.22
+    "kestirime_orani": 3.57
   },
   "mesh_teshisi": {
     "yuzey_yuzleri": [
@@ -63,19 +64,17 @@
       ],
       [
         "minihawk",
-        74
+        24477
       ]
     ],
     "esik": 500,
-    "monoton": false
+    "monoton": true
   },
   "engeller": [
-    "ARAC YUZEYI MESH'TE YOK: minihawk_cokkaba=None, minihawk_kaba=8, minihawk_orta=144, minihawk=74 yuz (esik 500). Cd/Cl bu kademelerden SAYI DEGIL; asagidaki GCI ve y+ engelleri bunun SONUCUDUR. Ayrinti: minihawk_mesh_teshisi.json",
-    "RANS MESH-BAGIMSIZ DEGIL: GCI %379, seri MONOTON DEGIL. Delta bu bandi AYNEN devralir",
-    "y+ BANT DISI: ortalama 5399 (hedef 30-300). Ilk hucre sinir tabakayi yutuyor, CILT SURTUNMESI COZULMUYOR — Delta'nin baskin terimi tam da o",
-    "AYNI DURUMDA DEGILLER: RANS Cl=0.0143, birlestirme Cl=0.1270. RANS kamburlugu cozemiyor (mesh), yani iki sayi ayni aerodinamik noktaya ait degil"
+    "RANS BANDI OLCULMEDI: mesh-bagimsizlik calismasi yok (mesh-bağımsızlık ÇALIŞMASI YAPILMADI — ince seviye YAKINSAMADI: rezidueller PLATOYA OTURDU (limit cevrimi) {'Ux': '2.91e-06', 'Uy': '6.30e-04', 'Uz': '2.26e-05', 'p': '2.18e-04'} — dusus durmus (son/onceki dilim {'Ux': 0.782, 'Uy': 0.939, 'Uz': 0.974, 'p': 0.942}), DAHA COK ITERASYON COZMEZ: akis zaman-bagimlidir (URANS) ya da bu vaka kararli-RANS capasi olarak uygun degildir; kuvvet salinimi (limit cevrimi) — sabit noktaya oturmamis. Band raporlanan Cd'ye ait olmalıdır; referans seviye kapıdan geçmeden aile anlamsızdır). Delta'nin bandi HESAPLANAMAZ — bandsiz bir fark, kesin bir fark DEGILDIR",
+    "ARAC YUZEYI MESH'TE YOK: minihawk_cokkaba=None, minihawk_kaba=8, minihawk_orta=144, minihawk=24477 yuz (esik 500). Cd/Cl bu kademelerden SAYI DEGIL; asagidaki GCI ve y+ engelleri bunun SONUCUDUR. Ayrinti: minihawk_mesh_teshisi.json"
   ],
-  "verdikt": "⛔ Δ HESAPLANDI ama KULLANILAMAZ: 0.01504 ± 0.09070 (±%603) — band degerin 6.0 KATI. Duz-levha kestirimi 0.00679, olculen onun 2.2 kati. Engeller: ARAC YUZEYI MESH'TE YOK | RANS MESH-BAGIMSIZ DEGIL | y+ BANT DISI | AYNI DURUMDA DEGILLER",
-  "_gerekli": "SIRA ONEMLI. (0) ONCE ARAC YUZEYI COZULMELI: en ince seviye 74 yuz veriyor, esik 500. Kok neden dagitim — alan 1.5 m ucak icin 38x22.5x21 m ve arka plan mesh'i oraya DUZGUN seriliyor (0.166 m hucre), butce yuzeye ulasmadan tukeniyor. `CFDCase.refinement_regions` zaten var ama arac yolu kullanmiyor; govde cevresine hedefli kutu ayni butceyle yuzeyi cozer. (1) sonra mesh-bagimsizligi (GCI<%15, monoton), (2) y+ 30-300 (prizma katmani), (3) Cl kamburlugu cozmeli (su an alpha=0'da 0.0143, 2B beklenti ~0.25). 1-3 ancak 0 saglaninca anlamlidir; geometri artik dogru.",
+  "verdikt": "⛔ Δ HESAPLANDI ama KULLANILAMAZ: 0.02425 BANDSIZ — RANS mesh-bagimsizlik calismasi yok, belirsizlik OLCULMEDI (sifir DEGIL). Duz-levha kestirimi 0.00679, olculen onun 3.6 kati. Engeller: RANS BANDI OLCULMEDI | ARAC YUZEYI MESH'TE YOK",
+  "_gerekli": "SIRA ONEMLI. (0) ✔ arac yuzeyi COZULDU (24,477 yuz) | (1) mesh-bagimsizlik bandi YOK — mesh-bağımsızlık ÇALIŞMASI YAPILMADI — ince seviye YAKINSAMADI: rezidueller PLATOYA OTURDU (limit cevrimi) {'Ux': '2.91e-06', 'Uy': '6.30e-04', 'Uz': '2.26e-05', 'p': '2.18e-04'} — dusus durmus (son/onceki dilim {'Ux': 0.782, 'Uy': 0.939, 'Uz': 0.974, 'p': 0.942}), DAHA COK ITERASYON COZMEZ: akis zaman-bagimlidir (URANS) ya da bu vaka kararli-RANS capasi olarak uygun degildir; kuvvet salinimi (limit cevrimi) — sabit noktaya oturmamis. Band raporlanan Cd'ye ait olmalıdır; referans seviye kapıdan geçmeden aile anlamsızdır | (2) ✔ y+ ortalama 129 | (3) Cl uyusmuyor: RANS 0.0915 vs birlestirme 0.1270 (2B beklenti ~0.25)",
   "_uretim": "Üretim: python experiments/delta_entegrasyon.py"
 }

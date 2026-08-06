@@ -44,6 +44,8 @@ def test_BAND_devralınıyor_yutulmuyor():
     if not d or "delta" not in d:
         return
     dd = d["delta"]
+    if not dd.get("band_olculdu"):
+        return                       # bandsiz durum ayri testte baglaniyor
     # Band RANS'ten gelir; birlestirmenin payi mertebe olarak KUCUK olmali.
     assert dd["band_paylari"]["rans"] > dd["band_paylari"]["birlestirme"]
     # Kareler toplami: bilesenlerden buyuk, toplamlarindan kucuk-esit.
@@ -89,9 +91,14 @@ def test_GEREKLI_adimlar_YAZILI():
     d = _d()
     if not d:
         return
+    # ADIMLAR OLCUMDEN URETILIR: sabit anahtar listesi baglamak, duzelen bir
+    # adimin metinden dusmesini HATA gibi gosterirdi. Baglanan sey SIRA ve
+    # dort adimin da adinin gecmesi.
     g = d["_gerekli"]
-    for anahtar in ("GCI", "y+", "Cl"):
-        assert anahtar in g
+    assert g.startswith("SIRA ONEMLI.")
+    for adim in ("(0)", "(1)", "(2)", "(3)"):
+        assert adim in g, f"{adim} eksik"
+    assert "y+" in g and "Cl" in g
 
 
 def test_URETIM_komutu_KAYITLI():

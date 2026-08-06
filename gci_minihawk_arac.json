@@ -1,83 +1,71 @@
 {
   "vaka": "MiniHawk UAV (govde 0.8 m, kanat 1.5 m) — arac hatti 4-seviye mesh yakinsama, V=15 m/s, alpha=0",
   "_geometri": "2026-07-28: SU GECIRMEZ ve GERCEK NACA2412 kanatli STL (shapely + mapbox_earcut + manifold3d kurulduktan sonra). Onceki kampanyalar kanadi DUZ KUTU olan ve govdeleri BIRLESMEMIS bir STL uzerinde kosulmustu — gci_minihawk_arac.ONCEKI_GECERSIZ.json",
-  "Cd": 0.01388,
-  "Cl": 0.01433,
+  "Cd": 0.01923,
+  "Cl": 0.09152,
   "aref_m2": 0.775,
   "aref_mode": "planform",
-  "seviyeler": [
-    {
-      "ad": "kaba",
-      "cells": 165741,
-      "Cd": 0.00057,
-      "Cd_wake": 0.0,
-      "fizik": {
-        "verdict": "ok",
-        "reasons": []
-      }
-    },
-    {
-      "ad": "orta",
-      "cells": 551964,
-      "Cd": 0.03765,
-      "Cd_wake": 0.0,
-      "fizik": {
-        "verdict": "ok",
-        "reasons": []
-      }
-    },
-    {
-      "ad": "ince",
-      "cells": 1860694,
-      "Cd": 0.013879596665322581
-    }
-  ],
-  "gci": {
-    "p": 1.104,
-    "f_exact": -0.028253,
-    "gci_fine_pct": 379.4432,
-    "gci_med_pct": 220.9408,
-    "asymptotic": 2.6863,
-    "monotonic": false,
-    "p_in_range": true
+  "seviyeler": null,
+  "gci": null,
+  "band_yok_nedeni": "mesh-bağımsızlık ÇALIŞMASI YAPILMADI — ince seviye YAKINSAMADI: rezidueller PLATOYA OTURDU (limit cevrimi) {'Ux': '2.91e-06', 'Uy': '6.30e-04', 'Uz': '2.26e-05', 'p': '2.18e-04'} — dusus durmus (son/onceki dilim {'Ux': 0.782, 'Uy': 0.939, 'Uz': 0.974, 'p': 0.942}), DAHA COK ITERASYON COZMEZ: akis zaman-bagimlidir (URANS) ya da bu vaka kararli-RANS capasi olarak uygun degildir; kuvvet salinimi (limit cevrimi) — sabit noktaya oturmamis. Band raporlanan Cd'ye ait olmalıdır; referans seviye kapıdan geçmeden aile anlamsızdır",
+  "yuzey_cozunurlugu": {
+    "cozuldu": true,
+    "gerekce": [],
+    "yuzey_yuz": 24477,
+    "aclik": false,
+    "kez": 0,
+    "limit": null
   },
-  "fizik_disi_seviyeler": [
-    {
-      "ad": "cokkaba",
-      "cells": 51034,
-      "Cd": 0.0,
-      "gerekce": "negatif/sıfır sürükleme (Cd=0.00000) — fiziksel olarak imkânsız"
-    }
-  ],
+  "ref_bump": 3,
+  "hucre": 453975,
+  "belirsizlik": {
+    "u_sayisal_pct": 1.42,
+    "u_sayisal_kaynak": "salınım-genliği",
+    "u_model_pct": 12.0,
+    "model_kaynak": "literatür-öncül (pipeline-validasyonu beklemede)",
+    "u_toplam_pct": 12.08,
+    "duvar_cozunur": false,
+    "rapor": "Cd = 0.0192 ± 12.1% (sayısal 1.42% ⊕ model 12.0%)"
+  },
+  "fizik_disi_seviyeler": null,
   "basarisiz_seviyeler": null,
   "yplus": {
-    "min": 2102.81,
-    "max": 6922.0,
-    "ort": 5398.59,
-    "patch": "minihawk_prep",
-    "_kaynak": "yPlus.dat (kosu sonrasi elle olculdu)"
+    "min": 6.71,
+    "max": 424.17,
+    "ort": 129.05,
+    "patch": "minihawk_prep"
   },
   "convergence": {
-    "iterasyon": 103,
-    "cd_drift_son20pct": 0.007,
+    "iterasyon": 401,
+    "rezidual_platosu": {
+      "plato": true,
+      "oranlar": {
+        "Ux": 0.782,
+        "Uy": 0.939,
+        "Uz": 0.974,
+        "p": 0.942
+      },
+      "n": 400
+    },
+    "cd_drift_son20pct": 0.123,
     "drift_ok": true,
     "son_rezidualler": {
-      "Ux": "5.15e-04",
-      "Uy": "3.50e-04",
-      "Uz": "4.74e-04",
-      "p": "2.05e-03",
-      "omega": "3.31e-05",
-      "k": "4.24e-05"
+      "Ux": "2.91e-06",
+      "Uy": "6.30e-04",
+      "Uz": "2.26e-05",
+      "p": "2.18e-04",
+      "omega": "9.75e-07",
+      "k": "3.74e-06"
     },
     "rezidual_ok": false,
     "salinim": {
-      "osilasyon": false,
-      "ortalama": 0.004780238166097561,
-      "genlik": 1e-06,
-      "genlik_pct": 0.03,
-      "gecis": 1
+      "osilasyon": true,
+      "ortalama": 0.006630062147375,
+      "genlik": 9.4e-05,
+      "genlik_pct": 1.42,
+      "gecis": 4
     }
   },
-  "verdikt": "⚠️ Mesh bagimsizligi GOSTERILEMEDI: GCI %379, seri MONOTON DEGIL. en kaba seviye (51,034 hucre) FIZIK KAPISINDA reddedildi: negatif/sıfır sürükleme (Cd=0.00000) — fiziksel olarak imkânsız. olculen y+ ortalama 5399 (hedef bandi 30-300) — duz levha capasinda ilk hucre sinir tabakayi yuttugunda cilt surtunmesi %40 eksik olculmustu; burada y+ daha da yuksek, SURTUNME COZULMUYOR. Cl=0.0143 oysa NACA2412 alpha=0'da 2B beklenti ~0.25 — KAMBURLUK hala cozulmuyor (geometri artik dogru; sinir mesh cozunurlugunde).",
+  "verdikt": "⚠️ Mesh bagimsizlik BANDI YOK — mesh-bağımsızlık ÇALIŞMASI YAPILMADI — ince seviye YAKINSAMADI: rezidueller PLATOYA OTURDU (limit cevrimi) {'Ux': '2.91e-06', 'Uy': '6.30e-04', 'Uz': '2.26e-05', 'p': '2.18e-04'} — dusus durmus (son/onceki dilim {'Ux': 0.782, 'Uy': 0.939, 'Uz': 0.974, 'p': 0.942}), DAHA COK ITERASYON COZMEZ: akis zaman-bagimlidir (URANS) ya da bu vaka kararli-RANS capasi olarak uygun degildir; kuvvet salinimi (limit cevrimi) — sabit noktaya oturmamis. Band raporlanan Cd'ye ait olmalıdır; referans seviye kapıdan geçmeden aile anlamsızdır. govde yuzeyi 24,477 yuz ile cozuldu. olculen y+ ortalama 129 — duvar-fonksiyonu bandi (30-300) ICINDE, ancak yerel max 424 bandin ustunde. Cl=0.0915 oysa NACA2412 alpha=0'da 2B beklenti ~0.25 — KAMBURLUK hala cozulmuyor (geometri artik dogru; sinir mesh cozunurlugunde).",
   "_uretim": "Üretim: python vehicle_pipeline.py vehicle_runs/minihawk.stl --tip ucak --hiz 15 --kalite standart --duyarlilik --seviyeler 4 && python experiments/minihawk_kanit_yaz.py"
 }

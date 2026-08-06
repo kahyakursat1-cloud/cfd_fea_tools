@@ -73,11 +73,23 @@ def _log_oku(dizin: Path) -> dict:
 def calistir() -> dict:
     from analysis.openfoam_runner import YUZEY_YUZ_ESIGI
     kayitlar = [_log_oku(KOSU / s) for s in SEVIYELER if (KOSU / s).is_dir()]
+    # BAYAT KADEME AYIRT EDILIR. Yeniden kosuda kaba seviyeler ON-KAPIDA
+    # reddedildi, yani dizinleri ESKI kampanyadan kaldi. Onlari guncel kosunun
+    # kademeleriymis gibi raporlamak, duzelmis bir mesh'i bozuk gostermek olur.
+    _sj = KOSU / "sonuc.json"
+    _ref = _sj.stat().st_mtime if _sj.exists() else None
+    for k in kayitlar:
+        _cm = KOSU / k["ad"] / "log.checkMesh"
+        k["bayat"] = bool(_ref and _cm.exists()
+                          and _cm.stat().st_mtime < _ref - 3600)
+    guncel = [k for k in kayitlar if not k.get("bayat")]
     if not kayitlar:
         return {"vaka": "MiniHawk mesh teshisi", "durum": "KOSU DIZINI YOK",
                 "verdikt": f"⚠️ {KOSU} bulunamadi — teshis LOGLARDAN uretilir."}
 
-    yuzler = [(k["ad"], k.get("yuzey_yuz")) for k in kayitlar]
+    # HUKUM GUNCEL KADEMELERDEN VERILIR; bayatlar KAYITTA kalir ama karar
+    # onlarin uzerine kurulmaz.
+    yuzler = [(k["ad"], k.get("yuzey_yuz")) for k in guncel]
     olculen = [y for _, y in yuzler if y]
     esik_alti = [ad for ad, y in yuzler if y is None or y < YUZEY_YUZ_ESIGI]
     # AILE MONOTON MU: hucre artarken yuzey yuzu de artmali. Artmıyorsa
@@ -98,6 +110,8 @@ def calistir() -> dict:
                    "uyusmazligi). Ucu de BELIRTI; kok neden meshte."),
         "kosu": str(KOSU),
         "seviyeler": kayitlar,
+        "guncel_seviyeler": [k["ad"] for k in guncel],
+        "bayat_seviyeler": [k["ad"] for k in kayitlar if k.get("bayat")],
         "yuzey_yuz_esigi": YUZEY_YUZ_ESIGI,
         "esik_altinda_seviyeler": esik_alti,
         "yuzey_yuz_monoton": monoton,
@@ -127,17 +141,29 @@ def calistir() -> dict:
                    "NEDEN kullanilamaz oldugunu soyler, yerlerine sayi koymaz."),
         "_uretim": "Üretim: python experiments/minihawk_mesh_teshisi.py",
     }
-    rec["verdikt"] = (
-        "⛔ ARAC YUZEYI MESH'TE YOK: yuzey yuzleri "
-        + ", ".join(f"{ad}={y}" for ad, y in yuzler)
-        + f" — esik {YUZEY_YUZ_ESIGI}. "
-        + ("Dizi MONOTON DEGIL: en ince seviye ortadan DAHA AZ yuzey yuzu "
-           "veriyor, yani kademeler ayni geometrinin farkli cozunurlukleri "
-           "DEGIL. " if not monoton else "")
-        + f"En kotu {min(olculen) if olculen else 0} yuz. Bu kademelerden gelen "
-          "Cd/Cl sayi degildir; GCI %379 ve y+ 5399 bunun SONUCUDUR, sebebi "
-          "degil. KUSUR KOD TARAFINDA ZATEN DUZELTILDI (b62980c); bu KAYIT "
-          "duzeltmeden ONCEKI boru hattina ait. GEREKEN: yeniden kosu.")
+    _cozuldu = bool(olculen) and min(olculen) >= YUZEY_YUZ_ESIGI
+    _liste = ", ".join(f"{ad}={y}" for ad, y in yuzler)
+    _monoton_notu = ("" if monoton else
+                     "Dizi MONOTON DEGIL: en ince seviye ortadan DAHA AZ yuzey "
+                     "yuzu veriyor, yani kademeler ayni geometrinin farkli "
+                     "cozunurlukleri DEGIL. ")
+    if _cozuldu:
+        rec["verdikt"] = (
+            f"✅ ARAC YUZEYI COZULDU: {_liste} — esik {YUZEY_YUZ_ESIGI}. "
+            + _monoton_notu
+            + "Yeniden kosu (b62980c sonrasi boru hatti + --ref-bump oto) "
+              "yuzeyi cozdu. Bayat kademe dizinleri "
+            + f"{rec['bayat_seviyeler']} eski kampanyadan kalmadir ve hukme "
+              "GIRMEZ.")
+    else:
+        rec["verdikt"] = (
+            f"⛔ ARAC YUZEYI MESH'TE YOK: yuzey yuzleri {_liste} — esik "
+            f"{YUZEY_YUZ_ESIGI}. " + _monoton_notu
+            + f"En kotu {min(olculen) if olculen else 0} yuz. Bu kademelerden "
+              "gelen Cd/Cl sayi degildir; GCI %379 ve y+ 5399 bunun SONUCUDUR, "
+              "sebebi degil. KUSUR KOD TARAFINDA ZATEN DUZELTILDI (b62980c); bu "
+              "KAYIT duzeltmeden ONCEKI boru hattina ait. GEREKEN: yeniden kosu.")
+    rec["yuzey_cozuldu"] = _cozuldu
     return rec
 
 

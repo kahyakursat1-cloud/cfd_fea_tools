@@ -2129,7 +2129,20 @@ if __name__ == "__main__":
                     help="pervane itkisi (N) — aktüatör disk modeli")
     ap.add_argument("--cap", type=float, default=0.0,
                     help="pervane çapı (m)")
+    # ÖNERİ ZATEN HESAPLANIYORDU AMA CLI'DAN UYGULANAMIYORDU: motor
+    # `ref_bump="oto"` destekliyor ve y⁺'ı banda sokan en ucuz kademeyi
+    # geometri-başına seçiyor; komut satırında karşılığı yoktu, dolayısıyla
+    # ölçüm tüketiciye ulaşmıyordu. MiniHawk'ta ölçüldü: bump 0 → y⁺ 803
+    # (bant 30-300 DIŞI), öneri bump 2-3 → y⁺ 228/114.
+    ap.add_argument("--ref-bump", default="0", dest="ref_bump",
+                    help="ek yüzey iyileştirme kademesi; tam sayı ya da "
+                         "'oto' (y⁺'ı banda sokan en ucuz kademeyi seçer)")
     args = ap.parse_args()
+    if str(args.ref_bump).lower() != "oto":
+        try:
+            args.ref_bump = int(args.ref_bump)
+        except ValueError:
+            ap.error("--ref-bump tam sayı ya da 'oto' olmalı")
 
     def _cb(pct, msg):
         print(f"[{pct:3d}%] {msg}", flush=True)
@@ -2140,7 +2153,7 @@ if __name__ == "__main__":
                              mesh_sensitivity=args.duyarlilik, n_layers=args.katman,
                              mesh_levels=args.seviyeler, yplus_target=args.yplus,
                              pervane_itki_n=args.itki, pervane_cap_m=args.cap,
-                             progress_cb=_cb)
+                             ref_bump=args.ref_bump, progress_cb=_cb)
     if r.status == "ok":
         print(f"\nCd={r.cd}  CdA={r.cda_m2} m²  Drag={r.drag_N} N"
               + (f"  Cl={r.cl}  L/D={r.ld}" if r.cl is not None else ""))

@@ -295,3 +295,39 @@ def test_parse_residuals(tmp_path):
     r = parse_residuals(log)
     assert r["Ux"] == [0.1, 0.01]
     assert r["p"] == [0.5, 0.05]   # iterasyon ici tekrarlardan ilki
+
+
+class TestRefBumpCLI:
+    """Motor y⁺'ı banda sokan kademeyi ÖLÇÜYORDU ama CLI uygulayamıyordu.
+
+    ÖLÇÜLDÜ (MiniHawk, düzeltilmiş boru hattı): bump 0 → y⁺ 803, bant 30–300
+    DIŞI. `ref_bump_onerisi` bump 2 → 228, bump 3 → 114 diyordu ve
+    `kullanilan: 0` idi. Motor `ref_bump="oto"` destekliyordu; komut satırında
+    karşılığı YOKTU, yani ölçüm tüketiciye ulaşmıyordu.
+    """
+
+    def test_MOTOR_oto_destekliyor(self):
+        import inspect
+
+        import vehicle_pipeline as vp
+        src = inspect.getsource(vp.run_vehicle_analysis)
+        assert '"oto"' in src or "'oto'" in src
+
+    def test_CLI_ref_bump_BAYRAGI_var(self):
+        from pathlib import Path
+        src = (Path(vp_kok()) / "vehicle_pipeline.py").read_text(encoding="utf-8")
+        assert "--ref-bump" in src, "CLI öneriyi uygulayamıyor"
+        # Bayrak GERCEKTEN motora gecmeli; tanimlanip kullanilmamasi bu depoda
+        # bir kez yasandi (panel ayari yanlis yerde).
+        assert "ref_bump=args.ref_bump" in src
+
+    def test_oto_DISI_deger_tam_sayiya_cevriliyor(self):
+        from pathlib import Path
+        src = (Path(vp_kok()) / "vehicle_pipeline.py").read_text(encoding="utf-8")
+        assert "int(args.ref_bump)" in src
+        assert "ap.error" in src, "gecersiz deger sessizce yutulmamali"
+
+
+def vp_kok():
+    from pathlib import Path
+    return Path(__file__).resolve().parent.parent
