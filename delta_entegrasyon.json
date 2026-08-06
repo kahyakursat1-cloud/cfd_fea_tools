@@ -1,0 +1,58 @@
+{
+  "vaka": "Δ_entegrasyon — 3B RANS (tum arac) eksi kanat birlestirmesi, V=15 m/s, alpha=0",
+  "_ne_olculuyor": "Fark GIRISIM DEGIL: RANS geometrisi govde+kanat ve yatay kuyruk iceriyor, birlestirme ise YALNIZ kanat. Delta = govde parazit + kuyruk parazit + girisim.",
+  "referans_alani": {
+    "rans_m2": 0.775,
+    "rans_mode": "planform",
+    "birlestirme_m2": 0.45,
+    "olcek": 1.72222,
+    "_neden": "Ortak tabana cevrilmeden cikarilan fark anlamsizdir; 1.72 katlik bu uyumsuzluk daha once Delta'nin cikarilmasini engellemisti."
+  },
+  "rans": {
+    "Cd_kendi_tabani": 0.01388,
+    "Cd_kanat_tabani": 0.023904,
+    "Cl": 0.01433,
+    "gci_fine_pct": 379.4432,
+    "monoton": false,
+    "yplus_ort": 5398.59
+  },
+  "birlestirme": {
+    "alpha": 0.0,
+    "Cl": 0.127,
+    "CDi": 0.001046,
+    "CDi_kaynagi": "taşıyıcı-çizgi (Glauert), e=0.9818 — AR=5.00, taper=0.7",
+    "CDi_vlm": 0.001009,
+    "Cd_profil": 0.007819,
+    "Cd_toplam": 0.008865,
+    "Cd_band_tasima_pct": 0.21,
+    "Cd_band_pct": 0.3,
+    "Cl_band_pct": 1.36
+  },
+  "islak_alan": {
+    "s_govde_m2": 0.20106,
+    "s_kuyruk_m2": 0.28,
+    "s_islak_m2": 0.48106,
+    "Re_L": 800000.0,
+    "Cf": 0.004882,
+    "form_faktoru": 1.3,
+    "Cd_parazit_kestirimi": 0.006785
+  },
+  "delta": {
+    "deger": 0.015039,
+    "band": 0.090704,
+    "band_pct": 603.1,
+    "band_paylari": {
+      "rans": 0.090704,
+      "birlestirme": 2.7e-05
+    },
+    "kestirime_orani": 2.22
+  },
+  "engeller": [
+    "RANS MESH-BAGIMSIZ DEGIL: GCI %379, seri MONOTON DEGIL. Delta bu bandi AYNEN devralir",
+    "y+ BANT DISI: ortalama 5399 (hedef 30-300). Ilk hucre sinir tabakayi yutuyor, CILT SURTUNMESI COZULMUYOR — Delta'nin baskin terimi tam da o",
+    "AYNI DURUMDA DEGILLER: RANS Cl=0.0143, birlestirme Cl=0.1270. RANS kamburlugu cozemiyor (mesh), yani iki sayi ayni aerodinamik noktaya ait degil"
+  ],
+  "verdikt": "⛔ Δ HESAPLANDI ama KULLANILAMAZ: 0.01504 ± 0.09070 (±%603) — band degerin 6.0 KATI. Duz-levha kestirimi 0.00679, olculen onun 2.2 kati. Engeller: RANS MESH-BAGIMSIZ DEGIL | y+ BANT DISI | AYNI DURUMDA DEGILLER",
+  "_gerekli": "Delta'nin KULLANILABILIR olmasi icin: (1) RANS mesh-bagimsizligi gosterilmeli (GCI < %15, monoton seri), (2) y+ 30-300 bandina cekilmeli (prizma katmani), (3) RANS'in Cl'i kamburlugu cozmeli — su an alpha=0'da 0.0143 verirken 2B beklenti ~0.25. Ucu de MESH COZUNURLUGU sorunudur; geometri artik dogru.",
+  "_uretim": "Üretim: python experiments/delta_entegrasyon.py"
+}
