@@ -314,6 +314,16 @@ class KosularDialog(QDialog):
         if ay:
             md += ["", f"**Ayırt-edilebilirlik:** ΔCd %{ay['dCd_pct']} vs band(RSS) "
                        f"%{ay['band_rss_pct']} → **{ay['hukum']}**"]
+        else:
+            # BAND YOKSA SATIR HIC YAZILMIYORDU. Kullanici iki ciplak sayiyi
+            # yanyana gorup farki GERCEK saniyordu; oysa bandi olmayan iki
+            # kosunun farki hakkinda hicbir sey soylenemez. "Olcemedim" ile
+            # "fark yok" ayni sey degildir ve bu artik ekranda yaziyor.
+            _eksik = [k["ad"] for k in (sec[0], sec[1]) if k.get("u_pct") is None]
+            md += ["", "**Ayırt-edilebilirlik: HÜKÜM VERİLEMEZ** — belirsizlik "
+                       "bandı olmayan koşu(lar): " + (", ".join(_eksik) or "—") +
+                   ". İki sayının farkı, bantları bilinmeden gerçek sayılamaz; "
+                   "mesh duyarlılık bandı için `--duyarlilik` ile yeniden koşun."]
         for u in c["uyarilar"]:
             md.append(f"\n> ⚠️ {u}")
         self.det.setMarkdown("\n".join(md))
@@ -339,6 +349,11 @@ class KuyrukDialog(QDialog):
         self.tbl.setHorizontalHeaderLabels(["Durum", "ID", "Model", "Tip", "Kalite", "Sonuç"])
         self.tbl.setEditTriggers(QTableWidget.NoEditTriggers)
         lay.addWidget(self.tbl, 1)
+        # KILIT DURUMU GORUNUR OLMALI: bayat kilit sessiz kaldiginda kullanici
+        # "worker basladi" sanip bekliyor, oysa kuyruk bloke.
+        self.lbl_kilit = QLabel("")
+        self.lbl_kilit.setWordWrap(True)
+        lay.addWidget(self.lbl_kilit)
         row = QHBoxLayout()
         btn_worker = QPushButton("▶ Worker Başlat")
         btn_worker.setToolTip("Bekleyen işleri sırayla koşan ayrık süreç başlatır; "
@@ -348,6 +363,17 @@ class KuyrukDialog(QDialog):
         btn_yenile = QPushButton("⟳ Yenile")
         btn_yenile.clicked.connect(self._yenile)
         row.addWidget(btn_yenile)
+        btn_iptal = QPushButton("✖ Seçili işi iptal et")
+        btn_iptal.setToolTip("Yalnız 'bekliyor' işler iptal edilir; koşan iş "
+                             "yarım bir case dizini bırakacağı için iptal edilmez.")
+        btn_iptal.clicked.connect(self._iptal)
+        row.addWidget(btn_iptal)
+        btn_devam = QPushButton("↻ Yarım kalanları devam ettir")
+        btn_devam.setToolTip("Worker çökerse ya da makine kapanırsa iş 'yarim' "
+                             "kalır; sessizce yeniden koşulmaz, bu düğme ile "
+                             "AÇIKÇA kuyruğa geri alınır.")
+        btn_devam.clicked.connect(self._devam)
+        row.addWidget(btn_devam)
         btn_temizle = QPushButton("🧹 Bitenleri temizle")
         btn_temizle.clicked.connect(self._temizle)
         row.addWidget(btn_temizle)
@@ -372,6 +398,45 @@ class KuyrukDialog(QDialog):
             for j, v in enumerate(hucre):
                 self.tbl.setItem(i, j, QTableWidgetItem(v))
         self.tbl.resizeColumnsToContents()
+        k = kuyruk.kilit_durumu()
+        yarim = sum(1 for i in isler if i["durum"] == "yarim")
+        if not k["kilitli"]:
+            self.lbl_kilit.setText("Worker koşmuyor." + (
+                f"  ⚠ {yarim} iş YARIM kaldı — 'devam ettir' ile geri alınabilir."
+                if yarim else ""))
+        elif k.get("bayat"):
+            self.lbl_kilit.setText(
+                f"⚠ BAYAT KİLİT: sahibi PID {k['pid']} artık yaşamıyor (çökme ya da "
+                "makine kapanması). Worker başlatıldığında kilit devralınacak.")
+        else:
+            self.lbl_kilit.setText(f"Worker koşuyor (PID {k['pid']})."
+                                   if k.get("yasiyor") else
+                                   f"Kilit PID {k['pid']}; süreç durumu sorulamadı — "
+                                   "güvenli tarafta bırakıldı, kilit devralınmaz.")
+
+    def _secili_id(self) -> str | None:
+        r = sorted({i.row() for i in self.tbl.selectedIndexes()})
+        return self.tbl.item(r[0], 1).text() if r else None
+
+    def _iptal(self):
+        import kuyruk
+        is_id = self._secili_id()
+        if not is_id:
+            QMessageBox.information(self, "Kuyruk", "Önce bir satır seçin.")
+            return
+        r = kuyruk.iptal(is_id)
+        if not r["ok"]:
+            QMessageBox.warning(self, "İptal edilemedi", r.get("mesaj", ""))
+        self._yenile()
+
+    def _devam(self):
+        import kuyruk
+        kuyruk.yarim_isaretle()
+        n = kuyruk.devam()
+        QMessageBox.information(self, "Kuyruk",
+                                f"{n} yarım iş yeniden kuyruğa alındı."
+                                if n else "Yarım kalan iş yok.")
+        self._yenile()
 
     def _worker_baslat(self):
         from PySide6.QtCore import QProcess
@@ -803,6 +868,11 @@ class AnalyzerWindow(QMainWindow):
             "velocity": self.spn_v.value(),
             "alpha_deg": self.spn_aoa.value(),
             "quality": self.cmb_quality.currentData(),
+            # ref_bump="oto": y+'i banda sokan TEK kaldirac. Bu satir kuyruk
+            # yoluna eklenmisti ama ANA "ANALIZ ET" dugmesine eklenmemisti;
+            # yani duzeltme bes cagiranin yalnizca birine ulasmisti ve
+            # kullanicinin en cok kullandigi yol varsayilan (0) ile kosuyordu.
+            "ref_bump": "oto",
             "n_processors": self.spn_proc.value(),
             "nose_axis": self.cmb_nose.currentText(),
             "up_axis": self.cmb_up.currentText(),
@@ -923,6 +993,7 @@ class AnalyzerWindow(QMainWindow):
             "velocity": self.spn_v.value(),
             "alphas": alphas,
             "quality": self.cmb_quality.currentData(),
+            "ref_bump": "oto",     # polar = tasimanin olculdugu yer; y+ kritik
             "n_layers": self.spn_layers.value(),
             "nose_axis": self.cmb_nose.currentText(),
             "up_axis": self.cmb_up.currentText(),

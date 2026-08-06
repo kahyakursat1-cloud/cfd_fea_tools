@@ -58,7 +58,11 @@ def _wsl_solve(case_dir: Path, timeout=7200):
 def run_polar(stl_path, vehicle_type="ucak", velocity=25.0, alphas=(-4, 0, 4, 8),
               quality="standart", n_layers=0, nose_axis="+x", up_axis="+z",
               cofr=(0.0, 0.0, 0.0), out_root="vehicle_runs", n_processors=0,
-              progress_cb=None) -> dict:
+              ref_bump=0, progress_cb=None) -> dict:
+    """Tek mesh, coklu alpha. `ref_bump` y+'i banda sokan TEK kaldiractir ve
+    burada eksikti: polar tarama tam da tasimanin olculdugu yerdir, yani duvar
+    cozunurlugunun en cok onemli oldugu yer. Cagiran "oto" gecerse kademe
+    geometri basina secilir."""
     alphas = sorted(alphas)
     stem = Path(stl_path).stem
 
@@ -70,7 +74,7 @@ def run_polar(stl_path, vehicle_type="ucak", velocity=25.0, alphas=(-4, 0, 4, 8)
     r0 = run_vehicle_analysis(stl_path, vehicle_type, velocity, alphas[0], quality,
                               out_root=out_root, n_processors=n_processors,
                               nose_axis=nose_axis, up_axis=up_axis,
-                              n_layers=n_layers, progress_cb=None)
+                              n_layers=n_layers, ref_bump=ref_bump, progress_cb=None)
     if r0.status != "ok":
         return {"status": "failed", "error": r0.error, "alpha": alphas[0]}
 
