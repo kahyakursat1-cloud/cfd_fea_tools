@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-31.862 satır Python $\cdot$ 141 test dosyası $\cdot$ 1435 geçen test\\[3mm]
+31.862 satır Python $\cdot$ 141 test dosyası $\cdot$ 1434 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -1583,6 +1583,59 @@ v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanm
         ayrılmalı akış, çok-fazlı akış, yanma, zaman-çözünür aeroakustik.
 \end{description}
 
+% ══════════════════════════════ 8B ══════════════════════════════
+\section{Bir Sonucun Yaşam Döngüsü}
+\label{sec:yasam}
+
+Önceki bölümler kapıları tek tek anlatıyor. Bu bölüm tek bir $C_D$ değerinin
+STL'den PDF'e kadar izini gösterir; her aşamanın yanında o aşamayı üreten
+\emph{gerçek} alan adı durur. Şemayı okumanın en hızlı yolu şudur: sağdaki
+kapılardan herhangi biri geçilmezse sayı bir sonraki kutuya \emph{çıplak}
+geçmez --- ya bandıyla geçer, ya etiketiyle, ya da hiç geçmez.
+
+\begin{center}
+\begin{tikzpicture}[node distance=2.6mm, font=\footnotesize]
+\node[kutu, fill=blue!6] (stl) {STL / CAD\\[-1pt]{\tiny\texttt{geometry.dosya}}};
+\node[kutu, below=of stl, fill=blue!6] (haz) {Geometri hazırlığı\\[-1pt]{\tiny\texttt{geometry.\{lmax\_m, ucgen\_sayisi, su\_gecirmez\}}}};
+\node[kapi, below=of haz] (kur) {kurulum\\kapısı};
+\node[kutu, below=of kur, fill=blue!6] (mesh) {Ağ + sınır tabaka\\[-1pt]{\tiny\texttt{mesh.cells} · \texttt{sinir\_tabaka.yplus}}};
+\node[kutu, below=of mesh, fill=blue!6] (coz) {Çözüm\\[-1pt]{\tiny\texttt{convergence.\{iterasyon, cd\_drift\_son20pct, salinim\}}}};
+\node[kapi, below=of coz] (fiz) {fizik\\kapısı};
+\node[kutu, below=of fiz, fill=green!6] (say) {Sayısal belirsizlik\\[-1pt]{\tiny\texttt{mesh\_duyarlilik.\{gci, lsr\}} $\rightarrow$ \texttt{belirsizlik.u\_sayisal\_pct}}};
+\node[kutu, below=of say, fill=green!6] (gir) {Girdi belirsizliği\\[-1pt]{\tiny\texttt{belirsizlik.u\_girdi\_pct}}};
+\node[kutu, below=of gir, fill=green!6] (mod) {Model-form\\[-1pt]{\tiny\texttt{validation\_band.json} $\rightarrow$ \texttt{belirsizlik.u\_model\_pct}}};
+\node[kutu, below=of mod, fill=orange!8] (zarf) {Geçerlilik zarfı\\[-1pt]{\tiny\texttt{validity.sinif} · \texttt{classify\_cfd} (QoI başına)}};
+\node[kutu, below=of zarf, fill=orange!8] (kar) {Karar\\[-1pt]{\tiny\texttt{sonuc\_kapisi} $\rightarrow$ \texttt{etiket} + \texttt{gerekce}}};
+\node[kutu, below=of kar, fill=red!5] (gui) {Arayüz kartı\\[-1pt]{\tiny değer $\pm$ band + sınıf rozeti}};
+\node[kutu, below=of gui, fill=red!5] (pdf) {Rapor + kanıt\\[-1pt]{\tiny\texttt{report} · \texttt{\_uretim} · \texttt{\_ortam}}};
+\foreach \a/\b in {stl/haz, haz/kur, kur/mesh, mesh/coz, coz/fiz, fiz/say,
+                   say/gir, gir/mod, mod/zarf, zarf/kar, kar/gui, gui/pdf}
+  \draw[ok] (\a) -- (\b);
+% Kapilarin RET yollari
+\node[font=\tiny, right=1mm of kur, text width=42mm, align=left]
+  {ölçek/eksen/A\textsubscript{ref} şüphesi $\Rightarrow$ \textbf{koşu başlamaz}
+   ya da \texttt{kurulum} uyarısı tüm bölümleri geçersizler};
+\node[font=\tiny, right=1mm of fiz, text width=42mm, align=left]
+  {$C_d\le0$, $C_L$ rejim sınırı üstü $\Rightarrow$ \texttt{fizik\_kabul.verdict}
+   = \textbf{inadmissible}; katsayı yayımlanmaz};
+\node[font=\tiny, right=1mm of say, text width=42mm, align=left]
+  {band yoksa \textbf{sıfır sayılmaz}: kart ``band YOK'' yazar, zarf EĞİLİM'e
+   düşer};
+\node[font=\tiny, right=1mm of mod, text width=42mm, align=left]
+  {çapa yoksa literatür öncülü kullanılır ve $n$ ile birlikte yayımlanır
+   (\S\ref{sec:zarf})};
+\end{tikzpicture}
+\end{center}
+
+\begin{anafikir}{Şemanın söylediği tek şey}
+Sayı yukarıdan aşağı akarken \emph{hiçbir aşamada yalnızlaşmaz}. Ağ
+çözünürlüğü y$^+$'ı, y$^+$ duvar işlemini, duvar işlemi model-form hücresini,
+o hücre de yayımlanan bandı belirler. Zincirin herhangi bir halkası
+ölçülmediyse bu, sonraki halkada ``bilinmiyor'' olarak görünür --- sıfır
+olarak değil. Kanıt dosyası zincirin tamamını taşır: üretim komutu
+(\texttt{\_uretim}), ortam parmak izi (\texttt{\_ortam}) ve her ara ölçüm.
+\end{anafikir}
+
 % ══════════════════════════════ 9 ══════════════════════════════
 \section{Kalite Güvencesi}
 
@@ -1595,8 +1648,8 @@ Kod satırı (kök + \texttt{analysis/}) & 31.862 & \texttt{rapor\_sayilari.py} 
 Kök modül & 83 & \texttt{rapor\_sayilari.py} \\
 Deney / çapa betiği & 62 & \texttt{experiments/} \\
 Test dosyası & 141 & \texttt{tests/test\_*.py} \\
-Geçen test & 1435 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1435 & \texttt{-{}-cov} \\
+Geçen test & 1434 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1434 & \texttt{-{}-cov} \\
 Satır kapsamı & \textbf{\%47} & 18.928 ifade, 9.979 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
@@ -1880,7 +1933,10 @@ kilit dosyasında kayıtlı (OpenFOAM \texttt{11-e1fc8c682ae6}, CalculiX 2.17);
 kanıt üreten altı betik ortam damgasını \emph{üretim anında} basıyor. Eski
 kanıtlar bilerek damgasız bırakıldı: bugünkü ortamla damgalamak, o sayının bu
 yığında üretildiğini söylemek olurdu ve bu doğru değildir --- damgayı ancak
-yeniden üretim getirir. Docker taban imajı hâlâ digest'e sabitlenmemiştir.
+yeniden üretim getirir. Docker taban imajı da digest'e sabitlendi
+(\texttt{sha256:fd10956e\dots}, \texttt{docker buildx imagetools inspect} ile
+ölçüldü): \texttt{:latest} değiştirilebilir bir etikettir ve aynı Dockerfile
+yarın başka bir OpenFOAM derlemesi çekebilirdi.
 \textbf{Ölçülmemişler:} bellek katsayısı (telemetri var, sayı sonraki
 koşulardan gelecek); başarım tek geometri ve tek makineyle sınırlı. Yol
 haritası bunları v1.1--v2.0 aralığına yerleştirir ve hiçbiri ``yakında'' diye

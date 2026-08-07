@@ -244,3 +244,17 @@ def test_ESKI_kanitlar_toplu_damgalanmadi():
             damgali_eski.append(p.name)
     assert not damgali_eski, (
         f"üretim komutu olmayan dosyalara damga basılmış: {damgali_eski}")
+
+
+def test_docker_taban_imaji_DIGESTE_sabit():
+    """`:latest` DEĞİŞTİRİLEBİLİR bir etikettir: aynı Dockerfile yarın başka
+    bir OpenFOAM derlemesi çekebilir ve yayımlanmış bir GCI bandı sessizce
+    geçersizleşir. Digest içerik-adreslidir."""
+    df = KOK / "docker" / "Dockerfile"
+    if not df.exists():
+        pytest.skip("Dockerfile yok")
+    satir = [x for x in df.read_text(encoding="utf-8").splitlines()
+             if x.startswith("FROM ")]
+    assert satir, "FROM satırı yok"
+    for x in satir:
+        assert "@sha256:" in x, f"taban imaj digest'e sabit değil: {x}"
