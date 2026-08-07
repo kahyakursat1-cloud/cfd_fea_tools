@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-30.278 satır Python $\cdot$ 123 test dosyası $\cdot$ 1199 geçen test\\[3mm]
+30.672 satır Python $\cdot$ 130 test dosyası $\cdot$ 1285 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -1221,13 +1221,13 @@ v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanm
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 30.278 & dosya sayımı \\
-Kök modül & 79 & \\
-Deney / çapa betiği & 59 & \texttt{experiments/} \\
-Test dosyası & 123 & \texttt{tests/} \\
-Geçen test & 1199 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1199 & \texttt{-{}-cov} \\
-Satır kapsamı & \textbf{\%45} & 18.249 ifade, 10.103 kapsanmamış \\
+Kod satırı (kök + \texttt{analysis/}) & 30.672 & dosya sayımı \\
+Kök modül & 81 & \\
+Deney / çapa betiği & 60 & \texttt{experiments/} \\
+Test dosyası & 130 & \texttt{tests/} \\
+Geçen test & 1285 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1285 & \texttt{-{}-cov} \\
+Satır kapsamı & \textbf{\%47} & 18.615 ifade, 9.879 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
 \end{tabular}
@@ -1243,23 +1243,34 @@ dış-süreç sarmalayıcıları aynı kaba girer. Katman ayrımı
 \textbf{Katman} & \textbf{Kapsam} & \textbf{İfade} \\
 \midrule
 \rowcolor{iyibg} Otomasyon \& öğrenme & \%78 & 627 \\
-\rowcolor{iyibg} Analiz çekirdeği (\texttt{analysis/}) & \%76 & 1.368 \\
-\rowcolor{iyibg} Karar \& V\&V motoru & \%66 & 2.001 \\
-\rowcolor{ortabg} Araç hattı & \%52 & 2.461 \\
+\rowcolor{iyibg} Analiz çekirdeği (\texttt{analysis/}) & \%76 & 1.370 \\
+\rowcolor{iyibg} Karar \& V\&V motoru & \%81 & 2.031 \\
+\rowcolor{ortabg} Araç hattı & \%52 & 2.477 \\
 \rowcolor{ortabg} Dış-süreç köprüleri & \%40 & 1.188 \\
-\rowcolor{ortabg} Arayüz (GUI) & \%35 & 1.569 \\
+\rowcolor{ortabg} Arayüz (GUI) & \%36 & 1.581 \\
 \midrule
-TOPLAM & \%45 & 18.249 \\
+TOPLAM & \%47 & 18.615 \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\noindent Fonksiyon düzeyinde bakıldığında tablo bir kez daha ayrışır:
-belirsizlik matematiği fiilen tamdır (\texttt{band\_from\_levels} \%100,
-\texttt{least\_squares\_gci} \%100, \texttt{compute\_gci} \%92,
-\texttt{gci\_verdict} \%94); kapsanmayan, \emph{raporu yazan} koddu
-(\texttt{VVReport.build} \%38). Doğru matematikle yanlış rapor mümkündür ---
-ve öyleydi (bkz.\ \S2.4, dört kusur).
+\noindent Fonksiyon düzeyinde bakıldığında tablo bir kez daha ayrışır.
+Belirsizlik matematiği fiilen tamdır (\texttt{band\_from\_levels} \%100,
+\texttt{least\_squares\_gci} \%100, \texttt{compute\_gci} \%92). Kapsanmayan
+\emph{raporu yazan} koddu: \texttt{VVReport.build} \%38 idi ve raporun çoğu
+bölümü hiç sürülmemişti. Doğru matematikle yanlış rapor mümkündür ve öyleydi
+(bkz.\ \S2.4, dört kusur); dördü de aynı sınıftandı --- \emph{metin sabit, veri
+değişti}.
+
+Bu yüzden bölüm testleri sabit çıktı beklemez; verinin bir özelliğini
+\emph{değiştirip} metnin onunla birlikte değiştiğini bağlar. Örneğin $C_L(0°)$
+sıfırdan farklı olduğunda VLM kısıt cümlesi ``kamburluk uygulanmaz'' diyemez;
+stabilite marjı 1 kalibrenin altına inince roket bölümü ``stabil'' diyemez.
+Sabit metin bu testlerde kırılır. \texttt{report\_generator} böylece \%41'den
+\%87'ye, karar/V\&V katmanı \%66'dan \%81'e çıktı. Testler yazılırken
+\emph{gerçek} bir kırılganlık da bulundu: eksik bir kanıt alanı
+(\texttt{gust}) tüm rapor üretimini \texttt{KeyError} ile çökertiyordu --- artık
+eksik parça çizilmiyor ve figürde adıyla yazılıyor.
 
 Düşük kapsamın büyük kısmı dış çözücülerle çalışan yollardır: OpenFOAM/WSL
 sürücüsü, CalculiX koşumu, OpenVSP/XFOIL köprüleri, PySide6 arayüzü. Bunlar birim
