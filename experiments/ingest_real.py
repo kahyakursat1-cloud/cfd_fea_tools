@@ -82,6 +82,11 @@ def run():
 
 
 if __name__ == "__main__":
+    # Turkce konsol (cp1254) Unicode cikti veremez: dogru sonuc uretilip
+    # UnicodeEncodeError ile cop olmasin diye akislar utf-8'e cevrilir.
+    for _akis in (sys.stdout, sys.stderr):
+        if hasattr(_akis, "reconfigure"):
+            _akis.reconfigure(encoding="utf-8", errors="replace")
     rows = run()
     n_ok = sum(r["uyum"] for r in rows)
     print(f"{'model':18s} {'bilinen':15s} {'tahmin':15s} guven uyum  ext / L_D,W_L,H_L,H_W")

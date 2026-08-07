@@ -3,9 +3,9 @@ Otomatik Mesh Generator
 Aircraft/Rocket geometrisi → Gmsh mesh
 Boundary layer, refinement kontrol
 """
-
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -1176,6 +1176,11 @@ mergePatchPairs
 # ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # Turkce konsol (cp1254) Unicode cikti veremez: dogru sonuc uretilip
+    # UnicodeEncodeError ile cop olmasin diye akislar utf-8'e cevrilir.
+    for _akis in (sys.stdout, sys.stderr):
+        if hasattr(_akis, "reconfigure"):
+            _akis.reconfigure(encoding="utf-8", errors="replace")
     from aircraft_geometry import AircraftLibrary
 
     # Model roket mesh oluştur

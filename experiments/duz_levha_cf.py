@@ -338,5 +338,10 @@ def _verdikt(gecerli: list[dict]) -> str:
 
 
 if __name__ == "__main__":
+    # Turkce konsol (cp1254) Unicode cikti veremez: dogru sonuc uretilip
+    # UnicodeEncodeError ile cop olmasin diye akislar utf-8'e cevrilir.
+    for _akis in (sys.stdout, sys.stderr):
+        if hasattr(_akis, "reconfigure"):
+            _akis.reconfigure(encoding="utf-8", errors="replace")
     args = [float(a) for a in sys.argv[1:]] or [1, 30, 100, 300, 1000]
     sys.exit(main(args))

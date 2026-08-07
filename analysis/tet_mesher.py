@@ -8,10 +8,10 @@ Strateji:
   4. mesh.generate(3) ile tet üret
   5. .msh 2.2 olarak yaz, meshio ile geri oku
 """
-
 from __future__ import annotations
 
 import math
+import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -196,6 +196,11 @@ def generate_tet_mesh(
 
 
 if __name__ == "__main__":
+    # Turkce konsol (cp1254) Unicode cikti veremez: dogru sonuc uretilip
+    # UnicodeEncodeError ile cop olmasin diye akislar utf-8'e cevrilir.
+    for _akis in (sys.stdout, sys.stderr):
+        if hasattr(_akis, "reconfigure"):
+            _akis.reconfigure(encoding="utf-8", errors="replace")
     import sys
     if len(sys.argv) < 2:
         print("Kullanım: python tet_mesher.py <stl> [target_size_m]")

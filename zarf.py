@@ -363,6 +363,11 @@ def readme_guncelle() -> bool:
 
 
 if __name__ == "__main__":
+    # Turkce konsol (cp1254) Unicode cikti veremez: dogru sonuc uretilip
+    # UnicodeEncodeError ile cop olmasin diye akislar utf-8'e cevrilir.
+    for _akis in (sys.stdout, sys.stderr):
+        if hasattr(_akis, "reconfigure"):
+            _akis.reconfigure(encoding="utf-8", errors="replace")
     if "--yaz" in sys.argv:
         sys.exit(0 if readme_guncelle() else 1)
     print(zarf_tablosu())

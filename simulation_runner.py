@@ -2,10 +2,10 @@
 Batch Simulation Runner
 Otomatik CFD/FEA çalıştırma, paralel işleme, sonuç analizi
 """
-
 import concurrent.futures
 import json
 import subprocess
+import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
@@ -888,6 +888,11 @@ Tarih: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 # ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # Turkce konsol (cp1254) Unicode cikti veremez: dogru sonuc uretilip
+    # UnicodeEncodeError ile cop olmasin diye akislar utf-8'e cevrilir.
+    for _akis in (sys.stdout, sys.stderr):
+        if hasattr(_akis, "reconfigure"):
+            _akis.reconfigure(encoding="utf-8", errors="replace")
     runner = SimulationRunner(base_path="./simulations")
 
     # Parametrik çalışma: Model roket

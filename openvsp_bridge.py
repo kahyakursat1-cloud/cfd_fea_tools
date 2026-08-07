@@ -555,6 +555,11 @@ def _set_naca_profile(geom_id: str, naca_4: str, apply_camber: bool = False):
 # ── CLI kullanımı ─────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # Turkce konsol (cp1254) Unicode cikti veremez: dogru sonuc uretilip
+    # UnicodeEncodeError ile cop olmasin diye akislar utf-8'e cevrilir.
+    for _akis in (sys.stdout, sys.stderr):
+        if hasattr(_akis, "reconfigure"):
+            _akis.reconfigure(encoding="utf-8", errors="replace")
     import json
     sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent))
     from aircraft_geometry import AircraftLibrary

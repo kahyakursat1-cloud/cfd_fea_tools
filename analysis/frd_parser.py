@@ -28,9 +28,9 @@ Sonuç bloğu:
 
 Stress için 6 bileşen: SXX SYY SZZ SXY SYZ SZX
 """
-
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -214,6 +214,11 @@ def parse_frd(frd_path: Path) -> FRDResult:
 
 
 if __name__ == "__main__":
+    # Turkce konsol (cp1254) Unicode cikti veremez: dogru sonuc uretilip
+    # UnicodeEncodeError ile cop olmasin diye akislar utf-8'e cevrilir.
+    for _akis in (sys.stdout, sys.stderr):
+        if hasattr(_akis, "reconfigure"):
+            _akis.reconfigure(encoding="utf-8", errors="replace")
     import sys
     if len(sys.argv) < 2:
         print("Kullanım: python frd_parser.py <frd_dosyası>")

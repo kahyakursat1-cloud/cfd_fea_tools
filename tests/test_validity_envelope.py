@@ -107,3 +107,38 @@ def test_polar_envelope_attached_only_no_false_stall():
     attached = [{"alpha": 0, "Cl": 0.0}, {"alpha": 4, "Cl": 0.44}, {"alpha": 8, "Cl": 0.85}]
     env = analyze_polar_envelope(attached, clmax_ref=CLMAX_REF["naca0012"])
     assert env.stall_onset_detected is False
+
+
+def test_GCI_yoksa_gerekce_BU_KOSUYU_anlatiyor():
+    """Zarf gerekçesi başka bir çalışmanın ölçümünü bu koşuya atfedemez.
+
+    Eski metin GCI bandı yokken "bu O-grid ailesinde mesh-yakınsamadı
+    (p≈0.2)" diyordu; bu, kanat-profili O-grid ailesinin ölçümüydü. Ahmed
+    gövdesi ve küp çapa raporlarına aynen basıldı — 3B bluff gövde koşusu,
+    hiç kullanmadığı bir 2B grid ailesiyle gerekçelendirildi. Üstelik o aile
+    sonradan TMR gridleriyle kapandı (GCI %1.7), yani cümle bugün yanlış.
+    """
+    from validity_envelope import classify_cfd
+    cd = [x for x in classify_cfd("roket", 0.0, 0.05, has_gci_band=False)
+          if x.quantity.startswith("C_D")][0]
+    assert "O-grid" not in cd.message
+    assert "p≈0.2" not in cd.message
+    assert "hesaplanmadı" in cd.message or "ölçülmedi" in cd.message
+
+
+def test_iki_agli_duyarlilik_GCI_BANDI_diye_sunulmuyor():
+    """±%x iki-ağ farkı bir yakınsama bandı değildir: gözlenen mertebe
+    hesaplanamaz, dolayısıyla Richardson genişletmesi yoktur."""
+    from validity_envelope import classify_cfd
+    cd = [x for x in classify_cfd("roket", 0.0, 0.05, has_gci_band=False,
+                                  band_pct=3.4) if x.quantity.startswith("C_D")][0]
+    assert "3.4" in cd.message
+    assert "DEĞİLDİR" in cd.message
+    assert cd.design_safe is False
+
+
+def test_GCI_bandi_varsa_DOGRULANMIS_kaliyor():
+    from validity_envelope import VALIDATED, classify_cfd
+    cd = [x for x in classify_cfd("roket", 0.0, 0.05, has_gci_band=True)
+          if x.quantity.startswith("C_D")][0]
+    assert cd.klass == VALIDATED and cd.design_safe is True

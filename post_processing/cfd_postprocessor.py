@@ -7,7 +7,7 @@ Yapılandırma:
 - Alanlari (pressure, velocity) ekstrakt et
 - Görselleştirme için data hazırla
 """
-
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -360,6 +360,11 @@ class CFDPostProcessor:
 
 # For testing/demo
 if __name__ == "__main__":
+    # Turkce konsol (cp1254) Unicode cikti veremez: dogru sonuc uretilip
+    # UnicodeEncodeError ile cop olmasin diye akislar utf-8'e cevrilir.
+    for _akis in (sys.stdout, sys.stderr):
+        if hasattr(_akis, "reconfigure"):
+            _akis.reconfigure(encoding="utf-8", errors="replace")
     # Test example
     processor = CFDPostProcessor(
         Path("OpenFOAM/airfoil_case"),

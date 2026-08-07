@@ -10,9 +10,9 @@ Akis: airfoil.dat -> construct2d (CGRD/OGRD, ELLP, ypls) -> .p3d (Plot3D 2D)
 Bu, OpenVSP/OpenRocket gibi olgun araci entegre etme felsefesi — elle eliptik
 cozucu yazmak yerine.
 """
-
 import re
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -598,6 +598,11 @@ def oku_sonuc(case: Path, alpha_deg=0.0, V=50.0, nu=1.48e-5, rho=1.225, chord=1.
 
 
 if __name__ == "__main__":
+    # Turkce konsol (cp1254) Unicode cikti veremez: dogru sonuc uretilip
+    # UnicodeEncodeError ile cop olmasin diye akislar utf-8'e cevrilir.
+    for _akis in (sys.stdout, sys.stderr):
+        if hasattr(_akis, "reconfigure"):
+            _akis.reconfigure(encoding="utf-8", errors="replace")
     import json
     import sys
     af = str(C2D_DIR / "sample_airfoils" / "naca0012.dat")

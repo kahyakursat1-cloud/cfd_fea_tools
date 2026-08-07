@@ -539,10 +539,19 @@ def classify_cfd(vehicle_type: str, alpha_deg: float, mach: float,
             "Süpersonik inviscid kayma-duvar taban-drag'ı ~%15 fazla — mutlak Cd tasarım "
             "sayısı DEĞİL; Mach-eğilimi ve A/B karşılaştırması güvenilir."))
     else:
-        extra = f" (2-mesh duyarlılık ±%{band_pct})" if band_pct is not None else ""
+        # ESKİ METİN BU KOŞUYU DEĞİL BAŞKA BİR ÇALIŞMAYI ANLATIYORDU: "bu O-grid
+        # ailesinde mesh-yakınsamadı, p≈0.2" cümlesi kanat-profili O-grid
+        # ailesinin ölçümüydü. Roket/araç STL'i için hem alakasız hem de yanlış
+        # atıf; üstelik o aile TMR gridleriyle sonradan kapandı (GCI %1.7).
+        # Doğru ifade bu koşu hakkında olan: ÇOK-AĞLI BAND HESAPLANMADI.
+        extra = (f" Tek elde olan 2-ağ duyarlılığı: ±%{band_pct} — bu bir GCI bandı "
+                 "DEĞİLDİR (gözlenen mertebe hesaplanamaz)." if band_pct is not None
+                 else " Bu geometride hiç ağ-duyarlılığı ölçülmedi.")
         v.append(Verdict("C_D (sürükleme)", TREND, False,
-            "Mutlak sürükleme bu O-grid ailesinde mesh-yakınsamadı (gözlenen mertebe "
-            f"p≈0.2){extra} — tasarım sayısı DEĞİL; yalnız A/B karşılaştırması ve eğilim."))
+            "Bu koşu için çok-ağlı yakınsama bandı (GCI/LSR) hesaplanmadı, dolayısıyla "
+            "mutlak sürüklemenin sayısal belirsizliği BİLİNMİYOR." + extra +
+            " Tasarım sayısı DEĞİL; aynı ağ ayarıyla yapılan A/B karşılaştırması ve "
+            "eğilim geçerlidir."))
 
     # ── L/D ve sürükleme kuvveti: mutlak Cd'ye bağlı → en zayıfı miras alır ──
     v.append(Verdict("L/D, sürükleme kuvveti/gücü", TREND, False,

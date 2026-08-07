@@ -3,8 +3,8 @@ Aircraft/Rocket Geometry Generator
 Parametrik kanat, gövde, kuyruk tasarımı
 STEP export + mesh yönetimi
 """
-
 import json
+import sys
 from dataclasses import dataclass
 
 import numpy as np
@@ -402,6 +402,11 @@ class ParametricStudy:
 # ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # Turkce konsol (cp1254) Unicode cikti veremez: dogru sonuc uretilip
+    # UnicodeEncodeError ile cop olmasin diye akislar utf-8'e cevrilir.
+    for _akis in (sys.stdout, sys.stderr):
+        if hasattr(_akis, "reconfigure"):
+            _akis.reconfigure(encoding="utf-8", errors="replace")
     # Sabit kanat roket oluştur
     roket = AircraftLibrary.model_rocket()
     print(f"Aircraft: {roket.name}")

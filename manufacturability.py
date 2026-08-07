@@ -12,6 +12,8 @@ oturan en-alt yüzeyler (plaka desteği) hariç tutulur. α_krit=45° (FDM tipik
 """
 from __future__ import annotations
 
+import sys
+
 import numpy as np
 
 # Yukarı build-yönü adayları (parça bu yönde katman-katman büyür)
@@ -93,6 +95,11 @@ def assess_manufacturability(mesh, rmin_m: float | None = None,
 
 
 if __name__ == "__main__":
+    # Turkce konsol (cp1254) Unicode cikti veremez: dogru sonuc uretilip
+    # UnicodeEncodeError ile cop olmasin diye akislar utf-8'e cevrilir.
+    for _akis in (sys.stdout, sys.stderr):
+        if hasattr(_akis, "reconfigure"):
+            _akis.reconfigure(encoding="utf-8", errors="replace")
     import sys
 
     import trimesh

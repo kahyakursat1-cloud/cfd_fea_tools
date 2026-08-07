@@ -8,8 +8,8 @@ Yapılandırma:
 - Solver çalıştır
 - Sonuçları oku
 """
-
 import subprocess
+import sys
 from pathlib import Path
 
 from material_database import MaterialProperties
@@ -332,6 +332,11 @@ Max Displacement: 2.34 mm
 
 # Testing
 if __name__ == "__main__":
+    # Turkce konsol (cp1254) Unicode cikti veremez: dogru sonuc uretilip
+    # UnicodeEncodeError ile cop olmasin diye akislar utf-8'e cevrilir.
+    for _akis in (sys.stdout, sys.stderr):
+        if hasattr(_akis, "reconfigure"):
+            _akis.reconfigure(encoding="utf-8", errors="replace")
     from material_database import MaterialLibrary
 
     lib = MaterialLibrary()

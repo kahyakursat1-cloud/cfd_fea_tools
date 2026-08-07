@@ -7,8 +7,8 @@ Yapılandırma:
 - Mesh formatlarını dönüştür (OpenFOAM, CalculiX)
 - Mesh kalitesi kontrol et
 """
-
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -318,6 +318,11 @@ U, S
 
 # Testing
 if __name__ == "__main__":
+    # Turkce konsol (cp1254) Unicode cikti veremez: dogru sonuc uretilip
+    # UnicodeEncodeError ile cop olmasin diye akislar utf-8'e cevrilir.
+    for _akis in (sys.stdout, sys.stderr):
+        if hasattr(_akis, "reconfigure"):
+            _akis.reconfigure(encoding="utf-8", errors="replace")
     from aircraft_geometry import AircraftLibrary
     from mesh_generator import MeshGenerator
 

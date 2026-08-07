@@ -483,6 +483,18 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
     lmax = float((m.bounds[1] - m.bounds[0]).max())
     thin = sonuc.get("geometry", {}).get("ince_kalinlik_m") or lmax / 30
     target = float(np.clip(thin / 2.0, lmax / 80, lmax / 20))
+    # İNCE ÖZELLİK KAÇ ELEMANLA TEMSİL EDİLİYOR — NİYET DEĞİL SONUÇ.
+    # thin/2 hedefi "iki eleman" niyetiydi ama clip alt/üst sınıra çarpınca
+    # niyet tutmuyor; ayrıca thin'in kendisi ray ölçümü DEĞİL bbox yedeği
+    # olabilir (rtree yoksa: gövde çapı ince kanadın yerine geçer). İki durumda
+    # da eğilme rijitliği tek elemanla temsil edilir ve sehim/gerilme SİSTEMATİK
+    # olarak yanlış çıkar — hüküm bunu söylemek zorunda.
+    _kaynak = (sonuc.get("geometry", {}).get("ince_kalinlik_olculdu") or {})
+    ince_coz = {"ince_m": round(thin, 6), "hedef_kenar_m": round(target, 6),
+                "eleman_karsi": round(thin / target, 2),
+                "kalinlik_olculdu": bool(_kaynak.get("olculdu")),
+                "kaynak_notu": _kaynak.get("neden")}
+    ince_coz["yeterli"] = ince_coz["eleman_karsi"] >= 2.0 and ince_coz["kalinlik_olculdu"]
     # C3D10 (quadratic): kanonik FEA V&V'si C3D10 ile %0–4.8 doğrulandı; linear C3D4
     # bükülmede aşırı katıdır (sehimi düşük tahmin) — doğrulanmış doğruluğun üretime
     # transferi için ikinci-mertebe. Maliyet: çözüm birkaç kat ağır (büyük mesh'te
@@ -572,6 +584,7 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
            "itki_n": itki_n or None,
            "delta_t_k": delta_t or None,
            "max_sehim_mm": round(max_disp_mm, 4) if max_disp_mm else None,
+           "ince_ozellik_cozunurlugu": ince_coz,
            **sa,
            "gecersiz": mech,
            "_not": ("Dolu-katı varsayımı: sehim alt-sınır, gerilme yük-yolu "
@@ -636,6 +649,18 @@ def yapisal_hukum(out: dict) -> dict:
              "⚠️ marjinal (SF<1.5)" if sf and sf >= 1.0 else
              "❌ yetersiz (SF<1)" if sf else "—")
     gerekce = list(fizik.get("reasons") or [])
+    ic = out.get("ince_ozellik_cozunurlugu") or {}
+    if ic and not ic.get("yeterli"):
+        if not ic.get("kalinlik_olculdu"):
+            gerekce.append(
+                f"ince özellik kalınlığı ÖLÇÜLMEDİ ({ic.get('kaynak_notu')}) — "
+                f"mesh {ic.get('ince_m')} m varsayımıyla boyutlandı; kanat/fin "
+                "gibi ince parçalar temsil edilmemiş olabilir")
+        else:
+            gerekce.append(
+                f"ince özellik kalınlığı boyunca {ic.get('eleman_karsi')} eleman "
+                "(<2) — eğilme rijitliği tek elemanla temsil ediliyor, sehim ve "
+                "gerilme sistematik sapar")
     if singular and sf_t:
         metin += (f" — ⚠ tepe tekillik OLABİLİR (sivri köşeyse gerçek SF≈{sf_t}; "
                   "fillet ya da mesh-yakınsamayla teyit edin)")
@@ -655,7 +680,8 @@ def _append_report(run_dir: Path, out: dict):
     sf_t = out.get("emniyet_faktoru_temsili")        # temsili (tekillik-robust)
     singular = out.get("tekillik_suphesi")
     sf_s = (">1000" if sf and sf > 1000 else str(sf))
-    verdict = yapisal_hukum(out)["metin"]
+    _h = yapisal_hukum(out)
+    verdict = _h["metin"]
     vm_line = f"- Max von Mises: **{out['max_von_mises_MPa']} MPa** (tepe)"
     if singular:
         vm_line += (f", temsili %99: **{out['temsili_von_mises_MPa']} MPa** "
@@ -682,6 +708,9 @@ def _append_report(run_dir: Path, out: dict):
            if out.get("delta_t_k") else ""),
           f"- Max sehim: **{out['max_sehim_mm']} mm**  ",
           vm_line + "  ", sf_line + "\n",
+          # HÜKMÜN GEREKÇESİ ARAYÜZDE VARDI, RAPORDA YOKTU. Rapor dışarıya
+          # verilen belgedir; SF'yi sınırlayan koşul orada da yazmalı.
+          *[f"> ⚠️ **HÜKÜM GEREKÇESİ:** {g}\n" for g in _h["gerekce"]],
           (f"> ⚠️ *{out['_gerilme_notu']}*\n" if singular and not out.get("gecersiz") else ""),
           (f"> ❌ *{out['gecersiz']}*\n" if out.get("gecersiz") else
            f"> ⚠️ *{out['_not']}*\n")]

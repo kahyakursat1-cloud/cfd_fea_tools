@@ -3,8 +3,8 @@ Advanced Material Database System
 Mühendislik malzemelerine ait özellikler ve otomatik hesaplamalar
 Kullanıcı tarafından manuel malzeme eklenebilir
 """
-
 import json
+import sys
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -450,6 +450,11 @@ class MaterialLibrary:
 MATERIAL_LIBRARY = MaterialLibrary()
 
 if __name__ == "__main__":
+    # Turkce konsol (cp1254) Unicode cikti veremez: dogru sonuc uretilip
+    # UnicodeEncodeError ile cop olmasin diye akislar utf-8'e cevrilir.
+    for _akis in (sys.stdout, sys.stderr):
+        if hasattr(_akis, "reconfigure"):
+            _akis.reconfigure(encoding="utf-8", errors="replace")
     # Test
     print("=" * 70)
     print("MATERIAL LIBRARY TEST")

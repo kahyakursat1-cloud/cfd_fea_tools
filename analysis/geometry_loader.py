@@ -10,9 +10,9 @@ STL beklenir. STL native trimesh ile okunur.
   - faces_by_side: bbox'ın 6 yüzüne yakın olan üçgenlerin face index listesi
     (calculix BC ve load için kullanıcı bu yüzleri seçer)
 """
-
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -243,6 +243,11 @@ def get_unique_node_indices(mesh: trimesh.Trimesh, face_indices: np.ndarray) -> 
 
 
 if __name__ == "__main__":
+    # Turkce konsol (cp1254) Unicode cikti veremez: dogru sonuc uretilip
+    # UnicodeEncodeError ile cop olmasin diye akislar utf-8'e cevrilir.
+    for _akis in (sys.stdout, sys.stderr):
+        if hasattr(_akis, "reconfigure"):
+            _akis.reconfigure(encoding="utf-8", errors="replace")
     # CLI test: python -m analysis.geometry_loader path/to/file.stl
     import sys
     if len(sys.argv) < 2:
