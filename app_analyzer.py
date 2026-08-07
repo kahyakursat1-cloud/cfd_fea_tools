@@ -534,6 +534,18 @@ class AnalyzerWindow(QMainWindow):
         form.addRow("Hedef y⁺", self.spn_yplus)
         self.chk_sens = QCheckBox("Mesh duyarlılık bandı (2. kaba koşu)")
         form.addRow("", self.chk_sens)
+        # SEVIYE SAYISI ARAYUZDE YOKTU: GUI `mesh_levels`'i hic gecmiyordu, yani
+        # her zaman varsayilan 3 seviye kosuyordu. LSR (Eca-Hoekstra) EN AZ 4
+        # grid ister — yani arayuz kullanicisi LSR bandini HIC alamiyordu,
+        # yalnizca GCI. CLI 4 seviye yapabiliyordu. Ayni motorun iki kullanicisi
+        # farkli V&V yeteneğine sahipti.
+        self.spn_seviye = QSpinBox()
+        self.spn_seviye.setRange(3, 4)
+        self.spn_seviye.setValue(3)
+        self.spn_seviye.setToolTip("Duyarlılık kademesi sayısı. 4 seviye LSR "
+                                   "(Eça–Hoekstra) bandını açar; 3 seviye yalnız "
+                                   "GCI verir.")
+        form.addRow("Duyarlılık seviyesi", self.spn_seviye)
         left.addWidget(gb_cfg)
 
         self.btn_auto = QPushButton("🤖  OTOMATİK ANALİZ (otopilot)")
@@ -733,6 +745,7 @@ class AnalyzerWindow(QMainWindow):
             "nose_axis": self.cmb_nose.currentText(),
             "up_axis": self.cmb_up.currentText(),
             "mesh_sensitivity": self.chk_sens.isChecked(),
+            "mesh_levels": self.spn_seviye.value(),
             "n_layers": self.spn_layers.value(),
             "yplus_target": self.spn_yplus.value(),
         })
@@ -877,6 +890,7 @@ class AnalyzerWindow(QMainWindow):
             "nose_axis": self.cmb_nose.currentText(),
             "up_axis": self.cmb_up.currentText(),
             "mesh_sensitivity": self.chk_sens.isChecked(),
+            "mesh_levels": self.spn_seviye.value(),
             "n_layers": self.spn_layers.value(),
             "yplus_target": self.spn_yplus.value(),
         }

@@ -256,12 +256,21 @@ if __name__ == "__main__":
     cli.add_argument("--kalite", default="standart")
     cli.add_argument("--duyarlilik", action="store_true")
     cli.add_argument("--seviyeler", type=int, default=3)
+    cli.add_argument("--ref-bump", dest="ref_bump", default="0",
+                     help="ek yuzey iyilestirme kademesi; tam sayi ya da 'oto'")
     args = cli.parse_args()
     if args.komut == "ekle":
         if not args.stl:
             sys.exit("ekle için STL yolu gerekli")
+        # ref_bump KUYRUK CLI'SINDE YOKTU: GUI "Kuyruga Ekle" ile "oto" gonderiyor,
+        # bu komut ise hic gondermiyordu — ayni kuyruk, ayni worker, isin NASIL
+        # eklendigine gore FARKLI y+ davranisi. Bayrak eklendi ve varsayilani
+        # vehicle_pipeline CLI'siyle AYNI ("0"): betikte acik ve tekrarlanabilir
+        # olan iyidir, "oto" geometriye gore degisir. Fark artik KASITLI ve
+        # belgeli (bkz. tests/test_giris_noktasi_esdegerligi.py).
         is_ = ekle({"stl_path": args.stl, "vehicle_type": args.tip, "velocity": args.hiz,
                     "alpha_deg": args.alpha, "quality": args.kalite,
+                    "ref_bump": args.ref_bump,
                     "mesh_sensitivity": args.duyarlilik, "mesh_levels": args.seviyeler})
         print(json.dumps(is_, indent=2, ensure_ascii=False))
     elif args.komut == "listele":

@@ -29,6 +29,13 @@ import kuyruk  # noqa: E402
 def kuy(tmp_path, monkeypatch):
     monkeypatch.setattr(kuyruk, "KUYRUK", tmp_path / "kuyruk.jsonl")
     monkeypatch.setattr(kuyruk, "KILIT", tmp_path / "kuyruk.lock")
+    # BELLEK OKUMASI SABITLENIR. Kuyruk artik bos bellek esigin altindaysa
+    # isi baslatmiyor (dogru davranis). Ama o okuma CANLI sistemden geliyor:
+    # suit kosarken bos RAM 2 GB'in altina inince bu dosyadaki is-sirasi
+    # testleri kiriliyordu — tek baslarina gecip suitte kirilmalari bundandi.
+    # Kaynak kotasi ayri testlerde (test_bellek_kapisi) sinaniyor; buradaki
+    # testler SIRALAMA ve DURUM makinesini sinar, ortam bellegini degil.
+    monkeypatch.setattr(kuyruk.bellek_kapisi, "bos_bellek_gb", lambda: 999.0)
     return kuyruk
 
 
