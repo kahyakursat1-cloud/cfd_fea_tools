@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-29.949 satır Python $\cdot$ 121 test dosyası $\cdot$ 1172 geçen test\\[3mm]
+30.278 satır Python $\cdot$ 123 test dosyası $\cdot$ 1199 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -279,7 +279,8 @@ Topoloji opt. & SIMP, CFD-yüklü, \emph{gerilme farkındalıklı} &
 Otopilot & geometriden rejim/mesh/referans seçimi & deterministik; plan + gerekçe \\
 Mentor & kNN öğrenme + BYF/ÖYG/PROJE öğretici katmanı & \S6B \\
 V\&V / UQ & GCI, LSR, geçerlilik zarfı, karar motoru & \S2--\S5 \\
-İzlenebilirlik & her kanıt kendi üretim komutunu taşır & \texttt{kanit.py} \\
+İzlenebilirlik & her kanıt üretim komutunu \emph{ve} ortam parmak izini taşır &
+  \texttt{kanit.py}, \texttt{ortam.py} \\
 Çıktı & Markdown/PDF rapor, VTK/ParaView, JSON kanıt & \\
 \bottomrule
 \end{tabular}
@@ -407,7 +408,26 @@ $\pm\%0{,}1$ ile ``kesin'' göründü ve test tarafından yakalandı.
         gövdesi 0{,}94).
   \item \textbf{y$^+$ kademesi:} y$^+$'ı 30--300 bandına sokan en ucuz kademe
         geometri başına seçilir (\texttt{-{}-ref-bump oto}).
+  \item \textbf{Bellek:} hücre bütçesi makinenin belleğiyle karşılaştırılır.
+        Bütçe sabit bir sayıydı (hassas: 2{,}5 M hücre) ve makineden habersizdi;
+        32\,GB'lık bir makinede rahat olan aynı ayar 8\,GB'lıkta takas-çilesi
+        demektir. Kapı \emph{engel değil uyarıdır} ve nedeni açıktır: hücre
+        başına bellek katsayısı henüz ölçülmemiştir, öncüle dayanan bir tahminle
+        saatlik bir koşuyu reddetmek ölçülmemiş bir sayıya karar verdirmek
+        olurdu. Sığmayan bütçede sığacak hücre sayısı söylenir.
 \end{itemize}
+
+\begin{anafikir}{Öncül nasıl ölçüme dönüşür --- bellek örneği}
+Hücre başına bellek çözücüye, türbülans modeline ve katman sayısına bağlıdır;
+literatürden alınan tek bir değer bu makinede yanlış olurdu. Bu yüzden önce
+\emph{telemetri} eklendi: çözücünün izleme döngüsü artık sistem belleğini de
+örnekliyor ve koşu öncesi tabana göre \emph{artışı} kaydediyor. Katsayı koşu
+arşivinden türetilecek; o güne kadar kapı öncülle çalışır ve bunu \textbf{her
+çıktısında} söyler. Ölçüm geldiği anda öncül devre dışı kalır --- bu bir test
+tarafından bağlanmıştır. WSL2 sanal makinesi ayrı bir süreç olmadığı için tek
+koşunun kendi belleği görülemez; ölçülen sistem geneli artıştır, yani bir
+\emph{üst sınırdır} ve öyle yazılır.
+\end{anafikir}
 
 \subsection{Koşudan sonraki kapılar}
 
@@ -722,7 +742,7 @@ Girdi belirsizliği yayılımı & \ev & \ev & \texttt{girdi\_belirsizligi} (4 gi
 Deneysel referansla geçerleme & \ks & \ev & \texttt{zarf} (14 koşul) \\
 Geçerlilik alanı (validation domain) beyanı & \ev & \ev & \texttt{validity\_envelope} \\
 Model-form belirsizliği & \ks & \ev & rejime ayrıldı; 1/4 hücre ölçüldü \\
-Sonucun izlenebilirliği (üretim komutu) & \ev & \ev & \texttt{kanit} \\
+Sonucun izlenebilirliği (komut + ortam) & \ev & \ev & \texttt{kanit}, \texttt{ortam} \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1052,7 +1072,7 @@ v1.1 & yüksek & Eski çözücü sarmalayıcısının kaldırılması; tüm yoll
                 \texttt{analysis/} çekirdeğine taşınması \\
 v1.2 & yüksek & URANS yolu --- limit çevrimine giren vakalar için zaman-çözünür
                 çözüm ve kuvvet ortalaması \\
-v1.3 & orta   & Kaynak kotaları (RAM/süre); kuyruk için öncelik ve zamanlama \\
+v1.3 & orta   & Bellek katsayısının ölçümle doldurulması; kuyrukta öncelik \\
 v1.4 & orta   & Model-form öncülünün kalan hücrelerinin ölçümle değiştirilmesi
                 (rejime ayrılan tablonun boş kalan gözleri) \\
 v1.5 & orta   & Docker/Conda kilidi ile yeniden-üretilebilir ortam;
@@ -1093,13 +1113,13 @@ v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanm
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 29.949 & dosya sayımı \\
-Kök modül & 77 & \\
-Deney / çapa betiği & 58 & \texttt{experiments/} \\
-Test dosyası & 121 & \texttt{tests/} \\
-Geçen test & 1172 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1172 & \texttt{-{}-cov} \\
-Satır kapsamı & \textbf{\%44} & 18.021 ifade, 10.012 kapsanmamış \\
+Kod satırı (kök + \texttt{analysis/}) & 30.278 & dosya sayımı \\
+Kök modül & 79 & \\
+Deney / çapa betiği & 59 & \texttt{experiments/} \\
+Test dosyası & 123 & \texttt{tests/} \\
+Geçen test & 1199 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1199 & \texttt{-{}-cov} \\
+Satır kapsamı & \textbf{\%45} & 18.249 ifade, 10.103 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
 \end{tabular}
@@ -1115,13 +1135,13 @@ dış-süreç sarmalayıcıları aynı kaba girer. Katman ayrımı
 \textbf{Katman} & \textbf{Kapsam} & \textbf{İfade} \\
 \midrule
 \rowcolor{iyibg} Otomasyon \& öğrenme & \%78 & 627 \\
-\rowcolor{iyibg} Analiz çekirdeği (\texttt{analysis/}) & \%76 & 1.350 \\
-\rowcolor{iyibg} Karar \& V\&V motoru & \%67 & 1.974 \\
-\rowcolor{ortabg} Araç hattı & \%52 & 2.452 \\
+\rowcolor{iyibg} Analiz çekirdeği (\texttt{analysis/}) & \%76 & 1.368 \\
+\rowcolor{iyibg} Karar \& V\&V motoru & \%66 & 2.001 \\
+\rowcolor{ortabg} Araç hattı & \%52 & 2.461 \\
 \rowcolor{ortabg} Dış-süreç köprüleri & \%40 & 1.188 \\
 \rowcolor{ortabg} Arayüz (GUI) & \%35 & 1.569 \\
 \midrule
-TOPLAM & \%44 & 18.021 \\
+TOPLAM & \%45 & 18.249 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1145,6 +1165,29 @@ test ``$C_d$ şu değere eşit olsun'' demez; ``rapor metni kendi ölçtüğü s
 çelişmesin'', ``ölçülmemiş bir band sıfır sayılmasın'', ``engel varsa mutlak
 sürükleme yayımlanmasın'' der. Böylece ölçüm değiştiğinde test kırılmaz, ama
 \emph{tutarlılık} bozulduğunda kırılır.
+
+\subsection*{Yeniden üretilebilirlik: komut yetmez}
+
+Her kanıt kendi üretim komutunu taşıyor. Ama aynı komut başka bir OpenFOAM ya da
+\texttt{numpy} sürümüyle başka bir sayı verebilir; yayımlanmış bir GCI bandı
+altındaki sayısal yığın değiştiğinde \emph{sessizce} geçersizleşir. Bu yüzden
+kanıt artık ortam parmak izi de taşır: Python, sayısal kütüphaneler, işletim
+sistemi, çekirdek sayısı. Paket listesinin tamamı değil --- gürültü, gerçek bir
+değişikliği görünmez yapar; kişisel veri de değil --- kanıt dosyaları paylaşılır.
+
+\texttt{python kanit.py -{}-ortam} bugün 68 kanıtın parmak izi \emph{taşımadığını}
+(damga eklenmeden önce üretilmiş) ve hiçbirinin başka bir ortamda üretilmediğini
+raporlar. Eksik alan ``farksızlık'' sayılmaz: parmak izi olmayan bir kanıt için
+cevap ``aynı'' değil, ``karşılaştırılamaz''dır.
+
+\begin{dikkat}{Kilidin kapsamadığı}
+\texttt{ortam\_kilidi.txt} Python yığınının \emph{ölçülen} sürümlerini tutar ve
+bir test onu kurulu sürümlere bağlar --- kilit eskirse süit kırılır. OpenFOAM ve
+CalculiX kilitte \emph{yoktur} (WSL/konteyner tarafında) ve
+\texttt{docker/Dockerfile} taban imajı değiştirilebilir bir etikete bağlıdır,
+digest'e sabitlenmemiştir. Bu bilinen bir yeniden-üretilebilirlik boşluğudur ve
+kapatılmış gibi gösterilmemektedir.
+\end{dikkat}
 
 Ayrıca depo kendi kod hijyenini de sınar: \emph{sessiz yutma} sayacı, gerekçesiz
 \texttt{except} bloklarının sayısının artmasını engeller. Bu raporun figürlerini
@@ -1252,11 +1295,12 @@ hat, GPU \\
 \end{center}
 
 \begin{dikkat}{Bu sürümde kapanmamış olanlar}
-Model-form belirsizliğinin dört hücresinden üçü hâlâ literatür-öncülü; kuyrukta
-disk bekçisi var ama RAM/süre kotası yok; başarım ölçümü tek vakadan ibaret;
-eski çözücü sarmalayıcısı hâlâ \texttt{analysis/} çekirdeğini kullanmıyor. Yol
-haritası bunları v1.1--v1.5 aralığına yerleştirir ve hiçbiri ``yakında'' diye
-geçiştirilmemiştir.
+Model-form belirsizliğinin dört hücresinden üçü hâlâ literatür-öncülü; bellek
+katsayısı henüz ölçülmedi (telemetri bu sürümde eklendi, sayı sonraki
+koşulardan gelecek); başarım ölçümü tek vakadan ibaret; çözücü sürümleri
+kilitli değil; eski çözücü sarmalayıcısı hâlâ \texttt{analysis/} çekirdeğini
+kullanmıyor. Yol haritası bunları v1.1--v1.5 aralığına yerleştirir ve hiçbiri
+``yakında'' diye geçiştirilmemiştir.
 \end{dikkat}
 
 \vspace{4mm}
