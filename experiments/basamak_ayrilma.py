@@ -55,7 +55,8 @@ def ilk_hucre_m(uzunluk: float, n: int, grading: float) -> float:
     return uzunluk * (r - 1.0) / (r ** n - 1.0)
 
 
-def _blockmesh(olcek: float = 1.0, alt_grading: float = 1.0) -> str:
+def _blockmesh(olcek: float = 1.0, alt_grading: float = 1.0,
+               olcek_alt_y: float | None = None) -> str:
     """İki bloklu 2D basamak: giriş kanalı (üst) + genişlemiş kanal (üst+alt).
 
     `olcek`: tüm hücre sayıları bununla çarpılır (GCI ailesi için).
@@ -65,7 +66,12 @@ def _blockmesh(olcek: float = 1.0, alt_grading: float = 1.0) -> str:
     çapayı duvar-çözünür banda taşırken üst duvarın kurulumunu bozmaz.
     """
     nxg, nxc = int(NX_GIRIS * olcek), int(NX_CIKIS * olcek)
-    nyu, nya = int(NY_UST * olcek), int(NY_ALT * olcek)
+    # `olcek_alt_y` ALT BLOGUN duvar-normali hucre sayisini AYRI olcekler.
+    # Duvar-fonksiyonu ailesinde bu SABIT tutulur: ilk hucreyi degistirmek y+
+    # bandini, yani DUVAR ISLEMINI degistirir ve aile artik tek bir model-form
+    # hucresini temsil etmez. Varsayilan None = eski davranis (hepsi birlikte).
+    nyu = int(NY_UST * olcek)
+    nya = int(NY_ALT * (olcek if olcek_alt_y is None else olcek_alt_y))
     x0, x1, x2 = -X_GIRIS, 0.0, X_CIKIS
     y0, y1, y2 = -H_STEP, 0.0, H_GIRIS
     z0, z1 = 0.0, 0.001
@@ -93,10 +99,11 @@ def _blockmesh(olcek: float = 1.0, alt_grading: float = 1.0) -> str:
 
 
 def _yaz(case: Path, model: str, olcek: float = 1.0,
-         alt_grading: float = 1.0) -> None:
+         alt_grading: float = 1.0, olcek_alt_y: float | None = None) -> None:
     for d in ("system", "constant", "0"):
         (case / d).mkdir(parents=True, exist_ok=True)
-    (case / "system" / "blockMeshDict").write_text(_blockmesh(olcek, alt_grading))
+    (case / "system" / "blockMeshDict").write_text(
+        _blockmesh(olcek, alt_grading, olcek_alt_y))
     (case / "constant" / "momentumTransport").write_text(
         _hdr("dictionary", "momentumTransport", "constant") +
         f"simulationType RAS;\nRAS {{ model {model}; turbulence on; printCoeffs on; }}\n")

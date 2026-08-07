@@ -60,8 +60,6 @@ KABUL = {
     "cda_m2": "türetilmiş sürükleme alanı; arayüzde Cd ve kuvvet var",
     "cp_vtk": "figür üretimi için VTK yolu; arayüz 3B görüntüleyici değil",
     "kesit_vtk": "yukarıdakiyle aynı",
-    "mesh_duyarlilik": "GCI/LSR tablosu; arayüz bandı ±U%% olarak koşu "
-                       "geçmişi tablosunda gösterir",
     "pervane": "aktüatör disk parametreleri; arayüzde pervane girdisi YOK "
                "(yalnız CLI) — bkz. test_giris_noktasi_esdegerligi",
     "sinir_tabaka": "y⁺ ve katman ölçümü; arayüz bunu uyarı metni olarak "

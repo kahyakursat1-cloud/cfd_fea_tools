@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-31.813 satır Python $\cdot$ 141 test dosyası $\cdot$ 1430 geçen test\\[3mm]
+31.862 satır Python $\cdot$ 141 test dosyası $\cdot$ 1435 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -607,12 +607,20 @@ göre} ayırt edilebilir olup olmadığıyla birlikte hükme bağlar. Başarıs�
 (\texttt{a320\_Body\_A320}) tablodan silinmez; ``failed'' olarak durur.}
 \end{figure}
 
-\begin{anafikir}{Arayüzün tek kuralı}
+\begin{anafikir}{Arayüzün tek kuralı --- ve kuralın kendisinin denetlenmesi}
 Ekranda \emph{çıplak sayı yoktur}. Her metrik ya bir belirsizlik bandıyla ya da
 o bandın neden hesaplanamadığını söyleyen bir etiketle birlikte gösterilir;
 fizik kapısından geçmemiş bir $C_d$'nin yanında engel işareti durur ve kullanıcı
 uyarı penceresiyle ``bu katsayılar tasarım kararında kullanılmaz'' cümlesini
 görür.
+
+Bu kural rapora yazılıydı ama \emph{sonuç kartlarında uygulanmıyordu}: $C_D$
+bandsız duruyordu. Dahası \texttt{classify\_cfd}'nin QoI başına ürettiği sınıf
+--- raporun en üstündeki banner --- arayüz tarafından hiç okunmuyordu; aynı
+kanal-ayrışması sınıfı. Kartlar artık üçünü birlikte gösteriyor:
+$C_D = 0{,}01923 \pm \%12{,}08$ \textbf{[eğilim]}, $C_L$ \textbf{[tasarım]}.
+Band hesaplanmadıysa kart ``band YOK (mesh-duyarlılık koşulmadı)'' yazar ---
+sessizce çıplak sayı değil.
 \end{anafikir}
 
 \subsection{Arayüz ile rapor aynı şeyi söylüyor mu}
@@ -1541,10 +1549,9 @@ v1.3 & yüksek & Model-form tablosunun kalan beş hücresi --- deneysel referans
                 yalnız ağ inceltmek yetmiyor \\
 v1.4 & orta   & Docker/Conda kilidi ile yeniden-üretilebilir ortam; çözücü
                 sürüm kilidi \\
-v1.5 & orta   & Arayüz v2 --- kipler ve kanıt gezgini EKLENDİ
-                (\S
-ef{sub:kipler}); kalan iş sonuç kartlarının yeniden
-                tasarımı ve karşılaştırma stüdyosu \\
+v1.5 & orta   & Arayüz v2 --- kipler, kanıt gezgini ve bandlı sonuç kartları
+                EKLENDİ (\S\ref{sub:kipler}); kalan iş karşılaştırma
+                stüdyosu \\
 v1.6 & düşük  & Bellek katsayısı için BÜYÜK koşularla ölçüm (küçük koşu
                 gürültüde kalıyor); hücre$\times$çekirdek$\times$RAM matrisi \\
 v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanması;
@@ -1584,12 +1591,12 @@ v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanm
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 31.813 & \texttt{rapor\_sayilari.py} \\
+Kod satırı (kök + \texttt{analysis/}) & 31.862 & \texttt{rapor\_sayilari.py} \\
 Kök modül & 83 & \texttt{rapor\_sayilari.py} \\
 Deney / çapa betiği & 62 & \texttt{experiments/} \\
 Test dosyası & 141 & \texttt{tests/test\_*.py} \\
-Geçen test & 1430 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1430 & \texttt{-{}-cov} \\
+Geçen test & 1435 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1435 & \texttt{-{}-cov} \\
 Satır kapsamı & \textbf{\%47} & 18.928 ifade, 9.979 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule

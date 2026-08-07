@@ -1269,6 +1269,45 @@ class AnalyzerWindow(QMainWindow):
         title, lab = self.metric_labels[key]
         lab.setText(f"{title}\n{value}")
 
+    def _qoi_siniflari(self, r) -> dict:
+        """QoI başına geçerlilik sınıfı — raporun banner'ıyla AYNI kaynaktan.
+
+        `classify_cfd` C_L/C_D/(L/D) için ayrı hüküm üretiyor ve rapor bunu en
+        üstte gösteriyordu; arayüz hiç okumuyordu. Aynı kanal-ayrışması sınıfı:
+        bir sayının "tasarım kararında kullanılabilir" olup olmadığı raporda
+        yazıyor, ekranda yazmıyordu.
+        """
+        try:
+            from validity_envelope import (
+                OUT,
+                TREND,
+                VALIDATED,
+                apply_physics_gate,
+                classify_cfd,
+            )
+            _mds = getattr(r, "mesh_duyarlilik", None) or {}
+            v = classify_cfd(
+                getattr(r, "vehicle_type", "genel"), r.alpha_deg or 0.0,
+                (r.velocity or 0.0) / 340.0,
+                has_gci_band=bool(_mds.get("gci"))
+                and str(_mds.get("verdikt", "")).startswith("✅"),
+                band_pct=_mds.get("fark_pct"))
+            v = apply_physics_gate(v, getattr(r, "fizik_kabul", None) or {})
+            im = {VALIDATED: "\n✅ tasarım", TREND: "\n🟡 eğilim",
+                  OUT: "\n🔴 zarf-dışı"}
+            out = {}
+            for x in v:
+                ad = ("C_D" if x.quantity.startswith("C_D") else
+                      "C_L" if x.quantity.startswith("C_L") else
+                      "L/D" if x.quantity.startswith("L/D") else None)
+                if ad:
+                    out[ad] = im.get(x.klass, "")
+            return out
+        # sessiz-yutma: kabul — sınıf rozeti EK bilgidir; üretilemezse kart
+        # değeri ve bandı yine gösterilir, hüküm rozeti de günlükte durur
+        except Exception:
+            return {}
+
     def _on_done(self, r):
         from validity_envelope import rejim_arac_tipinden, sonuc_kapisi
         self.last_result = r
@@ -1295,10 +1334,22 @@ class AnalyzerWindow(QMainWindow):
                                       getattr(r, "vehicle_type", None)),
                                   "sure_s": _fr.get("sure_s"),
                                   "iterasyon": _fr.get("iterasyon")})
-        # Fizik-dışı Cd'yi çıplak sayı olarak göstermek mühendisi yanlış sayıya güvendirir
-        self._set_metric("cd", f"{r.cd}" + (" ⛔" if kapi["seviye"] == "engel" else ""))
-        self._set_metric("cl", f"{r.cl}" if r.cl is not None else "—")
-        self._set_metric("ld", f"{r.ld}" if r.ld is not None else "—")
+        # EKRANDA CIPLAK SAYI OLMAMALI — rapor bunu ilke olarak yaziyordu ama
+        # kartlar C_D'yi bandsiz gosteriyordu. Her metrik ya BANDIYLA ya da
+        # bandin nicin hesaplanmadigini soyleyen etiketle gosterilir; QoI
+        # sinifi (DOGRULANMIS/EGILIM) da rapor banner'inda vardi, arayuzde
+        # yoktu — ayni ayrisma sinifi.
+        _u = (getattr(r, "belirsizlik", None) or {}).get("u_toplam_pct")
+        _band = (f" ±%{_u:.2f}" if isinstance(_u, (int, float))
+                 else "\nband YOK (mesh-duyarlılık koşulmadı)")
+        _sinif = self._qoi_siniflari(r)
+        self._set_metric("cd", f"{r.cd}{_band}"
+                         + (" ⛔" if kapi["seviye"] == "engel" else "")
+                         + _sinif.get("C_D", ""))
+        self._set_metric("cl", (f"{r.cl}{_sinif.get('C_L', '')}"
+                                if r.cl is not None else "—"))
+        self._set_metric("ld", (f"{r.ld}{_sinif.get('L/D', '')}"
+                                if r.ld is not None else "—"))
         self._set_metric("drag", f"{r.drag_N} N")
         cells = (r.mesh or {}).get("cells")
         self._set_metric("cells", f"{cells:,}" if cells else "—")

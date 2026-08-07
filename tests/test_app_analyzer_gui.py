@@ -110,9 +110,12 @@ def test_uyarilar_log_panelinde_gorunur(pencere):
 
 
 def test_metrikler_dolduruluyor(pencere):
+    """Kartlar artık değere EK OLARAK sınıf rozeti taşıyor (✅ tasarım /
+    🟡 eğilim), bu yüzden `endswith` yerine `in` sınanır — rozet bilerek
+    eklendi ve testin onu yasaklamaması gerekir."""
     pencere._on_done(_Sonuc())
-    assert _metin(pencere, "cl").endswith("0.44")
-    assert _metin(pencere, "ld").endswith("12.2")
+    assert "0.44" in _metin(pencere, "cl")
+    assert "12.2" in _metin(pencere, "ld")
     assert "250,000" in _metin(pencere, "cells")
 
 
@@ -171,3 +174,32 @@ def test_guvence_kaybi_ARAYUZDE_gorunuyor(pencere):
 def test_saglikli_kosuda_kurulum_kutusu_CIKMAZ(pencere):
     pencere._on_done(_Sonuc())
     assert pencere._kutular == []
+
+
+def test_CD_karti_CIPLAK_sayi_gostermiyor(pencere):
+    """Raporun ilkesi: 'Ekranda çıplak sayı yoktur — her metrik ya bandıyla ya
+    da bandın niçin hesaplanmadığını söyleyen etiketle gösterilir.' Kartlar bu
+    ilkeyi ihlal ediyordu: C_D bandsız duruyordu."""
+    r = _Sonuc()
+    r.belirsizlik = {"u_toplam_pct": 6.4}
+    pencere._on_done(r)
+    m = _metin(pencere, "cd")
+    assert "±%6.4" in m, m
+
+
+def test_band_YOKSA_nedeni_yaziliyor(pencere):
+    """Band hesaplanmadıysa kart bunu söylemeli — sessizce çıplak sayı değil."""
+    r = _Sonuc()
+    r.belirsizlik = None
+    pencere._on_done(r)
+    assert "band YOK" in _metin(pencere, "cd")
+
+
+def test_QoI_sinif_rozeti_RAPORLA_ayni_kaynaktan(pencere):
+    """`classify_cfd` QoI başına hüküm üretiyor ve rapor bunu en üstte
+    gösteriyordu; arayüz hiç okumuyordu — aynı kanal-ayrışması sınıfı."""
+    r = _Sonuc()
+    pencere._on_done(r)
+    rozetler = [_metin(pencere, k) for k in ("cd", "cl", "ld")]
+    assert any(("tasarım" in x or "eğilim" in x or "zarf-dışı" in x)
+               for x in rozetler), rozetler

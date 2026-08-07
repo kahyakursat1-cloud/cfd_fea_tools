@@ -70,15 +70,27 @@ def grading_coz(uzunluk: float, n: int, hedef_ilk: float) -> float:
     return (alt * ust) ** 0.5
 
 
+# ALT BLOK DUVAR-NORMALI HUCRE SAYISI SABIT. Ilk denemede aile her yonde
+# inceltiliyor ve ilk hucreyi sabit tutmak icin grading uc degere gidiyordu
+# (L3'te 0.0043 — duvardan uzaktaki hucreler 233 kat kucuk): L2 yakinsamadi,
+# L3 floating point exception ile dustu. Duvar-fonksiyonu ailesinde
+# duvar-normali cozunurluk SABIT TUTULUR, cunku ilk hucre y+ bandini yani
+# DUVAR ISLEMINI belirler; degistirmek aileyi tek bir hucreyi temsil etmekten
+# cikarir. Bedeli acik: elde edilen band duvar-normali ayriklastirma hatasini
+# KAPSAMAZ ve bu kanit dosyasinda yazilidir.
+OLCEK_ALT_Y = 1.0
+
+
 def _hucre(olcek: float) -> int:
     nxg, nxc = int(_y.NX_GIRIS * olcek), int(_y.NX_CIKIS * olcek)
-    nyu, nya = int(_y.NY_UST * olcek), int(_y.NY_ALT * olcek)
+    nyu = int(_y.NY_UST * olcek)
+    nya = int(_y.NY_ALT * OLCEK_ALT_Y)
     return nxg * nyu + nxc * nyu + nxc * nya
 
 
 def _seviye_kos(kok: Path, ad: str, olcek: float, sadece_oku: bool) -> dict:
     case = kok / ad
-    nya = int(_y.NY_ALT * olcek)
+    nya = int(_y.NY_ALT * OLCEK_ALT_Y)
     g = grading_coz(_y.H_STEP, nya, HEDEF_ILK_HUCRE_M)
     ilk = _y.ilk_hucre_m(_y.H_STEP, nya, g)
     print(f"[{ad}] ölçek={olcek} hücre≈{_hucre(olcek):,} "
@@ -86,7 +98,8 @@ def _seviye_kos(kok: Path, ad: str, olcek: float, sadece_oku: bool) -> dict:
     if sadece_oku and (case / "log.foamRun").exists():
         ok, hata = True, ""
     else:
-        _y._yaz(case, MODEL, olcek=olcek, alt_grading=g)
+        _y._yaz(case, MODEL, olcek=olcek, alt_grading=g,
+                olcek_alt_y=OLCEK_ALT_Y)
         ok, hata = _y._kos(case, timeout=7200)
     if not ok:
         print(f"   ÇÖZÜCÜ DÜŞTÜ: {hata[:140]}", flush=True)
@@ -210,6 +223,13 @@ def main(argv: list[str]) -> int:
             "x-yonunde ve ust blokta inceltilmeli; alt blokta hucre sayisi "
             "SABIT kalip ilk hucreyi korumali (ya da iki-bolgeli mesh). "
             "Bu bir sonraki turun isi."),
+        "_aile_yonlu": (
+            "AG AILESI YONLUDUR: akis-yonu ve dis-alan cozunurlugu incelir, alt "
+            "duvarin duvar-normali hucre sayisi SABIT kalir (40). Zorunludur: "
+            "ilk hucre y+ bandini yani DUVAR ISLEMINI belirler ve degistirmek "
+            "aileyi tek bir model-form hucresini temsil etmekten cikarir. "
+            "BEDELI: elde edilen band duvar-normali ayriklastirma hatasini "
+            "KAPSAMAZ; yalniz akis-yonu/dis-alan bilesenini olcer."),
         "_ilk_hucre_notu": ("Ilk hucre SEVIYELER ARASINDA SABIT tutuldu. Ag "
                             "inceldikce hucre sayisi artar ve grading ayni "
                             "kalirsa ilk hucre incelir — uc seviye uc FARKLI "
