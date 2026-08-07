@@ -741,7 +741,7 @@ Kod doğrulama (kapalı-form karşılaştırma) & \ev & \ev & 6 FEA çapası \\
 Girdi belirsizliği yayılımı & \ev & \ev & \texttt{girdi\_belirsizligi} (4 girdi) \\
 Deneysel referansla geçerleme & \ks & \ev & \texttt{zarf} (14 koşul) \\
 Geçerlilik alanı (validation domain) beyanı & \ev & \ev & \texttt{validity\_envelope} \\
-Model-form belirsizliği & \ks & \ev & 1/7 hücre ölçüldü ($n{=}2$); kalanı öncül \\
+Model-form belirsizliği & \ks & \ev & 2/7 hücre çapalı (biri ölçüm, biri üst sınır) \\
 Sonucun izlenebilirliği (komut + ortam) & \ev & \ev & \texttt{kanit}, \texttt{ortam} \\
 \bottomrule
 \end{tabular}
@@ -1095,10 +1095,16 @@ zaten her çıktısında söylüyor.
   \item[Panel yönteminin indüklenen direnci.] VSPAERO'nun iki $C_{Di}$ çıktısı
         da kuramdan sapar (yakın-alan $-\%21$, Trefftz $+\%62$); bu yüzden
         indüklenen direnç kuramdan üretilir.
-  \item[Model-form belirsizliği.] Rejim$\times$duvar işlemi tablosuna ayrıldı ve
-        \textbf{bir hücre ölçümle dolduruldu}: künt cisim / duvar-fonksiyonu
-        \%8{,}15, iki bağımsız çapadan (disk ve küp). Kalan altı hücre
-        literatür-öncülüyle çalışır. Sekiz çapadan beşi \emph{atanamadı} ve her
+  \item[Model-form belirsizliği.] Rejim$\times$duvar işlemi tablosuna ayrıldı;
+        yedi hücrenin \textbf{ikisi} çapa taşıyor, beşi literatür-öncülüyle
+        çalışır. İki hücre \emph{aynı kalitede değildir} ve bu ayrım artık
+        yayımlanıyor: 2B bağlı akış \%5{,}23 ($n{=}1$) bir \emph{ölçümdür} ---
+        çapanın farkı (\%3{,}52) kendi ayrıklaştırma bandından (\%1{,}71)
+        büyük, yani model hatası sayısal hatadan ayrılabiliyor. Künt
+        cisim/duvar-fonksiyonu \%8{,}15 ($n{=}2$) ise bir \textbf{üst
+        sınırdır}: iki çapanın da farkı kendi bandından \emph{küçük} (disk
+        \%3{,}4 vs \%4{,}8; küp \%1{,}8 vs \%5{,}3), yani hiçbiri model
+        hatasını ayırt edemiyor. Sekiz çapadan beşi \emph{atanamadı} ve her
         birinin gerekçesi ayrı: küre ile geriye-basamak tampon bölgede
         ($5<y^+<30$ --- hiçbir duvar işlemini temsil etmiyor); Ahmed 25° ile
         NACA0012 kanat çapasının ayrıklaştırma bandı, ölçmek istediği model
@@ -1126,25 +1132,41 @@ Atama artık tek yerde ve üç ölçütü var:
         bandı \%290'a çıkarıyordu.
 \end{enumerate}
 
-\noindent Geriye iki çapa kaldı ve hücre ölçüldü: \%8{,}15. Bu sayı ham sapma
-değil, \emph{sapma + sayısal band}: diskin farkı \%3{,}4 ama ayrıklaştırma
-bandı \%4{,}8 --- yani çapa model hatasını sayısal hatadan ayıramıyor, üst
-sınır muhafazakâr yönde alındı.
+\noindent Geriye iki çapa kaldı. Değer ham sapma değil, \emph{sapma + sayısal
+band}: diskin farkı \%3{,}4 ama ayrıklaştırma bandı \%4{,}8, yani çapa model
+hatasını sayısal hatadan ayıramıyor ve üst sınır muhafazakâr yönde alınıyor.
 \end{anafikir}
 
-\begin{dikkat}{Tek çapa bandı daraltmaz --- ve bir ters sıralama}
-$n{=}1$ bir dağılım değil, tek örnektir; ``model daha iyi'' değil ``bu tek
-vakada daha iyi çıktı'' demektir. Kural bu yüzden asimetriktir: ölçüm öncülü
-\textbf{aşarsa} her durumda ölçüm kazanır (öncül kanıtla yanlışlanmıştır);
-\textbf{altında} kalırsa $n{=}1$'de öncül korunur ve ölçüm kayda geçer. 2B bağlı
-akış hücresi hâlâ böyledir: \%3{,}52 ölçüldü, \%5 öncül yayımlanıyor.
+\begin{dikkat}{Dördüncü ölçüt: ölçüm mü, üst sınır mı?}
+Bir çapa hücreye \emph{girebilir} ama yine de model hatasını ölçmüş olmayabilir.
+Ölçüt basittir: fark, o koşunun kendi ayrıklaştırma bandından \emph{büyük} mü?
+Değilse elde bir ölçüm değil, bir \textbf{üst sınır} vardır.
 
-Ölçülen künt/duvar-fonksiyonu bandı (\%8{,}15) ise öncül duvar-\emph{çözünür}
-banddan (\%10) dardır --- fizik beklentisinin tersi. Ölçümü öncüle uydurmak için
-şişirilmedi: ölçülmemiş bir sayı, ölçülmüş olanı bozamaz. Muhtemel açıklama,
-öncülün bu hat için fazla muhafazakâr olması; o hücre de ölçülünce anlaşılacak.
-Durum kanıt dosyasında \texttt{siralama\_uyarilari} altında durur.
+Bugünkü tabloda ikisi de var ve ayrımı yayımlanıyor: 2B bağlı akış \%5{,}23 bir
+ölçümdür (\%3{,}52 > \%1{,}71); künt cisim/duvar-fonksiyonu \%8{,}15 ise üst
+sınırdır --- iki çapanın da farkı kendi bandından küçük. Ayrım kanıt dosyasında
+\texttt{\_ust\_sinir\_mi} alanında ve README zarf satırında durur; olmasaydı
+okuyucu \%8{,}15'i ölçülmüş bir model hatası sanardı.
+
+Üçüncü bir hâl daha var ve ikinciyle karıştırılmamalıdır:
+\emph{ayrılabilirlik değerlendirilmedi}. Bir çapanın sayısal bandı hiç
+okunmamışsa o çapa ``ayıramıyor'' sayılamaz. İlk uygulamada bu karıştırıldı ve
+2B hücre haksız yere üst-sınır damgası aldı; bandlar okununca hücre ölçüme
+döndü.
 \end{dikkat}
+
+\begin{anafikir}{Tek çapa bandı daraltmaz --- asimetrik kural}
+$n{=}1$ bir dağılım değil, tek örnektir; ``model daha iyi'' değil ``bu tek
+vakada daha iyi çıktı'' demektir. Kural asimetriktir: ölçüm öncülü
+\textbf{aşarsa} her durumda ölçüm kazanır (öncül kanıtla yanlışlanmıştır);
+\textbf{altında} kalırsa $n{=}1$'de öncül korunur ve ölçüm kayda geçer, ikinci
+çapa gelince kural kendiliğinden serbest kalır.
+
+Ölçülen künt/duvar-fonksiyonu bandı (\%8{,}15) öncül duvar-\emph{çözünür}
+banddan (\%10) dardır --- fizik beklentisinin tersi. Ölçümü öncüle uydurmak için
+şişirilmedi: ölçülmemiş bir sayı, ölçülmüş olanı bozamaz. Durum kanıt
+dosyasında \texttt{siralama\_uyarilari} altında durur.
+\end{anafikir}
 
 \subsection{Yol haritası}
 
@@ -1381,7 +1403,7 @@ hat, GPU \\
 \end{center}
 
 \begin{dikkat}{Bu sürümde kapanmamış olanlar}
-Model-form tablosunun yedi hücresinden yalnız biri ölçüldü ($n{=}2$); bellek
+Model-form tablosunun yedi hücresinden ikisi çapalı ve biri yalnız üst sınır; bellek
 katsayısı henüz ölçülmedi (telemetri bu sürümde eklendi, sayı sonraki
 koşulardan gelecek); başarım ölçümü tek geometri ve tek makineyle sınırlı; çözücü sürümleri
 kilitli değil; eski çözücü sarmalayıcısı hâlâ \texttt{analysis/} çekirdeğini
