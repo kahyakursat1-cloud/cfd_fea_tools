@@ -6,7 +6,10 @@
       "capa": "küp",
       "rejim": "bluff",
       "sapma_pct": 6.03,
-      "yplus_ort": null,
+      "yplus_ort": 112.83,
+      "yplus_max": 338.17,
+      "yplus_kaynak": "hücre sayısı birebir eşleşti (888,377)",
+      "yplus_kosu": "dogrulama_kup",
       "referans": "Hoerner 1965, Fluid-Dynamic Drag; Re>1e4 Re-bagimsiz"
     },
     {
@@ -25,9 +28,29 @@
     }
   ],
   "olculen_hucreler": {
+    "bluff": {
+      "wall_function": {
+        "u_pct": 20.0,
+        "olculen_pct": 6.03,
+        "oncul_pct": 20.0,
+        "oncul_korundu": true,
+        "n_capa": 1,
+        "capalar": [
+          {
+            "ad": "küp",
+            "sapma_pct": 6.03,
+            "referans": "Hoerner 1965, Fluid-Dynamic Drag; Re>1e4 Re-bagimsiz"
+          }
+        ],
+        "_anlam": "TEK ÇAPA (%6.03) öncülden (%20.0) KÜÇÜK — band tek ölçümle DARALTILMADI; öncül korundu, ölçüm kayıtlı"
+      }
+    },
     "attached_2d": {
       "wall_resolved": {
-        "u_pct": 3.52,
+        "u_pct": 5.0,
+        "olculen_pct": 3.52,
+        "oncul_pct": 5.0,
+        "oncul_korundu": true,
         "n_capa": 1,
         "capalar": [
           {
@@ -36,17 +59,11 @@
             "referans": "NASA TMR / CFL3D"
           }
         ],
-        "_anlam": "TEK ÇAPA — dağılım değil, tek ölçüm"
+        "_anlam": "TEK ÇAPA (%3.52) öncülden (%5.0) KÜÇÜK — band tek ölçümle DARALTILMADI; öncül korundu, ölçüm kayıtlı"
       }
     }
   },
   "atanamayan_capalar": [
-    {
-      "capa": "küp",
-      "rejim": "bluff",
-      "sapma_pct": 6.03,
-      "neden": "duvar işlemi (y⁺) kanıtta KAYITLI DEĞİL — hücreye atanmadı, TAHMİN edilmedi"
-    },
     {
       "capa": "geriye-basamak (kOmegaSST)",
       "rejim": "separated",
@@ -66,20 +83,40 @@
       "oncul_pct": 12.0
     },
     {
-      "rejim": "bluff",
+      "rejim": "separated",
+      "duvar": "wall_resolved",
+      "oncul_pct": 12.0
+    },
+    {
+      "rejim": "separated",
       "duvar": "wall_function",
-      "oncul_pct": 20.0
+      "oncul_pct": 25.0
+    },
+    {
+      "rejim": "attached_2d",
+      "duvar": "wall_function",
+      "oncul_pct": 12.0
+    }
+  ],
+  "dis_kaynakli_hucreler": [
+    {
+      "rejim": "bluff",
+      "duvar": "wall_resolved",
+      "u_pct": 5.95,
+      "oncul_pct": 10.0,
+      "_not": "bu betik ÜRETMEDİ (başka kampanya); çapa sayısı ve tek-çapa kuralının uygulanıp uygulanmadığı bilinmiyor — öncülden (%10.0) KÜÇÜK, gözden geçirilmeli"
     }
   ],
   "_kisit": "Bir capanin sapmasi, o rejimdeki model-form hatasinin BIR ORNEGIDIR. N=1 olan hucrede dagilim IDDIA EDILMEZ. Duvar islemi kayitli olmayan capa hucreye ATANMAZ — tahmin edilmez. Ayrica sapma, referansin KENDI deneysel belirsizligini de icerir ve o ayristirilmamistir.",
   "_uretim": "Üretim: python experiments/model_form_bandi.py",
-  "verdikt": "3 capa toplandi; 1 hucre OLCULDU, 2 capa atanamadi, 3 hucre ONCUL kaldi. attached_2d.wall_resolved=%3.52 (n=1)",
+  "verdikt": "3 capa toplandi; 2 hucre OLCULDU, 1 capa atanamadi, 5 hucre ONCUL kaldi. bluff.wall_function=%20.0 (n=1); attached_2d.wall_resolved=%5.0 (n=1)",
   "_yazilan": {
-    "attached_2d": {
-      "wall_resolved": 3.52
-    },
     "bluff": {
-      "wall_resolved": 5.95
+      "wall_resolved": 5.95,
+      "wall_function": 20.0
+    },
+    "attached_2d": {
+      "wall_resolved": 5.0
     }
   }
 }

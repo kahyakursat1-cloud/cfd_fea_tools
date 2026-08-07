@@ -46,16 +46,47 @@ def _duvar_islemi(yplus_ort: float | None) -> str | None:
     return None          # bant dışı: o koşu zaten savunulabilir değil
 
 
+def _kosudan_yplus(cells: int | None) -> dict | None:
+    """Çapanın y⁺'ını KOŞU ARŞİVİNDEN al — ama TAHMİNLE değil, DOĞRULANMIŞ
+    bağla: yalnız hücre sayısı BİREBİR tutan koşu kabul edilir.
+
+    NEDEN: küp çapasının y⁺'ı ölçülmüştü (vehicle_runs/gci_kup, ort 112,83) ama
+    çapa dosyasına hiç yazılmamıştı; bu yüzden çapa hiçbir hücreye atanamıyor ve
+    `bluff.wall_function` öncül kalıyordu. Ölçüm vardı, tüketicisine ulaşmıyordu.
+
+    Hücre sayısı eşleşmesi zorunlu: "aynı geometrinin bir koşusu" yetmez, çünkü
+    y⁺ kademeye göre değişir ve yanlış kademenin y⁺'ını çapaya iliştirmek
+    ölçümü uydurmak olurdu.
+    """
+    if not cells:
+        return None
+    for sj in sorted((KOK / "vehicle_runs").glob("*/sonuc.json")):
+        d = json.loads(sj.read_text(encoding="utf-8"))
+        if (d.get("mesh") or {}).get("cells") != cells:
+            continue
+        yp = (d.get("sinir_tabaka") or {}).get("yplus") or {}
+        if yp.get("ort") is None:
+            continue
+        return {"ort": yp["ort"], "max": yp.get("max"), "min": yp.get("min"),
+                "kosu": sj.parent.name, "cells": cells,
+                "_bag": f"hücre sayısı birebir eşleşti ({cells:,})"}
+    return None
+
+
 def capalari_topla() -> list[dict]:
     """Her çapa: rejim, ölçülen sapma (%), duvar işlemi (varsa), referans."""
     c: list[dict] = []
 
     kup = _j("gci_kup_arac.json")
     if kup and kup.get("literatur_sapma_pct") is not None:
+        _yp = ((kup.get("yplus") if isinstance(kup.get("yplus"), dict) else None)
+               or _kosudan_yplus((kup.get("seviyeler") or [{}])[-1].get("cells")))
         c.append({"capa": "küp", "rejim": "bluff",
                   "sapma_pct": abs(float(kup["literatur_sapma_pct"])),
-                  "yplus_ort": (kup.get("yplus") or {}).get("ort")
-                  if isinstance(kup.get("yplus"), dict) else None,
+                  "yplus_ort": (_yp or {}).get("ort"),
+                  "yplus_max": (_yp or {}).get("max"),
+                  "yplus_kaynak": (_yp or {}).get("_bag"),
+                  "yplus_kosu": (_yp or {}).get("kosu"),
                   "referans": (kup.get("referans") or {}).get("kaynak", "Hoerner 1965")})
 
     tmr = _j("tmr_gci_verdict.json")
@@ -103,16 +134,32 @@ def calistir() -> dict:
     ayrinti: dict[str, dict] = {}
     for rejim, h in hucreler.items():
         for islem, liste in h.items():
-            # N=1: "band" degil TEK ORNEK. Deger yine kullanilir (oncul'den
-            # daha iyidir) ama N yazilir ve dagilim IDDIA EDILMEZ.
             en_kotu = max(x["sapma_pct"] for x in liste)
-            olculen.setdefault(rejim, {})[islem] = round(en_kotu, 2)
+            oncul = _MODEL_U_PCT.get(rejim, {}).get(islem)
+            # TEK CAPAYLA BAND DARALTILMAZ. n=1 bir dagilim degil, tek ornektir;
+            # olculen deger onculden KUCUKSE bu "model daha iyi" demek degil,
+            # "bu tek vakada daha iyi cikti" demektir. Model-form hatasi rejim
+            # icinde geometriye gore guclu degisir. Bu yuzden n=1 iken
+            # max(oncul, olculen) raporlanir ve olcum kayda gecer.
+            # Olcum onculden BUYUKSE her durumda olcum kazanir: oncul o zaman
+            # kanitla YANLISLANMIS demektir (asagi degil, yukari duzeltme).
+            oncul_korundu = (len(liste) == 1 and oncul is not None
+                             and en_kotu < oncul)
+            deger = oncul if oncul_korundu else en_kotu
+            olculen.setdefault(rejim, {})[islem] = round(deger, 2)
             ayrinti.setdefault(rejim, {})[islem] = {
-                "u_pct": round(en_kotu, 2), "n_capa": len(liste),
+                "u_pct": round(deger, 2), "olculen_pct": round(en_kotu, 2),
+                "oncul_pct": oncul, "oncul_korundu": oncul_korundu,
+                "n_capa": len(liste),
                 "capalar": [{"ad": x["capa"], "sapma_pct": round(x["sapma_pct"], 2),
                              "referans": x["referans"]} for x in liste],
-                "_anlam": ("TEK ÇAPA — dağılım değil, tek ölçüm" if len(liste) == 1
-                           else f"{len(liste)} çapanın EN KÖTÜSÜ"),
+                "_anlam": (
+                    (f"TEK ÇAPA (%{en_kotu:.2f}) öncülden (%{oncul}) KÜÇÜK — "
+                     "band tek ölçümle DARALTILMADI; öncül korundu, ölçüm kayıtlı"
+                     if oncul_korundu else
+                     "TEK ÇAPA — dağılım değil, tek ölçüm; öncülü AŞTIĞI için "
+                     "ölçüm kullanıldı") if len(liste) == 1
+                    else f"{len(liste)} çapanın EN KÖTÜSÜ"),
             }
 
     # MEVCUT OLCULEN HUCRELER KORUNUR: bu betigin kapsamadigi bir hucre daha
@@ -130,6 +177,24 @@ def calistir() -> dict:
                 oncul_kalan.append({"rejim": rejim, "duvar": islem,
                                     "oncul_pct": v})
 
+    # BU BETIGIN HESAPLAMADIGI HUCRELER. Band dosyasinda duruyorlar ama baska
+    # bir kampanyadan geldiler; kac capadan turedikleri ve tek-capa kuralinin
+    # onlara uygulanip uygulanmadigi BURADAN bilinemez. Sessiz birakmak,
+    # farkli kurallarla uretilmis sayilari ayni tabloda esitlemek olurdu.
+    _bu_betik = {(r, i) for r, h in ayrinti.items() for i in h}
+    dis_kaynakli = []
+    for rejim, h in birlesik.items():
+        for islem, v in h.items():
+            if (rejim, islem) in _bu_betik:
+                continue
+            oncul = _MODEL_U_PCT.get(rejim, {}).get(islem)
+            dis_kaynakli.append({
+                "rejim": rejim, "duvar": islem, "u_pct": v, "oncul_pct": oncul,
+                "_not": ("bu betik ÜRETMEDİ (başka kampanya); çapa sayısı ve "
+                         "tek-çapa kuralının uygulanıp uygulanmadığı bilinmiyor"
+                         + (f" — öncülden (%{oncul}) KÜÇÜK, gözden geçirilmeli"
+                            if oncul is not None and v < oncul else ""))})
+
     rec = {
         "vaka": "Model-form belirsizliği — rejim × duvar işlemi, ÖLÇÜLEN çapalardan",
         "_neden": ("Deger LITERATUR-ONCULUYDU ve rejimden bagimsiz uygulaniyordu. "
@@ -139,6 +204,7 @@ def calistir() -> dict:
         "olculen_hucreler": ayrinti,
         "atanamayan_capalar": atanamayan,
         "oncul_kalan_hucreler": oncul_kalan,
+        "dis_kaynakli_hucreler": dis_kaynakli,
         "_kisit": ("Bir capanin sapmasi, o rejimdeki model-form hatasinin BIR "
                    "ORNEGIDIR. N=1 olan hucrede dagilim IDDIA EDILMEZ. Duvar "
                    "islemi kayitli olmayan capa hucreye ATANMAZ — tahmin "

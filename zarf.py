@@ -157,10 +157,35 @@ def _minihawk_v2() -> tuple[str, str]:
 
 
 def _arac_bandi() -> tuple[str, str]:
+    """Model-form bandı — ama her hücre ÖLÇÜM DEĞİL.
+
+    `validation_band.json` yalnız sayıları tutar; hangisinin ölçümden, hangisinin
+    korunan öncülden geldiği `model_form_bandi.json`'da yazılıdır. Satırı
+    "Ölçülen validasyon bandı" diye sunmak, tek çapayla daraltılmadığı için
+    öncülde bırakılmış bir hücreyi ÖLÇÜM gibi göstermek olurdu.
+    """
     b = _json("validation_band.json")
-    p = [f"{vaka} %{max(m.values()):.1f}" for vaka, m in b.items() if isinstance(m, dict) and m]
-    return ("⚠️ Bantlı", "Ölçülen validasyon bandı — " + ", ".join(p)) if p else \
-           ("⚠️ Bantlı", "validation_band.json boş")
+    ay = (_json("model_form_bandi.json") or {}).get("olculen_hucreler") or {}
+    parcalar, oncul_var = [], False
+    for vaka, m in b.items():
+        if not isinstance(m, dict) or not m:
+            continue
+        islem = max(m, key=lambda k: m[k])
+        v = m[islem]
+        d = (ay.get(vaka) or {}).get(islem) or {}
+        if d.get("oncul_korundu"):
+            oncul_var = True
+            parcalar.append(f"{vaka} %{v:.1f} (ÖNCÜL — tek çapa %"
+                            f"{d['olculen_pct']:.1f} bandı daraltmadı)")
+        elif d:
+            parcalar.append(f"{vaka} %{v:.1f} (ölçülen, n={d.get('n_capa')})")
+        else:
+            parcalar.append(f"{vaka} %{v:.1f} (kaynağı bu betikte yok)")
+    if not parcalar:
+        return "⚠️ Bantlı", "validation_band.json boş"
+    bas = ("Model-form bandı (KARIŞIK: ölçüm + korunan öncül) — " if oncul_var
+           else "Ölçülen validasyon bandı — ")
+    return "⚠️ Bantlı", bas + ", ".join(parcalar)
 
 
 def _kiris() -> tuple[str, str]:
