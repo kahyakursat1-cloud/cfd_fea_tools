@@ -10,6 +10,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from analysis.backend import linux_run
+
 V = 15.0
 RHO = 1.225
 S = 0.45            # kanat alani
@@ -25,8 +27,13 @@ def wsl_path(p: Path):
     return f"/mnt/{p[0].lower()}{p[2:].replace(chr(92),'/')}"
 
 
-def wsl_of(d, cmd):
-    return f'wsl bash -c "source /opt/openfoam11/etc/bashrc && export FOAM_SIGFPE=false && cd {d} && {cmd}"'
+# ARKA UC KATMANI: `wsl bash -c` ELLE kuruluyordu, yani analysis/backend
+# devre disiydi ve CFD_BACKEND=docker bu betikte hicbir sey degistirmiyordu.
+# Ayni kampanyanin iki yarisi FARKLI cozuculerde kosabilirdi. Case iskeleti
+# DEGISMEDI; degisen yalnizca TASIMA katmani.
+def of_cmd(d, cmd):
+    return (f"source /opt/openfoam11/etc/bashrc && export FOAM_SIGFPE=false && "
+            f"cd {d} && {cmd}")
 
 
 def _read_internal(path):
@@ -124,8 +131,8 @@ def run_alpha(alpha):
     # tetiklemedigi icin sabit tavan kullaniyoruz (forces dogru, runtime yari).
     cdp.write_text(re.sub(r"endTime\s+\d+;", "endTime 200;", cdt))
     d = wsl_path(case)
-    if subprocess.run(wsl_of(d,"foamRun -solver incompressibleFluid > log.run 2>&1"),
-                      shell=True, capture_output=True, timeout=3600, text=True).returncode != 0:
+    if linux_run(of_cmd(d, "foamRun -solver incompressibleFluid > log.run 2>&1"),
+                 3600).returncode != 0:
         tail = (case/"log.run").read_text(errors="replace")[-300:] if (case/"log.run").exists() else ""
         return {"alpha":alpha, "status":"FAILED", "log":tail}
     f = parse_forces(case, alpha)

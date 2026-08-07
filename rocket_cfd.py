@@ -15,6 +15,8 @@ from pathlib import Path
 
 import numpy as np
 
+from analysis.backend import linux_run
+
 # ── Roket geometrisi (.ork'tan) ──────────────────────────────────────────────
 NOSE_LEN   = 0.10      # ogive burun (m)
 BODY_LEN   = 0.30      # govde (m)
@@ -36,8 +38,13 @@ def _to_wsl(p: Path):
     return f"/mnt/{p[0].lower()}{p[2:].replace(chr(92), '/')}"
 
 
-def _wsl_of(d, cmd):
-    return f'wsl bash -c "source /opt/openfoam11/etc/bashrc && export FOAM_SIGFPE=false && cd {d} && {cmd}"'
+# ARKA UC KATMANI: `wsl bash -c` ELLE kuruluyordu, yani analysis/backend
+# devre disiydi ve CFD_BACKEND=docker bu betikte hicbir sey degistirmiyordu.
+# Ayni kampanyanin iki yarisi FARKLI cozuculerde kosabilirdi. Case iskeleti
+# DEGISMEDI; degisen yalnizca TASIMA katmani.
+def _of_cmd(d, cmd):
+    return (f"source /opt/openfoam11/etc/bashrc && export FOAM_SIGFPE=false && "
+            f"cd {d} && {cmd}")
 
 
 def build_rocket_stl(path: str):
@@ -220,7 +227,7 @@ boundaryField{{ inlet{{type calculated; value uniform {nut0:.6e};}} outlet{{type
                    ("surfaceFeatures > log.sf 2>&1", 120),
                    ("snappyHexMesh -overwrite > log.snap 2>&1", 1800),
                    ("foamRun -solver incompressibleFluid > log.run 2>&1", 3600)]:
-        rc = subprocess.run(_wsl_of(d, cmd), shell=True, capture_output=True, text=True, timeout=t).returncode
+        rc = linux_run(_of_cmd(d, cmd), t).returncode
         if rc != 0:
             step = cmd.split()[0]
             log = (case_dir/f"log.{cmd.split('>')[1].split('.')[1][:4]}").read_text(errors='replace')[-400:] if False else ""

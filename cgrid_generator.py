@@ -18,6 +18,9 @@ from pathlib import Path
 
 import numpy as np
 
+from analysis.backend import linux_run
+from analysis.ccx_runner import windows_to_wsl_path
+
 
 def naca4_thickness(x, t=0.12):
     return (t/0.2)*(0.2969*np.sqrt(np.maximum(x, 0)) - 0.1260*x
@@ -307,11 +310,11 @@ if __name__ == "__main__":
     msh, dims = generate(case, naca="0012")
     print(f"C-grid uretildi: {msh}  dims(I,nj)={dims}  dugum~{dims[0]*dims[1]*2}")
     # gmshToFoam + checkMesh
-    p = str(case.resolve()); wsl = f"/mnt/{p[0].lower()}{p[2:].replace(chr(92),'/')}"
+    wsl = windows_to_wsl_path(case.resolve())
+
     def of(cmd, t=300):
-        return subprocess.run(
-            f'wsl bash -c "source /opt/openfoam11/etc/bashrc && cd {wsl} && {cmd}"',
-            shell=True, capture_output=True, text=True, timeout=t)
+        # ARKA UC KATMANI (bkz. cgrid_elliptic): tasima analysis/backend'e verildi.
+        return linux_run(f"source /opt/openfoam11/etc/bashrc && cd {wsl} && {cmd}", t)
     r = of("gmshToFoam cgrid.msh > log.g2f 2>&1")
     print("gmshToFoam rc:", r.returncode)
     r2 = of("checkMesh > log.check 2>&1")

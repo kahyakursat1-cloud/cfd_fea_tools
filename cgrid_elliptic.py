@@ -13,6 +13,8 @@ from pathlib import Path
 
 import numpy as np
 
+from analysis.backend import linux_run
+from analysis.ccx_runner import windows_to_wsl_path
 from ogrid_elliptic import tanh_radial
 
 
@@ -221,9 +223,11 @@ if __name__ == "__main__":
     X, Y, I, nj, n_wake = build_cgrid(n_air=na, n_wake=nw, nj=njj)
     npts, nf, nc, ni = write_polymesh_cgrid(case, X, Y, I, nj, n_wake)
     print(f"polyMesh: {npts} nokta, {nf} yuz ({ni} internal), {nc} hucre")
-    p = str(case.resolve()); wsl = f"/mnt/{p[0].lower()}{p[2:].replace(chr(92), '/')}"
-    r = subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && unset FOAM_SIGFPE && cd {wsl} && checkMesh 2>&1"',
-                       shell=True, capture_output=True, text=True, timeout=600)
+    # ARKA UC KATMANI: `wsl bash -c` elle kurulmustu, yani CFD_BACKEND=docker
+    # bu betikte hicbir sey degistirmiyordu. Case iskeleti degismedi.
+    wsl = windows_to_wsl_path(case.resolve())
+    r = linux_run(f"source /opt/openfoam11/etc/bashrc && unset FOAM_SIGFPE && "
+                  f"cd {wsl} && checkMesh 2>&1", 600)
     print("MESH OK" if "Mesh OK" in r.stdout else "FAILED")
     for key in ("cells:", "non-orthogonality Max", "Max skewness", "open cells",
                 "incorrectly oriented", "Failed", "Max aspect"):

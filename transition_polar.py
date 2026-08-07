@@ -16,21 +16,28 @@ from pathlib import Path
 
 import numpy as np
 
+from analysis.backend import linux_run
+from analysis.ccx_runner import windows_to_wsl_path
 
+
+# ARKA UC KATMANI ATLANIYORDU. Bu betik `wsl bash -c` cagrisini ELLE kuruyordu,
+# yani `analysis/backend` devre disiydi: CFD_BACKEND=docker ayarlandiginda (ki
+# docker/Dockerfile bunu belgeliyor) arac hatti konteynere giderken bu betik
+# sessizce WSL'de kaliyordu — ayni kampanyanin iki yarisi FARKLI cozuculerde
+# kosabilirdi ve kanit dosyalari bunu soylemezdi. WSL distro secimi de
+# atlaniyordu. Case iskeleti DEGISMEDI; degisen yalnizca TASIMA.
 def _to_wsl_path(win_path: Path) -> str:
-    p = str(win_path.resolve())
-    return f"/mnt/{p[0].lower()}{p[2:].replace(chr(92), '/')}"
+    return windows_to_wsl_path(win_path)
 
 
-def _wsl_of(wsl_dir: str, cmd: str) -> str:
+def _of_cmd(wsl_dir: str, cmd: str) -> str:
     # FOAM_SIGFPE=false: yuksek non-ortho hucrelerde gecici NaN solver'i oldurmesin
-    return (f'wsl bash -c "source /opt/openfoam11/etc/bashrc && '
-            f'export FOAM_SIGFPE=false && cd {wsl_dir} && {cmd}"')
+    return (f"source /opt/openfoam11/etc/bashrc && export FOAM_SIGFPE=false && "
+            f"cd {wsl_dir} && {cmd}")
 
 
-def _run(cmd, timeout=7200):
-    r = subprocess.run(cmd, shell=True, capture_output=True, timeout=timeout, text=True)
-    return r.returncode
+def _run(bash_cmd, timeout=7200):
+    return linux_run(bash_cmd, timeout).returncode
 
 
 # NASA Langley NACA 0012 (Ladson 1988, Re=3e6) — stall ~16 deg, CLmax~1.5
@@ -217,12 +224,12 @@ relaxationFactors{ equations{ U 0.3; k 0.2; omega 0.2; gammaInt 0.2; ReThetat 0.
         self._write_mesh(case); self._write_fields(case, alpha_deg)
         self._write_system_constant(case)
         wsl = _to_wsl_path(case)
-        if _run(_wsl_of(wsl, "blockMesh > log.bm 2>&1"), 300) != 0:
+        if _run(_of_cmd(wsl, "blockMesh > log.bm 2>&1"), 300) != 0:
             return {"status":"FAILED","step":"blockMesh"}
 
         # Asama 1: kOmegaSST ile akisi kur (uniform-init FPE'sini onler)
         self._set_model(case, "kOmegaSST", 600)
-        if _run(_wsl_of(wsl, "foamRun -solver incompressibleFluid > log.s1 2>&1"), 3600) != 0:
+        if _run(_of_cmd(wsl, "foamRun -solver incompressibleFluid > log.s1 2>&1"), 3600) != 0:
             tail = (case/"log.s1").read_text(errors="replace")[-400:] if (case/"log.s1").exists() else ""
             return {"status":"FAILED","step":"solver_stage1","log":tail}
 
@@ -230,7 +237,7 @@ relaxationFactors{ equations{ U 0.3; k 0.2; omega 0.2; gammaInt 0.2; ReThetat 0.
         cd = (case/"system"/"controlDict").read_text()
         (case/"system"/"controlDict").write_text(cd.replace("startFrom startTime", "startFrom latestTime"))
         self._set_model(case, "kOmegaSSTLM", 3000)
-        if _run(_wsl_of(wsl, "foamRun -solver incompressibleFluid > log.s2 2>&1"), 7200) != 0:
+        if _run(_of_cmd(wsl, "foamRun -solver incompressibleFluid > log.s2 2>&1"), 7200) != 0:
             tail = (case/"log.s2").read_text(errors="replace")[-400:] if (case/"log.s2").exists() else ""
             return {"status":"FAILED","step":"solver_stage2","log":tail}
         sim = self._parse_forces(case, alpha_deg)
