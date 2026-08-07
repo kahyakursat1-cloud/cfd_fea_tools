@@ -101,3 +101,65 @@ def test_kanit_dosyasi_guncel():
     d = json.loads((KOK / "model_form_bandi.json").read_text(encoding="utf-8"))
     assert "dis_kaynakli_hucreler" in d
     assert d["olculen_hucreler"], "en az bir ölçülen hücre olmalı"
+
+
+# ── çapa kabul ölçütleri ───────────────────────────────────────────────────
+
+def test_sayisal_bandi_buyuk_capa_REDDEDILIR():
+    """Çapanın ayrıklaştırma gürültüsü, ölçmek istediği model hatasından büyükse
+    o çapa model-form hakkında hiçbir şey söylemez. Ölçüldü: Ahmed 25° LSR
+    bandı %274,7 — tek başına hücreyi ele geçirip bandı %290'a çıkarıyordu."""
+    from model_form_bandi import U_SAYISAL_TAVANI
+    rec = calistir()
+    for x in rec["atanamayan_capalar"]:
+        if x.get("u_sayisal_pct") and x["u_sayisal_pct"] > U_SAYISAL_TAVANI:
+            assert "SAYISAL BAND ÇOK BÜYÜK" in x["neden"]
+    for h in rec["olculen_hucreler"].values():
+        for v in h.values():
+            for c in v["capalar"]:
+                assert c.get("sapma_pct") is not None
+
+
+def test_tepe_yplus_bant_disi_capa_ATANMAZ():
+    """Ortalama tek başına yetmez: Ahmed'in ortalaması 46 (bantta) ama tepesi
+    1237. Duvarın bir bölümü hiçbir zaman log-bölgesinde değil."""
+    from model_form_bandi import _duvar_islemi
+
+    from validity_envelope import YPLUS_BANDI
+    assert _duvar_islemi(100.0, 200.0) == "wall_function"
+    assert _duvar_islemi(100.0, YPLUS_BANDI[1] + 1) is None
+    assert _duvar_islemi(46.0, 1236.6) is None
+
+
+def test_desteklenmeyen_eski_hucre_DUSURULUR_ve_gerekcesi_yazilir():
+    """Eski sürüm 'bu betiğin kapsamadığı hücre silinmez' diyordu ve iki BOZUK
+    hücreyi hayatta tutuyordu: bluff.wall_resolved (yanlış etiket) ve
+    lifting.wall_function (reddedilmiş çapadan)."""
+    rec = calistir()
+    for x in rec["dusurulen_hucreler"]:
+        assert x["onceki_pct"] is not None
+        assert "ÖNCÜLE döndü" in x["neden"]
+    band = json.loads((KOK / "validation_band.json").read_text(encoding="utf-8"))
+    olculen = rec["olculen_hucreler"]
+    for r, h in band.items():
+        for i in h:
+            assert (olculen.get(r) or {}).get(i), f"{r}.{i} bandda ama ölçülmemiş"
+
+
+def test_disk_ve_kup_capalari_DUVAR_FONKSIYONU_hucresinde():
+    """Kök hata buydu: ikisi de wall_resolved yazılmıştı, oysa y⁺ 31,3 ve 37,3."""
+    rec = calistir()
+    hf = (rec["olculen_hucreler"].get("bluff") or {}).get("wall_function")
+    if not hf:
+        return
+    adlar = [c["ad"] for c in hf["capalar"]]
+    assert any("disk" in a for a in adlar)
+    assert hf["n_capa"] >= 2, "ikinci çapa geldi, hücre artık n=2"
+    assert (rec["olculen_hucreler"].get("bluff") or {}).get("wall_resolved") is None
+
+
+def test_validate_pipeline_ARTIK_band_yazmiyor():
+    """Hücre ataması tek yerde olmalı; iki yazıcı iki farklı kuralla yazıyordu."""
+    src = (KOK / "validate_pipeline.py").read_text(encoding="utf-8")
+    assert "_BAND_FILE.write_text" not in src
+    assert "model_form_bandi.py" in src

@@ -28,11 +28,36 @@ class TestRejimAyrimi:
             assert s > a, f"duvar={duvar}: ayrılmış {s} <= bağlı {a}"
 
     def test_DUVAR_FONKSIYONU_bandi_COZUNURDEN_genis(self):
-        """y⁺≳30'da duvar modellenir, çözülmez — belirsizlik artmalı."""
+        """y⁺≳30'da duvar modellenir, çözülmez — belirsizlik artmalı.
+
+        Ölçüt AYNI TÜRDEN sayılar arasında geçerlidir. Bir hücre ölçüm, diğeri
+        öncül olduğunda karşılaştırma elma-armuttur: ölçülen `bluff` duvar-
+        fonksiyonu %8,15, öncül duvar-çözünür %10. Ölçümü öncüle uydurmak için
+        şişirmek, ölçülmemiş bir sayının ölçülmüş olanı bozması demektir.
+        Ters sıralama `model_form_bandi.json.siralama_uyarilari`'nda RAPORLANIR
+        ve bu test onun kaydedildiğini bağlar.
+        """
+        import json
+        from pathlib import Path as _P
+        kok = _P(__file__).resolve().parent.parent
+        band = {}
+        bp = kok / "validation_band.json"
+        if bp.exists():
+            band = json.loads(bp.read_text(encoding="utf-8"))
+        mf = {}
+        mp = kok / "model_form_bandi.json"
+        if mp.exists():
+            mf = json.loads(mp.read_text(encoding="utf-8"))
+        uyarilan = {u["rejim"] for u in mf.get("siralama_uyarilari", [])}
         for rejim in _MODEL_U_PCT:
             r = model_uncertainty_pct(rejim, False)["u_model_pct"]
             c = model_uncertainty_pct(rejim, True)["u_model_pct"]
-            assert r >= c, f"{rejim}: duvar-fonksiyonu {r} < çözünür {c}"
+            if r >= c:
+                continue
+            # Ters sirali hucre: en az biri OLCUM olmali ve durum raporlanmis olmali
+            olculen = band.get(rejim, {})
+            assert olculen, f"{rejim}: ters sıralama ama ölçüm yok"
+            assert rejim in uyarilan, f"{rejim}: ters sıralama raporlanmamış"
 
     def test_TANINMAYAN_rejim_SESSIZ_varsayilmiyor(self):
         """Eskiden bilinmeyen rejim sessizce 'bluff' sayılıyordu ve etikette
@@ -58,19 +83,23 @@ class TestKanit:
     def test_ATANAMAYAN_capa_TAHMIN_edilmiyor(self):
         """Çapa bir hücreye atanamıyorsa NEDENİ yazılır; tahmin YASAK.
 
-        İki ayrı neden var ve ikisi de kabul: (a) y⁺ hiç kayıtlı değil — eksik
-        kayıt; (b) y⁺ ÖLÇÜLDÜ ama tampon bölgede (5<y⁺<30) — fiziksel bulgu,
-        o koşu hiçbir duvar işlemini temsil etmez. İkisini aynı torbaya koymak
-        "ölçemedim" ile "ölçtüm, ait değil"i karıştırmak olurdu.
+        DÖRT ayrı neden var ve dördü de kabul; hangisi olduğu okuyucu için
+        önemlidir, o yüzden hepsi aynı torbaya konmaz:
+          (a) y⁺ hiç kayıtlı değil — eksik kayıt;
+          (b) y⁺ ölçüldü ama tampon bölgede (5<y⁺<30) — fiziksel bulgu;
+          (c) y⁺ ortalaması bantta ama TEPESİ dışarıda — duvarın bir bölümü
+              hiçbir zaman log-bölgesinde değil;
+          (d) çapanın SAYISAL bandı, ölçmek istediği model hatasından büyük.
         """
         d = self._d()
         if not d:
             return
+        gecerli = ("KAYITLI DEĞİL", "Tampon bölgede", "TEPESİ dışarıda",
+                   "SAYISAL BAND ÇOK BÜYÜK")
         for x in d["atanamayan_capalar"]:
+            assert any(g in x["neden"] for g in gecerli), x["neden"]
             if x.get("yplus_ort") is None:
                 assert "KAYITLI DEĞİL" in x["neden"]
-            else:
-                assert "ÖLÇÜLDÜ" in x["neden"] and "Tampon" in x["neden"]
         atanan = {(r, i) for r, h in d["olculen_hucreler"].items() for i in h}
         for x in d["atanamayan_capalar"]:
             assert not any(r == x["rejim"] for r, _ in atanan) or True

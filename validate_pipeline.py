@@ -11,7 +11,6 @@ import argparse
 import json
 import math
 import sys
-from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
@@ -19,7 +18,7 @@ import trimesh
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from validation_anchors import _BAND_FILE, ANCHORS  # noqa: E402
+from validation_anchors import ANCHORS  # noqa: E402
 from vehicle_pipeline import GCI_MIN_ORAN, run_vehicle_analysis  # noqa: E402
 
 
@@ -283,24 +282,25 @@ def main():
     names = list(ANCHORS) if args.anchor == "all" else [args.anchor]
     results = {n: _run_anchor(n, args.hiz, args.out) for n in names}
 
-    # rejim-başına en kötü ölçülen hatayı duvar-çözünür band olarak yaz (muhafazakâr)
-    by_regime = defaultdict(list)
-    for n, res in results.items():
-        if res and res.get("hata_pct") is not None:
-            by_regime[res["regime"]].append(res["hata_pct"])
-    band = {}
-    if _BAND_FILE.exists():
-        try:
-            band = json.loads(_BAND_FILE.read_text(encoding="utf-8"))
-        except Exception:
-            band = {}
-    for regime, errs in by_regime.items():
-        eski = band.get(regime, {}).get("wall_resolved")
-        yeni = max(errs + ([eski] if eski is not None else []))   # tarihsel maksimum korunur
-        band.setdefault(regime, {})["wall_resolved"] = round(yeni, 2)
-    if by_regime:
-        _BAND_FILE.write_text(json.dumps(band, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(json.dumps({"sonuclar": results, "yazilan_band": band}, indent=2, ensure_ascii=False))
+    # BANDI BU BETIK ARTIK YAZMIYOR. Neden: her olculen hatayi kosulsuz
+    # "wall_resolved" hucresine yaziyordu — duvar islemini OLCMEDEN, VARSAYARAK.
+    # Olculdu: disk kosusunun y+'i 31.3, kup capasinin 37.3; ikisi de
+    # duvar-FONKSIYONU. Yani `bluff.wall_resolved = %5.95` hucresi YANLIS
+    # ETIKETLIYDI ve o etiketle yayimlanmisti.
+    #
+    # Hucre atamasi tek bir yerde olmali: `experiments/model_form_bandi.py`
+    # olculen y+'a bakar, tepe y+ bant disindaysa reddeder, sayisal bandi
+    # olcmek istedigi model hatasindan buyuk olan capayi da reddeder. Bu betik
+    # kosuyu URETIR; hukmu o verir.
+    print(json.dumps({"sonuclar": results,
+                      "_band": ("Band BU BETIK tarafindan YAZILMAZ. Kosular "
+                                "uretildi; hucre atamasi ve band icin: "
+                                "python experiments/model_form_bandi.py"),
+                      "_neden": ("onceki surum her hatayi kosulsuz "
+                                 "'wall_resolved' hucresine yaziyordu — duvar "
+                                 "islemini olcmeden. disk y+=31.3, kup y+=37.3: "
+                                 "ikisi de duvar-FONKSIYONU idi.")},
+                     indent=2, ensure_ascii=False))
     return 0
 
 

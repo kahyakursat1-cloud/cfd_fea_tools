@@ -20,6 +20,66 @@
       "referans": "NASA TMR / CFL3D"
     },
     {
+      "capa": "disk",
+      "rejim": "bluff",
+      "sapma_pct": 8.15,
+      "ham_sapma_pct": 3.38,
+      "u_sayisal_pct": 4.77,
+      "ayrilabilir_mi": false,
+      "yplus_ort": 31.32,
+      "yplus_max": 146.21,
+      "yplus_kaynak": "çapa koşusu _anchor_disk",
+      "referans": "Hoerner, Fluid-Dynamic Drag (1965)"
+    },
+    {
+      "capa": "küre",
+      "rejim": "bluff",
+      "sapma_pct": 88.73,
+      "ham_sapma_pct": 25.75,
+      "u_sayisal_pct": 62.97,
+      "ayrilabilir_mi": false,
+      "yplus_ort": 20.09,
+      "yplus_max": 132.41,
+      "yplus_kaynak": "çapa koşusu _anchor_sphere",
+      "referans": "White, Fluid Mechanics; Schlichting BL Theory"
+    },
+    {
+      "capa": "küp (çapa koşusu)",
+      "rejim": "bluff",
+      "sapma_pct": 7.1,
+      "ham_sapma_pct": 1.78,
+      "u_sayisal_pct": 5.32,
+      "ayrilabilir_mi": false,
+      "yplus_ort": 37.3,
+      "yplus_max": 117.78,
+      "yplus_kaynak": "çapa koşusu _anchor_cube",
+      "referans": "Hoerner, Fluid-Dynamic Drag (1965)"
+    },
+    {
+      "capa": "Ahmed 25°",
+      "rejim": "bluff",
+      "sapma_pct": 290.9,
+      "ham_sapma_pct": 16.2,
+      "u_sayisal_pct": 274.7,
+      "ayrilabilir_mi": false,
+      "yplus_ort": 45.99,
+      "yplus_max": 1236.57,
+      "yplus_kaynak": "çapa koşusu _anchor_ahmed_25",
+      "referans": "Ahmed et al. 1984; Meile et al. 2011"
+    },
+    {
+      "capa": "NACA0012 kanat AR6",
+      "rejim": "lifting",
+      "sapma_pct": 35.43,
+      "ham_sapma_pct": 18.05,
+      "u_sayisal_pct": 17.38,
+      "ayrilabilir_mi": true,
+      "yplus_ort": 134.47,
+      "yplus_max": 210.69,
+      "yplus_kaynak": "çapa koşusu _anchor_naca0012_wing_ar6",
+      "referans": "YARI-ANALİTİK (±%15): türbülanslı profil Cd0≈0.014 (düz-plaka Cf + form) + lifti"
+    },
+    {
       "capa": "geriye-basamak (kOmegaSST)",
       "rejim": "separated",
       "sapma_pct": 11.58,
@@ -30,23 +90,6 @@
     }
   ],
   "olculen_hucreler": {
-    "bluff": {
-      "wall_function": {
-        "u_pct": 20.0,
-        "olculen_pct": 6.03,
-        "oncul_pct": 20.0,
-        "oncul_korundu": true,
-        "n_capa": 1,
-        "capalar": [
-          {
-            "ad": "küp",
-            "sapma_pct": 6.03,
-            "referans": "Hoerner 1965, Fluid-Dynamic Drag; Re>1e4 Re-bagimsiz"
-          }
-        ],
-        "_anlam": "TEK ÇAPA (%6.03) öncülden (%20.0) KÜÇÜK — band tek ölçümle DARALTILMADI; öncül korundu, ölçüm kayıtlı"
-      }
-    },
     "attached_2d": {
       "wall_resolved": {
         "u_pct": 5.0,
@@ -63,9 +106,62 @@
         ],
         "_anlam": "TEK ÇAPA (%3.52) öncülden (%5.0) KÜÇÜK — band tek ölçümle DARALTILMADI; öncül korundu, ölçüm kayıtlı"
       }
+    },
+    "bluff": {
+      "wall_function": {
+        "u_pct": 8.15,
+        "olculen_pct": 8.15,
+        "oncul_pct": 20.0,
+        "oncul_korundu": false,
+        "n_capa": 2,
+        "capalar": [
+          {
+            "ad": "disk",
+            "sapma_pct": 8.15,
+            "referans": "Hoerner, Fluid-Dynamic Drag (1965)"
+          },
+          {
+            "ad": "küp (çapa koşusu)",
+            "sapma_pct": 7.1,
+            "referans": "Hoerner, Fluid-Dynamic Drag (1965)"
+          }
+        ],
+        "_anlam": "2 çapanın EN KÖTÜSÜ"
+      }
     }
   },
   "atanamayan_capalar": [
+    {
+      "capa": "küp",
+      "rejim": "bluff",
+      "sapma_pct": 6.03,
+      "yplus_ort": 112.83,
+      "neden": "y⁺ ORTALAMASI bantta (112.8) ama TEPESİ dışarıda (338 > 300.0): duvarın bir bölümü hiçbir zaman log-bölgesinde değil, koşu duvar-fonksiyonunu temsil etmiyor"
+    },
+    {
+      "capa": "küre",
+      "rejim": "bluff",
+      "sapma_pct": 88.73,
+      "u_sayisal_pct": 62.97,
+      "yplus_ort": 20.09,
+      "neden": "SAYISAL BAND ÇOK BÜYÜK (%63.0 > %15.0): bu koşunun ayrıklaştırma gürültüsü ölçmek istediği model hatasından büyük, model-form hakkında hiçbir şey söyleyemez"
+    },
+    {
+      "capa": "Ahmed 25°",
+      "rejim": "bluff",
+      "sapma_pct": 290.9,
+      "u_sayisal_pct": 274.7,
+      "yplus_ort": 45.99,
+      "neden": "SAYISAL BAND ÇOK BÜYÜK (%274.7 > %15.0): bu koşunun ayrıklaştırma gürültüsü ölçmek istediği model hatasından büyük, model-form hakkında hiçbir şey söyleyemez"
+    },
+    {
+      "capa": "NACA0012 kanat AR6",
+      "rejim": "lifting",
+      "sapma_pct": 35.43,
+      "u_sayisal_pct": 17.38,
+      "yplus_ort": 134.47,
+      "neden": "SAYISAL BAND ÇOK BÜYÜK (%17.4 > %15.0): bu koşunun ayrıklaştırma gürültüsü ölçmek istediği model hatasından büyük, model-form hakkında hiçbir şey söyleyemez"
+    },
     {
       "capa": "geriye-basamak (kOmegaSST)",
       "rejim": "separated",
@@ -86,6 +182,11 @@
       "oncul_pct": 12.0
     },
     {
+      "rejim": "bluff",
+      "duvar": "wall_resolved",
+      "oncul_pct": 10.0
+    },
+    {
       "rejim": "separated",
       "duvar": "wall_resolved",
       "oncul_pct": 12.0
@@ -101,25 +202,31 @@
       "oncul_pct": 12.0
     }
   ],
-  "dis_kaynakli_hucreler": [
+  "dis_kaynakli_hucreler": [],
+  "dusurulen_hucreler": [],
+  "siralama_uyarilari": [
     {
       "rejim": "bluff",
-      "duvar": "wall_resolved",
-      "u_pct": 5.95,
-      "oncul_pct": 10.0,
-      "_not": "bu betik ÜRETMEDİ (başka kampanya); çapa sayısı ve tek-çapa kuralının uygulanıp uygulanmadığı bilinmiyor — öncülden (%10.0) KÜÇÜK, gözden geçirilmeli"
+      "wall_function": {
+        "deger": 8.15,
+        "tur": "ölçüm"
+      },
+      "wall_resolved": {
+        "deger": 10.0,
+        "tur": "öncül"
+      },
+      "_not": "duvar-fonksiyonu bandı (8.15, ölçüm) duvar-çözünürden (10.0, öncül) DAR. Fizik beklentisi tersidir. Ölçümü öncüle uydurmak için ŞİŞİRİLMEDİ: ölçülmemiş bir sayı, ölçülmüş olanı bozamaz. Muhtemel açıklama — öncül bu hat için fazla muhafazakâr; o hücre de ölçülünce anlaşılacak."
     }
   ],
   "_kisit": "Bir capanin sapmasi, o rejimdeki model-form hatasinin BIR ORNEGIDIR. N=1 olan hucrede dagilim IDDIA EDILMEZ. Duvar islemi kayitli olmayan capa hucreye ATANMAZ — tahmin edilmez. Ayrica sapma, referansin KENDI deneysel belirsizligini de icerir ve o ayristirilmamistir.",
   "_uretim": "Üretim: python experiments/model_form_bandi.py",
-  "verdikt": "3 capa toplandi; 2 hucre OLCULDU, 1 capa atanamadi, 5 hucre ONCUL kaldi. bluff.wall_function=%20.0 (n=1); attached_2d.wall_resolved=%5.0 (n=1)",
+  "verdikt": "8 capa toplandi; 2 hucre OLCULDU, 5 capa atanamadi, 6 hucre ONCUL kaldi. attached_2d.wall_resolved=%5.0 (n=1); bluff.wall_function=%8.15 (n=2)",
   "_yazilan": {
-    "bluff": {
-      "wall_resolved": 5.95,
-      "wall_function": 20.0
-    },
     "attached_2d": {
       "wall_resolved": 5.0
+    },
+    "bluff": {
+      "wall_function": 8.15
     }
   }
 }

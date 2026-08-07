@@ -34,15 +34,33 @@ def _j(ad: str) -> dict | None:
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
 
 
-def _duvar_islemi(yplus_ort: float | None) -> str | None:
-    """y⁺ KAYITLIYSA hücre adı; değilse None (tahmin YOK)."""
+# CAPANIN SAYISAL BANDI, OLCMEK ISTEDIGI MODEL HATASINDAN BUYUK OLAMAZ.
+# validate_pipeline bunu zaten yaziyordu ("U<%15 — yoksa capa model hatasini
+# ayirt edemez") ama model-form toplayicisi kontrol etmiyordu. Olculdu:
+# Ahmed 25 capasinin LSR bandi %274.7 — o capa tek basina hucreyi ele gecirip
+# bandi %290'a cikariyordu. Sayisal gurultusu bu kadar buyuk bir kosu, model
+# hatasi hakkinda HICBIR SEY soylemez.
+U_SAYISAL_TAVANI = 15.0
+
+
+def _duvar_islemi(yplus_ort: float | None,
+                  yplus_max: float | None = None) -> str | None:
+    """y⁺ KAYITLIYSA hücre adı; değilse None (tahmin YOK).
+
+    ORTALAMA TEK BASINA YETMEZ: tepe y⁺ bandın dışına taşıyorsa duvarın bir
+    bölümü hiçbir zaman log-bölgesinde değildir. Ölçüldü: Ahmed 25° ortalaması
+    46 (bandın içinde) ama tepesi 1237 — o koşu duvar-fonksiyonunu temsil
+    etmiyor. Aynı ölçüt `validity_envelope.duvar_hukmu`'nda da var.
+    """
     from validity_envelope import YPLUS_BANDI, YPLUS_DUVAR_COZUNUR
     if yplus_ort is None:
         return None
     if yplus_ort <= YPLUS_DUVAR_COZUNUR:
-        return "wall_resolved"
+        return ("wall_resolved" if yplus_max is None
+                or yplus_max <= YPLUS_BANDI[0] else None)
     if YPLUS_BANDI[0] <= yplus_ort <= YPLUS_BANDI[1]:
-        return "wall_function"
+        return ("wall_function" if yplus_max is None
+                or yplus_max <= YPLUS_BANDI[1] else None)
     return None          # bant dışı: o koşu zaten savunulabilir değil
 
 
@@ -101,6 +119,41 @@ def capalari_topla() -> list[dict]:
                       "yplus_ort": 1.0,
                       "referans": "NASA TMR / CFL3D"})
 
+    # CAPA KOSU ARSIVI: validate_pipeline'in urettigi kosular. Bunlar band
+    # dosyasina YAZILIYORDU ama duvar islemi OLCULMEDEN — hepsi 'wall_resolved'
+    # hucresine gidiyordu. Olculdu: disk y+=31.3, kup y+=37.3 (ikisi de
+    # duvar-FONKSIYONU), yani hucre etiketi YANLISTI.
+    for ad, kosu in (("disk", "_anchor_disk"), ("küre", "_anchor_sphere"),
+                     ("küp (çapa koşusu)", "_anchor_cube"),
+                     ("Ahmed 25°", "_anchor_ahmed_25"),
+                     ("NACA0012 kanat AR6", "_anchor_naca0012_wing_ar6")):
+        sj = KOK / "validation_anchors_runs" / kosu / "sonuc.json"
+        if not sj.exists():
+            continue
+        d = json.loads(sj.read_text(encoding="utf-8"))
+        anahtar = kosu.replace("_anchor_", "")
+        from validation_anchors import ANCHORS
+        spec = ANCHORS.get(anahtar)
+        if not spec or d.get("cd") is None:
+            continue
+        hata = abs(d["cd"] - spec["Cd"]) / spec["Cd"] * 100
+        md = d.get("mesh_duyarlilik") or {}
+        u_say = ((md.get("lsr") or {}).get("u_pct")
+                 or (md.get("gci") or {}).get("gci_fine_pct"))
+        yp = (d.get("sinir_tabaka") or {}).get("yplus") or {}
+        c.append({"capa": ad, "rejim": spec["regime"],
+                  # MODEL HATASI SAYISAL HATADAN AYRILAMAZ: olculen fark
+                  # ayriklastirma bandiyla ayni mertebedeyse (disk %3.4 vs
+                  # band %4.8) capa tek basina model-form vermez. Ust sinir
+                  # olarak fark + band alinir — muhafazakar yon.
+                  "sapma_pct": hata + (u_say or 0.0),
+                  "ham_sapma_pct": round(hata, 2),
+                  "u_sayisal_pct": round(u_say, 2) if u_say else None,
+                  "ayrilabilir_mi": bool(u_say and hata > u_say),
+                  "yplus_ort": yp.get("ort"), "yplus_max": yp.get("max"),
+                  "yplus_kaynak": f"çapa koşusu {kosu}",
+                  "referans": spec["ref"][:80]})
+
     bas = _j("basamak_ayrilma.json")
     if bas:
         ok = [s for s in bas.get("seviyeler", []) if s.get("durum") == "ok"]
@@ -122,6 +175,39 @@ def capalari_topla() -> list[dict]:
     return c
 
 
+def _siralama_uyarilari(birlesik: dict, oncul: dict) -> list[dict]:
+    """Duvar-fonksiyonu bandı, duvar-çözünürden DAR çıktıysa bunu söyle.
+
+    Fizik beklentisi: duvar fonksiyonuyla model-form hatası en az duvar-çözünür
+    kadardır. Ama burada ELMA ile ARMUT karşılaştırılabiliyor: bir hücre ölçüm,
+    diğeri öncül olabilir. Ölçümü öncüle uydurmak için şişirmek, ölçülmemiş bir
+    sayının ölçülmüş olanı bozması demektir — YAPILMAZ. Ters sıralama
+    raporlanır ve hangi hücrenin ölçüm, hangisinin öncül olduğu yazılır.
+    """
+    out = []
+    for rejim in set(birlesik) | set(oncul):
+        gecerli = {}
+        for islem in ("wall_resolved", "wall_function"):
+            v = birlesik.get(rejim, {}).get(islem)
+            gecerli[islem] = ({"deger": v, "tur": "ölçüm"} if v is not None else
+                              {"deger": oncul.get(rejim, {}).get(islem),
+                               "tur": "öncül"})
+        wr, wf = gecerli["wall_resolved"], gecerli["wall_function"]
+        if wr["deger"] is None or wf["deger"] is None:
+            continue
+        if wf["deger"] < wr["deger"]:
+            out.append({
+                "rejim": rejim,
+                "wall_function": wf, "wall_resolved": wr,
+                "_not": (f"duvar-fonksiyonu bandı ({wf['deger']}, {wf['tur']}) "
+                         f"duvar-çözünürden ({wr['deger']}, {wr['tur']}) DAR. "
+                         "Fizik beklentisi tersidir. Ölçümü öncüle uydurmak için "
+                         "ŞİŞİRİLMEDİ: ölçülmemiş bir sayı, ölçülmüş olanı "
+                         "bozamaz. Muhtemel açıklama — öncül bu hat için "
+                         "fazla muhafazakâr; o hücre de ölçülünce anlaşılacak.")})
+    return out
+
+
 def calistir() -> dict:
     from validation_anchors import _MODEL_U_PCT
     capalar = capalari_topla()
@@ -129,7 +215,18 @@ def calistir() -> dict:
     hucreler: dict[str, dict] = {}
     atanamayan: list[dict] = []
     for x in capalar:
-        hucre = _duvar_islemi(x.get("yplus_ort"))
+        _u = x.get("u_sayisal_pct")
+        if _u is not None and _u > U_SAYISAL_TAVANI:
+            atanamayan.append({
+                "capa": x["capa"], "rejim": x["rejim"],
+                "sapma_pct": round(x["sapma_pct"], 2),
+                "u_sayisal_pct": _u, "yplus_ort": x.get("yplus_ort"),
+                "neden": (f"SAYISAL BAND ÇOK BÜYÜK (%{_u:.1f} > "
+                          f"%{U_SAYISAL_TAVANI}): bu koşunun ayrıklaştırma "
+                          "gürültüsü ölçmek istediği model hatasından büyük, "
+                          "model-form hakkında hiçbir şey söyleyemez")})
+            continue
+        hucre = _duvar_islemi(x.get("yplus_ort"), x.get("yplus_max"))
         if hucre is None:
             # OLCULDU AMA ATANAMADI ile HIC OLCULMEDI ayri seylerdir. Ikincisi
             # eksik kayittir; birincisi FIZIKSEL bir bulgudur: y+ tampon
@@ -139,6 +236,13 @@ def calistir() -> dict:
             if _y is None:
                 neden = ("duvar işlemi (y⁺) kanıtta KAYITLI DEĞİL — hücreye "
                          "atanmadı, TAHMİN edilmedi")
+            elif (x.get("yplus_max") is not None
+                  and x["yplus_max"] > __import__("validity_envelope").YPLUS_BANDI[1]):
+                from validity_envelope import YPLUS_BANDI
+                neden = (f"y⁺ ORTALAMASI bantta ({_y:.1f}) ama TEPESİ dışarıda "
+                         f"({x['yplus_max']:.0f} > {YPLUS_BANDI[1]}): duvarın bir "
+                         "bölümü hiçbir zaman log-bölgesinde değil, koşu "
+                         "duvar-fonksiyonunu temsil etmiyor")
             else:
                 from validity_envelope import YPLUS_BANDI, YPLUS_DUVAR_COZUNUR
                 neden = (f"y⁺ ÖLÇÜLDÜ ({_y:.1f}) ama hiçbir duvar işlemine ait "
@@ -186,13 +290,29 @@ def calistir() -> dict:
                     else f"{len(liste)} çapanın EN KÖTÜSÜ"),
             }
 
-    # MEVCUT OLCULEN HUCRELER KORUNUR: bu betigin kapsamadigi bir hucre daha
-    # once olculmusse silinmez.
+    # ESKI HUCRELER ARTIK KOSULSUZ TASINMIYOR. Onceki surum "bu betigin
+    # kapsamadigi hucre silinmez" diyordu; kulaga muhafazakar geliyor ama iki
+    # BOZUK hucreyi hayatta tutuyordu:
+    #   - bluff.wall_resolved = %5.95 -> kaynagi DISK kosusu, ama o kosunun
+    #     y+'i 31.3, yani duvar-FONKSIYONU. Hucre etiketi YANLISTI.
+    #   - lifting.wall_function = %35.43 -> kaynagi NACA0012 kanat capasi, ama
+    #     o capa bu betigin kurallariyla REDDEDILIYOR (sayisal band %17.4>%15).
+    # Yani "silmeyelim" kurali, bu betigin KENDI olcutlerinin reddettigi
+    # sayilari yayimda tutuyordu. Band artik BU KOSUNUN olcumlerinden kurulur;
+    # dusen hucre sessizce kaybolmaz, gerekcesiyle kayda gecer ve oncule doner.
     onceki = json.loads(BAND_DOSYASI.read_text(encoding="utf-8")) \
         if BAND_DOSYASI.exists() else {}
-    birlesik = {r: {**onceki.get(r, {}), **v} for r, v in olculen.items()}
-    for r, v in onceki.items():
-        birlesik.setdefault(r, v)
+    birlesik = {r: dict(v) for r, v in olculen.items()}
+    dusurulen = []
+    for r, h in onceki.items():
+        for i, v in h.items():
+            if birlesik.get(r, {}).get(i) is None:
+                dusurulen.append({
+                    "rejim": r, "duvar": i, "onceki_pct": v,
+                    "neden": ("bu koşunun çapalarından hiçbiri bu hücreye "
+                              "atanamadı — değer önceki bir kampanyadan "
+                              "kalmıştı ve bu betiğin ölçütleriyle "
+                              "desteklenmiyor; hücre ÖNCÜLE döndü")})
 
     oncul_kalan = []
     for rejim, cells in _MODEL_U_PCT.items():
@@ -229,6 +349,8 @@ def calistir() -> dict:
         "atanamayan_capalar": atanamayan,
         "oncul_kalan_hucreler": oncul_kalan,
         "dis_kaynakli_hucreler": dis_kaynakli,
+        "dusurulen_hucreler": dusurulen,
+        "siralama_uyarilari": _siralama_uyarilari(birlesik, _MODEL_U_PCT),
         "_kisit": ("Bir capanin sapmasi, o rejimdeki model-form hatasinin BIR "
                    "ORNEGIDIR. N=1 olan hucrede dagilim IDDIA EDILMEZ. Duvar "
                    "islemi kayitli olmayan capa hucreye ATANMAZ — tahmin "
@@ -262,11 +384,10 @@ def main() -> int:
     if rec["atanamayan_capalar"]:
         print("\n  ATANAMAYAN:")
         for x in rec["atanamayan_capalar"]:
-            _y = x.get("yplus_ort")
-            print(f"    {x['capa']} — %{x['sapma_pct']}"
-                  + (f" | y⁺={_y:.1f} TAMPON BÖLGE (5–30): ölçüldü ama hiçbir "
-                     "duvar işlemini temsil etmiyor" if _y is not None
-                     else " | y⁺ kayıtlı DEĞİL"))
+            # KAYITLI GEREKCEYI BAS. Ilk surum hepsine "tampon bolge" diyordu —
+            # oysa nedenler farkli (tepe y+ disarida, sayisal band cok buyuk,
+            # kayit yok) ve hangisinin gecerli oldugu okuyucu icin onemli.
+            print(f"    {x['capa']} — %{x['sapma_pct']}: {x['neden'][:150]}")
     print("\n" + rec["verdikt"])
     print("-> model_form_bandi.json, validation_band.json")
     return 0
