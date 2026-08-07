@@ -93,14 +93,26 @@ def aircraft_to_vsp(aircraft, vsp3_path: str = None, kambur: bool = False) -> st
         pct = idx / (n_xsec - 1)
         try:
             vsp.SetParmValUpdate(vsp.GetXSecParm(xs, "XLocPercent"), pct * 0.85)
-        except Exception:
-            pass
+        except Exception as _pe:
+            # Kesit konumu atanamazsa govde VSP varsayilan dagilimiyla kurulur:
+            # sekil istenenden farkli olur ama kosu devam eder. Sessiz kalmasi,
+            # asagidaki CAP kusurunun tipatip esiydi (parametre hic ulasmiyor,
+            # kimse soylemiyor).
+            print(f"[UYARI] gövde kesit konumu atanamadı (XSec {idx}): "
+                  f"{type(_pe).__name__}: {_pe} — gövde şekli VSP varsayılanı")
 
     # Gövde design parametreleri
     try:
         vsp.SetParmValUpdate(vsp.FindParm(fus_id, "Length", "Design"), L)
-    except Exception:
-        pass
+    except Exception as _le:
+        # UZUNLUK ATANAMADIYSA GOVDE VARSAYILAN BOYDA KALIR. Cap kusurunda
+        # olculdu: dataclass 0.08 m derken insa edilen govde 2.50 m genisti ve
+        # sonuc "sessiz degildi ama yeri belli degildi". Ayni tuzak uzunlukta da
+        # var; hic degilse nerede oldugu artik yaziyor.
+        raise RuntimeError(
+            f"gövde UZUNLUĞU atanamadı ({type(_le).__name__}: {_le}); geometri "
+            f"istenen {L} m yerine VSP varsayılanıyla kurulurdu — sessiz yanlış "
+            "geometriyle analiz etmektense burada durulur") from _le
 
     # ÇAP ATANMALI. `D = fus.diameter` yukarıda HESAPLANIYORDU ama hiçbir yerde
     # KULLANILMIYORDU; gövde OpenVSP'nin VARSAYILAN kesitiyle kuruluyordu.
@@ -237,8 +249,13 @@ def export_stl(aircraft, output_path: str, tess_w: int = 16, tess_u: int = 8) ->
         try:
             vsp.SetParmValUpdate(vsp.FindParm(gid, "Tess_W", "Shape"), tess_w)
             vsp.SetParmValUpdate(vsp.FindParm(gid, "Tess_U", "Shape"), tess_u)
-        except Exception:
-            pass
+        # TESSELLATION AYARLANAMADI → geom VSP VARSAYILANIYLA ihrac edilir.
+        # Sessiz kalirsa STL beklenenden KABA cikar ve bu, yuzey cozunurluk
+        # kapisinda "geometri kaba" diye gorunur ama SEBEBI bilinmez. Kosuyu
+        # durdurmaz (her geom tipi bu parametreleri tasimaz) ama soylenir.
+        except Exception as _te:
+            print(f"[UYARI] tessellation ayarlanamadi ({gid}): "
+                  f"{type(_te).__name__}: {_te} — STL VSP varsayilaniyla uretilecek")
 
     vsp.Update()
     vsp.ExportFile(output_path, vsp.SET_ALL, vsp.EXPORT_STL)

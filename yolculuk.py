@@ -162,8 +162,22 @@ def _profil_yukle() -> dict:
     if PROFIL.exists():
         try:
             return json.loads(PROFIL.read_text(encoding="utf-8"))
-        except Exception:
-            pass
+        except Exception as e:
+            # OGRENCI ILERLEMESI SESSIZCE SIFIRLANIYORDU. Bozuk profil bos
+            # sayilinca tum adimlar/gecmis kaybolur ve bir sonraki kayit
+            # dosyanin uzerine yazar — veri geri donusu olmayan bicimde gider.
+            # Bozuk dosya YEDEKLENIR ve durum profile islenir.
+            try:
+                PROFIL.replace(PROFIL.with_suffix(".bozuk.json"))
+            # sessiz-yutma: kabul — yedekleme de basarisizsa (dosya kilitli,
+            # izin yok) asagidaki taze profille devam etmek tek secenek; sebep
+            # zaten profil_hatasi alaninda tasiniyor.
+            except Exception:
+                pass
+            return {"analiz_sayisi": 0, "adimlar": {}, "gecmis": [],
+                    "profil_hatasi": (f"onceki profil okunamadi "
+                                      f"({type(e).__name__}: {e}); "
+                                      f"{PROFIL.stem}.bozuk.json olarak saklandi")}
     return {"analiz_sayisi": 0, "adimlar": {}, "gecmis": []}
 
 

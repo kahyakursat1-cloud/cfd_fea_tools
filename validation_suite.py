@@ -602,6 +602,8 @@ boundaryField
         try:
             Fpx, Fpy, Fpz = float(nums[1]), float(nums[2]), float(nums[3])
             Fvx, Fvy, Fvz = float(nums[4]), float(nums[5]), float(nums[6])
+        # sessiz-yutma: kabul — bos sozluk "kuvvet okunamadi" demek ve cagiran
+        # bunu 0 ile karistirmiyor. SINIR: sabit sutun indisleri OF surumune bagli.
         except (IndexError, ValueError):
             return {}
 
@@ -872,6 +874,7 @@ class CantileverBeamValidation:
 
         def _is_float(s):
             try: float(s); return True
+            # sessiz-yutma: kabul — sayi-mi testi; istisna kontrol akisi
             except (ValueError, TypeError): return False
 
         for line in lines:
@@ -904,6 +907,10 @@ class CantileverBeamValidation:
                     try:
                         u1, u2, u3 = float(parts[1]), float(parts[2]), float(parts[3])
                         disps.append((u1**2 + u2**2 + u3**2)**0.5)
+                    # sessiz-yutma: kabul — .frd blogunda basliklar/ayirac satirlari
+                    # sayi tasimaz; tek satir atlanir. Hicbiri okunamazsa asagidaki
+                    # `if not disps` FAILED/frd_parse_empty doner, yani bos sonuc
+                    # basarili sayilmaz.
                     except (IndexError, ValueError):
                         pass
 

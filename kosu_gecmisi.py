@@ -32,7 +32,14 @@ def tara(roots=_ROOTS) -> list[dict]:
         for p in sorted(base.rglob("sonuc.json"), key=lambda x: -x.stat().st_mtime):
             try:
                 s = json.loads(p.read_text(encoding="utf-8"))
-            except Exception:
+            except Exception as e:
+                # Bozuk sonuc.json kosunun TABLODAN DUSMESI demektir: kullanici
+                # "kosum listede yok" der ve nedenini ogrenemez. Satir atlanmaya
+                # devam eder (tek bozuk kayit tum gecmisi dusurmemeli) ama
+                # okunamayan kosu ADIYLA listeye girer.
+                out.append({"ad": p.parent.name, "yol": str(p.parent),
+                            "durum": "okunamadi",
+                            "hata": f"{type(e).__name__}: {e}"})
                 continue
             unc = s.get("belirsizlik") or {}
             md = s.get("mesh_duyarlilik") or {}

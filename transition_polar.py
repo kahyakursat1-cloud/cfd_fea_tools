@@ -209,6 +209,9 @@ relaxationFactors{ equations{ U 0.3; k 0.2; omega 0.2; gammaInt 0.2; ReThetat 0.
         try:
             Fpx,Fpz = float(nums[1]),float(nums[3])
             Fvx,Fvz = float(nums[4]),float(nums[6])
+        # sessiz-yutma: kabul — bos sozluk "olcum yok" demek; cagiran .get ile
+        # okuyor, yani 0 ile karismiyor. SINIR: sabit sutun indisleri OF surumune
+        # bagli (bkz. run_aoa_polar'daki ayni not).
         except (IndexError,ValueError): return {}
         Fx,Fz = Fpx+Fvx, Fpz+Fvz
         a = math.radians(alpha_deg)

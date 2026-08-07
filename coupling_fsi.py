@@ -113,6 +113,9 @@ def _parse_legacy_vtk(vtk_path: Path):
 def _is_num(s):
     try:
         float(s); return True
+    # sessiz-yutma: kabul — istisna BURADA kontrol akisidir; fonksiyonun
+    # tanimi zaten "bu deger sayiya cevrilebiliyor mu". Donus degeri sonucun
+    # kendisi, yani bilgi kaybi yok.
     except ValueError:
         return False
 

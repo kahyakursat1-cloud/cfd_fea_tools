@@ -34,6 +34,9 @@ SECMELI_PY = {"PySide6": "GUI (app_analyzer / launcher)",
 def _py_modul(ad: str) -> bool:
     try:
         return importlib.util.find_spec(ad) is not None
+    # sessiz-yutma: kabul — soru "modul kurulu mu"; find_spec bozuk/kismi
+    # kurulumda atar ve o da "kullanilamaz" demektir. Cagiran zaten eksigi
+    # kurulum raporunda gosteriyor, yani sonuc gorunur.
     except (ImportError, ValueError):
         return False
 

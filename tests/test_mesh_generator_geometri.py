@@ -165,11 +165,16 @@ def test_profil_ekstruzyonu_watertight_kanat_uretir():
     pytest.importorskip("shapely")
     pytest.importorskip("mapbox_earcut")
     prof = MeshGenerator._naca4_profile(0.02, 0.4, 0.12, n=48)
-    w = MeshGenerator._extrude_profile_to_mesh(prof, 0.0, 0.75, 0.25, 0.175, 0.28, 0.30)
+    # Ornek uzerinden cagriliyor: kapak orme duserse gerileme KAYDEDILMELI ve o
+    # kanal ornege ait. Eskiden staticmethod'du ve dususe sessiz kaliyordu.
+    from aircraft_geometry import AircraftLibrary
+    g = MeshGenerator(AircraftLibrary().minihawk_uav())
+    w = g._extrude_profile_to_mesh(prof, 0.0, 0.75, 0.25, 0.175, 0.28, 0.30)
     assert w.is_watertight, "kesit kapakları oluşmamış (mapbox_earcut?)"
     d = w.bounds[1] - w.bounds[0]
     assert d[2] / d[0] == pytest.approx(0.12, abs=0.01), "profil kalınlık/kord NACA'ya uymuyor"
     assert w.volume > 0
+    assert g.gerilemeler == [], "başarılı ekstrüzyonda gerileme kaydedilmemeli"
 
 
 def test_gerileme_kaydi_bos_baslar():

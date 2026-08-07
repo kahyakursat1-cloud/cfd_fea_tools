@@ -400,6 +400,14 @@ class KuyrukDialog(QDialog):
         self.tbl.resizeColumnsToContents()
         k = kuyruk.kilit_durumu()
         yarim = sum(1 for i in isler if i["durum"] == "yarim")
+        # Okunamayan kayit bir ISIN KAYBIDIR; tabloda yok ve sessiz kalirsa
+        # kullanici "5 ekledim 4 goruyorum" ile bas basa kalir.
+        _bozuk = kuyruk.bozuk_kayitlar()
+        if _bozuk:
+            self.lbl_kilit.setText(
+                f"⚠ KUYRUK DOSYASINDA {len(_bozuk)} OKUNAMAYAN KAYIT "
+                f"({'; '.join(_bozuk[:3])}) — o işler listede YOK.")
+            return
         if not k["kilitli"]:
             self.lbl_kilit.setText("Worker koşmuyor." + (
                 f"  ⚠ {yarim} iş YARIM kaldı — 'devam ettir' ile geri alınabilir."
@@ -848,8 +856,13 @@ class AnalyzerWindow(QMainWindow):
             cfg["tip"] = pend["onayli_tip"]
             yorum = auto_pilot.narrate(cfg, result if isinstance(result, dict) else None)
             self._log("🧑‍⚖️ Hakem değerlendirmesi:\n" + yorum)
-        except Exception:
-            pass
+        except Exception as e:
+            # OGRENME SESSIZCE DUSUYORDU. Kutuphaneye vaka eklenmezse bir sonraki
+            # kosunun onculu zayif kalir ve kullanici bunu HIC ogrenmez: ekranda
+            # 'Ogrenme:' satiri yoktur, ama yoklugu bir sey soylemez. Kosu yine
+            # bozulmaz (ogrenme yan urun), sebep yazilir.
+            self._log(f"⚠ Öğrenme kaydı DÜŞTÜ ({type(e).__name__}: {e}) — bu koşu "
+                      "kütüphaneye girmedi; sonraki koşunun öncülü zayıf kalır.")
 
     def _rejim_changed(self):
         ust = self.cmb_rejim.currentData() == "supersonik"

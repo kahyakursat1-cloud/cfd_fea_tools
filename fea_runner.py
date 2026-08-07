@@ -13,6 +13,7 @@ from pathlib import Path
 
 def _is_float(s: str) -> bool:
     try: float(s); return True
+    # sessiz-yutma: kabul — sorunun kendisi "sayi mi"; donus degeri cevaptir
     except ValueError: return False
 
 

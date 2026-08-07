@@ -279,8 +279,15 @@ class LauncherWindow(QWidget):
                 r = subprocess.run(["wsl", "bash", "-c", "test -d /opt/openfoam11"],
                                    capture_output=True, timeout=tmo)
                 return r.returncode == 0
+            # sessiz-yutma: kabul — zaman asimi bir cevap DEGIL; soguk WSL yuk
+            # altinda 10+ sn suruyor, o yuzden ikinci deneme yapiliyor. Iki
+            # deneme de dolarsa asagidaki `return False` "yok" der ve kurulum
+            # raporu bunu ekranda gosterir.
             except subprocess.TimeoutExpired:
                 continue
+            # sessiz-yutma: kabul — `wsl` hic yoksa FileNotFoundError atar; soru
+            # "OpenFOAM ulasilabilir mi" ve cevap hayir. Donus degeri bilgiyi
+            # tasiyor, cagiran onu kurulum raporunda yaziyor.
             except Exception:
                 return False
         return False

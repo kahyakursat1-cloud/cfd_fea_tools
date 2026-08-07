@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-31.169 satır Python $\cdot$ 136 test dosyası $\cdot$ 1340 geçen test\\[3mm]
+31.307 satır Python $\cdot$ 137 test dosyası $\cdot$ 1347 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -1361,12 +1361,12 @@ v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanm
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 31.169 & dosya sayımı \\
+Kod satırı (kök + \texttt{analysis/}) & 31.307 & dosya sayımı \\
 Kök modül & 81 & \\
 Deney / çapa betiği & 60 & \texttt{experiments/} \\
-Test dosyası & 134 & \texttt{tests/} \\
-Geçen test & 1323 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1323 & \texttt{-{}-cov} \\
+Test dosyası & 137 & \texttt{tests/} \\
+Geçen test & 1347 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1347 & \texttt{-{}-cov} \\
 Satır kapsamı & \textbf{\%47} & 18.765 ifade, 9.955 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
@@ -1467,7 +1467,7 @@ bölünmüş durumda ve her birinin izlediği sayı ayrı:
 \midrule
 \texttt{oksuz\_alan} & üretilir, hiçbir yerde okunmaz & 0 \\
 \texttt{kanal\_ayrismasi} & yalnız bir sunum kanalında okunur & 0 \\
-\texttt{sessiz\_yutma} & gerekçesiz \texttt{except} & 24 incelenmemiş \\
+\texttt{sessiz\_yutma} & gerekçesiz \texttt{except} & 0 incelenmemiş \\
 \texttt{arka\_uc\_sayaci} & ortak katmanı atlayan çağrı & 36 (dondurulmuş) \\
 \bottomrule
 \end{tabular}
@@ -1477,6 +1477,45 @@ bölünmüş durumda ve her birinin izlediği sayı ayrı:
 hızı ile hücum açısı arayüzde \emph{formdan} okunuyordu, sonuçtan değil. Fark
 kuyrukta ortaya çıkar --- tek pencere, çok koşu --- ve ekranda doğru sayıların
 yanlış koşum koşuluyla görünmesi demektir.
+
+Üçüncüsünün incelenmemiş sayısı da bu turda sıfırlandı ve o inceleme dokuz
+gerçek kayıp ortaya çıkardı. Sayaç ``gerekçe var mı'' diye sorar; gerekçenin
+\emph{doğru} olup olmadığını soramaz --- o yüzden yirmi dördünün her birine
+bakıldı. On beşi meşru çıktı (``bu değer sayı mı'' testleri, beklenen kilit
+yarışı, bozuk log satırının atlanması) ve gerekçeleri koda yazıldı. Dokuzu
+gerçek kayıptı:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Sessizce düşen} & \textbf{Sonucu} \\
+\midrule
+Kuyruk dosyasında bozuk satır & bir iş yok olur, kullanıcı sayamaz \\
+Bozuk \texttt{sonuc.json} & koşu geçmiş tablosundan düşer \\
+Bozuk öğrenci profili & ilerleme sıfırlanıp üzerine yazılır \\
+Yatay kuyruk üretilemedi & uçak KUYRUKSUZ analiz edilir \\
+\texttt{manifold3d} kurulu değil & katı birleşim hiç denenmez \\
+Uç kapağı örülemedi & yüzey açık kalır, su-geçirmezlik bozulur \\
+VSP gövde uzunluğu atanamadı & geometri varsayılan boyda kurulur \\
+Süpersonik rapor üretilemedi & rapor yok, sebep hiçbir yerde yok \\
+Öğrenme kaydı düştü & sonraki koşunun öncülü zayıf kalır \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{reddedilir}{En yaygın hâl en sessiz olandı}
+Katı birleşim düşerse bir gerileme kaydediliyordu --- ama yalnız birleşim
+\emph{denendiğinde}. \texttt{manifold3d} kurulu değilse bloğa hiç girilmiyordu,
+yani en sık karşılaşılan durum tek kayıt bırakmıyordu. Aynı desen yatay
+kuyrukta da vardı: kanat üretimi düşerse gerileme yazılıyor, kuyruk üretimi
+düşerse sessizce geçiliyordu. İkisi de aynı sınıf, aynı kanal, farklı dal.
+\end{reddedilir}
+
+\noindent Gövde uzunluğu bir istisnadır: orada uyarı yetmedi ve koşu
+\emph{durduruldu}. Ölçülmüş gerekçesi var --- çap parametresi aynı biçimde
+sessizce ulaşmadığında 0{,}08\,m'lik gövde 2{,}50\,m genişlikte kurulmuş, 1{,}5\,m
+açıklıklı kanat o cismin içinde kalmış ve taşıma eğimi kurama göre \%54
+düşmüştü. Yanlış geometriyle analiz etmektense orada durmak doğrudur.
 
 \begin{anafikir}{Simetri hedef değildir}
 Rapor geometri ayrıntısını, VTK yollarını, referans alan kipini de yazar;

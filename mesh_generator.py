@@ -258,8 +258,10 @@ class MeshGenerator:
         py = np.concatenate([yu, yl[::-1]])
         return np.column_stack([px, py])
 
-    @staticmethod
-    def _extrude_profile_to_mesh(profile_2d: np.ndarray,
+    # STATICMETHOD DEGIL: kapak orme duserse gerileme KAYDEDILMELI ve o kanal
+    # ornek uzerinde (self.gerilemeler). Iki cagiran da zaten `self.` uzerinden
+    # cagiriyordu, yani cagri yerleri degismedi.
+    def _extrude_profile_to_mesh(self, profile_2d: np.ndarray,
                                   y_root: float, y_tip: float,
                                   chord_root: float, chord_tip: float,
                                   le_x_root: float, le_x_tip: float) -> "trimesh.Trimesh":  # noqa: F821 — trimesh fonksiyon govdesinde lazy import
@@ -341,8 +343,16 @@ class MeshGenerator:
                         faces.append([a, b, cid])
                     else:
                         faces.append([b, a, cid])
-            except Exception:
-                pass
+            except Exception as _ce:
+                # KAPAK ORULMEDI → kanat ucu/kok ACIK kalir ve STL su-gecirmez
+                # olmaz. Yuzey uretimi devam eder (govde hala kullanilabilir)
+                # ama sessiz kalirsa su-gecirmezlik kapisi neyin bozuldugunu
+                # soyleyemez: "watertight degil" der, NEDENINI demez.
+                self.gerilemeler.append(
+                    f"UÇ KAPAĞI ÖRÜLEMEDİ ({'kök' if offset == 0 else 'uç'}, "
+                    f"{type(_ce).__name__}: {_ce}) → yüzey AÇIK kaldı; STL "
+                    "su-geçirmez olmayacak.")
+                print(f"[UYARI] {self.gerilemeler[-1]}")
 
         root_c = root_v.mean(axis=0)
         tip_c  = tip_v.mean(axis=0)
@@ -476,8 +486,16 @@ class MeshGenerator:
             stab_r = self._extrude_profile_to_mesh(h_profile, 0, hs/2, hc, hc*0.6, L*0.88, L*0.88)
             stab_l = stab_r.copy(); stab_l.vertices[:, 1] *= -1; stab_l.invert()
             parts += [stab_r, stab_l]
-        except Exception:
-            pass
+        except Exception as _e:
+            # KANAT KUSURUNUN TIPATIP ESI (yukariya bak). Yatay kuyruk hic
+            # eklenmezse ucak KUYRUKSUZ analiz edilir: boyuna kararlilik yok,
+            # Cm anlamsiz, Cl eksik. Kanat yolunda gerileme kaydediliyor, burada
+            # sessizce geciliyordu — ayni sinif, ayni kanal.
+            self.gerilemeler.append(
+                f"YATAY KUYRUK ÜRETİLEMEDİ → gövde KUYRUKSUZ ihraç edildi "
+                f"({type(_e).__name__}: {_e}). Boyuna kararlılık ve Cm bu "
+                "geometriden ÇIKARILAMAZ.")
+            print(f"[UYARI] {self.gerilemeler[-1]}")
 
         # Boolean union → watertight STL (manifold3d gerekli)
         combined = trimesh.util.concatenate(parts)
@@ -506,7 +524,15 @@ class MeshGenerator:
                         result = trimesh.util.concatenate([result, p])
                 combined = result
         except ImportError:
-            pass
+            # BIRLESIM HIC DENENMEDI. Ici bosaltilmis union hatasi zaten gerileme
+            # kaydediyordu ama manifold3d KURULU DEGILSE oraya hic girilmiyordu:
+            # en yaygin hal en sessiz olandi. STL su-gecirmez cikmaz, snappy ic
+            # yuzey/kacak gorur ve y+ ile katman hukmu bozulur.
+            self.gerilemeler.append(
+                "KATI BİRLEŞİM ATLANDI → manifold3d kurulu değil; parçalar AYRI "
+                "cisim kaldı ve STL su-geçirmez olmayacak. `python pipeline.py "
+                "doctor` çalıştırın.")
+            print(f"[UYARI] {self.gerilemeler[-1]}")
 
         # Son temizlik
         trimesh.repair.fix_normals(combined)

@@ -428,8 +428,12 @@ def run_supersonic(stl_path, mach=2.0, vehicle_type="roket", quality="standart",
         rep = build_supersonic_report(out, case_dir, stl_path, t_inf, p_inf, progress_cb=cb)
         if rep:
             out["report"] = rep
-    except Exception:
-        pass
+    except Exception as _re:
+        # Niyet dogru (figur hatasi Cd sonucunu dusurmemeli) ama SEBEP
+        # kaydedilmiyordu: rapor uretilmez, kullanici "rapor nerede" diye sorar
+        # ve cevap hicbir yerde yazmaz. Kosu yine devam eder.
+        out["rapor_hatasi"] = f"{type(_re).__name__}: {_re}"
+        cb(0, f"rapor uretilemedi ({type(_re).__name__}) — Cd sonucu gecerli")
     cb(100, f"Cd(M={mach}) = {cd:.3f}")
     return out
 
@@ -574,6 +578,9 @@ def _parse_cd(case_dir: Path):
         if cd_idx is not None and cd_idx < len(parts):
             try:
                 hist.append(float(parts[cd_idx]))
+            # sessiz-yutma: kabul — tek bozuk satir atlanir; hicbir satir
+            # okunamazsa asagidaki `if not hist` None doner ve cagiran bunu
+            # "Cd okunamadi" diye ayirir. Yarim yazilmis son satir olagandir.
             except ValueError:
                 pass
     if not hist:

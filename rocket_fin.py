@@ -148,6 +148,7 @@ def fin_fea(material: str = "balsa", q_pa: float = None, v_ms: float = 29.0,
 
 def _isf(s):
     try: float(s); return True
+    # sessiz-yutma: kabul — sayi-mi testi; istisna kontrol akisi, donus cevap
     except (ValueError, TypeError): return False
 
 

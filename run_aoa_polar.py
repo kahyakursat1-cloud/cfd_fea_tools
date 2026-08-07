@@ -99,6 +99,10 @@ def parse_forces(case, alpha):
     nums = re.findall(r'[-+]?\d+\.?\d*[eE]?[-+]?\d*', lines[-1])
     try:
         Fpx,Fpz = float(nums[1]),float(nums[3]); Fvx,Fvz = float(nums[4]),float(nums[6])
+    # sessiz-yutma: kabul — donus None ve cagiran onu "olcum yok" olarak
+    # ayiriyor (sayi 0 ile karismiyor). SINIR: sabit sutun indisleri OF surumune
+    # bagli; forces.dat duzeni degisirse burasi sessizce None doner ve tani
+    # "polar uretilemedi"den oteye gitmez. Bu betik iki-hizli eski katmandadir.
     except (IndexError,ValueError): return None
     Fx,Fz = Fpx+Fvx, Fpz+Fvz
     a = math.radians(alpha)

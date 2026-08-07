@@ -33,13 +33,30 @@ MIN_DISK_GB = 8.0
 def _yukle() -> list[dict]:
     if not KUYRUK.exists():
         return []
-    out = []
-    for line in KUYRUK.read_text(encoding="utf-8").splitlines():
+    out, bozuk = [], []
+    for i, line in enumerate(KUYRUK.read_text(encoding="utf-8").splitlines(), 1):
         try:
             out.append(json.loads(line))
-        except Exception:
-            pass
+        except Exception as e:
+            # BIR IS SESSIZCE KAYBOLUYORDU. Bozuk satir atlaniyor ve kullanici
+            # kuyruga 5 is ekleyip 4 goruyordu; hangisinin nerede kaldigini
+            # ogrenmesinin yolu yoktu. Satir yine atlanir (tek bozuk kayit tum
+            # kuyrugu bloke etmemeli) ama SAYILIR ve soylenir.
+            bozuk.append(f"satır {i}: {type(e).__name__}")
+    # KOSULSUZ yazilir: `if bozuk` ile yazmak, dosya duzeltildikten sonra da
+    # eski uyariyi sonsuza kadar gosterirdi (testte yakalandi).
+    _BOZUK_SATIRLAR[:] = bozuk
     return out
+
+
+# Son _yukle cagrisinda atlanan bozuk satirlar — `durum()` ve CLI bunu gosterir.
+_BOZUK_SATIRLAR: list[str] = []
+
+
+def bozuk_kayitlar() -> list[str]:
+    """Kuyruk dosyasında okunamayan satırlar (son yükleme). Boşsa sorun yok."""
+    _yukle()
+    return list(_BOZUK_SATIRLAR)
 
 
 def _kaydet(isler: list[dict]) -> None:
@@ -132,6 +149,10 @@ def _kilit_al() -> bool:
             os.write(fd, str(os.getpid()).encode())
             os.close(fd)
             return True
+        # sessiz-yutma: kabul — kilit ZATEN varsa baska worker calisiyor demektir;
+        # bu bir hata degil beklenen yaristir. False donusu cagirana "kilit
+        # alinamadi" bilgisini tasiyor ve cagiran bayat-kilit devralmasini
+        # ayrica deniyor (bkz. kilit_durumu).
         except FileExistsError:
             return False
 
@@ -274,6 +295,10 @@ if __name__ == "__main__":
                     "mesh_sensitivity": args.duyarlilik, "mesh_levels": args.seviyeler})
         print(json.dumps(is_, indent=2, ensure_ascii=False))
     elif args.komut == "listele":
+        # Bozuk satir bir ISIN KAYBI demektir; listenin basinda soylenir ki
+        # kullanici "5 ekledim 4 goruyorum" ile bas basa kalmasin.
+        for _b in bozuk_kayitlar():
+            print(f"⚠ KUYRUK DOSYASINDA OKUNAMAYAN KAYIT — {_b} (o iş listede YOK)")
         for i in listele():
             p = i["params"]
             print(f"[{i['durum']:>8}] {i['id']}  {Path(p['stl_path']).name}  "
