@@ -178,7 +178,14 @@ def _arac_bandi() -> tuple[str, str]:
             parcalar.append(f"{vaka} %{v:.1f} (ÖNCÜL — tek çapa %"
                             f"{d['olculen_pct']:.1f} bandı daraltmadı)")
         elif d:
-            parcalar.append(f"{vaka} %{v:.1f} (ölçülen, n={d.get('n_capa')})")
+            # UST SINIR MI, OLCUM MU. Hicbir capa olculen farki kendi
+            # ayriklastirma bandindan ayirt edemiyorsa deger olculmus bir model
+            # hatasi DEGIL, ust sinirdir. Bu ayrim kanit dosyasinda vardi ama
+            # zarf satirina ulasmiyordu — okuyucu %8.2'yi olcum saniyordu.
+            parcalar.append(
+                f"{vaka} %{v:.1f} (n={d.get('n_capa')}, "
+                + ("ÜST SINIR — hiçbir çapa model hatasını sayısal hatadan "
+                   "ayıramıyor)" if d.get("_ust_sinir_mi") else "ölçülen)"))
         else:
             parcalar.append(f"{vaka} %{v:.1f} (kaynağı bu betikte yok)")
     if not parcalar:

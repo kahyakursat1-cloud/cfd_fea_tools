@@ -5,7 +5,10 @@
     {
       "capa": "küp",
       "rejim": "bluff",
-      "sapma_pct": 6.03,
+      "sapma_pct": 64.36,
+      "ham_sapma_pct": 6.03,
+      "u_sayisal_pct": 58.33,
+      "ayrilabilir_mi": false,
       "yplus_ort": 112.83,
       "yplus_max": 338.17,
       "yplus_kaynak": "hücre sayısı birebir eşleşti (888,377)",
@@ -15,7 +18,10 @@
     {
       "capa": "NACA0012 α=0 (2B, bağlı akış)",
       "rejim": "attached_2d",
-      "sapma_pct": 3.52,
+      "sapma_pct": 5.23,
+      "ham_sapma_pct": 3.52,
+      "u_sayisal_pct": 1.71,
+      "ayrilabilir_mi": true,
       "yplus_ort": 1.0,
       "referans": "NASA TMR / CFL3D"
     },
@@ -92,19 +98,25 @@
   "olculen_hucreler": {
     "attached_2d": {
       "wall_resolved": {
-        "u_pct": 5.0,
-        "olculen_pct": 3.52,
+        "u_pct": 5.23,
+        "olculen_pct": 5.23,
         "oncul_pct": 5.0,
-        "oncul_korundu": true,
+        "oncul_korundu": false,
         "n_capa": 1,
+        "ayrilabilir_capa": 1,
         "capalar": [
           {
             "ad": "NACA0012 α=0 (2B, bağlı akış)",
-            "sapma_pct": 3.52,
+            "sapma_pct": 5.23,
+            "ham_sapma_pct": 3.52,
+            "u_sayisal_pct": 1.71,
+            "ayrilabilir_mi": true,
             "referans": "NASA TMR / CFL3D"
           }
         ],
-        "_anlam": "TEK ÇAPA (%3.52) öncülden (%5.0) KÜÇÜK — band tek ölçümle DARALTILMADI; öncül korundu, ölçüm kayıtlı"
+        "ayrilabilirlik_degerlendirilmedi": 0,
+        "_ust_sinir_mi": false,
+        "_anlam": "TEK ÇAPA — dağılım değil, tek ölçüm; öncülü AŞTIĞI için ölçüm kullanıldı"
       }
     },
     "bluff": {
@@ -114,18 +126,27 @@
         "oncul_pct": 20.0,
         "oncul_korundu": false,
         "n_capa": 2,
+        "ayrilabilir_capa": 0,
         "capalar": [
           {
             "ad": "disk",
             "sapma_pct": 8.15,
+            "ham_sapma_pct": 3.38,
+            "u_sayisal_pct": 4.77,
+            "ayrilabilir_mi": false,
             "referans": "Hoerner, Fluid-Dynamic Drag (1965)"
           },
           {
             "ad": "küp (çapa koşusu)",
             "sapma_pct": 7.1,
+            "ham_sapma_pct": 1.78,
+            "u_sayisal_pct": 5.32,
+            "ayrilabilir_mi": false,
             "referans": "Hoerner, Fluid-Dynamic Drag (1965)"
           }
         ],
+        "ayrilabilirlik_degerlendirilmedi": 0,
+        "_ust_sinir_mi": true,
         "_anlam": "2 çapanın EN KÖTÜSÜ"
       }
     }
@@ -134,9 +155,10 @@
     {
       "capa": "küp",
       "rejim": "bluff",
-      "sapma_pct": 6.03,
+      "sapma_pct": 64.36,
+      "u_sayisal_pct": 58.33,
       "yplus_ort": 112.83,
-      "neden": "y⁺ ORTALAMASI bantta (112.8) ama TEPESİ dışarıda (338 > 300.0): duvarın bir bölümü hiçbir zaman log-bölgesinde değil, koşu duvar-fonksiyonunu temsil etmiyor"
+      "neden": "SAYISAL BAND ÇOK BÜYÜK (%58.3 > %15.0): bu koşunun ayrıklaştırma gürültüsü ölçmek istediği model hatasından büyük, model-form hakkında hiçbir şey söyleyemez"
     },
     {
       "capa": "küre",
@@ -220,10 +242,11 @@
   ],
   "_kisit": "Bir capanin sapmasi, o rejimdeki model-form hatasinin BIR ORNEGIDIR. N=1 olan hucrede dagilim IDDIA EDILMEZ. Duvar islemi kayitli olmayan capa hucreye ATANMAZ — tahmin edilmez. Ayrica sapma, referansin KENDI deneysel belirsizligini de icerir ve o ayristirilmamistir.",
   "_uretim": "Üretim: python experiments/model_form_bandi.py",
-  "verdikt": "8 capa toplandi; 2 hucre OLCULDU, 5 capa atanamadi, 6 hucre ONCUL kaldi. attached_2d.wall_resolved=%5.0 (n=1); bluff.wall_function=%8.15 (n=2)",
+  "_ayrilabilirlik_notu": "UST SINIR olan hucreler: bluff.wall_function. Bu hucrelerde HICBIR capa, olculen farki kendi ayriklastirma bandindan ayirt edemiyor — deger olculmus bir model hatasi DEGIL, ust sinirdir. Ornek: disk capasinin farki %3.4 ama sayisal bandi %4.8.",
+  "verdikt": "8 capa toplandi; 2 hucre OLCULDU, 5 capa atanamadi, 6 hucre ONCUL kaldi. attached_2d.wall_resolved=%5.23 (n=1); bluff.wall_function=%8.15 (n=2)",
   "_yazilan": {
     "attached_2d": {
-      "wall_resolved": 5.0
+      "wall_resolved": 5.23
     },
     "bluff": {
       "wall_function": 8.15

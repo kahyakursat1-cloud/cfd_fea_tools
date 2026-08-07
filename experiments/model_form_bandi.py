@@ -99,8 +99,14 @@ def capalari_topla() -> list[dict]:
     if kup and kup.get("literatur_sapma_pct") is not None:
         _yp = ((kup.get("yplus") if isinstance(kup.get("yplus"), dict) else None)
                or _kosudan_yplus((kup.get("seviyeler") or [{}])[-1].get("cells")))
+        _hk = abs(float(kup["literatur_sapma_pct"]))
+        _uk = ((kup.get("lsr") or {}).get("u_pct")
+               or (kup.get("gci") or {}).get("gci_fine_pct"))
         c.append({"capa": "küp", "rejim": "bluff",
-                  "sapma_pct": abs(float(kup["literatur_sapma_pct"])),
+                  "sapma_pct": _hk + (_uk or 0.0),
+                  "ham_sapma_pct": round(_hk, 2),
+                  "u_sayisal_pct": round(_uk, 2) if _uk else None,
+                  "ayrilabilir_mi": bool(_uk and _hk > _uk),
                   "yplus_ort": (_yp or {}).get("ort"),
                   "yplus_max": (_yp or {}).get("max"),
                   "yplus_kaynak": (_yp or {}).get("_bag"),
@@ -112,9 +118,18 @@ def capalari_topla() -> list[dict]:
         ref = float(tmr.get("TMR_referans_SST_alpha0") or 0.0)
         ince = float(tmr["seviyeler"][-1]["Cd"])
         if ref:
+            _hata = abs((ince - ref) / ref * 100)
+            # SAYISAL BAND BU CAPADA DA VAR ve okunmaliydi: yoksa capa
+            # "ayrilabilirlik DEGERLENDIRILMEDI" olur ve bu, "ayrilamaz" ile
+            # karistirilirsa hucre haksiz yere "ust sinir" damgasi yer.
+            _u = ((tmr.get("lsr") or {}).get("u_pct")
+                  or (tmr.get("gci") or {}).get("gci_fine_pct"))
             c.append({"capa": "NACA0012 α=0 (2B, bağlı akış)",
                       "rejim": "attached_2d",
-                      "sapma_pct": abs((ince - ref) / ref * 100),
+                      "sapma_pct": _hata + (_u or 0.0),
+                      "ham_sapma_pct": round(_hata, 2),
+                      "u_sayisal_pct": round(_u, 2) if _u else None,
+                      "ayrilabilir_mi": bool(_u and _hata > _u),
                       # TMR C-grid ailesi y⁺<1 ile üretilir (kanıtın kendi tanımı)
                       "yplus_ort": 1.0,
                       "referans": "NASA TMR / CFL3D"})
@@ -279,8 +294,25 @@ def calistir() -> dict:
                 "u_pct": round(deger, 2), "olculen_pct": round(en_kotu, 2),
                 "oncul_pct": oncul, "oncul_korundu": oncul_korundu,
                 "n_capa": len(liste),
+                # AYRILABILIRLIK HUCRE DUZEYINE TASINIR. Bir capa, olculen
+                # farki ayriklastirma bandindan AYIRT EDEMIYORSA (fark <= band)
+                # o capa model hatasini OLCMUS olmaz, yalnizca UST SINIR verir.
+                # Bu bilgi capa kaydinda vardi ama hicbir yere ulasmiyordu;
+                # okuyucu %8.15'i "olculen model hatasi" saniyordu.
+                "ayrilabilir_capa": sum(1 for x in liste if x.get("ayrilabilir_mi")),
                 "capalar": [{"ad": x["capa"], "sapma_pct": round(x["sapma_pct"], 2),
+                             "ham_sapma_pct": x.get("ham_sapma_pct"),
+                             "u_sayisal_pct": x.get("u_sayisal_pct"),
+                             "ayrilabilir_mi": x.get("ayrilabilir_mi"),
                              "referans": x["referans"]} for x in liste],
+                # UC DURUM, IKI DEGIL: ayrilabilir / ayrilamaz / DEGERLENDIRILMEDI.
+                # "Degerlendirilmedi"yi "ayrilamaz" saymak, olcmedigimiz bir
+                # seyi olumsuz olcum gibi gostermek olurdu.
+                "ayrilabilirlik_degerlendirilmedi":
+                    sum(1 for x in liste if x.get("u_sayisal_pct") is None),
+                "_ust_sinir_mi": (
+                    all(x.get("u_sayisal_pct") is not None for x in liste)
+                    and all(not x.get("ayrilabilir_mi") for x in liste)),
                 "_anlam": (
                     (f"TEK ÇAPA (%{en_kotu:.2f}) öncülden (%{oncul}) KÜÇÜK — "
                      "band tek ölçümle DARALTILMADI; öncül korundu, ölçüm kayıtlı"
@@ -358,6 +390,15 @@ def calistir() -> dict:
                    "belirsizligini de icerir ve o ayristirilmamistir."),
         "_uretim": "Üretim: python experiments/model_form_bandi.py",
     }
+    _ust = [f"{r}.{i}" for r, h in ayrinti.items() for i, d in h.items()
+            if d.get("_ust_sinir_mi")]
+    rec["_ayrilabilirlik_notu"] = (
+        "UST SINIR olan hucreler: " + (", ".join(_ust) or "yok") + ". Bu "
+        "hucrelerde HICBIR capa, olculen farki kendi ayriklastirma bandindan "
+        "ayirt edemiyor — deger olculmus bir model hatasi DEGIL, ust sinirdir. "
+        "Ornek: disk capasinin farki %3.4 ama sayisal bandi %4.8."
+        if _ust else "Her olculen hucrede en az bir capa model hatasini "
+                     "sayisal hatadan ayirt edebiliyor.")
     rec["verdikt"] = (
         f"{len(capalar)} capa toplandi; {sum(len(v) for v in ayrinti.values())} "
         f"hucre OLCULDU, {len(atanamayan)} capa atanamadi, "

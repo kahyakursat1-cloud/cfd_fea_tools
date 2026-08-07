@@ -46,14 +46,44 @@ def test_olcum_onculu_asarsa_OLCUM_kazanir():
 
 
 def test_korunan_oncul_OLCUMU_de_kaydediyor():
-    """Öncül korunsa bile ölçüm kaybolmamalı — sonraki çapa geldiğinde gerekir."""
+    """Öncül korunduğunda ölçüm kaybolmamalı — sonraki çapa geldiğinde gerekir.
+
+    BU TEST ÖNCE VERİNİN DURUMUNU iddia ediyordu ("en az bir korunan öncül
+    hücresi var") ve veri İYİLEŞİNCE kırıldı: çapaların sayısal bandı okunup
+    sapmalara eklenince iki hücre de öncülü aştı ve ölçüm kazandı. Kural
+    doğruydu, iddia yanlıştı. Artık KURAL sınanıyor: korunan hücre VARSA
+    ölçümünü de taşımalı. Yoksa test bir şey iddia etmez."""
     rec = calistir()
-    korunan = [v for h in rec["olculen_hucreler"].values() for v in h.values()
-               if v["oncul_korundu"]]
-    assert korunan, "bu depoda en az bir korunan öncül hücresi var"
-    for v in korunan:
-        assert v["olculen_pct"] > 0
-        assert "DARALTILMADI" in v["_anlam"]
+    for h in rec["olculen_hucreler"].values():
+        for v in h.values():
+            if v["oncul_korundu"]:
+                assert v["olculen_pct"] > 0
+                assert "DARALTILMADI" in v["_anlam"]
+                assert v["u_pct"] == v["oncul_pct"]
+
+
+def test_UST_SINIR_ile_OLCUM_ayirt_ediliyor():
+    """Hiçbir çapa farkı kendi sayısal bandından ayıramıyorsa değer ölçülmüş
+    bir model hatası DEĞİL, üst sınırdır. Üçüncü bir hâl daha var:
+    ayrılabilirlik HİÇ DEĞERLENDİRİLMEMİŞ olabilir — o da 'ayrılamaz'
+    sayılmamalı."""
+    rec = calistir()
+    for h in rec["olculen_hucreler"].values():
+        for v in h.values():
+            assert "_ust_sinir_mi" in v
+            if v["ayrilabilirlik_degerlendirilmedi"]:
+                assert v["_ust_sinir_mi"] is False, (
+                    "değerlendirilmemiş çapa 'ayrılamaz' sayılamaz")
+            if v["_ust_sinir_mi"]:
+                assert v["ayrilabilir_capa"] == 0
+    assert "UST SINIR" in rec["_ayrilabilirlik_notu"] or "ayirt edebiliyor"         in rec["_ayrilabilirlik_notu"]
+
+
+def test_zarf_UST_SINIRI_okuyucuya_soyluyor():
+    """Ayrım kanıt dosyasında kalırsa okuyucu üst sınırı ölçüm sanar."""
+    src = (KOK / "zarf.py").read_text(encoding="utf-8")
+    assert "_ust_sinir_mi" in src
+    assert "ÜST SINIR" in src
 
 
 # ── y⁺ bağı: ölçüm tüketicisine ULAŞIYOR mu ───────────────────────────────
