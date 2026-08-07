@@ -1,0 +1,9 @@
+{
+  "vaka": "Hücre başına bellek katsayısı — koşu arşivinden",
+  "_neden": "Bellek kapisinin ihtiyaci olan tek sayi. Literaturden alinan tek bir deger bu makinede yanlis olur; cozucu artik kosu boyunca sistem bellegini ornekliyor.",
+  "kosular": [],
+  "_kisit": "WSL2 VM ayri bir surec olmadigi icin tek kosunun RSS'i gorulemez; olculen, sistem geneli kullanimin kosu boyunca ARTISIDIR. Makinede baska is varsa sayi yukari kayar — yani bu bir UST SINIRDIR.",
+  "_uretim": "Üretim: python experiments/bellek_katsayisi.py",
+  "verdikt": "Bellek telemetrisi tasiyan kosu YOK — katsayi OLCULEMEDI. bellek_kapisi ONCUL ile calisir ve bunu her ciktisinda soyler. Telemetri bu surumde eklendi; bundan sonraki kosular olcum uretir.",
+  "kb_hucre": null
+}

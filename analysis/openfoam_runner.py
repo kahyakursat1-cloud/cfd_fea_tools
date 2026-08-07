@@ -22,6 +22,7 @@ Solver: simpleFoam (steady incompressible), turbulence: k-omegaSST
 
 from __future__ import annotations
 
+import importlib.util
 import math
 import os
 import re
@@ -156,6 +157,7 @@ class CFDResult:
     # dosyaya dokunan her sey (kopyalama, yedekleme, senkron) tarafindan
     # bozulur ve yalniz asama SINIRLARINI verir, kaynak kullanimini vermez.
     asama_sureleri: list[dict] = field(default_factory=list)
+    bellek: dict = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -297,6 +299,15 @@ def arka_plan_hucre_boyu(dmin, dmax, istenen: float, max_global_cells: int,
         "butce": max_global_cells,
         "butce_payi": pay,
     }
+
+
+def _bellek_gb() -> tuple[float, float] | None:
+    """(kullanilan_GB, toplam_GB) — psutil yoksa None ('olculemedi')."""
+    if importlib.util.find_spec("psutil") is None:
+        return None
+    import psutil
+    m = psutil.virtual_memory()
+    return (m.total - m.available) / 1e9, m.total / 1e9
 
 
 def parse_iyilestirme_acligi(log_text: str) -> dict:
@@ -1213,6 +1224,7 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
     wsl_dir = windows_to_wsl_path(case_dir)
     log_files: list[Path] = []
     asama_sureleri: list[dict] = []
+    bellek: dict = {}
     all_stdout = []
     all_stderr = []
 
@@ -1284,8 +1296,17 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
         full = f"{OF_ENV_PREFIX}cd '{exec_dir}' && {wrapped} > log.foamRun 2>&1"
         proc = linux_popen(full)
         t0 = time.time(); early = False; n_iter = 0
+        # BELLEK OLCUMU: hucre butcesi sabit bir sayiydi ve makinenin belleginden
+        # habersizdi. Cozucu WSL2 icinde kostugu icin Windows tarafindan gorunen
+        # sey sistem geneli kullanimdir; bu yuzden kosu ONCESI taban alinir ve
+        # ARTIS raporlanir. Tek surecin RSS'i degil, durust olan bu.
+        _b0 = _bellek_gb()
+        _tepe = _b0[0] if _b0 else None
         while proc.poll() is None:
             time.sleep(12)
+            _b = _bellek_gb()
+            if _b and _tepe is not None:
+                _tepe = max(_tepe, _b[0])
             try:
                 if ext4:
                     txt = _wsl_run(exec_dir, "cat postProcessing/forceCoeffs1/*/"
@@ -1315,6 +1336,14 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
         # edilmedi. Sonuç: salınım hükmü koşudan koşuya değişiyordu (aynı geometri,
         # aynı ayar: geçiş 3 ↔ 12). Cd %1 içinde tekrarlanabilirdi çünkü kuyruk
         # ortalaması kısmi tarihçede de yakın çıkıyor — hüküm ise değildi.
+        if _b0 and _tepe is not None:
+            bellek.update({"taban_gb": round(_b0[0], 2), "tepe_gb": round(_tepe, 2),
+                           "artis_gb": round(_tepe - _b0[0], 2),
+                           "toplam_gb": round(_b0[1], 2),
+                           "_yontem": "sistem geneli (WSL2 VM ayri surec degil); "
+                                      "kosu oncesi tabana gore ARTIS"})
+        elif not _b0:
+            bellek["_olculemedi"] = "psutil yok — bellek kullanimi OLCULMEDI"
         if not early:
             _cozucu_bitmesini_bekle(bins, exec_dir, tmo)
         try:
@@ -1447,6 +1476,7 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
 
     return CFDResult(
         case_dir=case_dir, success=True, return_code=0, asama_sureleri=asama_sureleri,
+        bellek=bellek,
         stdout="\n".join(all_stdout), stderr="\n".join(all_stderr),
         cd=cd, cl=cl, cm=cm, forces_history=history, log_files=log_files,
     )

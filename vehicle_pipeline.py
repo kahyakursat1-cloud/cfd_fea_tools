@@ -1278,6 +1278,7 @@ class VehicleAnalysisResult:
     # dosyaya dokunan her sey tarafindan bozulur ve yalniz asama SINIRLARINI
     # verir. Artik her asama kendi baslangic/bitisini ve donus kodunu yazar.
     asama_sureleri: list | None = None
+    bellek: dict | None = None
 
 
 def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg=0.0,
@@ -1340,6 +1341,15 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     a = math.radians(alpha_deg)
     rmin, rmax = preset["refinement"]
     q_max = max_cells or q["max_cells"]         # max_cells: hücre tavanı override
+    # BELLEK KAPISI — hucre butcesi makinenin belleginden HABERSIZDI. Disk icin
+    # bekci vardi (kuyruk, 8 GB), bellek icin yoktu: ayni preset 32 GB'lik
+    # makinede rahat, 8 GB'likte takas-cilesi ya da OOM demek. Kapi ENGELLEMEZ
+    # (bir uyaridir) cunku tahmin katsayisi henuz OLCULMEDI; ama sessiz de
+    # kalmaz ve sigacak hucre sayisini soyler.
+    from bellek_kapisi import hukum as _bellek_hukmu
+    _bellek = _bellek_hukmu(q_max)
+    if _bellek.get("kosulabilir") is not True:      # False (sığmaz) ya da None (ölçülemedi)
+        kurulum_uyarilari.append("BELLEK: " + _bellek["mesaj"])
     # ref_bump="oto": ÖNERİYİ UYGULA. Sabit bir sayı tüm geometrilere uymuyor —
     # ölçüldü: --ref-bump 2 çoğunda y⁺'ı banda soktu ama `multikopter_kucuk`ta
     # y⁺=25 verdi, bandın (30-300) ALTINDA. Doğru kademe gövde boyutuna ve hıza
@@ -1516,6 +1526,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     base.mesh = meshq
     base.convergence = conv
     base.asama_sureleri = getattr(res, "asama_sureleri", None) or None
+    base.bellek = getattr(res, "bellek", None) or None
 
     # Far-field iz-momentum Cd (2.-mertebe). Tek mesh'te yüzey-Cd ile UYUŞMASI yakınsama
     # göstergesi (3-mesh GCI'nin ucuz vekili); AYRIŞMASI az-çözünürlük flag'i.

@@ -22,6 +22,8 @@ import time
 import uuid
 from pathlib import Path
 
+import bellek_kapisi
+
 HERE = Path(__file__).resolve().parent
 KUYRUK = HERE / "kuyruk.jsonl"
 KILIT = HERE / "kuyruk.lock"
@@ -190,7 +192,8 @@ def calis(runner=None, once: bool = False) -> dict:
     if not _kilit_al():
         return {"durum": "kilitli", "mesaj": f"başka worker aktif ({KILIT})",
                 "kilit": kilit_durumu()}
-    ozet = {"bitti": 0, "hata": 0, "atlandi_disk": 0, "yarim_bulundu": len(_yarim)}
+    ozet = {"bitti": 0, "hata": 0, "atlandi_disk": 0, "bekletildi_bellek": 0,
+            "yarim_bulundu": len(_yarim)}
     try:
         if runner is None:
             from vehicle_pipeline import run_vehicle_analysis
@@ -210,6 +213,17 @@ def calis(runner=None, once: bool = False) -> dict:
                           sonuc={"hata": f"disk < {MIN_DISK_GB} GB — atlandı"})
                 ozet["atlandi_disk"] += 1
                 continue
+            # BELLEK KOTASI: disk bekcisinin esi. Bellegi dolu bir makinede
+            # kuyrugu surdurmek isi bitirmez, makineyi takasa sokar ve SONRAKI
+            # isleri de yavaslatir. Is BEKLIYOR kalir (hata degil) — bellek
+            # bosalinca ayni kuyruk onu koşar.
+            _bos = bellek_kapisi.bos_bellek_gb()
+            if _bos is not None and _bos < bellek_kapisi.EN_AZ_BOS_GB:
+                ozet["bekletildi_bellek"] += 1
+                _guncelle(is_["id"], bellek_notu=(
+                    f"boş bellek {_bos:.1f} GB < {bellek_kapisi.EN_AZ_BOS_GB} GB "
+                    "— iş BEKLİYOR olarak bırakıldı, worker durdu"))
+                break
             _guncelle(is_["id"], durum="kosuyor", baslama=time.strftime("%H:%M:%S"))
             t0 = time.time()
             try:
