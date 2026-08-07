@@ -200,3 +200,47 @@ def test_capa_betikleri_DAMGALIYOR():
                "basamak_yplus_ailesi.py"):
         src = (KOK / "experiments" / ad).read_text(encoding="utf-8")
         assert "ortam.damgala" in src, f"{ad} ortam damgası basmıyor"
+
+
+# ── Damgalama kapsamı: taban sayaç ──────────────────────────────────────────
+
+# Zarf tablosunu besleyen kanıtları üreten betikler — bunlar YAYIMLANAN
+# sayılardır ve ortamlarını üretim anında damgalamalıdır. Taban: bu sayı
+# AZALMAMALI. Yeni bir çapa betiği eklendiğinde listeye girer.
+DAMGALAYAN_TABAN = 6
+
+
+def _damgalayan_betikler() -> list[str]:
+    out = []
+    for p in sorted((KOK / "experiments").glob("*.py")):
+        if "ortam.damgala" in p.read_text(encoding="utf-8", errors="ignore"):
+            out.append(p.name)
+    return out
+
+
+def test_damgalayan_betik_sayisi_AZALMADI():
+    d = _damgalayan_betikler()
+    assert len(d) >= DAMGALAYAN_TABAN, (
+        f"üretim anında damgalayan betik {len(d)} (taban {DAMGALAYAN_TABAN}): {d}")
+
+
+def test_ESKI_kanitlar_toplu_damgalanmadi():
+    """Eski kanıtı BUGÜNKÜ ortamla damgalamak YALAN olur: o sayı bu yığında
+    üretilmedi. Damgasız kalmaları doğrudur ve `kanit.py --ortam` bunu
+    'damga eklenmeden önce üretilmiş' diye ayrı sayar. Bu test, ileride
+    'sayacı düzeltmek için' toplu damgalama yapılmasını engeller.
+    """
+    import json as _j
+    damgali_eski = []
+    for p in sorted(KOK.glob("*.json")):
+        try:
+            d = _j.loads(p.read_text(encoding="utf-8-sig"))
+        except Exception:
+            continue
+        if not isinstance(d, dict) or not isinstance(d.get("_ortam"), dict):
+            continue
+        # Damgali olanlar, damgayi URETIM aninda basan betiklerden gelmeli
+        if not d.get("_uretim") and "verdikt" not in d:
+            damgali_eski.append(p.name)
+    assert not damgali_eski, (
+        f"üretim komutu olmayan dosyalara damga basılmış: {damgali_eski}")

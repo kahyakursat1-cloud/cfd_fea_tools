@@ -515,6 +515,11 @@ def main() -> int:
     BAND_DOSYASI.write_text(
         json.dumps(rec["_yazilan"], indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8")
+    # ORTAM DAMGASI URETIM ANINDA (bkz. ortam.damgala): sonradan eklenen
+    # damga, sayinin hangi yiginda DOGDUGUNU degil en son ne zaman
+    # bakildigini soyler.
+    import ortam
+    ortam.damgala(rec)
     (KOK / "model_form_bandi.json").write_text(
         json.dumps(rec, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(rec["vaka"] + "\n")

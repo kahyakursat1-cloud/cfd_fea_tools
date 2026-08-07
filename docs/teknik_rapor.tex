@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-31.588 satır Python $\cdot$ 140 test dosyası $\cdot$ 1416 geçen test\\[3mm]
+31.588 satır Python $\cdot$ 140 test dosyası $\cdot$ 1418 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -1540,8 +1540,8 @@ Kod satırı (kök + \texttt{analysis/}) & 31.588 & \texttt{rapor\_sayilari.py} 
 Kök modül & 83 & \texttt{rapor\_sayilari.py} \\
 Deney / çapa betiği & 62 & \texttt{experiments/} \\
 Test dosyası & 140 & \texttt{tests/test\_*.py} \\
-Geçen test & 1416 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1416 & \texttt{-{}-cov} \\
+Geçen test & 1418 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1418 & \texttt{-{}-cov} \\
 Satır kapsamı & \textbf{\%47} & 18.928 ifade, 9.979 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
@@ -1822,8 +1822,10 @@ düşürüldü; davranış eşdeğerliği ölçülmemiş iki özel süreç yolu 
 stdin, login kabuk) ve case iskelesini yineleyen eski betikler borç olarak
 kaldı. \textbf{Yeniden üretilebilirlik:} çözücü sürümleri artık ölçülüyor ve
 kilit dosyasında kayıtlı (OpenFOAM \texttt{11-e1fc8c682ae6}, CalculiX 2.17);
-yeni çapa kanıtları ortam damgasını \emph{üretim anında} basıyor --- ama eski
-kanıtların çoğu hâlâ damgasız ve Docker taban imajı digest'e sabitlenmemiş.
+kanıt üreten altı betik ortam damgasını \emph{üretim anında} basıyor. Eski
+kanıtlar bilerek damgasız bırakıldı: bugünkü ortamla damgalamak, o sayının bu
+yığında üretildiğini söylemek olurdu ve bu doğru değildir --- damgayı ancak
+yeniden üretim getirir. Docker taban imajı hâlâ digest'e sabitlenmemiştir.
 \textbf{Ölçülmemişler:} bellek katsayısı (telemetri var, sayı sonraki
 koşulardan gelecek); başarım tek geometri ve tek makineyle sınırlı. Yol
 haritası bunları v1.1--v2.0 aralığına yerleştirir ve hiçbiri ``yakında'' diye

@@ -424,6 +424,11 @@ def main(modeller: list[str]) -> int:
         "verdikt": _verdikt(gecerli) + _yakinsamayanlar_notu(sonuc),
         "_uretim": "Üretim: python experiments/basamak_ayrilma.py",
     }
+    # ORTAM DAMGASI URETIM ANINDA (bkz. ortam.damgala): sonradan eklenen
+    # damga, sayinin hangi yiginda DOGDUGUNU degil en son ne zaman
+    # bakildigini soyler.
+    import ortam
+    ortam.damgala(out)
     (HERE.parent / "basamak_ayrilma.json").write_text(
         json.dumps(out, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print("\n" + out["verdikt"])

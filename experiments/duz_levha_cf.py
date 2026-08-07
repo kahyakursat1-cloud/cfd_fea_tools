@@ -310,6 +310,11 @@ def main(hedefler: list[float]) -> int:
                  "cozulmuyor') NICEL hale getirir: verilen y+'de Cf hatasi yuzde kac."),
         "_uretim": "Üretim: python experiments/duz_levha_cf.py",
     }
+    # ORTAM DAMGASI URETIM ANINDA (bkz. ortam.damgala): sonradan eklenen
+    # damga, sayinin hangi yiginda DOGDUGUNU degil en son ne zaman
+    # bakildigini soyler.
+    import ortam
+    ortam.damgala(out)
     (HERE.parent / "duz_levha_cf.json").write_text(
         json.dumps(out, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print("\n" + out["verdikt"])
