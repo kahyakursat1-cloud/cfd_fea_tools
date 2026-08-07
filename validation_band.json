@@ -4,5 +4,8 @@
   },
   "bluff": {
     "wall_function": 8.15
+  },
+  "separated": {
+    "wall_resolved": 12.0
   }
 }

@@ -93,6 +93,18 @@
       "yplus_max": 16.8448,
       "yplus_kaynak": "foamPostProcess yPlus, 'alt' yaması (yeniden-yapışmanın olduğu duvar)",
       "referans": "Driver & Seegmiller, AIAA J. 23(2), 1985 â€” deneysel"
+    },
+    {
+      "capa": "geriye-basamak (kOmegaSST, duvar-çözünür aile)",
+      "rejim": "separated",
+      "sapma_pct": 10.46,
+      "ham_sapma_pct": 10.464,
+      "u_sayisal_pct": 2.39,
+      "ayrilabilir_mi": true,
+      "yplus_ort": 0.0344597,
+      "yplus_max": 0.0478726,
+      "yplus_kaynak": "foamPostProcess yPlus, 'alt' yaması — 3-seviye ailenin en ince ağı",
+      "referans": "Driver & Seegmiller, AIAA J. 23(2), 1985 — deneysel"
     }
   ],
   "olculen_hucreler": {
@@ -148,6 +160,29 @@
         "ayrilabilirlik_degerlendirilmedi": 0,
         "_ust_sinir_mi": true,
         "_anlam": "2 çapanın EN KÖTÜSÜ"
+      }
+    },
+    "separated": {
+      "wall_resolved": {
+        "u_pct": 12.0,
+        "olculen_pct": 10.46,
+        "oncul_pct": 12.0,
+        "oncul_korundu": true,
+        "n_capa": 1,
+        "ayrilabilir_capa": 1,
+        "capalar": [
+          {
+            "ad": "geriye-basamak (kOmegaSST, duvar-çözünür aile)",
+            "sapma_pct": 10.46,
+            "ham_sapma_pct": 10.464,
+            "u_sayisal_pct": 2.39,
+            "ayrilabilir_mi": true,
+            "referans": "Driver & Seegmiller, AIAA J. 23(2), 1985 — deneysel"
+          }
+        ],
+        "ayrilabilirlik_degerlendirilmedi": 0,
+        "_ust_sinir_mi": false,
+        "_anlam": "TEK ÇAPA (%10.46) öncülden (%12.0) KÜÇÜK — band tek ölçümle DARALTILMADI; öncül korundu, ölçüm kayıtlı"
       }
     }
   },
@@ -210,11 +245,6 @@
     },
     {
       "rejim": "separated",
-      "duvar": "wall_resolved",
-      "oncul_pct": 12.0
-    },
-    {
-      "rejim": "separated",
       "duvar": "wall_function",
       "oncul_pct": 25.0
     },
@@ -243,13 +273,16 @@
   "_kisit": "Bir capanin sapmasi, o rejimdeki model-form hatasinin BIR ORNEGIDIR. N=1 olan hucrede dagilim IDDIA EDILMEZ. Duvar islemi kayitli olmayan capa hucreye ATANMAZ — tahmin edilmez. Ayrica sapma, referansin KENDI deneysel belirsizligini de icerir ve o ayristirilmamistir.",
   "_uretim": "Üretim: python experiments/model_form_bandi.py",
   "_ayrilabilirlik_notu": "UST SINIR olan hucreler: bluff.wall_function. Bu hucrelerde HICBIR capa, olculen farki kendi ayriklastirma bandindan ayirt edemiyor — deger olculmus bir model hatasi DEGIL, ust sinirdir. Ornek: disk capasinin farki %3.4 ama sayisal bandi %4.8.",
-  "verdikt": "8 capa toplandi; 2 hucre OLCULDU, 5 capa atanamadi, 6 hucre ONCUL kaldi. attached_2d.wall_resolved=%5.23 (n=1); bluff.wall_function=%8.15 (n=2)",
+  "verdikt": "9 capa toplandi; 3 hucre OLCULDU, 5 capa atanamadi, 5 hucre ONCUL kaldi. attached_2d.wall_resolved=%5.23 (n=1); bluff.wall_function=%8.15 (n=2); separated.wall_resolved=%12.0 (n=1)",
   "_yazilan": {
     "attached_2d": {
       "wall_resolved": 5.23
     },
     "bluff": {
       "wall_function": 8.15
+    },
+    "separated": {
+      "wall_resolved": 12.0
     }
   }
 }

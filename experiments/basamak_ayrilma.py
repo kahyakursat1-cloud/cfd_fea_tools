@@ -47,8 +47,25 @@ def _hdr(cls, obj, loc=""):
             f"    class {cls};{ln}\n    object {obj};\n}}\n")
 
 
-def _blockmesh() -> str:
-    """İki bloklu 2D basamak: giriş kanalı (üst) + genişlemiş kanal (üst+alt)."""
+def ilk_hucre_m(uzunluk: float, n: int, grading: float) -> float:
+    """simpleGrading'te ilk hücrenin kalınlığı. `grading` = son/ilk hücre oranı."""
+    if abs(grading - 1.0) < 1e-9:
+        return uzunluk / n
+    r = grading ** (1.0 / (n - 1))
+    return uzunluk * (r - 1.0) / (r ** n - 1.0)
+
+
+def _blockmesh(olcek: float = 1.0, alt_grading: float = 1.0) -> str:
+    """İki bloklu 2D basamak: giriş kanalı (üst) + genişlemiş kanal (üst+alt).
+
+    `olcek`: tüm hücre sayıları bununla çarpılır (GCI ailesi için).
+    `alt_grading`: ALT bloğun duvar-normali sıkıştırması (son/ilk hücre oranı).
+    1.0 tek-tip dağılımdır ve özgün çapanın davranışıdır. Alt duvar hüküm
+    yamasıdır (yeniden-yapışma orada okunur); y⁺'ı yalnız orada değiştirmek,
+    çapayı duvar-çözünür banda taşırken üst duvarın kurulumunu bozmaz.
+    """
+    nxg, nxc = int(NX_GIRIS * olcek), int(NX_CIKIS * olcek)
+    nyu, nya = int(NY_UST * olcek), int(NY_ALT * olcek)
     x0, x1, x2 = -X_GIRIS, 0.0, X_CIKIS
     y0, y1, y2 = -H_STEP, 0.0, H_GIRIS
     z0, z1 = 0.0, 0.001
@@ -60,9 +77,10 @@ def _blockmesh() -> str:
     # 0..7 z=0 düzlemi, 8..15 z=0.001
     return (_hdr("dictionary", "blockMeshDict", "system") +
             "convertToMeters 1;\nvertices\n(\n" + "\n".join(v) + "\n);\nblocks\n(\n"
-            f"hex (0 1 4 5 8 9 12 13) ({NX_GIRIS} {NY_UST} 1) simpleGrading (0.4 1 1)\n"
-            f"hex (1 2 3 4 9 10 11 12) ({NX_CIKIS} {NY_UST} 1) simpleGrading (6 1 1)\n"
-            f"hex (6 7 2 1 14 15 10 9) ({NX_CIKIS} {NY_ALT} 1) simpleGrading (6 1 1)\n"
+            f"hex (0 1 4 5 8 9 12 13) ({nxg} {nyu} 1) simpleGrading (0.4 1 1)\n"
+            f"hex (1 2 3 4 9 10 11 12) ({nxc} {nyu} 1) simpleGrading (6 1 1)\n"
+            f"hex (6 7 2 1 14 15 10 9) ({nxc} {nya} 1) "
+            f"simpleGrading (6 {alt_grading:g} 1)\n"
             ");\nedges ();\nboundary\n(\n"
             "  giris   { type patch; faces ((0 5 13 8)); }\n"
             "  cikis   { type patch; faces ((2 3 11 10) (7 2 10 15)); }\n"
@@ -74,10 +92,11 @@ def _blockmesh() -> str:
             ");\nmergePatchPairs ();\n")
 
 
-def _yaz(case: Path, model: str) -> None:
+def _yaz(case: Path, model: str, olcek: float = 1.0,
+         alt_grading: float = 1.0) -> None:
     for d in ("system", "constant", "0"):
         (case / d).mkdir(parents=True, exist_ok=True)
-    (case / "system" / "blockMeshDict").write_text(_blockmesh())
+    (case / "system" / "blockMeshDict").write_text(_blockmesh(olcek, alt_grading))
     (case / "constant" / "momentumTransport").write_text(
         _hdr("dictionary", "momentumTransport", "constant") +
         f"simulationType RAS;\nRAS {{ model {model}; turbulence on; printCoeffs on; }}\n")

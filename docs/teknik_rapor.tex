@@ -516,8 +516,8 @@ ve \texttt{\_anchor\_cube} raporlarında birebir duruyor. Üstelik o aile daha
 sonra NASA TMR gridleriyle kapatıldı (GCI \%1{,}7), yani cümlenin
 \emph{kendisi} de artık doğru değildi.
 
-\begin{olculdu}
-Yanlış olan hüküm değil gerekçeydi: sınıf (EĞİLİM) her iki koşuda da
+\begin{olculdu}{Yanlış olan hüküm değil gerekçeydi}
+Sınıf (EĞİLİM) her iki koşuda da
 doğruydu. Yanlış olan, o sınıfın \emph{niçin} verildiğiydi --- ve bir karar
 motorunda gerekçe, hükmün kendisi kadar denetlenmelidir.
 \end{olculdu}
@@ -1160,20 +1160,21 @@ zaten her çıktısında söylüyor.
         da kuramdan sapar (yakın-alan $-\%21$, Trefftz $+\%62$); bu yüzden
         indüklenen direnç kuramdan üretilir.
   \item[Model-form belirsizliği.] Rejim$\times$duvar işlemi tablosuna ayrıldı;
-        yedi hücrenin \textbf{ikisi} çapa taşıyor, beşi literatür-öncülüyle
-        çalışır. İki hücre \emph{aynı kalitede değildir} ve bu ayrım artık
+        yedi hücrenin \textbf{üçü} çapa taşıyor, dördü literatür-öncülüyle
+        çalışır. Üç hücre \emph{aynı kalitede değildir} ve bu ayrım artık
         yayımlanıyor: 2B bağlı akış \%5{,}23 ($n{=}1$) bir \emph{ölçümdür} ---
         çapanın farkı (\%3{,}52) kendi ayrıklaştırma bandından (\%1{,}71)
-        büyük, yani model hatası sayısal hatadan ayrılabiliyor. Künt
+        büyük, yani model hatası sayısal hatadan ayrılabiliyor. Ayrılmış
+        akış/duvar-çözünür da öyle: sapma \%10{,}46, bandı \%2{,}39. Künt
         cisim/duvar-fonksiyonu \%8{,}15 ($n{=}2$) ise bir \textbf{üst
         sınırdır}: iki çapanın da farkı kendi bandından \emph{küçük} (disk
         \%3{,}4 vs \%4{,}8; küp \%1{,}8 vs \%5{,}3), yani hiçbiri model
-        hatasını ayırt edemiyor. Sekiz çapadan beşi \emph{atanamadı} ve her
-        birinin gerekçesi ayrı: küre ile geriye-basamak tampon bölgede
-        ($5<y^+<30$ --- hiçbir duvar işlemini temsil etmiyor); Ahmed 25° ile
-        NACA0012 kanat çapasının ayrıklaştırma bandı, ölçmek istediği model
-        hatasından büyük (\%274{,}7 ve \%17{,}4); küp GCI koşusunun y$^+$
-        ortalaması bantta ama tepesi dışarıda (338 > 300).
+        hatasını ayırt edemiyor. Dokuz çapadan beşi \emph{atanamadı} ve her
+        birinin gerekçesi ayrı: küre ile geriye-basamağın \emph{özgün} koşusu
+        tampon bölgede ($5<y^+<30$ --- hiçbir duvar işlemini temsil etmiyor);
+        Ahmed 25° ile NACA0012 kanat çapasının ayrıklaştırma bandı, ölçmek
+        istediği model hatasından büyük (\%274{,}7 ve \%17{,}4); küp GCI
+        koşusunun y$^+$ ortalaması bantta ama tepesi dışarıda (338 > 300).
   \item[Teknik borç --- iki hızlı katman.] Eski çözücü sarmalayıcısı ve bazı
         bağımsız V\&V betikleri \texttt{analysis/} çekirdeğini kullanmaz; case
         iskelesini tekrarlarlar. Yeni kod çekirdeğe yazılır, eskisi yerinde
@@ -1196,10 +1197,48 @@ Atama artık tek yerde ve üç ölçütü var:
         bandı \%290'a çıkarıyordu.
 \end{enumerate}
 
-\noindent Geriye iki çapa kaldı. Değer ham sapma değil, \emph{sapma + sayısal
-band}: diskin farkı \%3{,}4 ama ayrıklaştırma bandı \%4{,}8, yani çapa model
-hatasını sayısal hatadan ayıramıyor ve üst sınır muhafazakâr yönde alınıyor.
+\noindent Değer ham sapma değil, \emph{sapma + sayısal band}: diskin farkı
+\%3{,}4 ama ayrıklaştırma bandı \%4{,}8, yani çapa model hatasını sayısal
+hatadan ayıramıyor ve üst sınır muhafazakâr yönde alınıyor.
 \end{anafikir}
+
+\begin{olculdu}{Elenen bir çapa geri kazanıldı --- kusur dağılımdaydı}
+Geriye-basamaklı akış çapası (Driver \& Seegmiller 1985) birinci ölçütten
+düşmüştü: hüküm yaması olan alt duvarda y$^+$ ortalaması 14{,}3, tepesi
+16{,}8 --- tampon bölge. Orada ne log-yasası geçerlidir ne de duvar
+çözünürdür; ölçüm hiçbir hücreye \emph{ait değildi} ve \texttt{separated}
+rejimi bütünüyle öncülle çalışıyordu.
+
+Kusur çözünürlükte değil \emph{dağılımda}ydı: alt blok duvar-normali yönde
+tek-tipti. Duvara sıkıştırma, hücre sayısını hiç artırmadan ilk hücreyi
+317\,\textmu m'den 49\,\textmu m'ye indirir. Aynı deneye karşı üç seviyeli bir
+aile koşuldu (25.600 / 50.176 / 102.400 hücre, 13 dakika):
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Seviye} & \textbf{Hücre} & \textbf{$X_r/H$} & \textbf{y$^+$ tepe} \\
+\midrule
+L1 & 25.600 & 5{,}550 & 0{,}29 \\
+L2 & 50.176 & 5{,}594 & 0{,}12 \\
+L3 & 102.400 & 5{,}605 & 0{,}048 \\
+\midrule
+Deney & --- & \textbf{6{,}26} $\pm$ 0{,}10 & --- \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Üç seviyede de duvar-çözünür bantta; ayrıklaştırma bandı \%2{,}39 ve
+model hatası \%10{,}46 --- sapma bandtan büyük olduğu için elde bir
+\emph{ölçüm} var, üst sınır değil. Özgün kayıt silinmedi: iki çapa yan yana
+duruyor, aynı vaka iki duvar işlemi. Ölçülen hücre sayısı ikiden \textbf{üçe}
+çıktı.
+
+Bandın kendisi yine de \emph{daraltılmadı}. Ölçüm (\%10{,}46) literatür
+öncülünden (\%12) küçük ve $n{=}1$'de aşağı yönlü düzeltme kabul edilmiyor ---
+tek çapa bir dağılım değildir. Yukarı yönlü düzeltme her zaman kabul edilir;
+asimetri bilinçlidir.
+\end{olculdu}
 
 \begin{dikkat}{Dördüncü ölçüt: ölçüm mü, üst sınır mı?}
 Bir çapa hücreye \emph{girebilir} ama yine de model hatasını ölçmüş olmayabilir.

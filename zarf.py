@@ -234,9 +234,25 @@ def _ayrilmis_akis() -> tuple[str, str]:
     guv = "⚠️ Yalnız eğilim" if abs(en_iyi["hata_pct"]) > 5 else "✅ Yüksek"
     ek = (f"; {ykn[0]['model']} bu kurulumda sabit noktaya OTURMUYOR "
           f"({ykn[0]['iterasyon']} iterasyon, rezidüeller platoda)") if ykn else ""
+    # AYNI VAKA, DUVAR-COZUNUR AILE. Ozgun kosu alt duvarda tampon bolgedeydi
+    # (y+ 14.3) ve model-form tablosunda hicbir hucreye atanamiyordu. Uc-seviye
+    # duvar-cozunur aile hem hucreyi atanabilir yapti hem de ayriklastirma
+    # bandini verdi — sapma bandtan buyuk oldugu icin ORTADA bir OLCUM var.
+    a = _json("basamak_yplus_ailesi.json") if (ROOT / "basamak_yplus_ailesi.json").exists() else None
+    aek = ""
+    if a:
+        aok = [s for s in a.get("seviyeler", []) if s.get("durum") == "ok"]
+        band = (a.get("sayisal_band") or {}).get("u_pct")
+        if aok:
+            ince = max(aok, key=lambda s: s.get("hucre", 0))
+            aek = (f". Duvar-çözünür aile (3 seviye, {ince['hucre']:,} hücre, "
+                   f"y⁺tepe={ince['yplus']['alt']['max']:.2g}): Xr/H="
+                   f"{ince['Xr_H']:.3f} → %{ince['hata_pct']:+.1f}"
+                   + (f", ayrıklaştırma bandı ±%{band} — sapma bandtan BÜYÜK, "
+                      "model hatası sayısaldan ayrılabiliyor" if band else ""))
     return guv, (f"Geriye-basamaklı akış ↔ Driver & Seegmiller 1985 (Re_H=37500): "
                  f"yeniden-yapışma {en_iyi['model']} ile Xr/H={en_iyi['Xr_H']:.2f} vs "
-                 f"deney {d['referans']['Xr_H']} → %{en_iyi['hata_pct']:+.0f}{ek}")
+                 f"deney {d['referans']['Xr_H']} → %{en_iyi['hata_pct']:+.0f}{ek}{aek}")
 
 
 def _siniflandirici() -> tuple[str, str]:

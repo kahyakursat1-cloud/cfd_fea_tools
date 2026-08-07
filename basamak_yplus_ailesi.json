@@ -1,0 +1,127 @@
+{
+  "vaka": "Geriye-basamakli akis (DUVAR-COZUNUR aile) — H=12.7 mm, U=44.29 m/s, Re_H=37499",
+  "kaynak": "OpenFOAM 11 foamRun/incompressibleFluid, 2D blockMesh",
+  "model": "kOmegaSST",
+  "referans": {
+    "Xr_H": 6.26,
+    "belirsizlik": 0.1,
+    "kaynak": "Driver & Seegmiller, AIAA J. 23(2), 1985 — deneysel"
+  },
+  "seviyeler": [
+    {
+      "ad": "L1_kaba",
+      "durum": "ok",
+      "olcek": 1.0,
+      "hucre": 25600,
+      "iterasyon": 245,
+      "ilk_hucre_m": 4.923e-05,
+      "alt_grading": 20.0,
+      "Xr_H": 5.5496,
+      "Xr_H_anliklar": [
+        5.5496
+      ],
+      "hata_pct": -11.348,
+      "yplus": {
+        "ust": {
+          "min": 73.7024,
+          "max": 122.548,
+          "ort": 97.2746
+        },
+        "alt": {
+          "min": 0.00275458,
+          "max": 0.28834,
+          "ort": 0.207758
+        },
+        "basamak": {
+          "min": 0.00282995,
+          "max": 122.559,
+          "ort": 68.836
+        }
+      }
+    },
+    {
+      "ad": "L2_orta",
+      "durum": "ok",
+      "olcek": 1.4,
+      "hucre": 50176,
+      "iterasyon": 376,
+      "ilk_hucre_m": 3.5335e-05,
+      "alt_grading": 20.0,
+      "Xr_H": 5.5943,
+      "Xr_H_anliklar": [
+        5.5943
+      ],
+      "hata_pct": -10.634,
+      "yplus": {
+        "ust": {
+          "min": 54.6444,
+          "max": 90.8786,
+          "ort": 70.6242
+        },
+        "alt": {
+          "min": 0.00026137,
+          "max": 0.12053,
+          "ort": 0.0861882
+        },
+        "basamak": {
+          "min": 0.00026137,
+          "max": 90.8816,
+          "ort": 48.9526
+        }
+      }
+    },
+    {
+      "ad": "L3_ince",
+      "durum": "ok",
+      "olcek": 2.0,
+      "hucre": 102400,
+      "iterasyon": 600,
+      "ilk_hucre_m": 2.4824e-05,
+      "alt_grading": 20.0,
+      "Xr_H": 5.605,
+      "Xr_H_anliklar": [
+        5.605
+      ],
+      "hata_pct": -10.464,
+      "yplus": {
+        "ust": {
+          "min": 39.97,
+          "max": 66.2852,
+          "ort": 49.9801
+        },
+        "alt": {
+          "min": 3.68584e-05,
+          "max": 0.0478726,
+          "ort": 0.0344597
+        },
+        "basamak": {
+          "min": 3.68584e-05,
+          "max": 66.2859,
+          "ort": 34.3893
+        }
+      }
+    }
+  ],
+  "duvar_islemi": {
+    "islem": "wall_resolved",
+    "tepe_yplus": {
+      "L1_kaba": 0.28834,
+      "L2_orta": 0.12053,
+      "L3_ince": 0.0478726
+    },
+    "bant_disi": {},
+    "gerekce": "üç seviyede de tepe y⁺ ≤ 5.0 — duvar-çözünür"
+  },
+  "sayisal_band": {
+    "u_pct": 2.39,
+    "yontem": "salinim",
+    "kaynak": "salınımlı yakınsama bandı (Eça-Hoekstra U=3·Δ, 3 seviye) — Richardson asimptotik DEĞİL, mertebesi kullanılmadı",
+    "f_exact": null
+  },
+  "hata_pct_ince": -10.464,
+  "verdikt": "✅ wall_resolved (üç seviyede de tepe y⁺ ≤ 5.0 — duvar-çözünür); sapma %10.46 > ayrıklaştırma bandı %2.39 — model hatası sayısal hatadan AYRILABİLİYOR, separated rejimi ölçüme bağlandı (Xr/H=5.605, deney 6.26)",
+  "_neden": "Ozgun capa (basamak_ayrilma.json) alt duvarda y+ 14.3 ile TAMPON bolgedeydi ve hicbir duvar-islemi hucresine atanamiyordu. Kusur cozunurlukte degil DAGILIMDA idi: alt blok duvar-normali yonde tek-tipti. Duvara sikistirma (grading 20) hucre sayisini artirmadan ilk hucreyi inceltir.",
+  "_ozgun_capa": "basamak_ayrilma.json — DEGISTIRILMEDI; iki kayit yan yana durur",
+  "_uretim": "Üretim: python experiments/basamak_yplus_ailesi.py",
+  "_sure_s": 10.8
+}

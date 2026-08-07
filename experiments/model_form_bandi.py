@@ -187,6 +187,31 @@ def capalari_topla() -> list[dict]:
                                        "(yeniden-yapışmanın olduğu duvar)"
                                        if _yp else None),
                       "referans": (bas.get("referans") or {}).get("kaynak", "")})
+
+    # AYNI VAKA, IKI DUVAR ISLEMI. Ozgun capa alt duvarda tampon bolgedeydi
+    # (y+ 14.3) ve hicbir hucreye atanamiyordu. Kusur cozunurlukte degil
+    # DAGILIMDA idi; duvara sikistirilmis ag ailesi ayni deneye karsi
+    # duvar-cozunur bandda kosuldu. Bu kayit ozgununun yerine GECMEZ, yanina
+    # gelir: ikisi ayni model hatasinin farkli duvar islemlerindeki degeridir.
+    aile = _j("basamak_yplus_ailesi.json")
+    if aile:
+        ok = [s for s in aile.get("seviyeler", []) if s.get("durum") == "ok"]
+        if ok:
+            ince = max(ok, key=lambda s: s.get("hucre", 0))
+            _yp = (ince.get("yplus") or {}).get("alt") or {}
+            band = aile.get("sayisal_band") or {}
+            u_say = band.get("u_pct")
+            hata = abs(float(ince["hata_pct"]))
+            c.append({"capa": f"geriye-basamak ({aile.get('model')}, duvar-çözünür aile)",
+                      "rejim": "separated",
+                      "sapma_pct": hata,
+                      "ham_sapma_pct": hata,
+                      "u_sayisal_pct": round(u_say, 2) if u_say else None,
+                      "ayrilabilir_mi": bool(u_say and hata > u_say),
+                      "yplus_ort": _yp.get("ort"), "yplus_max": _yp.get("max"),
+                      "yplus_kaynak": ("foamPostProcess yPlus, 'alt' yaması — "
+                                       "3-seviye ailenin en ince ağı"),
+                      "referans": (aile.get("referans") or {}).get("kaynak", "")})
     return c
 
 
