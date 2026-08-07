@@ -1486,7 +1486,24 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         kalite=quality, case_dir=str(case_dir),
     )
     if not res.success or res.cd is None:
-        base.error = (res.stderr or res.stdout)[-2000:]
+        # HANGI ASAMA DUSTU, HANGI LOGA BAKILACAK. Onceki surum 2000 karakter
+        # ham stderr basiyordu; kullanici hangi adimin coktugunu ve hangi
+        # dosyaya bakacagini kendisi cikarmak zorundaydi. Oysa asama telemetrisi
+        # bunu ZATEN biliyor ve `log_files` yolu tasiyor — ikisi de uretiliyor
+        # ama hicbiri okunmuyordu (oksuz alan taramasi bunu boyle buldu).
+        _dusen = next((a for a in reversed(getattr(res, "asama_sureleri", None) or [])
+                       if a.get("durum") != "ok"), None)
+        _bas = ""
+        if _dusen:
+            _ad = _dusen["asama"]
+            _log = next((str(x) for x in (res.log_files or []) if _ad in str(x)), None)
+            _bas = (f"DÜŞEN AŞAMA: {_ad} — {_dusen['durum']}"
+                    + (f" (dönüş kodu {_dusen['donus_kodu']})"
+                       if _dusen.get("donus_kodu") is not None else "")
+                    + f", {_dusen['sure_s']:.0f} s sonra"
+                    + (f"\nLOG: {_log}" if _log else "")
+                    + "\n\n")
+        base.error = _bas + (res.stderr or res.stdout)[-2000:]
         (run_dir / "sonuc.json").write_text(json.dumps(asdict(base), indent=2, ensure_ascii=False), encoding="utf-8")
         return base
 
