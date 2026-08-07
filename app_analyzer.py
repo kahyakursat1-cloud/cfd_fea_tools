@@ -1105,7 +1105,11 @@ class AnalyzerWindow(QMainWindow):
         from validity_envelope import sonuc_kapisi
         self.last_result = r
         self.progress.setValue(100)
-        self._log("✅ Analiz tamamlandı.")
+        # KOSUM KOSULU SONUCUN KENDISINDEN yazilir, formdan DEGIL. Ekrandaki
+        # metrikler bir kosuya aittir ama form o sirada degistirilmis olabilir
+        # (ozellikle kuyrukta: tek pencere, cok kosu). Formdan okumak, ekranda
+        # yanlis kosum kosuluyla dogru sayilar gostermek demektir.
+        self._log(f"✅ Analiz tamamlandı — V={r.velocity} m/s, α={r.alpha_deg}°")
         kapi = sonuc_kapisi(getattr(r, "fizik_kabul", None), r.convergence,
                             getattr(r, "belirsizlik", None))
         # Fizik-dışı Cd'yi çıplak sayı olarak göstermek mühendisi yanlış sayıya güvendirir

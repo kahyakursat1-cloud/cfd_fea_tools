@@ -1377,6 +1377,40 @@ Ayrıca depo kendi kod hijyenini de sınar: \emph{sessiz yutma} sayacı, gerekç
 üreten betik ilk yazımında o sayacı tetikledi ve düzeltildi --- yani mekanizma
 raporun kendi üretim zincirinde de çalışmaktadır.
 
+\subsection{Tekrarlayan kusuru elle aramayı bırakmak}
+
+Bu geliştirmenin en sık çıkan kusuru tek bir sınıftandır: \emph{ölçüm yapılır,
+kararı veren yere ulaşmaz}. Bugüne kadar her örneği elle bulundu --- ve elle
+arama bir sonraki alan eklendiğinde tekrar tutmaz. Sınıf artık üç tarayıcıya
+bölünmüş durumda ve her birinin izlediği sayı ayrı:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}llr@{}}
+\toprule
+\textbf{Tarayıcı} & \textbf{Yakaladığı} & \textbf{İzlenen} \\
+\midrule
+\texttt{oksuz\_alan} & üretilir, hiçbir yerde okunmaz & 0 \\
+\texttt{kanal\_ayrismasi} & yalnız bir sunum kanalında okunur & 0 \\
+\texttt{sessiz\_yutma} & gerekçesiz \texttt{except} & 24 incelenmemiş \\
+\texttt{arka\_uc\_sayaci} & ortak katmanı atlayan çağrı & 36 (dondurulmuş) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent İkincisi bu turda yazıldı ve yazılır yazılmaz iki bulgu verdi: koşum
+hızı ile hücum açısı arayüzde \emph{formdan} okunuyordu, sonuçtan değil. Fark
+kuyrukta ortaya çıkar --- tek pencere, çok koşu --- ve ekranda doğru sayıların
+yanlış koşum koşuluyla görünmesi demektir.
+
+\begin{anafikir}{Simetri hedef değildir}
+Rapor geometri ayrıntısını, VTK yollarını, referans alan kipini de yazar;
+arayüz özet gösterir ve göstermelidir. Bu yüzden tarayıcının çıktısı bir
+\emph{iddia} değil inceleme listesidir: 19 ayrışmanın 17'sinin neden meşru
+olduğu gerekçesiyle birlikte kodda durur, izlenen sayı gerekçesi
+\emph{yazılmamış} olanlardır. Sayacı susturmanın tek yolu gerekçe yazmaktır ve
+ölü gerekçe biriktirmesi de ayrı bir testle engellenir.
+\end{anafikir}
+
 \subsection{Toplu koşu ve kesinti kurtarması}
 
 Bir CFD koşusu saatler sürer; beş varyantı sıraya alıp gitmek olağan iş

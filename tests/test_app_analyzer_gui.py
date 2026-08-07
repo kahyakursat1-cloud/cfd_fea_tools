@@ -46,6 +46,8 @@ def pencere(qapp, monkeypatch):
 
 
 class _Sonuc:
+    velocity = 30.0
+    alpha_deg = 0.0
     cd = 0.032
     cl = 0.44
     ld = 12.2
