@@ -605,6 +605,48 @@ def _append_freq_report(run_dir: Path, out: dict):
     rapor.write_text(txt, encoding="utf-8")
 
 
+def yapisal_hukum(out: dict) -> dict:
+    """Yapısal sonucun HÜKMÜ — tek kaynak (rapor ve arayüz aynı kuralı kullanır).
+
+    Kural iki yerde ayrı yazılıydı; daha doğrusu arayüz onu HİÇ yazmamıştı ve
+    çıplak `emniyet_faktoru`'nu basıyordu. İki tehlike açıkta kalıyordu:
+      1. FİZİK KAPISI yok sayılıyordu. En tehlikeli yapısal başarısızlık yüksek
+         gerilme değil, YÜKÜN HİÇ AKTARILMAMASIDIR: ccx temiz çıkar, gerilme ~0,
+         SF astronomik ve ekran "SF=9999" yazar (bkz. stress_admissibility).
+      2. Tekillik şüphesi söylenmiyordu.
+
+    HÜKÜM TEPE-SF'YE DAYANIR ve bu bilerek böyledir: tek-mesh tekilliği (sivri
+    köşe, sahte) gerçek konsantrasyondan (delik/fillet, Kt gerçek) AYIRT
+    EDİLEMEZ; temsiliye geçmek gerçek konsantrasyonda SAHTE-GÜVENLİ olurdu.
+    Temsili-SF yalnız BİLGİ olarak gösterilir.
+    """
+    sf = out.get("emniyet_faktoru")
+    sf_t = out.get("emniyet_faktoru_temsili")
+    singular = out.get("tekillik_suphesi")
+    fizik = out.get("fizik_kabul") or {}
+    if out.get("gecersiz"):
+        return {"seviye": "gecersiz", "metin": "❌ GEÇERSİZ (mekanizma)",
+                "engel": True, "gerekce": ["yapı mekanizma — çözüm anlamsız"],
+                "sf": sf, "sf_temsili": sf_t}
+    if fizik.get("verdict") == "inadmissible":
+        return {"seviye": "fizik_disi", "engel": True, "sf": sf, "sf_temsili": sf_t,
+                "metin": "⛔ FİZİK KAPISINDAN GEÇMEDİ — SF ANLAMSIZ",
+                "gerekce": list(fizik.get("reasons") or [])}
+    metin = ("✅ güvenli" if sf and sf >= 1.5 else
+             "⚠️ marjinal (SF<1.5)" if sf and sf >= 1.0 else
+             "❌ yetersiz (SF<1)" if sf else "—")
+    gerekce = list(fizik.get("reasons") or [])
+    if singular and sf_t:
+        metin += (f" — ⚠ tepe tekillik OLABİLİR (sivri köşeyse gerçek SF≈{sf_t}; "
+                  "fillet ya da mesh-yakınsamayla teyit edin)")
+    return {"seviye": ("guvenli" if sf and sf >= 1.5 else
+                       "marjinal" if sf and sf >= 1.0 else
+                       "yetersiz" if sf else "bilinmiyor"),
+            "metin": metin, "engel": False, "gerekce": gerekce,
+            "sf": sf, "sf_temsili": sf_t, "tekillik": bool(singular),
+            "supheli": fizik.get("verdict") == "suspect"}
+
+
 def _append_report(run_dir: Path, out: dict):
     rapor = run_dir / "rapor" / "RAPOR.md"
     if not rapor.exists():
@@ -613,19 +655,7 @@ def _append_report(run_dir: Path, out: dict):
     sf_t = out.get("emniyet_faktoru_temsili")        # temsili (tekillik-robust)
     singular = out.get("tekillik_suphesi")
     sf_s = (">1000" if sf and sf > 1000 else str(sf))
-    if out.get("gecersiz"):
-        verdict = "❌ GEÇERSİZ (mekanizma)"
-    else:
-        # Verdict MUHAFAZAKÂR (tepe-SF). Tekillik şüphesinde temsili-SF BİLGİ olarak
-        # gösterilir ama karar tepeye dayanır: tek-mesh tekilliği (sivri köşe, sahte)
-        # gerçek konsantrasyondan (delik/fillet, Kt gerçek) AYIRAMAZ; temsiliye geçmek
-        # gerçek konsantrasyonda SAHTE-GÜVENLİ olurdu. Güvenli taraf = tepe.
-        verdict = ("✅ güvenli" if sf and sf >= 1.5 else
-                   "⚠️ marjinal (SF<1.5)" if sf and sf >= 1.0 else
-                   "❌ yetersiz (SF<1)" if sf else "—")
-        if singular and sf_t:
-            verdict += (f" — ⚠ tepe tekillik OLABİLİR (sivri köşeyse gerçek SF≈{sf_t}; "
-                        "fillet ya da mesh-yakınsamayla teyit edin)")
+    verdict = yapisal_hukum(out)["metin"]
     vm_line = f"- Max von Mises: **{out['max_von_mises_MPa']} MPa** (tepe)"
     if singular:
         vm_line += (f", temsili %99: **{out['temsili_von_mises_MPa']} MPa** "

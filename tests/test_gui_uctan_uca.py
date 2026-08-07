@@ -286,3 +286,71 @@ def test_iptal_dugmesi_kosan_isi_reddeder(kuyruk_dlg):
     kuyruk_dlg._iptal()
     assert k.listele()[0]["durum"] == "kosuyor"
     assert any(x[0] == "warning" for x in kuyruk_dlg._kutular)
+
+
+# ── 6. FEA yolu: kapı arayüze ULAŞIYOR mu ──────────────────────────────────
+
+def _fea_ciktisi(**ek):
+    d = {"status": "ok", "max_sehim_mm": 1.23, "max_von_mises_MPa": 120.0,
+         "emniyet_faktoru": 2.3, "emniyet_faktoru_temsili": 2.3,
+         "malzeme": "AL6061", "mesnet": "kök"}
+    d.update(ek)
+    return d
+
+
+def test_saglikli_FEA_sonucu_SF_gosterir(pencere):
+    pencere._on_fea_done(_fea_ciktisi())
+    assert "SF=2.3" in pencere.metric_labels["verdict"][1].text()
+    assert "güvenli" in pencere.log.toPlainText()
+
+
+def test_YUK_AKTARILMAMIS_kosu_SF_gibi_gosterilmez(pencere):
+    """Bu deponun en tehlikeli saydığı yapısal hâl: yük hiç aktarılmamışsa ccx
+    temiz çıkar, gerilme ~0, SF astronomik olur ve ekran 'SF=9999' yazardı."""
+    pencere._on_fea_done(_fea_ciktisi(
+        emniyet_faktoru=9999.0, max_von_mises_MPa=0.0001,
+        fizik_kabul={"verdict": "inadmissible",
+                     "reasons": ["uygulanan yük ~0 — yük aktarılmamış"]}))
+    rozet = pencere.metric_labels["verdict"][1].text()
+    assert "9999" not in rozet
+    assert "FİZİK KAPISINDAN GEÇMEDİ" in rozet
+    assert "yük aktarılmamış" in pencere.log.toPlainText()
+
+
+def test_fizik_disi_FEA_uyari_kutusu_acar(pencere):
+    pencere._kutular = []
+    import app_analyzer
+    kutular = []
+    app_analyzer.QMessageBox.warning = staticmethod(
+        lambda *a: kutular.append(a))
+    pencere._on_fea_done(_fea_ciktisi(
+        fizik_kabul={"verdict": "inadmissible", "reasons": ["mekanizma"]}))
+    assert kutular, "engel hükmünde kullanıcı uyarılmalı"
+    assert "KULLANILMAZ" in kutular[-1][-1]
+
+
+def test_mekanizma_gecersiz_sayilir(pencere):
+    pencere._on_fea_done(_fea_ciktisi(gecersiz=True, emniyet_faktoru=None))
+    assert "GEÇERSİZ" in pencere.metric_labels["verdict"][1].text()
+
+
+def test_tekillik_supheli_kosuda_TEMSILI_SF_de_gosterilir(pencere):
+    """Hüküm tepe-SF'ye dayanır (bilerek), ama temsili SF bilgi olarak görünmeli."""
+    pencere._on_fea_done(_fea_ciktisi(
+        emniyet_faktoru=1.2, emniyet_faktoru_temsili=3.4, tekillik_suphesi=True))
+    log = pencere.log.toPlainText()
+    assert "SF (temsili): 3.4" in log
+    assert "tekillik OLABİLİR" in log
+    # HUKUM tepeye dayanmali: 1.2 -> marjinal, 3.4'e bakip "guvenli" DEMEMELI
+    assert "marjinal" in log
+
+
+def test_hukum_TEK_KAYNAKTAN_geliyor():
+    """Kural iki yerde ayrı yazılırsa er geç ayrışır (bu oturumda band
+    dosyasında tam bu oldu). Rapor ve arayüz aynı fonksiyonu çağırmalı."""
+    gui = (KOK / "app_analyzer.py").read_text(encoding="utf-8")
+    fea = (KOK / "vehicle_fea.py").read_text(encoding="utf-8")
+    assert "from vehicle_fea import yapisal_hukum" in gui
+    assert "def yapisal_hukum(" in fea
+    i = fea.index("def _append_report(")
+    assert "yapisal_hukum(out)" in fea[i:i + 900], "rapor da aynı kuralı kullanmalı"

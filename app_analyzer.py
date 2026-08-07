@@ -1045,13 +1045,32 @@ class AnalyzerWindow(QMainWindow):
         self.worker.start()
 
     def _on_fea_done(self, out: dict):
+        # ARAYUZ FIZIK KAPISINI YOK SAYIYORDU. CFD yolu `sonuc_kapisi`'ndan
+        # geciyor ve fizik-disi Cd'yi isaretliyor; FEA yolu ise ciplak
+        # `emniyet_faktoru`'nu basiyordu. Motor `fizik_kabul`'u ZATEN
+        # hesapliyordu (stress_admissibility) — arayuze ulasmiyordu.
+        # En tehlikeli hal: yuk hic aktarilmamissa ccx temiz cikar, gerilme ~0,
+        # SF astronomik olur ve ekran "SF=9999" yazar. Hukum artik tek kaynaktan
+        # (vehicle_fea.yapisal_hukum) gelir — rapor da ayni kurali kullanir.
+        from vehicle_fea import yapisal_hukum
         self.progress.setValue(100)
         self._log("✅ Yapısal kontrol tamamlandı.")
+        h = yapisal_hukum(out)
         self._log(f"  Max sehim: {out['max_sehim_mm']} mm | "
                   f"von Mises: {out['max_von_mises_MPa']} MPa | "
-                  f"SF: {out['emniyet_faktoru']}")
+                  f"SF (tepe): {out['emniyet_faktoru']}"
+                  + (f" | SF (temsili): {h['sf_temsili']}" if h.get("tekillik") else ""))
+        self._log(f"  Hüküm: {h['metin']}")
+        for g in h["gerekce"]:
+            self._log(f"⚠ {g}")
         self._set_metric("verdict",
-                         f"SF={out['emniyet_faktoru']}" if out.get("emniyet_faktoru") else "FEA ✓")
+                         h["metin"] if h["engel"] else
+                         (f"SF={h['sf']}" if h["sf"] else "FEA ✓"))
+        if h["engel"]:
+            QMessageBox.warning(
+                self, "Yapısal sonuç kapıdan geçmedi",
+                "\n".join(h["gerekce"])
+                + "\n\nBu emniyet faktörü TASARIM KARARINDA KULLANILMAZ.")
         self._log("Rapora Bölüm 7 eklendi (Raporu Aç ile gör).")
         self.btn_fea.setEnabled(True)
         self.btn_run.setEnabled(True)
