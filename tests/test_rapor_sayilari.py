@@ -97,3 +97,58 @@ def test_ozet_cumlesi_UCUNU_de_ayirt_ediyor(ozet):
     c = ozet["cumle"]
     assert "ölçüm" in c and "üst sınır" in c and "öncül" in c
     assert str(ozet["toplam_hucre"]) in c
+
+
+# ── Raporun KENDİ HAKKINDA yazdığı sayılar ──────────────────────────────────
+
+SAYILAR = KOK / "rapor_sayilari.json"
+
+
+@pytest.fixture(scope="module")
+def olcum():
+    if not SAYILAR.exists():
+        pytest.skip("rapor_sayilari.json yok (python experiments/rapor_sayilari.py)")
+    return json.loads(SAYILAR.read_text(encoding="utf-8"))
+
+
+def _satir_sayilari(tex: str) -> list[int]:
+    """Raporda geçen 'kod satırı' değerlerinin tümü (nokta binlik ayracı)."""
+    ham = re.findall(r"(\d{2}\.\d{3}) satır Python", tex)
+    ham += re.findall(r"analysis/\}\) & (\d{2}\.\d{3}) &", tex)
+    return [int(x.replace(".", "")) for x in ham]
+
+
+def test_kod_satiri_raporda_TEK_deger(tex):
+    """Hakem bulgusu: kapakta 31.322, kalite tablosunda 31.307 yazıyordu.
+    On beş satırlık fark önemsiz; AYRIŞMANIN KENDİSİ önemli, çünkü rapor tam
+    da bunu avlayan bir sistemi anlatıyor."""
+    d = _satir_sayilari(tex)
+    assert len(d) >= 2, f"kod satırı ifadesi bulunamadı ({d})"
+    assert len(set(d)) == 1, f"rapor farklı satır sayıları söylüyor: {sorted(set(d))}"
+
+
+def test_kod_satiri_OLCUMDEN_sapmiyor(tex, olcum):
+    """Tolerans var (rapor her commit'te derlenmiyor) ama sapma büyürse söyle."""
+    d = _satir_sayilari(tex)
+    gercek = olcum["kod_satiri"]
+    sapma = abs(d[0] - gercek) / gercek * 100
+    assert sapma < 3.0, (f"rapor {d[0]} satır diyor, ölçüm {gercek} "
+                         f"(%{sapma:.1f} sapma) — `python experiments/"
+                         "rapor_sayilari.py` ile güncelleyin")
+
+
+def test_test_dosyasi_sayisi_OLCUMLE_uyusuyor(tex, olcum):
+    m = re.search(r"Test dosyası & (\d+) &", tex)
+    assert m, "kalite tablosunda test dosyası satırı yok"
+    assert int(m.group(1)) == olcum["test_dosyasi"], (
+        f"rapor {m.group(1)}, ölçüm {olcum['test_dosyasi']} test dosyası")
+
+
+def test_ELLE_yazilmis_bolum_atfi_KALMADI(tex):
+    r"""Bölüm numaraları eklendikçe kayar; elle yazılan atıf sessizce yanlışa
+    döner. Hakem incelemesinde beş atıftan DÖRDÜ yanlıştı: \S7 topoloji yerine
+    ASME'yi, \S6B mentor yerine zarfı, \S2--\S5 yanlış aralığı, \S2.4 yanlış
+    alt bölümü gösteriyordu. Atıflar artık \ref ile bağlı ve derleyici
+    çözülmemiş atıfı kendisi söyler."""
+    elle = re.findall(r"\\S\s*\d", tex)
+    assert not elle, f"elle yazılmış bölüm atfı: {elle} — \\ref kullanın"

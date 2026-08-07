@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-31.322 satır Python $\cdot$ 139 test dosyası $\cdot$ 1361 geçen test\\[3mm]
+31.322 satır Python $\cdot$ 138 test dosyası $\cdot$ 1365 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -251,7 +251,7 @@ ayrıntılanır.
 Çözücü & OpenFOAM 11, \texttt{incompressibleFluid}, kararlı-durum SIMPLE &
   $k$--$\omega$ SST, $k$--$\varepsilon$, SST~LM geçiş \\
 Mesh & \texttt{blockMesh} + \texttt{snappyHexMesh} + prizma katmanı &
-  arka plan \emph{bütçeden} boyutlandırılır (\S3) \\
+  arka plan \emph{bütçeden} boyutlandırılır (\S\ref{sec:karar}) \\
 Araç hattı & STL'den rapora tek komut & uçak / roket / multikopter / araba \\
 Polar & tek mesh, çoklu $\alpha$ $\rightarrow$ $C_L$/$C_D$/$C_m$ & \\
 Panel / VLM & OpenVSP VSPAERO --- saniyeler içinde taşıma &
@@ -273,12 +273,12 @@ Malzeme & \texttt{materials.json}, kaynaklı ve sürümlü & 10 malzeme \\
   korunum makine hassasiyetinde test edilir \\
 2-yönlü FSI & Aitken ivmelendirmeli ilmek & aeroelastik ıraksama tespiti \\
 Topoloji opt. & SIMP, CFD-yüklü, \emph{gerilme farkındalıklı} &
-  adjoint FD-doğrulanmış (\S7) \\
+  adjoint FD-doğrulanmış (\S\ref{sec:topopt}) \\
 \midrule
 \multicolumn{3}{@{}l}{\textbf{Otomasyon, V\&V ve çıktı}}\\
 Otopilot & geometriden rejim/mesh/referans seçimi & deterministik; plan + gerekçe \\
-Mentor & kNN öğrenme + BYF/ÖYG/PROJE öğretici katmanı & \S6B \\
-V\&V / UQ & GCI, LSR, geçerlilik zarfı, karar motoru & \S2--\S5 \\
+Mentor & kNN öğrenme + BYF/ÖYG/PROJE öğretici katmanı & \S\ref{sec:mentor} \\
+V\&V / UQ & GCI, LSR, geçerlilik zarfı, karar motoru & \S\ref{sec:karar}--\S\ref{sec:zarf} \\
 İzlenebilirlik & her kanıt üretim komutunu \emph{ve} ortam parmak izini taşır &
   \texttt{kanit.py}, \texttt{ortam.py} \\
 Çıktı & Markdown/PDF rapor, VTK/ParaView, JSON kanıt & \\
@@ -288,6 +288,7 @@ V\&V / UQ & GCI, LSR, geçerlilik zarfı, karar motoru & \S2--\S5 \\
 
 % ══════════════════════════════ 2 ══════════════════════════════
 \section{Karar Motoru}
+\label{sec:karar}
 
 Platformun kalbi, ham çözücü çıktısını yayımlanabilir bir mühendislik sayısına
 çeviren karar zinciridir. Her düğüm bir \emph{kapıdır}: geçilemezse sayı
@@ -533,6 +534,7 @@ Kayıtlı çapa raporları düzeltilmedi. Onlar geçmiş koşuların çıktısı
 kanıtın sonradan düzeltilmesi, düzeltilen kusurdan daha ağır olurdu.
 
 \subsection{Mekanizma kendi raporunu da denetler}
+\label{sub:kendi-raporu}
 
 Açıklanabilirlik iddiası, ancak mekanizma \emph{kendi çıktısına} da uygulandığında
 inandırıcıdır. Bu raporun hazırlanışı sırasında kapsam ölçümü mantıksal
@@ -636,6 +638,7 @@ satırları da (bir çapraz-kontrol düştü ama koşu sürdü) arayüze taşın
 
 % ══════════════════════════════ 3 ══════════════════════════════
 \section{Belirsizlik Nicelemesi}
+\label{sec:belirsizlik}
 
 \subsection*{Problem}
 
@@ -744,6 +747,7 @@ gereksiz gürültü olurdu.
 
 % ══════════════════════════════ 4 ══════════════════════════════
 \section{Doğrulanmış Zarf}
+\label{sec:zarf}
 
 \begin{figure}[htbp]
 \centering
@@ -921,6 +925,7 @@ referansı $1{,}05$. Sapma \%6{,}0 ve GCI \%3{,}1 --- yani sonuç
 
 % ══════════════════════════════ 6B ══════════════════════════════
 \section{Öğrenen Katman: \texttt{mentor}}
+\label{sec:mentor}
 
 \subsection*{Problem}
 
@@ -991,6 +996,7 @@ mesafesi 0{,}000, yani havuzda bu geometrinin aynısı var. Etiket
 
 % ══════════════════════════════ 6BB ══════════════════════════════
 \section{Topoloji Optimizasyonu --- Gerilme Farkındalıklı}
+\label{sec:topopt}
 
 \subsection*{Problem}
 
@@ -1424,13 +1430,13 @@ v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanm
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 31.307 & dosya sayımı \\
-Kök modül & 81 & \\
-Deney / çapa betiği & 60 & \texttt{experiments/} \\
-Test dosyası & 139 & \texttt{tests/} \\
-Geçen test & 1361 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1361 & \texttt{-{}-cov} \\
-Satır kapsamı & \textbf{\%47} & 18.765 ifade, 9.955 kapsanmamış \\
+Kod satırı (kök + \texttt{analysis/}) & 31.322 & \texttt{rapor\_sayilari.py} \\
+Kök modül & 83 & \texttt{rapor\_sayilari.py} \\
+Deney / çapa betiği & 62 & \texttt{experiments/} \\
+Test dosyası & 138 & \texttt{tests/test\_*.py} \\
+Geçen test & 1365 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1365 & \texttt{-{}-cov} \\
+Satır kapsamı & \textbf{\%47} & 18.928 ifade, 9.979 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
 \end{tabular}
@@ -1445,14 +1451,14 @@ dış-süreç sarmalayıcıları aynı kaba girer. Katman ayrımı
 \toprule
 \textbf{Katman} & \textbf{Kapsam} & \textbf{İfade} \\
 \midrule
-\rowcolor{iyibg} Otomasyon \& öğrenme & \%78 & 627 \\
+\rowcolor{iyibg} Otomasyon \& öğrenme & \%78 & 628 \\
 \rowcolor{iyibg} Analiz çekirdeği (\texttt{analysis/}) & \%75 & 1.382 \\
-\rowcolor{iyibg} Karar \& V\&V motoru & \%81 & 2.034 \\
-\rowcolor{ortabg} Araç hattı & \%54 & 2.489 \\
-\rowcolor{ortabg} Dış-süreç köprüleri & \%40 & 1.199 \\
-\rowcolor{ortabg} Arayüz (GUI) & \%36 & 1.589 \\
+\rowcolor{iyibg} Karar \& V\&V motoru & \%81 & 2.049 \\
+\rowcolor{ortabg} Araç hattı & \%54 & 2.494 \\
+\rowcolor{ortabg} Dış-süreç köprüleri & \%40 & 1.201 \\
+\rowcolor{ortabg} Arayüz (GUI) & \%37 & 1.595 \\
 \midrule
-TOPLAM & \%47 & 18.765 \\
+TOPLAM & \%47 & 18.928 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1462,7 +1468,7 @@ Belirsizlik matematiği fiilen tamdır (\texttt{band\_from\_levels} \%100,
 \texttt{least\_squares\_gci} \%100, \texttt{compute\_gci} \%92). Kapsanmayan
 \emph{raporu yazan} koddu: \texttt{VVReport.build} \%38 idi ve raporun çoğu
 bölümü hiç sürülmemişti. Doğru matematikle yanlış rapor mümkündür ve öyleydi
-(bkz.\ \S2.4, dört kusur); dördü de aynı sınıftandı --- \emph{metin sabit, veri
+(bkz.\ \S\ref{sub:kendi-raporu}, dört kusur); dördü de aynı sınıftandı --- \emph{metin sabit, veri
 değişti}.
 
 Bu yüzden bölüm testleri sabit çıktı beklemez; verinin bir özelliğini
