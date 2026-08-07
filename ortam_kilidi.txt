@@ -9,8 +9,12 @@
 # Yeniden üretmek için:  python ortam.py
 # Kanıt dosyalarındaki damgayla karşılaştırmak için:  python kanit.py --ortam
 #
-# NE KAPSAMAZ: OpenFOAM ve CalculiX WSL/konteyner tarafındadır ve bu dosyada
-# YOKTUR — `python ortam.py --cozucu` onları çalışma zamanında okur.
+# ÇÖZÜCÜ SÜRÜMLERİ (ölçüldü, `python ortam.py --cozucu`):
+#   OpenFOAM : Build: 11-e1fc8c682ae6
+#   CalculiX : This is Version 2.17
+# OpenFOAM sürümü uzun süre `null` kaydediliyordu: sonda `foamRun -help`
+# çağırıyordu ama OpenFOAM ortamını source etmeden — o kabukta komut PATH'te
+# yok. En kritik çözücünün sürümü bu yüzden hiç kaydedilmemişti.
 # docker/Dockerfile'daki taban imaj etiketi (openfoam11-paraview510) DEĞİŞTİRİLEBİLİR
 # bir etikettir; digest'e sabitlenmemiştir ve bu bilinen bir yeniden-üretilebilirlik
 # boşluğudur.

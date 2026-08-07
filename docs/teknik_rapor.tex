@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-31.547 satır Python $\cdot$ 140 test dosyası $\cdot$ 1411 geçen test\\[3mm]
+31.588 satır Python $\cdot$ 140 test dosyası $\cdot$ 1416 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -1536,12 +1536,12 @@ v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanm
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 31.547 & \texttt{rapor\_sayilari.py} \\
+Kod satırı (kök + \texttt{analysis/}) & 31.588 & \texttt{rapor\_sayilari.py} \\
 Kök modül & 83 & \texttt{rapor\_sayilari.py} \\
 Deney / çapa betiği & 62 & \texttt{experiments/} \\
 Test dosyası & 140 & \texttt{tests/test\_*.py} \\
-Geçen test & 1411 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1411 & \texttt{-{}-cov} \\
+Geçen test & 1416 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1416 & \texttt{-{}-cov} \\
 Satır kapsamı & \textbf{\%47} & 18.928 ifade, 9.979 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
@@ -1820,10 +1820,14 @@ dökülmesinde doğrulandı, k--$\omega$ SST ile bağımsız bir çapa henüz yo
 literatür öncülü. \textbf{Backend:} ortak katmanı atlayan çağrı 36'dan 9'a
 düşürüldü; davranış eşdeğerliği ölçülmemiş iki özel süreç yolu (etkileşimli
 stdin, login kabuk) ve case iskelesini yineleyen eski betikler borç olarak
-kaldı. \textbf{Ölçülmemişler:} bellek katsayısı (telemetri var, sayı sonraki
-koşulardan gelecek); başarım tek geometri ve tek makineyle sınırlı; çözücü
-sürümleri kilitli değil. Yol haritası bunları v1.1--v2.0 aralığına yerleştirir
-ve hiçbiri ``yakında'' diye geçiştirilmemiştir.
+kaldı. \textbf{Yeniden üretilebilirlik:} çözücü sürümleri artık ölçülüyor ve
+kilit dosyasında kayıtlı (OpenFOAM \texttt{11-e1fc8c682ae6}, CalculiX 2.17);
+yeni çapa kanıtları ortam damgasını \emph{üretim anında} basıyor --- ama eski
+kanıtların çoğu hâlâ damgasız ve Docker taban imajı digest'e sabitlenmemiş.
+\textbf{Ölçülmemişler:} bellek katsayısı (telemetri var, sayı sonraki
+koşulardan gelecek); başarım tek geometri ve tek makineyle sınırlı. Yol
+haritası bunları v1.1--v2.0 aralığına yerleştirir ve hiçbiri ``yakında'' diye
+geçiştirilmemiştir.
 \end{dikkat}
 
 \vspace{4mm}

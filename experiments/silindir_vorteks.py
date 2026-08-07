@@ -292,6 +292,10 @@ def main(argv: list[str]) -> int:
         "_sure_s": round(time.time() - t0, 1),
     }
     out["verdikt"] = _verdikt(out)
+    # ORTAM DAMGASI URETIM ANINDA: sonradan eklenen damga, sayinin hangi
+    # yiginda DOGDUGUNU degil en son ne zaman bakildigini soyler.
+    import ortam
+    ortam.damgala(out)
     (HERE.parent / "silindir_vorteks.json").write_text(
         json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\nSt = {st}  (deney {ST_DENEY}) → %{out['sapma_pct']['St']}")

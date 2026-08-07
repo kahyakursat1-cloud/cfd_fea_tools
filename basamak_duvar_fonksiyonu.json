@@ -97,6 +97,23 @@
   "_basarisizlik_kok_nedeni": "ILK HUCREYI SABIT TUTMA STRATEJISI INCE AGDA COKUYOR. Ag inceldikce ayni ilk hucreyi korumak icin grading uc degere gidiyor: L1 0.0835, L2 0.0242, L3 0.0043 — sonuncusunda duvardan uzaktaki hucreler 233 kat kucuk ve foamRun floating point exception ile dustu. L2 ise yakinsamadi (Xr sacilmasi %3.91 > %1). Tek gecerli seviye kaldi, dolayisiyla GCI bandi YOK ve ayrilabilirlik degerlendirilemedi. DOGRU TASARIM: aile alt blogun duvar-normali yonunde degil, x-yonunde ve ust blokta inceltilmeli; alt blokta hucre sayisi SABIT kalip ilk hucreyi korumali (ya da iki-bolgeli mesh). Bu bir sonraki turun isi.",
   "_ilk_hucre_notu": "Ilk hucre SEVIYELER ARASINDA SABIT tutuldu. Ag inceldikce hucre sayisi artar ve grading ayni kalirsa ilk hucre incelir — uc seviye uc FARKLI duvar islemine duserdi ve GCI ailesi anlamini yitirirdi. Grading her seviyede sayisal cozuldu.",
   "_uretim": "Üretim: python experiments/basamak_duvar_fonksiyonu.py",
-  "_sure_s": 11.5,
-  "verdikt": "⚠️ Ayrılabilirlik değerlendirilemedi: sayısal band yok — ayrılabilirlik DEĞERLENDİRİLMEDİ"
+  "_sure_s": 9.3,
+  "verdikt": "⚠️ Ayrılabilirlik değerlendirilemedi: sayısal band yok — ayrılabilirlik DEĞERLENDİRİLMEDİ",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
 }

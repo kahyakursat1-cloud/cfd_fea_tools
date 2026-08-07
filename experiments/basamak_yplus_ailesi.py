@@ -174,6 +174,8 @@ def main(argv: list[str]) -> int:
         "_uretim": "Üretim: python experiments/basamak_yplus_ailesi.py",
         "_sure_s": round(time.time() - t0, 1),
     }
+    import ortam
+    ortam.damgala(out)
     (HERE.parent / "basamak_yplus_ailesi.json").write_text(
         json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\nDuvar işlemi: {duvar['islem']} — {duvar['gerekce']}")

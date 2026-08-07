@@ -14,6 +14,8 @@ import re
 import sys
 from pathlib import Path
 
+import pytest
+
 KOK = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(KOK))
 
@@ -135,3 +137,66 @@ def test_kilit_kapsamadigi_seyi_ACIKCA_soyluyor():
     kilit = (KOK / "ortam_kilidi.txt").read_text(encoding="utf-8")
     assert "OpenFOAM" in kilit and "CalculiX" in kilit
     assert "digest" in kilit.lower()
+
+
+# ── Üretim-anı damgası ve çözücü sürümü ─────────────────────────────────────
+
+def test_damgala_ORTAM_alanini_basiyor():
+    """Damga şimdiye kadar yalnız `kanit.py --dogrula` yolundan ekleniyordu,
+    yani bir kanıt ancak SONRADAN doğrulanırsa ortamını taşıyordu. Ölçüldü:
+    kökteki 95 JSON'un hiçbiri damga taşımıyordu."""
+    import ortam
+    d = ortam.damgala({"vaka": "x"}, cozucu=False)
+    assert "_ortam" in d and d["_ortam"]["python"]
+    assert d["vaka"] == "x", "damga özgün alanları bozmamalı"
+
+
+def test_cozucu_surumu_EKSIKSE_ayni_sayilmiyor():
+    """`if a and b` koşulu, biri None olduğunda ne fark ne karşılaştırılamaz
+    sayıyordu — 'çözücü sürümü bilinmiyor' hâli 'aynı' gibi okunuyordu. Paket
+    alanlarında bu ayrım vardı; çözücüde yoktu ve çözücü daha kritik."""
+    import ortam
+    eski = {"python": "3.13.12", "os": "Windows 11", "cekirdek": 28,
+            "paketler": dict.fromkeys(ortam.IZLENEN_PAKETLER, "1.0"),
+            "cozucu": {"openfoam": None, "calculix": "2.17"}}
+    yeni = dict(eski, cozucu={"openfoam": "Build: 11-abc", "calculix": "2.17"})
+    f = ortam.fark(eski, yeni)
+    assert any("cozucu:openfoam" in x for x in f["karsilastirilamaz"])
+
+
+def test_cozucu_surumu_DEGISIRSE_fark_yaziliyor():
+    import ortam
+    eski = {"python": "3.13.12", "os": "Windows 11", "cekirdek": 28,
+            "paketler": dict.fromkeys(ortam.IZLENEN_PAKETLER, "1.0"),
+            "cozucu": {"openfoam": "Build: 11-aaa", "calculix": "2.17"}}
+    yeni = dict(eski, cozucu={"openfoam": "Build: 11-bbb", "calculix": "2.17"})
+    f = ortam.fark(eski, yeni)
+    assert f["ayni"] is False
+    assert any("openfoam" in x for x in f["farklar"])
+
+
+def test_yeni_capalar_URETIM_aninda_damgali():
+    """Taban sayaç: üretim anında damgalayan kanıt sayısı azalmasın."""
+    import json
+    damgali = []
+    for ad in ("silindir_vorteks.json", "basamak_duvar_fonksiyonu.json"):
+        p = KOK / ad
+        if not p.exists():
+            continue
+        d = json.loads(p.read_text(encoding="utf-8"))
+        if isinstance(d.get("_ortam"), dict):
+            damgali.append(ad)
+    if not damgali:
+        pytest.skip("yeni çapa kanıtları henüz üretilmemiş")
+    assert len(damgali) >= 1
+    for ad in damgali:
+        d = json.loads((KOK / ad).read_text(encoding="utf-8"))
+        assert d["_ortam"].get("cozucu"), f"{ad}: çözücü sürümü damgada yok"
+
+
+def test_capa_betikleri_DAMGALIYOR():
+    """Kural kod düzeyinde: kanıt yazan yeni çapa betiği damgayı çağırmalı."""
+    for ad in ("silindir_vorteks.py", "basamak_duvar_fonksiyonu.py",
+               "basamak_yplus_ailesi.py"):
+        src = (KOK / "experiments" / ad).read_text(encoding="utf-8")
+        assert "ortam.damgala" in src, f"{ad} ortam damgası basmıyor"

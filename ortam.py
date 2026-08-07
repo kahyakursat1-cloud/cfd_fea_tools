@@ -55,22 +55,57 @@ def _komut_surumu(argv: list[str], desen: str) -> str | None:
 
 
 def cozucu_surumleri() -> dict[str, str | None]:
-    """OpenFOAM ve CalculiX sürümleri (WSL üzerinden). Ulaşılamıyorsa None."""
+    """OpenFOAM ve CalculiX sürümleri (arka uç üzerinden). Ulaşılamıyorsa None.
+
+    OPENFOAM SÜRÜMÜ SESSİZCE KAYITSIZ KALIYORDU. Sonda `foamRun -help`
+    çağırıyordu ama OpenFOAM ortamını SOURCE ETMEDEN — o kabukta `foamRun`
+    PATH'te yok ve komut `command not found` veriyordu. Sonuç: kanıt
+    dosyalarında `openfoam: null`, yani en kritik çözücünün sürümü hiç
+    kaydedilmiyordu. Yayımlanan bir GCI bandı, altındaki çözücü değiştiğinde
+    sessizce geçersizleşebilir; kaydın amacı tam olarak buydu.
+
+    Artık ortam öneki (`OF_ENV_PREFIX`) kullanılıyor ve BUILD HASH yakalanıyor:
+    "Build: 11-e1fc8c682ae6" — yalnız ana sürüm değil, derleme kimliği.
+    """
     out: dict[str, str | None] = {"openfoam": None, "calculix": None}
     if platform.system() != "Windows":
         return out
     from analysis.backend import linux_run
+    from analysis.openfoam_runner import OF_ENV_PREFIX
     for anahtar, komut, desen in (
-        ("openfoam", "foamRun -help 2>&1 | head -5 || true", "openfoam"),
+        # `blockMesh -help` basligi "Build: <surum>-<hash>" tasir; foamVersion
+        # yalniz "OpenFOAM-11" verir ve derleme kimligini kaybeder.
+        # `head` KULLANILMAZ: Build satiri yardim ciktisinin SONUNDA ve ilk
+        # alti satirin disinda kaliyor — ilk duzeltmede tam da bu yuzden yine
+        # null dondu. grep, satirin yerinden bagimsiz bulur.
+        ("openfoam", f"{OF_ENV_PREFIX}blockMesh -help 2>&1 | grep -i '^Build' || true",
+         "build"),
         ("calculix", "ccx -v 2>&1 | head -3 || true", "version"),
     ):
-        r = linux_run(komut, 30)
+        r = linux_run(komut, 60)
         metin = (getattr(r, "stdout", "") or "") + (getattr(r, "stderr", "") or "")
         for satir in metin.splitlines():
             if desen in satir.lower():
                 out[anahtar] = satir.strip()[:120]
                 break
     return out
+
+
+def damgala(kanit: dict, cozucu: bool = True) -> dict:
+    """Kanıt sözlüğüne ortam parmak izini ÜRETİM ANINDA basar.
+
+    Damga şimdiye kadar yalnız `kanit.py --dogrula` yolundan ekleniyordu, yani
+    bir kanıt ancak SONRADAN doğrulanırsa ortamını taşıyordu. Ölçüldü: kökteki
+    95 JSON'un HİÇBİRİ damga taşımıyordu. "Kanıtın ortamı da kanıtın
+    parçasıdır" iddiası, damgayı üretenin kanıtı üreten kod olmasını gerektirir
+    --- sonradan eklenen damga, o sayının hangi yığında doğduğunu değil, en son
+    ne zaman bakıldığını söyler.
+
+    `cozucu=True` varsayılan: CFD/FEA kanıtlarında çözücü sürümü en kritik
+    bileşendir ve arka uca bir çağrı (~1 s) onun yanında ihmal edilebilir.
+    """
+    kanit["_ortam"] = parmak_izi(cozucu=cozucu)
+    return kanit
 
 
 def parmak_izi(cozucu: bool = False) -> dict:
@@ -120,7 +155,13 @@ def fark(eski: dict | None, yeni: dict | None = None) -> dict:
     ec, yc = eski.get("cozucu") or {}, yeni.get("cozucu") or {}
     for ad in ("openfoam", "calculix"):
         a, b = ec.get(ad), yc.get(ad)
-        if a and b and a != b:
+        # EKSIK COZUCU SURUMU SESSIZ GECIYORDU: `if a and b` koşulu, biri None
+        # olduğunda ne fark ne de karşılaştırılamaz sayıyordu — yani "çözücü
+        # sürümü bilinmiyor" hâli "aynı" gibi okunuyordu. Paket alanlarında bu
+        # ayrım zaten yapılıyordu; çözücüde yapılmıyordu ve çözücü daha kritik.
+        if a is None or b is None:
+            yok.append(f"cozucu:{ad}")
+        elif a != b:
             farklar.append(f"{ad}: {a} → {b}")
     return {"ayni": not farklar, "farklar": farklar,
             "karsilastirilamaz": yok}
