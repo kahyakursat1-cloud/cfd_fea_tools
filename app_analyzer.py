@@ -1102,7 +1102,7 @@ class AnalyzerWindow(QMainWindow):
         lab.setText(f"{title}\n{value}")
 
     def _on_done(self, r):
-        from validity_envelope import sonuc_kapisi
+        from validity_envelope import rejim_arac_tipinden, sonuc_kapisi
         self.last_result = r
         self.progress.setValue(100)
         # KOSUM KOSULU SONUCUN KENDISINDEN yazilir, formdan DEGIL. Ekrandaki
@@ -1110,8 +1110,23 @@ class AnalyzerWindow(QMainWindow):
         # (ozellikle kuyrukta: tek pencere, cok kosu). Formdan okumak, ekranda
         # yanlis kosum kosuluyla dogru sayilar gostermek demektir.
         self._log(f"✅ Analiz tamamlandı — V={r.velocity} m/s, α={r.alpha_deg}°")
+        # KOSU BAGLAMI: salinan kosuya URANS recetesi ancak uzunluk/hiz/maliyet
+        # bilinirse hesaplanabilir. Bunlari gecmemek, "kesin cozum URANS'tir"
+        # cumlesini uygulanamaz birakir.
+        _geo = getattr(r, "geometry", None) or {}
+        # Cozucu maliyeti asama telemetrisinden gelir: foamRun asamasi hem sure
+        # hem iterasyon tasir, yani URANS tahmini AYNI agda AYNI makinede olculmus
+        # iterasyon maliyetine dayanir — uydurma bir katsayiya degil.
+        _fr = next((a for a in (getattr(r, "asama_sureleri", None) or [])
+                    if a.get("asama") == "foamRun"), {})
         kapi = sonuc_kapisi(getattr(r, "fizik_kabul", None), r.convergence,
-                            getattr(r, "belirsizlik", None))
+                            getattr(r, "belirsizlik", None),
+                            kosu={"lref_m": _geo.get("lmax_m"),
+                                  "velocity": r.velocity,
+                                  "rejim": rejim_arac_tipinden(
+                                      getattr(r, "vehicle_type", None)),
+                                  "sure_s": _fr.get("sure_s"),
+                                  "iterasyon": _fr.get("iterasyon")})
         # Fizik-dışı Cd'yi çıplak sayı olarak göstermek mühendisi yanlış sayıya güvendirir
         self._set_metric("cd", f"{r.cd}" + (" ⛔" if kapi["seviye"] == "engel" else ""))
         self._set_metric("cl", f"{r.cl}" if r.cl is not None else "—")

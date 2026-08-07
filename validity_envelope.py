@@ -339,8 +339,14 @@ SALINIM_MODEL_ORANI = 3.0     # genlik, model belirsizliğinin en fazla 1/3'ü o
 
 
 def sonuc_kapisi(fizik: dict | None, convergence: dict | None,
-                 belirsizlik: dict | None = None) -> dict:
+                 belirsizlik: dict | None = None,
+                 kosu: dict | None = None) -> dict:
     """Kullanıcı-yüzü tek hüküm (GUI rozeti / CLI özeti) — ÖNCELİK SIRALI.
+
+    `kosu`: {lref_m, velocity, rejim, sure_s, iterasyon} — verilirse salınan
+    koşuya URANS eskalasyon REÇETESİ eklenir. "Kesin çözüm URANS'tır" cümlesi
+    tek başına uygulanabilir değildir: zaman adımı, adım sayısı ve maliyet
+    olmadan kullanıcı o cümleyle hiçbir şey yapamaz.
 
     Sıra kritik: fiziksel kabul-edilebilirlik, sayısal yakınsamadan ÖNCE gelir. Yakınsamış
     ama fizik-dışı bir koşuya "✅ yakınsadı" demek mühendisi yanlış sayıya güvendirir.
@@ -427,8 +433,22 @@ def sonuc_kapisi(fizik: dict | None, convergence: dict | None,
                         f"sayısal belirsizliğe katıldı (%{_u_say:.2f}) ve model-form "
                         f"belirsizliğinin (%{_u_mod if _u_mod is not None else '?'}) "
                         "çok altında. Akış zaman-bağımlıdır; kesin çözüm URANS'tır"]}
+    # ESKALASYON RECETESI EN SONDA: once sorun, sonra ne yapilacagi. Yalniz
+    # REDDEDILEN salinimli kosuya verilir — yukaridaki dalda kosu KABUL ediliyor
+    # ve orada recete gereksiz gurultu olur.
+    if salinimda:
+        gerekce += _urans_satirlari(sal, kosu)
     etiket = "⚠️ salınımlı (sabit nokta yok)" if salinimda else "⚠️ sınırda"
     return {"seviye": "uyari", "etiket": etiket, "gerekce": gerekce}
+
+
+def _urans_satirlari(sal: dict, kosu: dict | None) -> list[str]:
+    """Salınan koşu için URANS eskalasyon reçetesi (varsa)."""
+    k = kosu or {}
+    from urans_kapisi import recete_metni, urans_recetesi
+    return recete_metni(urans_recetesi(
+        sal, k.get("lref_m"), k.get("velocity"), k.get("rejim"),
+        k.get("sure_s"), k.get("iterasyon")))
 
 
 # Duvar-fonksiyonu log-bölgesi; dışındaysa sürtünme bileşeni çözülmüyor.
@@ -496,8 +516,15 @@ def savunulabilir(s: dict) -> dict:
     if s.get("status") != "ok" or s.get("cd") is None:
         ret["gerekce"].append(f"koşu tamamlanmadı (status={s.get('status', '?')})")
         return ret
+    _fr = next((a for a in (s.get("asama_sureleri") or [])
+                if a.get("asama") == "foamRun"), {})
     kapi = sonuc_kapisi(s.get("fizik_kabul"), s.get("convergence"),
-                        s.get("belirsizlik"))
+                        s.get("belirsizlik"),
+                        kosu={"lref_m": (s.get("geometry") or {}).get("lmax_m"),
+                              "velocity": s.get("velocity"),
+                              "rejim": rejim_arac_tipinden(s.get("vehicle_type")),
+                              "sure_s": _fr.get("sure_s"),
+                              "iterasyon": _fr.get("iterasyon")})
     ret["kapi"] = kapi["etiket"]
     if kapi["seviye"] != "ok":
         ret["gerekce"].append(f"{kapi['etiket']}: {'; '.join(kapi['gerekce'])[:160]}")

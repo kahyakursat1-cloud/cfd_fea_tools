@@ -395,6 +395,18 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
                   "(limit çevrimi). Aşağıdaki katsayı salınımın ortalamasıdır; bu genlik "
                   "gerçek bir belirsizlik bileşenidir ve GCI'ya girmez. Keskin-kenarlı "
                   "küt cisim ve ayrılmış akışta beklenen davranıştır.  ")
+        # ESKALASYON RECETESI ARAYUZDE VARDI, RAPORDA YOKTU. "Kesin cozum
+        # URANS'tir" cumlesi tek basina uygulanabilir degildir: zaman adimi,
+        # adim sayisi ve maliyet olmadan okuyucu o cumleyle bir sey yapamaz.
+        from urans_kapisi import recete_metni, urans_recetesi
+        from validity_envelope import rejim_arac_tipinden
+        _fr = next((a for a in (getattr(r, "asama_sureleri", None) or [])
+                    if a.get("asama") == "foamRun"), {})
+        for _s in recete_metni(urans_recetesi(
+                sal, (getattr(r, "geometry", None) or {}).get("lmax_m"),
+                r.velocity, rejim_arac_tipinden(getattr(r, "vehicle_type", None)),
+                _fr.get("sure_s"), _fr.get("iterasyon"))):
+            md.append(f"  - {_s}  ")
     elif sal:
         md.append(f"- Salınım dedektörü: temiz ({sal.get('gecis')} geçiş, "
                   f"genlik %{sal.get('genlik_pct')}) ✅  ")

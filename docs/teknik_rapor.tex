@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-30.832 satır Python $\cdot$ 134 test dosyası $\cdot$ 1323 geçen test\\[3mm]
+31.169 satır Python $\cdot$ 136 test dosyası $\cdot$ 1340 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -703,6 +703,40 @@ rezidüellerden değil, ilgi-büyüklüğünün son \%20 penceredeki sürüklenm
 verilir. \emph{Veri:} \texttt{postProcessing/forceCoeffs1}.}
 \end{figure}
 
+\subsection{Reddin bir sonraki adımı olmalı}
+\label{sec:urans}
+
+Salınan bir koşuda hüküm doğru olanı söylüyordu: çözüm sabit noktaya oturmadı,
+akış zaman-bağımlıdır, kesin çözüm URANS'tır. Sonra orada duruyordu. Kullanıcının
+elinde ne zaman adımı vardı, ne kaç adım koşacağı, ne de bunun kaç saat
+süreceği. Doğru ama \emph{uygulanamaz} bir cümle, yarım bir hükümdür.
+
+Reçete artık hükmün içinde ve ölçülmüş büyüklüklerden türer:
+
+\begin{lstlisting}
+URANS recetesi: dt=0.00125 s, 2000 adim (5+15 periyot, f~8 Hz,
+St=0.2 onculu) - bu agda tahmini ~5.0 saat
+\end{lstlisting}
+
+\noindent Frekans $f = \mathrm{St}\cdot U/L$'den, zaman adımı periyodun yüzde
+birinden, adım sayısı beş geçiş artı on beş istatistik periyodundan gelir. Süre
+tahmini uydurma bir katsayı değil: aynı ağda aynı makinede ölçülen iterasyon
+maliyeti (aşama telemetrisinden) URANS adım maliyetiyle çarpılır.
+
+\begin{dikkat}{Reçete bir tahmindir ve bunu kendisi söyler}
+Kararlı çözücüde iterasyon zaman değildir; salınımın iterasyon-periyodu
+fiziksel periyoda \emph{çevrilemez}. Frekans literatür Strouhal öncülünden
+gelir ve öncül \%50 şaşarsa reçete de o kadar şaşar --- ilk URANS koşusunda
+ölçülen frekansla $\Delta t$ yeniden ayarlanmalıdır. Ayrıca $\Delta t$ burada
+yalnız periyot çözünürlüğünden gelir; Courant kısıtı ayrıca kontrol edilir ve
+ikisinden \emph{küçüğü} seçilir. Her iki uyarı da çıktının parçasıdır, dipnot
+değil.
+\end{dikkat}
+
+\noindent Reçete yalnız \emph{reddedilen} salınımlı koşuya verilir. Genliği
+ölçülmüş ve bandına katılmış salınım zaten kabul ediliyor; orada reçete
+gereksiz gürültü olurdu.
+
 \clearpage
 
 % ══════════════════════════════ 4 ══════════════════════════════
@@ -1154,7 +1188,10 @@ zaten her çıktısında söylüyor.
         \emph{ayrı} söyleniyor: ``ölçtük ama ağ kaba'' ile ``hiç ölçmedik''
         farklı şeylerdir.
   \item[Kararlı-RANS uygunluğu.] Bazı vakalarda rezidüeller platoya oturur ve
-        kuvvetler limit çevrimine girer --- URANS gerekir.
+        kuvvetler limit çevrimine girer --- URANS gerekir. Platform URANS
+        \emph{koşmaz}, ama artık nasıl koşulacağını söyler: salınan koşuya
+        zaman adımı, adım sayısı ve o ağdaki tahmini süre veriliyor
+        (\S\ref{sec:urans}).
   \item[Süpersonik mutlak $C_d$.] 3B-açık çözüm bu donanımda ulaşılamaz.
   \item[Panel yönteminin indüklenen direnci.] VSPAERO'nun iki $C_{Di}$ çıktısı
         da kuramdan sapar (yakın-alan $-\%21$, Trefftz $+\%62$); bu yüzden
@@ -1324,7 +1361,7 @@ v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanm
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 30.832 & dosya sayımı \\
+Kod satırı (kök + \texttt{analysis/}) & 31.169 & dosya sayımı \\
 Kök modül & 81 & \\
 Deney / çapa betiği & 60 & \texttt{experiments/} \\
 Test dosyası & 134 & \texttt{tests/} \\
