@@ -56,12 +56,21 @@ class TestKanit:
         return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
 
     def test_ATANAMAYAN_capa_TAHMIN_edilmiyor(self):
-        """y⁺ kayıtlı değilse çapa bir hücreye atanamaz; tahmin YASAK."""
+        """Çapa bir hücreye atanamıyorsa NEDENİ yazılır; tahmin YASAK.
+
+        İki ayrı neden var ve ikisi de kabul: (a) y⁺ hiç kayıtlı değil — eksik
+        kayıt; (b) y⁺ ÖLÇÜLDÜ ama tampon bölgede (5<y⁺<30) — fiziksel bulgu,
+        o koşu hiçbir duvar işlemini temsil etmez. İkisini aynı torbaya koymak
+        "ölçemedim" ile "ölçtüm, ait değil"i karıştırmak olurdu.
+        """
         d = self._d()
         if not d:
             return
         for x in d["atanamayan_capalar"]:
-            assert "KAYITLI DEĞİL" in x["neden"]
+            if x.get("yplus_ort") is None:
+                assert "KAYITLI DEĞİL" in x["neden"]
+            else:
+                assert "ÖLÇÜLDÜ" in x["neden"] and "Tampon" in x["neden"]
         atanan = {(r, i) for r, h in d["olculen_hucreler"].items() for i in h}
         for x in d["atanamayan_capalar"]:
             assert not any(r == x["rejim"] for r, _ in atanan) or True

@@ -23,8 +23,10 @@
       "capa": "geriye-basamak (kOmegaSST)",
       "rejim": "separated",
       "sapma_pct": 11.58,
-      "yplus_ort": null,
-      "referans": "Driver & Seegmiller, AIAA J. 23(2), 1985 — deneysel"
+      "yplus_ort": 14.3143,
+      "yplus_max": 16.8448,
+      "yplus_kaynak": "foamPostProcess yPlus, 'alt' yaması (yeniden-yapışmanın olduğu duvar)",
+      "referans": "Driver & Seegmiller, AIAA J. 23(2), 1985 â€” deneysel"
     }
   ],
   "olculen_hucreler": {
@@ -68,7 +70,8 @@
       "capa": "geriye-basamak (kOmegaSST)",
       "rejim": "separated",
       "sapma_pct": 11.58,
-      "neden": "duvar işlemi (y⁺) kanıtta KAYITLI DEĞİL — hücreye atanmadı, TAHMİN edilmedi"
+      "yplus_ort": 14.3143,
+      "neden": "y⁺ ÖLÇÜLDÜ (14.3) ama hiçbir duvar işlemine ait değil: duvar-çözünür ≤5.0, duvar-fonksiyonu 30.0–300.0. Tampon bölgede log-yasası geçerli değildir ve viskoz altkatman da çözülmemiştir; bu koşu iki hücreden hiçbirini kalibre EDEMEZ. Eksik kayıt değil, FİZİKSEL bulgu — ve çapanın sapmasının bir bölümünü açıklar"
     }
   ],
   "oncul_kalan_hucreler": [

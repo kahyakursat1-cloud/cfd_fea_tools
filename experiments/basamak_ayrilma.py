@@ -289,6 +289,32 @@ def rezidual_platosu(case: Path) -> dict | None:
             "kararli_nokta": not platoda}
 
 
+def yplus_olc(case: Path, timeout: int = 600) -> dict | None:
+    """Duvar y⁺'ını ÇÖZMEDEN ölç: çözüm diskteyken son-işlem yeterli.
+
+    NEDEN GEREKLİ: bu çapa `model_form_bandi`'de hiçbir hücreye ATANAMIYORDU,
+    çünkü duvar işlemi (y⁺) kayıtlı değildi. Değeri tahmin etmek yerine
+    ölçüldü — ve ölçüm çapayı hâlâ atanabilir yapmadı, ama artık nedeni
+    "kaydedilmemiş" değil "tampon bölgede" (aşağıya bak).
+
+    Anlamlı yama `alt`tır: yeniden-yapışma uzunluğu Xr orada ölçülür.
+    """
+    cu = windows_to_wsl_path(case)
+    r = linux_run(f"source {BASHRC} && cd '{cu}' && "
+                  "foamPostProcess -solver incompressibleFluid -func yPlus "
+                  "-latestTime 2>&1 | grep 'y+'", timeout)
+    metin = (r.stdout or "") + (r.stderr or "")
+    out: dict[str, dict] = {}
+    for satir in metin.splitlines():
+        m = re.search(r"patch\s+(\S+)\s+y\+\s*:\s*min\s*=\s*([\d.eE+-]+),"
+                      r"\s*max\s*=\s*([\d.eE+-]+),\s*average\s*=\s*([\d.eE+-]+)",
+                      satir)
+        if m:
+            out[m.group(1)] = {"min": float(m.group(2)), "max": float(m.group(3)),
+                               "ort": float(m.group(4))}
+    return out or None
+
+
 def _kos(case: Path, timeout: int = 3600) -> tuple[bool, str]:
     cu = windows_to_wsl_path(case)
     # Windows tarafinda yazilan dosyalar WSL'de (drvfs) ANINDA gorunmeyebilir: kEpsilon
@@ -355,7 +381,10 @@ def main(modeller: list[str]) -> int:
                       "iterasyon": it, "rezidual": plato.get("alanlar"),
                       "platoda_alanlar": plato.get("platoda"),
                       "kararli_nokta": plato.get("kararli_nokta"),
-                      "durum": "ok"})
+                      "durum": "ok",
+                      "yplus": yplus_olc(case),
+                      "_yplus_yamasi": ("hüküm yaması 'alt': yeniden-yapışma "
+                                        "uzunluğu orada ölçülür")})
         print(f"   Xr/H = {xr:.2f} ± {salinim:.2f} (deney {XR_DENEY}) → "
               f"hata %{hata_pct:+.1f}  | sabit nokta: "
               f"{'evet' if plato.get('kararli_nokta') else 'HAYIR (plato: %s)' % ','.join(plato.get('platoda') or [])}",

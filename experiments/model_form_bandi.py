@@ -106,10 +106,18 @@ def capalari_topla() -> list[dict]:
         ok = [s for s in bas.get("seviyeler", []) if s.get("durum") == "ok"]
         if ok:
             en_iyi = min(ok, key=lambda s: abs(s["hata_pct"]))
+            # HUKUM YAMASI 'alt': yeniden-yapisma uzunlugu orada olculur, yani
+            # capanin sapmasini ureten duvar odur. 'ust' ve 'basamak' yamalarinin
+            # y+'i baska bandda olabilir ve capayi temsil etmez.
+            _yp = (en_iyi.get("yplus") or {}).get("alt") or {}
             c.append({"capa": f"geriye-basamak ({en_iyi['model']})",
                       "rejim": "separated",
                       "sapma_pct": abs(float(en_iyi["hata_pct"])),
-                      "yplus_ort": en_iyi.get("yplus_ort"),
+                      "yplus_ort": _yp.get("ort", en_iyi.get("yplus_ort")),
+                      "yplus_max": _yp.get("max"),
+                      "yplus_kaynak": ("foamPostProcess yPlus, 'alt' yaması "
+                                       "(yeniden-yapışmanın olduğu duvar)"
+                                       if _yp else None),
                       "referans": (bas.get("referans") or {}).get("kaynak", "")})
     return c
 
@@ -123,10 +131,26 @@ def calistir() -> dict:
     for x in capalar:
         hucre = _duvar_islemi(x.get("yplus_ort"))
         if hucre is None:
+            # OLCULDU AMA ATANAMADI ile HIC OLCULMEDI ayri seylerdir. Ikincisi
+            # eksik kayittir; birincisi FIZIKSEL bir bulgudur: y+ tampon
+            # bolgedeyse (5<y+<30) ne log-yasasi gecerlidir ne de viskoz
+            # altkatman cozulmustur — o kosu hicbir duvar islemini temsil etmez.
+            _y = x.get("yplus_ort")
+            if _y is None:
+                neden = ("duvar işlemi (y⁺) kanıtta KAYITLI DEĞİL — hücreye "
+                         "atanmadı, TAHMİN edilmedi")
+            else:
+                from validity_envelope import YPLUS_BANDI, YPLUS_DUVAR_COZUNUR
+                neden = (f"y⁺ ÖLÇÜLDÜ ({_y:.1f}) ama hiçbir duvar işlemine ait "
+                         f"değil: duvar-çözünür ≤{YPLUS_DUVAR_COZUNUR}, "
+                         f"duvar-fonksiyonu {YPLUS_BANDI[0]}–{YPLUS_BANDI[1]}. "
+                         "Tampon bölgede log-yasası geçerli değildir ve viskoz "
+                         "altkatman da çözülmemiştir; bu koşu iki hücreden "
+                         "hiçbirini kalibre EDEMEZ. Eksik kayıt değil, FİZİKSEL "
+                         "bulgu — ve çapanın sapmasının bir bölümünü açıklar")
             atanamayan.append({"capa": x["capa"], "rejim": x["rejim"],
                                "sapma_pct": round(x["sapma_pct"], 2),
-                               "neden": "duvar işlemi (y⁺) kanıtta KAYITLI DEĞİL "
-                                        "— hücreye atanmadı, TAHMİN edilmedi"})
+                               "yplus_ort": _y, "neden": neden})
             continue
         hucreler.setdefault(x["rejim"], {}).setdefault(hucre, []).append(x)
 
@@ -236,9 +260,13 @@ def main() -> int:
         print(f"  {x['capa']:<34} {x['rejim']:<12} %{x['sapma_pct']:>5.2f}"
               f"  y+={x.get('yplus_ort')}")
     if rec["atanamayan_capalar"]:
-        print("\n  ATANAMAYAN (duvar işlemi kayıtlı değil):")
+        print("\n  ATANAMAYAN:")
         for x in rec["atanamayan_capalar"]:
-            print(f"    {x['capa']} — %{x['sapma_pct']}")
+            _y = x.get("yplus_ort")
+            print(f"    {x['capa']} — %{x['sapma_pct']}"
+                  + (f" | y⁺={_y:.1f} TAMPON BÖLGE (5–30): ölçüldü ama hiçbir "
+                     "duvar işlemini temsil etmiyor" if _y is not None
+                     else " | y⁺ kayıtlı DEĞİL"))
     print("\n" + rec["verdikt"])
     print("-> model_form_bandi.json, validation_band.json")
     return 0
