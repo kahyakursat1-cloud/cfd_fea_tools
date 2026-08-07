@@ -1,0 +1,36 @@
+# Ortam kilidi — depodaki KANITLARI üreten yığının ölçülen sürümleri.
+#
+# NEDEN: pyproject.toml aralık bildirir (numpy>=1.24). Aralık, "hangi sürümle
+# koşulabilir"i söyler; bu dosya "hangi sürümle KOŞULDU"yu söyler. Yayımlanan
+# bir GCI bandı ya da doğrulama sapması, altındaki sayısal yığın değiştiğinde
+# sessizce geçersizleşebilir; o yüzden kanıtın ortamı da kanıtın parçasıdır.
+#
+# NASIL ÜRETİLDİ: kurulu sürümler ÖLÇÜLDÜ (importlib.metadata), elle yazılmadı.
+# Yeniden üretmek için:  python ortam.py
+# Kanıt dosyalarındaki damgayla karşılaştırmak için:  python kanit.py --ortam
+#
+# NE KAPSAMAZ: OpenFOAM ve CalculiX WSL/konteyner tarafındadır ve bu dosyada
+# YOKTUR — `python ortam.py --cozucu` onları çalışma zamanında okur.
+# docker/Dockerfile'daki taban imaj etiketi (openfoam11-paraview510) DEĞİŞTİRİLEBİLİR
+# bir etikettir; digest'e sabitlenmemiştir ve bu bilinen bir yeniden-üretilebilirlik
+# boşluğudur.
+#
+# Ölçüm tarihi: 2026-08-06 | Python 3.13.12 | Windows 11
+
+numpy==2.4.3
+scipy==1.17.1
+matplotlib==3.10.8
+pandas==2.3.3
+pyyaml==6.0.3
+trimesh==4.11.5
+rtree==1.4.1
+shapely==2.1.2
+mapbox-earcut==2.0.0
+manifold3d==3.5.2
+gmsh==4.15.2
+psutil==7.2.2
+
+# opsiyonel (GUI / geliştirme)
+PySide6==6.10.2
+pytest==9.0.3
+ruff==0.15.15

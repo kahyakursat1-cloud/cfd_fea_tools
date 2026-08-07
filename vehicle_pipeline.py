@@ -1279,6 +1279,7 @@ class VehicleAnalysisResult:
     # verir. Artik her asama kendi baslangic/bitisini ve donus kodunu yazar.
     asama_sureleri: list | None = None
     bellek: dict | None = None
+    ortam: dict | None = None
 
 
 def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg=0.0,
@@ -1527,6 +1528,10 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     base.convergence = conv
     base.asama_sureleri = getattr(res, "asama_sureleri", None) or None
     base.bellek = getattr(res, "bellek", None) or None
+    # Sonucun hangi surumlerle uretildigi kaydin parcasidir: cozucu ya da
+    # sayisal kutuphane degistiginde eski sayi sessizce gecersizlesir.
+    import ortam as _ortam_mod
+    base.ortam = _ortam_mod.parmak_izi()
 
     # Far-field iz-momentum Cd (2.-mertebe). Tek mesh'te yüzey-Cd ile UYUŞMASI yakınsama
     # göstergesi (3-mesh GCI'nin ucuz vekili); AYRIŞMASI az-çözünürlük flag'i.

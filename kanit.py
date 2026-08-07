@@ -359,6 +359,11 @@ def damgala(dosyalar: list[str], not_metni: str = "") -> int:
             print(f"  yok: {ad}")
             continue
         d = json.loads(p.read_text(encoding="utf-8-sig"))
+        # ORTAM DAMGASI: "hangi komutla" yetmez, "hangi surumlerle" de gerekir.
+        # Ayni komut baska bir OpenFOAM/numpy ile baska bir sayi verebilir ve
+        # yayimlanmis bir band bunu sessizce gecersizlestirir.
+        import ortam
+        d["_ortam"] = ortam.parmak_izi()
         d["_son_dogrulama_ts"] = int(time.time())
         d["_son_dogrulama"] = (time.strftime("%Y-%m-%d") + " — üretim komutuyla yeniden "
                                "koşuldu; sonuç güncel kodla karşılaştırıldı."
@@ -449,6 +454,37 @@ def main() -> int:
         print()
         print("Bu dosyalar ESKİ KODLA üretilmiş olabilir; üretim komutuyla tazeleyin.")
         return 1 if kesin else 0
+    if "--ortam" in sys.argv:
+        # ORTAM SURUKLENMESI: kanit dosyalari ortam damgasi tasiyor mu ve
+        # tasiyanlarin ortami BUGUNKUNDEN farkli mi. Farkliysa sayi yanlis
+        # demek DEGIL — "bu sayi baska bir yiginda uretildi, yeniden dogrula"
+        # demektir. Sessiz kalmasi, deponun tum savini bosa cikarirdi.
+        import ortam as _o
+        bugun = _o.parmak_izi()
+        damgasiz, kaymis = [], []
+        for x in kayitlar:
+            if x["sinif"] != "kanit":
+                continue
+            d = json.loads((ROOT / x["dosya"]).read_text(encoding="utf-8-sig"))
+            f = _o.fark(d.get("_ortam"), bugun)
+            if f["ayni"] is None:
+                damgasiz.append(x["dosya"])
+            elif f["ayni"] is False:
+                kaymis.append((x["dosya"], f["farklar"]))
+        print(f"Bugünkü ortam: python {bugun['python']}, "
+              + ", ".join(f"{k} {v}" for k, v in bugun["paketler"].items() if v))
+        print()
+        print(f"{len(damgasiz)} kanıt ortam damgası TAŞIMIYOR "
+              "(damga eklenmeden önce üretilmiş):")
+        for ad in damgasiz[:12]:
+            print(f"  - {ad}")
+        if len(damgasiz) > 12:
+            print(f"  … +{len(damgasiz) - 12} dosya")
+        print()
+        print(f"{len(kaymis)} kanıt BAŞKA bir ortamda üretilmiş:")
+        for ad, farklar in kaymis:
+            print(f"  - {ad}: " + "; ".join(farklar[:3]))
+        return 1 if kaymis else 0
     if "--eksik" in sys.argv:
         eksik = [x for x in kayitlar
                  if x["sinif"] == "kanit"
