@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-31.588 satır Python $\cdot$ 140 test dosyası $\cdot$ 1418 geçen test\\[3mm]
+31.813 satır Python $\cdot$ 141 test dosyası $\cdot$ 1430 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -635,6 +635,52 @@ düzeltme yalnız günlüğe yazmakla kalmıyor: fizik kapısı temiz olsa bile 
 uyarısı varsa ayrı bir pencere çıkıyor. Aynı denetimde \emph{güvence kaybı}
 satırları da (bir çapraz-kontrol düştü ama koşu sürdü) arayüze taşındı.
 \end{dikkat}
+
+\subsection{Üç kip, tek yapılandırma}
+\label{sub:kipler}
+
+Arayüz uzun süre tek bir yüz sunuyordu ve o yüz, tüm ayarları aynı anda açan
+bir geliştirici konsoluydu. Üç kip eklendi --- ama tasarımın can alıcı kuralı
+görünürlük değil, \emph{değişmezliktir}.
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lp{95mm}@{}}
+\toprule
+\textbf{Kip} & \textbf{Ne görünür} \\
+\midrule
+Otopilot & STL, amaç, hız, hücum açısı. Kritik ayarlar otomatik seçilir ve
+  gizlenir; \emph{ne oldukları} salt-okunur bir plan kutusunda, \emph{niçin}
+  öyle seçildikleri ``Neden bu ayarlar?'' altında durur. \\
+Mühendis & Ek olarak mesh kalitesi, y$^+$, sınır tabaka, eksenler, işlemci,
+  polar ve yapısal kontrol düzenlenebilir. \\
+Araştırma & Ek olarak mesh-duyarlılık ailesi (GCI/LSR kademe sayısı) ve kanıt
+  gezgini: her kanıt dosyasının hükmü ve \emph{ortam damgası}. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{anafikir}{Kipler farklı bir yazılım yolu üretmez}
+Üç kip de aynı \texttt{analysis/} çekirdeğine ve \textbf{aynı koşu
+yapılandırmasına} gider. Bu bozulsaydı ``Otopilot sonucu'' ile ``Mühendis
+sonucu'' aynı problem için farklı case kurabilirdi --- ve bu, raporun
+savunduğu tek-kanonik-çekirdek ilkesinin doğrudan ihlali olurdu.
+
+Kural testle bağlıdır: aynı form, üç kip, çözücüye giden on üç alanın
+\emph{tamamı} aynı çıkmalı. İkinci bir test de gizlemenin sıfırlamak
+olmadığını sınar --- mühendis kipinde girilen $y^+=77$ otopilote geçildiğinde
+korunur ve çözücüye aynen gider. Kullanıcının göremediği bir ayarın sessizce
+değişmesi, bu deponun avladığı kusur sınıfının ta kendisidir.
+\end{anafikir}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.485\textwidth]{figurler/gui_kip_otopilot.png}\hfill
+\includegraphics[width=0.485\textwidth]{figurler/gui_kip_arastirma.png}
+\caption{Aynı koşu, iki kip. Solda otopilot: ayarlar gizli ama ``Otomatik
+seçilen ayarlar'' kutusunda \emph{izlenebilir}. Sağda araştırma: mesh-duyarlılık
+ailesi, kanıt gezgini ve yapısal kontrol açık. Sonuç panelindeki sayılar ve
+günlük \emph{birebir aynı} --- kip yalnız neyin görüneceğini değiştirir.}
+\end{figure}
 
 % ══════════════════════════════ 3 ══════════════════════════════
 \section{Belirsizlik Nicelemesi}
@@ -1495,8 +1541,10 @@ v1.3 & yüksek & Model-form tablosunun kalan beş hücresi --- deneysel referans
                 yalnız ağ inceltmek yetmiyor \\
 v1.4 & orta   & Docker/Conda kilidi ile yeniden-üretilebilir ortam; çözücü
                 sürüm kilidi \\
-v1.5 & orta   & Arayüz v2: Otopilot / Mühendis / Araştırma kipleri ve kanıt
-                gezgini \\
+v1.5 & orta   & Arayüz v2 --- kipler ve kanıt gezgini EKLENDİ
+                (\S
+ef{sub:kipler}); kalan iş sonuç kartlarının yeniden
+                tasarımı ve karşılaştırma stüdyosu \\
 v1.6 & düşük  & Bellek katsayısı için BÜYÜK koşularla ölçüm (küçük koşu
                 gürültüde kalıyor); hücre$\times$çekirdek$\times$RAM matrisi \\
 v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanması;
@@ -1536,12 +1584,12 @@ v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanm
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 31.588 & \texttt{rapor\_sayilari.py} \\
+Kod satırı (kök + \texttt{analysis/}) & 31.813 & \texttt{rapor\_sayilari.py} \\
 Kök modül & 83 & \texttt{rapor\_sayilari.py} \\
 Deney / çapa betiği & 62 & \texttt{experiments/} \\
-Test dosyası & 140 & \texttt{tests/test\_*.py} \\
-Geçen test & 1418 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1418 & \texttt{-{}-cov} \\
+Test dosyası & 141 & \texttt{tests/test\_*.py} \\
+Geçen test & 1430 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1430 & \texttt{-{}-cov} \\
 Satır kapsamı & \textbf{\%47} & 18.928 ifade, 9.979 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule

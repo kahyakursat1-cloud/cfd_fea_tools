@@ -72,6 +72,21 @@ def main() -> int:
     w.grab().save(str(p))
     uretilen.append(p)
 
+    # UC KIP — ayni pencere, ayni veri, farkli GORUNURLUK. Rapordaki iddia
+    # ("kipler farkli yazilim yolu uretmez") ancak yan yana gorulunce
+    # denetlenebilir; bu yuzden ucu de ayni kosunun sonucuyla yakalanir.
+    from arayuz_kipleri import KIPLER
+    for kip in KIPLER:
+        w.cmb_kip.setCurrentIndex(KIPLER.index(kip))
+        w._kip_degisti()
+        app.processEvents()
+        pk = CIKTI / f"gui_kip_{kip}.png"
+        w.grab().save(str(pk))
+        uretilen.append(pk)
+    w.cmb_kip.setCurrentIndex(KIPLER.index("muhendis"))
+    w._kip_degisti()
+    app.processEvents()
+
     # Kosu gecmisi: depodaki TUM sonuc.json'lari tek tabloda gosterir.
     dlg = app_analyzer.KosularDialog(w)
     dlg.resize(1180, 470)

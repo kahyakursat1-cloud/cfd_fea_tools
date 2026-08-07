@@ -471,7 +471,9 @@ class AnalyzerWindow(QMainWindow):
         self.worker: AnalysisWorker | None = None
         self.last_result = None
         self._pending_learn = None       # otopilot öğrenme vakası (koşu bitince kaydedilir)
+        self._son_otopilot_cfg = None    # 'neden bu ayarlar?' gerekcesi
         self._build_ui()
+        self._kip_uygula()      # baslangicta kip gorunurlugu
 
     # ── UI ──────────────────────────────────────────────────────────────────
     def _build_ui(self):
@@ -480,6 +482,26 @@ class AnalyzerWindow(QMainWindow):
 
         # Sol: girişler
         left = QVBoxLayout()
+
+        # KIP SECICI — aynı yapılandırmanın üç yüzü. Kip yalnız GÖRÜNÜRLÜĞÜ
+        # değiştirir; gizlenen alanın değeri korunur ve çözücüye aynen gider.
+        # Farklı kipler farklı case kursaydı tek kanonik çekirdek ilkesi
+        # bozulurdu (bkz. arayuz_kipleri).
+        from arayuz_kipleri import KIP_ACIKLAMA, KIP_ETIKET, KIPLER
+        gb_kip = QGroupBox("Çalışma kipi")
+        kv = QVBoxLayout(gb_kip)
+        self.cmb_kip = QComboBox()
+        for k in KIPLER:
+            self.cmb_kip.addItem(KIP_ETIKET[k], k)
+        self.cmb_kip.setCurrentIndex(KIPLER.index("muhendis"))
+        self.cmb_kip.currentIndexChanged.connect(self._kip_degisti)
+        kv.addWidget(self.cmb_kip)
+        self.lbl_kip = QLabel(KIP_ACIKLAMA["muhendis"])
+        self.lbl_kip.setWordWrap(True)
+        self.lbl_kip.setStyleSheet("color:#9aa0a6; font-size:11px;")
+        kv.addWidget(self.lbl_kip)
+        left.addWidget(gb_kip)
+
         gb_model = QGroupBox("1 — Katı Model")
         v = QVBoxLayout(gb_model)
         self.drop_label = QLabel("STL/OBJ dosyasını buraya sürükleyin\nveya Gözat'a tıklayın")
@@ -496,6 +518,7 @@ class AnalyzerWindow(QMainWindow):
 
         gb_cfg = QGroupBox("2 — Araç ve Akış Koşulları")
         form = QFormLayout(gb_cfg)
+        self._form_cfg = form
         self.cmb_type = QComboBox()
         for key, p in VEHICLE_PRESETS.items():
             self.cmb_type.addItem(p["ad"], key)
@@ -554,6 +577,19 @@ class AnalyzerWindow(QMainWindow):
                                    "(Eça–Hoekstra) bandını açar; 3 seviye yalnız "
                                    "GCI verir.")
         form.addRow("Duyarlılık seviyesi", self.spn_seviye)
+        # OTOPILOT PLANI — gizlenen ayarlar SILINMEZ, burada salt-okunur
+        # gosterilir. "Karmasikligi gizle ama izlenebilirligi kaybetme"
+        # kuralinin arayuzdeki karsiligi budur.
+        self.gb_plan = QGroupBox("Otomatik seçilen ayarlar")
+        pv = QVBoxLayout(self.gb_plan)
+        self.lbl_plan = QLabel("Bir model yükleyin — plan burada görünecek.")
+        self.lbl_plan.setWordWrap(True)
+        self.lbl_plan.setStyleSheet("color:#c8c8c8; font-size:11px;")
+        pv.addWidget(self.lbl_plan)
+        self.btn_plan_neden = QPushButton("❓ Neden bu ayarlar?")
+        self.btn_plan_neden.clicked.connect(self._plan_gerekce)
+        pv.addWidget(self.btn_plan_neden)
+        left.addWidget(self.gb_plan)
         left.addWidget(gb_cfg)
 
         self.btn_auto = QPushButton("🤖  OTOMATİK ANALİZ (otopilot)")
@@ -583,6 +619,16 @@ class AnalyzerWindow(QMainWindow):
         hq.addWidget(btn_queue)
         left.addLayout(hq)
 
+        # KANIT GEZGINI — yalniz arastirma kipinde. Yayimlanacak bir sayi
+        # uretiliyorsa hangi kanit dosyasinin hangi ortamda uretildigi
+        # gorulebilmeli; bu, raporun "kanitin ortami da kanitin parcasidir"
+        # ilkesinin arayuzdeki karsiligi.
+        self.btn_kanit = QPushButton("🔬  KANIT GEZGİNİ (V&V dosyaları)")
+        self.btn_kanit.setToolTip("Kanıt dosyaları, hükümleri, üretim komutları "
+                                  "ve ortam damgaları.")
+        self.btn_kanit.clicked.connect(self._kanit_gezgini)
+        left.addWidget(self.btn_kanit)
+
         self.btn_yolculuk = QPushButton("🎓  REHBERLİ MOD (adım adım öğren)")
         self.btn_yolculuk.setEnabled(False)
         self.btn_yolculuk.setToolTip(
@@ -591,7 +637,7 @@ class AnalyzerWindow(QMainWindow):
         self.btn_yolculuk.clicked.connect(self._open_yolculuk)
         left.addWidget(self.btn_yolculuk)
 
-        gb_polar = QGroupBox("Polar Taraması (opsiyonel)")
+        self.gb_polar = gb_polar = QGroupBox("Polar Taraması (opsiyonel)")
         pf = QFormLayout(gb_polar)
         self.edt_alphas = QLineEdit("-4, 0, 4, 8")
         pf.addRow("α listesi (°)", self.edt_alphas)
@@ -607,7 +653,7 @@ class AnalyzerWindow(QMainWindow):
         pf.addRow(self.btn_mach)
         left.addWidget(gb_polar)
 
-        gb_fea = QGroupBox("Yapısal Kontrol (CFD basınçlarıyla)")
+        self.gb_fea = gb_fea = QGroupBox("Yapısal Kontrol (CFD basınçlarıyla)")
         ff = QFormLayout(gb_fea)
         from fea_runner import MATERIAL_LIBRARY
         from vehicle_fea import CONSTRAINT_PRESETS
@@ -700,6 +746,112 @@ class AnalyzerWindow(QMainWindow):
                 self._load_model(p)
                 return
 
+    # ── Kipler ──────────────────────────────────────────────────────────────
+    def _kip(self) -> str:
+        from arayuz_kipleri import kip_dogrula
+        return kip_dogrula(self.cmb_kip.currentData())
+
+    def _kip_degisti(self):
+        from arayuz_kipleri import KIP_ACIKLAMA
+        k = self._kip()
+        self.lbl_kip.setText(KIP_ACIKLAMA[k])
+        self._kip_uygula()
+
+    def _kip_uygula(self):
+        """Görünürlüğü kipe göre ayarla — DEĞERLERE DOKUNMADAN.
+
+        Gizlemek sıfırlamak değildir: gizlenen alanın değeri korunur ve
+        `_params` onu aynen çözücüye taşır. Aksi hâlde kullanıcının göremediği
+        bir ayar sessizce değişirdi ve bu, deponun avladığı kusur sınıfının ta
+        kendisi olurdu.
+        """
+        from arayuz_kipleri import gorunur_mu
+        k = self._kip()
+        for ad in ("cmb_rejim", "spn_mach", "cmb_quality", "cmb_nose", "cmb_up",
+                   "spn_proc", "spn_layers", "spn_yplus", "chk_sens",
+                   "spn_seviye"):
+            w = getattr(self, ad, None)
+            if w is None:
+                continue
+            gor = gorunur_mu(ad, k)
+            w.setVisible(gor)
+            et = self._form_cfg.labelForField(w)
+            if et is not None:
+                et.setVisible(gor)
+        for ad in ("btn_queue_add", "gb_polar", "gb_fea", "btn_kanit"):
+            w = getattr(self, ad, None)
+            if w is not None:
+                w.setVisible(gorunur_mu(ad, k))
+        # Plan kutusu YALNIZ otopilotta: öbür kiplerde ayarlar zaten görünür.
+        self.gb_plan.setVisible(k == "otopilot")
+        if k == "otopilot":
+            self._plan_yenile()
+
+    def _plan_ozeti(self) -> list[str]:
+        """Gizlenen ayarların ŞU ANKİ değerleri — çözücüye gidecek olanlar."""
+        return [
+            f"Akış rejimi: {self.cmb_rejim.currentText()}",
+            f"Mesh kalitesi: {self.cmb_quality.currentText()}",
+            f"Burun/üst eksen: {self.cmb_nose.currentText()} / "
+            f"{self.cmb_up.currentText()}",
+            f"Sınır tabaka katmanı: {self.spn_layers.value()}",
+            f"Hedef y⁺: {self.spn_yplus.value():g}",
+            f"İşlemci: {self.spn_proc.value() or 'otomatik'}",
+        ]
+
+    def _plan_yenile(self):
+        self.lbl_plan.setText("• " + "\n• ".join(self._plan_ozeti()))
+
+    def _plan_gerekce(self):
+        """'Neden bu ayarlar?' — otopilotun kendi gerekçe metni."""
+        metin = ["Şu an çözücüye gidecek ayarlar:", ""]
+        metin += [f"  • {x}" for x in self._plan_ozeti()]
+        cfg = getattr(self, "_son_otopilot_cfg", None)
+        if cfg:
+            metin += ["", "Otopilotun gerekçesi:"]
+            metin += ([f"  • {u}" for u in (cfg.get("uyarilar") or [])]
+                      or ["  (ek gerekçe yazılmadı)"])
+        else:
+            metin += ["", "Bu değerler ön ayardan geliyor. Geometriye göre "
+                      "seçilmeleri için 🤖 OTOMATİK ANALİZ'i çalıştırın; "
+                      "otopilot ölçtüğü gerekçeleri buraya yazar."]
+        QMessageBox.information(self, "Ayarların gerekçesi", "\n".join(metin))
+
+    def _kanit_gezgini(self):
+        """Kanıt dosyaları + ortam damgası — araştırma kipinin V&V penceresi."""
+        import json as _j
+        satir = []
+        damgali = damgasiz = 0
+        for pth in sorted(Path(__file__).parent.glob("*.json")):
+            try:
+                d = _j.loads(pth.read_text(encoding="utf-8-sig"))
+            # sessiz-yutma: kabul — bozuk/JSON-olmayan dosya gezginde atlanir;
+            # asagidaki sayimda gorunmez ve kanit.py ayrica denetler
+            except Exception:
+                continue
+            if not isinstance(d, dict) or not d.get("_uretim"):
+                continue
+            o = d.get("_ortam") or {}
+            if o:
+                damgali += 1
+                dmg = f"✓ {o.get('python', '?')}"
+                cz = (o.get("cozucu") or {}).get("openfoam")
+                if cz:
+                    dmg += f" · {cz}"
+            else:
+                damgasiz += 1
+                dmg = "— damgasız (bu kanıt damga eklenmeden önce üretildi)"
+            hukum = str(d.get("verdikt") or d.get("sonuc") or "")[:70]
+            satir.append(f"{pth.name}\n    {dmg}\n    {hukum}")
+        ust = (f"{damgali + damgasiz} kanıt · {damgali} ortam damgalı, "
+               f"{damgasiz} damgasız\n"
+               "Damgasız kanıtlar BİLEREK damgalanmadı: bugünkü ortamla "
+               "damgalamak, o sayının bu yığında üretildiğini söylemek olurdu.\n")
+        govde = "\n".join(satir[:25])
+        if len(satir) > 25:
+            govde += f"\n… +{len(satir) - 25} dosya"
+        QMessageBox.information(self, "Kanıt gezgini", ust + "\n" + govde)
+
     def _browse(self):
         f, _ = QFileDialog.getOpenFileName(self, "Katı model seç", "",
                                            "3B Model (*.stl *.obj *.step *.stp *.iges *.igs)")
@@ -778,6 +930,9 @@ class AnalyzerWindow(QMainWindow):
         try:
             import auto_pilot
             cfg = auto_pilot.auto_configure(self.model_path)
+            # 'Neden bu ayarlar?' otopilotun KENDI gerekcesini gostersin —
+            # yoksa otopilot kipinde gizlenen ayarlar gerekcesiz kalirdi.
+            self._son_otopilot_cfg = cfg
         except Exception as e:
             QMessageBox.critical(self, "Otopilot", f"Sınıflandırma başarısız:\n{e}")
             return
