@@ -12,6 +12,7 @@ değişirse sayılar değişir ama zaman adımı hâlâ periyodun yüzde biri ol
 """
 from __future__ import annotations
 
+import math
 import sys
 from pathlib import Path
 
@@ -131,3 +132,141 @@ def test_KABUL_edilen_salinimli_kosuya_recete_EKLENMIYOR():
                      kosu={"lref_m": 0.5, "velocity": 20.0, "rejim": "bluff"})
     assert k["seviye"] == "ok"
     assert not any("URANS reçetesi" in g for g in k["gerekce"])
+
+
+# ── KOŞUM: öncülü ölçümle değiştirme ────────────────────────────────────────
+
+def _sinus(f0: float, sure: float = 3.0, n: int = 2000,
+           ort: float = 0.5, genlik: float = 0.02):
+    t = [i * sure / n for i in range(n)]
+    return t, [ort + genlik * math.sin(2 * math.pi * f0 * x) for x in t]
+
+
+@pytest.mark.parametrize("f0", [3.5, 8.0, 25.0])
+def test_frekans_SENTETIK_sinyalde_dogru(f0):
+    """İlk sürüm işaret değişimlerini SAYIYORDU ve 8 Hz'de %11 şaşıyordu:
+    pencere tam periyoda oturmadığında kısmi periyotlar sayımı bozuyor.
+    Ölçülen frekans doğrudan Δt'ye girdiği için o hata reçeteyi o kadar
+    kaydırırdı."""
+    from urans_kapisi import salinim_olc
+    o = salinim_olc(*_sinus(f0))
+    assert o["olculdu"]
+    assert abs(o["frekans_hz"] - f0) / f0 < 0.01
+
+
+def test_genlik_ve_ortalama_dogru():
+    from urans_kapisi import salinim_olc
+    o = salinim_olc(*_sinus(8.0, ort=0.5, genlik=0.02))
+    assert o["ortalama"] == pytest.approx(0.5, abs=1e-3)
+    assert o["genlik"] == pytest.approx(0.02, rel=0.02)
+
+
+def test_OTURMUS_cozumde_salinim_yok_deniyor():
+    """Salınmayan seride uydurma bir frekans üretilmemeli."""
+    from urans_kapisi import salinim_olc
+    t = [i * 0.001 for i in range(2000)]
+    o = salinim_olc(t, [0.5 + 1e-6 * i for i in range(2000)])   # düz sürüklenme
+    assert o["olculdu"] is False
+    assert "salınım görünmüyor" in o["neden"]
+
+
+def test_GECIS_penceresi_atiliyor():
+    """Başlangıç geçicisi ortalamayı ve genliği kirletir; ilk %25 atılır."""
+    from urans_kapisi import salinim_olc
+    t, y = _sinus(8.0)
+    kirli = [v + 5.0 * math.exp(-x * 20) for v, x in zip(y, t)]   # sönen geçici
+    o = salinim_olc(t, kirli)
+    assert o["olculdu"]
+    assert abs(o["frekans_hz"] - 8.0) / 8.0 < 0.02
+
+
+def test_az_periyotta_UYARI_veriyor():
+    from urans_kapisi import salinim_olc
+    o = salinim_olc(*_sinus(2.0, sure=2.0))     # ~3 periyot
+    assert o["olculdu"] and o["periyot_sayisi"] < 10
+    assert "istatistik" in (o["_uyari"] or "")
+
+
+def test_cok_frekansli_sinyalde_SACILMA_soyleniyor():
+    """Medyan baskın modu verir ama tek frekanslı olmadığını gizlememeli."""
+    from urans_kapisi import salinim_olc
+    t, y = _sinus(8.0)
+    _, y2 = _sinus(3.0, genlik=0.03)
+    o = salinim_olc(t, [a + b - 0.5 for a, b in zip(y, y2)])
+    if o["olculdu"] and o["periyot_sacilmasi_pct"] > 30:
+        assert "tek frekanslı değil" in (o["_uyari"] or "")
+
+
+def test_recete_OLCUMLE_guncelleniyor():
+    """Koşudan sonra öncüle sarılmak, elde ölçüm varken tahmini tercih
+    etmektir."""
+    from urans_kapisi import recete_guncelle, salinim_olc, urans_recetesi
+    r = urans_recetesi(SALINIYOR, 0.5, 20.0, "bluff")
+    g = recete_guncelle(r, salinim_olc(*_sinus(4.0)))
+    assert g["kaynak"].startswith("ÖLÇÜM")
+    assert g["frekans_hz"] == pytest.approx(4.0, rel=0.01)
+    assert g["oncul_frekans_hz"] == r["frekans_hz"]
+    assert g["oncul_sapmasi_pct"] > 0
+    assert g["zaman_adimi_s"] == pytest.approx(1 / 4.0 / 100, rel=0.02)
+
+
+def test_olculemezse_ONCUL_korunuyor():
+    from urans_kapisi import recete_guncelle, urans_recetesi
+    r = urans_recetesi(SALINIYOR, 0.5, 20.0, "bluff")
+    g = recete_guncelle(r, {"olculdu": False, "neden": "pencere boş"})
+    assert g["frekans_hz"] == r["frekans_hz"]
+    assert "öncül korundu" in g["_olcum_notu"]
+
+
+# ── Case yazıcı: zaman-çözünür sözlükler ────────────────────────────────────
+
+def _yaz(tmp_path, transient: bool):
+    from analysis.openfoam_runner import _write_fv_schemes, _write_fv_solution
+    (tmp_path / "system").mkdir(exist_ok=True)
+    _write_fv_solution(tmp_path, False, transient, 3)
+    _write_fv_schemes(tmp_path, transient)
+    return ((tmp_path / "system" / "fvSolution").read_text(encoding="utf-8"),
+            (tmp_path / "system" / "fvSchemes").read_text(encoding="utf-8"))
+
+
+def test_transient_PIMPLE_ve_residualControl_YOK(tmp_path):
+    """Kararlı-halde residualControl 'çözüm oturdu' demektir; zaman-çözünürde
+    koşuyu ZAMANIN ORTASINDA durdururdu."""
+    sol, _ = _yaz(tmp_path, True)
+    assert "PIMPLE" in sol and "nOuterCorrectors 3" in sol
+    assert "residualControl" not in sol
+
+
+def test_transient_semasi_IKINCI_mertebe_ve_boundedsiz(tmp_path):
+    """`bounded` yalnız SIMPLE içindir ve zaman doğruluğunu bozar."""
+    _, sc = _yaz(tmp_path, True)
+    assert "backward" in sc and "steadyState" not in sc
+    assert "bounded" not in sc
+
+
+def test_transient_relaxation_BIR(tmp_path):
+    """Alt-gevşetme zaman doğruluğunu bozar: çözüm her adımda tam yakınsamaz."""
+    sol, _ = _yaz(tmp_path, True)
+    assert "fields { p 1; }" in sol
+
+
+def test_kararli_hal_DAVRANISI_degismedi(tmp_path):
+    """Varsayılan kapalı: transient=False iken her sözlük eskisi gibi."""
+    sol, sc = _yaz(tmp_path, False)
+    assert "SIMPLE" in sol and "residualControl" in sol and "PIMPLE" not in sol
+    assert "steadyState" in sc and "bounded Gauss" in sc
+    assert "fields { p 0.3; }" in sol
+
+
+def test_controlDict_transient_ADJUSTABLE_yaziyor(tmp_path, monkeypatch):
+    from analysis.openfoam_runner import CFDCase, _write_control_dict
+    (tmp_path / "system").mkdir(exist_ok=True)
+    c = CFDCase(name="t", stl_path="x.stl", transient=True,
+                delta_t=1.25e-3, end_time_s=2.5)
+    monkeypatch.setattr(type(c), "lref", property(lambda self: 1.0))
+    _write_control_dict(tmp_path, c, "yuzey", 1.0)
+    txt = (tmp_path / "system" / "controlDict").read_text(encoding="utf-8")
+    assert "deltaT          0.00125" in txt
+    assert "endTime         2.5" in txt
+    assert "adjustableRunTime" in txt and "adjustableTimeStep yes" in txt
+    assert "maxCo" in txt

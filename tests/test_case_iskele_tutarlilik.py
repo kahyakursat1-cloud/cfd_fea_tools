@@ -69,11 +69,23 @@ def test_ad_hoc_yazici_envanteri_bilinir():
 
 
 def test_kanonik_yazici_esikten_okur():
-    """analysis/openfoam_runner literal yazmamalı — eşik tek kaynaktan gelmeli."""
+    """analysis/openfoam_runner literal yazmamalı — eşik tek kaynaktan gelmeli.
+
+    İlk sürüm `residualControl` sözcüğünün İLK geçtiği yerin çevresine
+    bakıyordu ve zaman-çözünür dal eklenince kırıldı: o sözcük artık önce bir
+    YORUMDA geçiyor ("residualControl BURADA YOK ve olmamalı"). Aranan şey
+    sözcüğün konumu değil, eşiğin sabit yazılmamış olmasıdır.
+    """
     src = (ROOT / "analysis" / "openfoam_runner.py").read_text(encoding="utf-8")
-    i = src.index("residualControl")
-    pencere = src[i:i + 400]
-    assert "RESIDUAL_TARGET" in pencere, "kanonik yazıcı eşiği sabit koda gömmüş"
+    blok = [s for s in src.split("residualControl") if "\n" in s]
+    assert blok, "residualControl bloğu bulunamadı"
+    # Eşiği YAZAN blok: içinde p/U satırları olan
+    yazan = [s[:400] for s in blok if '"        p ' in s[:400] or "p       " in s[:400]]
+    assert yazan, "residualControl eşiği hiçbir yerde yazılmıyor"
+    assert all("RESIDUAL_TARGET" in s for s in yazan), \
+        "kanonik yazıcı eşiği sabit koda gömmüş"
+    import re
+    assert not re.search(r"p\s+1e-0?[0-9];", src), "eşik literal olarak yazılmış"
 
 
 def test_controldict_yazan_dosya_sayisi_bilinir():

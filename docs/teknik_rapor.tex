@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-31.355 satır Python $\cdot$ 139 test dosyası $\cdot$ 1375 geçen test\\[3mm]
+31.509 satır Python $\cdot$ 139 test dosyası $\cdot$ 1390 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -742,6 +742,46 @@ değil.
 \noindent Reçete yalnız \emph{reddedilen} salınımlı koşuya verilir. Genliği
 ölçülmüş ve bandına katılmış salınım zaten kabul ediliyor; orada reçete
 gereksiz gürültü olurdu.
+
+\subsection{Reçeteden koşuma: öncülü ölçüm devralır}
+
+Reçete tek başına yarım bir çözümdür --- kullanıcı case'i hâlâ elle kurmak
+zorundaydı. Kanonik case yazıcı artık zaman-çözünür kurulumu da üretiyor ve
+\emph{varsayılan kapalıdır}: \texttt{transient=False} iken yazılan her sözlük
+birebir eskisi gibidir.
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lll@{}}
+\toprule
+& \textbf{Kararlı-hal} & \textbf{Zaman-çözünür} \\
+\midrule
+Zaman şeması & \texttt{steadyState} & \texttt{backward} (2. mertebe) \\
+Basınç-hız & SIMPLE + \texttt{residualControl} & PIMPLE, \emph{eşik yok} \\
+Sapma sınırlayıcı & \texttt{bounded Gauss} & \texttt{Gauss} (sınırlayıcısız) \\
+Alt-gevşetme & $p\,{=}\,0{,}3$; $U\,{=}\,0{,}7$ & 1 (PIMPLE gevşetir) \\
+Yazma & \texttt{timeStep} & \texttt{adjustableRunTime} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Üç seçim de zorunludur ve nedenleri farklıdır. \texttt{residualControl}
+kararlı-halde ``çözüm oturdu'' demektir; zaman-çözünürde koşuyu \emph{zamanın
+ortasında} durdururdu. \texttt{bounded} ön-eki süreklilik hatasını SIMPLE
+yakınsaması boyunca sınırlar ve zaman doğruluğunu bozar. Alt-gevşetme çözümün
+her adımda tam yakınsamamasına, yani sonucun zamanda kaymasına yol açar.
+
+\begin{olculdu}{Ölçüm aracının kendisi de doğrulandı}
+Koşu bitince frekans artık tahmin edilmez, \emph{ölçülür} --- ve reçete o
+ölçümle yeniden hesaplanır. İlk yazılan ölçüm yöntemi işaret değişimlerini
+sayıyordu ($f = \text{geçiş}/2T$) ve sentetik 8\,Hz sinyalde \textbf{\%11}
+şaştı: pencere tam periyot sayısına oturmadığında baştaki ve sondaki kısmi
+periyotlar sayımı bozuyor.
+
+Doğrusal enterpolasyonlu yukarı-geçiş zamanlarının \emph{medyan} farkı aynı
+sinyalde \%0{,}0001 veriyor. Fark önemliydi: ölçülen frekans doğrudan $\Delta t$'ye
+girer, yani \%11 hata reçeteyi o kadar kaydırırdı. Medyan (ortalama değil)
+seçildi ki tek bir bozuk periyot sonucu sürüklemesin.
+\end{olculdu}
 
 \clearpage
 
@@ -1388,9 +1428,9 @@ dosyasında \texttt{siralama\_uyarilari} altında durur.
 \midrule
 v1.1 & yüksek & Eski çözücü sarmalayıcısının kaldırılması; tüm yolların
                 \texttt{analysis/} çekirdeğine taşınması \\
-v1.2 & yüksek & URANS \emph{koşumu} --- reçete üretiliyor ama çözüm hâlâ elle
-                kuruluyor; limit çevrimi vakalarında zaman-çözünür çözüm ve
-                kuvvet ortalaması \\
+v1.2 & yüksek & URANS \emph{doğrulaması} --- case yazıcı ve frekans ölçümü
+                eklendi (bkz. \Sef{sec:urans}); eksik olan kanonik bir
+                zaman-çözünür çapa (silindir girdap-dökülmesi, St deneysel) \\
 v1.3 & yüksek & Model-form tablosunun kalan beş hücresi --- deneysel referanslı
                 çapalarla; yarı-analitik referans $u_D$ baskın olduğu için
                 yalnız ağ inceltmek yetmiyor \\
@@ -1437,12 +1477,12 @@ v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanm
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 31.355 & \texttt{rapor\_sayilari.py} \\
+Kod satırı (kök + \texttt{analysis/}) & 31.509 & \texttt{rapor\_sayilari.py} \\
 Kök modül & 83 & \texttt{rapor\_sayilari.py} \\
 Deney / çapa betiği & 62 & \texttt{experiments/} \\
 Test dosyası & 139 & \texttt{tests/test\_*.py} \\
-Geçen test & 1375 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1375 & \texttt{-{}-cov} \\
+Geçen test & 1390 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1390 & \texttt{-{}-cov} \\
 Satır kapsamı & \textbf{\%47} & 18.928 ifade, 9.979 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule

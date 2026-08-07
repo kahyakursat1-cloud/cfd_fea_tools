@@ -108,3 +108,101 @@ def recete_metni(r: dict) -> list[str]:
         r["_oncul_uyarisi"],
         r["_courant_uyarisi"],
     ]
+
+
+# ── KOŞUM SONRASI: ÖNCÜLÜ ÖLÇÜMLE DEĞİŞTİR ────────────────────────────────
+
+def salinim_olc(zaman: list[float], deger: list[float],
+                gecis_orani: float = 0.25) -> dict:
+    """Zaman serisinden frekans, genlik ve ortalama — geçiş atıldıktan sonra.
+
+    Reçetenin Strouhal öncülü BİR TAHMİNDİR ve bunu kendi çıktısında söyler.
+    Koşu bitince tahmin edilecek bir şey kalmaz: frekans ÖLÇÜLÜR. Bu fonksiyon
+    o ölçümü yapar ve reçete `recete_guncelle` ile öncülden çıkıp ölçüme
+    dayanır.
+
+    YÖNTEM: ortalamadan YUKARI geçişlerin zamanı, doğrusal enterpolasyonla
+    bulunup ardışık farkların MEDYANI alınır.
+
+    İlk sürüm işaret değişimlerini SAYIYORDU (f = geçiş/2T) ve sentetik 8 Hz
+    sinyalde %11 şaştı: pencere tam periyot sayısına oturmadığında baştaki ve
+    sondaki kısmi periyotlar sayımı bozuyor. Enterpolasyonlu medyan aynı
+    sinyalde %0,0001 veriyor. Fark önemli, çünkü ölçülen frekans doğrudan
+    Δt'ye giriyor — %11 hata reçeteyi o kadar kaydırırdı.
+
+    Medyan (ortalama değil) seçildi: tek bir bozuk periyot (başlangıç geçicisi
+    ya da ikincil mod) sonucu sürüklemesin. FFT yerine bu yöntem, düzensiz
+    örneklenmiş seride (adjustableTimeStep) yeniden-örnekleme gerektirmez;
+    bedeli çok-frekanslı sinyalde baskın modu ayıramamaktır ve bu SÖYLENİR.
+    """
+    if len(zaman) < 8 or len(zaman) != len(deger):
+        return {"olculdu": False, "neden": f"yetersiz örnek ({len(deger)})"}
+    n0 = int(len(zaman) * gecis_orani)
+    t, y = zaman[n0:], deger[n0:]
+    if len(t) < 8 or (t[-1] - t[0]) <= 0:
+        return {"olculdu": False, "neden": "geçiş atıldıktan sonra pencere boş"}
+    ort = sum(y) / len(y)
+    sapma = [v - ort for v in y]
+    sure = t[-1] - t[0]
+    genlik = (max(y) - min(y)) / 2.0
+    # Yukari gecis zamanlari (dogrusal enterpolasyon): sapma <=0 iken >0 olur.
+    yukari = [t[i] + (t[i + 1] - t[i]) * (-sapma[i]) / (sapma[i + 1] - sapma[i])
+              for i in range(len(sapma) - 1)
+              if sapma[i] <= 0 < sapma[i + 1] and sapma[i + 1] != sapma[i]]
+    if len(yukari) < 3:
+        return {"olculdu": False,
+                "neden": (f"pencerede {len(yukari)} tam salınım geçişi — salınım "
+                          "görünmüyor (çözüm oturmuş olabilir)"),
+                "ortalama": ort, "genlik": genlik, "pencere_s": sure}
+    periyotlar = sorted(b - a for a, b in zip(yukari, yukari[1:]))
+    per = periyotlar[len(periyotlar) // 2]
+    if per <= 0:
+        return {"olculdu": False, "neden": "medyan periyot sıfır/negatif",
+                "ortalama": ort, "genlik": genlik, "pencere_s": sure}
+    f = 1.0 / per
+    sacilma = (periyotlar[-1] - periyotlar[0]) / per * 100
+    return {"olculdu": True, "frekans_hz": round(f, 6),
+            "periyot_s": round(per, 8),
+            "ortalama": ort, "genlik": genlik,
+            "genlik_pct": round(abs(genlik / ort) * 100, 3) if ort else None,
+            "periyot_sayisi": len(periyotlar), "pencere_s": round(sure, 6),
+            "periyot_sacilmasi_pct": round(sacilma, 2),
+            "_yontem": ("yukarı-geçiş zamanlarının MEDYAN farkı (doğrusal "
+                        "enterpolasyonlu); düzensiz örneklemede yeniden-örnekleme "
+                        "gerektirmez ama çok-frekanslı sinyalde baskın modu AYIRAMAZ"),
+            "_uyari": ("; ".join(x for x in (
+                (f"pencerede yalnız {len(periyotlar)} periyot var — istatistik "
+                 "zayıf, en az 10 önerilir") if len(periyotlar) < 10 else None,
+                (f"periyot saçılması %{sacilma:.0f} — tek frekanslı değil, "
+                 "medyan baskın modu temsil etmeyebilir") if sacilma > 30 else None,
+            ) if x) or None)}
+
+
+def recete_guncelle(recete: dict, olcum: dict) -> dict:
+    """Öncüle dayalı reçeteyi ÖLÇÜLEN frekansla yeniden hesapla.
+
+    Bir URANS koşusundan sonra Strouhal öncülünü kullanmaya devam etmek,
+    elde ölçüm varken tahmine sarılmaktır. Ölçülen frekans öncülden ne kadar
+    saptı — o da yazılır, çünkü öncülün ne kadar güvenilir olduğu bir sonraki
+    vaka için bilgidir.
+    """
+    if not olcum.get("olculdu"):
+        return {**recete, "_olcum_notu": "frekans ölçülemedi — öncül korundu: "
+                                         + str(olcum.get("neden"))}
+    f = float(olcum["frekans_hz"])
+    periyot = 1.0 / f
+    dt = periyot / ADIM_PER_PERIYOT
+    toplam = GECIS_PERIYODU + ISTATISTIK_PERIYODU
+    onculf = recete.get("frekans_hz")
+    sapma = (abs(f - onculf) / onculf * 100) if onculf else None
+    return {**recete, "frekans_hz": round(f, 6), "periyot_s": round(periyot, 8),
+            "zaman_adimi_s": float(f"{dt:.3g}"),
+            "adim_sayisi": int(toplam * ADIM_PER_PERIYOT),
+            "toplam_fiziksel_s": round(toplam * periyot, 6),
+            "kaynak": "ÖLÇÜM (ilk URANS koşusundan)",
+            "oncul_frekans_hz": onculf,
+            "oncul_sapmasi_pct": round(sapma, 1) if sapma is not None else None,
+            "_oncul_uyarisi": (
+                f"Frekans artık ÖLÇÜLDÜ; Strouhal öncülü {sapma:.0f}% şaşmıştı"
+                if sapma is not None else "Frekans ölçüldü."),
+            "_olcum": olcum}

@@ -29,6 +29,7 @@ import matplotlib.pyplot as plt
 
 from analysis.ccx_runner import windows_to_wsl_path
 from analysis.openfoam_runner import (
+    CFDCase,
     _wrap_timeout,
     _write_control_dict,
     _write_field_U,
@@ -86,9 +87,6 @@ def run_polar(stl_path, vehicle_type="ucak", velocity=25.0, alphas=(-4, 0, 4, 8)
     cm0 = trailing_mean([h[3] for h in _hist0], cm0)
     rows[0]["Cm"] = round(cm0 * scale, 5) if cm0 is not None and math.isfinite(cm0) else None
 
-    class _C:  # _write_field_U/_write_control_dict'in ihtiyaç duyduğu alanlar
-        pass
-
     # snappy patch adi = triSurface'taki STL stem'i (oriented ad — case adi DEGIL)
     tris = list((base_case / "constant" / "triSurface").glob("*.stl"))
     surface = tris[0].stem.replace(" ", "_") if tris else base_case.name
@@ -109,18 +107,18 @@ def run_polar(stl_path, vehicle_type="ucak", velocity=25.0, alphas=(-4, 0, 4, 8)
             shutil.rmtree(pp)
 
         a = math.radians(a_deg)
-        c = _C()
-        c.velocity = velocity
-        c.flow_direction = (math.cos(a), 0.0, math.sin(a))
-        c.rho = 1.225
-        c.turbulence_intensity = 0.01
-        c.compressible = False
-        c.p_inf = 101325.0
-        c.ground_clearance = None
         import re as _re
         m_end = _re.search(r"^endTime\s+(\d+)\s*;", (base_case / "system" / "controlDict").read_text(), _re.M)
-        c.end_time = int(m_end.group(1)) if m_end else 400
-        c.write_interval = c.end_time
+        _end = int(m_end.group(1)) if m_end else 400
+        # KANONIK DATACLASS — eskiden bos bir `_C` sinifi kurulup alanlari elle
+        # dolduruluyordu. Bu, CFDCase'in alan listesini SESSIZCE tekrarlamakti:
+        # kanonik yaziciya yeni bir alan eklendiginde burasi AttributeError ile
+        # dusuyordu (zaman-cozunur alanlar eklenince oldu). Varsayilanlar
+        # CFDCase'den gelir; burada yalniz DEGISENLER yazilir.
+        c = CFDCase(
+            name=case_a.name, stl_path=str(tris[0]) if tris else str(base_case),
+            velocity=velocity, flow_direction=(math.cos(a), 0.0, math.sin(a)),
+            end_time=_end, write_interval=_end)
         _write_field_U(case_a, c, surface)
         _write_control_dict(case_a, c, surface, lref)
         r = _wsl_solve(case_a)

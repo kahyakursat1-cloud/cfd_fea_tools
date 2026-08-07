@@ -122,6 +122,17 @@ class CFDCase:
     max_global_cells: int = 1_500_000  # snappyHexMesh hücre tavanı (RAM koruması)
     ground_clearance: float | None = None  # m; verilirse taban = sabit noSlip zemin
                                            # (Ahmed-tipi zemin-etkili validasyon; incompressible)
+    # ── ZAMAN-ÇÖZÜNÜR (URANS) ────────────────────────────────────────────
+    # Kararlı-RANS limit çevrimine girdiğinde hüküm "önerilen sonraki çözüm
+    # yolu URANS" diyor ve `urans_kapisi` reçeteyi (Δt, adım, süre) üretiyordu
+    # — ama koşumu YOKTU: kullanıcı case'i elle kurmak zorundaydı. Bu üç alan
+    # o boşluğu kapatır. VARSAYILAN KAPALI: `transient=False` iken yazılan
+    # her sözlük birebir eskisi gibidir.
+    transient: bool = False
+    delta_t: float | None = None      # s; None ve transient ise reçete zorunlu
+    end_time_s: float | None = None   # s; toplam fiziksel süre
+    n_outer: int = 2                  # PIMPLE dış döngüsü (>1 = gevşetilmiş PISO)
+    max_courant: float = 5.0          # adjustableTimeStep ile üst sınır
     refinement_regions: list | None = None # hedefli bölge-refinement kutuları:
                                            # [{"ad", "min":(x,y,z), "max":(x,y,z), "level"}]
                                            # (gövde-altı/iz gibi yüzeyden-uzak kritik bölgeler;
@@ -566,7 +577,29 @@ def _write_control_dict(case_dir: Path, case: CFDCase, surface_name: str,
                           lref: float, wake_x: float | None = None) -> None:
     txt = _foam_header("dictionary", "controlDict", "system")
     solver = "fluid" if case.compressible else "incompressibleFluid"
-    txt += (
+    if case.transient:
+        # ZAMAN-COZUNUR: endTime SANIYE, deltaT gercek zaman adimi. writeControl
+        # adjustableRunTime cunku adjustableTimeStep ile dt degisir ve timeStep
+        # tabanli yazim duzensiz araliklar uretir — sonradan frekans olcumu
+        # duzgun ornekleme ister.
+        dt = case.delta_t or 1e-3
+        son = case.end_time_s or (dt * 2000)
+        yaz = max(son / 100.0, dt)         # ~100 anlik goruntu
+        txt += (
+            "application     foamRun;\n"
+            f"solver          {solver};\n\n"
+            "startFrom       startTime;\n"
+            "startTime       0;\n"
+            "stopAt          endTime;\n"
+            f"endTime         {son:g};\n"
+            f"deltaT          {dt:g};\n\n"
+            "writeControl    adjustableRunTime;\n"
+            f"writeInterval   {yaz:g};\n"
+            "adjustableTimeStep yes;\n"
+            f"maxCo           {case.max_courant:g};\n"
+            "purgeWrite      5;\n")
+    else:
+        txt += (
         "application     foamRun;\n"
         f"solver          {solver};\n\n"
         "startFrom       startTime;\n"
@@ -576,7 +609,8 @@ def _write_control_dict(case_dir: Path, case: CFDCase, surface_name: str,
         "deltaT          1;\n\n"
         "writeControl    timeStep;\n"
         f"writeInterval   {case.write_interval};\n"
-        "purgeWrite      2;\n"
+        "purgeWrite      2;\n")
+    txt += (
         "writeFormat     ascii;\n"
         "writePrecision  8;\n"
         "writeCompression off;\n"
@@ -634,10 +668,16 @@ def _write_control_dict(case_dir: Path, case: CFDCase, surface_name: str,
     (case_dir / "system" / "controlDict").write_text(txt)
 
 
-def _write_fv_schemes(case_dir: Path) -> None:
+def _write_fv_schemes(case_dir: Path, transient: bool = False) -> None:
     txt = _foam_header("dictionary", "fvSchemes", "system")
+    # `bounded` ön-eki YALNIZ kararlı-hal içindir: div(phi,U) terimindeki
+    # süreklilik hatasını SIMPLE yakınsaması boyunca sınırlar. Zaman-çözünürde
+    # süreklilik her adımda zaten sağlanır ve `bounded` ikinci-mertebe zaman
+    # doğruluğunu bozar.
+    b = "" if transient else "bounded "
     txt += (
-        "ddtSchemes      { default steadyState; }\n\n"
+        ("ddtSchemes      { default backward; }\n\n" if transient
+         else "ddtSchemes      { default steadyState; }\n\n") +
         "gradSchemes\n{\n"
         "    default         Gauss linear;\n"
         "    grad(U)         cellLimited Gauss linear 1;\n"
@@ -645,19 +685,19 @@ def _write_fv_schemes(case_dir: Path) -> None:
         "}\n\n"
         "divSchemes\n{\n"
         "    default                                 none;\n"
-        "    div(phi,U)                              bounded Gauss linearUpwind grad(U);\n"
-        "    div(phi,k)                              bounded Gauss upwind;\n"
-        "    div(phi,omega)                          bounded Gauss upwind;\n"
-        "    div(phi,nuTilda)                        bounded Gauss upwind;\n"
+        f"    div(phi,U)                              {b}Gauss linearUpwind grad(U);\n"
+        f"    div(phi,k)                              {b}Gauss upwind;\n"
+        f"    div(phi,omega)                          {b}Gauss upwind;\n"
+        f"    div(phi,nuTilda)                        {b}Gauss upwind;\n"
         # Gecis modeli (kOmegaSSTLM) iki ek tasima denklemi cozer. `default none`
         # altinda semasi tanimsiz her div terimi cozucuyu dusurur; kOmegaSST'de
         # bu terimler hic olusmadigi icin kosulsuz yazmak zararsizdir.
-        "    div(phi,gammaInt)                       bounded Gauss upwind;\n"
-        "    div(phi,ReThetat)                       bounded Gauss upwind;\n"
-        "    div(phi,e)                              bounded Gauss upwind;\n"
-        "    div(phi,h)                              bounded Gauss upwind;\n"
-        "    div(phi,K)                              bounded Gauss upwind;\n"
-        "    div(phi,Ekp)                            bounded Gauss upwind;\n"
+        f"    div(phi,gammaInt)                       {b}Gauss upwind;\n"
+        f"    div(phi,ReThetat)                       {b}Gauss upwind;\n"
+        f"    div(phi,e)                              {b}Gauss upwind;\n"
+        f"    div(phi,h)                              {b}Gauss upwind;\n"
+        f"    div(phi,K)                              {b}Gauss upwind;\n"
+        f"    div(phi,Ekp)                            {b}Gauss upwind;\n"
         "    div(phid,p)                             Gauss upwind;\n"
         "    div(phi,(p|rho))                        Gauss upwind;\n"
         "    div(meshPhi,p)                          Gauss linear;\n"
@@ -672,7 +712,8 @@ def _write_fv_schemes(case_dir: Path) -> None:
     (case_dir / "system" / "fvSchemes").write_text(txt)
 
 
-def _write_fv_solution(case_dir: Path, compressible: bool = False) -> None:
+def _write_fv_solution(case_dir: Path, compressible: bool = False,
+                       transient: bool = False, n_outer: int = 2) -> None:
     txt = _foam_header("dictionary", "fvSolution", "system")
     txt += (
         "solvers\n{\n"
@@ -692,21 +733,37 @@ def _write_fv_solution(case_dir: Path, compressible: bool = False) -> None:
         "        solver          diagonal;\n"
         "    }\n"
         "}\n\n"
-        "SIMPLE\n{\n"
-        "    nNonOrthogonalCorrectors 1;\n"
-        "    consistent      yes;\n"
-        "    residualControl\n    {\n"
-        f"        p               {RESIDUAL_TARGET:g};\n"
-        f"        U               {RESIDUAL_TARGET:g};\n"
-        f"        \"(k|omega|nuTilda|gammaInt|ReThetat)\" {RESIDUAL_TARGET:g};\n"
-        "    }\n"
-        "}\n\n"
+        # ZAMAN-ÇÖZÜNÜR: PIMPLE. `residualControl` BURADA YOK ve olmamalı —
+        # kararlı-halde o eşik "çözüm oturdu" demektir; zaman-çözünürde koşuyu
+        # ZAMANIN ORTASINDA durdururdu. Bitiş ölçütü endTime'dır.
+        + (("PIMPLE\n{\n"
+            f"    nOuterCorrectors {n_outer};\n"
+            "    nCorrectors     2;\n"
+            "    nNonOrthogonalCorrectors 1;\n"
+            "    turbOnFinalIterOnly no;\n"
+            "}\n\n") if transient else
+           ("SIMPLE\n{\n"
+            "    nNonOrthogonalCorrectors 1;\n"
+            "    consistent      yes;\n"
+            "    residualControl\n    {\n"
+            f"        p               {RESIDUAL_TARGET:g};\n"
+            f"        U               {RESIDUAL_TARGET:g};\n"
+            f"        \"(k|omega|nuTilda|gammaInt|ReThetat)\" {RESIDUAL_TARGET:g};\n"
+            "    }\n"
+            "}\n\n"))
         # Sıkışabilir soğuk-başlangıç kararsızlığı (T<0 abort) için düşük
         # relaxation; sıkıştırılamaz yol hızlı kalır
         + ("relaxationFactors\n{\n"
            "    fields { p 0.2; rho 0.05; }\n"
            "    equations { U 0.3; \"(k|omega|nuTilda)\" 0.3; \"(e|h)\" 0.3; }\n"
            "}\n" if compressible else
+           # Zaman-çözünürde relaxation 1.0: PIMPLE'ın dış döngüsü zaten
+           # gevşetiyor ve alt-gevşetme ZAMAN doğruluğunu bozar (çözüm her
+           # adımda tam yakınsamaz, sonuç zamanda kayar).
+           "relaxationFactors\n{\n"
+           "    fields { p 1; }\n"
+           "    equations { U 1; \"(k|omega|nuTilda|gammaInt|ReThetat)\" 1; }\n"
+           "}\n" if transient else
            "relaxationFactors\n{\n"
            "    fields { p 0.3; }\n"
            "    equations { U 0.7; \"(k|omega|nuTilda|gammaInt|ReThetat)\" 0.7; }\n"
@@ -1040,8 +1097,9 @@ def build_case(case: CFDCase, out_dir: Path) -> Path:
     # İz-düzlemi: gövde arkası 2 boy (uzak-iz basınç toparlanması), domain içinde
     wake_x = float(gmax[0] + 2.0 * lref)
     _write_control_dict(case_dir, case, surface_name, lref, wake_x=wake_x)
-    _write_fv_schemes(case_dir)
-    _write_fv_solution(case_dir, case.compressible)
+    _write_fv_schemes(case_dir, case.transient)
+    _write_fv_solution(case_dir, case.compressible, case.transient,
+                       case.n_outer)
     n_proc = case.n_processors if case.n_processors > 0 else _default_processors()
     case.n_processors = n_proc  # downstream run_cfd için sabitle
     _write_decompose_par(case_dir, n_proc)
