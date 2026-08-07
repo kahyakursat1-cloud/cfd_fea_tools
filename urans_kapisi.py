@@ -112,6 +112,14 @@ def recete_metni(r: dict) -> list[str]:
 
 # ── KOŞUM SONRASI: ÖNCÜLÜ ÖLÇÜMLE DEĞİŞTİR ────────────────────────────────
 
+# SALINIM SAYILMA ESIGI: genlik, ortalamanin bu kesrinden kucukse sinyal
+# GURULTUDUR. Olculdu — simetrik silindir kosusunda dokulme hic baslamadi ve
+# Cl genligi 1e-22 idi, ama isaret-gecisleri yine sayilip "f=2.87 Hz olculdu"
+# denmisti. Yuvarlama gurultusunun frekansi bir fizik degildir.
+GENLIK_ESIGI_ORAN = 1e-4      # |genlik| / |ortalama|
+GENLIK_ESIGI_MUTLAK = 1e-12   # ortalama ~0 ise (Cl gibi) mutlak taban
+
+
 def salinim_olc(zaman: list[float], deger: list[float],
                 gecis_orani: float = 0.25) -> dict:
     """Zaman serisinden frekans, genlik ve ortalama — geçiş atıldıktan sonra.
@@ -145,6 +153,15 @@ def salinim_olc(zaman: list[float], deger: list[float],
     sapma = [v - ort for v in y]
     sure = t[-1] - t[0]
     genlik = (max(y) - min(y)) / 2.0
+    # GÜRÜLTÜ SALINIM DEĞİLDİR. Bu kapı olmadan, tümüyle simetrik kalmış bir
+    # çözümde (girdap dökülmesi hiç başlamamış) yuvarlama gürültüsünün işaret
+    # geçişleri sayılıyor ve "f=2,87 Hz ölçüldü" deniyordu — genlik 1e-22 iken.
+    esik = max(abs(ort) * GENLIK_ESIGI_ORAN, GENLIK_ESIGI_MUTLAK)
+    if genlik < esik:
+        return {"olculdu": False,
+                "neden": (f"genlik {genlik:.3g} < eşik {esik:.3g} — sinyal "
+                          "GÜRÜLTÜ; salınım yok (çözüm simetrik/oturmuş)"),
+                "ortalama": ort, "genlik": genlik, "pencere_s": sure}
     # Yukari gecis zamanlari (dogrusal enterpolasyon): sapma <=0 iken >0 olur.
     yukari = [t[i] + (t[i + 1] - t[i]) * (-sapma[i]) / (sapma[i + 1] - sapma[i])
               for i in range(len(sapma) - 1)

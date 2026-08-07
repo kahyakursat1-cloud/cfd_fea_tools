@@ -64,8 +64,14 @@ import sessiz_yutma
 # panelle devam edilir. Gerekçe kodda: sonuç yine üretilir, yalnız band genişler.
 # Alternatif (sert hata) mevcut çalışan akışları kırardı.
 # İzlenen sayılar DEĞİŞMEDİ: incelenmemiş 25, güven yolunda incelenmemiş 0.
+# 2026-08-07 — GUVEN YOLU 57 → 58. GERILEME DEGIL: silindir girdap-dokulmesi
+# capasi (`experiments/silindir_vorteks.py`) forceCoeffs.dat'i okuyor ve yarim
+# yazilmis SON SATIRI atliyor — kosu surerken dosya okunursa olagan bir durum.
+# Hicbir satir okunamazsa cagiran "olculemedi" hukmu veriyor, yani bos sonuc
+# basari sayilmiyor. Gerekce kodda yazili.
+# Izlenen sayilar DEGISMEDI: incelenmemis 0, guven yolunda incelenmemis 0.
 TABAN_TOPLAM = 85
-TABAN_GUVEN_YOLU = 57
+TABAN_GUVEN_YOLU = 58
 TABAN_INCELENMEMIS = 25
 TABAN_INCELENMEMIS_GUVEN_YOLU = 0
 

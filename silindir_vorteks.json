@@ -1,0 +1,47 @@
+{
+  "vaka": "Silindir girdap dökülmesi — Re=100 (2B laminer, D=1.0 m, U=1.0 m/s)",
+  "kaynak": "OpenFOAM 11 foamRun/incompressibleFluid, ZAMAN-ÇÖZÜNÜR (backward/PIMPLE)",
+  "referans": {
+    "St": 0.164,
+    "kaynak": "Williamson 1989 — deneysel",
+    "Cd": 1.33,
+    "Cd_kaynak": "Re=100 laminer literatür mertebesi"
+  },
+  "olculen": {
+    "St": 0.16752,
+    "Cd_ortalama": 1.3249,
+    "Cl_genlik": 0.30093,
+    "_aref_olcegi": 20.0,
+    "_aref_notu": "kanonik yazici Aref=lref^2 verir (3B bbox karesi); 2B silindirde dogru referans D x span"
+  },
+  "sapma_pct": {
+    "St": 2.15,
+    "Cd": -0.38
+  },
+  "salinim_olcumu": {
+    "olculdu": true,
+    "frekans_hz": 0.167519,
+    "periyot_s": 5.96946127,
+    "ortalama": -6.567774920447221e-05,
+    "genlik": 0.01504632075,
+    "genlik_pct": 22909.312,
+    "periyot_sayisi": 15,
+    "pencere_s": 97.56096,
+    "periyot_sacilmasi_pct": 6.53,
+    "_yontem": "yukarı-geçiş zamanlarının MEDYAN farkı (doğrusal enterpolasyonlu); düzensiz örneklemede yeniden-örnekleme gerektirmez ama çok-frekanslı sinyalde baskın modu AYIRAMAZ",
+    "_uyari": null
+  },
+  "kurulum": {
+    "hucre": 16800,
+    "dt_s": 0.06097560975609756,
+    "sure_s": 134.14634146341464,
+    "adim": 2200,
+    "gecis_periyodu": 6,
+    "istatistik_periyodu": 16
+  },
+  "_kapsam": "Re=100 LAMINERDIR: turbulans modeli yok. Bu vaka ZAMAN ayriklastirmasinin ve akis cozumunun dogrulugunu olcer, MODEL-FORM hatasini DEGIL — model_form_bandi'ye capa olarak GIRMEZ.",
+  "_neden": "URANS case yazicisi ve frekans olcumu v1.2'de eklendi ama yalniz SENTETIK sinyalde dogrulanmisti. Gercek cozucu kosusunda sinanmadan 'URANS yolu var' demek, bu deponun reddettigi turden bir iddia olurdu.",
+  "_uretim": "Üretim: python experiments/silindir_vorteks.py",
+  "_sure_s": 0.0,
+  "verdikt": "✅ Zaman-çözünür yol DOĞRULANDI: St=0.16752 vs Williamson 0.164 → %2.15; Cd sapması %-0.38. Frekans ölçümü ve case yazıcısı gerçek çözücü koşusunda çalışıyor."
+}

@@ -715,6 +715,26 @@ def _write_fv_schemes(case_dir: Path, transient: bool = False) -> None:
 def _write_fv_solution(case_dir: Path, compressible: bool = False,
                        transient: bool = False, n_outer: int = 2) -> None:
     txt = _foam_header("dictionary", "fvSolution", "system")
+    # PIMPLE SON DIŞ İTERASYONDA `<alan>Final` GİRDİSİ ARAR ve bulamazsa
+    # koşuyu FATAL IO ERROR ile düşürür. Sentetik test bunu göremezdi; gerçek
+    # silindir koşusu ilk zaman adımında yakaladı. Final girdisi ayrıca DAHA
+    # SIKI olmalıdır (relTol 0): dış döngü bittiğinde o adımın çözümü artık
+    # düzeltilmeyecektir, yani gevşek bırakılan hata zamanda birikir.
+    # Makro ($p) KULLANILMAZ: tek bloğa toplamak U'ya da GAMG verirdi ve GAMG
+    # simetrik olmayan momentum matrisinde uygun değildir. Her aile kendi
+    # çözücüsünü korur, yalnız tolerans sıkılır.
+    son = ('    pFinal\n    {\n'
+           "        solver          GAMG;\n"
+           "        smoother        DICGaussSeidel;\n"
+           "        tolerance       1e-07;\n"
+           "        relTol          0;\n"
+           "    }\n"
+           '    "(U|k|omega|nuTilda|e|h)Final"\n    {\n'
+           "        solver          smoothSolver;\n"
+           "        smoother        symGaussSeidel;\n"
+           "        tolerance       1e-07;\n"
+           "        relTol          0;\n"
+           "    }\n") if transient else ""
     txt += (
         "solvers\n{\n"
         "    p\n    {\n"
@@ -729,6 +749,7 @@ def _write_fv_solution(case_dir: Path, compressible: bool = False,
         "        tolerance       1e-06;\n"
         "        relTol          0.1;\n"
         "    }\n"
+        + son +
         "    rho\n    {\n"
         "        solver          diagonal;\n"
         "    }\n"

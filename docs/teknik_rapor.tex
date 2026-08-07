@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-31.509 satır Python $\cdot$ 139 test dosyası $\cdot$ 1390 geçen test\\[3mm]
+31.547 satır Python $\cdot$ 140 test dosyası $\cdot$ 1406 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -769,6 +769,46 @@ kararlı-halde ``çözüm oturdu'' demektir; zaman-çözünürde koşuyu \emph{z
 ortasında} durdururdu. \texttt{bounded} ön-eki süreklilik hatasını SIMPLE
 yakınsaması boyunca sınırlar ve zaman doğruluğunu bozar. Alt-gevşetme çözümün
 her adımda tam yakınsamamasına, yani sonucun zamanda kaymasına yol açar.
+
+\begin{olculdu}{Gerçek çözücüde sınandı --- ve dört kusur çıkardı}
+Yazıcı ve ölçüm önce yalnız \emph{sentetik} sinyalde doğrulanmıştı. Bir kanonik
+vaka gerçek çözücüde koşuldu: silindir girdap dökülmesi, $Re=100$. Bu vaka
+seçildi çünkü Strouhal sayısının \emph{deneysel} karşılığı var --- Williamson
+(1989) $St=0{,}164$.
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+& \textbf{Ölçülen} & \textbf{Referans} & \textbf{Sapma} \\
+\midrule
+Strouhal $St$ & 0{,}1675 & 0{,}164 (Williamson 1989) & \%2{,}15 \\
+$C_D$ & 1{,}325 & 1{,}33 ($Re{=}100$ literatür) & \%$-$0{,}38 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Asıl değer bu iki sayıda değil, koşunun \emph{yolda bulduklarındadır}.
+Dördü de sentetik testin göremeyeceği türdendi:
+
+\begin{enumerate}\setlength\itemsep{1pt}
+  \item PIMPLE son dış iterasyonda \texttt{pFinal} girdisi arar; yoktu ve koşu
+        ilk zaman adımında \texttt{FATAL IO ERROR} ile düştü.
+  \item Kanonik \texttt{forceCoeffs} yazıcısı kaldırma yönünü x-z düzleminde
+        alır (uçak konvansiyonu). Mesh x-y düzlemindeydi, yani kuvvet
+        \texttt{empty} yönünde ölçülüyordu: $C_L$ \textbf{tam sıfır}.
+  \item Tümüyle simetrik kurulumda Kármán caddesi \emph{hiç doğmadı} --- 50 s
+        boyunca $C_L$ genliği $10^{-22}$ kaldı. Dökülme bir kararsızlıktır ve
+        tetikleyici ister.
+  \item Tek far-field yaması akımı sürdüremedi: en hızlı akış 0{,}074\,m/s'ye
+        indi (serbest akım 1\,m/s) ve $C_D$ 2{,}29'dan \emph{negatife} geçti.
+        Giriş/çıkış/kayma olarak üçe bölündü.
+\end{enumerate}
+
+\noindent $Re=100$ laminerdir: türbülans modeli yoktur. Bu çapa zaman
+ayrıklaştırmasının doğruluğunu ölçer, model-form hatasını \emph{değil} --- ve
+model-form tablosuna çapa olarak \textbf{girmez}. Kapsam kanıt dosyasında
+yazılı ve tabloya girmediği ayrıca testle bağlı.
+\end{olculdu}
 
 \begin{olculdu}{Ölçüm aracının kendisi de doğrulandı}
 Koşu bitince frekans artık tahmin edilmez, \emph{ölçülür} --- ve reçete o
@@ -1428,9 +1468,9 @@ dosyasında \texttt{siralama\_uyarilari} altında durur.
 \midrule
 v1.1 & yüksek & Eski çözücü sarmalayıcısının kaldırılması; tüm yolların
                 \texttt{analysis/} çekirdeğine taşınması \\
-v1.2 & yüksek & URANS \emph{doğrulaması} --- case yazıcı ve frekans ölçümü
-                eklendi (bkz. \Sef{sec:urans}); eksik olan kanonik bir
-                zaman-çözünür çapa (silindir girdap-dökülmesi, St deneysel) \\
+v1.2 & orta   & URANS'ın \emph{türbülanslı} vakada doğrulanması --- silindir
+                çapası laminerdi ($Re{=}100$); kOmegaSST ile zaman-çözünür bir
+                çapa henüz yok \\
 v1.3 & yüksek & Model-form tablosunun kalan beş hücresi --- deneysel referanslı
                 çapalarla; yarı-analitik referans $u_D$ baskın olduğu için
                 yalnız ağ inceltmek yetmiyor \\
@@ -1477,12 +1517,12 @@ v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanm
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 31.509 & \texttt{rapor\_sayilari.py} \\
+Kod satırı (kök + \texttt{analysis/}) & 31.547 & \texttt{rapor\_sayilari.py} \\
 Kök modül & 83 & \texttt{rapor\_sayilari.py} \\
 Deney / çapa betiği & 62 & \texttt{experiments/} \\
-Test dosyası & 139 & \texttt{tests/test\_*.py} \\
-Geçen test & 1390 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1390 & \texttt{-{}-cov} \\
+Test dosyası & 140 & \texttt{tests/test\_*.py} \\
+Geçen test & 1406 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1406 & \texttt{-{}-cov} \\
 Satır kapsamı & \textbf{\%47} & 18.928 ifade, 9.979 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule

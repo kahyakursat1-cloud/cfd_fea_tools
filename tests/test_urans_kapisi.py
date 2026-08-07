@@ -270,3 +270,54 @@ def test_controlDict_transient_ADJUSTABLE_yaziyor(tmp_path, monkeypatch):
     assert "endTime         2.5" in txt
     assert "adjustableRunTime" in txt and "adjustableTimeStep yes" in txt
     assert "maxCo" in txt
+
+
+def test_transient_PIMPLE_FINAL_girdilerini_yaziyor(tmp_path):
+    """PIMPLE son dış iterasyonda `<alan>Final` arar ve bulamazsa koşuyu FATAL
+    IO ERROR ile düşürür. Sentetik test bunu göremezdi; gerçek silindir koşusu
+    ilk zaman adımında yakaladı.
+
+    Final girdisi DAHA SIKI olmalı (relTol 0): dış döngü bittiğinde o adımın
+    çözümü artık düzeltilmeyecektir, gevşek bırakılan hata zamanda birikir.
+    """
+    sol, _ = _yaz(tmp_path, True)
+    assert "pFinal" in sol and "Final\"" in sol
+    son = sol[sol.index("pFinal"):]
+    assert "relTol          0;" in son
+    # U ailesi GAMG'ye kaymamali: simetrik olmayan momentum matrisinde uygun degil
+    ublok = sol[sol.index('"(U|k|omega|nuTilda|e|h)Final"'):][:220]
+    assert "smoothSolver" in ublok and "GAMG" not in ublok
+
+
+def test_kararli_halde_FINAL_girdisi_YOK(tmp_path):
+    """SIMPLE'da Final yoktur; yazmak sözlüğü şişirir ve yanlış izlenim verir."""
+    sol, _ = _yaz(tmp_path, False)
+    assert "Final" not in sol
+
+
+def test_GURULTU_salinim_sayilmiyor():
+    """Ölçüldü: tümüyle simetrik kalmış silindir koşusunda girdap dökülmesi
+    hiç başlamadı ve Cl genliği 1e-22 idi — ama işaret geçişleri yine sayılıp
+    'f=2,87 Hz ölçüldü' denmişti. Yuvarlama gürültüsünün frekansı bir fizik
+    değildir."""
+    from urans_kapisi import salinim_olc
+    t, y = _sinus(3.0, ort=0.5, genlik=1e-22)
+    o = salinim_olc(t, y)
+    assert o["olculdu"] is False
+    assert "GÜRÜLTÜ" in o["neden"]
+
+
+def test_gercek_salinim_ESIKTEN_geciyor():
+    """Kapı gerçek salınımı elemesin: %4 genlik açık ara geçmeli."""
+    from urans_kapisi import salinim_olc
+    o = salinim_olc(*_sinus(3.0, ort=0.5, genlik=0.02))
+    assert o["olculdu"] is True
+
+
+def test_ortalama_SIFIRA_yakinken_mutlak_taban():
+    """Cl gibi ortalaması ~0 olan büyüklükte göreli eşik anlamsızdır; mutlak
+    taban devreye girer."""
+    from urans_kapisi import GENLIK_ESIGI_MUTLAK, salinim_olc
+    kucuk = salinim_olc(*_sinus(3.0, ort=0.0, genlik=GENLIK_ESIGI_MUTLAK / 10))
+    buyuk = salinim_olc(*_sinus(3.0, ort=0.0, genlik=1e-3))
+    assert kucuk["olculdu"] is False and buyuk["olculdu"] is True
