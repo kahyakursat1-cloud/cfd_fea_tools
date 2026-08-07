@@ -741,7 +741,7 @@ Kod doğrulama (kapalı-form karşılaştırma) & \ev & \ev & 6 FEA çapası \\
 Girdi belirsizliği yayılımı & \ev & \ev & \texttt{girdi\_belirsizligi} (4 girdi) \\
 Deneysel referansla geçerleme & \ks & \ev & \texttt{zarf} (14 koşul) \\
 Geçerlilik alanı (validation domain) beyanı & \ev & \ev & \texttt{validity\_envelope} \\
-Model-form belirsizliği & \ks & \ev & rejime ayrıldı; 1/4 hücre ölçüldü \\
+Model-form belirsizliği & \ks & \ev & rejime ayrıldı; 2 çapa var, ikisi de $n{=}1$ \\
 Sonucun izlenebilirliği (komut + ortam) & \ev & \ev & \texttt{kanit}, \texttt{ortam} \\
 \bottomrule
 \end{tabular}
@@ -1050,16 +1050,38 @@ takası \emph{sayıyla} sunar.
   \item[Panel yönteminin indüklenen direnci.] VSPAERO'nun iki $C_{Di}$ çıktısı
         da kuramdan sapar (yakın-alan $-\%21$, Trefftz $+\%62$); bu yüzden
         indüklenen direnç kuramdan üretilir.
-  \item[Model-form belirsizliği.] Rejim$\times$duvar işlemi tablosuna ayrıldı ama
-        dört hücrenin yalnız biri ölçüldü (2B bağlı akış, \%3{,}52, $n{=}1$
-        çapa). Kalan üç hücre literatür-öncülüyle çalışır (\%5--20); iki çapa
-        duvar işlemi kayıtlı olmadığı için hiçbir hücreye \emph{atanamadı} ---
-        tahmin edilmedi, listelendi.
+  \item[Model-form belirsizliği.] Rejim$\times$duvar işlemi tablosuna ayrıldı.
+        İki hücrede çapa var ama \emph{ikisi de $n{=}1$} ve ölçülen değer
+        öncülün altında kaldı (künt/duvar-fonksiyonu \%6{,}03 ölçüldü, öncül
+        \%20; 2B bağlı akış \%3{,}52 ölçüldü, öncül \%5) --- bu yüzden
+        \textbf{band daraltılmadı} ve öncül korundu. Bir çapa (geriye-basamak,
+        ayrılmış akış) y$^+$ kaydı olmadığı için hâlâ hiçbir hücreye
+        atanamıyor. Yani tabloda \emph{ölçümle daraltılmış} tek bir hücre bile
+        yoktur; bu bilinerek böyledir (aşağıdaki kutu).
   \item[Teknik borç --- iki hızlı katman.] Eski çözücü sarmalayıcısı ve bazı
         bağımsız V\&V betikleri \texttt{analysis/} çekirdeğini kullanmaz; case
         iskelesini tekrarlarlar. Yeni kod çekirdeğe yazılır, eskisi yerinde
         durur --- taşıma riski ölçülmüş değil, o yüzden ``yakında'' denmiyor.
 \end{description}
+
+\begin{anafikir}{Tek çapa bandı daraltmaz --- asimetrik bir kural}
+Küp çapasının y$^+$'ı aslında ölçülmüştü; yalnızca çapa dosyasına yazılmadığı
+için künt/duvar-fonksiyonu hücresi öncülde kalıyordu. Bağ kurulunca ölçüm
+\%6{,}03 çıktı --- öncülün (\%20) \emph{üçte biri}. Bandı bu tek ölçümle
+daraltmak cazipti ve yapılmadı.
+
+Gerekçe: $n{=}1$ bir dağılım değil, tek örnektir. ``Model daha iyi'' değil, ``bu
+tek vakada daha iyi çıktı'' demektir; model-form hatası rejim içinde geometriye
+göre güçlü değişir. Bu yüzden kural asimetriktir: ölçüm öncülü \textbf{aşarsa}
+her durumda ölçüm kazanır --- öncül kanıtla yanlışlanmıştır ve yukarı düzeltme
+her zaman kabul edilir. Ölçüm öncülün \textbf{altında} kalırsa $n{=}1$'de öncül
+korunur, ölçüm kayda geçer ve ikinci çapa geldiğinde kural kendiliğinden
+serbest kalır.
+
+Bunun bir bedeli var ve saklanmıyor: yayımlanan band, elimizdeki en iyi tek
+ölçümden daha geniştir. Alternatif --- tek vakayla bandı üçte birine indirmek
+--- bu platformun karşı durduğu şeydir.
+\end{anafikir}
 
 \subsection{Yol haritası}
 
@@ -1295,7 +1317,8 @@ hat, GPU \\
 \end{center}
 
 \begin{dikkat}{Bu sürümde kapanmamış olanlar}
-Model-form belirsizliğinin dört hücresinden üçü hâlâ literatür-öncülü; bellek
+Model-form tablosunda ölçümle daraltılmış hücre YOK (iki çapa da $n{=}1$,
+öncül korundu); bellek
 katsayısı henüz ölçülmedi (telemetri bu sürümde eklendi, sayı sonraki
 koşulardan gelecek); başarım ölçümü tek vakadan ibaret; çözücü sürümleri
 kilitli değil; eski çözücü sarmalayıcısı hâlâ \texttt{analysis/} çekirdeğini
