@@ -436,7 +436,13 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
     md.append(f"| Dinamik basınç q | {q:.1f} Pa |\n")
     pv = getattr(r, "pervane", None)
     if pv:
-        md.append(f"**Pervane (aktüatör disk):** itki {pv['itki_N']} N, "
+        # KIRPILDIYSA İSTENEN İTKİ ANALİZ EDİLMEDİ. Uyarı 4b'de duruyordu ama bu
+        # satır istenen değeri uygulanmış gibi yazıyordu — okuyucu iki farklı
+        # bölümü yan yana koymadan yanlış itkiyi doğru sanıyor.
+        _it = (f"itki **{pv['uygulanan_itki_N']} N UYGULANDI** "
+               f"(istenen {pv['itki_N']} N — Froude sınırına kırpıldı)"
+               if pv.get("kirpildi") else f"itki {pv['itki_N']} N")
+        md.append(f"**Pervane (aktüatör disk):** {_it}, "
                   f"çap {pv['cap_m']} m, indüksiyon a={pv['a']} (Froude). "
                   "*Üniform disk — pal geometrisi/swirl modellenmedi; "
                   "itki etkisinin gövde aerodinamiğine yansıması ön-tasarım düzeyinde.*\n")

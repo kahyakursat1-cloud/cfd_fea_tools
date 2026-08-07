@@ -739,15 +739,22 @@ def propeller_params(thrust_n: float, cap_m: float, velocity: float,
     OF11 actuationDiskSource T = 2A·U₀²·a(1−a); diskDir akış yönünde (+x)
     seçilince kaynak akışkanı İTER (pervane). Froude sınırı τ ≤ 0.25."""
     area = math.pi * (cap_m / 2) ** 2
-    tau = thrust_n / (2 * rho * area * velocity ** 2)
-    uyari = None
+    q_disk = 2 * rho * area * velocity ** 2
+    tau = thrust_n / q_disk
+    uyari, uygulanan = None, thrust_n
     if tau > 0.24:
-        uyari = (f"İtki Froude sınırını aşıyor (τ={tau:.2f}>0.25; bu hız/çapta "
-                 f"max ~{0.24 * 2 * rho * area * velocity**2:.1f} N) — sınıra kapatıldı")
         tau = 0.24
+        # UYGULANAN İTKİ İSTENENDEN KÜÇÜK. Cp/Ct kırpılmış tau'dan türetiliyor,
+        # yani çözücü gerçekten daha az itki görüyor. Rapor "itki 5000 N" yazıp
+        # 0.5 N analiz etmesin diye uygulanan değer AYRI alanda taşınıyor.
+        uygulanan = tau * q_disk
+        uyari = (f"İtki Froude sınırını aşıyor (τ={thrust_n / q_disk:.2f}>0.25; "
+                 f"bu hız/çapta max ~{uygulanan:.4g} N) — sınıra kapatıldı")
     a = (1 - math.sqrt(1 - 4 * tau)) / 2
     ct = 0.7
-    return {"itki_N": thrust_n, "cap_m": cap_m, "area": area,
+    return {"itki_N": thrust_n, "uygulanan_itki_N": float(f"{uygulanan:.4g}"),
+            "kirpildi": uygulanan < thrust_n,
+            "cap_m": cap_m, "area": area,
             "a": round(a, 4), "Cp": round(ct * (1 - a), 4), "Ct": ct,
             "tau": round(tau, 4), "uyari": uyari}
 
