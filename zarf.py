@@ -332,6 +332,34 @@ def _topopt() -> tuple[str, str]:
     )
 
 
+def _zaman_cozunur() -> tuple[str, str]:
+    """Girdap dökülmesi — URANS yolunun MEKANİZMA ve FİZİK hükümleri AYRI.
+
+    İki çapa aynı ağı ve aynı frekans ölçümünü kullanır; değişen Reynolds sayısı
+    ve türbülans modelidir. Ayrım kritik: laminer vaka aracın DOĞRU ölçtüğünü
+    gösterir, türbülanslı vaka 2B kurulumun FİZİĞİ tutturamadığını.
+    """
+    lam = _json("silindir_vorteks.json") if (ROOT / "silindir_vorteks.json").exists() else None
+    tur = _json("silindir_urans.json") if (ROOT / "silindir_urans.json").exists() else None
+    if not lam:
+        return "⚠️ Kanıt yok", BEYAN
+    s = (f"Laminer silindir Re=100 (2B zaman-çözünür): St={lam['olculen']['St']} vs "
+         f"Williamson 0,164 → %{lam['sapma_pct']['St']:+.1f}; "
+         f"Cd={lam['olculen']['Cd_ortalama']} → %{lam['sapma_pct']['Cd']:+.1f}. "
+         "Frekans ölçümü ve URANS case yazıcısı gerçek çözücü koşusunda ÇALIŞIYOR")
+    guv = "✅ Yüksek (laminer)"
+    if tur and tur.get("olculen", {}).get("St"):
+        yp = (tur["olculen"].get("yplus") or {}).get("ort")
+        s += (". TÜRBÜLANSLI Re=1,4e5 (kOmegaSST, duvar-fonksiyonu"
+              + (f", y⁺ ort={yp:.0f}" if yp else "") + "): mekanizma koştu ama "
+              f"St={tur['olculen']['St']} deneysel plato 0,19-0,21 DIŞINDA "
+              f"(%{tur['sapma_pct']['St']:+.0f}) ve Cd %{tur['sapma_pct']['Cd']:+.0f} — "
+              "iki sapmanın yönü tutarlı: 2B kurulum span-yönü korelasyon kaybını "
+              "temsil edemez. Türbülanslı zaman-çözünür sonuç ÇAPA SAYILMAZ")
+        guv = "⚠️ Laminer ✅ / türbülans ❌"
+    return guv, s
+
+
 SATIRLAR = [
     ("Bağlı akış, 2D airfoil mutlak $C_d$ (M<0.3)", _airfoil_cd),
     ("Bağlı akış, 2D airfoil taşıma $C_l$ (α=8°)", _tasima_a8),
@@ -348,6 +376,7 @@ SATIRLAR = [
     ("Topoloji optimizasyonu — gerilme farkındalıklı", _topopt),
     ("Stall / $C_{L,max}$", None),
     ("Ayrılmış akış — yeniden-yapışma uzunluğu (2D basamak)", _ayrilmis_akis),
+    ("Zaman-çözünür (URANS) — girdap dökülme frekansı", _zaman_cozunur),
     ("y⁺<1 transition (duvar-çözünür)", None),
 ]
 

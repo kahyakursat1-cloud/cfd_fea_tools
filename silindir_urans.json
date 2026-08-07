@@ -1,0 +1,83 @@
+{
+  "vaka": "Silindir girdap dökülmesi — Re=140000 (2B URANS kOmegaSST, duvar-fonksiyonu)",
+  "kaynak": "OpenFOAM 11 foamRun/incompressibleFluid, ZAMAN-ÇÖZÜNÜR (backward/PIMPLE)",
+  "referans": {
+    "St": 0.2,
+    "St_bandi": [
+      0.19,
+      0.21
+    ],
+    "kaynak": "Roshko, J. Fluid Mech. 10 (1961); Norberg, J. Fluids Struct. 17 (2003) — DENEYSEL; Re=1e4..1e5 boyunca St = 0,19-0,21 platosu",
+    "St_tipi": "DENEYSEL (plato)",
+    "Cd": 1.2,
+    "Cd_kaynak": "Subkritik silindir, Re=1e5 civari: Cd ≈ 1,2 (Achenbach, J. Fluid Mech. 34 (1968); Norberg 2003). 2B URANS span-yonu korelasyon kaybini temsil EDEMEZ ve Cd'yi sistematik yuksek verir — bu deger YALNIZ EGILIM olarak raporlanir",
+    "Cd_tipi": "YALNIZ EĞİLİM — 2B URANS bu Re'de Cd çapası değildir"
+  },
+  "olculen": {
+    "St": 0.2738,
+    "Cd_ortalama": 1.0366,
+    "Cl_genlik": 1.31224,
+    "yplus": {
+      "min": 11.310924,
+      "max": 99.689021,
+      "ort": 51.313468
+    },
+    "_aref_olcegi": 20.0
+  },
+  "sapma_pct": {
+    "St": 36.9,
+    "Cd": -13.62
+  },
+  "salinim_olcumu": {
+    "olculdu": true,
+    "frekans_hz": 0.273795,
+    "periyot_s": 3.65237221,
+    "ortalama": 0.00039080720145376926,
+    "genlik": 0.0656122123,
+    "genlik_pct": 16788.895,
+    "periyot_sayisi": 21,
+    "pencere_s": 79.99992,
+    "periyot_sacilmasi_pct": 5.76,
+    "_yontem": "yukarı-geçiş zamanlarının MEDYAN farkı (doğrusal enterpolasyonlu); düzensiz örneklemede yeniden-örnekleme gerektirmez ama çok-frekanslı sinyalde baskın modu AYIRAMAZ",
+    "_uyari": null
+  },
+  "turbulans_girisi": {
+    "TI": 0.01,
+    "k": 0.00015,
+    "omega": 0.3194,
+    "nut": 0.0004695743,
+    "uzunluk_olcegi_m": 0.07
+  },
+  "kurulum": {
+    "model": "kOmegaSST",
+    "duvar_islemi": "duvar-fonksiyonu",
+    "dt_s": 0.03333333333333333,
+    "sure_s": 110.0,
+    "adim": 3300,
+    "gecis_periyodu": 6,
+    "istatistik_periyodu": 16,
+    "mesh": "silindir_vorteks._blockmesh (AYNEN — iskele tekrarı yok)"
+  },
+  "_kapsam": "St DENEYSEL referansa karsi hukumlenir. Cd YALNIZ EGILIM: 2B URANS bu Re'de span-yonu korelasyon kaybini temsil edemez ve surultemeyi sistematik yuksek verir. Vaka model_form_bandi'ye Cd capasi olarak GIRMEZ.",
+  "_neden": "silindir_vorteks zaman-cozunur yolu dogruladi ama Re=100 LAMINERDIR — orada turbulans modeli hic devreye girmez. 'URANS yolu var' demek, kapali bir turbulans modelinin zaman-cozunur cevrimde kostugunu gostermeyi gerektirir.",
+  "_uretim": "Üretim: python experiments/silindir_urans.py",
+  "_sure_s": 2.8,
+  "verdikt": "✅ MEKANİZMA: kOmegaSST zaman-çözünür (PIMPLE/backward) çevrimde koştu, salınım ölçüldü (St=0.2738) ve y⁺ ort=51.3 (bant 30-300 içinde). Türbülanslı URANS yolu artık sentetik sinyalde değil, gerçek çözücü koşusunda sınandı.\n❌ FİZİK: St=0.2738, deneysel plato (0.19, 0.21) DIŞINDA (%+37); Cd=1.0366 literatürün %-14 altında. İki sapmanın YÖNÜ tutarlı ve bilinen kusuru gösterir: 2B kurulum span-yönü korelasyon kaybını temsil edemez, dökülme aşırı-korele olur, ayrılma gecikir → iz DARALIR (Cd düşük) ve frekans YÜKSELİR (St yüksek). Aynı ağ ve aynı ölçüm laminer Re=100'de St'yi %2,2 hatayla vermişti; yani ölçüm aracı doğru, EKSİK OLAN ÜÇÜNCÜ BOYUTTUR. Vaka bu haliyle Strouhal çapası olarak YAYIMLANMAZ; 2B URANS'ın subkritik silindirdeki sınırının ölçümü olarak durur.",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

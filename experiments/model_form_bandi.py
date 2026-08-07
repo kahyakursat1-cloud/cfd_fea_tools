@@ -314,6 +314,32 @@ def capalari_topla() -> list[dict]:
                       "yplus_kaynak": ("foamPostProcess yPlus, 'alt' yaması — "
                                        "3-seviye YÖNLÜ ailenin en ince ağı"),
                       "referans": (dfn.get("referans") or {}).get("kaynak", "")})
+
+    # DUZ LEVHA, DUVAR-FONKSIYONU AILESI -> attached_2d.wall_function.
+    # Ayni YONLU aile deseni: ilk hucre SABIT, nx/ny birlikte olcekleniyor.
+    # u_D uydurulmadi, IKI YERLESIK KORELASYONUN farkindan olculdu.
+    dla = _j("duz_levha_aile.json")
+    if dla:
+        ok = [s for s in dla.get("seviyeler", []) if s.get("durum") == "ok"]
+        bandda = not str(dla.get("duvar_islemi", "")).startswith("BAND")
+        if len(ok) == 3 and bandda:
+            ince = max(ok, key=lambda s: s.get("hucre", 0))
+            u_say = (dla.get("sayisal_band") or {}).get("u_pct")
+            u_ref = (dla.get("referans") or {}).get("u_D_pct")
+            hata = abs(float(ince["hata_pct"]))
+            _ayr = ayrilabilir(hata, u_say, u_ref)
+            c.append({"capa": "düz levha Cf (duvar-fonksiyonu aile)",
+                      "rejim": "attached_2d",
+                      "sapma_pct": hata,
+                      "ham_sapma_pct": hata,
+                      "u_sayisal_pct": round(u_say, 2) if u_say else None,
+                      "u_ref_pct": u_ref,
+                      "u_val_pct": _ayr["u_val_pct"],
+                      "ayrilabilir_mi": _ayr["ayrilabilir_mi"],
+                      "ayrilabilirlik_notu": _ayr["gerekce"],
+                      "yplus_ort": ince.get("yplus"),
+                      "yplus_kaynak": "foamPostProcess yPlus, 'levha' yaması",
+                      "referans": (dla.get("referans") or {}).get("bagintisi", "")})
     return c
 
 

@@ -1,0 +1,92 @@
+{
+  "vaka": "Düz levha Cf — attached_2d.wall_function çapası (y⁺≈50, Re_x=1.00e+06)",
+  "kaynak": "OpenFOAM 11 foamRun/incompressibleFluid, kOmegaSST, duvar-fonksiyonu",
+  "referans": {
+    "Cf": 0.003735,
+    "bagintisi": "Cf = 0,0592·Re_x^(-1/5) (1/7-kuvvet, Schlichting)",
+    "ikinci_baginti": "Cf = 0,370·(log₁₀Re_x)^(-2,584) (Schultz-Grunow 1941)",
+    "Cf_ikinci": 0.00361,
+    "u_D_pct": 3.364,
+    "u_D_kaynak": "İKİ YERLEŞİK KORELASYONUN AYNI Re_x'TEKİ FARKI — ölçüldü, uydurulmadı; tek bağıntıyı hatasız saymak u_D=0 demektir ve yanlıştır"
+  },
+  "aile": {
+    "tasarim": "YÖNLÜ — ilk hücre SABİT, nx ve ny birlikte ölçeklenir",
+    "yplus_hedefi": 50.0,
+    "ilk_hucre_um": 1156.98,
+    "olcekler": [
+      1.0,
+      1.3,
+      1.7
+    ]
+  },
+  "seviyeler": [
+    {
+      "ad": "L1_kaba",
+      "olcek": 1.0,
+      "ny": 70,
+      "nx_levha": 120,
+      "hucre": 9800,
+      "Cf": 0.003626,
+      "yplus": 50.562,
+      "hata_pct": -2.938,
+      "iterasyon": 109,
+      "durum": "ok"
+    },
+    {
+      "ad": "L2_orta",
+      "olcek": 1.3,
+      "ny": 91,
+      "nx_levha": 156,
+      "hucre": 16562,
+      "Cf": 0.003628,
+      "yplus": 50.64,
+      "hata_pct": -2.865,
+      "iterasyon": 124,
+      "durum": "ok"
+    },
+    {
+      "ad": "L3_ince",
+      "olcek": 1.7,
+      "ny": 119,
+      "nx_levha": 204,
+      "hucre": 28322,
+      "Cf": 0.003631,
+      "yplus": 50.603,
+      "hata_pct": -2.79,
+      "iterasyon": 165,
+      "durum": "ok"
+    }
+  ],
+  "sayisal_band": {
+    "u_pct": 0.0826,
+    "yontem": "en ince iki seviye arası bağıl fark",
+    "_neden": "Richardson YÖNLÜ ailede tanımsızdır: h tek bir orana indirgenmiyor"
+  },
+  "duvar_islemi": "wall_function",
+  "ayrilabilirlik": {
+    "ayrilabilir_mi": false,
+    "u_val_pct": 3.37,
+    "u_ref_pct": 3.364391351568114,
+    "gerekce": "u_val = √(0.08² + 3.36²) = %3.37 (ASME V&V 20)"
+  },
+  "_kapsam": "Band duvar-normali AYRIKLASTIRMA hatasini kapsar; ilk hucrenin kendisinden gelen duvar-fonksiyonu MODELLEME hatasini KAPSAMAZ (ilk hucre bilerek sabit tutuldu).",
+  "_uretim": "Üretim: python experiments/duz_levha_cf.py --aile",
+  "verdikt": "⚠️ sapma %2.79 ≤ u_val %3.37 — model hatası sayısal+referans belirsizliğinden AYRILAMIYOR; hücre ÜST SINIR olarak kalır (ölçüm değil)",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

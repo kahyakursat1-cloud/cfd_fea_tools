@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-31.953 satır Python $\cdot$ 142 test dosyası $\cdot$ 1442 geçen test\\[3mm]
+31.982 satır Python $\cdot$ 144 test dosyası $\cdot$ 1457 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -932,6 +932,44 @@ girer, yani \%11 hata reçeteyi o kadar kaydırırdı. Medyan (ortalama değil)
 seçildi ki tek bir bozuk periyot sonucu sürüklemesin.
 \end{olculdu}
 
+\begin{reddedilir}{Türbülanslı URANS: mekanizma geçti, fizik kaldı}
+Laminer çapa yolu doğruladı ama $Re{=}100$'de türbülans modeli hiç devreye
+girmez. ``URANS yolu var'' demek, kapalı bir modelin zaman-çözünür çevrimde
+koştuğunu göstermeyi gerektirir. Aynı ağ ve aynı frekans ölçümü subkritik
+silindire taşındı: $Re{=}1{,}4\times10^5$, kOmegaSST, duvar-fonksiyonu.
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrl@{}}
+\toprule
+& \textbf{Ölçülen} & \textbf{Sapma} & \textbf{Referans} \\
+\midrule
+Strouhal $St$ & 0{,}2738 & \%$+$37 & 0{,}19--0{,}21 platosu --- Roshko,
+  \emph{JFM} 10 (1961); Norberg, \emph{JFS} 17 (2003) \\
+$C_D$ & 1{,}037 & \%$-$14 & $\approx$1{,}2 --- Achenbach, \emph{JFM} 34 (1968) \\
+y$^+$ (ort) & 51{,}3 & --- & duvar-fonksiyonu bandı 30--300 \textbf{içinde} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Hüküm \emph{ikiye ayrıldı}, çünkü sorulan iki ayrı sorudur.
+\textbf{Mekanizma geçti:} kOmegaSST PIMPLE/\texttt{backward} çevriminde koştu,
+salınım ölçüldü, y$^+$ hedeflenen bantta çıktı --- türbülanslı zaman-çözünür yol
+artık sentetik sinyalde değil, gerçek çözücü koşusunda sınandı.
+\textbf{Fizik kaldı:} $St$ deneysel platonun \%37 üstünde.
+
+Bu bir ağ ya da zaman adımı sorunu değil ve iki sapmanın \emph{yönü} bunu
+söylüyor. 2B kurulum span-yönü korelasyon kaybını temsil edemez; dökülme
+aşırı-korele olur, ayrılma gecikir, iz daralır --- dar iz hem sürüklemeyi
+düşürür ($C_D$ \%14 eksik) hem frekansı yükseltir ($St$ \%37 fazla). İki
+sapma aynı tek nedenden gelir. Aynı ağ ve aynı ölçüm laminer $Re{=}100$'de
+$St$'yi \%2{,}15 hatayla vermişti: ölçüm aracı doğru, \emph{eksik olan üçüncü
+boyuttur}.
+
+Vaka bu haliyle Strouhal çapası olarak yayımlanmıyor. Kayıt silinmedi;
+zarf tablosunda ``laminer \ev\ / türbülans \hy'' olarak duruyor ve 2B URANS'ın
+subkritik silindirdeki sınırının \emph{ölçümü} olarak kalıyor.
+\end{reddedilir}
+
 \clearpage
 
 % ══════════════════════════════ 4 ══════════════════════════════
@@ -1035,7 +1073,7 @@ Kod doğrulama (kapalı-form karşılaştırma) & \ev & \ev & 6 FEA çapası \\
 Girdi belirsizliği yayılımı & \ev & \ev & \texttt{girdi\_belirsizligi} (4 girdi) \\
 Deneysel referansla geçerleme & \ks & \ev & \texttt{zarf} (14 koşul) \\
 Geçerlilik alanı (validation domain) beyanı & \ev & \ev & \texttt{validity\_envelope} \\
-Model-form belirsizliği & \ks & \ev & 4/8 hücre çapalı: 3 ölçüm + 1 üst sınır \\
+Model-form belirsizliği & \ks & \ev & 5/8 hücre çapalı: 3 ölçüm + 2 üst sınır \\
 Sonucun izlenebilirliği (komut + ortam) & \ev & \ev & \texttt{kanit}, \texttt{ortam} \\
 \bottomrule
 \end{tabular}
@@ -1043,7 +1081,7 @@ Sonucun izlenebilirliği (komut + ortam) & \ev & \ev & \texttt{kanit}, \texttt{o
 
 \noindent Sekiz adımın altısı tam, ikisi kısmî otomatiktir. Kısmî olan ikisi
 şunlardır: deneysel referansla geçerleme (çapa sayısı sınırlı) ve model-form
-belirsizliği (rejim$\times$duvar tablosunun sekiz hücresinden dördü çapa taşır;
+belirsizliği (rejim$\times$duvar tablosunun sekiz hücresinden beşi çapa taşır;
 üçü ölçüm, biri üst sınır).\footnote{Bu sayı tek kaynaktan üretilir
 (\texttt{model\_form\_ozeti}) ve rapordaki her tekrarı testle bağlıdır. Önceki
 sürümde dört ayrı yerde elle yazılıydı ve birbirini tutmuyordu; dahası taban da
@@ -1417,9 +1455,9 @@ zaten her çıktısında söylüyor.
         da kuramdan sapar (yakın-alan $-\%21$, Trefftz $+\%62$); bu yüzden
         indüklenen direnç kuramdan üretilir.
   \item[Model-form belirsizliği.] Rejim$\times$duvar işlemi tablosuna ayrıldı;
-        sekiz hücrenin \textbf{dördü} çapa taşıyor (üçü ölçüm, biri üst
-        sınır), dördü literatür-öncülüyle
-        çalışır. Dört hücre \emph{aynı kalitede değildir} ve bu ayrım artık
+        sekiz hücrenin \textbf{beşi} çapa taşıyor (üçü ölçüm, ikisi üst
+        sınır), üçü literatür-öncülüyle
+        çalışır. Beş hücre \emph{aynı kalitede değildir} ve bu ayrım artık
         yayımlanıyor: 2B bağlı akış \%5{,}23 ($n{=}1$) bir \emph{ölçümdür} ---
         çapanın farkı (\%3{,}52) kendi ayrıklaştırma bandından (\%1{,}71)
         büyük, yani model hatası sayısal hatadan ayrılabiliyor. Ayrılmış
@@ -1541,6 +1579,42 @@ kanıt dosyasında yazılı: \emph{bu band duvar-normali ayrıklaştırma hatas�
 kapsamaz.}
 \end{olculdu}
 
+\begin{olculdu}{Modelin referanstan daha kesin olduğu hücre}
+Aynı yönlü-aile deseni düz levhaya uygulandı ve \texttt{attached\_2d.wall\_%
+function} hücresini doldurdu: sabit y$^+{\approx}50$, üç seviye (9.800 /
+16.562 / 28.322 hücre), $C_f$ sırasıyla 0{,}003626 / 0{,}003628 / 0{,}003631.
+Ağ duyarlılığı \%0{,}08 --- pratikte yakınsamış.
+
+Asıl bulgu referans tarafında. Referans belirsizliği \emph{uydurulmadı},
+ölçüldü: aynı $Re_x{=}10^6$'da iki yerleşik korelasyon --- 1/7-kuvvet
+(Schlichting) $C_f{=}0{,}003735$ ve Schultz-Grunow $C_f{=}0{,}003610$ ---
+birbirinden \%3{,}36 ayrılıyor. Bu, $u_D$'nin savunulabilir bir alt
+kestirimidir. Model hatası ise \%2{,}79. ASME V\&V 20'nin ölçütüyle
+$|E| = 2{,}79 < u_{\mathrm{val}} = \sqrt{0{,}08^2+3{,}36^2} = 3{,}37$:
+
+\begin{center}\itshape
+model hatası ölçülemiyor, çünkü model referansından daha kesin olabilir.
+\end{center}
+
+\noindent Bu bir başarısızlık değil, çerçevenin doğru çalıştığının işaretidir.
+Hücre \textbf{üst sınır} olarak kaydedildi, ölçüm olarak değil; \%12'lik
+literatür öncülü korundu ve \%2{,}79 kanıt dosyasında yanında duruyor. Bandı
+daraltmanın yolu daha ince ağ değil --- \emph{daha iyi bir referanstır}. Ağ
+zaten \%0{,}08'de.
+
+Aile ilk denemede iki kez düştü ve ikisi de kaydedildi. Birincisi hedefleme
+hatasıydı: y$^+{=}50$ istendi, 26{,}2 ölçüldü ve aile tampon bölgeye kaydı.
+Nedeni \texttt{\_ilk\_hucre}'de eksik 2 çarpanıydı --- y$^+$ hücre
+\emph{merkezinde} hesaplanır, merkez ise duvardan yarım hücre uzaktadır. Kapı
+bunu yakaladı ve çapayı reddetti. İkincisi bütçe hatasıydı: en ince seviye
+sabit 1500 iterasyona sığmadı; bütçe seviyeyle ölçeklendi (aile kuralı, her
+seviyenin aynı \emph{ölçüte} ulaşmasıdır, aynı bütçeyi harcaması değil). En
+ince seviye yine de $p$ rezidüelini 1{,}18$\times10^{-4}$'te tam platoya
+oturttu --- $U_x$ 1{,}8$\times10^{-6}$ iken, yani çözüm durağan ama ölçüte
+inmiyor. Aile daha dar aralıkta (1{,}0/1{,}3/1{,}7) kuruldu: bandı daraltmak
+değil, aileyi \emph{yakınsayan} seviyelerden kurmak.
+\end{olculdu}
+
 \begin{reddedilir}{Bir gecelik koşu, koşulmadan iptal edildi}
 Sıradaki hedef \texttt{lifting} hücresiydi: NACA0012 AR6 kanat çapası
 \%17{,}4 sayısal bandıyla eşiğin (\%15) hemen üstünde kalmıştı ve bir ağ
@@ -1625,9 +1699,10 @@ dosyasında \texttt{siralama\_uyarilari} altında durur.
 \midrule
 v1.1 & yüksek & Eski çözücü sarmalayıcısının kaldırılması; tüm yolların
                 \texttt{analysis/} çekirdeğine taşınması \\
-v1.2 & orta   & URANS'ın \emph{türbülanslı} vakada doğrulanması --- silindir
-                çapası laminerdi ($Re{=}100$); kOmegaSST ile zaman-çözünür bir
-                çapa henüz yok \\
+v1.2 & orta   & URANS'ın \emph{türbülanslı} vakada sınanması KOŞULDU: kOmegaSST
+                subkritik silindirde mekanizma olarak çalıştı, fizik tutmadı
+                ($St$ \%$+$37 --- 2B kurulumun sınırı); kalan iş üç-boyutlu
+                (span-yönü çözünürlüklü) bir zaman-çözünür çapa \\
 v1.3 & yüksek & Model-form tablosunun kalan beş hücresi --- deneysel referanslı
                 çapalarla; yarı-analitik referans $u_D$ baskın olduğu için
                 yalnız ağ inceltmek yetmiyor \\
@@ -1728,11 +1803,11 @@ olarak değil. Kanıt dosyası zincirin tamamını taşır: üretim komutu
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 31.953 & \texttt{rapor\_sayilari.py} \\
+Kod satırı (kök + \texttt{analysis/}) & 31.982 & \texttt{rapor\_sayilari.py} \\
 Kök modül & 83 & \texttt{rapor\_sayilari.py} \\
 Deney / çapa betiği & 62 & \texttt{experiments/} \\
-Test dosyası & 142 & \texttt{tests/test\_*.py} \\
-Geçen test & 1442 & \texttt{pytest -q} \\
+Test dosyası & 144 & \texttt{tests/test\_*.py} \\
+Geçen test & 1457 & \texttt{pytest -q} \\
 Geçen test (coverage açık) & 1434 & \texttt{-{}-cov} \\
 Satır kapsamı & \textbf{\%47} & 18.928 ifade, 9.979 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
@@ -2008,8 +2083,8 @@ hat, GPU \\
 \begin{dikkat}{Bu sürümde kapanmamış olanlar}
 \textbf{Türbülanslı URANS doğrulaması yok:} zaman-çözünür yol laminer girdap
 dökülmesinde doğrulandı, k--$\omega$ SST ile bağımsız bir çapa henüz yok.
-\textbf{Model-form:} sekiz hücrenin dördü çapalı (üç ölçüm, bir üst sınır),
-dördü literatür öncülü. \textbf{Backend:} ortak katmanı atlayan çağrı 36'dan 9'a
+\textbf{Model-form:} sekiz hücrenin beşi çapalı (üç ölçüm, iki üst sınır),
+üçü literatür öncülü. \textbf{Backend:} ortak katmanı atlayan çağrı 36'dan 9'a
 düşürüldü; davranış eşdeğerliği ölçülmemiş iki özel süreç yolu (etkileşimli
 stdin, login kabuk) ve case iskelesini yineleyen eski betikler borç olarak
 kaldı. \textbf{Yeniden üretilebilirlik:} çözücü sürümleri artık ölçülüyor ve

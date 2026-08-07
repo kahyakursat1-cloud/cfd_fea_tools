@@ -135,6 +135,20 @@
       "yplus_max": 57.402,
       "yplus_kaynak": "foamPostProcess yPlus, 'alt' yaması — 3-seviye YÖNLÜ ailenin en ince ağı",
       "referans": "Driver & Seegmiller, AIAA J. 23(2), 1985 — deneysel"
+    },
+    {
+      "capa": "düz levha Cf (duvar-fonksiyonu aile)",
+      "rejim": "attached_2d",
+      "sapma_pct": 2.79,
+      "ham_sapma_pct": 2.79,
+      "u_sayisal_pct": 0.08,
+      "u_ref_pct": 3.364,
+      "u_val_pct": 3.37,
+      "ayrilabilir_mi": false,
+      "ayrilabilirlik_notu": "u_val = √(0.08² + 3.36²) = %3.37 (ASME V&V 20)",
+      "yplus_ort": 50.603,
+      "yplus_kaynak": "foamPostProcess yPlus, 'levha' yaması",
+      "referans": "Cf = 0,0592·Re_x^(-1/5) (1/7-kuvvet, Schlichting)"
     }
   ],
   "olculen_hucreler": {
@@ -159,6 +173,27 @@
         "ayrilabilirlik_degerlendirilmedi": 0,
         "_ust_sinir_mi": false,
         "_anlam": "TEK ÇAPA — dağılım değil, tek ölçüm; öncülü AŞTIĞI için ölçüm kullanıldı"
+      },
+      "wall_function": {
+        "u_pct": 12.0,
+        "olculen_pct": 2.79,
+        "oncul_pct": 12.0,
+        "oncul_korundu": true,
+        "n_capa": 1,
+        "ayrilabilir_capa": 0,
+        "capalar": [
+          {
+            "ad": "düz levha Cf (duvar-fonksiyonu aile)",
+            "sapma_pct": 2.79,
+            "ham_sapma_pct": 2.79,
+            "u_sayisal_pct": 0.08,
+            "ayrilabilir_mi": false,
+            "referans": "Cf = 0,0592·Re_x^(-1/5) (1/7-kuvvet, Schlichting)"
+          }
+        ],
+        "ayrilabilirlik_degerlendirilmedi": 0,
+        "_ust_sinir_mi": true,
+        "_anlam": "TEK ÇAPA (%2.79) öncülden (%12.0) KÜÇÜK — band tek ölçümle DARALTILMADI; öncül korundu, ölçüm kayıtlı"
       }
     },
     "bluff": {
@@ -293,11 +328,6 @@
       "rejim": "bluff",
       "duvar": "wall_resolved",
       "oncul_pct": 10.0
-    },
-    {
-      "rejim": "attached_2d",
-      "duvar": "wall_function",
-      "oncul_pct": 12.0
     }
   ],
   "dis_kaynakli_hucreler": [],
@@ -318,14 +348,15 @@
   ],
   "_kisit": "Bir capanin sapmasi, o rejimdeki model-form hatasinin BIR ORNEGIDIR. N=1 olan hucrede dagilim IDDIA EDILMEZ. Duvar islemi kayitli olmayan capa hucreye ATANMAZ — tahmin edilmez. Ayrica sapma, referansin KENDI deneysel belirsizligini de icerir ve o ayristirilmamistir.",
   "_uretim": "Üretim: python experiments/model_form_bandi.py",
-  "_ayrilabilirlik_notu": "UST SINIR olan hucreler: bluff.wall_function. Bu hucrelerde HICBIR capa, olculen farki kendi ayriklastirma bandindan ayirt edemiyor — deger olculmus bir model hatasi DEGIL, ust sinirdir. Ornek: disk capasinin farki %3.4 ama sayisal bandi %4.8.",
+  "_ayrilabilirlik_notu": "UST SINIR olan hucreler: attached_2d.wall_function, bluff.wall_function. Bu hucrelerde HICBIR capa, olculen farki kendi ayriklastirma bandindan ayirt edemiyor — deger olculmus bir model hatasi DEGIL, ust sinirdir. Ornek: disk capasinin farki %3.4 ama sayisal bandi %4.8.",
   "ozet": {
     "toplam_hucre": 8,
-    "capali": 4,
-    "oncul": 4,
+    "capali": 5,
+    "oncul": 3,
     "olcum": 3,
-    "ust_sinir": 1,
+    "ust_sinir": 2,
     "capali_hucreler": [
+      "attached_2d.wall_function",
       "attached_2d.wall_resolved",
       "bluff.wall_function",
       "separated.wall_function",
@@ -337,21 +368,22 @@
       "separated.wall_resolved"
     ],
     "ust_sinir_hucreleri": [
+      "attached_2d.wall_function",
       "bluff.wall_function"
     ],
     "oncul_hucreler": [
-      "attached_2d.wall_function",
       "bluff.wall_resolved",
       "lifting.wall_function",
       "lifting.wall_resolved"
     ],
     "tutarli": true,
-    "cumle": "8 hücrenin 4'i deneysel/literatür çapası taşıyor (3 ölçüm + 1 üst sınır), 4'i literatür öncülüyle çalışıyor"
+    "cumle": "8 hücrenin 5'i deneysel/literatür çapası taşıyor (3 ölçüm + 2 üst sınır), 3'i literatür öncülüyle çalışıyor"
   },
-  "verdikt": "10 capa toplandi; 4 hucre OLCULDU, 5 capa atanamadi, 4 hucre ONCUL kaldi. attached_2d.wall_resolved=%5.23 (n=1); bluff.wall_function=%8.15 (n=2); separated.wall_resolved=%12.0 (n=1); separated.wall_function=%25.0 (n=1)",
+  "verdikt": "11 capa toplandi; 5 hucre OLCULDU, 5 capa atanamadi, 3 hucre ONCUL kaldi. attached_2d.wall_resolved=%5.23 (n=1); attached_2d.wall_function=%12.0 (n=1); bluff.wall_function=%8.15 (n=2); separated.wall_resolved=%12.0 (n=1); separated.wall_function=%25.0 (n=1)",
   "_yazilan": {
     "attached_2d": {
-      "wall_resolved": 5.23
+      "wall_resolved": 5.23,
+      "wall_function": 12.0
     },
     "bluff": {
       "wall_function": 8.15
