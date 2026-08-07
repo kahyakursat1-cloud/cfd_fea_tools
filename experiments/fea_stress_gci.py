@@ -41,13 +41,21 @@ def main():
     spread = (max(f) - min(f)) / (sum(f) / len(f)) * 100      # tepe-değer yayılımı %
     # Fiziksel sonuç: tekillik tepe-vM'yi ıraksatır; burada yayılım <%1 → YAKINSAK.
     # Strict-GCI "salınımlı" diyebilir çünkü değer gürültü-tabanında oynar (zaten yakınsamış).
-    converged = spread < 2.0 and gci["gci_fine_pct"] < 1.0
+    # GCI BANDI YOKSA "YAKINSADI" DENEMEZ. compute_gci artık p≤0 (ıraksayan
+    # seri) durumunda band ÜRETMİYOR ve None dönüyor; eskiden NEGATİF bir sayı
+    # dönüyordu ve bu eşik onu SESSİZCE geçiriyordu — ıraksayan bir dizi
+    # "yakınsadı" sayılırdı.
+    _g = gci.get("gci_fine_pct")
+    converged = spread < 2.0 and _g is not None and _g < 1.0
     fiziksel = ("✅ Tepe gerilme YAKINSADI (gerçek konsantrasyon, tekillik DEĞİL): "
-                f"6× düğümde yayılım %{spread:.2f}, GCI_ince %{gci['gci_fine_pct']:.2f}. "
+                f"6× düğümde yayılım %{spread:.2f}, GCI_ince %{_g:.2f}. "
                 "Tekillik olsaydı tepe ıraksardı." if converged else
                 "⚠ Tepe yakınsamadı — tekillik şüphesi (mesh inceldikçe ıraksıyor).")
-    print(f"\nGCI: p={gci['p']}, σ_richardson={gci['f_exact']:.2f} MPa, "
-          f"GCI_ince={gci['gci_fine_pct']}%, tepe-yayılım=%{spread:.2f}")
+    _fx = gci.get("f_exact")
+    print(f"\nGCI: p={gci['p']}, "
+          + (f"σ_richardson={_fx:.2f} MPa, " if _fx is not None
+             else "σ_richardson=YOK (seri ıraksıyor), ")
+          + f"GCI_ince={_g}%, tepe-yayılım=%{spread:.2f}")
     print(f"     monoton={gci['monotonic']}, asimptotik_oran={gci['asymptotic']}")
     print("STRICT-GCI:", verdict)
     print("FİZİKSEL:", fiziksel)

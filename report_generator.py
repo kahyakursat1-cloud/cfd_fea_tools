@@ -82,6 +82,26 @@ def compute_gci(h_coarse, h_med, h_fine, f_coarse, f_med, f_fine, Fs=1.25):
             p = p0
     if abs(r21 ** p - 1) < 1e-15 or abs(r32 ** p - 1) < 1e-15:
         return None
+    # NEGATIF BELIRSIZLIK URETILIYORDU. Pay abs() ile korunmustu ama PAYDA
+    # (r**p - 1) p<=0 iken NEGATIF olur; o zaman GCI eksi cikiyordu (olculdu:
+    # -%112.45). p<=0 demek dizi inceldikce IRAKSIYOR demektir — Richardson
+    # ekstrapolasyonu orada zaten gecersizdir.
+    #
+    # TEHLIKESI SESSIZDI: tuketiciler bandi "gci_fine_pct < 1.0" gibi
+    # esiklerle okuyor ve NEGATIF bir sayi o esigi GECER — yani iraksayan bir
+    # dizi "mesh bagimsizligi saglandi" sayilirdi.
+    #
+    # Band URETILMEZ ama TANI KAYBEDILMEZ: p ve monotonluk yine dondurulur.
+    if (r21 ** p - 1) <= 0 or (r32 ** p - 1) <= 0:
+        return {
+            "p": round(p, 3), "f_exact": None,
+            "gci_fine_pct": None, "gci_med_pct": None, "asymptotic": None,
+            "monotonic": monotonic, "p_in_range": False,
+            "gecersiz": (f"gözlenen mertebe p={p:.3f} ≤ 0 — dizi ağ inceldikçe "
+                         "IRAKSIYOR; Richardson ekstrapolasyonu ve GCI bu seride "
+                         "TANIMSIZDIR. Band üretilmedi (negatif belirsizlik "
+                         "yayımlamaktansa 'ölçülemedi' demek doğrudur)."),
+        }
     f_exact = f_fine + e21 / (r21 ** p - 1)
     gci_fine = Fs * abs(e21 / f_fine) / (r21 ** p - 1) * 100
     gci_med = Fs * abs(e32 / f_med) / (r32 ** p - 1) * 100
