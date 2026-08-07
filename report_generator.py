@@ -411,9 +411,31 @@ def fig_transition_polar(tr, out_path):
 
 
 def fig_vn_diagram(envelope_summary, out_path):
-    """V-n manevra + gust zarfi."""
-    man = envelope_summary["speeds_ms"]
-    gust = envelope_summary["gust"]["lines"]
+    """V-n manevra + gust zarfi.
+
+    EKSIK PARCA TUM RAPORU DUSURMEZ. Onceki surum `envelope["gust"]["lines"]`
+    ve manevra egrilerine SERT erisiyordu; kanit dosyasi bu alanlari
+    tasimiyorsa (eski surumden kalma ya da elle uretilmis) KeyError butun
+    rapor uretimini coketiyordu. Bu depoda sema degisimi yuzunden GUNCEL bir
+    olcumun rapordan sessizce dusmesi bir kez yasandi (bkz. zarf._minihawk_gci);
+    burada daha kotusu olurdu — rapor hic uretilmezdi.
+    Eksik parca CIZILMEZ ve figur baslinginda SOYLENIR.
+    """
+    man = envelope_summary.get("speeds_ms") or {}
+    gust = ((envelope_summary.get("gust") or {}).get("lines")) or {}
+    eksik = []
+    if not gust:
+        eksik.append("gust hatları")
+    if not man.get("upper_curve") or not man.get("lower_curve"):
+        eksik.append("manevra eğrileri")
+    if not man.get("upper_curve") or not man.get("lower_curve"):
+        fig, ax = plt.subplots(figsize=(5, 3.5))
+        ax.text(0.5, 0.5, "V-n zarfı ÇİZİLEMEDİ\neksik: " + ", ".join(eksik),
+                ha="center", va="center", fontsize=9, color="#a00000")
+        ax.axis("off")
+        fig.savefig(out_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+        return {"cizildi": False, "eksik": eksik}
 
     up = np.array(man["upper_curve"])
     lo = np.array(man["lower_curve"])
