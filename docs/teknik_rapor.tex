@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-30.672 satır Python $\cdot$ 130 test dosyası $\cdot$ 1285 geçen test\\[3mm]
+30.832 satır Python $\cdot$ 134 test dosyası $\cdot$ 1323 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -499,6 +499,39 @@ yayinlamaktir.
 \noindent Bu, klasik bir sessiz hatanın açık hâlidir: bir çalışmadan çıkan
 bandın başka bir ayara taşınması. Rapor bunu yakaladığında sayı yayımlanmaz.
 
+\subsection{Aynı hata açıklamanın kendisinde bulundu}
+
+Yukarıdaki kapı sayının taşınmasını engelliyordu. Ne var ki aynı taşınma
+\emph{gerekçe metninde} yaşanıyordu ve hiçbir kapı metni denetlemiyordu.
+Yakınsama bandı hesaplanmamış her koşuda zarf şunu basıyordu:
+
+\begin{lstlisting}
+C_D (surukleme): Mutlak surukleme bu O-grid ailesinde mesh-yakinsamadi
+(gozlenen mertebe p=0.2) - tasarim sayisi DEGIL
+\end{lstlisting}
+
+\noindent O ölçüm kanat-profili O-grid ailesine aitti. Cümle, hiç O-grid
+kullanmayan üç boyutlu gövde koşularına da basıldı: \texttt{\_anchor\_ahmed\_25}
+ve \texttt{\_anchor\_cube} raporlarında birebir duruyor. Üstelik o aile daha
+sonra NASA TMR gridleriyle kapatıldı (GCI \%1{,}7), yani cümlenin
+\emph{kendisi} de artık doğru değildi.
+
+\begin{olculdu}
+Yanlış olan hüküm değil gerekçeydi: sınıf (EĞİLİM) her iki koşuda da
+doğruydu. Yanlış olan, o sınıfın \emph{niçin} verildiğiydi --- ve bir karar
+motorunda gerekçe, hükmün kendisi kadar denetlenmelidir.
+\end{olculdu}
+
+\noindent Düzeltilen metin yalnız bu koşu hakkında konuşuyor: ``çok-ağlı
+band hesaplanmadı, dolayısıyla mutlak sürüklemenin sayısal belirsizliği
+BİLİNMİYOR''. İki ağ arasındaki fark elde varsa yazılıyor, ama bunun bir GCI
+bandı \emph{olmadığı} açıkça söyleniyor --- gözlenen mertebe iki seviyeden
+hesaplanamaz. Kural artık testle bağlı: gerekçede kullanılmayan bir grid
+ailesinin adı geçemez.
+
+Kayıtlı çapa raporları düzeltilmedi. Onlar geçmiş koşuların çıktısıdır;
+kanıtın sonradan düzeltilmesi, düzeltilen kusurdan daha ağır olurdu.
+
 \subsection{Mekanizma kendi raporunu da denetler}
 
 Açıklanabilirlik iddiası, ancak mekanizma \emph{kendi çıktısına} da uygulandığında
@@ -579,6 +612,27 @@ fizik kapısından geçmemiş bir $C_d$'nin yanında engel işareti durur ve kul
 uyarı penceresiyle ``bu katsayılar tasarım kararında kullanılmaz'' cümlesini
 görür.
 \end{anafikir}
+
+\subsection{Arayüz ile rapor aynı şeyi söylüyor mu}
+
+Kuralın kendisi doğruydu; uygulanışı iki kanalda ayrışmıştı. Sonuç nesnesinin
+hangi alanlarının arayüzde, hangilerinin raporda okunduğu karşılaştırıldığında
+üç alan yalnız raporda kalıyordu --- ve biri kritikti.
+
+\emph{Kurulum} uyarıları (yanlış birim ölçeği, yanlış eksen, yanlış referans
+alan) raporun en üstünde durur ve rapor bunlar için ``aşağıdaki tüm bölümleri
+geçersizler'' der. Arayüz bu alanı hiç okumuyordu. Yanlış ölçekle koşulmuş bir
+analizde ekranda makul görünen bir $C_D$ duruyor, kullanıcı raporu açmadıkça
+sorunu öğrenmiyordu. Kusurun ağırlığı giriş noktasından gelir: önerilen giriş
+\texttt{app\_analyzer} ve çoğu koşu raporu hiç açılmadan okunuyor.
+
+\begin{dikkat}{Fizik kapısından geçen yanlış cevap}
+Kurulum kusuru sayısal bir kusur değildir; sayılar kendi içlerinde tutarlıdır ve
+her kapıdan geçerler. Yanlış olan \emph{hangi problemin} çözüldüğüdür. Bu yüzden
+düzeltme yalnız günlüğe yazmakla kalmıyor: fizik kapısı temiz olsa bile kurulum
+uyarısı varsa ayrı bir pencere çıkıyor. Aynı denetimde \emph{güvence kaybı}
+satırları da (bir çapraz-kontrol düştü ama koşu sürdü) arayüze taşındı.
+\end{dikkat}
 
 % ══════════════════════════════ 3 ══════════════════════════════
 \section{Belirsizlik Nicelemesi}
@@ -1089,6 +1143,16 @@ zaten her çıktısında söylüyor.
         $3\times$ ince bağımsız ağda \%47 daha yüksek tepe von Mises verir ve son
         iki seviye arasında \%15{,}7 sapma bırakır. Kompliyans \%1{,}5 içinde
         yakınsar. Tepe $\sigma$ mutlak bir kabul ölçütü olarak kullanılamaz.
+  \item[İnce özelliğin FEA ağındaki temsili.] Tet hedef kenarı, kestirilen et
+        kalınlığının yarısıdır --- \emph{niyet} kalınlık boyunca iki elemandır.
+        Niyet iki yoldan bozulabilir: hedef, ağ boyutu sınırlarına kırpılabilir;
+        ya da kalınlığın kendisi ölçüm değil sınırlayıcı-kutu yedeği olabilir
+        (\texttt{rtree} kurulu değilse ışın yolu düşer ve gövde çapı ince
+        kanadın yerine geçer --- MiniHawk'ta yaşandı). İkisinde de eğilme
+        rijitliği tek elemanla temsil edilir ve sehim ile gerilme sistematik
+        sapar. Artık ölçülüyor (kalınlık\,/\,hedef kenar) ve iki kusur
+        \emph{ayrı} söyleniyor: ``ölçtük ama ağ kaba'' ile ``hiç ölçmedik''
+        farklı şeylerdir.
   \item[Kararlı-RANS uygunluğu.] Bazı vakalarda rezidüeller platoya oturur ve
         kuvvetler limit çevrimine girer --- URANS gerekir.
   \item[Süpersonik mutlak $C_d$.] 3B-açık çözüm bu donanımda ulaşılamaz.
@@ -1221,13 +1285,13 @@ v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanm
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 30.672 & dosya sayımı \\
+Kod satırı (kök + \texttt{analysis/}) & 30.832 & dosya sayımı \\
 Kök modül & 81 & \\
 Deney / çapa betiği & 60 & \texttt{experiments/} \\
-Test dosyası & 130 & \texttt{tests/} \\
-Geçen test & 1285 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1285 & \texttt{-{}-cov} \\
-Satır kapsamı & \textbf{\%47} & 18.615 ifade, 9.879 kapsanmamış \\
+Test dosyası & 134 & \texttt{tests/} \\
+Geçen test & 1323 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1323 & \texttt{-{}-cov} \\
+Satır kapsamı & \textbf{\%47} & 18.765 ifade, 9.955 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
 \end{tabular}
@@ -1243,13 +1307,13 @@ dış-süreç sarmalayıcıları aynı kaba girer. Katman ayrımı
 \textbf{Katman} & \textbf{Kapsam} & \textbf{İfade} \\
 \midrule
 \rowcolor{iyibg} Otomasyon \& öğrenme & \%78 & 627 \\
-\rowcolor{iyibg} Analiz çekirdeği (\texttt{analysis/}) & \%76 & 1.370 \\
-\rowcolor{iyibg} Karar \& V\&V motoru & \%81 & 2.031 \\
-\rowcolor{ortabg} Araç hattı & \%52 & 2.477 \\
-\rowcolor{ortabg} Dış-süreç köprüleri & \%40 & 1.188 \\
-\rowcolor{ortabg} Arayüz (GUI) & \%36 & 1.581 \\
+\rowcolor{iyibg} Analiz çekirdeği (\texttt{analysis/}) & \%75 & 1.382 \\
+\rowcolor{iyibg} Karar \& V\&V motoru & \%81 & 2.034 \\
+\rowcolor{ortabg} Araç hattı & \%54 & 2.489 \\
+\rowcolor{ortabg} Dış-süreç köprüleri & \%40 & 1.199 \\
+\rowcolor{ortabg} Arayüz (GUI) & \%36 & 1.589 \\
 \midrule
-TOPLAM & \%47 & 18.615 \\
+TOPLAM & \%47 & 18.765 \\
 \bottomrule
 \end{tabular}
 \end{center}

@@ -1,9 +1,9 @@
 {
   "katmanlar": {
     "Karar & V&V motoru": {
-      "ifade": 2031,
+      "ifade": 2034,
       "kapsanan": 1648,
-      "pct": 81.1
+      "pct": 81.0
     },
     "Otomasyon & öğrenme": {
       "ifade": 627,
@@ -11,28 +11,28 @@
       "pct": 78.1
     },
     "Analiz çekirdeği": {
-      "ifade": 1370,
-      "kapsanan": 1039,
-      "pct": 75.8
+      "ifade": 1382,
+      "kapsanan": 1042,
+      "pct": 75.4
     },
     "Araç hattı": {
-      "ifade": 2477,
-      "kapsanan": 1292,
-      "pct": 52.2
+      "ifade": 2489,
+      "kapsanan": 1343,
+      "pct": 54.0
     },
     "Dış-süreç köprüleri": {
-      "ifade": 1188,
-      "kapsanan": 480,
-      "pct": 40.4
+      "ifade": 1199,
+      "kapsanan": 482,
+      "pct": 40.2
     },
     "Arayüz (GUI)": {
-      "ifade": 1581,
-      "kapsanan": 572,
-      "pct": 36.2
+      "ifade": 1589,
+      "kapsanan": 580,
+      "pct": 36.5
     },
     "TOPLAM": {
-      "ifade": 18615,
-      "kapsanan": 8736,
+      "ifade": 18765,
+      "kapsanan": 8810,
       "pct": 46.9
     }
   },

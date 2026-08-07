@@ -1118,8 +1118,21 @@ class AnalyzerWindow(QMainWindow):
         self._set_metric("verdict", kapi["etiket"])
         for g in kapi["gerekce"]:
             self._log(f"⚠ {g}")
+        # KURULUM UYARILARI ARAYUZDE HIC GORUNMUYORDU. Rapor bunlari en uste
+        # koyup "asagidaki tum bolumleri gecersizler" diyor (yanlis birim
+        # olcegi, yanlis eksen, yanlis A_ref); arayuzde ise ekranda dogru
+        # gorunumlu bir Cd duruyordu ve kullanici raporu acmadikca ogrenmiyordu.
+        # Ana giris noktasi arayuz oldugu icin bu, raporda cozulmus bir tehlikeyi
+        # uygulamada acik birakiyordu.
+        kurulum = list(getattr(r, "kurulum", None) or [])
+        for k in kurulum:
+            self._log(f"🟠 KURULUM: {k}")
+        # Guvence kayiplari: sonuc uretildi ama bir capraz-kontrol dustu.
+        for gg in (getattr(r, "gerilemeler", None) or []):
+            self._log(f"🟡 GÜVENCE KAYBI: {gg}")
         for u in (getattr(r, "uyarilar", None) or []):
-            self._log(f"⚠ {u}")
+            if u not in kurulum:
+                self._log(f"⚠ {u}")
         self.btn_report.setEnabled(bool(r.report))
         self.btn_run.setEnabled(True)
         self._log(f"Rapor: {r.report}")
@@ -1128,6 +1141,16 @@ class AnalyzerWindow(QMainWindow):
                                 "\n".join(kapi["gerekce"]) +
                                 "\n\nBu kuvvet katsayıları TASARIM KARARINDA KULLANILMAZ. "
                                 "Mesh çözünürlüğünü (özellikle iz/wake bölgesi) artırın.")
+        elif kurulum:
+            # Kurulum kusuru fizik kapisindan GECEBILIR: sayilar kendi
+            # iclerinde tutarli ama YANLIS problemin cevabidir. Sessiz kalirsa
+            # ekranda makul gorunen bir Cd tasarim kararina girer.
+            QMessageBox.warning(
+                self, "Kurulum uyarısı — sayılar başka bir problemi anlatıyor",
+                "\n".join(kurulum)
+                + "\n\nÇözüm sayısal olarak geçerli olabilir; ancak ölçek, eksen "
+                  "ya da referans alan yanlışsa katsayılar bu geometriye ait "
+                  "DEĞİLDİR. Raporun tamamını okumadan karar vermeyin.")
         self._record_learning({"Cd_toplam": getattr(r, "cd", None)})
 
     def _on_fail(self, err: str):

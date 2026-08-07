@@ -140,3 +140,32 @@ def test_eksik_alanli_sonuc_cokmez(pencere):
         assert _metin(pencere, "verdict")
     finally:
         _Sonuc.fizik_kabul = {"verdict": "ok", "reasons": []}
+
+
+def test_kurulum_uyarisi_ARAYUZDE_de_gorunuyor(pencere):
+    """Rapor kurulum uyarılarını en üste koyup 'aşağıdaki tüm bölümleri
+    geçersizler' diyor (yanlış ölçek/eksen/A_ref). Arayüz bunları hiç
+    okumuyordu: ekranda doğru görünümlü bir Cd duruyor, kullanıcı raporu
+    açmadıkça öğrenmiyordu. Ana giriş noktası arayüz olduğu için bu, raporda
+    çözülmüş bir tehlikeyi uygulamada açık bırakıyordu."""
+    r = _Sonuc()
+    r.kurulum = ["ÖLÇEK ŞÜPHESİ: model 1200 m — mm cinsinden ihraç edilmiş olabilir"]
+    r.uyarilar = list(r.kurulum)
+    pencere._on_done(r)
+    kayit = pencere.log.toPlainText()
+    assert "ÖLÇEK ŞÜPHESİ" in kayit
+    assert kayit.count("ÖLÇEK ŞÜPHESİ") == 1, "uyarı listesinde tekrarlanmamalı"
+    assert any("Kurulum uyarısı" in b for _, b, _ in pencere._kutular), \
+        "fizik kapısı geçse bile kurulum kusuru kutuyla söylenmeli"
+
+
+def test_guvence_kaybi_ARAYUZDE_gorunuyor(pencere):
+    r = _Sonuc()
+    r.gerilemeler = ["iz-momentum çapraz kontrolü yapılamadı (VTK yok)"]
+    pencere._on_done(r)
+    assert "GÜVENCE KAYBI" in pencere.log.toPlainText()
+
+
+def test_saglikli_kosuda_kurulum_kutusu_CIKMAZ(pencere):
+    pencere._on_done(_Sonuc())
+    assert pencere._kutular == []
