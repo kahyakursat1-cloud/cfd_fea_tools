@@ -48,8 +48,22 @@ D = 1.0            # silindir çapı (m)
 U = 1.0            # serbest akım (m/s)
 NU = 0.01          # m²/s → Re = U·D/nu = 100
 RE = U * D / NU
-ST_DENEY = 0.164   # Williamson 1989, Re=100 (deneysel)
-CD_DENEY = 1.33    # Re=100 laminer silindir, literatür mertebesi (±%5)
+# St DENEYSELDIR: Williamson, "Oblique and parallel modes of vortex shedding in
+# the wake of a circular cylinder at low Reynolds numbers", J. Fluid Mech. 206
+# (1989) — paralel-dokulme duzeltmesiyle Re=100'de St = 0.164.
+ST_DENEY = 0.164
+ST_KAYNAK = ("Williamson, J. Fluid Mech. 206 (1989) — DENEYSEL, "
+             "paralel-dökülme düzeltmeli")
+# Cd SAYISALDIR, deneysel DEGIL. Re=100'de dogrudan kuvvet olcumu zordur
+# (Tritton 1959 verilerinde sacilma yuksek); yerlesik referans iki spektral/DNS
+# calismasindan gelir: Henderson, "Details of the drag curve near the onset of
+# vortex shedding", Phys. Fluids 7 (1995) ~1.35; Park, Kwon & Choi, KSME Int. J.
+# 12 (1998) ~1.33. Bu AYRIM onemli — capa raporu St'yi deneysel, Cd'yi sayisal
+# referansa karsi olctugunu SOYLEMELI.
+CD_DENEY = 1.33
+CD_KAYNAK = ("Park, Kwon & Choi, KSME Int. J. 12 (1998) ≈1.33; Henderson, "
+             "Phys. Fluids 7 (1995) ≈1.35 — SAYISAL (DNS/spektral) referans, "
+             "deneysel değil; bant ±%5 alınır")
 R_FAR = 20.0       # far-field yarıçapı (D katı)
 N_RADYAL, N_CEVRE = 70, 60     # blok başına; toplam 4·70·60 = 16.800 hücre
 RADYAL_GRADING = 40.0          # duvara sıkıştırma (son/ilk hücre oranı)
@@ -249,8 +263,10 @@ def main(argv: list[str]) -> int:
     out = {
         "vaka": f"Silindir girdap dökülmesi — Re={RE:.0f} (2B laminer, D={D} m, U={U} m/s)",
         "kaynak": "OpenFOAM 11 foamRun/incompressibleFluid, ZAMAN-ÇÖZÜNÜR (backward/PIMPLE)",
-        "referans": {"St": ST_DENEY, "kaynak": "Williamson 1989 — deneysel",
-                     "Cd": CD_DENEY, "Cd_kaynak": "Re=100 laminer literatür mertebesi"},
+        "referans": {"St": ST_DENEY, "kaynak": ST_KAYNAK,
+                     "St_tipi": "DENEYSEL",
+                     "Cd": CD_DENEY, "Cd_kaynak": CD_KAYNAK,
+                     "Cd_tipi": "SAYISAL (DNS/spektral) — deneysel değil"},
         "olculen": {"St": round(st, 5) if st else None,
                     "Cd_ortalama": round(cd_ort, 4),
                     "Cl_genlik": round(olcum.get("genlik", 0.0) * olcek, 5),

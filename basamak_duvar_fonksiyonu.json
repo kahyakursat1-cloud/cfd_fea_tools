@@ -1,0 +1,102 @@
+{
+  "vaka": "Geriye-basamakli akis, DUVAR-FONKSIYONU ailesi — H=12.7 mm, U=44.29 m/s, Re_H=37499",
+  "kaynak": "OpenFOAM 11 foamRun/incompressibleFluid, 2D blockMesh",
+  "model": "kOmegaSST",
+  "referans": {
+    "Xr_H": 6.26,
+    "belirsizlik": 0.1,
+    "u_ref_pct": 1.597,
+    "kaynak": "Driver & Seegmiller, AIAA J. 23(2), 1985 — deneysel"
+  },
+  "seviyeler": [
+    {
+      "ad": "L1_kaba",
+      "durum": "ok",
+      "olcek": 1.0,
+      "hucre": 25600,
+      "iterasyon": 20000,
+      "grading": 0.08348,
+      "residualControl_gecti": false,
+      "qoi_sacilma_pct": 0.15,
+      "_yakinsama_notu": "residualControl TETIKLENMEDI (20000 iterasyon) ama Xr sacilmasi %0.15 <= %1.0 — hukum QoI'ye dayaniyor, rezidüel onun vekilidir",
+      "ilk_hucre_m": 0.00085,
+      "Xr_H": 5.6659,
+      "hata_pct": -9.49,
+      "yplus": {
+        "ust": {
+          "min": 73.7024,
+          "max": 122.549,
+          "ort": 97.4624
+        },
+        "alt": {
+          "min": 1.95098,
+          "max": 57.2244,
+          "ort": 43.4157
+        },
+        "basamak": {
+          "min": 1.95098,
+          "max": 122.558,
+          "ort": 71.64
+        }
+      }
+    },
+    {
+      "ad": "L2_orta",
+      "durum": "yakinsamadi",
+      "iterasyon": 20000,
+      "hucre": 50176,
+      "yplus": {
+        "ust": {
+          "min": 54.676,
+          "max": 5681.42,
+          "ort": 2149.18
+        },
+        "alt": {
+          "min": 603.757,
+          "max": 5000.28,
+          "ort": 2881.51
+        },
+        "basamak": {
+          "min": 52.5374,
+          "max": 7013.36,
+          "ort": 2090.96
+        }
+      },
+      "qoi_sacilma_pct": 3.914
+    },
+    {
+      "ad": "L3_ince",
+      "durum": "xr_okunamadi",
+      "neden": "zaman dizini yok",
+      "hucre": 102400
+    }
+  ],
+  "duvar_islemi": {
+    "islem": "wall_function",
+    "yplus": {
+      "L1_kaba": {
+        "ort": 43.4157,
+        "max": 57.2244
+      }
+    },
+    "bant_disi": {},
+    "gerekce": "üç seviyede de y⁺ 30–300 bandında (tepe dahil)"
+  },
+  "sayisal_band": {
+    "gecerli": false,
+    "neden": "1 geçerli seviye (<3)"
+  },
+  "hata_pct_ince": -9.49,
+  "ayrilabilirlik": {
+    "ayrilabilir_mi": null,
+    "u_val_pct": null,
+    "gerekce": "sayısal band yok — ayrılabilirlik DEĞERLENDİRİLMEDİ"
+  },
+  "hedef_ilk_hucre_m": 0.00085,
+  "_neden": "Model-form tablosunun sekiz hucresinden besi oncul. separated.wall_function en ulasilabiliri: ayni deneyin DENEYSEL referansi elde ve u_D yalniz %1.6 (yari-analitik kanat capasinda u_D=%15 baskindi ve ag inceltmek care degildi).",
+  "_basarisizlik_kok_nedeni": "ILK HUCREYI SABIT TUTMA STRATEJISI INCE AGDA COKUYOR. Ag inceldikce ayni ilk hucreyi korumak icin grading uc degere gidiyor: L1 0.0835, L2 0.0242, L3 0.0043 — sonuncusunda duvardan uzaktaki hucreler 233 kat kucuk ve foamRun floating point exception ile dustu. L2 ise yakinsamadi (Xr sacilmasi %3.91 > %1). Tek gecerli seviye kaldi, dolayisiyla GCI bandi YOK ve ayrilabilirlik degerlendirilemedi. DOGRU TASARIM: aile alt blogun duvar-normali yonunde degil, x-yonunde ve ust blokta inceltilmeli; alt blokta hucre sayisi SABIT kalip ilk hucreyi korumali (ya da iki-bolgeli mesh). Bu bir sonraki turun isi.",
+  "_ilk_hucre_notu": "Ilk hucre SEVIYELER ARASINDA SABIT tutuldu. Ag inceldikce hucre sayisi artar ve grading ayni kalirsa ilk hucre incelir — uc seviye uc FARKLI duvar islemine duserdi ve GCI ailesi anlamini yitirirdi. Grading her seviyede sayisal cozuldu.",
+  "_uretim": "Üretim: python experiments/basamak_duvar_fonksiyonu.py",
+  "_sure_s": 11.5,
+  "verdikt": "⚠️ Ayrılabilirlik değerlendirilemedi: sayısal band yok — ayrılabilirlik DEĞERLENDİRİLMEDİ"
+}

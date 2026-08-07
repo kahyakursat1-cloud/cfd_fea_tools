@@ -3,9 +3,11 @@
   "kaynak": "OpenFOAM 11 foamRun/incompressibleFluid, ZAMAN-ÇÖZÜNÜR (backward/PIMPLE)",
   "referans": {
     "St": 0.164,
-    "kaynak": "Williamson 1989 — deneysel",
+    "kaynak": "Williamson, J. Fluid Mech. 206 (1989) — DENEYSEL, paralel-dökülme düzeltmeli",
+    "St_tipi": "DENEYSEL",
     "Cd": 1.33,
-    "Cd_kaynak": "Re=100 laminer literatür mertebesi"
+    "Cd_kaynak": "Park, Kwon & Choi, KSME Int. J. 12 (1998) ≈1.33; Henderson, Phys. Fluids 7 (1995) ≈1.35 — SAYISAL (DNS/spektral) referans, deneysel değil; bant ±%5 alınır",
+    "Cd_tipi": "SAYISAL (DNS/spektral) — deneysel değil"
   },
   "olculen": {
     "St": 0.16752,

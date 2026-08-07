@@ -12,6 +12,7 @@ değişirse sayılar değişir ama zaman adımı hâlâ periyodun yüzde biri ol
 """
 from __future__ import annotations
 
+import json
 import math
 import sys
 from pathlib import Path
@@ -321,3 +322,65 @@ def test_ortalama_SIFIRA_yakinken_mutlak_taban():
     kucuk = salinim_olc(*_sinus(3.0, ort=0.0, genlik=GENLIK_ESIGI_MUTLAK / 10))
     buyuk = salinim_olc(*_sinus(3.0, ort=0.0, genlik=1e-3))
     assert kucuk["olculdu"] is False and buyuk["olculdu"] is True
+
+
+# ── Grading çözücü: ilk hücre seviyeler arasında SABİT ──────────────────────
+
+def test_grading_ilk_hucreyi_HEDEFE_oturtuyor():
+    """Ağ inceldikçe hücre sayısı artar; grading sabit kalırsa ilk hücre
+    incelir ve üç seviye ÜÇ FARKLI duvar işlemine düşer — GCI ailesi anlamını
+    yitirir. Grading her seviyede hedefe göre çözülür."""
+    sys.path.insert(0, str(KOK / "experiments"))
+    import basamak_ayrilma as ba
+    from basamak_duvar_fonksiyonu import grading_coz
+    hedef = 850e-6
+    for n in (40, 56, 80):
+        g = grading_coz(ba.H_STEP, n, hedef)
+        assert ba.ilk_hucre_m(ba.H_STEP, n, g) == pytest.approx(hedef, rel=1e-3)
+
+
+def test_grading_TEK_TIPTEN_kalinsa_birden_kucuk():
+    """Hedef ilk hücre tek-tip dağılımdan kalınsa grading<1 olmalı (duvarda
+    seyrek, uzakta sık); ince ise >1."""
+    sys.path.insert(0, str(KOK / "experiments"))
+    import basamak_ayrilma as ba
+    from basamak_duvar_fonksiyonu import grading_coz
+    tek_tip = ba.H_STEP / 40
+    assert grading_coz(ba.H_STEP, 40, tek_tip * 3) < 1.0
+    assert grading_coz(ba.H_STEP, 40, tek_tip / 3) > 1.0
+
+
+def test_deneysel_u_ref_XR_belirsizliginden():
+    """u_D uydurulmuyor: Driver & Seegmiller Xr/H = 6,26 ± 0,10."""
+    sys.path.insert(0, str(KOK / "experiments"))
+    import basamak_ayrilma as ba
+    from basamak_duvar_fonksiyonu import U_REF_PCT
+    assert pytest.approx(ba.XR_BELIRSIZLIK / ba.XR_DENEY * 100, rel=1e-6) == U_REF_PCT
+
+
+def test_QoI_duraganligi_rezidualin_YERINE_gecebiliyor():
+    """`residualControl tetiklenmedi` ile `Xr hâlâ hareket ediyor` AYNI ŞEY
+    DEĞİLDİR. Ayrım `validity_envelope`'ta kuruluydu ama çapa betiklerine hiç
+    uygulanmamıştı ve somut zarar verdi: duvar-fonksiyonu L1 koşusunda
+    rezidüeller 20.000 iterasyon platoda kaldı, ama Xr son dört anlık
+    görüntüde %0,15 içinde oturmuştu. O koşu 'yakınsamadı' diye atılacaktı.
+
+    KAPI GEVŞEMİYOR: saçılma ölçülüp eşiğe vuruluyor ve rezidüel durumu
+    çıktıda açıkça yazılıyor.
+    """
+    sys.path.insert(0, str(KOK / "experiments"))
+    from basamak_duvar_fonksiyonu import QOI_SACILMA_ESIGI_PCT
+    assert 0 < QOI_SACILMA_ESIGI_PCT <= 2.0, "eşik anlamlı bir bantta olmalı"
+
+
+def test_duraganlik_notu_rezidueli_GIZLEMIYOR():
+    """Kabul ediliyorsa bile rezidüelin tetiklenmediği yazılmalı: birini yazıp
+    diğerini gizlemek ya bulguyu bastırır ya güveni şişirir."""
+    kanit = KOK / "basamak_duvar_fonksiyonu.json"
+    if not kanit.exists():
+        pytest.skip("kanıt yok (python experiments/basamak_duvar_fonksiyonu.py)")
+    d = json.loads(kanit.read_text(encoding="utf-8"))
+    for s in d.get("seviyeler", []):
+        if s.get("durum") == "ok" and s.get("residualControl_gecti") is False:
+            assert s.get("_yakinsama_notu"), f"{s['ad']}: rezidüel durumu gizli"
+            assert "TETIKLENMEDI" in s["_yakinsama_notu"]

@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-31.547 satır Python $\cdot$ 140 test dosyası $\cdot$ 1406 geçen test\\[3mm]
+31.547 satır Python $\cdot$ 140 test dosyası $\cdot$ 1411 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -743,7 +743,7 @@ değil.
 ölçülmüş ve bandına katılmış salınım zaten kabul ediliyor; orada reçete
 gereksiz gürültü olurdu.
 
-\subsection{Reçeteden koşuma: öncülü ölçüm devralır}
+\subsection{Reçeteden koşuma: zaman-çözünür yolun doğrulanması}
 
 Reçete tek başına yarım bir çözümdür --- kullanıcı case'i hâlâ elle kurmak
 zorundaydı. Kanonik case yazıcı artık zaman-çözünür kurulumu da üretiyor ve
@@ -773,19 +773,27 @@ her adımda tam yakınsamamasına, yani sonucun zamanda kaymasına yol açar.
 \begin{olculdu}{Gerçek çözücüde sınandı --- ve dört kusur çıkardı}
 Yazıcı ve ölçüm önce yalnız \emph{sentetik} sinyalde doğrulanmıştı. Bir kanonik
 vaka gerçek çözücüde koşuldu: silindir girdap dökülmesi, $Re=100$. Bu vaka
-seçildi çünkü Strouhal sayısının \emph{deneysel} karşılığı var --- Williamson
-(1989) $St=0{,}164$.
+seçildi çünkü Strouhal sayısının \emph{deneysel} karşılığı var.
 
 \begin{center}\footnotesize
-\begin{tabular}{@{}lrrr@{}}
+\begin{tabular}{@{}lrrl@{}}
 \toprule
-& \textbf{Ölçülen} & \textbf{Referans} & \textbf{Sapma} \\
+& \textbf{Ölçülen} & \textbf{Sapma} & \textbf{Referans} \\
 \midrule
-Strouhal $St$ & 0{,}1675 & 0{,}164 (Williamson 1989) & \%2{,}15 \\
-$C_D$ & 1{,}325 & 1{,}33 ($Re{=}100$ literatür) & \%$-$0{,}38 \\
+Strouhal $St$ & 0{,}1675 & \%2{,}15 & 0{,}164 --- Williamson, \emph{JFM} 206
+  (1989); \textbf{deneysel} \\
+$C_D$ & 1{,}325 & \%$-$0{,}38 & 1{,}33 --- Park, Kwon \& Choi, \emph{KSME
+  Int.\ J.} 12 (1998); Henderson, \emph{Phys.\ Fluids} 7 (1995) $\approx$1{,}35;
+  \textbf{sayısal} \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+\noindent İki referansın \emph{türü farklıdır} ve bu ayrım kanıt dosyasında da
+yazılıdır. $St$ deneyseldir. $C_D$ ise DNS/spektral çalışmalardan gelir ---
+$Re=100$'de doğrudan kuvvet ölçümü zordur ve mevcut deneysel verilerde
+(Tritton 1959) saçılma yüksektir. Bir çapanın referansı deneysel mi sayısal mı,
+o çapanın ne kanıtlayabileceğini belirler.
 
 \noindent Asıl değer bu iki sayıda değil, koşunun \emph{yolda bulduklarındadır}.
 Dördü de sentetik testin göremeyeceği türdendi:
@@ -1291,11 +1299,17 @@ zaten her çıktısında söylüyor.
         sapar. Artık ölçülüyor (kalınlık\,/\,hedef kenar) ve iki kusur
         \emph{ayrı} söyleniyor: ``ölçtük ama ağ kaba'' ile ``hiç ölçmedik''
         farklı şeylerdir.
-  \item[Kararlı-RANS uygunluğu.] Bazı vakalarda rezidüeller platoya oturur ve
-        kuvvetler limit çevrimine girer --- URANS gerekir. Platform URANS
-        \emph{koşmaz}, ama artık nasıl koşulacağını söyler: salınan koşuya
-        zaman adımı, adım sayısı ve o ağdaki tahmini süre veriliyor
-        (\S\ref{sec:urans}).
+  \item[Kararlı-RANS uygunluğu ve zaman-çözünür yolun kapsamı.] Bazı
+        vakalarda rezidüeller platoya oturur ve kuvvetler limit çevrimine
+        girer. Platform artık zaman-çözünür PIMPLE koşumunu \emph{destekler}
+        ve salınan koşuya zaman adımı, adım sayısı ve o ağdaki tahmini süreyi
+        verir (\S\ref{sec:urans}). Yol \textbf{laminer} girdap dökülmesi
+        vakasında doğrulanmıştır ($Re{=}100$ silindir; $St$ \%2{,}15,
+        $C_D$ \%$-$0{,}38). \textbf{Türbülanslı URANS hattının k--$\omega$ SST
+        ile bağımsız doğrulaması henüz yapılmamıştır} --- doğrulama vakasında
+        türbülans modeli kullanılmadı, dolayısıyla ölçülen şey zaman
+        ayrıklaştırmasının doğruluğudur, türbülans modelinin zaman-bağımlı
+        davranışı değil.
   \item[Süpersonik mutlak $C_d$.] 3B-açık çözüm bu donanımda ulaşılamaz.
   \item[Panel yönteminin indüklenen direnci.] VSPAERO'nun iki $C_{Di}$ çıktısı
         da kuramdan sapar (yakın-alan $-\%21$, Trefftz $+\%62$); bu yüzden
@@ -1395,10 +1409,15 @@ Sıradaki hedef \texttt{lifting} hücresiydi: NACA0012 AR6 kanat çapası
 seviyesi daha eklemek onu içeri alabilirdi. Koşuyu başlatmadan önce hesap
 yapıldı ve \emph{yapılmaması gerektiği} çıktı.
 
-Ölçüt eksikti. ASME V\&V 20'de karşılaştırma belirsizliği
-$u_{\mathrm{val}} = \sqrt{u_{\mathrm{num}}^2 + u_{\mathrm{input}}^2 + u_D^2}$
-ile verilir; bu depoda $u_D$ --- \emph{referansın kendi belirsizliği} ---
-hesaba hiç girmiyordu. O çapanın referansı yarı-analitiktir ve \%15 bandı
+Ölçüt eksikti. ASME V\&V 20-2009'un validasyon çerçevesinde karşılaştırma
+hatası $E = S - D$ ve buna eşlik eden validasyon belirsizliği bileşenlerinin
+kareler toplamıyla tanımlanır:
+$u_{\mathrm{val}} = \sqrt{u_{\mathrm{num}}^2 + u_{\mathrm{input}}^2 + u_D^2}$,
+burada $u_D$ \emph{deneysel/referans verisinin} belirsizliğidir.\footnote{Denklem
+ve bölüm numarası bilerek verilmemiştir: standardın kendisi elde
+doğrulanmadan numara alıntılamak, bu raporun savunduğu ilkeye aykırı olurdu.
+Formülün yapısı ve $u_D$ bileşeninin varlığı V\&V 20 validasyon çerçevesinin
+tanımıdır.} Bu depoda $u_D$ hesaba hiç girmiyordu. O çapanın referansı yarı-analitiktir ve \%15 bandı
 kendi tanımında \emph{yazılıdır}; ama metinde yazılı olmak yetmiyor, sayı
 olarak taşınması gerekiyordu.
 
@@ -1521,8 +1540,8 @@ Kod satırı (kök + \texttt{analysis/}) & 31.547 & \texttt{rapor\_sayilari.py} 
 Kök modül & 83 & \texttt{rapor\_sayilari.py} \\
 Deney / çapa betiği & 62 & \texttt{experiments/} \\
 Test dosyası & 140 & \texttt{tests/test\_*.py} \\
-Geçen test & 1406 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1406 & \texttt{-{}-cov} \\
+Geçen test & 1411 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1411 & \texttt{-{}-cov} \\
 Satır kapsamı & \textbf{\%47} & 18.928 ifade, 9.979 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
@@ -1746,7 +1765,7 @@ belirsizlik bandı, adı konmuş kapsam sınırı ve yeniden üretilebilir kanı
 dosyası --- üçü bir arada olduğunda sonuç eğitimde güvenle, yarışmada hızla,
 akademide savunulabilir biçimde kullanılabilir.
 
-\begin{olculdu}{Temel katkılar --- dördü de ölçülmüş, hiçbiri iddia değil}
+\begin{olculdu}{Temel katkılar --- beşi de ölçülmüş, hiçbiri iddia değil}
 \textbf{1. Karar zinciri.} Sayı ile hüküm birlikte üretilir; kapı geçilemezse
 sayı yayımlanmaz. Zincir kendi raporunu da denetler --- bu mekanizma yayımlanan
 raporda dört kusur buldu.\\[2pt]
@@ -1760,9 +1779,14 @@ belirsizliği yayılımı ve rejime ayrılmış model-form; ölçülmeyen bileş
 \emph{sıfır sayılmaz}, sonuç ``alt sınır'' olarak etiketlenir. Referans
 belirsizliği ($u_D$) de ayrılabilirlik hükmüne girer --- girmediğinde ölçüt
 sistematik olarak gevşekti.\\[2pt]
-\textbf{4. Adı konmuş sınırlar.} İnce firar kenarı, TO tepe gerilmesinin
-yakınsamaması, süpersonik mutlak $C_d$ --- her biri sayıyla kayıtlı ve raporda
-kendi başlığı altında.
+\textbf{4. Meta-doğrulama.} Karar zincirinde kullanılan \emph{ölçüm araçları}
+da bağımsız olarak doğrulanır. Frekans ölçümü sentetik sinyalde sınandı ve ilk
+sürümün \%11 şaştığı orada görüldü; zaman-çözünür yol gerçek çözücüde bir
+kanonik vakaya karşı koşuldu ve dört kusur ortaya çıkardı. Aracın kendisi
+doğrulanmadan onunla verilen hüküm savunulamaz.\\[2pt]
+\textbf{5. Adı konmuş sınırlar.} İnce firar kenarı, TO tepe gerilmesinin
+yakınsamaması, süpersonik mutlak $C_d$, türbülanslı URANS doğrulamasının
+yokluğu --- her biri sayıyla kayıtlı ve raporda kendi başlığı altında.
 \end{olculdu}
 
 \begin{anafikir}{Bir bakışta mimari}
@@ -1790,13 +1814,16 @@ hat, GPU \\
 \end{center}
 
 \begin{dikkat}{Bu sürümde kapanmamış olanlar}
-Model-form tablosunun sekiz hücresinden üçü çapalı (iki ölçüm, bir üst sınır),
-beşi literatür öncülü; bellek
-katsayısı henüz ölçülmedi (telemetri bu sürümde eklendi, sayı sonraki
-koşulardan gelecek); başarım ölçümü tek geometri ve tek makineyle sınırlı; çözücü sürümleri
-kilitli değil; eski çözücü sarmalayıcısı hâlâ \texttt{analysis/} çekirdeğini
-kullanmıyor. Yol haritası bunları v1.1--v1.5 aralığına yerleştirir ve hiçbiri
-``yakında'' diye geçiştirilmemiştir.
+\textbf{Türbülanslı URANS doğrulaması yok:} zaman-çözünür yol laminer girdap
+dökülmesinde doğrulandı, k--$\omega$ SST ile bağımsız bir çapa henüz yok.
+\textbf{Model-form:} sekiz hücrenin üçü çapalı (iki ölçüm, bir üst sınır), beşi
+literatür öncülü. \textbf{Backend:} ortak katmanı atlayan çağrı 36'dan 9'a
+düşürüldü; davranış eşdeğerliği ölçülmemiş iki özel süreç yolu (etkileşimli
+stdin, login kabuk) ve case iskelesini yineleyen eski betikler borç olarak
+kaldı. \textbf{Ölçülmemişler:} bellek katsayısı (telemetri var, sayı sonraki
+koşulardan gelecek); başarım tek geometri ve tek makineyle sınırlı; çözücü
+sürümleri kilitli değil. Yol haritası bunları v1.1--v2.0 aralığına yerleştirir
+ve hiçbiri ``yakında'' diye geçiştirilmemiştir.
 \end{dikkat}
 
 \vspace{4mm}
