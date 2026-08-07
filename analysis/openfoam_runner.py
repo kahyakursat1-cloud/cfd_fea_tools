@@ -1352,9 +1352,22 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
         except Exception:
             pass
         log_files.append(case_dir / "log.foamRun")
+        # TELEMETRIDE DELIK VARDI: `_step` her asamayi kaydediyordu ama COZUCU
+        # ondan gecmiyor — bu ayri fonksiyon. Yani asama telemetrisi EN PAHALI
+        # adimi disarida birakiyordu ve figur "cozucunun kendi olcumu" derken
+        # cozucuyu gostermiyordu. (Olculdu: kup kosusunda 4 asama kayitli,
+        # foamRun yok.)
+        _rc = 0 if (early or proc.returncode == 0) else (proc.returncode or -1)
+        asama_sureleri.append({
+            "asama": "foamRun",
+            "sure_s": round(time.time() - t0, 2),
+            "durum": "ok" if _rc == 0 else "hata",
+            "donus_kodu": _rc,
+            "iterasyon": n_iter,
+            "erken_durdu": early})
         if early and progress_callback:
             progress_callback(72, f"Cd yakınsadı ({n_iter} iter, drift<{tol}) — erken durdu")
-        return 0 if (early or proc.returncode == 0) else (proc.returncode or -1)
+        return _rc
 
     # 1) surfaceFeatures
     r = _step(10, "surfaceFeatures...", "surfaceFeatures", "log.surfaceFeatures", 120)

@@ -1,9 +1,82 @@
 {
   "vaka": "Hücre başına bellek katsayısı — koşu arşivinden",
   "_neden": "Bellek kapisinin ihtiyaci olan tek sayi. Literaturden alinan tek bir deger bu makinede yanlis olur; cozucu artik kosu boyunca sistem bellegini ornekliyor.",
-  "kosular": [],
+  "kosular": [
+    {
+      "kosu": "basarim/b60k_c1",
+      "cells": 18462,
+      "artis_gb": 0.06,
+      "toplam_gb": 14.72,
+      "kb_hucre": 3.25
+    },
+    {
+      "kosu": "basarim/b60k_c4",
+      "cells": 18462,
+      "artis_gb": 0.18,
+      "toplam_gb": 14.72,
+      "kb_hucre": 9.75
+    },
+    {
+      "kosu": "basarim/b60k_c8",
+      "cells": 18462,
+      "artis_gb": 0.09,
+      "toplam_gb": 14.72,
+      "kb_hucre": 4.875
+    },
+    {
+      "kosu": "basarim/b150k_c1",
+      "cells": 42153,
+      "artis_gb": 0.04,
+      "toplam_gb": 14.72,
+      "kb_hucre": 0.949
+    },
+    {
+      "kosu": "basarim/b150k_c4",
+      "cells": 42153,
+      "artis_gb": 0.15,
+      "toplam_gb": 14.72,
+      "kb_hucre": 3.558
+    },
+    {
+      "kosu": "basarim/b150k_c8",
+      "cells": 42153,
+      "artis_gb": 0.17,
+      "toplam_gb": 14.72,
+      "kb_hucre": 4.033
+    },
+    {
+      "kosu": "basarim/b350k_c1",
+      "cells": 96280,
+      "artis_gb": 0.09,
+      "toplam_gb": 14.72,
+      "kb_hucre": 0.935
+    },
+    {
+      "kosu": "basarim/b350k_c4",
+      "cells": 96280,
+      "artis_gb": 0.16,
+      "toplam_gb": 14.72,
+      "kb_hucre": 1.662
+    },
+    {
+      "kosu": "basarim/b350k_c8",
+      "cells": 96280,
+      "artis_gb": 0.32,
+      "toplam_gb": 14.72,
+      "kb_hucre": 3.324
+    }
+  ],
   "_kisit": "WSL2 VM ayri bir surec olmadigi icin tek kosunun RSS'i gorulemez; olculen, sistem geneli kullanimin kosu boyunca ARTISIDIR. Makinede baska is varsa sayi yukari kayar — yani bu bir UST SINIRDIR.",
   "_uretim": "Üretim: python experiments/bellek_katsayisi.py",
-  "verdikt": "Bellek telemetrisi tasiyan kosu YOK — katsayi OLCULEMEDI. bellek_kapisi ONCUL ile calisir ve bunu her ciktisinda soyler. Telemetri bu surumde eklendi; bundan sonraki kosular olcum uretir.",
-  "kb_hucre": null
+  "dagilim": {
+    "min": 0.935,
+    "max": 9.75,
+    "medyan": 3.324,
+    "sacilma_katı": 10.4,
+    "gurultu_alti_kosu": 9,
+    "n_kosu": 9
+  },
+  "kb_hucre": null,
+  "n_kosu": 9,
+  "verdikt": "9 kosu var ama katsayi OLCULEMEDI: kB/hucre 0.935-9.75 arasinda sacildi (10.4 kat, esik 3.0) ve 9/9 kosunun bellek artisi gurultu esiginin (0.5 GB) altinda. Kucuk kosularda cozucunun kendi bellegi sistem geneli olcumun gurultusune gomuluyor. Medyani katsayi diye yazmak gurultuye katsayi demek olurdu — bellek kapisi ONCULLE calismaya devam ediyor."
 }

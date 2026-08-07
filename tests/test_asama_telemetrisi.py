@@ -75,3 +75,26 @@ def test_cozucu_her_asamayi_kaydeder():
     # sadece coken kosularda telemetri gorurdu.
     son = kaynak[kaynak.rindex("return CFDResult(\n        case_dir=case_dir, success=True"):]
     assert "asama_sureleri=asama_sureleri" in son[:400]
+
+
+def test_COZUCU_asamasi_da_kaydediliyor():
+    """Telemetride delik vardı: `_step` her aşamayı kaydediyordu ama foamRun
+    ondan geçmiyor (ayrı fonksiyon). Yani EN PAHALI adım telemetri dışındaydı
+    ve figür 'çözücünün kendi ölçümü' derken çözücüyü göstermiyordu.
+    Ölçüldü: küp koşusunda 4 aşama kayıtlı, foamRun yok."""
+    kaynak = (KOK / "analysis" / "openfoam_runner.py").read_text(encoding="utf-8")
+    i = kaynak.index("def _foam_run_early_stop(")
+    j = kaynak.index("\n    # 1) surfaceFeatures", i)
+    govde = kaynak[i:j]
+    assert 'asama_sureleri.append(' in govde, "çözücü aşaması kaydedilmiyor"
+    assert '"asama": "foamRun"' in govde
+    assert '"iterasyon"' in govde and '"erken_durdu"' in govde
+
+
+def test_asama_adlari_figurun_bekledigi_gibi():
+    """Figür foamRun ve snappy adlarını renk seçiminde kullanıyor; ad değişirse
+    renk sessizce bozulur."""
+    kaynak = (KOK / "experiments" / "rapor_figurleri.py").read_text(encoding="utf-8")
+    assert '"foamRun" in a' in kaynak
+    of = (KOK / "analysis" / "openfoam_runner.py").read_text(encoding="utf-8")
+    assert 'log_name.replace("log.", "")' in of      # snappyHexMesh, blockMesh…

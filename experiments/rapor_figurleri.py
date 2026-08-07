@@ -310,6 +310,47 @@ def _asama_cizimi(adlar, sureler, hucre, yontem) -> Path | None:
     return p
 
 
+# ── 6. Basarim matrisi: cekirdek olceklenmesi ───────────────────────────────
+
+def fig_basarim_matrisi() -> Path | None:
+    d = _j("basarim_matrisi.json")
+    ok = [x for x in d["satirlar"] if x["durum"] == "ok" and x.get("cozucu_s")]
+    if len(ok) < 4:
+        return None
+    fig, ax = plt.subplots(1, 2, figsize=(7.4, 3.0))
+
+    butceler = sorted({x["butce"] for x in ok})
+    renkler = ["#1f4e79", "#4a7ba7", "#8fb3d0"]
+    for i, b in enumerate(butceler):
+        g = sorted((x for x in ok if x["butce"] == b), key=lambda x: x["cekirdek"])
+        taban = next((x for x in g if x["cekirdek"] == 1), None)
+        if not taban:
+            continue
+        c = [x["cekirdek"] for x in g]
+        h = [taban["cozucu_s"] / x["cozucu_s"] for x in g]
+        ax[0].plot(c, h, "o-", color=renkler[i % 3], lw=1.6, ms=5,
+                   label=f"{g[0]['cells']:,} hücre")
+        ax[1].plot(c, [x["cozucu_s"] for x in g], "s-", color=renkler[i % 3],
+                   lw=1.6, ms=5, label=f"{g[0]['cells']:,} hücre")
+    c_max = max(x["cekirdek"] for x in ok)
+    ax[0].plot([1, c_max], [1, c_max], ":", color="gray", lw=1.2, label="ideal")
+    ax[0].set_xlabel("çekirdek")
+    ax[0].set_ylabel("hızlanma (1 çekirdeğe göre)")
+    ax[0].set_title("Çekirdek ölçeklenmesi — çözücü", fontsize=9)
+    ax[0].legend(fontsize=7)
+    ax[1].set_xlabel("çekirdek")
+    ax[1].set_ylabel("çözücü süresi (s)")
+    ax[1].set_title("Mutlak süre", fontsize=9)
+    ax[1].legend(fontsize=7)
+    fig.suptitle("Küp, tek makine — hızlanma hücre sayısıyla ARTIYOR "
+                 "(küçük ağda ayrıştırma yükü baskın)", fontsize=9.5)
+
+    p = CIKTI / "fig_basarim_matrisi.pdf"
+    fig.savefig(p)
+    plt.close(fig)
+    return p
+
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -324,6 +365,7 @@ def main() -> int:
         (fig_dogrulama_capalari, ("fea_validation.json", "gci_kup_arac.json")),
         (fig_yakinsama_tarihcesi, ()),
         (fig_asama_sureleri, ()),
+        (fig_basarim_matrisi, ("basarim_matrisi.json",)),
     ):
         yok = [g for g in gerekli if not (KOK / g).exists()]
         if yok:

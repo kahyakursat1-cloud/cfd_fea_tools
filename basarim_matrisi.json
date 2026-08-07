@@ -1,0 +1,597 @@
+{
+  "vaka": "Başarım matrisi — hücre × çekirdek (küp, tek makine)",
+  "_neden": "Rapordaki tek basarim verisi TEK kosudan gelen asama dagilimiydi; 'ne kadar surer' ve 'kac hucre kaldirir' sorularinin olculmus cevabi yoktu.",
+  "kurulum": {
+    "geometri": "gci_kup.stl",
+    "tip": "genel",
+    "hiz_m_s": 10.0,
+    "kalite": "standart",
+    "butceler": [
+      60000,
+      150000,
+      350000
+    ],
+    "cekirdekler": [
+      1,
+      4,
+      8
+    ],
+    "sirali": "koşular SIRAYLA — paralel koşu ölçümü bozar"
+  },
+  "satirlar": [
+    {
+      "etiket": "b60k_c1",
+      "butce": 60000,
+      "cekirdek": 1,
+      "durum": "ok",
+      "cells": 18462,
+      "duvar_s": 50.2,
+      "asama_sureleri": [
+        {
+          "asama": "surfaceFeatures",
+          "sure_s": 6.34,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "blockMesh",
+          "sure_s": 2.75,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "snappyHexMesh",
+          "sure_s": 5.9,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "checkMesh",
+          "sure_s": 2.54,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "foamRun",
+          "sure_s": 22.58,
+          "durum": "ok",
+          "donus_kodu": 0,
+          "iterasyon": 193,
+          "erken_durdu": true
+        }
+      ],
+      "cozucu_s": 22.6,
+      "mesh_s": 5.9,
+      "bellek": {
+        "taban_gb": 11.47,
+        "tepe_gb": 11.53,
+        "artis_gb": 0.06,
+        "toplam_gb": 14.72,
+        "_yontem": "sistem geneli (WSL2 VM ayri surec degil); kosu oncesi tabana gore ARTIS"
+      },
+      "cd": 1.0313
+    },
+    {
+      "etiket": "b60k_c4",
+      "butce": 60000,
+      "cekirdek": 4,
+      "durum": "ok",
+      "cells": 18462,
+      "duvar_s": 52.3,
+      "asama_sureleri": [
+        {
+          "asama": "surfaceFeatures",
+          "sure_s": 1.67,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "blockMesh",
+          "sure_s": 2.33,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "snappyHexMesh",
+          "sure_s": 5.81,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "checkMesh",
+          "sure_s": 2.67,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "decomposePar",
+          "sure_s": 5.58,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "foamRun",
+          "sure_s": 16.18,
+          "durum": "ok",
+          "donus_kodu": 0,
+          "iterasyon": 284,
+          "erken_durdu": true
+        },
+        {
+          "asama": "reconstructPar",
+          "sure_s": 6.78,
+          "durum": "ok",
+          "donus_kodu": 0
+        }
+      ],
+      "cozucu_s": 16.2,
+      "mesh_s": 5.8,
+      "bellek": {
+        "taban_gb": 11.62,
+        "tepe_gb": 11.8,
+        "artis_gb": 0.18,
+        "toplam_gb": 14.72,
+        "_yontem": "sistem geneli (WSL2 VM ayri surec degil); kosu oncesi tabana gore ARTIS"
+      },
+      "cd": 1.03133
+    },
+    {
+      "etiket": "b60k_c8",
+      "butce": 60000,
+      "cekirdek": 8,
+      "durum": "ok",
+      "cells": 18462,
+      "duvar_s": 57.3,
+      "asama_sureleri": [
+        {
+          "asama": "surfaceFeatures",
+          "sure_s": 1.93,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "blockMesh",
+          "sure_s": 2.67,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "snappyHexMesh",
+          "sure_s": 5.32,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "checkMesh",
+          "sure_s": 2.73,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "decomposePar",
+          "sure_s": 7.8,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "foamRun",
+          "sure_s": 17.12,
+          "durum": "ok",
+          "donus_kodu": 0,
+          "iterasyon": 246,
+          "erken_durdu": true
+        },
+        {
+          "asama": "reconstructPar",
+          "sure_s": 8.46,
+          "durum": "ok",
+          "donus_kodu": 0
+        }
+      ],
+      "cozucu_s": 17.1,
+      "mesh_s": 5.3,
+      "bellek": {
+        "taban_gb": 11.86,
+        "tepe_gb": 11.95,
+        "artis_gb": 0.09,
+        "toplam_gb": 14.72,
+        "_yontem": "sistem geneli (WSL2 VM ayri surec degil); kosu oncesi tabana gore ARTIS"
+      },
+      "cd": 1.03131
+    },
+    {
+      "etiket": "b150k_c1",
+      "butce": 150000,
+      "cekirdek": 1,
+      "durum": "ok",
+      "cells": 42153,
+      "duvar_s": 51.2,
+      "asama_sureleri": [
+        {
+          "asama": "surfaceFeatures",
+          "sure_s": 2.39,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "blockMesh",
+          "sure_s": 3.02,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "snappyHexMesh",
+          "sure_s": 7.42,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "checkMesh",
+          "sure_s": 3.24,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "foamRun",
+          "sure_s": 24.12,
+          "durum": "ok",
+          "donus_kodu": 0,
+          "iterasyon": 206,
+          "erken_durdu": true
+        }
+      ],
+      "cozucu_s": 24.1,
+      "mesh_s": 7.4,
+      "bellek": {
+        "taban_gb": 11.63,
+        "tepe_gb": 11.68,
+        "artis_gb": 0.04,
+        "toplam_gb": 14.72,
+        "_yontem": "sistem geneli (WSL2 VM ayri surec degil); kosu oncesi tabana gore ARTIS"
+      },
+      "cd": 1.07118
+    },
+    {
+      "etiket": "b150k_c4",
+      "butce": 150000,
+      "cekirdek": 4,
+      "durum": "ok",
+      "cells": 42153,
+      "duvar_s": 57.0,
+      "asama_sureleri": [
+        {
+          "asama": "surfaceFeatures",
+          "sure_s": 1.62,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "blockMesh",
+          "sure_s": 2.77,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "snappyHexMesh",
+          "sure_s": 7.5,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "checkMesh",
+          "sure_s": 3.15,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "decomposePar",
+          "sure_s": 6.32,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "foamRun",
+          "sure_s": 14.96,
+          "durum": "ok",
+          "donus_kodu": 0,
+          "iterasyon": 167,
+          "erken_durdu": true
+        },
+        {
+          "asama": "reconstructPar",
+          "sure_s": 7.59,
+          "durum": "ok",
+          "donus_kodu": 0
+        }
+      ],
+      "cozucu_s": 15.0,
+      "mesh_s": 7.5,
+      "bellek": {
+        "taban_gb": 11.74,
+        "tepe_gb": 11.89,
+        "artis_gb": 0.15,
+        "toplam_gb": 14.72,
+        "_yontem": "sistem geneli (WSL2 VM ayri surec degil); kosu oncesi tabana gore ARTIS"
+      },
+      "cd": 1.0712
+    },
+    {
+      "etiket": "b150k_c8",
+      "butce": 150000,
+      "cekirdek": 8,
+      "durum": "ok",
+      "cells": 42153,
+      "duvar_s": 61.5,
+      "asama_sureleri": [
+        {
+          "asama": "surfaceFeatures",
+          "sure_s": 2.28,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "blockMesh",
+          "sure_s": 2.82,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "snappyHexMesh",
+          "sure_s": 7.92,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "checkMesh",
+          "sure_s": 2.92,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "decomposePar",
+          "sure_s": 8.81,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "foamRun",
+          "sure_s": 14.56,
+          "durum": "ok",
+          "donus_kodu": 0,
+          "iterasyon": 182,
+          "erken_durdu": true
+        },
+        {
+          "asama": "reconstructPar",
+          "sure_s": 9.35,
+          "durum": "ok",
+          "donus_kodu": 0
+        }
+      ],
+      "cozucu_s": 14.6,
+      "mesh_s": 7.9,
+      "bellek": {
+        "taban_gb": 11.73,
+        "tepe_gb": 11.91,
+        "artis_gb": 0.17,
+        "toplam_gb": 14.72,
+        "_yontem": "sistem geneli (WSL2 VM ayri surec degil); kosu oncesi tabana gore ARTIS"
+      },
+      "cd": 1.0712
+    },
+    {
+      "etiket": "b350k_c1",
+      "butce": 350000,
+      "cekirdek": 1,
+      "durum": "ok",
+      "cells": 96280,
+      "duvar_s": 105.0,
+      "asama_sureleri": [
+        {
+          "asama": "surfaceFeatures",
+          "sure_s": 2.06,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "blockMesh",
+          "sure_s": 2.98,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "snappyHexMesh",
+          "sure_s": 13.91,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "checkMesh",
+          "sure_s": 3.5,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "foamRun",
+          "sure_s": 66.2,
+          "durum": "ok",
+          "donus_kodu": 0,
+          "iterasyon": 164,
+          "erken_durdu": true
+        }
+      ],
+      "cozucu_s": 66.2,
+      "mesh_s": 13.9,
+      "bellek": {
+        "taban_gb": 11.79,
+        "tepe_gb": 11.88,
+        "artis_gb": 0.09,
+        "toplam_gb": 14.72,
+        "_yontem": "sistem geneli (WSL2 VM ayri surec degil); kosu oncesi tabana gore ARTIS"
+      },
+      "cd": 1.06011
+    },
+    {
+      "etiket": "b350k_c4",
+      "butce": 350000,
+      "cekirdek": 4,
+      "durum": "ok",
+      "cells": 96280,
+      "duvar_s": 94.5,
+      "asama_sureleri": [
+        {
+          "asama": "surfaceFeatures",
+          "sure_s": 2.36,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "blockMesh",
+          "sure_s": 3.23,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "snappyHexMesh",
+          "sure_s": 14.97,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "checkMesh",
+          "sure_s": 3.52,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "decomposePar",
+          "sure_s": 7.35,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "foamRun",
+          "sure_s": 37.49,
+          "durum": "ok",
+          "donus_kodu": 0,
+          "iterasyon": 220,
+          "erken_durdu": true
+        },
+        {
+          "asama": "reconstructPar",
+          "sure_s": 7.39,
+          "durum": "ok",
+          "donus_kodu": 0
+        }
+      ],
+      "cozucu_s": 37.5,
+      "mesh_s": 15.0,
+      "bellek": {
+        "taban_gb": 11.8,
+        "tepe_gb": 11.96,
+        "artis_gb": 0.16,
+        "toplam_gb": 14.72,
+        "_yontem": "sistem geneli (WSL2 VM ayri surec degil); kosu oncesi tabana gore ARTIS"
+      },
+      "cd": 1.06012
+    },
+    {
+      "etiket": "b350k_c8",
+      "butce": 350000,
+      "cekirdek": 8,
+      "durum": "ok",
+      "cells": 96280,
+      "duvar_s": 92.7,
+      "asama_sureleri": [
+        {
+          "asama": "surfaceFeatures",
+          "sure_s": 1.99,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "blockMesh",
+          "sure_s": 2.74,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "snappyHexMesh",
+          "sure_s": 14.14,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "checkMesh",
+          "sure_s": 3.79,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "decomposePar",
+          "sure_s": 8.95,
+          "durum": "ok",
+          "donus_kodu": 0
+        },
+        {
+          "asama": "foamRun",
+          "sure_s": 33.79,
+          "durum": "ok",
+          "donus_kodu": 0,
+          "iterasyon": 252,
+          "erken_durdu": true
+        },
+        {
+          "asama": "reconstructPar",
+          "sure_s": 11.85,
+          "durum": "ok",
+          "donus_kodu": 0
+        }
+      ],
+      "cozucu_s": 33.8,
+      "mesh_s": 14.1,
+      "bellek": {
+        "taban_gb": 11.74,
+        "tepe_gb": 12.06,
+        "artis_gb": 0.32,
+        "toplam_gb": 14.72,
+        "_yontem": "sistem geneli (WSL2 VM ayri surec degil); kosu oncesi tabana gore ARTIS"
+      },
+      "cd": 1.06012
+    }
+  ],
+  "_kisit": "KIYASLAMA DEGILDIR: tek geometri, tek makine, tek cozucu ayari. Bellek olcumu sistem GENELIDIR (WSL2 VM ayri surec degil) ve kosu oncesi tabana gore artistir — yani UST SINIR.",
+  "_uretim": "Üretim: python experiments/basarim_matrisi.py",
+  "olcek": {
+    "cekirdek_hizlanmasi": {
+      "60k": {
+        "1": 1.0,
+        "4": 1.4,
+        "8": 1.32
+      },
+      "150k": {
+        "1": 1.0,
+        "4": 1.61,
+        "8": 1.65
+      },
+      "350k": {
+        "1": 1.0,
+        "4": 1.77,
+        "8": 1.96
+      }
+    },
+    "hucre_basina_ms": {
+      "b60k_c1": 1.2241,
+      "b60k_c4": 0.8775,
+      "b60k_c8": 0.9262,
+      "b150k_c1": 0.5717,
+      "b150k_c4": 0.3558,
+      "b150k_c8": 0.3464,
+      "b350k_c1": 0.6876,
+      "b350k_c4": 0.3895,
+      "b350k_c8": 0.3511
+    },
+    "ozet": "9 kosu tamamlandi. En buyuk: 96,280 hucre, 1 cekirdek, cozucu 66.2s, bellek +0.09 GB."
+  },
+  "verdikt": "9 kosu tamamlandi. En buyuk: 96,280 hucre, 1 cekirdek, cozucu 66.2s, bellek +0.09 GB."
+}

@@ -177,6 +177,7 @@ experiments/nx_geo/
 experiments/nx_geo_egitim/
 experiments/nx_geo_kor/
 _basamak/
+_basarim/          # basarim matrisi calisma dizini (310 MB, kanit JSON'da)
 sessiz_yutma.json
 _naca2412/
 _smtest/

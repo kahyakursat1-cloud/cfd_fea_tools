@@ -28,6 +28,15 @@ KOK = HERE.parent
 sys.path.insert(0, str(KOK))
 
 
+# GURULTU ESIKLERI. Kucuk kosularda cozucunun kendi bellegi (~0.05 GB) sistem
+# geneli olcumun gurultusunun ALTINDA kalir; medyan almak gurultuye katsayi
+# demektir. Olculdu (basarim matrisi, 18k-96k hucre): kB/hucre 0.9 ile 9.75
+# arasinda sacildi — 10 KAT. Ayni geometri, ayni cozucu, tek degisen cekirdek
+# sayisi. Yani sinyal yok.
+EN_AZ_ARTIS_GB = 0.5       # bunun altindaki artis sistem gurultusuyle karisir
+EN_COK_SACILMA = 3.0       # max/min bundan buyukse dagilim tutarli degil
+
+
 def topla() -> list[dict]:
     kayit = []
     for p in sorted((KOK / "vehicle_runs").glob("*/sonuc.json")):
@@ -40,6 +49,19 @@ def topla() -> list[dict]:
         kayit.append({"kosu": p.parent.name, "cells": cells,
                       "artis_gb": artis, "toplam_gb": b.get("toplam_gb"),
                       "kb_hucre": round(artis * 1e6 / cells, 3)})
+    # BASARIM MATRISI de bellek olcumu tasir ve kendi calisma dizinine yazar
+    # (vehicle_runs altinda degil). Onu disarida birakmak, elimizdeki en
+    # kontrollu olcum setini gormezden gelmek olurdu.
+    bm = KOK / "basarim_matrisi.json"
+    if bm.exists():
+        for r in json.loads(bm.read_text(encoding="utf-8")).get("satirlar", []):
+            b2 = r.get("bellek") or {}
+            artis, cells = b2.get("artis_gb"), r.get("cells")
+            if not cells or not isinstance(artis, (int, float)) or artis <= 0:
+                continue
+            kayit.append({"kosu": f"basarim/{r['etiket']}", "cells": cells,
+                          "artis_gb": artis, "toplam_gb": b2.get("toplam_gb"),
+                          "kb_hucre": round(artis * 1e6 / cells, 3)})
     return kayit
 
 
@@ -65,15 +87,34 @@ def calistir() -> dict:
         rec["kb_hucre"] = None
         return rec
     d = [k["kb_hucre"] for k in kayit]
-    rec["kb_hucre"] = round(statistics.median(d), 3)
+    medyan = round(statistics.median(d), 3)
+    sacilma = max(d) / min(d) if min(d) > 0 else float("inf")
+    zayif = [k for k in kayit if k["artis_gb"] < EN_AZ_ARTIS_GB]
+    rec["dagilim"] = {"min": min(d), "max": max(d), "medyan": medyan,
+                      "sacilma_katı": round(sacilma, 1),
+                      "gurultu_alti_kosu": len(zayif), "n_kosu": len(d)}
+    # GURULTUYE KATSAYI DENMEZ. Sacilma buyukse ya da olculen artis gurultu
+    # esiginin altindaysa medyan bir merkez DEGILDIR; sayi YAZILMAZ ve kapi
+    # onculle calismaya devam eder. Bu, "elimizde veri var" diye gecersiz bir
+    # sayi yayimlamaktan iyidir.
+    yeterli = sacilma <= EN_COK_SACILMA and len(zayif) < len(kayit)
+    if not yeterli:
+        rec["kb_hucre"] = None
+        rec["n_kosu"] = len(d)
+        rec["verdikt"] = (
+            f"{len(d)} kosu var ama katsayi OLCULEMEDI: kB/hucre {min(d)}-{max(d)} "
+            f"arasinda sacildi ({sacilma:.1f} kat, esik {EN_COK_SACILMA}) ve "
+            f"{len(zayif)}/{len(kayit)} kosunun bellek artisi gurultu esiginin "
+            f"({EN_AZ_ARTIS_GB} GB) altinda. Kucuk kosularda cozucunun kendi "
+            "bellegi sistem geneli olcumun gurultusune gomuluyor. Medyani "
+            "katsayi diye yazmak gurultuye katsayi demek olurdu — bellek kapisi "
+            "ONCULLE calismaya devam ediyor.")
+        return rec
+    rec["kb_hucre"] = medyan
     rec["n_kosu"] = len(d)
-    rec["dagilim"] = {"min": min(d), "max": max(d),
-                      "medyan": rec["kb_hucre"],
-                      "_anlam": ("TEK OLCUM — dagilim iddia edilmez" if len(d) == 1
-                                 else f"{len(d)} kosunun medyani")}
-    rec["verdikt"] = (f"{len(d)} kosudan medyan {rec['kb_hucre']} kB/hucre "
-                      f"(min {min(d)}, max {max(d)}). Bellek kapisi artik "
-                      "OLCULEN katsayiyla calisir.")
+    rec["verdikt"] = (f"{len(d)} kosudan medyan {medyan} kB/hucre "
+                      f"(min {min(d)}, max {max(d)}, sacilma {sacilma:.1f} kat). "
+                      "Bellek kapisi artik OLCULEN katsayiyla calisir.")
     return rec
 
 
