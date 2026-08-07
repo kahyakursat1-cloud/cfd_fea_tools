@@ -6,13 +6,18 @@ from vehicle_topopt import RHO_MIN, _oc_update, _sens_filter, _stress_gate, _tet
 
 
 def test_stress_gate_branches():
-    """#2: kompliyans-körlük stres-kapısı — 4 dal (güvenli/marjinal/akma/değerlendirilemedi)."""
-    assert _stress_gate({"emniyet_faktoru_temsili": 2.4})["durum"] == "güvenli"
+    """#2: kompliyans-körlük stres-kapısı — 5 dal. 'ag_marjinda' sonradan eklendi:
+    TO gridinde okunan tepe gerilme yakınsamamıştır (topopt_bagimsiz_dogrulama)."""
+    from vehicle_topopt import _ag_buyumesi
+    esik = 1.5 * (1 + _ag_buyumesi()[0])
+    assert _stress_gate({"emniyet_faktoru_temsili": esik * 1.1})["durum"] == "güvenli"
+    assert _stress_gate({"emniyet_faktoru_temsili": 1.6})["durum"] == "ag_marjinda"
     assert _stress_gate({"emniyet_faktoru_temsili": 1.2})["durum"] == "marjinal"
     akma = _stress_gate({"emniyet_faktoru_temsili": 0.7})
     assert akma["durum"] == "akma_asildi" and "stress_topopt" in akma["mesaj"]
     assert _stress_gate({})["durum"] == "değerlendirilemedi"
-    assert _stress_gate({"emniyet_faktoru": 2.0})["durum"] == "güvenli"   # temsili yoksa tepe-SF
+    # temsili yoksa tepe-SF kullanilir (deger degil, KAYNAK testi)
+    assert _stress_gate({"emniyet_faktoru": esik * 1.1})["durum"] == "güvenli"
 
 
 def test_tet_volumes_unit_tet():
