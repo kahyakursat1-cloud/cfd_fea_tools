@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-31.307 satır Python $\cdot$ 137 test dosyası $\cdot$ 1347 geçen test\\[3mm]
+31.322 satır Python $\cdot$ 139 test dosyası $\cdot$ 1361 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -707,7 +707,10 @@ verilir. \emph{Veri:} \texttt{postProcessing/forceCoeffs1}.}
 \label{sec:urans}
 
 Salınan bir koşuda hüküm doğru olanı söylüyordu: çözüm sabit noktaya oturmadı,
-akış zaman-bağımlıdır, kesin çözüm URANS'tır. Sonra orada duruyordu. Kullanıcının
+akış zaman-bağımlıdır, önerilen sonraki çözüm yolu URANS'tır. Sonra orada
+duruyordu.\footnote{Metinde bilinçli olarak ``kesin çözüm'' denmez: rejime göre
+URANS da yetmeyebilir ve DES ya da LES gerekebilir. Platform muhafazakâr dili
+tercih eder.} Kullanıcının
 elinde ne zaman adımı vardı, ne kaç adım koşacağı, ne de bunun kaç saat
 süreceği. Doğru ama \emph{uygulanamaz} bir cümle, yarım bir hükümdür.
 
@@ -811,12 +814,22 @@ y$^+<1$ duvar-çözünür geçiş & \disi & C-grid / DES gerekir \\
 \endgroup
 
 % ══════════════════════════════ 5 ══════════════════════════════
-\section{ASME V\&V 20 Karşılaştırması}
+\section{ASME V\&V 20 İş Akışıyla Fonksiyonel Eşleştirme}
 
 Rakip ticari yazılımlarla özellik matrisi \emph{bilerek konmadı}: bu platform
 doğrulanabilir iddia ilkesi üzerine kuruludur ve üçüncü taraf ürünlerin özellik
 kapsamını burada ölçemeyiz. Onun yerine, ölçülebilir bir ölçüt kullanılmıştır:
-ASME V\&V 20-2009'un gerektirdiği adımlardan kaçı \emph{otomatik} yapılıyor.
+ASME V\&V 20-2009'da tanımlanan temel faaliyetlerden kaçının platform
+tarafından \emph{otomatik} yürütüldüğü.
+
+\begin{dikkat}{Bu tablo bir uyumluluk iddiası değildir}
+Aşağıdaki eşleştirme standart uyumluluğu ya da sertifikasyon beyanı
+\textbf{değildir}. Platform fonksiyonlarının V\&V 20'de tanımlanan temel
+faaliyetlerle \emph{izlenebilir eşleştirmesidir}; hangi adımın otomatik,
+hangisinin kısmî ve hangisinin elle olduğunu gösterir. Bir standarda uygunluk
+ancak yetkili bir taraf tarafından, kapsamı tanımlı bir denetimle beyan
+edilebilir.
+\end{dikkat}
 
 \begin{center}\footnotesize
 \begin{tabular}{@{}p{72mm}ccp{38mm}@{}}
@@ -829,7 +842,7 @@ Kod doğrulama (kapalı-form karşılaştırma) & \ev & \ev & 6 FEA çapası \\
 Girdi belirsizliği yayılımı & \ev & \ev & \texttt{girdi\_belirsizligi} (4 girdi) \\
 Deneysel referansla geçerleme & \ks & \ev & \texttt{zarf} (14 koşul) \\
 Geçerlilik alanı (validation domain) beyanı & \ev & \ev & \texttt{validity\_envelope} \\
-Model-form belirsizliği & \ks & \ev & 2/7 hücre çapalı (biri ölçüm, biri üst sınır) \\
+Model-form belirsizliği & \ks & \ev & 3/8 hücre çapalı: 2 ölçüm + 1 üst sınır \\
 Sonucun izlenebilirliği (komut + ortam) & \ev & \ev & \texttt{kanit}, \texttt{ortam} \\
 \bottomrule
 \end{tabular}
@@ -837,8 +850,13 @@ Sonucun izlenebilirliği (komut + ortam) & \ev & \ev & \texttt{kanit}, \texttt{o
 
 \noindent Sekiz adımın altısı tam, ikisi kısmî otomatiktir. Kısmî olan ikisi
 şunlardır: deneysel referansla geçerleme (çapa sayısı sınırlı) ve model-form
-belirsizliği (rejim$\times$duvar tablosunun dört hücresinden yalnız biri
-ölçülü). Girdi belirsizliği yayılımı bu sürümde \emph{eklendi} --- ve eklenmesi bandı
+belirsizliği (rejim$\times$duvar tablosunun sekiz hücresinden üçü çapa taşır;
+ikisi ölçüm, biri üst sınır).\footnote{Bu sayı tek kaynaktan üretilir
+(\texttt{model\_form\_ozeti}) ve rapordaki her tekrarı testle bağlıdır. Önceki
+sürümde dört ayrı yerde elle yazılıydı ve birbirini tutmuyordu; dahası taban da
+yanlıştı --- \texttt{attached\_2d} rejimi eklendiğinde toplam yediden sekize
+çıkmış, hiçbir metin güncellenmemişti. Raporun kendi avladığı kusur sınıfı:
+sabit metin, değişen veri.} Girdi belirsizliği yayılımı bu sürümde \emph{eklendi} --- ve eklenmesi bandı
 daralttığı için değil, \emph{genişlettiği} için önemlidir. Dört girdi ($V$,
 $\nu$, $\alpha$, kiriş) merkezî sonlu farkla yayıldığında girdi kaynaklı bant
 $\pm\%11{,}22$ çıktı; ayrıklaştırma bandı ($\pm\%1{,}36$) ile birleşince
@@ -1197,7 +1215,8 @@ zaten her çıktısında söylüyor.
         da kuramdan sapar (yakın-alan $-\%21$, Trefftz $+\%62$); bu yüzden
         indüklenen direnç kuramdan üretilir.
   \item[Model-form belirsizliği.] Rejim$\times$duvar işlemi tablosuna ayrıldı;
-        yedi hücrenin \textbf{üçü} çapa taşıyor, dördü literatür-öncülüyle
+        sekiz hücrenin \textbf{üçü} çapa taşıyor (ikisi ölçüm, biri üst
+        sınır), beşi literatür-öncülüyle
         çalışır. Üç hücre \emph{aynı kalitede değildir} ve bu ayrım artık
         yayımlanıyor: 2B bağlı akış \%5{,}23 ($n{=}1$) bir \emph{ölçümdür} ---
         çapanın farkı (\%3{,}52) kendi ayrıklaştırma bandından (\%1{,}71)
@@ -1277,6 +1296,45 @@ tek çapa bir dağılım değildir. Yukarı yönlü düzeltme her zaman kabul ed
 asimetri bilinçlidir.
 \end{olculdu}
 
+\begin{reddedilir}{Bir gecelik koşu, koşulmadan iptal edildi}
+Sıradaki hedef \texttt{lifting} hücresiydi: NACA0012 AR6 kanat çapası
+\%17{,}4 sayısal bandıyla eşiğin (\%15) hemen üstünde kalmıştı ve bir ağ
+seviyesi daha eklemek onu içeri alabilirdi. Koşuyu başlatmadan önce hesap
+yapıldı ve \emph{yapılmaması gerektiği} çıktı.
+
+Ölçüt eksikti. ASME V\&V 20'de karşılaştırma belirsizliği
+$u_{\mathrm{val}} = \sqrt{u_{\mathrm{num}}^2 + u_{\mathrm{input}}^2 + u_D^2}$
+ile verilir; bu depoda $u_D$ --- \emph{referansın kendi belirsizliği} ---
+hesaba hiç girmiyordu. O çapanın referansı yarı-analitiktir ve \%15 bandı
+kendi tanımında \emph{yazılıdır}; ama metinde yazılı olmak yetmiyor, sayı
+olarak taşınması gerekiyordu.
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrrl@{}}
+\toprule
+& \textbf{Ham sapma} & \textbf{$u_{\mathrm{num}}$} & \textbf{$u_{\mathrm{val}}$} & \textbf{Hüküm} \\
+\midrule
+Eski ölçüt & \%18{,}05 & \%17{,}38 & \%17{,}38 & ayrılabilir \\
+$u_D=\%15$ katılınca & \%18{,}05 & \%17{,}38 & \textbf{\%22{,}96} & \textbf{ayrılamaz} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Sayısal bandı iyileştirmek bu çapayı kurtaramaz: $u_{\mathrm{val}}$
+hiçbir zaman \%15'in altına inemez, çünkü referansın kendisi o kadar
+belirsizdir. Bandı \%10'un altına çekmek gerekirdi ve o noktada bile marj
+\%18{,}05'e karşı \%18{,}0 olurdu. Hücreyi ölçüme çevirmenin yolu daha ince
+ağ değil, \emph{deneysel referanslı} bir çapadır.
+
+Ölçüt düzeltmesi ayrıca bir kazayı önledi: bandı \%14'e indirmek çapayı
+sayısal tavanın içine sokar ve eski ölçütle ``ayrılabilir'' damgasıyla hücreye
+girerdi --- yani saatlerce hesap, \emph{yanlış} bir ölçümle sonuçlanacaktı.
+\end{reddedilir}
+
+\noindent Referans belirsizliği beyan edilmemiş çapalarda hüküm yalnız sayısal
+banda dayanır ve bu artık açıkça yazılır: ``gerçek $u_{\mathrm{val}}$ bundan
+büyüktür''. Yokluk sıfır sayılmaz.
+
 \begin{dikkat}{Dördüncü ölçüt: ölçüm mü, üst sınır mı?}
 Bir çapa hücreye \emph{girebilir} ama yine de model hatasını ölçmüş olmayabilir.
 Ölçüt basittir: fark, o koşunun kendi ayrıklaştırma bandından \emph{büyük} mü?
@@ -1317,14 +1375,18 @@ dosyasında \texttt{siralama\_uyarilari} altında durur.
 \midrule
 v1.1 & yüksek & Eski çözücü sarmalayıcısının kaldırılması; tüm yolların
                 \texttt{analysis/} çekirdeğine taşınması \\
-v1.2 & yüksek & URANS yolu --- limit çevrimine giren vakalar için zaman-çözünür
-                çözüm ve kuvvet ortalaması \\
-v1.3 & orta   & Bellek katsayısı için BÜYÜK koşularla ölçüm (küçük koşu gürültüde
-                kalıyor); kuyrukta öncelik \\
-v1.4 & orta   & Model-form öncülünün kalan hücrelerinin ölçümle değiştirilmesi
-                (rejime ayrılan tablonun boş kalan gözleri) \\
-v1.5 & orta   & Docker/Conda kilidi ile yeniden-üretilebilir ortam;
-                hücre$\times$çekirdek$\times$RAM başarım matrisi \\
+v1.2 & yüksek & URANS \emph{koşumu} --- reçete üretiliyor ama çözüm hâlâ elle
+                kuruluyor; limit çevrimi vakalarında zaman-çözünür çözüm ve
+                kuvvet ortalaması \\
+v1.3 & yüksek & Model-form tablosunun kalan beş hücresi --- deneysel referanslı
+                çapalarla; yarı-analitik referans $u_D$ baskın olduğu için
+                yalnız ağ inceltmek yetmiyor \\
+v1.4 & orta   & Docker/Conda kilidi ile yeniden-üretilebilir ortam; çözücü
+                sürüm kilidi \\
+v1.5 & orta   & Arayüz v2: Otopilot / Mühendis / Araştırma kipleri ve kanıt
+                gezgini \\
+v1.6 & düşük  & Bellek katsayısı için BÜYÜK koşularla ölçüm (küçük koşu
+                gürültüde kalıyor); hücre$\times$çekirdek$\times$RAM matrisi \\
 v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanması;
                 GPU hızlandırma \\
 \bottomrule
@@ -1343,9 +1405,10 @@ v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanm
   \item[Yarışma takımları.] Ön-tasarım döngüsü: STL $\rightarrow$ birkaç saatte
         $C_d$/$C_L$ bandı $\rightarrow$ yapısal kontrol $\rightarrow$ rapor.
         İnce kanatta mutlak taşıma için VLM yolu kullanılmalıdır.
-  \item[Akademik çalışma.] Doğrulama çapaları ve V\&V raporlama düzeni
-        MDPI/IEEE beklentileriyle uyumludur; GCI/LSR bantları, kademe aileleri
-        ve gözlenen mertebe $p$ doğrudan raporlanabilir biçimde saklanır.
+  \item[Akademik çalışma.] GCI/LSR bantları, kademe aileleri, gözlenen mertebe
+        $p$ ve doğrulama kanıtları makalede raporlanmaya uygun yapılandırılmış
+        çıktı olarak saklanır --- her sayı kendi kanıt dosyasına ve onu üreten
+        komuta bağlıdır.
   \item[Endüstriyel ön-tasarım.] Kavramsal aşamada eğilim analizi ve
         tasarım-alanı taraması için uygundur. Sertifikasyon ya da nihai tasarım
         doğrulaması için \emph{uygun değildir}.
@@ -1364,9 +1427,9 @@ v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanm
 Kod satırı (kök + \texttt{analysis/}) & 31.307 & dosya sayımı \\
 Kök modül & 81 & \\
 Deney / çapa betiği & 60 & \texttt{experiments/} \\
-Test dosyası & 137 & \texttt{tests/} \\
-Geçen test & 1347 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1347 & \texttt{-{}-cov} \\
+Test dosyası & 139 & \texttt{tests/} \\
+Geçen test & 1361 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1361 & \texttt{-{}-cov} \\
 Satır kapsamı & \textbf{\%47} & 18.765 ifade, 9.955 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
@@ -1590,14 +1653,21 @@ belirsizlik bandı, adı konmuş kapsam sınırı ve yeniden üretilebilir kanı
 dosyası --- üçü bir arada olduğunda sonuç eğitimde güvenle, yarışmada hızla,
 akademide savunulabilir biçimde kullanılabilir.
 
-\begin{olculdu}{Temel katkılar --- üçü de ölçülmüş, hiçbiri iddia değil}
+\begin{olculdu}{Temel katkılar --- dördü de ölçülmüş, hiçbiri iddia değil}
 \textbf{1. Karar zinciri.} Sayı ile hüküm birlikte üretilir; kapı geçilemezse
 sayı yayımlanmaz. Zincir kendi raporunu da denetler --- bu mekanizma yayımlanan
 raporda dört kusur buldu.\\[2pt]
-\textbf{2. Ölçülen belirsizlik.} GCI/LSR ayrıklaştırma bandı, girdi
+\textbf{2. Açıklanabilirlik doğrulaması.} Denetlenen yalnız mühendislik hükmü
+değil, \emph{hükmün gerekçesidir}: gerekçenin aynı kanıt zincirinden geldiği
+testle bağlıdır. Gerekçede, o koşunun kullanmadığı bir ağ ailesinin adı
+geçemez. Kusur ölçüldü --- sınıf (EĞİLİM) doğruyken gerekçe başka bir
+çalışmadan taşınmıştı ve iki çapa raporuna öyle basılmıştı.\\[2pt]
+\textbf{3. Ölçülen belirsizlik.} GCI/LSR ayrıklaştırma bandı, girdi
 belirsizliği yayılımı ve rejime ayrılmış model-form; ölçülmeyen bileşen
-\emph{sıfır sayılmaz}, sonuç ``alt sınır'' olarak etiketlenir.\\[2pt]
-\textbf{3. Adı konmuş sınırlar.} İnce firar kenarı, TO tepe gerilmesinin
+\emph{sıfır sayılmaz}, sonuç ``alt sınır'' olarak etiketlenir. Referans
+belirsizliği ($u_D$) de ayrılabilirlik hükmüne girer --- girmediğinde ölçüt
+sistematik olarak gevşekti.\\[2pt]
+\textbf{4. Adı konmuş sınırlar.} İnce firar kenarı, TO tepe gerilmesinin
 yakınsamaması, süpersonik mutlak $C_d$ --- her biri sayıyla kayıtlı ve raporda
 kendi başlığı altında.
 \end{olculdu}
@@ -1627,7 +1697,8 @@ hat, GPU \\
 \end{center}
 
 \begin{dikkat}{Bu sürümde kapanmamış olanlar}
-Model-form tablosunun yedi hücresinden ikisi çapalı ve biri yalnız üst sınır; bellek
+Model-form tablosunun sekiz hücresinden üçü çapalı (iki ölçüm, bir üst sınır),
+beşi literatür öncülü; bellek
 katsayısı henüz ölçülmedi (telemetri bu sürümde eklendi, sayı sonraki
 koşulardan gelecek); başarım ölçümü tek geometri ve tek makineyle sınırlı; çözücü sürümleri
 kilitli değil; eski çözücü sarmalayıcısı hâlâ \texttt{analysis/} çekirdeğini

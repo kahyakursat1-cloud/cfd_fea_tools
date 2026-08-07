@@ -24,22 +24,30 @@ ANCHORS = {
     "sphere": {
         "Cd": 0.47, "regime": "bluff", "Re": "1e3–2e5 (subkritik)",
         "aref": "frontal", "ref": "White, Fluid Mechanics; Schlichting BL Theory",
+        "u_ref_pct": None,   # ders kitabı değeri; kaynak band beyan etmiyor
     },
     "naca0012_a0": {
-        "Cd": 0.0081, "regime": "lifting", "Re": "6e6",
+        # REJIM ETIKETI YANLISTI ("lifting"): alpha=0'da tasima SIFIRDIR ve bu
+        # vaka bagli 2B akistir. model_form_bandi zaten onu attached_2d hucresine
+        # yaziyordu, yani iki kaynak celisiyordu; dogru olan attached_2d.
+        "Cd": 0.0081, "regime": "attached_2d", "Re": "6e6",
         "aref": "kiriş", "ref": "Ladson NASA TM-4074; NASA Turbulence Modeling Resource",
+        "u_ref_pct": None,   # TMR tekil deger yayimliyor, band beyan etmiyor
     },
     "ahmed_25": {
         "Cd": 0.285, "regime": "bluff", "Re": "~1e6",
         "aref": "frontal", "ref": "Ahmed et al. 1984; Meile et al. 2011",
+        "u_ref_pct": None,   # iki kaynak arasi fark var ama sayisal band yok
     },
     "cube": {
         "Cd": 1.05, "regime": "bluff", "Re": ">1e4 (keskin-kenar, Re-duyarsız)",
         "aref": "frontal", "ref": "Hoerner, Fluid-Dynamic Drag (1965)",
+        "u_ref_pct": None,   # Hoerner tablo degeri; band beyan etmiyor
     },
     "disk": {
         "Cd": 1.17, "regime": "bluff", "Re": ">1e3 (keskin-kenar, Re-duyarsız)",
         "aref": "frontal", "ref": "Hoerner, Fluid-Dynamic Drag (1965)",
+        "u_ref_pct": None,   # Hoerner tablo degeri; band beyan etmiyor
     },
     "naca0012_wing_ar6": {
         "Cd": 0.020, "regime": "lifting", "Re": "3e5 (c=0.15 m, 30 m/s), α=4°",
@@ -47,6 +55,11 @@ ANCHORS = {
         "ref": ("YARI-ANALİTİK (±%15): türbülanslı profil Cd0≈0.014 (düz-plaka Cf "
                 "+ form) + lifting-line CDi=CL²/(πeAR), CL≈0.32, e≈0.9 — Anderson; "
                 "deneysel tekil referans yok, band ölçümü bu belirsizlikle etiketli"),
+        # BELIRSIZLIK METINDE YAZILIYDI AMA SAYI OLARAK TASINMIYORDU, dolayisiyla
+        # ayrilabilirlik hesabina HIC girmiyordu. ASME V&V 20'de karsilastirma
+        # belirsizligi u_val = sqrt(u_num^2 + u_input^2 + u_D^2); referans
+        # belirsizligi (u_D) o toplamin bileseni. Burada BASKIN bilesen odur.
+        "u_ref_pct": 15.0,
     },
 }
 

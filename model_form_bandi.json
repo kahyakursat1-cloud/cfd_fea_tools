@@ -32,6 +32,9 @@
       "ham_sapma_pct": 3.38,
       "u_sayisal_pct": 4.77,
       "ayrilabilir_mi": false,
+      "u_val_pct": 4.77,
+      "u_ref_pct": null,
+      "ayrilabilirlik_notu": "referans belirsizliği BEYAN EDİLMEMİŞ — hüküm yalnız sayısal banda dayanıyor; gerçek u_val bundan BÜYÜKTÜR",
       "yplus_ort": 31.32,
       "yplus_max": 146.21,
       "yplus_kaynak": "çapa koşusu _anchor_disk",
@@ -44,6 +47,9 @@
       "ham_sapma_pct": 25.75,
       "u_sayisal_pct": 62.97,
       "ayrilabilir_mi": false,
+      "u_val_pct": 62.97,
+      "u_ref_pct": null,
+      "ayrilabilirlik_notu": "referans belirsizliği BEYAN EDİLMEMİŞ — hüküm yalnız sayısal banda dayanıyor; gerçek u_val bundan BÜYÜKTÜR",
       "yplus_ort": 20.09,
       "yplus_max": 132.41,
       "yplus_kaynak": "çapa koşusu _anchor_sphere",
@@ -56,6 +62,9 @@
       "ham_sapma_pct": 1.78,
       "u_sayisal_pct": 5.32,
       "ayrilabilir_mi": false,
+      "u_val_pct": 5.32,
+      "u_ref_pct": null,
+      "ayrilabilirlik_notu": "referans belirsizliği BEYAN EDİLMEMİŞ — hüküm yalnız sayısal banda dayanıyor; gerçek u_val bundan BÜYÜKTÜR",
       "yplus_ort": 37.3,
       "yplus_max": 117.78,
       "yplus_kaynak": "çapa koşusu _anchor_cube",
@@ -68,6 +77,9 @@
       "ham_sapma_pct": 16.2,
       "u_sayisal_pct": 274.7,
       "ayrilabilir_mi": false,
+      "u_val_pct": 274.7,
+      "u_ref_pct": null,
+      "ayrilabilirlik_notu": "referans belirsizliği BEYAN EDİLMEMİŞ — hüküm yalnız sayısal banda dayanıyor; gerçek u_val bundan BÜYÜKTÜR",
       "yplus_ort": 45.99,
       "yplus_max": 1236.57,
       "yplus_kaynak": "çapa koşusu _anchor_ahmed_25",
@@ -79,7 +91,10 @@
       "sapma_pct": 35.43,
       "ham_sapma_pct": 18.05,
       "u_sayisal_pct": 17.38,
-      "ayrilabilir_mi": true,
+      "ayrilabilir_mi": false,
+      "u_val_pct": 22.96,
+      "u_ref_pct": 15.0,
+      "ayrilabilirlik_notu": "u_val = √(17.38² + 15.00²) = %22.96 (ASME V&V 20)",
       "yplus_ort": 134.47,
       "yplus_max": 210.69,
       "yplus_kaynak": "çapa koşusu _anchor_naca0012_wing_ar6",
@@ -273,6 +288,34 @@
   "_kisit": "Bir capanin sapmasi, o rejimdeki model-form hatasinin BIR ORNEGIDIR. N=1 olan hucrede dagilim IDDIA EDILMEZ. Duvar islemi kayitli olmayan capa hucreye ATANMAZ — tahmin edilmez. Ayrica sapma, referansin KENDI deneysel belirsizligini de icerir ve o ayristirilmamistir.",
   "_uretim": "Üretim: python experiments/model_form_bandi.py",
   "_ayrilabilirlik_notu": "UST SINIR olan hucreler: bluff.wall_function. Bu hucrelerde HICBIR capa, olculen farki kendi ayriklastirma bandindan ayirt edemiyor — deger olculmus bir model hatasi DEGIL, ust sinirdir. Ornek: disk capasinin farki %3.4 ama sayisal bandi %4.8.",
+  "ozet": {
+    "toplam_hucre": 8,
+    "capali": 3,
+    "oncul": 5,
+    "olcum": 2,
+    "ust_sinir": 1,
+    "capali_hucreler": [
+      "attached_2d.wall_resolved",
+      "bluff.wall_function",
+      "separated.wall_resolved"
+    ],
+    "olcum_hucreleri": [
+      "attached_2d.wall_resolved",
+      "separated.wall_resolved"
+    ],
+    "ust_sinir_hucreleri": [
+      "bluff.wall_function"
+    ],
+    "oncul_hucreler": [
+      "attached_2d.wall_function",
+      "bluff.wall_resolved",
+      "lifting.wall_function",
+      "lifting.wall_resolved",
+      "separated.wall_function"
+    ],
+    "tutarli": true,
+    "cumle": "8 hücrenin 3'i deneysel/literatür çapası taşıyor (2 ölçüm + 1 üst sınır), 5'i literatür öncülüyle çalışıyor"
+  },
   "verdikt": "9 capa toplandi; 3 hucre OLCULDU, 5 capa atanamadi, 5 hucre ONCUL kaldi. attached_2d.wall_resolved=%5.23 (n=1); bluff.wall_function=%8.15 (n=2); separated.wall_resolved=%12.0 (n=1)",
   "_yazilan": {
     "attached_2d": {

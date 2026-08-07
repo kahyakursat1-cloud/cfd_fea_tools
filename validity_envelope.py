@@ -407,7 +407,8 @@ def sonuc_kapisi(fizik: dict | None, convergence: dict | None,
             "GCI'ya GİRMEZ")
     # SALINIM: GENLİĞİ ÖLÇÜLMÜŞ ve BANDA KATILMIŞSA kabul edilebilir.
     # Bu "limit çevrimi yakınsadı" demek DEĞİLDİR — akış hâlâ zaman-bağımlıdır ve
-    # kesin çözüm URANS'tır. Söylenen şu: genlik %{SALINIM_KABUL_PCT}'nin altında VE
+    # onerilen sonraki cozum yolu URANS'tir ("kesin cozum" DEGIL: rejime gore
+    # DES/LES gerekebilir ve bu platform muhafazakar dili tercih eder). Soylenen su: genlik %{SALINIM_KABUL_PCT}'nin altında VE
     # raporlanan sayısal belirsizliğe GERÇEKTEN girmişse, bildirilen "Cd ± band"
     # mühendislik açısından savunulabilir. Ölçüldü: genlikler %0.68-2.5 iken aynı
     # koşuların model-form belirsizliği %12 — salınım bandın beşte biri kadar.
@@ -432,7 +433,8 @@ def sonuc_kapisi(fizik: dict | None, convergence: dict | None,
                         f"{sal.get('gecis', 0)} işaret geçişi) — AMA genlik raporlanan "
                         f"sayısal belirsizliğe katıldı (%{_u_say:.2f}) ve model-form "
                         f"belirsizliğinin (%{_u_mod if _u_mod is not None else '?'}) "
-                        "çok altında. Akış zaman-bağımlıdır; kesin çözüm URANS'tır"]}
+                        "çok altında. Akış zaman-bağımlıdır; önerilen sonraki çözüm yolu "
+                        "URANS'tır (rejime göre DES/LES de gerekebilir)"]}
     # ESKALASYON RECETESI EN SONDA: once sorun, sonra ne yapilacagi. Yalniz
     # REDDEDILEN salinimli kosuya verilir — yukaridaki dalda kosu KABUL ediliyor
     # ve orada recete gereksiz gurultu olur.

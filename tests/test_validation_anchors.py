@@ -38,8 +38,14 @@ def test_measured_band_overrides_prior(tmp_path, monkeypatch):
 
 
 def test_anchors_have_required_fields():
+    # REJIM LISTESI SABIT YAZILIYDI ve eskimisti: model-form tablosu dort rejim
+    # tasiyor (attached_2d, lifting, bluff, separated) ama test ikisini kabul
+    # ediyordu. Tek kaynak _MODEL_U_PCT anahtarlaridir; yeni rejim eklenince
+    # test kendiliginden gunceldir.
+    gecerli = set(va._MODEL_U_PCT)
     for name, a in va.ANCHORS.items():
-        assert a["Cd"] > 0 and a["regime"] in ("lifting", "bluff") and a["ref"]
+        assert a["Cd"] > 0 and a["ref"], name
+        assert a["regime"] in gecerli, f"{name}: bilinmeyen rejim {a['regime']}"
 
 
 def test_geom_generators_match_anchors():

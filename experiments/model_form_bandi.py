@@ -19,6 +19,7 @@ ATANAMAZ. Tahmin edilmez — atanamayan çapa listelenir ve hücre öncül kalı
 from __future__ import annotations
 
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -32,6 +33,74 @@ BAND_DOSYASI = KOK / "validation_band.json"
 def _j(ad: str) -> dict | None:
     p = KOK / ad
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
+
+
+def ayrilabilir(ham_sapma_pct: float | None, u_sayisal_pct: float | None,
+                u_ref_pct: float | None) -> dict:
+    """ASME V&V 20 karşılaştırma belirsizliği: model hatası GÖRÜLEBİLİR mi?
+
+    u_val = sqrt(u_num² + u_D²) — sayısal bandı ve REFERANS belirsizliğini
+    birlikte alır. Referans belirsizliği eskiden hesaba HİÇ girmiyordu ve bu,
+    ölçütü sistematik olarak GEVŞEK yapıyordu: yarı-analitik kanat çapasının
+    ±%15'i metinde yazılıydı ama sayı olarak taşınmadığı için görünmüyordu.
+
+    O çapada fark ediyor: ham sapma %18,05 ve sayısal band %17,38 iken eski
+    ölçüt "ayrılabilir" diyordu; u_D=%15 katılınca u_val=%22,96 ve fark
+    AYIRT EDİLEMEZ. Sayısal bandı iyileştirmek de kurtarmaz — u_val hiçbir
+    zaman %15'in altına inemez, çünkü referansın kendisi o kadar belirsiz.
+
+    u_ref_pct None ise beyan edilmemiş demektir; hüküm yalnız sayısal banda
+    dayanır ve bu AÇIKÇA söylenir (yokluk sıfır sayılmaz).
+    """
+    if ham_sapma_pct is None or u_sayisal_pct is None:
+        return {"ayrilabilir_mi": None, "u_val_pct": None,
+                "gerekce": "sayısal band yok — ayrılabilirlik DEĞERLENDİRİLMEDİ"}
+    if u_ref_pct is None:
+        u_val = float(u_sayisal_pct)
+        not_ = ("referans belirsizliği BEYAN EDİLMEMİŞ — hüküm yalnız sayısal "
+                "banda dayanıyor; gerçek u_val bundan BÜYÜKTÜR")
+    else:
+        u_val = math.hypot(float(u_sayisal_pct), float(u_ref_pct))
+        not_ = (f"u_val = √({u_sayisal_pct:.2f}² + {u_ref_pct:.2f}²) = "
+                f"%{u_val:.2f} (ASME V&V 20)")
+    return {"ayrilabilir_mi": bool(ham_sapma_pct > u_val),
+            "u_val_pct": round(u_val, 2), "u_ref_pct": u_ref_pct,
+            "gerekce": not_}
+
+
+def model_form_ozeti(rec: dict) -> dict:
+    """Model-form tablosunun TEK KAYNAK özeti — kaç hücre, hangi kalitede.
+
+    NEDEN GEREKLİ: bu sayı raporun dört ayrı yerinde elle yazılıydı ve
+    birbirini tutmuyordu (hakem incelemesi: 2/7, 3/7, 1/4). Dahası TABAN da
+    yanlıştı: `attached_2d` rejimi eklendiğinde toplam 7'den 8'e çıkmış ama
+    hiçbir metin güncellenmemişti. Tam olarak bu deponun avladığı kusur —
+    sabit metin, değişen veri.
+
+    ÜÇ DURUM AYRI SAYILIR ve karıştırılmamalıdır:
+      ölçüm     — çapa var VE sapma kendi u_val'inden büyük (model hatası görüldü)
+      üst sınır — çapa var AMA sapma u_val'in altında (görülemedi; muhafazakâr)
+      öncül     — çapa yok; literatür mertebesi
+    """
+    from validation_anchors import _MODEL_U_PCT
+    toplam = sum(len(v) for v in _MODEL_U_PCT.values())
+    olcum, ust = [], []
+    for rejim, ic in (rec.get("olculen_hucreler") or {}).items():
+        for duvar, d in ic.items():
+            (ust if d.get("_ust_sinir_mi") else olcum).append(f"{rejim}.{duvar}")
+    oncul = [f"{h['rejim']}.{h['duvar']}"
+             for h in (rec.get("oncul_kalan_hucreler") or [])]
+    capali = sorted(olcum + ust)
+    return {
+        "toplam_hucre": toplam, "capali": len(capali), "oncul": len(oncul),
+        "olcum": len(olcum), "ust_sinir": len(ust),
+        "capali_hucreler": capali, "olcum_hucreleri": sorted(olcum),
+        "ust_sinir_hucreleri": sorted(ust), "oncul_hucreler": sorted(oncul),
+        "tutarli": len(capali) + len(oncul) == toplam,
+        "cumle": (f"{toplam} hücrenin {len(capali)}'i deneysel/literatür çapası "
+                  f"taşıyor ({len(olcum)} ölçüm + {len(ust)} üst sınır), "
+                  f"{len(oncul)}'i literatür öncülüyle çalışıyor"),
+    }
 
 
 # CAPANIN SAYISAL BANDI, OLCMEK ISTEDIGI MODEL HATASINDAN BUYUK OLAMAZ.
@@ -156,6 +225,7 @@ def capalari_topla() -> list[dict]:
         u_say = ((md.get("lsr") or {}).get("u_pct")
                  or (md.get("gci") or {}).get("gci_fine_pct"))
         yp = (d.get("sinir_tabaka") or {}).get("yplus") or {}
+        _ayr = ayrilabilir(hata, u_say, spec.get("u_ref_pct"))
         c.append({"capa": ad, "rejim": spec["regime"],
                   # MODEL HATASI SAYISAL HATADAN AYRILAMAZ: olculen fark
                   # ayriklastirma bandiyla ayni mertebedeyse (disk %3.4 vs
@@ -164,7 +234,10 @@ def capalari_topla() -> list[dict]:
                   "sapma_pct": hata + (u_say or 0.0),
                   "ham_sapma_pct": round(hata, 2),
                   "u_sayisal_pct": round(u_say, 2) if u_say else None,
-                  "ayrilabilir_mi": bool(u_say and hata > u_say),
+                  "ayrilabilir_mi": _ayr["ayrilabilir_mi"],
+                  "u_val_pct": _ayr["u_val_pct"],
+                  "u_ref_pct": _ayr.get("u_ref_pct"),
+                  "ayrilabilirlik_notu": _ayr["gerekce"],
                   "yplus_ort": yp.get("ort"), "yplus_max": yp.get("max"),
                   "yplus_kaynak": f"çapa koşusu {kosu}",
                   "referans": spec["ref"][:80]})
@@ -424,6 +497,7 @@ def calistir() -> dict:
         "Ornek: disk capasinin farki %3.4 ama sayisal bandi %4.8."
         if _ust else "Her olculen hucrede en az bir capa model hatasini "
                      "sayisal hatadan ayirt edebiliyor.")
+    rec["ozet"] = model_form_ozeti(rec)
     rec["verdikt"] = (
         f"{len(capalar)} capa toplandi; {sum(len(v) for v in ayrinti.values())} "
         f"hucre OLCULDU, {len(atanamayan)} capa atanamadi, "
