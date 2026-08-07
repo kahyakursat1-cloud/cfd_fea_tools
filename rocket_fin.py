@@ -15,6 +15,8 @@ from pathlib import Path
 
 import numpy as np
 
+from analysis.backend import linux_run
+
 # Fin geometrisi
 FIN_ROOT  = 0.0508
 FIN_TIP   = 0.0508
@@ -109,8 +111,7 @@ def fin_fea(material: str = "balsa", q_pa: float = None, v_ms: float = 29.0,
 
     p = str(case.resolve())
     wsl = f"/mnt/{p[0].lower()}{p[2:].replace(chr(92), '/')}"
-    subprocess.run(f'wsl bash -c "cd {wsl} && ccx -i fin"', shell=True,
-                   capture_output=True, timeout=300, text=True)
+    linux_run(f"cd {wsl} && ccx -i fin", 300)
 
     frd = case / "fin.frd"
     if not frd.exists():

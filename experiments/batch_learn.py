@@ -25,6 +25,8 @@ from pathlib import Path
 import numpy as np
 import trimesh
 
+from analysis.backend import linux_run
+
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
 import auto_pilot as ap  # noqa: E402
@@ -282,9 +284,8 @@ def _farthest_select(cands, tip, cap, eps):
 
 def _orphan_cleanup():
     try:
-        subprocess.run(["wsl", "-d", WSL_DISTRO, "--", "bash", "-c",
-                        "pkill -9 -f foamRun 2>/dev/null; pkill -9 -f mpirun 2>/dev/null; true"],
-                       capture_output=True, timeout=20)
+        linux_run("pkill -9 -f foamRun 2>/dev/null; "
+                  "pkill -9 -f mpirun 2>/dev/null; true", 20)
     # sessiz-yutma: kabul — geçici dosya temizliği; sonuç üretmez
     except Exception:
         pass

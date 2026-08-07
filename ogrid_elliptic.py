@@ -10,6 +10,8 @@ from pathlib import Path
 
 import numpy as np
 
+from analysis.backend import linux_run
+
 
 def naca0012_loop(n_around):
     """Kapali NACA0012 dongusu: ust-TE -> LE -> alt-TE, kosinus kumeleme (LE+TE sik).
@@ -200,8 +202,7 @@ if __name__ == "__main__":
     npts,nf,nc,ni = write_polymesh(case, X, Y, I, nj)
     print(f"polyMesh: {npts} nokta, {nf} yuz ({ni} internal), {nc} hucre")
     p=str(case.resolve()); wsl=f"/mnt/{p[0].lower()}{p[2:].replace(chr(92),'/')}"
-    r=subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && cd {wsl} && checkMesh 2>&1"',
-                     shell=True,capture_output=True,text=True,timeout=300)
+    r=linux_run(f"source /opt/openfoam11/etc/bashrc && cd {wsl} && checkMesh 2>&1", 300)
     import re
     for key in ["cells:","non-orthogonality Max","negative volume","zero area","Mesh OK","FAILED","Max skewness","Max aspect"]:
         for line in r.stdout.splitlines():

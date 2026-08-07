@@ -8,6 +8,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from analysis.backend import linux_run
+
 
 class SystemVerifier:
     def __init__(self):
@@ -103,10 +105,7 @@ class SystemVerifier:
             try:
                 if tool == 'foamVersion':
                     # Special case: OpenFOAM on WSL2
-                    result = subprocess.run(
-                        ['wsl', 'bash', '-c', 'foamVersion'],
-                        capture_output=True, text=True, timeout=5
-                    )
+                    result = linux_run('foamVersion', 5)
                     if result.returncode == 0:
                         print(f"  [KURULU-WSL2] {tool:20} -> {description}")
                         self.results['external_tools'][tool] = True

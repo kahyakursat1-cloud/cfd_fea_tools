@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-31.322 satır Python $\cdot$ 138 test dosyası $\cdot$ 1365 geçen test\\[3mm]
+31.355 satır Python $\cdot$ 139 test dosyası $\cdot$ 1375 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -1237,10 +1237,17 @@ zaten her çıktısında söylüyor.
         Ahmed 25° ile NACA0012 kanat çapasının ayrıklaştırma bandı, ölçmek
         istediği model hatasından büyük (\%274{,}7 ve \%17{,}4); küp GCI
         koşusunun y$^+$ ortalaması bantta ama tepesi dışarıda (338 > 300).
-  \item[Teknik borç --- iki hızlı katman.] Eski çözücü sarmalayıcısı ve bazı
-        bağımsız V\&V betikleri \texttt{analysis/} çekirdeğini kullanmaz; case
-        iskelesini tekrarlarlar. Yeni kod çekirdeğe yazılır, eskisi yerinde
-        durur --- taşıma riski ölçülmüş değil, o yüzden ``yakında'' denmiyor.
+  \item[Teknik borç --- iki hızlı katman.] Bağımsız V\&V betikleri
+        \texttt{wsl bash -c} çağrısını kendileri kuruyor ve arka uç seçimini
+        atlıyordu: \texttt{CFD\_BACKEND=docker} ayarlandığında araç hattı
+        konteynere giderken bu betikler WSL'de kalırdı --- aynı kampanyanın iki
+        yarısı farklı çözücülerde. Yirmi üç dosya taşındı ve sayaç 36'dan 9'a
+        indi; bash \emph{gövdesi} her taşımada aynen korundu, değişen yalnız
+        taşıma katmanıdır. Kalan iki dosya incelendi ve gerekçeleriyle
+        bekletildi: biri etkileşimli süreç besliyor ve süreç ağacını elle
+        yokluyor, öbürü login kabuk (\texttt{bash -lc}) gerektiriyor --- ikisi
+        de taşınabilir, ama davranış eşdeğerliği \emph{ölçülmeden} değil.
+        Case iskelesini tekrarlayan betikler ayrı bir borç olarak duruyor.
 \end{description}
 
 \begin{anafikir}{Bir çapa hücreye nasıl girer --- üç kabul ölçütü}
@@ -1430,12 +1437,12 @@ v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanm
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 31.322 & \texttt{rapor\_sayilari.py} \\
+Kod satırı (kök + \texttt{analysis/}) & 31.355 & \texttt{rapor\_sayilari.py} \\
 Kök modül & 83 & \texttt{rapor\_sayilari.py} \\
 Deney / çapa betiği & 62 & \texttt{experiments/} \\
-Test dosyası & 138 & \texttt{tests/test\_*.py} \\
-Geçen test & 1365 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1365 & \texttt{-{}-cov} \\
+Test dosyası & 139 & \texttt{tests/test\_*.py} \\
+Geçen test & 1375 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1375 & \texttt{-{}-cov} \\
 Satır kapsamı & \textbf{\%47} & 18.928 ifade, 9.979 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
@@ -1537,7 +1544,7 @@ bölünmüş durumda ve her birinin izlediği sayı ayrı:
 \texttt{oksuz\_alan} & üretilir, hiçbir yerde okunmaz & 0 \\
 \texttt{kanal\_ayrismasi} & yalnız bir sunum kanalında okunur & 0 \\
 \texttt{sessiz\_yutma} & gerekçesiz \texttt{except} & 0 incelenmemiş \\
-\texttt{arka\_uc\_sayaci} & ortak katmanı atlayan çağrı & 36 (dondurulmuş) \\
+\texttt{arka\_uc\_sayaci} & ortak katmanı atlayan çağrı & 9 (36'dan indi) \\
 \bottomrule
 \end{tabular}
 \end{center}

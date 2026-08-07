@@ -28,6 +28,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from analysis.backend import linux_run
+
 # ────────────────────────────────────────────────────────────────────────────
 # CONFIG
 # ────────────────────────────────────────────────────────────────────────────
@@ -276,9 +278,10 @@ class LauncherWindow(QWidget):
         Soğuk WSL başlangıcı yük altında 10+ sn sürebilir; cömert timeout + 1 tekrar."""
         for tmo in (25, 25):
             try:
-                r = subprocess.run(["wsl", "bash", "-c", "test -d /opt/openfoam11"],
-                                   capture_output=True, timeout=tmo)
-                return r.returncode == 0
+                # ARKA UC KATMANINDAN gecer: CFD_BACKEND=docker iken kosu
+                # konteynerde olacaksa tespit de ORADA yapilmali, yoksa
+                # "OpenFOAM yok" der ve dogru kurulumu reddeder.
+                return linux_run("test -d /opt/openfoam11", tmo).returncode == 0
             # sessiz-yutma: kabul — zaman asimi bir cevap DEGIL; soguk WSL yuk
             # altinda 10+ sn suruyor, o yuzden ikinci deneme yapiliyor. Iki
             # deneme de dolarsa asagidaki `return False` "yok" der ve kurulum

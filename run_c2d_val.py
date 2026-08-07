@@ -5,6 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from analysis.backend import linux_run
 from construct2d_bridge import _min_case, read_p3d_2d, run_validation, write_ogrid_gmsh
 
 p3d = Path("cgrid_work/naca0012.p3d")
@@ -19,8 +20,7 @@ print(f"grid {ni}x{nj} seam={seam} cells={ni_u*(nj-1)}", flush=True)
 
 p = str(case.resolve()); wsl = f"/mnt/{p[0].lower()}{p[2:].replace(chr(92),'/')}"
 def of(cmd, t=300):
-    return subprocess.run(f'wsl bash -c "source /opt/openfoam11/etc/bashrc && cd {wsl} && {cmd}"',
-                          shell=True, capture_output=True, text=True, timeout=t)
+    return linux_run(f"source /opt/openfoam11/etc/bashrc && cd {wsl} && {cmd}", t)
 g = of("gmshToFoam mesh.msh > log.g2f 2>&1")
 of("checkMesh > log.check 2>&1")
 chk = (case/"log.check").read_text(errors="replace")

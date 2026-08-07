@@ -12,6 +12,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from analysis.backend import linux_run
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import exp_transition as T
@@ -89,8 +91,7 @@ ENV = "source /opt/openfoam11/etc/bashrc && export HWLOC_COMPONENTS=-gl && unset
 
 
 def sh(cmd, t=43200):    # 12h/çağrı — fine mesh aşama-2 paralel ~5-6h sürebilir
-    return subprocess.run(f'wsl bash -c "{ENV} && cd {wsl} && {cmd}"',
-                          shell=True, capture_output=True, text=True, timeout=t)
+    return linux_run(f"{ENV} && cd {wsl} && {cmd}", t)
 
 
 def latest_time():

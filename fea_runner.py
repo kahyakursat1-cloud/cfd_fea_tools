@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from analysis.backend import linux_run
+
 
 def _is_float(s: str) -> bool:
     try: float(s); return True
@@ -447,14 +449,7 @@ class FEASimulationRunner:
 
             try:
                 wsl_dir = _to_wsl_path(case_dir)
-                cmd = f'wsl bash -c "cd {wsl_dir} && ccx -i {job.case_name}"'
-                result = subprocess.run(
-                    cmd,
-                    shell=True,
-                    capture_output=True,
-                    timeout=1800,
-                    text=True
-                )
+                result = linux_run(f"cd {wsl_dir} && ccx -i {job.case_name}", 1800)
 
                 if result.returncode != 0:
                     error_msg = result.stderr or result.stdout or "CalculiX solver failed"
@@ -830,10 +825,7 @@ class FEASimulationRunner:
             inp_path.write_text("".join(step_lines))
 
             wsl_dir = _to_wsl_path(case_dir)
-            rc = subprocess.run(
-                f'wsl bash -c "cd {wsl_dir} && ccx -i wing_{load_label}"',
-                shell=True, capture_output=True, timeout=600, text=True
-            ).returncode
+            rc = linux_run(f"cd {wsl_dir} && ccx -i wing_{load_label}", 600).returncode
 
             frd_path = case_dir / f"wing_{load_label}.frd"
             if rc == 0 and frd_path.exists():

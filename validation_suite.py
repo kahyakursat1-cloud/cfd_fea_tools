@@ -17,6 +17,8 @@ from pathlib import Path
 
 import numpy as np
 
+from analysis.backend import linux_run
+
 # ─────────────────────────────────────────────────────────────────────────────
 # REFERANS VERILER
 # ─────────────────────────────────────────────────────────────────────────────
@@ -47,12 +49,12 @@ def _to_wsl_path(win_path: Path) -> str:
 
 
 def _wsl_of(wsl_dir: str, cmd: str) -> str:
-    return f'wsl bash -c "source /opt/openfoam11/etc/bashrc && cd {wsl_dir} && {cmd}"'
+    """OpenFOAM ortamli BASH GOVDESI — tasima katmani (wsl/docker) `_run`'da."""
+    return f"source /opt/openfoam11/etc/bashrc && cd {wsl_dir} && {cmd}"
 
 
-def _run(cmd: str, timeout: int = 3600) -> int:
-    r = subprocess.run(cmd, shell=True, capture_output=True, timeout=timeout, text=True)
-    return r.returncode
+def _run(bash_cmd: str, timeout: int = 3600) -> int:
+    return linux_run(bash_cmd, timeout).returncode
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -860,8 +862,7 @@ class CantileverBeamValidation:
 
         # CCX calistir
         wsl_dir = _to_wsl_path(case_dir)
-        rc = _run(f'wsl bash -c "cd {wsl_dir} && ccx -i cantilever 2>&1"',
-                  timeout=300)
+        rc = _run(f"cd {wsl_dir} && ccx -i cantilever 2>&1", timeout=300)
 
         # FRD parse
         frd_path = case_dir / "cantilever.frd"

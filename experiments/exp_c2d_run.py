@@ -15,6 +15,7 @@ sys.path.insert(0, str(HERE))
 import exp_transition as T  # noqa: E402
 
 import construct2d_bridge as cb  # noqa: E402
+from analysis.backend import linux_run  # noqa: E402
 
 radi = float(sys.argv[1]) if len(sys.argv) > 1 else 100.0
 nsrf = int(sys.argv[2]) if len(sys.argv) > 2 else 300
@@ -45,9 +46,7 @@ wsl = f"/mnt/{p[0].lower()}{p[2:].replace(chr(92), '/')}"
 
 def of(cmd, t=7200):
     import subprocess
-    return subprocess.run(
-        f'wsl bash -c "source /opt/openfoam11/etc/bashrc && unset FOAM_SIGFPE && cd {wsl} && {cmd}"',
-        shell=True, capture_output=True, text=True, timeout=t)
+    return linux_run(f"source /opt/openfoam11/etc/bashrc && unset FOAM_SIGFPE && cd {wsl} && {cmd}", t)
 
 
 def cd_cl():

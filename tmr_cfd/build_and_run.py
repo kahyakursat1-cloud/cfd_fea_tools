@@ -9,6 +9,8 @@ from pathlib import Path
 
 import numpy as np
 
+from analysis.backend import linux_popen, linux_run
+
 try:                                            # cp1254 (TR Windows) stdout α/° patlamasın
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 # sessiz-yutma: kabul — modül-düzeyi uyumluluk kalkanı (import/sürüm farkı); çalışma-zamanı sonucu etkilemez
@@ -28,8 +30,7 @@ ENV = "source /opt/openfoam11/etc/bashrc && export HWLOC_COMPONENTS=-gl && unset
 
 
 def wsl(case_unix, cmd, t=36000):
-    return subprocess.run(f'wsl bash -c "{ENV} && cd {case_unix} && {cmd}"',
-                          shell=True, capture_output=True, text=True, timeout=t)
+    return linux_run(f"{ENV} && cd {case_unix} && {cmd}", t)
 
 
 def to_unix(p: Path):
@@ -93,10 +94,10 @@ def _solve_report(cu):
     # RESUME yarış-koşulu: eski log.run "End" ile biter; foamRun truncate etmeden monitör
     # okursa anında "kosu_bitti" döner → sil, böylece "End" yalnız YENİ koşu bitince görünür.
     (CASE / "log.run").unlink(missing_ok=True)
-    solve = (f'wsl bash -c "{ENV} && cd {cu} && '
-             f'mpirun --oversubscribe -np {NP} foamRun -solver incompressibleFluid -parallel '
-             f'>log.run 2>&1"')
-    proc = subprocess.Popen(solve, shell=True)
+    solve = (f"{ENV} && cd {cu} && "
+             f"mpirun --oversubscribe -np {NP} foamRun -solver incompressibleFluid "
+             "-parallel >log.run 2>&1")
+    proc = linux_popen(solve)
     pl = monitor(CASE, window=10, tol=1.5e-3, poll=20.0, timeout=36000)
     print(f"[{CASE.name}] force-plateau: {pl}", flush=True)
     # monitor plato görünce stopAt writeNow yazar; çözücü buna yanıt vermezse (asılı MPI —

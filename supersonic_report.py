@@ -13,6 +13,8 @@ from pathlib import Path
 import numpy as np
 import trimesh
 
+from analysis.backend import linux_run
+
 GAMMA = 1.4
 R_AIR = 287.058
 
@@ -37,11 +39,10 @@ def export_field_cutplane(case_dir: Path, center, timeout: int = 600) -> Path | 
         "interpolate true; } );\n")
     (case_dir / "system" / "alanKesiti").write_text(func)
     try:
-        subprocess.run(
-            f'wsl bash -c "source /opt/openfoam11/etc/bashrc && unset FOAM_SIGFPE && '
-            f'cd {_wsl(case_dir)} && foamPostProcess -solver shockFluid -func alanKesiti '
-            f'-latestTime > log.alanKesiti 2>&1"',
-            shell=True, capture_output=True, text=True, timeout=timeout)
+        linux_run(
+            "source /opt/openfoam11/etc/bashrc && unset FOAM_SIGFPE && "
+            f"cd {_wsl(case_dir)} && foamPostProcess -solver shockFluid "
+            "-func alanKesiti -latestTime > log.alanKesiti 2>&1", timeout)
         cands = sorted((case_dir / "postProcessing" / "alanKesiti").rglob("kesit.vtk"))
         return cands[-1] if cands else None
     # sessiz-yutma: kabul — görselleştirme çıktısı; katsayı/hüküm yolunda değil
@@ -60,11 +61,10 @@ def export_surface_p(case_dir: Path, patch: str, timeout: int = 600) -> Path | N
         f"surfaces ( yuzey {{ type patch; patches ({patch}); }} );\n")
     (case_dir / "system" / "yuzeyP").write_text(func)
     try:
-        subprocess.run(
-            f'wsl bash -c "source /opt/openfoam11/etc/bashrc && unset FOAM_SIGFPE && '
-            f'cd {_wsl(case_dir)} && foamPostProcess -solver shockFluid -func yuzeyP '
-            f'-latestTime > log.yuzeyP 2>&1"',
-            shell=True, capture_output=True, text=True, timeout=timeout)
+        linux_run(
+            "source /opt/openfoam11/etc/bashrc && unset FOAM_SIGFPE && "
+            f"cd {_wsl(case_dir)} && foamPostProcess -solver shockFluid "
+            "-func yuzeyP -latestTime > log.yuzeyP 2>&1", timeout)
         cands = sorted((case_dir / "postProcessing" / "yuzeyP").rglob("*.vtk")) + \
                 sorted((case_dir / "postProcessing" / "yuzeyP").rglob("*.vtp"))
         return cands[-1] if cands else None

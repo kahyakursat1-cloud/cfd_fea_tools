@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from aircraft_geometry import Aircraft, AircraftLibrary, ParametricStudy
+from analysis.backend import linux_run
 from mesh_generator import MeshGenerator
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -49,8 +50,13 @@ def _to_wsl_path(win_path: Path) -> str:
 
 
 def _wsl_openfoam(wsl_case_dir: str, cmd: str) -> str:
-    """OpenFOAM ortamını kaynak alarak WSL'de komut çalıştır"""
-    return f'wsl bash -c "source /opt/openfoam11/etc/bashrc && cd {wsl_case_dir} && {cmd}"'
+    """OpenFOAM ortamlı BASH GÖVDESİ — taşıma (wsl/docker) analysis.backend'de.
+
+    Eskiden `wsl bash -c "..."` dizesini KENDİSİ kuruyordu ve arka uç seçimini
+    atlıyordu: CFD_BACKEND=docker ayarlandığında araç hattı konteynere giderken
+    bu yol WSL'de kalırdı — aynı kampanyanın iki yarısı farklı çözücülerde.
+    """
+    return f"source /opt/openfoam11/etc/bashrc && cd {wsl_case_dir} && {cmd}"
 
 
 def _kuvvet_tarihcesi(data_lines: list, q: float, S: float) -> list:
@@ -539,10 +545,8 @@ RAS
 
             # blockMesh — arka plan hex kafes
             try:
-                result = subprocess.run(
-                    _wsl_openfoam(wsl_dir, "blockMesh > log.blockMesh 2>&1"),
-                    shell=True, capture_output=True, timeout=600, text=True
-                )
+                result = linux_run(
+                    _wsl_openfoam(wsl_dir, "blockMesh > log.blockMesh 2>&1"), 600)
                 if result.returncode != 0:
                     log = (case_dir / "log.blockMesh").read_text(errors="replace")[-500:] if (case_dir / "log.blockMesh").exists() else ""
                     return {"status": "FAILED", "error": f"blockMesh failed:\n{log}"}
@@ -558,20 +562,16 @@ surfaces ( "aircraft.stl" );
 includedAngle 150;
 writeObj yes;
 """)
-            r = subprocess.run(
-                _wsl_openfoam(wsl_dir, "surfaceFeatures > log.surfFeat 2>&1"),
-                shell=True, capture_output=True, timeout=120, text=True
-            )
+            r = linux_run(
+                _wsl_openfoam(wsl_dir, "surfaceFeatures > log.surfFeat 2>&1"), 120)
             # .eMesh oluştu mu kontrol et — oluşmadıysa snappy features bölümünü devre dışı bırak
             emesh = case_dir / "constant" / "triSurface" / "aircraft.eMesh"
             _emesh_ok = emesh.exists()
 
             # snappyHexMesh — gerçek geometriye refinement + boundary layer
             try:
-                result = subprocess.run(
-                    _wsl_openfoam(wsl_dir, "snappyHexMesh -overwrite > log.snappy 2>&1"),
-                    shell=True, capture_output=True, timeout=1800, text=True
-                )
+                result = linux_run(
+                    _wsl_openfoam(wsl_dir, "snappyHexMesh -overwrite > log.snappy 2>&1"), 1800)
                 if result.returncode != 0:
                     log = (case_dir / "log.snappy").read_text(errors="replace")[-500:] if (case_dir / "log.snappy").exists() else ""
                     return {"status": "FAILED", "error": f"snappyHexMesh failed:\n{log}"}
@@ -593,10 +593,8 @@ writeObj yes;
                         f'FoamFile {{ version 2.0; format ascii; class dictionary; object decomposeParDict; }}\n'
                         f'numberOfSubdomains {job.num_processors};\nmethod scotch;\n'
                     )
-                    r_decomp = subprocess.run(
-                        _wsl_openfoam(wsl_dir, "decomposePar > log.decompose 2>&1"),
-                        shell=True, capture_output=True, timeout=300, text=True
-                    )
+                    r_decomp = linux_run(
+                        _wsl_openfoam(wsl_dir, "decomposePar > log.decompose 2>&1"), 300)
                     if r_decomp.returncode != 0:
                         return {"status": "FAILED", "error": "decomposePar failed"}
 
@@ -608,20 +606,16 @@ writeObj yes;
                 else:
                     solver_cmd = f"{of11_solver} > log.solver 2>&1"
 
-                result = subprocess.run(
-                    _wsl_openfoam(wsl_dir, solver_cmd),
-                    shell=True, capture_output=True, timeout=7200, text=True
-                )
+                result = linux_run(
+                    _wsl_openfoam(wsl_dir, solver_cmd), 7200)
 
                 if result.returncode != 0:
                     error_msg = result.stdout or "Solver failed"
                     return {"status": "FAILED", "error": f"{job.solver} failed: {error_msg}"}
 
                 if job.num_processors > 1:
-                    subprocess.run(
-                        _wsl_openfoam(wsl_dir, "reconstructPar -latestTime > log.reconstruct 2>&1"),
-                        shell=True, capture_output=True, timeout=300, text=True
-                    )
+                    linux_run(
+                        _wsl_openfoam(wsl_dir, "reconstructPar -latestTime > log.reconstruct 2>&1"), 300)
 
                 print(f"[OK] [{job.case_name}] Completed")
                 return self._extract_results(case_dir, job)

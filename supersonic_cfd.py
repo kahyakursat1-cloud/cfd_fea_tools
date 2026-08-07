@@ -24,6 +24,7 @@ from pathlib import Path
 import numpy as np
 import trimesh
 
+from analysis.backend import linux_run
 from analysis.openfoam_runner import (
     OF_BASHRC,
     WSL_DISTRO,
@@ -110,8 +111,7 @@ def _run_shock(case_dir: Path, surf: str, mach: float, t_inf: float, p_inf: floa
 def _of(wsl_dir, cmd, timeout):
     full = (f"export ParaView_TYPE=none && source {OF_BASHRC} && "
             f"unset FOAM_SIGFPE && cd '{wsl_dir}' && {cmd}")
-    return subprocess.run(["wsl", "-d", WSL_DISTRO, "--", "bash", "-c", full],
-                          capture_output=True, text=True, timeout=timeout)
+    return linux_run(full, timeout)
 
 
 def _write_shock_thermo(case_dir: Path, viscous: bool = False):
