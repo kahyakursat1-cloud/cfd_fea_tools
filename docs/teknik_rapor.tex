@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-32.050 satır Python $\cdot$ 146 test dosyası $\cdot$ 1.476 geçen test\\[3mm]
+32.050 satır Python $\cdot$ 146 test dosyası $\cdot$ 1.477 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -1556,6 +1556,9 @@ gerçek hücre sayısını yüzey iyileştirme kademesi belirler.
         Ahmed 25° ile NACA0012 kanat çapasının ayrıklaştırma bandı, ölçmek
         istediği model hatasından büyük (\%274{,}7 ve \%17{,}4); küp GCI
         koşusunun y$^+$ ortalaması bantta ama tepesi dışarıda (338 > 300).
+        Kalan üç hücrenin \emph{neden} kapanmadığı da kanıt dosyasına yazılı
+        (\S\ref{sub:bluffwr}): ikisinde engel ağ değil referans belirsizliğidir
+        (\%15), üçüncüsü ise fiziksel olarak dardır.
   \item[Teknik borç --- iki hızlı katman.] Bağımsız V\&V betikleri
         \texttt{wsl bash -c} çağrısını kendileri kuruyor ve arka uç seçimini
         atlıyordu: \texttt{CFD\_BACKEND=docker} ayarlandığında araç hattı
@@ -1673,6 +1676,48 @@ olur. Zorunludur, çünkü ilk hücre y$^+$ bandını yani duvar işlemini belir
 değiştirmek aileyi tek bir hücreyi temsil etmekten çıkarır. Bedeli açık ve
 kanıt dosyasında yazılı: \emph{bu band duvar-normali ayrıklaştırma hatasını
 kapsamaz.}
+\end{olculdu}
+
+\begin{olculdu}{Boş bir hücrenin nedeni: maliyet değil, fizik}
+\label{sub:bluffwr}
+Model-form tablosunun \texttt{bluff.wall\_resolved} hücresi boş duruyordu ve
+gerekçesi ``pahalı'' idi. Bu yetersiz bir gerekçedir: bir hücrenin kapanmaması
+hesap bütçesi meselesi mi, yoksa vakanın kendisi mi uygun değil --- ikisi farklı
+şeylerdir ve okuyucu hangisi olduğunu bilmelidir. Ölçüldü:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}llp{7.4cm}@{}}
+\toprule
+\textbf{Çapa} & \textbf{Çapa tanımındaki $Re$} & \textbf{Hücreye uygunluğu} \\
+\midrule
+küp, disk & ``keskin-kenar, $Re$-duyarsız'' &
+  \hy\ Ayrılma noktası \emph{geometriktir}; sınır tabaka durumu $C_d$'yi
+  belirlemez, y$^+$'ı düşürmek model-form hatasını değiştirmez \\
+küre & ``$10^3$--$2{\times}10^5$ (subkritik)'' &
+  \hy\ Bu aralıkta yüzey sınır tabakası \emph{laminerdir}; y$^+{<}5$ ağ
+  türbülanslı değil laminer tabaka çözer. Model hatası duvardan değil izden
+  gelir \\
+Ahmed 25° & $\sim$$10^6$ &
+  \ev\ Türbülanslı sınır tabaka var ve arka eğimdeki ayrılma ona duyarlı ---
+  \textbf{tek uygun aday} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Yani hücre künt cisim ailesinin geniş bir kısmında \emph{ilkece}
+tanımsızdır. Bu, tablonun kendisi hakkında bir bulgudur: rejim$\times$duvar
+işlemi ayrımı her hücrede aynı ölçüde anlamlı değildir.
+
+Tek uygun adayın bütçesi de ölçülen katsayılarla kestirildi --- ilk hücre
+46{,}5\,$\mu$m (y$^+{\approx}1$), 26 sınır-tabaka katmanı,
+$\approx$4{,}68\,M hücre. Bellek, bu depoda \emph{ölçülen} 0{,}779 kB/hücre
+katsayısıyla 4{,}74\,GB; makinenin boş belleği 4{,}62\,GB. Süre, 3B
+zaman-çözünür koşudan (403.200 hücre / 3.300 adım / 2 saat) ölçeklenerek
+$\approx$14 saat.
+
+\begin{center}\itshape
+Hücre hem dar hem de bu donanımda ulaşılmaz --- ve bu artık bir tahmin değil.
+\end{center}
 \end{olculdu}
 
 \begin{olculdu}{Modelin referanstan daha kesin olduğu hücre}
@@ -1902,11 +1947,11 @@ olarak değil. Kanıt dosyası zincirin tamamını taşır: üretim komutu
 \midrule
 Kod satırı (kök + \texttt{analysis/}) & 32.050 & \texttt{rapor\_sayilari.py} \\
 Kök modül & 84 & \texttt{rapor\_sayilari.py} \\
-Deney / çapa betiği & 67 & \texttt{experiments/} \\
+Deney / çapa betiği & 68 & \texttt{experiments/} \\
 Test dosyası & 146 & \texttt{tests/test\_*.py} \\
-Geçen test & 1.476 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1.476 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
-Satır kapsamı & \textbf{\%47} & 19.688 ifade, 10.268 kapsanmamış \\
+Geçen test & 1.477 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1.477 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
+Satır kapsamı & \textbf{\%47} & 19.709 ifade, 10.269 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
 \end{tabular}

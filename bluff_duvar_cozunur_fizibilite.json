@@ -1,0 +1,71 @@
+{
+  "vaka": "bluff.wall_resolved — hücrenin boş kalma nedeni (fizik + bütçe)",
+  "_neden": "Hucrenin gerekcesi 'pahali' idi. Bir hucrenin kapanmamasi maliyet meselesi mi yoksa vaka mi uygun degil — ikisi farklidir ve okuyucu hangisi oldugunu bilmelidir.",
+  "capa_uygunlugu": [
+    {
+      "capa": "sphere",
+      "Re": "1e3–2e5 (subkritik)",
+      "hukum": "UYGUN DEĞİL",
+      "neden": "subkritik Re'de yüzey sınır tabakası LAMİNER; y⁺<5 ağ türbülanslı değil laminer tabaka çözer",
+      "referans": "White, Fluid Mechanics; Schlichting BL Theory"
+    },
+    {
+      "capa": "ahmed_25",
+      "Re": "~1e6",
+      "hukum": "UYGUN",
+      "neden": "yüksek Re, türbülanslı sınır tabaka ve ayrılma ona duyarlı",
+      "referans": "Ahmed et al. 1984; Meile et al. 2011"
+    },
+    {
+      "capa": "cube",
+      "Re": ">1e4 (keskin-kenar, Re-duyarsız)",
+      "hukum": "UYGUN DEĞİL",
+      "neden": "ayrılma noktası geometrik (keskin kenar); duvar işlemi C_d'yi belirlemez",
+      "referans": "Hoerner, Fluid-Dynamic Drag (1965)"
+    },
+    {
+      "capa": "disk",
+      "Re": ">1e3 (keskin-kenar, Re-duyarsız)",
+      "hukum": "UYGUN DEĞİL",
+      "neden": "ayrılma noktası geometrik (keskin kenar); duvar işlemi C_d'yi belirlemez",
+      "referans": "Hoerner, Fluid-Dynamic Drag (1965)"
+    }
+  ],
+  "uygun_capa_sayisi": 1,
+  "ahmed_butcesi": {
+    "vaka": "Ahmed gövdesi 25°, duvar-çözünür (y⁺≈1)",
+    "L_m": 1.044,
+    "U_ms": 15.0,
+    "Re_L": 1044000.0,
+    "ilk_hucre_um": 46.48,
+    "u_tau_ms": 0.6455,
+    "katman_sayisi": 26,
+    "yuzey_hucre_mm": 5.0,
+    "hucre_kestirimi": 4680000,
+    "bellek_gb": 4.74,
+    "bellek_kaynagi": "ölçülen (3 koşu, bellek_katsayisi.json)",
+    "bos_bellek_gb": 4.62,
+    "bellege_sigar_mi": false,
+    "sure_saat_kestirim": 14.1,
+    "_sure_dayanagi": "3B URANS ölçümü: 403,200 hücre / 3300 adım / 2.0 saat (4 çekirdek); hücre başına maliyet doğrusal varsayıldı"
+  },
+  "_uretim": "Üretim: python experiments/bluff_duvar_cozunur_fizibilite.py",
+  "verdikt": "Künt çapaların 3/4'i bu hücreye FİZİKSEL olarak uygun değil: keskin kenarlı cisimlerde ayrılma geometriktir, subkritik kürede sınır tabaka laminerdir. Tek uygun aday Ahmed gövdesi ve duvar-çözünür bütçesi ≈4,680,000 hücre, 4.74 GB, ~14 saat — bu makinede belleğe SIĞMIYOR. Hücre bu yüzden öncülle kalıyor; gerekçe artık 'pahalı' değil, ÖLÇÜLMÜŞ.",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

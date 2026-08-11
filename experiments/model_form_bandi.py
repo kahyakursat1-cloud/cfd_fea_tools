@@ -40,12 +40,17 @@ _NE_GEREKIYOR = {
     # okuyucuya isin BUYUKLUGUNU soylemez; kimi hucre bir kosu uzakta, kimi
     # referans belirsizligi yuzunden ULASILAMAZ. Ikisi ayni sey degildir.
     "bluff.wall_resolved": (
-        "Turbulansli + duvar-cozunur (y+<5) bir kunt cisim capasi. Elde olan uc "
-        "kunt kosu (kup/kure/Ahmed) duvar-FONKSIYONU bandinda ve sayisal "
-        "bandlari %58-275 — model hatasindan buyuk. Laminer bir vaka (silindir "
-        "Re=40/100) bu hucreyi DOLDURAMAZ: orada turbulans modeli yoktur, "
-        "dolayisiyla model-form hatasi da yoktur. Gereken 3B, y+<5 ve makul "
-        "sayisal bandli bir kosu — laptop butcesinde pahali."),
+        "OLCULDU (bluff_duvar_cozunur_fizibilite.json): engel maliyet DEGIL, "
+        "FIZIK. Elde olan dort kunt capanin UCU bu hucreye ilkece uygun degil — "
+        "kup ve diskte ayrilma noktasi GEOMETRIKTIR (keskin kenar, capa tanimi "
+        "'Re-duyarsiz' diyor), dolayisiyla duvar islemi Cd'yi belirlemez; "
+        "kurede capa araligi subkritiktir (1e3-2e5) ve orada yuzey sinir "
+        "tabakasi LAMINERDIR, yani y+<5 ag turbulansli degil LAMINER tabaka "
+        "cozer. Hucre ancak yuksek-Re, egimli-yuzeyli govdelerde (Ahmed) "
+        "tanimlidir. Ahmed duvar-cozunur butcesi olculdu: ~4,68 M hucre, "
+        "4,74 GB (olculen 0,779 kB/hucre ile), ~14 saat — bu makinede bos "
+        "bellegi (4,62 GB) ASIYOR. Yani hucre hem dar hem de bu donanimda "
+        "ulasilmaz."),
     "lifting.wall_resolved": (
         "Deneysel referansli 3B tasima capasi. Mevcut tek capa (NACA0012 kanat "
         "AR6) YARI-ANALITIK referansa (Prandtl tasima-cizgisi) dayaniyor ve "
