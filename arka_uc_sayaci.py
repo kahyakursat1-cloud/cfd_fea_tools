@@ -35,17 +35,22 @@ MUAF = {"analysis/backend.py", "arka_uc_sayaci.py"}
 # sayaci dusurmezler, sadece "neden hala burada" sorusunun cevabi kodda durur.
 # Tasima riskleri olculmemis oldugu icin bekliyorlar, unutuldugu icin degil.
 BEKLEYEN = {
-    "construct2d_bridge.py": (
-        "Etkilesimli surec: printf ile stdin besleniyor ve p3d cikana kadar "
-        "`pgrep` ile surec agaci elle yoklaniyor (olculmus yaris durumu: "
-        "sarmalayici, construct2d hala kosarken donuyordu ve NACA2412 defalarca "
-        "'mesh uretilemedi' raporladi). Tasima, stdin ve surec-gorunurlugu "
-        "davranisini degistirebilir; once esdegerlik olculmeli."),
-    "xfoil_kesit.py": (
-        "`bash -lc` (LOGIN kabuk) kullaniyor: XFOIL yolu kullanicinin profil "
-        "dosyalarindan geliyor. linux_argv `bash -c` kurar ve PATH farkli olur — "
-        "xfoil 'bulunamadi' diye duserdi. Once backend'e login-kabuk secenegi "
-        "eklenmeli, sonra tasinmali."),
+    # construct2d_bridge.py TASINDI (2026-08-11). Gerekce iki katmanliydi:
+    # kabuk ici `printf | ikili` boru hatti (stdin) ve surec gorunurlugu.
+    # Ikisi de olculdu: ayni profil iki yolla kosuldu ve uretilen ag
+    # BIREBIR ayni cikti (150x60 dugum, koordinat toplamlari ayni
+    # basamaga kadar); pgrep cevabi da ayni. Olcum sirasinda AYRI bir
+    # kusur da yakalandi: OGRD icin kosulsuz gonderilen "y" cevabi kunt
+    # firar kenarli profilde sureci dusuruyordu — soru yalniz KESKIN
+    # kenarda soruluyor (bkz. _keskin_firar). 4 cagri dustu.
+    # xfoil_kesit.py TASINDI (2026-08-11): engel backend'de bir EKSIKTI, dosyada
+    # degil. `linux_argv`'e login-kabuk, `linux_run`'a stdin secenegi eklendi ve
+    # esdegerlik TASIMADAN ONCE olculdu: ayni polar iki yolla kosuldu, bagil
+    # fark 0.0 (experiments/arka_uc_esdegerlik.py). 5 cagri dustu.
+    "experiments/arka_uc_esdegerlik.py": (
+        "KARSILASTIRMA TABANI: bu betigin isi, tasimadan ONCEKI cagri bicimiyle "
+        "SONRAKINI yan yana kosup ayni sonucu verdiklerini olcmektir. Eski "
+        "bicimi ortak katmana tasimak, olcmek istedigi seyi ortadan kaldirir."),
 }
 DESEN = re.compile(r"""wsl["'\s]*bash\s+-c|\[\s*["']wsl["']\s*,""")
 

@@ -29,6 +29,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from analysis.backend import linux_run
+
 HERE = Path(__file__).resolve().parent
 WINDOWS = os.name == "nt"
 
@@ -46,8 +48,7 @@ def _xfoil_yolu() -> tuple[str, bool]:
     if r.get("yol"):
         return r["yol"], False
     if WINDOWS:
-        p = subprocess.run(["wsl", "bash", "-lc", "command -v xfoil"],
-                           capture_output=True, text=True)
+        p = linux_run("command -v xfoil", 60, login=True)
         if p.returncode == 0 and p.stdout.strip():
             return p.stdout.strip(), True
     raise FileNotFoundError(
@@ -107,19 +108,14 @@ def polar(naca: str = "0012", re: float = 3.5e5, mach: float = 0.0,
         d = Path(td)
         pol = d / "polar.txt"
         if wsl:
-            p = subprocess.run(["wsl", "bash", "-lc", "mktemp -d"],
-                               capture_output=True, text=True, check=True)
+            p = linux_run("mktemp -d", 60, login=True)
             wsl_dir = p.stdout.strip()
             cikti = f"{wsl_dir}/polar.txt"
             girdi = _komut_dizisi(naca, re, mach, list(alfalar), cikti, panel)
-            r = subprocess.run(["wsl", "bash", "-lc", f"cd {wsl_dir} && {yol}"],
-                               input=girdi, capture_output=True, text=True,
-                               timeout=600)
-            g = subprocess.run(["wsl", "bash", "-lc", f"cat {cikti}"],
-                               capture_output=True, text=True)
+            r = linux_run(f"cd {wsl_dir} && {yol}", 600, login=True, girdi=girdi)
+            g = linux_run(f"cat {cikti}", 60, login=True)
             tablo = g.stdout
-            subprocess.run(["wsl", "bash", "-lc", f"rm -rf {wsl_dir}"],
-                           capture_output=True, text=True)
+            linux_run(f"rm -rf {wsl_dir}", 60, login=True)
         else:
             girdi = _komut_dizisi(naca, re, mach, list(alfalar), str(pol), panel)
             r = subprocess.run([yol], input=girdi, cwd=d, capture_output=True,

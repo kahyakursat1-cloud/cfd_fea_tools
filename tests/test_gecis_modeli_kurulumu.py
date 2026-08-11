@@ -30,15 +30,19 @@ def _kur(tmp_path, model):
         class R:
             returncode, stdout, stderr = 0, "", ""
         return R()
-    orij = cb.subprocess.run
-    cb.subprocess.run = sahte_run
+    # KANCA `subprocess.run`DAN `linux_run`A TASINDI. Kopru artik cozucu
+    # cagrilarini ortak arka-uc katmanindan geciriyor (arka_uc_sayaci: 4 cagri
+    # dustu); testin eski kancasi sessizce ise yaramaz hale gelmez, AttributeError
+    # verir — yani tasima bu testte GORUNUR oldu, gizlenmedi.
+    orij = cb.linux_run
+    cb.linux_run = sahte_run
     try:
         cb.run_validation(str(case), V=15.0, nu=6e-5, chord=1.0,
                           end_time=10, model=model)
     except Exception:
         pass                       # forces.dat yok — dosya yazimi zaten tamamlandi
     finally:
-        cb.subprocess.run = orij
+        cb.linux_run = orij
     return case
 
 

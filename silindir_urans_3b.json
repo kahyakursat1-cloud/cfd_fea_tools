@@ -1,0 +1,88 @@
+{
+  "vaka": "Silindir girdap dökülmesi — Re=140000, ÜÇ BOYUTLU URANS (kOmegaSST, Lz=3.14D, 24 span hücresi)",
+  "kaynak": "OpenFOAM 11 foamRun/incompressibleFluid, PIMPLE/backward, paralel",
+  "hipotez": "2B koşunun açıklaması 'iz daralması'ydı ve İKİ tahmin içeriyordu: St YÜKSEK, Cd DÜŞÜK. Üçüncü boyut eklenince ikisinin de düzelmesi gerekir. Yalnız biri düzelirse açıklama EKSİKTİR ve geri çekilmelidir.",
+  "referans": {
+    "St": 0.2,
+    "St_bandi": [
+      0.19,
+      0.21
+    ],
+    "kaynak": "Roshko, J. Fluid Mech. 10 (1961); Norberg, J. Fluids Struct. 17 (2003) — DENEYSEL; Re=1e4..1e5 boyunca St = 0,19-0,21 platosu",
+    "St_tipi": "DENEYSEL (plato)",
+    "Cd": 1.2,
+    "Cd_kaynak": "Subkritik silindir, Re=1e5 civari: Cd ≈ 1,2 (Achenbach, J. Fluid Mech. 34 (1968); Norberg 2003). 2B URANS span-yonu korelasyon kaybini temsil EDEMEZ ve Cd'yi sistematik yuksek verir — bu deger YALNIZ EGILIM olarak raporlanir"
+  },
+  "olculen": {
+    "St": 0.25948,
+    "Cd_ortalama": 0.8775,
+    "Cl_genlik": 1.27818,
+    "yplus": {
+      "min": 11.25482,
+      "max": 98.910038,
+      "ort": 47.267935
+    },
+    "_aref_olcegi": 0.3183098861837907
+  },
+  "sapma_pct": {
+    "St": 29.74,
+    "Cd": -26.88
+  },
+  "iki_boyutlu_kiyas": {
+    "St_sapma_pct": 36.9,
+    "Cd_sapma_pct": -13.62,
+    "_dosya": "silindir_urans.json"
+  },
+  "salinim_olcumu": {
+    "olculdu": true,
+    "frekans_hz": 0.259484,
+    "periyot_s": 3.85380854,
+    "ortalama": 0.015731959696613913,
+    "genlik": 4.015535135,
+    "genlik_pct": 25524.698,
+    "periyot_sayisi": 20,
+    "pencere_s": 79.99992,
+    "periyot_sacilmasi_pct": 21.74,
+    "_yontem": "yukarı-geçiş zamanlarının MEDYAN farkı (doğrusal enterpolasyonlu); düzensiz örneklemede yeniden-örnekleme gerektirmez ama çok-frekanslı sinyalde baskın modu AYIRAMAZ",
+    "_uyari": null
+  },
+  "kurulum": {
+    "model": "kOmegaSST",
+    "duvar_islemi": "duvar-fonksiyonu",
+    "span_D": 3.1416,
+    "nz": 24,
+    "span_kaynak": "Lz=πD — Breuer, Int. J. Heat Fluid Flow 21 (2000); Travin ve ark., Theor. Comput. Fluid Dyn. 20 (2006). Daha kısa span dökülmeyi yapay olarak korele tutar.",
+    "hucre": 403200,
+    "dt_s": 0.03333333333333333,
+    "sure_s": 110.0,
+    "adim": 3300,
+    "cekirdek": 4,
+    "turbulans_yogunlugu": 0.01,
+    "yplus_bandi": [
+      30.0,
+      300.0
+    ],
+    "mesh": "silindir_vorteks._blockmesh(span, nz, cyclic) — AYNI kesit"
+  },
+  "_kapsam": "Cd YALNIZ EGILIM olarak degil, hipotez sinamasinin PARCASI olarak okunur: yonu tahmin edilmisti. Vaka model_form_bandi'ye Cd capasi olarak yine de GIRMEZ (zaman-cozunur, duvar-fonksiyonu).",
+  "_uretim": "Üretim: python experiments/silindir_urans_3b.py",
+  "_sure_s": 0.0,
+  "verdikt": "❌ HİPOTEZ KISMEN ÇÜRÜDÜ: 3B (Lz=3.14D, 24 span hücresi): St=0.25948 (%+30), Cd=0.8775 (%-27) | 2B: St %+37, Cd %-14. Yalnız St düzeldi, Cd düzelmedi. 'İz daralması' açıklaması İKİ sapmayı birden öngörüyordu; tek yönde tutması yetmez ve rapordaki gerekçe GERİ ÇEKİLİR. ÖLÇÜLDÜ: Cl salınım genliği 1.312 → 1.278 (yalnız %2.6 düşüş). Span-yönü dekorelasyon OLUŞMADI — URANS dalgalanmayı MODELLER, çözmez; ağa üçüncü boyutu eklemek span boyunca fazı ayırmaya yetmiyor. Doğru açıklama 'iz daralması' değil, çözünürlük sınıfının kendisidir: dekorelasyon DES/LES gerektirir.",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

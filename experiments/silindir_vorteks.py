@@ -71,15 +71,22 @@ PERIYOT_GECIS, PERIYOT_ISTAT = 6, 16
 BASHRC = "/opt/openfoam11/etc/bashrc"
 
 
-def _blockmesh() -> str:
-    """Silindir etrafında 4 bloklu O-grid (2B, tek hücre kalınlık).
+def _blockmesh(span: float = 0.05 * D, nz: int = 1, cyclic: bool = False) -> str:
+    """Silindir etrafında 4 bloklu O-grid.
+
+    VARSAYILAN 2B'dir (tek hücre kalınlık, `empty` yanlar) --- mevcut çağrılar
+    değişmez. `span`/`nz`/`cyclic` verilirse aynı O-grid span yönünde uzatılır
+    ve yanlar periyodik olur; 3B çapa bunu kullanır. Meshi ikinci kez yazmak,
+    iki meshin sessizce ayrışması demektir: 2B çapa ağın kendisini zaten
+    doğruladı (laminer St hatası %2,15), 3B koşu o doğrulanmış kesiti
+    devralır ve YALNIZ üçüncü boyutu ekler.
 
     Köşeler 45°+90k'de: blok kenarları akış eksenine denk gelmez, böylece
     dökülme simetri düzlemine kilitlenmez. Yapılandırılmış O-grid seçildi
     çünkü duvar-normali sıkıştırma doğrudan denetlenebilir --- girdap
     dökülmesinde ayrılma noktasının çözünürlüğü frekansı belirler.
     """
-    ri, ro, z = D / 2.0, R_FAR * D / 2.0, 0.05 * D
+    ri, ro, z = D / 2.0, R_FAR * D / 2.0, span
     aci = [math.radians(45 + 90 * k) for k in range(4)]
     v = []
     for zz in (-z / 2, z / 2):
@@ -102,7 +109,7 @@ def _blockmesh() -> str:
         # x-y'den x-z'ye tasinirken el degisti ve blockMesh "inside-out" ile
         # dustu; sira ters cevrildi. x1 yonu RADYAL kalir (grading orada).
         bloklar.append(f"hex ({i0} {i1} {o1} {o0} {j0} {j1} {p1} {p0}) "
-                       f"({N_CEVRE} {N_RADYAL} 1) "
+                       f"({N_CEVRE} {N_RADYAL} {nz}) "
                        f"simpleGrading (1 {RADYAL_GRADING:g} 1)")
         for r, a_, b_, c_, d_ in ((ri, i0, i1, j0, j1), (ro, o0, o1, p0, p1)):
             am = (aci[k] + aci[k2]) / 2 if k < 3 else aci[k] + math.radians(45)
@@ -128,8 +135,12 @@ def _blockmesh() -> str:
             "  giris    { type patch; faces (" + " ".join(giris) + "); }\n"
             "  cikis    { type patch; faces (" + " ".join(cikis) + "); }\n"
             "  ustalt   { type patch; faces (" + " ".join(ust_alt) + "); }\n"
-            "  yanlar   { type empty; faces (" + " ".join(on + arka) + "); }\n"
-            ");\nmergePatchPairs ();\n")
+            + ("  on   { type cyclic; neighbourPatch arka; faces ("
+               + " ".join(on) + "); }\n"
+               "  arka { type cyclic; neighbourPatch on;   faces ("
+               + " ".join(arka) + "); }\n" if cyclic else
+               "  yanlar   { type empty; faces (" + " ".join(on + arka) + "); }\n")
+            + ");\nmergePatchPairs ();\n")
 
 
 def _alanlar(case: Path) -> None:

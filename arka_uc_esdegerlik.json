@@ -1,0 +1,70 @@
+{
+  "vaka": "Arka-uç taşıması — eşdeğerlik ölçümü (taşımadan ÖNCE)",
+  "_neden": "Iki dosya ortak katmana tasinmayi bekliyordu ve gerekce ikisinde de 'once esdegerlik olculmeli'ydi. Katmana login kabuk ve stdin secenekleri eklendi; bu betik eklemenin YETTIGINI olcer.",
+  "xfoil": {
+    "durum": "AYNI",
+    "ad": "xfoil_kesit",
+    "n_nokta": 3,
+    "en_buyuk_bagil_fark": 0.0,
+    "esik": 1e-09,
+    "ornek": {
+      "eski": {
+        "alpha": 0.0,
+        "Cl": 0.0,
+        "Cd": 0.00708,
+        "Cdp": 0.00171
+      },
+      "yeni": {
+        "alpha": 0.0,
+        "Cl": 0.0,
+        "Cd": 0.00708,
+        "Cdp": 0.00171
+      }
+    }
+  },
+  "construct2d": {
+    "surec_gorunurlugu": {
+      "eski": "YOK",
+      "yeni": "YOK",
+      "ayni": true
+    },
+    "eski": {
+      "ni": 150,
+      "nj": 60,
+      "x_ilk": 0.999993581,
+      "y_son": 0.0,
+      "x_toplam": 5210.850736,
+      "y_toplam": 91.135156
+    },
+    "yeni": {
+      "ni": 150,
+      "nj": 60,
+      "x_ilk": 0.999993581,
+      "y_son": 0.0,
+      "x_toplam": 5210.850736,
+      "y_toplam": 91.135156
+    },
+    "durum": "AYNI"
+  },
+  "tasinabilir_mi": true,
+  "_uretim": "Üretim: python experiments/arka_uc_esdegerlik.py",
+  "_sure_s": 9.4,
+  "verdikt": "✅ Taşıma GÜVENLİ. XFOIL: iki yol aynı (3 nokta, en büyük bağıl fark 0.0e+00). Construct2D: AYNI (150x60 düğüm, koordinat toplamları aynı).",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

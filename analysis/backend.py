@@ -25,16 +25,33 @@ def container() -> str:
     return os.environ.get("CFD_DOCKER_CONTAINER", "aerosim")
 
 
-def linux_argv(bash_cmd: str) -> list[str]:
-    """Verilen bash komutunu seçili arka uçta koşacak argv."""
+def linux_argv(bash_cmd: str, login: bool = False) -> list[str]:
+    """Verilen bash komutunu seçili arka uçta koşacak argv.
+
+    `login=True` → `bash -lc`: kabuk kullanıcının profil dosyalarını okur, yani
+    PATH oradan gelir. Bu seçenek YOKTU ve eksikliği ölçülebilir bir sonuç
+    doğuruyordu: `xfoil_kesit` XFOIL'i profilden gelen PATH ile buluyordu,
+    dolayısıyla ortak katmana taşınamıyor ve kendi `wsl bash -lc` çağrısını
+    kuruyordu (arka-uç sayacında 5 satır). Seçenek eklenince taşıma engeli
+    kalktı. Varsayılan DEĞİŞMEDİ --- login olmayan çağrılar birebir eskisi gibi.
+    """
+    bayrak = "-lc" if login else "-c"
     if backend() == "docker":
-        return ["docker", "exec", container(), "bash", "-c", bash_cmd]
-    return ["wsl", "-d", WSL_DISTRO, "--", "bash", "-c", bash_cmd]
+        return ["docker", "exec", container(), "bash", bayrak, bash_cmd]
+    return ["wsl", "-d", WSL_DISTRO, "--", "bash", bayrak, bash_cmd]
 
 
-def linux_run(bash_cmd: str, timeout: int) -> subprocess.CompletedProcess:
-    return subprocess.run(linux_argv(bash_cmd), capture_output=True, text=True,
-                          timeout=timeout)
+def linux_run(bash_cmd: str, timeout: int, login: bool = False,
+              girdi: str | None = None) -> subprocess.CompletedProcess:
+    """`girdi` verilirse komutun STDIN'ine yazılır.
+
+    Etkileşimli çözücüler (XFOIL, Construct2D) komut dizisini stdin'den okur ve
+    bu yetenek katmanda YOKTU --- eksikliği onları ortak katmandan uzak tutan
+    gerekçelerden biriydi. Eklenmesi mevcut çağrıları etkilemez: `girdi=None`
+    iken `subprocess.run` stdin'i eskisi gibi devralır.
+    """
+    return subprocess.run(linux_argv(bash_cmd, login=login), input=girdi,
+                          capture_output=True, text=True, timeout=timeout)
 
 
 def linux_popen(bash_cmd: str) -> subprocess.Popen:

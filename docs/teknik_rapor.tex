@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-31.995 satır Python $\cdot$ 145 test dosyası $\cdot$ 1.470 geçen test\\[3mm]
+32.050 satır Python $\cdot$ 146 test dosyası $\cdot$ 1.476 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -958,6 +958,8 @@ salınım ölçüldü, y$^+$ hedeflenen bantta çıktı --- türbülanslı zaman
 artık sentetik sinyalde değil, gerçek çözücü koşusunda sınandı.
 \textbf{Fizik kaldı:} $St$ deneysel platonun \%37 üstünde.
 
+\textbf{Aşağıdaki açıklama sınandı ve GERİ ÇEKİLDİ} (bir sonraki kutu); sınanabilir olduğu için buraya olduğu gibi bırakıldı.
+
 Bu bir ağ ya da zaman adımı sorunu değil ve iki sapmanın \emph{yönü} bunu
 söylüyor. 2B kurulum span-yönü korelasyon kaybını temsil edemez; dökülme
 aşırı-korele olur, ayrılma gecikir, iz daralır --- dar iz hem sürüklemeyi
@@ -969,6 +971,40 @@ boyuttur}.
 Vaka bu haliyle Strouhal çapası olarak yayımlanmıyor. Kayıt silinmedi;
 zarf tablosunda ``laminer \ev\ / türbülans \hy'' olarak duruyor ve 2B URANS'ın
 subkritik silindirdeki sınırının \emph{ölçümü} olarak kalıyor.
+\end{reddedilir}
+
+\begin{reddedilir}{Açıklama sınandı ve GERİ ÇEKİLDİ --- üç boyut yetmedi}
+Yukarıdaki gerekçe bir tahmindi, dolayısıyla sınanabilirdi. Aynı ağ span
+yönünde uzatıldı ($L_z{=}\pi D$, 24 hücre, periyodik yanlar; 403.200 hücre,
+dört çekirdekte iki saat) ve \emph{tek değişen üçüncü boyut} olacak biçimde
+yeniden koşuldu.
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrl@{}}
+\toprule
+& \textbf{2B} & \textbf{3B} & \textbf{Öngörü} \\
+\midrule
+$St$ sapması & \%$+$37 & \%$+$30 & küçülmeli \ev \\
+$C_D$ sapması & \%$-$14 & \%$-$27 & küçülmeli \hy \\
+$C_L$ salınım genliği & 1{,}312 & 1{,}278 & belirgin düşmeli \hy \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent $St$ düzeldi, $C_D$ \emph{kötüleşti}. Açıklama iki sapmayı birden
+öngörüyordu; tek yönde tutması yetmez ve \textbf{geri çekilir}.
+
+Çürütmenin nedeni de ölçüldü. Span-yönü dekorelasyon gerçekten oluşsaydı $C_L$
+salınım genliği belirgin düşerdi --- dökülme artık span boyunca aynı fazda
+olmazdı. Genlik yalnız \%2{,}6 düştü: üçüncü boyut \emph{geometrik} olarak
+eklendi ama fizik eklenmedi. URANS dalgalanmayı modeller, çözmez; ağa bir
+boyut eklemek span boyunca fazı ayırmaya yetmiyor.
+
+Doğru açıklama boyut değil, \textbf{çözünürlük sınıfıdır}: dekorelasyon
+DES/LES gerektirir. Bu, ilk açıklamadan daha güçlü bir sonuçtur çünkü
+ölçülmüştür --- ve yol haritasındaki hedefi de değiştirir: eksik olan ``3B
+çapa'' değil, ölçek-çözünürlüklü bir çapadır. Kayıt, bir tahminin nasıl
+sınanıp düşürüldüğünün örneği olarak duruyor.
 \end{reddedilir}
 
 \clearpage
@@ -1524,13 +1560,26 @@ gerçek hücre sayısını yüzey iyileştirme kademesi belirler.
         \texttt{wsl bash -c} çağrısını kendileri kuruyor ve arka uç seçimini
         atlıyordu: \texttt{CFD\_BACKEND=docker} ayarlandığında araç hattı
         konteynere giderken bu betikler WSL'de kalırdı --- aynı kampanyanın iki
-        yarısı farklı çözücülerde. Yirmi üç dosya taşındı ve sayaç 36'dan 9'a
-        indi; bash \emph{gövdesi} her taşımada aynen korundu, değişen yalnız
-        taşıma katmanıdır. Kalan iki dosya incelendi ve gerekçeleriyle
-        bekletildi: biri etkileşimli süreç besliyor ve süreç ağacını elle
-        yokluyor, öbürü login kabuk (\texttt{bash -lc}) gerektiriyor --- ikisi
-        de taşınabilir, ama davranış eşdeğerliği \emph{ölçülmeden} değil.
-        Case iskelesini tekrarlayan betikler ayrı bir borç olarak duruyor.
+        yarısı farklı çözücülerde. Sayaç 36'dan \textbf{3}'e indi; bash
+        \emph{gövdesi} her taşımada aynen korundu, değişen yalnız taşıma
+        katmanıdır. Son iki dosya bir sürüm boyunca ``davranış eşdeğerliği
+        ölçülmeden taşınmaz'' gerekçesiyle bekledi; ölçüldüğünde engelin
+        dosyalarda değil \emph{katmanda} olduğu görüldü --- \texttt{linux\_argv}
+        login kabuğu (\texttt{bash -lc}), \texttt{linux\_run} stdin beslemesini
+        desteklemiyordu. İkisi eklendi ve eşdeğerlik ölçüldü: XFOIL poları iki
+        yolla koşuldu, bağıl fark $0{,}0$; Construct2D ağı iki yolla üretildi,
+        $150\times60$ düğüm ve koordinat toplamları \emph{birebir} aynı.
+        Kalan üç satır o ölçümün kendisine ait --- karşılaştırma tabanı olduğu
+        için taşınamaz. Case iskelesini tekrarlayan betikler ayrı bir borç
+        olarak duruyor.
+
+        \textbf{Ölçüm bir kusur da buldu.} Construct2D'ye ``O-grid mi?''
+        sorusu için gönderilen \texttt{y} cevabı topolojiye bağlanmıştı, oysa
+        soru yalnız firar kenarı \emph{keskin} olduğunda sorulur. Künt kenarlı
+        bir profilde fazladan \texttt{y}, \texttt{Error: command y not
+        recognized} verip grid üretimini düşürdü. Kodun kendi yorumu doğru
+        teşhisi (``KESKİN firar kenarı + OGRD'') zaten taşıyordu; koşul onu
+        yalnızca yarım uyguluyordu. Ayrım artık koordinatlardan ölçülüyor.
 \end{description}
 
 \begin{anafikir}{Bir çapa hücreye nasıl girer --- üç kabul ölçütü}
@@ -1746,10 +1795,10 @@ dosyasında \texttt{siralama\_uyarilari} altında durur.
 \midrule
 v1.1 & yüksek & Eski çözücü sarmalayıcısının kaldırılması; tüm yolların
                 \texttt{analysis/} çekirdeğine taşınması \\
-v1.2 & orta   & URANS'ın \emph{türbülanslı} vakada sınanması KOŞULDU: kOmegaSST
-                subkritik silindirde mekanizma olarak çalıştı, fizik tutmadı
-                ($St$ \%$+$37 --- 2B kurulumun sınırı); kalan iş üç-boyutlu
-                (span-yönü çözünürlüklü) bir zaman-çözünür çapa \\
+v1.2 & orta   & URANS'ın \emph{türbülanslı} vakada sınanması KOŞULDU (2B ve
+                3B): mekanizma çalıştı, fizik tutmadı ve ``üçüncü boyut''
+                açıklaması ölçümle ÇÜRÜTÜLDÜ ($C_L$ genliği yalnız \%2{,}6
+                düştü); kalan iş ölçek-çözünürlüklü (DES/LES) bir çapa \\
 v1.3 & yüksek & Model-form tablosunun kalan ÜÇ hücresi --- deneysel referanslı
                 çapalarla; ikisinde engel ağ değil REFERANS belirsizliğidir
                 (\%15), yani yalnız ağ inceltmek yetmiyor \\
@@ -1851,12 +1900,12 @@ olarak değil. Kanıt dosyası zincirin tamamını taşır: üretim komutu
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 31.995 & \texttt{rapor\_sayilari.py} \\
+Kod satırı (kök + \texttt{analysis/}) & 32.050 & \texttt{rapor\_sayilari.py} \\
 Kök modül & 84 & \texttt{rapor\_sayilari.py} \\
-Deney / çapa betiği & 65 & \texttt{experiments/} \\
-Test dosyası & 145 & \texttt{tests/test\_*.py} \\
-Geçen test & 1.470 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1.470 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
+Deney / çapa betiği & 67 & \texttt{experiments/} \\
+Test dosyası & 146 & \texttt{tests/test\_*.py} \\
+Geçen test & 1.476 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1.476 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
 Satır kapsamı & \textbf{\%47} & 19.688 ifade, 10.268 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
@@ -2132,10 +2181,9 @@ hat, GPU \\
 \textbf{Türbülanslı URANS doğrulaması yok:} zaman-çözünür yol laminer girdap
 dökülmesinde doğrulandı, k--$\omega$ SST ile bağımsız bir çapa henüz yok.
 \textbf{Model-form:} sekiz hücrenin beşi çapalı (üç ölçüm, iki üst sınır),
-üçü literatür öncülü. \textbf{Backend:} ortak katmanı atlayan çağrı 36'dan 9'a
-düşürüldü; davranış eşdeğerliği ölçülmemiş iki özel süreç yolu (etkileşimli
-stdin, login kabuk) ve case iskelesini yineleyen eski betikler borç olarak
-kaldı. \textbf{Yeniden üretilebilirlik:} çözücü sürümleri artık ölçülüyor ve
+üçü literatür öncülü. \textbf{Backend:} ortak katmanı atlayan çağrı 36'dan \textbf{3}'e
+düşürüldü; kalan üç satır eşdeğerlik ölçümünün karşılaştırma tabanıdır. Case
+iskelesini yineleyen eski betikler borç olarak kaldı. \textbf{Yeniden üretilebilirlik:} çözücü sürümleri artık ölçülüyor ve
 kilit dosyasında kayıtlı (OpenFOAM \texttt{11-e1fc8c682ae6}, CalculiX 2.17);
 kanıt üreten altı betik ortam damgasını \emph{üretim anında} basıyor. Eski
 kanıtlar bilerek damgasız bırakıldı: bugünkü ortamla damgalamak, o sayının bu

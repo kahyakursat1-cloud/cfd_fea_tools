@@ -11,18 +11,55 @@ Bu, OpenVSP/OpenRocket gibi olgun araci entegre etme felsefesi — elle eliptik
 cozucu yazmak yerine.
 """
 import re
-import subprocess
 import sys
 import time
 from pathlib import Path
 
 import numpy as np
 
+from analysis.backend import linux_run
+
 # Hiperbolik/eliptik grid üretimi dakikalarca sürebilir; `wsl bash -c` erken döndüğü
 # için süreç bitene kadar beklenir (bkz. run_construct2d içindeki YARIŞ DURUMU notu).
 HIPERBOLIK_BEKLEME_S = 900
 C2D_DIR = Path(__file__).parent / "Construct2D"
 C2D_BIN = C2D_DIR / "construct2d"
+
+
+KUNT_ESIGI = 1e-4     # kiriş oranı; altı KESKİN sayılır
+
+
+def _keskin_firar(dat: Path) -> bool:
+    """Profilin firar kenarı keskin mi? (.dat ilk/son noktanın açıklığı)
+
+    Construct2D O-grid'i KESKİN kenarda sorgular; künt kenarda zaten önerir ve
+    soru sormaz. Ayrım bu yüzden koordinatlardan ÖLÇÜLÜR, topolojiden
+    varsayılmaz. Okunamayan dosyada KESKİN varsayılır --- bu, önceki davranışın
+    aynısıdır ve değişikliği bilinen vakalarda etkisiz kılar.
+    """
+    try:
+        nok = []
+        for satir in dat.read_text(errors="ignore").splitlines():
+            p = satir.split()
+            if len(p) >= 2:
+                try:
+                    nok.append((float(p[0]), float(p[1])))
+                # sessiz-yutma: kabul — .dat dosyalarinin ilk satiri PROFIL ADI
+                # (ornegin "LS(1)-0417") ve sayiya cevrilemez; atlanmasi beklenen
+                # davranistir. Veri KAYBI olusturmaz: nokta sayisi 3'un altina
+                # duserse asagidaki kapi "keskin" varsayimina duser ve bu ESKI
+                # davranisin aynisidir.
+                except ValueError:
+                    continue
+        if len(nok) < 3:
+            return True
+        (x0, y0), (x1, y1) = nok[0], nok[-1]
+        kiris = max(x for x, _ in nok) - min(x for x, _ in nok)
+        if kiris <= 0:
+            return True
+        return ((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5 / kiris < KUNT_ESIGI
+    except OSError:
+        return True
 
 
 def run_construct2d(airfoil_dat: str, work: Path, name: str,
@@ -75,10 +112,16 @@ def run_construct2d(airfoil_dat: str, work: Path, name: str,
     #
     # Cevap KOŞULLU olmalı: CGRD'de böyle bir soru sorulmaz ve fazladan 'y'
     # tanınmayan komut olup süreci düşürür (ölçüldü: log 25 satırda kesildi).
-    on_cevap = "y\\n" if topo.upper() == "OGRD" else ""
-    cmd = (f'wsl bash -c "cd {wsl} && printf \'{on_cevap}GRID\\nSMTH\\nn\\nQUIT\\n\' | '
-           f'{binp} {name}.dat > log.c2d 2>&1"')
-    subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=600)
+    #
+    # KOŞUL EKSİKTİ ve arka-uç eşdeğerlik ölçümünde yakalandı: soru yalnız
+    # topoloji OGRD OLDUĞUNDA DEĞİL, firar kenarı KESKİN olduğunda sorulur.
+    # Künt kenarda Construct2D zaten O-grid önerir, soru sormaz --- ls417
+    # profilinde koşulsuz gönderilen 'y' tam da yorumun uyardığı şeyi yaptı:
+    # "Error: command y not recognized" ve grid üretilmedi (ölçüldü). Yorum
+    # doğru teşhisi taşıyordu, kod onu yalnızca yarım uyguluyordu.
+    on_cevap = "y\\n" if (topo.upper() == "OGRD" and _keskin_firar(dat)) else ""
+    linux_run(f"cd {wsl} && printf '{on_cevap}GRID\\nSMTH\\nn\\nQUIT\\n' | "
+              f"{binp} {name}.dat > log.c2d 2>&1", 600)
     p3d = work / f"{name}.p3d"
     # YARIŞ DURUMU: `wsl bash -c` sarmalayıcısı, Linux tarafındaki construct2d hâlâ
     # koşarken dönebiliyor. p3d'yi HEMEN kontrol etmek "FAILED/construct2d" veriyordu
@@ -88,9 +131,7 @@ def run_construct2d(airfoil_dat: str, work: Path, name: str,
     for _ in range(int(HIPERBOLIK_BEKLEME_S / 5)):
         if p3d.exists():
             break
-        canli = subprocess.run(
-            'wsl bash -c "pgrep -f \'[c]onstruct2d\' >/dev/null && echo VAR"',
-            shell=True, capture_output=True, text=True, timeout=60)
+        canli = linux_run("pgrep -f '[c]onstruct2d' >/dev/null && echo VAR", 60)
         if "VAR" not in (canli.stdout or ""):
             break
         time.sleep(5)
@@ -322,9 +363,8 @@ def build_mesh(airfoil_dat: str, case_dir: str, name="naca", **c2d_kw):
     seam, ni_u = yazici(str(msh), X, Y, ni, nj)
     p = str(case.resolve()); wsl = f"/mnt/{p[0].lower()}{p[2:].replace(chr(92),'/')}"
     def of(cmd, t=300):
-        return subprocess.run(
-            f'wsl bash -c "source /opt/openfoam11/etc/bashrc && cd {wsl} && {cmd}"',
-            shell=True, capture_output=True, text=True, timeout=t)
+        return linux_run(
+            f"source /opt/openfoam11/etc/bashrc && cd {wsl} && {cmd}", t)
     g = of("gmshToFoam mesh.msh > log.g2f 2>&1")
     of("checkMesh > log.check 2>&1")
     chk = (case/"log.check").read_text(errors="replace")
@@ -520,15 +560,12 @@ relaxationFactors{ equations{ U 0.7; k 0.5; omega 0.5;""" + _lm_relax + """ } fi
 
     p = str(case.resolve()); wsl = f"/mnt/{p[0].lower()}{p[2:].replace(chr(92),'/')}"
     # potentialFoam: divergence-free baslangic (startup blow-up'i onler)
-    subprocess.run(
-        # `unset FOAM_SIGFPE` — `export FOAM_SIGFPE=false` HICBIR ISE YARAMAZ: OpenFOAM
-        # degiskenin VARLIGINA bakar, degerine degil. Log "sigFpe : Enabling floating
-        # point exception trapping" yaziyordu ve tuzak acikti. kOmegaSSTLM'in Fthetat
-        # terimi magSqr(U) ile boluyor; durgunluk noktasinda 0/0 olusuyor ve cozucu
-        # 1-5 iterasyonda SIGFPE ile cokuyordu. Kanonik katman (analysis/openfoam_runner)
-        # bu dersi zaten almisti — iki-hizli ayrisma: standalone kopru almamisti.
-        f'wsl bash -c "source /opt/openfoam11/etc/bashrc && unset FOAM_SIGFPE && cd {wsl} && potentialFoam -initialiseUBCs -writep > log.pot 2>&1; foamRun -solver incompressibleFluid > log.run 2>&1"',
-        shell=True, capture_output=True, text=True, timeout=7200)
+    linux_run(
+        # `unset FOAM_SIGFPE` — `export FOAM_SIGFPE=false` HICBIR ISE YARAMAZ:
+        # OpenFOAM degiskenin VARLIGINA bakar, degerine degil.
+        f"source /opt/openfoam11/etc/bashrc && unset FOAM_SIGFPE && cd {wsl} && "
+        "potentialFoam -initialiseUBCs -writep > log.pot 2>&1; "
+        "foamRun -solver incompressibleFluid > log.run 2>&1", 7200)
 
     return oku_sonuc(case, alpha_deg, V, nu, rho, chord)
 
