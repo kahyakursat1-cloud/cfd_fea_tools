@@ -17,6 +17,7 @@ sys.path.insert(0, str(KOK / "experiments"))
 
 from bellek_katsayisi import (  # noqa: E402
     EN_AZ_ARTIS_GB,
+    EN_AZ_R2,
     EN_COK_SACILMA,
     calistir,
     topla,
@@ -72,13 +73,29 @@ def test_matris_KIYASLAMA_olmadigini_soyluyor():
 # ── bellek katsayısı: gürültü reddi ────────────────────────────────────────
 
 def test_sacilan_olcum_katsayi_SAYILMAZ():
+    """Gürültüye katsayı denmemeli — ama ÖLÇÜT artık oran-saçılması değil.
+
+    Bu test önce "saçılma büyükse sayı yazılmasın" diyordu. Regresyon
+    eklendikten sonra bu varsayım geçersiz: oran (artış/hücre) dağılımının
+    saçılması EĞİMİ geçersiz kılmaz --- regresyonun var oluş nedeni tam olarak
+    o saçılmanın sabit yükten geldiğini göstermekti. Korunması gereken kural
+    şu: yayımlanan sayı ya doğrusal uyumdan gelir (ve uyum eşiği geçer) ya da
+    hiç yazılmaz.
+    """
     rec = calistir()
     if not rec["kosular"]:
         return
     dag = rec["dagilim"]
-    if dag["sacilma_katı"] > EN_COK_SACILMA or dag["gurultu_alti_kosu"] == dag["n_kosu"]:
-        assert rec["kb_hucre"] is None, "gürültüye katsayı denmiş"
+    if rec.get("kb_hucre") is None:
         assert "OLCULEMEDI" in rec["verdikt"]
+        return
+    reg = rec.get("regresyon")
+    assert reg is not None, "sayı var ama regresyon yok — nereden geldi?"
+    assert rec["kb_hucre"] == reg["kb_hucre"], "yayımlanan sayı eğim değil"
+    assert reg["r2"] >= EN_AZ_R2, reg
+    # Oran-medyani bilerek KULLANILMADI ve bu verdiktte yazili olmali.
+    assert "Medyan-oran modeli" in rec["verdikt"]
+    assert dag["sacilma_katı"] > 0
 
 
 def test_gurultu_esikleri_kaynakli():

@@ -93,6 +93,78 @@ def test_sozel_tekrarlar_da_AYNI_sayiyi_soyluyor(tex, ozet):
         assert bulunan_cap == cap, f"'{bulunan_cap}ü' — beklenen '{cap}'"
 
 
+_YAZI = {0: "sıfır", 1: "bir", 2: "iki", 3: "üç", 4: "dört", 5: "beş",
+         6: "altı", 7: "yedi", 8: "sekiz"}
+
+
+def test_olcum_ve_ust_sinir_AYRIMI_da_tutarli(tex, ozet):
+    """HAKEM YİNE BULDU: "beşi çapa taşır; üçü ölçüm, biri üst sınır" — toplamı
+    DÖRT ediyordu.
+
+    Önceki testler yalnız `N/M hücre çapalı` ve `N hücrenin M'i` kalıplarını
+    denetliyordu; ölçüm/üst-sınır AYRIMINI hiç okumuyorlardı. Dipnot ise
+    "rapordaki her tekrarı testle bağlıdır" diyordu --- yani rapor kendi
+    denetim iddiasını aşan bir alan taşıyordu. Bu test o alanı kapatır.
+    """
+    # SAYI KELIMESI + TURKCE EK. Ek serbest birakilir ('üçü', 'ikisi'), ama
+    # sayinin KENDISI listeden gelmek zorunda — genel \w+ kalibi "kalan is
+    # hucre" gibi ilgisiz ifadeleri de yakaliyordu.
+    _s = "|".join(_YAZI.values())
+    kaliplar = re.findall(
+        rf"({_s})\w*\s+ölçüm[,+]\s*(?:\\textbf\{{)?({_s})\w*\s+üst\s*\n?\s*sınır",
+        tex)
+    kaliplar += re.findall(r"(\d+) ölçüm \+ (\d+) üst sınır", tex)
+    assert kaliplar, "rapor ölçüm/üst-sınır ayrımını hiç yazmıyor mu?"
+    for a, b in kaliplar:
+        _a = str(ozet["olcum"]) if a.isdigit() else _YAZI[ozet["olcum"]]
+        _b = str(ozet["ust_sinir"]) if b.isdigit() else _YAZI[ozet["ust_sinir"]]
+        assert a == _a, f"'{a} ölçüm' — beklenen '{_a}'"
+        assert b == _b, f"'{b} üst sınır' — beklenen '{_b}'"
+
+
+def test_test_sayilari_AYNI_KOSUDA_olculdu(tex):
+    """HAKEM SORDU: "coverage açıkken neden 23 test daha az?"
+
+    Ölçüldü: fark YOKTU. İki sayı farklı zamanlarda ölçülüp yan yana
+    konmuştu ve aradaki boşluk gerçek bir olgu gibi görünüyordu --- birlikte
+    okunan iki sayı birlikte ölçülmelidir. Betik artık ikisini de tek çağrıda
+    ölçüyor; bu test raporun ikisini de o ölçümden aldığını bağlar.
+    """
+    olcum_dosyasi = KOK / "rapor_sayilari.json"
+    if not olcum_dosyasi.exists():
+        pytest.skip("rapor_sayilari.json yok")
+    d = json.loads(olcum_dosyasi.read_text(encoding="utf-8"))
+    if "gecen_test_cov" not in d:
+        pytest.skip("test sayıları ölçülmedi (python experiments/rapor_sayilari.py --test)")
+    for anahtar in ("gecen_test", "gecen_test_cov"):
+        beklenen = f"{d[anahtar]:,}".replace(",", ".")
+        assert beklenen in tex, f"{anahtar}={d[anahtar]} raporda geçmiyor"
+    # Fark varsa aciklanmali; yoksa "ayni kosuda olculdu" ibaresi durmali.
+    if d["gecen_test"] == d["gecen_test_cov"]:
+        assert "aynı koşuda" in tex, \
+            "iki sayı eşit ama raporda birlikte ölçüldükleri yazmıyor"
+
+
+def test_ozet_kendi_icinde_TOPLANIYOR(ozet):
+    """ölçüm + üst sınır = çapalı; çapalı + öncül = toplam. Kanıtın kendisi
+    tutarsızsa raporu ona bağlamanın anlamı kalmaz."""
+    assert ozet["olcum"] + ozet["ust_sinir"] == ozet["capali"]
+    assert ozet["capali"] + ozet["oncul"] == ozet["toplam_hucre"]
+
+
+def test_yol_haritasindaki_KALAN_hucre_sayisi_dogru(tex, ozet):
+    """v1.3 satırı "kalan beş hücre" diyordu; 8-5=3 olmuştu."""
+    kalan = ozet["toplam_hucre"] - ozet["capali"]
+    # "kalan is hucre x cekirdek x RAM" gibi ifadeler sayi DEGILDIR; kalip
+    # yalniz sayi kelimelerini ve rakamlari kabul eder.
+    _s = "|".join(_YAZI.values())
+    bulunan = re.findall(rf"kalan\s+({_s}|\d+)\s+hücre", tex, re.IGNORECASE)
+    assert bulunan, "yol haritası kalan-hücre ifadesi taşımıyor"
+    for b in bulunan:
+        assert b.lower() in (_YAZI[kalan], str(kalan)), \
+            f"'kalan {b} hücre' — beklenen '{_YAZI[kalan]}' ({kalan})"
+
+
 def test_ozet_cumlesi_UCUNU_de_ayirt_ediyor(ozet):
     c = ozet["cumle"]
     assert "ölçüm" in c and "üst sınır" in c and "öncül" in c

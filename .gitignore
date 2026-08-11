@@ -195,3 +195,7 @@ cov.json
 _xf_a4_*.json
 gci_cgrid_*.json
 nxtest.py
+bellek_olcum_kismi.json
+_bellek_olcum/
+_duz_levha_aile/
+_silindir_urans/

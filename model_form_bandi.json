@@ -317,17 +317,20 @@
     {
       "rejim": "lifting",
       "duvar": "wall_resolved",
-      "oncul_pct": 5.0
+      "oncul_pct": 5.0,
+      "kapanmasi_icin": "Deneysel referansli 3B tasima capasi. Mevcut tek capa (NACA0012 kanat AR6) YARI-ANALITIK referansa (Prandtl tasima-cizgisi) dayaniyor ve u_D=%15; ag ne kadar inceltilirse inceltilsin u_val %15'in altina INEMEZ, yani model hatasi ayrilamaz. Ag degil REFERANS degismeli."
     },
     {
       "rejim": "lifting",
       "duvar": "wall_function",
-      "oncul_pct": 12.0
+      "oncul_pct": 12.0,
+      "kapanmasi_icin": "Ayni kisit: referans belirsizligi (%15) baskin. Ek olarak bu hucrenin eski %35.43 degeri bu betigin olcutleriyle REDDEDILDI (sayisal band %17.4 > %15) ve hucre oncule dondu."
     },
     {
       "rejim": "bluff",
       "duvar": "wall_resolved",
-      "oncul_pct": 10.0
+      "oncul_pct": 10.0,
+      "kapanmasi_icin": "Turbulansli + duvar-cozunur (y+<5) bir kunt cisim capasi. Elde olan uc kunt kosu (kup/kure/Ahmed) duvar-FONKSIYONU bandinda ve sayisal bandlari %58-275 — model hatasindan buyuk. Laminer bir vaka (silindir Re=40/100) bu hucreyi DOLDURAMAZ: orada turbulans modeli yoktur, dolayisiyla model-form hatasi da yoktur. Gereken 3B, y+<5 ve makul sayisal bandli bir kosu — laptop butcesinde pahali."
     }
   ],
   "dis_kaynakli_hucreler": [],

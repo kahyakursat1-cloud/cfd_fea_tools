@@ -64,8 +64,17 @@ def test_model_form_tablosuna_GIRMEZ():
     mf = KOK / "model_form_bandi.json"
     if not mf.exists():
         pytest.skip("model_form_bandi.json yok")
-    metin = mf.read_text(encoding="utf-8")
-    assert "silindir" not in metin.lower(), "URANS vakası model-form tablosuna sızmış"
+    # HAM METINDE ARAMA YANLIS POZITIF VERIR: dosya artik "kalan hucre neden
+    # kapanmadi" gerekcelerini de tasiyor ve orada silindir bir KARSI ORNEK
+    # olarak geciyor ("laminer bir vaka bu hucreyi dolduramaz"). Aranan sey
+    # capa LISTESINDE bir giris olup olmadigidir.
+    d = json.loads(mf.read_text(encoding="utf-8"))
+    adlar = [c["ad"].lower()
+             for h in d["olculen_hucreler"].values()
+             for islem in h.values()
+             for c in islem.get("capalar", [])]
+    adlar += [x["capa"].lower() for x in (d.get("atanamayan") or [])]
+    assert not any("silindir" in a for a in adlar), adlar
 
 
 def test_mesh_laminer_capadan_yeniden_kullaniliyor():

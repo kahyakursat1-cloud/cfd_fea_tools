@@ -35,6 +35,29 @@ def _j(ad: str) -> dict | None:
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
 
 
+_NE_GEREKIYOR = {
+    # KALAN HUCRELERIN NEDEN KAPANMADIGI YAZILI OLMALI. "Kalan hucreler" demek
+    # okuyucuya isin BUYUKLUGUNU soylemez; kimi hucre bir kosu uzakta, kimi
+    # referans belirsizligi yuzunden ULASILAMAZ. Ikisi ayni sey degildir.
+    "bluff.wall_resolved": (
+        "Turbulansli + duvar-cozunur (y+<5) bir kunt cisim capasi. Elde olan uc "
+        "kunt kosu (kup/kure/Ahmed) duvar-FONKSIYONU bandinda ve sayisal "
+        "bandlari %58-275 — model hatasindan buyuk. Laminer bir vaka (silindir "
+        "Re=40/100) bu hucreyi DOLDURAMAZ: orada turbulans modeli yoktur, "
+        "dolayisiyla model-form hatasi da yoktur. Gereken 3B, y+<5 ve makul "
+        "sayisal bandli bir kosu — laptop butcesinde pahali."),
+    "lifting.wall_resolved": (
+        "Deneysel referansli 3B tasima capasi. Mevcut tek capa (NACA0012 kanat "
+        "AR6) YARI-ANALITIK referansa (Prandtl tasima-cizgisi) dayaniyor ve "
+        "u_D=%15; ag ne kadar inceltilirse inceltilsin u_val %15'in altina "
+        "INEMEZ, yani model hatasi ayrilamaz. Ag degil REFERANS degismeli."),
+    "lifting.wall_function": (
+        "Ayni kisit: referans belirsizligi (%15) baskin. Ek olarak bu hucrenin "
+        "eski %35.43 degeri bu betigin olcutleriyle REDDEDILDI (sayisal band "
+        "%17.4 > %15) ve hucre oncule dondu."),
+}
+
+
 def ayrilabilir(ham_sapma_pct: float | None, u_sayisal_pct: float | None,
                 u_ref_pct: float | None) -> dict:
     """ASME V&V 20 karşılaştırma belirsizliği: model hatası GÖRÜLEBİLİR mi?
@@ -504,7 +527,10 @@ def calistir() -> dict:
         for islem, v in cells.items():
             if not birlesik.get(rejim, {}).get(islem):
                 oncul_kalan.append({"rejim": rejim, "duvar": islem,
-                                    "oncul_pct": v})
+                                    "oncul_pct": v,
+                                    "kapanmasi_icin": _NE_GEREKIYOR.get(
+                                        f"{rejim}.{islem}",
+                                        "deneysel referanslı, ayrılabilir bir çapa")})
 
     # BU BETIGIN HESAPLAMADIGI HUCRELER. Band dosyasinda duruyorlar ama baska
     # bir kampanyadan geldiler; kac capadan turedikleri ve tek-capa kuralinin

@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-31.982 satır Python $\cdot$ 144 test dosyası $\cdot$ 1457 geçen test\\[3mm]
+31.995 satır Python $\cdot$ 145 test dosyası $\cdot$ 1.470 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -423,9 +423,10 @@ Hücre başına bellek çözücüye, türbülans modeline ve katman sayısına b
 literatürden alınan tek bir değer bu makinede yanlış olurdu. Bu yüzden önce
 \emph{telemetri} eklendi: çözücünün izleme döngüsü artık sistem belleğini de
 örnekliyor ve koşu öncesi tabana göre \emph{artışı} kaydediyor. Katsayı koşu
-arşivinden türetilecek; o güne kadar kapı öncülle çalışır ve bunu \textbf{her
-çıktısında} söyler. Ölçüm geldiği anda öncül devre dışı kalır --- bu bir test
-tarafından bağlanmıştır. WSL2 sanal makinesi ayrı bir süreç olmadığı için tek
+arşivinden türetilecekti; arşiv gürültü altında kalınca üç büyük koşu ölçüldü
+ve öncül devre dışı kaldı (\S\ref{sub:bellek}). Öncülün ne zaman devre dışı
+kalacağı bir test tarafından bağlanmıştı, yani geçiş sessiz olamazdı.
+WSL2 sanal makinesi ayrı bir süreç olmadığı için tek
 koşunun kendi belleği görülemez; ölçülen sistem geneli artıştır, yani bir
 \emph{üst sınırdır} ve öyle yazılır.
 \end{anafikir}
@@ -1082,12 +1083,19 @@ Sonucun izlenebilirliği (komut + ortam) & \ev & \ev & \texttt{kanit}, \texttt{o
 \noindent Sekiz adımın altısı tam, ikisi kısmî otomatiktir. Kısmî olan ikisi
 şunlardır: deneysel referansla geçerleme (çapa sayısı sınırlı) ve model-form
 belirsizliği (rejim$\times$duvar tablosunun sekiz hücresinden beşi çapa taşır;
-üçü ölçüm, biri üst sınır).\footnote{Bu sayı tek kaynaktan üretilir
+üçü ölçüm, ikisi üst sınır).\footnote{Bu sayı tek kaynaktan üretilir
 (\texttt{model\_form\_ozeti}) ve rapordaki her tekrarı testle bağlıdır. Önceki
 sürümde dört ayrı yerde elle yazılıydı ve birbirini tutmuyordu; dahası taban da
 yanlıştı --- \texttt{attached\_2d} rejimi eklendiğinde toplam yediden sekize
 çıkmış, hiçbir metin güncellenmemişti. Raporun kendi avladığı kusur sınıfı:
-sabit metin, değişen veri.} Girdi belirsizliği yayılımı bu sürümde \emph{eklendi} --- ve eklenmesi bandı
+sabit metin, değişen veri. \emph{Bağ eksikti ve hakem bunu bir kez daha
+buldu:} testler ``$N/M$ hücre çapalı'' ve ``$N$ hücrenin $M$'i'' kalıplarını
+denetliyordu ama \emph{ölçüm/üst-sınır ayrımını} hiç okumuyordu. Bu cümle bir
+sürüm boyunca üst sınır sayısını bir eksik yazdı: bileşenler toplandığında
+beş yerine dört ediyordu. Dipnotun ``her tekrarı testle bağlıdır'' iddiası o
+alanda yanlıştı.
+Ayrım artık ayrı bir testle bağlı ve test, hatayı geri koyarak
+\emph{doğrulandı}.} Girdi belirsizliği yayılımı bu sürümde \emph{eklendi} --- ve eklenmesi bandı
 daralttığı için değil, \emph{genişlettiği} için önemlidir. Dört girdi ($V$,
 $\nu$, $\alpha$, kiriş) merkezî sonlu farkla yayıldığında girdi kaynaklı bant
 $\pm\%11{,}22$ çıktı; ayrıklaştırma bandı ($\pm\%1{,}36$) ile birleşince
@@ -1370,6 +1378,7 @@ banda girmez --- yani süre, doğrulukla doğrudan takas edilir ve platform bu
 takası \emph{sayıyla} sunar.
 
 \subsection{Çekirdek ölçeklenmesi}
+\label{sub:bellek}
 
 Tek koşu ``ne kadar sürer'' sorusunu yanıtlamaz. Dokuz koşu ölçüldü (üç hücre
 bütçesi $\times$ üç çekirdek sayısı, küp geometrisi, \emph{sırayla} --- paralel
@@ -1410,9 +1419,45 @@ sistem geneli ölçümün gürültüsüne gömülüyor.
 
 Medyanı (3{,}3) katsayı diye yazmak mümkündü ve yapılmadı: o, gürültüye katsayı
 demek olurdu. Betik artık saçılmayı ve sinyal eşiğini denetliyor, geçmezse
-\emph{sayı yazmıyor}; bellek kapısı öncülle çalışmaya devam ediyor ve bunu
-zaten her çıktısında söylüyor.
+\emph{sayı yazmıyor}; bellek kapısı öncülle çalışmaya devam etti.
 \end{dikkat}
+
+\begin{olculdu}{Katsayı ölçüldü --- ama önce model yanlıştı}
+Reddin ardından iki şey birden düzeltildi ve ikincisi daha önemli çıktı.
+
+\textbf{Model.} Oran (artış/hücre) yanlış modeldir. WSL2 sanal makinesi,
+çözücü ikilileri ve \texttt{decomposePar} kopyaları hücre sayısından
+\emph{bağımsız} bir taban tüketir; bu tabanı hücreye bölmek küçük koşularda
+katsayıyı şişirir. Reddedilen dağılımın kendisi bunun kanıtıydı: aynı geometri
+ve aynı çözücüde 18.462 hücre 9{,}75 kB/hücre, 96.280 hücre 1{,}66 kB/hücre
+veriyordu. Doğru model doğrusaldır ve tabanı ayırır:
+\[ \text{artış [GB]} = a + b\cdot N_{\text{hücre}} \]
+Katsayı $b$'dir; $a$ sabit yüktür ve hücreyle ölçeklenmez.
+
+\textbf{Ölçüm.} Arşiv gürültü altında kaldığı için üç büyük koşu \emph{tek
+oturumda, arka arkaya, sabit dört çekirdekte} yapıldı: 76.989 / 191.404 /
+365.608 hücre, artış 0{,}26 / 0{,}39 / 0{,}49\,GB.
+
+\begin{center}\itshape
+$b = 0{,}779$ kB/hücre \quad $a = 0{,}215$\,GB \quad $R^2 = 0{,}96$
+\end{center}
+
+\noindent Kapı artık öncülle değil ölçümle çalışıyor. Öncül 1{,}0 kB/hücre
+idi; ölçüm \%22 daha düşük çıktı, yani kapı gereğinden katı davranıyormuş.
+
+Küme seçimi iki kez daraltıldı ve bedeli her seferinde ölçüldü. Önce çekirdek
+sayısına göre --- ölçüldü: aynı 18.462 hücrede bir çekirdek 0{,}06\,GB, dört
+çekirdek 0{,}18\,GB tüketiyor. Sonra \emph{oturuma} göre: aynı dört çekirdekte
+bile arşiv 96.280 hücrede 0{,}16\,GB derken ölçüm 76.989 hücrede 0{,}26\,GB
+veriyordu. İki seti birleştirmek $R^2$'yi 0{,}96'dan 0{,}87'ye düşürüyordu ---
+yani karıştırmanın bedeli tahmin edilmedi, görüldü.
+
+İki sınır kayıtlı. Birincisi: en büyük ölçülen artış 0{,}49\,GB, hâlâ gürültü
+eşiğinin (0{,}5\,GB) altında. Üç nokta aynı doğruda olduğu için eğim kabul
+edildi, ama sayı bir \textbf{üst sınırdır} ve verdikt bunu yazıyor. İkincisi:
+1{,}4\,M hücre bütçesi istendi, 365.608 üretildi --- bütçe bir tavandır,
+gerçek hücre sayısını yüzey iyileştirme kademesi belirler.
+\end{olculdu}
 
 % ══════════════════════════════ 7 ══════════════════════════════
 \section{Bilinen Sınırlar ve Yol Haritası}
@@ -1445,11 +1490,13 @@ zaten her çıktısında söylüyor.
         ve salınan koşuya zaman adımı, adım sayısı ve o ağdaki tahmini süreyi
         verir (\S\ref{sec:urans}). Yol \textbf{laminer} girdap dökülmesi
         vakasında doğrulanmıştır ($Re{=}100$ silindir; $St$ \%2{,}15,
-        $C_D$ \%$-$0{,}38). \textbf{Türbülanslı URANS hattının k--$\omega$ SST
-        ile bağımsız doğrulaması henüz yapılmamıştır} --- doğrulama vakasında
-        türbülans modeli kullanılmadı, dolayısıyla ölçülen şey zaman
-        ayrıklaştırmasının doğruluğudur, türbülans modelinin zaman-bağımlı
-        davranışı değil.
+        $C_D$ \%$-$0{,}38). \textbf{Türbülanslı URANS hattı gerçek bir k--$\omega$ SST vakasında
+        SINANDI, ancak fiziksel doğrulama ölçütünü GEÇEMEDİ}: 2B subkritik
+        silindirde ($Re{=}1{,}4\times10^5$) mekanizma çalıştı --- model
+        zaman-çözünür çevrimde koştu, salınım ve y$^+$ ölçüldü --- ama $St$
+        sapması \%$+$37 çıktı. 2B kurulum span-yönü korelasyon kaybını
+        temsil edemez; hücrenin kapanması için ÜÇ-BOYUTLU bir çapa gerekir
+        (\S\ref{sec:urans}).
   \item[Süpersonik mutlak $C_d$.] 3B-açık çözüm bu donanımda ulaşılamaz.
   \item[Panel yönteminin indüklenen direnci.] VSPAERO'nun iki $C_{Di}$ çıktısı
         da kuramdan sapar (yakın-alan $-\%21$, Trefftz $+\%62$); bu yüzden
@@ -1703,16 +1750,17 @@ v1.2 & orta   & URANS'ın \emph{türbülanslı} vakada sınanması KOŞULDU: kOm
                 subkritik silindirde mekanizma olarak çalıştı, fizik tutmadı
                 ($St$ \%$+$37 --- 2B kurulumun sınırı); kalan iş üç-boyutlu
                 (span-yönü çözünürlüklü) bir zaman-çözünür çapa \\
-v1.3 & yüksek & Model-form tablosunun kalan beş hücresi --- deneysel referanslı
-                çapalarla; yarı-analitik referans $u_D$ baskın olduğu için
-                yalnız ağ inceltmek yetmiyor \\
+v1.3 & yüksek & Model-form tablosunun kalan ÜÇ hücresi --- deneysel referanslı
+                çapalarla; ikisinde engel ağ değil REFERANS belirsizliğidir
+                (\%15), yani yalnız ağ inceltmek yetmiyor \\
 v1.4 & orta   & Docker/Conda kilidi ile yeniden-üretilebilir ortam; çözücü
                 sürüm kilidi \\
 v1.5 & orta   & Arayüz v2 --- kipler, kanıt gezgini, bandlı sonuç kartları ve
                 eşleşik karşılaştırma EKLENDİ (\S\ref{sub:kipler},
                 \S\ref{sub:eslesik}) \\
-v1.6 & düşük  & Bellek katsayısı için BÜYÜK koşularla ölçüm (küçük koşu
-                gürültüde kalıyor); hücre$\times$çekirdek$\times$RAM matrisi \\
+v1.6 & düşük  & Bellek katsayısı ÖLÇÜLDÜ (0{,}779 kB/hücre, $R^2{=}0{,}96$;
+                \S\ref{sub:bellek}); kalan iş
+                hücre$\times$çekirdek$\times$RAM matrisinin genişletilmesi \\
 v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanması;
                 GPU hızlandırma \\
 \bottomrule
@@ -1803,13 +1851,13 @@ olarak değil. Kanıt dosyası zincirin tamamını taşır: üretim komutu
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 31.982 & \texttt{rapor\_sayilari.py} \\
-Kök modül & 83 & \texttt{rapor\_sayilari.py} \\
-Deney / çapa betiği & 62 & \texttt{experiments/} \\
-Test dosyası & 144 & \texttt{tests/test\_*.py} \\
-Geçen test & 1457 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1434 & \texttt{-{}-cov} \\
-Satır kapsamı & \textbf{\%47} & 18.928 ifade, 9.979 kapsanmamış \\
+Kod satırı (kök + \texttt{analysis/}) & 31.995 & \texttt{rapor\_sayilari.py} \\
+Kök modül & 84 & \texttt{rapor\_sayilari.py} \\
+Deney / çapa betiği & 65 & \texttt{experiments/} \\
+Test dosyası & 145 & \texttt{tests/test\_*.py} \\
+Geçen test & 1.470 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1.470 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
+Satır kapsamı & \textbf{\%47} & 19.688 ifade, 10.268 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
 \end{tabular}
@@ -2096,8 +2144,10 @@ yeniden üretim getirir. Docker taban imajı da digest'e sabitlendi
 (\texttt{sha256:fd10956e\dots}, \texttt{docker buildx imagetools inspect} ile
 ölçüldü): \texttt{:latest} değiştirilebilir bir etikettir ve aynı Dockerfile
 yarın başka bir OpenFOAM derlemesi çekebilirdi.
-\textbf{Ölçülmemişler:} bellek katsayısı (telemetri var, sayı sonraki
-koşulardan gelecek); başarım tek geometri ve tek makineyle sınırlı. Yol
+\textbf{Ölçülmemişler:} model-form tablosunun üç hücresi hâlâ literatür
+öncülüyle çalışıyor ve her birinin \emph{neden} kapanmadığı kanıt dosyasına
+yazılı --- ikisinde engel ağ değil referans belirsizliğidir (\%15), yani
+inceltmekle kapanmaz; başarım tek geometri ve tek makineyle sınırlı. Yol
 haritası bunları v1.1--v2.0 aralığına yerleştirir ve hiçbiri ``yakında'' diye
 geçiştirilmemiştir.
 \end{dikkat}

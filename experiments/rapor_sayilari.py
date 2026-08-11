@@ -47,13 +47,27 @@ def olc(pytest_calistir: bool = False) -> dict:
         d["kapsanmamis"] = t["missing_lines"]
         d["kapsam_pct"] = int(t["percent_covered"])
     if pytest_calistir:
-        r = subprocess.run([sys.executable, "-m", "pytest", "-q", "--no-header"],
-                           cwd=KOK, capture_output=True, text=True)
-        for satir in (r.stdout or "").splitlines()[::-1]:
-            if " passed" in satir:
-                d["gecen_test"] = int(satir.split(" passed")[0].split()[-1])
-                break
+        # IKI SAYI AYNI ANDA OLCULUR. Rapor "1465 gecen test" ile "1434 gecen
+        # test (coverage acik)" yaziyordu ve hakem hakli olarak "neden 23 test
+        # eksik?" diye sordu. Olculdu: FARK YOKTU — iki sayi FARKLI ZAMANLARDA
+        # olculup yan yana konmustu ve aradaki bosluk gercek bir olgu gibi
+        # gorunuyordu. Bu, raporun kendi avladigi kusur sinifidir: birlikte
+        # okunan iki sayi birlikte olculmelidir.
+        d["gecen_test"] = _pytest_sayisi([])
+        d["gecen_test_cov"] = _pytest_sayisi(
+            ["--cov=.", "--cov-report=json:cov.json"])
+        if None not in (d["gecen_test"], d["gecen_test_cov"]):
+            d["_test_sayisi_farki"] = d["gecen_test"] - d["gecen_test_cov"]
     return d
+
+
+def _pytest_sayisi(ek: list[str]) -> int | None:
+    r = subprocess.run([sys.executable, "-m", "pytest", "-q", "--no-header", *ek],
+                       cwd=KOK, capture_output=True, text=True)
+    for satir in (r.stdout or "").splitlines()[::-1]:
+        if " passed" in satir:
+            return int(satir.split(" passed")[0].split()[-1])
+    return None
 
 
 def main() -> int:

@@ -7,6 +7,7 @@
       "cells": 18462,
       "artis_gb": 0.06,
       "toplam_gb": 14.72,
+      "cekirdek": 1,
       "kb_hucre": 3.25
     },
     {
@@ -14,6 +15,7 @@
       "cells": 18462,
       "artis_gb": 0.18,
       "toplam_gb": 14.72,
+      "cekirdek": 4,
       "kb_hucre": 9.75
     },
     {
@@ -21,6 +23,7 @@
       "cells": 18462,
       "artis_gb": 0.09,
       "toplam_gb": 14.72,
+      "cekirdek": 8,
       "kb_hucre": 4.875
     },
     {
@@ -28,6 +31,7 @@
       "cells": 42153,
       "artis_gb": 0.04,
       "toplam_gb": 14.72,
+      "cekirdek": 1,
       "kb_hucre": 0.949
     },
     {
@@ -35,6 +39,7 @@
       "cells": 42153,
       "artis_gb": 0.15,
       "toplam_gb": 14.72,
+      "cekirdek": 4,
       "kb_hucre": 3.558
     },
     {
@@ -42,6 +47,7 @@
       "cells": 42153,
       "artis_gb": 0.17,
       "toplam_gb": 14.72,
+      "cekirdek": 8,
       "kb_hucre": 4.033
     },
     {
@@ -49,6 +55,7 @@
       "cells": 96280,
       "artis_gb": 0.09,
       "toplam_gb": 14.72,
+      "cekirdek": 1,
       "kb_hucre": 0.935
     },
     {
@@ -56,6 +63,7 @@
       "cells": 96280,
       "artis_gb": 0.16,
       "toplam_gb": 14.72,
+      "cekirdek": 4,
       "kb_hucre": 1.662
     },
     {
@@ -63,7 +71,32 @@
       "cells": 96280,
       "artis_gb": 0.32,
       "toplam_gb": 14.72,
+      "cekirdek": 8,
       "kb_hucre": 3.324
+    },
+    {
+      "kosu": "olcum/m300k",
+      "cells": 76989,
+      "artis_gb": 0.26,
+      "toplam_gb": 14.72,
+      "cekirdek": 4,
+      "kb_hucre": 3.377
+    },
+    {
+      "kosu": "olcum/m700k",
+      "cells": 191404,
+      "artis_gb": 0.39,
+      "toplam_gb": 14.72,
+      "cekirdek": 4,
+      "kb_hucre": 2.038
+    },
+    {
+      "kosu": "olcum/m1400k",
+      "cells": 365608,
+      "artis_gb": 0.49,
+      "toplam_gb": 14.72,
+      "cekirdek": 4,
+      "kb_hucre": 1.34
     }
   ],
   "_kisit": "WSL2 VM ayri bir surec olmadigi icin tek kosunun RSS'i gorulemez; olculen, sistem geneli kullanimin kosu boyunca ARTISIDIR. Makinede baska is varsa sayi yukari kayar — yani bu bir UST SINIRDIR.",
@@ -71,12 +104,25 @@
   "dagilim": {
     "min": 0.935,
     "max": 9.75,
-    "medyan": 3.324,
+    "medyan": 3.287,
     "sacilma_katı": 10.4,
-    "gurultu_alti_kosu": 9,
-    "n_kosu": 9
+    "gurultu_alti_kosu": 12,
+    "n_kosu": 12
   },
-  "kb_hucre": null,
-  "n_kosu": 9,
-  "verdikt": "9 kosu var ama katsayi OLCULEMEDI: kB/hucre 0.935-9.75 arasinda sacildi (10.4 kat, esik 3.0) ve 9/9 kosunun bellek artisi gurultu esiginin (0.5 GB) altinda. Kucuk kosularda cozucunun kendi bellegi sistem geneli olcumun gurultusune gomuluyor. Medyani katsayi diye yazmak gurultuye katsayi demek olurdu — bellek kapisi ONCULLE calismaya devam ediyor."
+  "regresyon": {
+    "kb_hucre": 0.7786,
+    "sabit_yuk_gb": 0.215,
+    "r2": 0.9628,
+    "n": 3,
+    "hucre_araligi": [
+      76989,
+      365608
+    ],
+    "_model": "artis_gb = sabit_yuk_gb + (kb_hucre/1e6)·hucre",
+    "kume": "kontrollü ölçüm koşuları — tek oturum, sıralı, sabit 4 çekirdek"
+  },
+  "kb_hucre": 0.7786,
+  "n_kosu": 3,
+  "_mutlak_artis_uyarisi": "UYARI: en buyuk olculen artis 0.49 GB, gurultu esiginin (0.5 GB) ALTINDA — uyum tutarli oldugu icin egim kabul edildi, ama sayi bir UST SINIRDIR.",
+  "verdikt": "3 kosudan DOGRUSAL UYUM: 0.7786 kB/hucre (egim) + 0.215 GB sabit yuk, R^2=0.9628, hucre araligi 76,989-365,608 (5 kat, kume: kontrollü ölçüm koşuları — tek oturum, sıralı, sabit 4 çekirdek). Medyan-oran modeli (3.287 kB/hucre) KULLANILMADI: sabit yuku hucreye dagitiyor ve kucuk kosularda katsayiyi sisiriyor. Bellek kapisi artik OLCULEN katsayiyla calisir. UYARI: en buyuk olculen artis 0.49 GB, gurultu esiginin (0.5 GB) ALTINDA — uyum tutarli oldugu icin egim kabul edildi, ama sayi bir UST SINIRDIR."
 }

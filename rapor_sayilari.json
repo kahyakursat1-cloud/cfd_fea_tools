@@ -1,11 +1,14 @@
 {
-  "kod_satiri": 31982,
+  "kod_satiri": 31995,
   "kok_modul": 84,
   "deney_betigi": 65,
-  "test_dosyasi": 144,
-  "ifade": 18928,
-  "kapsanmamis": 9979,
+  "test_dosyasi": 145,
+  "ifade": 19688,
+  "kapsanmamis": 10268,
   "kapsam_pct": 47,
+  "gecen_test": 1470,
+  "gecen_test_cov": 1470,
+  "_test_sayisi_farki": 0,
   "_neden": "Rapor kendi hakkinda yazdigi sayilari iki ayri yerde elle tasiyordu ve ayrismisti (kapak 31.322, tablo 31.307). Sayilar artik olculur ve tekrarlari testle baglanir.",
   "_uretim": "Üretim: python experiments/rapor_sayilari.py"
 }

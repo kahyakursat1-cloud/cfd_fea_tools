@@ -6,13 +6,18 @@ preset'i kullanır. Disk için bekçi vardı (kuyruk, 8 GB), bellek için yoktu.
 
 KATSAYI ÖLÇÜLÜR, UYDURULMAZ. Hücre başına bellek çözücüye, model sayısına ve
 katman sayısına bağlıdır; tek doğru sayı yoktur. Bu modül katsayıyı KOŞU
-ARŞİVİNDEN türetir (`bellek.artis_gb` / `mesh.cells`). Ölçüm yoksa bir ÖNCÜL
-kullanılır ve bunun ölçüm OLMADIĞI her çıktıda yazılır — bu depoda "ölçemedim"
-ile "iyi" karıştırılmaz.
+ARŞİVİNDEN türetir. Ölçüm yoksa bir ÖNCÜL kullanılır ve bunun ölçüm OLMADIĞI
+her çıktıda yazılır — bu depoda "ölçemedim" ile "iyi" karıştırılmaz.
 
-Öncül: simpleFoam/incompressibleFluid için ~1,0 kB/hücre mertebesi (çözüm
-alanları + snappyHexMesh geçici yapıları). Mertebe doğrudur, kesinlik iddiası
-YOKTUR ve zaten ölçüm gelir gelmez devre dışı kalır.
+ÖLÇÜLDÜ (2026-08-11): 0,779 kB/hücre + 0,215 GB sabit yük, R²=0,96 — üç
+büyük koşudan DOĞRUSAL uyumla (`experiments/bellek_katsayisi.py --olc`).
+Eğim kritikti: oran (artış/hücre) modeli WSL2 VM'inin ve decomposePar
+kopyalarının sabit yükünü hücreye dağıtıyor ve küçük koşularda katsayıyı
+şişiriyordu (18k hücrede 9,75 kB/hücre çıkmıştı). Ölçüm öncülden (%1,0)
+%22 düşük — kapı gereğinden katı davranıyormuş.
+
+Öncül (ölçüm yokken): simpleFoam/incompressibleFluid için ~1,0 kB/hücre
+mertebesi. Mertebe doğrudur, kesinlik iddiası YOKTUR.
 """
 from __future__ import annotations
 
@@ -51,10 +56,18 @@ def katsayi() -> dict:
 
 
 def tahmini_gb(cells: int) -> dict:
+    # HESAP YUVARLAMAZ. Onceki surum `gereken_gb`'yi yuvarlanmamis ham degerden
+    # hesapliyor ama `ham_gb`'yi yuvarlayarak veriyordu; iki sayi arasindaki
+    # oran GUVENLIK_PAYI'na esit cikmiyordu (0.78 x 1.3 = 1.014, raporlanan
+    # 1.01). Ondalik onculde (1.0 kB) carpisma gorunmuyordu — kusur vardi ama
+    # OLCULEN katsayi (0.7786) gelene kadar ortaya cikmadi. Sabit ondalikta
+    # yuvarlamak kucuk butcelerde goreli hatayi buyutur (50k hucrede %0.6);
+    # dogrusu yuvarlamayi SUNUM katmanina birakmaktir — `hukum` mesaji zaten
+    # kendi bicimini uyguluyor.
     k = katsayi()
-    ham = cells * k["kb_hucre"] / 1e6           # kB -> GB
-    return {**k, "cells": cells, "ham_gb": round(ham, 2),
-            "gereken_gb": round(ham * GUVENLIK_PAYI, 2),
+    ham = cells * k["kb_hucre"] / 1e6                # kB -> GB
+    return {**k, "cells": cells, "ham_gb": ham,
+            "gereken_gb": ham * GUVENLIK_PAYI,
             "guvenlik_payi": GUVENLIK_PAYI}
 
 
@@ -77,10 +90,10 @@ def hukum(cells: int, bos_gb: float | None = None) -> dict:
     if t["gereken_gb"] > bos:
         onerilen = int(bos / GUVENLIK_PAYI * 1e6 / t["kb_hucre"])
         return {**out, "kosulabilir": False, "onerilen_max_cells": onerilen,
-                "mesaj": (f"{cells:,} hücre için ~{t['gereken_gb']} GB gerekir, "
+                "mesaj": (f"{cells:,} hücre için ~{t['gereken_gb']:.2f} GB gerekir, "
                           f"boş {bos:.1f} GB. Bütçeyi ~{onerilen:,} hücreye "
                           f"indirin ya da belleği boşaltın. Tahmin kaynağı: "
                           f"{t['kaynak']}")}
     return {**out, "kosulabilir": True,
-            "mesaj": (f"{cells:,} hücre ~{t['gereken_gb']} GB; boş {bos:.1f} GB "
+            "mesaj": (f"{cells:,} hücre ~{t['gereken_gb']:.2f} GB; boş {bos:.1f} GB "
                       f"— sığar. Tahmin kaynağı: {t['kaynak']}")}
