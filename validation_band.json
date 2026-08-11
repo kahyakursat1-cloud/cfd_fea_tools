@@ -6,6 +6,7 @@
     "wall_function": 8.15
   },
   "separated": {
-    "wall_resolved": 12.0
+    "wall_resolved": 12.0,
+    "wall_function": 25.0
   }
 }

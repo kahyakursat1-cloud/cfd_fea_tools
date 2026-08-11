@@ -190,3 +190,8 @@ _basamak_yplus/
 _silindir_vorteks/
 _silindir_test/
 _basamak_duvarfn/
+_lmtest/
+cov.json
+_xf_a4_*.json
+gci_cgrid_*.json
+nxtest.py

@@ -988,7 +988,7 @@ Kod doğrulama (kapalı-form karşılaştırma) & \ev & \ev & 6 FEA çapası \\
 Girdi belirsizliği yayılımı & \ev & \ev & \texttt{girdi\_belirsizligi} (4 girdi) \\
 Deneysel referansla geçerleme & \ks & \ev & \texttt{zarf} (14 koşul) \\
 Geçerlilik alanı (validation domain) beyanı & \ev & \ev & \texttt{validity\_envelope} \\
-Model-form belirsizliği & \ks & \ev & 3/8 hücre çapalı: 2 ölçüm + 1 üst sınır \\
+Model-form belirsizliği & \ks & \ev & 4/8 hücre çapalı: 3 ölçüm + 1 üst sınır \\
 Sonucun izlenebilirliği (komut + ortam) & \ev & \ev & \texttt{kanit}, \texttt{ortam} \\
 \bottomrule
 \end{tabular}
@@ -996,8 +996,8 @@ Sonucun izlenebilirliği (komut + ortam) & \ev & \ev & \texttt{kanit}, \texttt{o
 
 \noindent Sekiz adımın altısı tam, ikisi kısmî otomatiktir. Kısmî olan ikisi
 şunlardır: deneysel referansla geçerleme (çapa sayısı sınırlı) ve model-form
-belirsizliği (rejim$\times$duvar tablosunun sekiz hücresinden üçü çapa taşır;
-ikisi ölçüm, biri üst sınır).\footnote{Bu sayı tek kaynaktan üretilir
+belirsizliği (rejim$\times$duvar tablosunun sekiz hücresinden dördü çapa taşır;
+üçü ölçüm, biri üst sınır).\footnote{Bu sayı tek kaynaktan üretilir
 (\texttt{model\_form\_ozeti}) ve rapordaki her tekrarı testle bağlıdır. Önceki
 sürümde dört ayrı yerde elle yazılıydı ve birbirini tutmuyordu; dahası taban da
 yanlıştı --- \texttt{attached\_2d} rejimi eklendiğinde toplam yediden sekize
@@ -1369,13 +1369,15 @@ zaten her çıktısında söylüyor.
         da kuramdan sapar (yakın-alan $-\%21$, Trefftz $+\%62$); bu yüzden
         indüklenen direnç kuramdan üretilir.
   \item[Model-form belirsizliği.] Rejim$\times$duvar işlemi tablosuna ayrıldı;
-        sekiz hücrenin \textbf{üçü} çapa taşıyor (ikisi ölçüm, biri üst
-        sınır), beşi literatür-öncülüyle
-        çalışır. Üç hücre \emph{aynı kalitede değildir} ve bu ayrım artık
+        sekiz hücrenin \textbf{dördü} çapa taşıyor (üçü ölçüm, biri üst
+        sınır), dördü literatür-öncülüyle
+        çalışır. Dört hücre \emph{aynı kalitede değildir} ve bu ayrım artık
         yayımlanıyor: 2B bağlı akış \%5{,}23 ($n{=}1$) bir \emph{ölçümdür} ---
         çapanın farkı (\%3{,}52) kendi ayrıklaştırma bandından (\%1{,}71)
         büyük, yani model hatası sayısal hatadan ayrılabiliyor. Ayrılmış
-        akış/duvar-çözünür da öyle: sapma \%10{,}46, bandı \%2{,}39. Künt
+        akışın \emph{iki} hücresi de öyle: duvar-çözünürde sapma \%10{,}46 /
+        band \%2{,}39; duvar-fonksiyonunda \%8{,}75 / $u_{\mathrm{val}}$
+        \%2{,}40. Künt
         cisim/duvar-fonksiyonu \%8{,}15 ($n{=}2$) ise bir \textbf{üst
         sınırdır}: iki çapanın da farkı kendi bandından \emph{küçük} (disk
         \%3{,}4 vs \%4{,}8; küp \%1{,}8 vs \%5{,}3), yani hiçbiri model
@@ -1455,6 +1457,40 @@ Bandın kendisi yine de \emph{daraltılmadı}. Ölçüm (\%10{,}46) literatür
 öncülünden (\%12) küçük ve $n{=}1$'de aşağı yönlü düzeltme kabul edilmiyor ---
 tek çapa bir dağılım değildir. Yukarı yönlü düzeltme her zaman kabul edilir;
 asimetri bilinçlidir.
+\end{olculdu}
+
+\begin{olculdu}{Aynı deney, üçüncü duvar işlemi --- ve ağ ailesinin yönü}
+Aynı mantık bir kez daha yürütüldü: ilk hücre bu kez \emph{kalınlaştırılarak}
+deney log-bölgesine taşındı ve \texttt{separated.wall\_function} hücresi de
+ölçüme bağlandı. Bir vakanın iki model-form hücresini birden doldurabilmesi,
+hücrelerin duvar işlemine göre ayrılmasının kendisini doğrular.
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+\textbf{Seviye} & \textbf{Hücre} & \textbf{$X_r/H$} & \textbf{Sapma} & \textbf{y$^+$(alt)} \\
+\midrule
+L1 & 25.600 & 5{,}666 & \%$-$9{,}49 & 43{,}4 \\
+L2 & 45.248 & 5{,}684 & \%$-$9{,}19 & 43{,}1 \\
+L3 & 84.800 & 5{,}712 & \%$-$8{,}75 & 42{,}8 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Sayısal band \%1{,}79 ve $u_D=\%1{,}60$ (Driver \& Seegmiller'ın
+kendi bandı) $\rightarrow u_{\mathrm{val}}=\%2{,}40$. Sapma \%8{,}75 bunun
+üstünde, yani \emph{ölçüm}.
+
+\textbf{İlk deneme başarısız oldu ve nedeni öğreticiydi.} Aile her yönde
+inceltiliyor, ilk hücreyi sabit tutmak için grading uç değere itiliyordu:
+L1'de 0{,}0835, L3'te 0{,}0043 --- duvardan uzaktaki hücreler 233 kat küçük.
+L2 yakınsamadı, L3 kayan-nokta istisnasıyla düştü. Doğru tasarım
+\textbf{yönlü} ailedir: akış-yönü ve dış-alan incelir, alt duvarın
+duvar-normali hücre sayısı sabit kalır (40) ve grading üç seviyede de 0{,}0835
+olur. Zorunludur, çünkü ilk hücre y$^+$ bandını yani duvar işlemini belirler;
+değiştirmek aileyi tek bir hücreyi temsil etmekten çıkarır. Bedeli açık ve
+kanıt dosyasında yazılı: \emph{bu band duvar-normali ayrıklaştırma hatasını
+kapsamaz.}
 \end{olculdu}
 
 \begin{reddedilir}{Bir gecelik koşu, koşulmadan iptal edildi}
@@ -1924,8 +1960,8 @@ hat, GPU \\
 \begin{dikkat}{Bu sürümde kapanmamış olanlar}
 \textbf{Türbülanslı URANS doğrulaması yok:} zaman-çözünür yol laminer girdap
 dökülmesinde doğrulandı, k--$\omega$ SST ile bağımsız bir çapa henüz yok.
-\textbf{Model-form:} sekiz hücrenin üçü çapalı (iki ölçüm, bir üst sınır), beşi
-literatür öncülü. \textbf{Backend:} ortak katmanı atlayan çağrı 36'dan 9'a
+\textbf{Model-form:} sekiz hücrenin dördü çapalı (üç ölçüm, bir üst sınır),
+dördü literatür öncülü. \textbf{Backend:} ortak katmanı atlayan çağrı 36'dan 9'a
 düşürüldü; davranış eşdeğerliği ölçülmemiş iki özel süreç yolu (etkileşimli
 stdin, login kabuk) ve case iskelesini yineleyen eski betikler borç olarak
 kaldı. \textbf{Yeniden üretilebilirlik:} çözücü sürümleri artık ölçülüyor ve

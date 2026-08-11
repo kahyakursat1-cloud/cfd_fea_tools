@@ -250,9 +250,23 @@ def _ayrilmis_akis() -> tuple[str, str]:
                    f"{ince['Xr_H']:.3f} → %{ince['hata_pct']:+.1f}"
                    + (f", ayrıklaştırma bandı ±%{band} — sapma bandtan BÜYÜK, "
                       "model hatası sayısaldan ayrılabiliyor" if band else ""))
+    # UCUNCU DUVAR ISLEMI: ayni deney log-bolgesinde de kosuldu ve
+    # separated.wall_function hucresini olcume bagladi.
+    df = _json("basamak_duvar_fonksiyonu.json") if (ROOT / "basamak_duvar_fonksiyonu.json").exists() else None
+    dek = ""
+    if df:
+        dok = [x for x in df.get("seviyeler", []) if x.get("durum") == "ok"]
+        _b = (df.get("sayisal_band") or {}).get("u_pct")
+        if dok:
+            _i = max(dok, key=lambda x: x.get("hucre", 0))
+            dek = (f". Duvar-fonksiyonu YÖNLÜ aile (3 seviye, {_i['hucre']:,} hücre, "
+                   f"y⁺ort={_i['yplus']['alt']['ort']:.0f}): Xr/H={_i['Xr_H']:.3f} → "
+                   f"%{_i['hata_pct']:+.1f}"
+                   + (f", band ±%{_b} + u_D %1.6 → u_val %2.4 — sapma BÜYÜK, "
+                      "separated.wall_function ölçüme bağlandı" if _b else ""))
     return guv, (f"Geriye-basamaklı akış ↔ Driver & Seegmiller 1985 (Re_H=37500): "
                  f"yeniden-yapışma {en_iyi['model']} ile Xr/H={en_iyi['Xr_H']:.2f} vs "
-                 f"deney {d['referans']['Xr_H']} → %{en_iyi['hata_pct']:+.0f}{ek}{aek}")
+                 f"deney {d['referans']['Xr_H']} → %{en_iyi['hata_pct']:+.0f}{ek}{aek}{dek}")
 
 
 def _siniflandirici() -> tuple[str, str]:

@@ -42,33 +42,65 @@
     },
     {
       "ad": "L2_orta",
-      "durum": "yakinsamadi",
+      "durum": "ok",
+      "olcek": 1.4,
+      "hucre": 45248,
       "iterasyon": 20000,
-      "hucre": 50176,
+      "grading": 0.08348,
+      "residualControl_gecti": false,
+      "qoi_sacilma_pct": 0.045,
+      "_yakinsama_notu": "residualControl TETIKLENMEDI (20000 iterasyon) ama Xr sacilmasi %0.04 <= %1.0 — hukum QoI'ye dayaniyor, rezidüel onun vekilidir",
+      "ilk_hucre_m": 0.00085,
+      "Xr_H": 5.6845,
+      "hata_pct": -9.194,
       "yplus": {
         "ust": {
-          "min": 54.676,
-          "max": 5681.42,
-          "ort": 2149.18
+          "min": 54.6444,
+          "max": 90.8789,
+          "ort": 70.7723
         },
         "alt": {
-          "min": 603.757,
-          "max": 5000.28,
-          "ort": 2881.51
+          "min": 0.421631,
+          "max": 57.4338,
+          "ort": 43.0892
         },
         "basamak": {
-          "min": 52.5374,
-          "max": 7013.36,
-          "ort": 2090.96
+          "min": 0.421631,
+          "max": 90.8816,
+          "ort": 56.7761
         }
-      },
-      "qoi_sacilma_pct": 3.914
+      }
     },
     {
       "ad": "L3_ince",
-      "durum": "xr_okunamadi",
-      "neden": "zaman dizini yok",
-      "hucre": 102400
+      "durum": "ok",
+      "olcek": 2.0,
+      "hucre": 84800,
+      "iterasyon": 20000,
+      "grading": 0.08348,
+      "residualControl_gecti": false,
+      "qoi_sacilma_pct": 0.096,
+      "_yakinsama_notu": "residualControl TETIKLENMEDI (20000 iterasyon) ama Xr sacilmasi %0.10 <= %1.0 — hukum QoI'ye dayaniyor, rezidüel onun vekilidir",
+      "ilk_hucre_m": 0.00085,
+      "Xr_H": 5.7124,
+      "hata_pct": -8.747,
+      "yplus": {
+        "ust": {
+          "min": 39.9701,
+          "max": 66.2852,
+          "ort": 50.116
+        },
+        "alt": {
+          "min": 0.17058,
+          "max": 57.402,
+          "ort": 42.7586
+        },
+        "basamak": {
+          "min": 0.131269,
+          "max": 66.2859,
+          "ort": 43.4289
+        }
+      }
     }
   ],
   "duvar_islemi": {
@@ -77,28 +109,40 @@
       "L1_kaba": {
         "ort": 43.4157,
         "max": 57.2244
+      },
+      "L2_orta": {
+        "ort": 43.0892,
+        "max": 57.4338
+      },
+      "L3_ince": {
+        "ort": 42.7586,
+        "max": 57.402
       }
     },
     "bant_disi": {},
     "gerekce": "üç seviyede de y⁺ 30–300 bandında (tepe dahil)"
   },
   "sayisal_band": {
-    "gecerli": false,
-    "neden": "1 geçerli seviye (<3)"
+    "u_pct": 1.7914,
+    "yontem": "richardson",
+    "kaynak": "GCI (Richardson, asimptotik)",
+    "f_exact": 5.794264
   },
-  "hata_pct_ince": -9.49,
+  "hata_pct_ince": -8.747,
   "ayrilabilirlik": {
-    "ayrilabilir_mi": null,
-    "u_val_pct": null,
-    "gerekce": "sayısal band yok — ayrılabilirlik DEĞERLENDİRİLMEDİ"
+    "ayrilabilir_mi": true,
+    "u_val_pct": 2.4,
+    "u_ref_pct": 1.5974440894568693,
+    "gerekce": "u_val = √(1.79² + 1.60²) = %2.40 (ASME V&V 20)"
   },
   "hedef_ilk_hucre_m": 0.00085,
   "_neden": "Model-form tablosunun sekiz hucresinden besi oncul. separated.wall_function en ulasilabiliri: ayni deneyin DENEYSEL referansi elde ve u_D yalniz %1.6 (yari-analitik kanat capasinda u_D=%15 baskindi ve ag inceltmek care degildi).",
   "_basarisizlik_kok_nedeni": "ILK HUCREYI SABIT TUTMA STRATEJISI INCE AGDA COKUYOR. Ag inceldikce ayni ilk hucreyi korumak icin grading uc degere gidiyor: L1 0.0835, L2 0.0242, L3 0.0043 — sonuncusunda duvardan uzaktaki hucreler 233 kat kucuk ve foamRun floating point exception ile dustu. L2 ise yakinsamadi (Xr sacilmasi %3.91 > %1). Tek gecerli seviye kaldi, dolayisiyla GCI bandi YOK ve ayrilabilirlik degerlendirilemedi. DOGRU TASARIM: aile alt blogun duvar-normali yonunde degil, x-yonunde ve ust blokta inceltilmeli; alt blokta hucre sayisi SABIT kalip ilk hucreyi korumali (ya da iki-bolgeli mesh). Bu bir sonraki turun isi.",
+  "_aile_yonlu": "AG AILESI YONLUDUR: akis-yonu ve dis-alan cozunurlugu incelir, alt duvarin duvar-normali hucre sayisi SABIT kalir (40). Zorunludur: ilk hucre y+ bandini yani DUVAR ISLEMINI belirler ve degistirmek aileyi tek bir model-form hucresini temsil etmekten cikarir. BEDELI: elde edilen band duvar-normali ayriklastirma hatasini KAPSAMAZ; yalniz akis-yonu/dis-alan bilesenini olcer.",
   "_ilk_hucre_notu": "Ilk hucre SEVIYELER ARASINDA SABIT tutuldu. Ag inceldikce hucre sayisi artar ve grading ayni kalirsa ilk hucre incelir — uc seviye uc FARKLI duvar islemine duserdi ve GCI ailesi anlamini yitirirdi. Grading her seviyede sayisal cozuldu.",
   "_uretim": "Üretim: python experiments/basamak_duvar_fonksiyonu.py",
-  "_sure_s": 9.3,
-  "verdikt": "⚠️ Ayrılabilirlik değerlendirilemedi: sayısal band yok — ayrılabilirlik DEĞERLENDİRİLMEDİ",
+  "_sure_s": 5887.6,
+  "verdikt": "✅ wall_function (üç seviyede de y⁺ 30–300 bandında (tepe dahil)); sapma %8.75 > u_val %2.4 — model hatası AYRILABİLİYOR, separated.wall_function ölçüme bağlandı",
   "_ortam": {
     "python": "3.13.12",
     "paketler": {

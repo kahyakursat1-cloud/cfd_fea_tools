@@ -285,6 +285,35 @@ def capalari_topla() -> list[dict]:
                       "yplus_kaynak": ("foamPostProcess yPlus, 'alt' yaması — "
                                        "3-seviye ailenin en ince ağı"),
                       "referans": (aile.get("referans") or {}).get("kaynak", "")})
+    # AYNI DENEY, UCUNCU DUVAR ISLEMI. Ozgun kosu tampon bolgede (y+ 14.3),
+    # duvar-cozunur aile y+ 0.048'de, bu aile y+ 43'te. Ucu de Driver &
+    # Seegmiller'in AYNI deneysel referansina karsi olculuyor; degisen yalniz
+    # ilk hucre yuksekligi, yani DUVAR ISLEMI. Bir vakanin iki model-form
+    # hucresini birden doldurabilmesi, hucrelerin duvar islemine gore
+    # ayrilmasinin ta kendisi.
+    dfn = _j("basamak_duvar_fonksiyonu.json")
+    if dfn:
+        ok = [s for s in dfn.get("seviyeler", []) if s.get("durum") == "ok"]
+        if ok:
+            ince = max(ok, key=lambda s: s.get("hucre", 0))
+            _yp = (ince.get("yplus") or {}).get("alt") or {}
+            u_say = (dfn.get("sayisal_band") or {}).get("u_pct")
+            u_ref = (dfn.get("referans") or {}).get("u_ref_pct")
+            hata = abs(float(ince["hata_pct"]))
+            _ayr = ayrilabilir(hata, u_say, u_ref)
+            c.append({"capa": f"geriye-basamak ({dfn.get('model')}, duvar-fonksiyonu aile)",
+                      "rejim": "separated",
+                      "sapma_pct": hata,
+                      "ham_sapma_pct": hata,
+                      "u_sayisal_pct": round(u_say, 2) if u_say else None,
+                      "u_ref_pct": u_ref,
+                      "u_val_pct": _ayr["u_val_pct"],
+                      "ayrilabilir_mi": _ayr["ayrilabilir_mi"],
+                      "ayrilabilirlik_notu": _ayr["gerekce"],
+                      "yplus_ort": _yp.get("ort"), "yplus_max": _yp.get("max"),
+                      "yplus_kaynak": ("foamPostProcess yPlus, 'alt' yaması — "
+                                       "3-seviye YÖNLÜ ailenin en ince ağı"),
+                      "referans": (dfn.get("referans") or {}).get("kaynak", "")})
     return c
 
 
