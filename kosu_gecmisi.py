@@ -50,7 +50,11 @@ def tara(roots=_ROOTS) -> list[dict]:
                 "cd": s.get("cd"), "cl": s.get("cl"), "ld": s.get("ld"),
                 "drag_N": s.get("drag_N"),
                 "u_pct": unc.get("u_toplam_pct"),
+                "u_sayisal_pct": unc.get("u_sayisal_pct"),
+                "u_model_pct": unc.get("u_model_pct"),
                 "u_kaynak": unc.get("u_sayisal_kaynak"),
+                "model_kaynak": unc.get("model_kaynak"),
+                "duvar_cozunur": unc.get("duvar_cozunur"),
                 "cells": (s.get("mesh") or {}).get("cells"),
                 "yplus": ((s.get("sinir_tabaka") or {}).get("yplus") or {}).get("ort"),
                 "verdikt": (md.get("verdikt") or "")[:60],
@@ -84,24 +88,87 @@ def karsilastir(a: str | dict, b: str | dict) -> dict:
                         ("drag_N", "Sürükleme (N)"), ("cells", "Hücre"),
                         ("yplus", "y⁺ (gövde)")):
         satirlar.append({"metrik": etiket, "A": ka.get(key), "B": kb.get(key),
-                         "delta_pct": d_pct(ka.get(key), kb.get(key))})
+                         "delta_pct": d_pct(ka.get(key), kb.get(key)),
+                         "band_tasir": metrik_bandi(etiket)})
     uyarilar = []
     for key, mesaj in (("kalite", "mesh kalitesi farklı — Δ mesh-etkisi içerir"),
                        ("tip", "araç tipi/referans-alan modu farklı"),
                        ("hiz", "hız (Re) farklı — katsayılar aynı rejimde değil")):
         if ka.get(key) != kb.get(key):
             uyarilar.append(f"{key}: {ka.get(key)} ↔ {kb.get(key)} ({mesaj})")
-    ua, ub = ka.get("u_pct"), kb.get("u_pct")
-    ayirt = None
-    if None not in (ua, ub, ka.get("cd"), kb.get("cd")) and ka["cd"]:
-        dcd = abs(kb["cd"] - ka["cd"]) / abs(ka["cd"]) * 100
-        band = (ua ** 2 + ub ** 2) ** 0.5
-        ayirt = {"dCd_pct": round(dcd, 2), "band_rss_pct": round(band, 2),
-                 "hukum": ("Fark belirsizlik bandının DIŞINDA — gerçek tasarım farkı"
-                           if dcd > band else
-                           "Fark belirsizlik bandının İÇİNDE — A/B ayırt edilemez")}
+    ayirt = _ayirt_edilebilirlik(ka, kb, uyarilar)
     return {"A": ka["ad"], "B": kb["ad"], "satirlar": satirlar,
             "uyarilar": uyarilar, "ayirt_edilebilirlik": ayirt}
+
+
+def esles(ka: dict, kb: dict) -> tuple[bool, str]:
+    """İki koşu AYNI model-form hücresinde mi? (rejim×duvar-işlemi)
+
+    Eşleşiklerse model-form hatası ORTAKTIR ve farkta büyük ölçüde birbirini
+    götürür — A/B bandı yalnız sayısal belirsizlikten gelmelidir.
+    """
+    if ka.get("tip") != kb.get("tip"):
+        return False, "araç tipi (rejim) farklı"
+    da, db = ka.get("duvar_cozunur"), kb.get("duvar_cozunur")
+    if da is None or db is None:
+        return False, "duvar işlemi koşuların en az birinde kayıtlı değil"
+    if da != db:
+        return False, "duvar işlemi farklı (biri duvar-çözünür, diğeri duvar-fonksiyonu)"
+    return True, "aynı rejim + aynı duvar işlemi"
+
+
+def _ayirt_edilebilirlik(ka: dict, kb: dict, uyarilar: list[str]) -> dict | None:
+    """A/B farkı için EŞLEŞİK band + hüküm.
+
+    Eski sürüm her iki koşunun `u_toplam` (sayısal ⊕ model) bandını RSS'liyordu.
+    Bu, eşleşik karşılaştırmada YANLIŞ ve pratikte felç edici: iki mesh kalitesi
+    kıyaslanırken %12'lik ORTAK model-form hatası iki kez sayılıp %17'lik bir
+    banda dönüşüyor ve hiçbir tasarım farkı ayırt edilemiyordu. Ortak sistematik
+    hata farkta götürülür (ASME V&V 20, eşleşik/paired karşılaştırma); yalnız
+    hücre DEĞİŞİYORSA model-form banda girer.
+    """
+    ca, cb = ka.get("cd"), kb.get("cd")
+    if None in (ca, cb) or not ca:
+        return None
+    esit, neden = esles(ka, kb)
+    if esit:
+        ua, ub = ka.get("u_sayisal_pct"), kb.get("u_sayisal_pct")
+        band_tipi = "eşleşik (sayısal)"
+        gerekce = f"{neden} → ortak model-form hatası farkta götürüldü"
+    else:
+        ua, ub = ka.get("u_pct"), kb.get("u_pct")
+        band_tipi = "eşleşmemiş (sayısal ⊕ model)"
+        gerekce = f"{neden} → model-form hatası götürülmez, banda dahil"
+    if None in (ua, ub):
+        return {"dCd_pct": round(abs(cb - ca) / abs(ca) * 100, 2),
+                "band_rss_pct": None, "band_tipi": band_tipi, "gerekce": gerekce,
+                "hukum": "HÜKÜM VERİLEMEZ — bu band tipi için belirsizlik kayıtlı değil"}
+    dcd = abs(cb - ca) / abs(ca) * 100
+    band = (ua ** 2 + ub ** 2) ** 0.5
+    if dcd > band:
+        # UYARI VARSA "TASARIM FARKI" DENEMEZ. Kalite/hiz farkliysa olculen fark
+        # mesh ya da Re etkisini de tasir; hangi payin tasarimdan geldigi bu
+        # kiyastan cikmaz. Eski surum bu durumda da "gercek tasarim farki"
+        # yaziyordu — okuyan yanlis nedene atfediyordu.
+        hukum = ("Fark bandın DIŞINDA — ancak KAYNAĞI karışık: " + "; ".join(uyarilar)
+                 if uyarilar else "Fark bandın DIŞINDA — gerçek tasarım farkı")
+    else:
+        hukum = "Fark bandın İÇİNDE — A/B ayırt edilemez"
+    return {"dCd_pct": round(dcd, 2), "band_rss_pct": round(band, 2),
+            "band_tipi": band_tipi, "gerekce": gerekce, "hukum": hukum}
+
+
+def metrik_bandi(metrik: str) -> str | None:
+    """Hangi metrikler Cd'nin ölçülen bandını taşır, hangileri taşımaz.
+
+    Cd bandı ölçülür (mesh duyarlılığı Cd üzerinden koşulur). Sürükleme kuvveti
+    aynı hız/alanda Cd ile orantılıdır → aynı bağıl bandı taşır. Cl ve L/D
+    TAŞIMAZ: taşımanın ağ duyarlılığı sürüklemeninkinden farklıdır (α=8°
+    çapasında Cd yakınsarken Cl serisi ıraksıyordu). Onlara Cd'nin bandını
+    uygulamak ölçülmemiş bir sayıyı ölçülmüş göstermek olur.
+    """
+    return {"Cd": "ölçülen", "Sürükleme (N)": "Cd ile orantılı — aynı bağıl band",
+            }.get(metrik)
 
 
 def tablo_metni(kayitlar: list[dict], tip: str = "") -> str:

@@ -306,22 +306,32 @@ class KosularDialog(QDialog):
             self.det.setPlainText("Karşılaştırma için tam İKİ satır seçin (Ctrl+tık).")
             return
         c = self._kg.karsilastir(sec[0], sec[1])
-        md = [f"## {c['A']}  ⇄  {c['B']}", "", "| Metrik | A | B | Δ% |", "|---|---|---|---|"]
+        md = [f"## {c['A']}  ⇄  {c['B']}", "",
+              "| Metrik | A | B | Δ% | Band |", "|---|---|---|---|---|"]
         for s in c["satirlar"]:
+            # CIPLAK Δ% BIRAKILMAZ. Bandi olculmemis bir metrigin yuzde farki
+            # tek basina hukum tasimaz; tabloda hangi satirin hukumlenebilir
+            # oldugu YAZILI olmali, yoksa okuyan hepsini esit sanir.
+            bt = s.get("band_tasir")
             md.append(f"| {s['metrik']} | {s['A']} | {s['B']} | "
-                      f"{s['delta_pct'] if s['delta_pct'] is not None else '—'} |")
+                      f"{s['delta_pct'] if s['delta_pct'] is not None else '—'} | "
+                      f"{bt or '⚠️ bu metriğin bandı ölçülmedi'} |")
         ay = c.get("ayirt_edilebilirlik")
-        if ay:
-            md += ["", f"**Ayırt-edilebilirlik:** ΔCd %{ay['dCd_pct']} vs band(RSS) "
-                       f"%{ay['band_rss_pct']} → **{ay['hukum']}**"]
+        if ay and ay.get("band_rss_pct") is not None:
+            md += ["", f"**Ayırt-edilebilirlik:** ΔCd %{ay['dCd_pct']} vs "
+                       f"{ay['band_tipi']} band %{ay['band_rss_pct']} → **{ay['hukum']}**",
+                   "", f"> Band seçimi: {ay['gerekce']}"]
+        elif ay:
+            md += ["", f"**Ayırt-edilebilirlik:** ΔCd %{ay['dCd_pct']} — "
+                       f"**{ay['hukum']}**", "", f"> Band seçimi: {ay['gerekce']}"]
         else:
             # BAND YOKSA SATIR HIC YAZILMIYORDU. Kullanici iki ciplak sayiyi
             # yanyana gorup farki GERCEK saniyordu; oysa bandi olmayan iki
             # kosunun farki hakkinda hicbir sey soylenemez. "Olcemedim" ile
             # "fark yok" ayni sey degildir ve bu artik ekranda yaziyor.
-            _eksik = [k["ad"] for k in (sec[0], sec[1]) if k.get("u_pct") is None]
-            md += ["", "**Ayırt-edilebilirlik: HÜKÜM VERİLEMEZ** — belirsizlik "
-                       "bandı olmayan koşu(lar): " + (", ".join(_eksik) or "—") +
+            _eksik = [k["ad"] for k in (sec[0], sec[1]) if k.get("cd") is None]
+            md += ["", "**Ayırt-edilebilirlik: HÜKÜM VERİLEMEZ** — Cd kaydı "
+                       "olmayan koşu(lar): " + (", ".join(_eksik) or "—") +
                    ". İki sayının farkı, bantları bilinmeden gerçek sayılamaz; "
                    "mesh duyarlılık bandı için `--duyarlilik` ile yeniden koşun."]
         for u in c["uyarilar"]:

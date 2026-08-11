@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-31.862 satır Python $\cdot$ 141 test dosyası $\cdot$ 1434 geçen test\\[3mm]
+31.953 satır Python $\cdot$ 142 test dosyası $\cdot$ 1442 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -690,6 +690,53 @@ ailesi, kanıt gezgini ve yapısal kontrol açık. Sonuç panelindeki sayılar v
 günlük \emph{birebir aynı} --- kip yalnız neyin görüneceğini değiştirir.}
 \end{figure}
 
+\subsection{Eşleşik karşılaştırma: ortak hata farkta götürülür}
+\label{sub:eslesik}
+
+Koşu geçmişinde iki satır seçilip karşılaştırıldığında fark, bantlara karşı
+hükme bağlanıyordu. Hüküm doğru fikirdi ama \emph{yanlış bandı} kullanıyordu:
+her iki koşunun $u_{\text{toplam}}$ değeri (sayısal $\oplus$ model) kök-kare
+toplamıyla birleştiriliyordu. Aynı rejimde ve aynı duvar işlemindeki iki koşuda
+model-form hatası \textbf{ortaktır}; farkı alırken büyük ölçüde birbirini
+götürür. İki kez saymak, \%12'lik ortak bir öncülü \%17'lik bir banda çevirip
+her tasarım farkını yutuyordu:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lcc@{}}
+\toprule
+& \textbf{Eski (toplam $\oplus$ toplam)} & \textbf{Eşleşik} \\
+\midrule
+$\Delta C_d$ & \multicolumn{2}{c}{\%10{,}0} \\
+Band & \%17{,}1 & \%2{,}1 \\
+Hüküm & ayırt edilemez & \textbf{gerçek fark} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Eşleşme koşulu \emph{yazılı} ve testle kilitli: aynı araç tipi
+(rejim) \emph{ve} aynı duvar işlemi. Duvar işlemi koşuların birinde kayıtlı
+değilse eşleşme sayılmaz --- bilmemek, aynı olmak değildir --- ve muhafazakâr
+eşleşmemiş band kullanılır. Ekranda hangi bandın seçildiği ve \emph{neden}
+seçildiği yazar.
+
+İki ek kural aynı yerde uygulanıyor. Birincisi: fark bandın dışında olsa bile
+koşular kalite ya da hız bakımından ayrışıyorsa hüküm ``gerçek tasarım farkı''
+diyemez; farkın ne kadarının tasarımdan, ne kadarının ağdan veya Reynolds
+sayısından geldiği bu kıyastan çıkmaz. İkincisi: $C_l$ ve $L/D$ satırlarına
+$C_d$'nin bandı \emph{uygulanmaz}. Ağ duyarlılığı $C_d$ üzerinden koşulur ve
+taşımanınki farklıdır --- $\alpha{=}8^\circ$ çapasında $C_d$ yakınsarken $C_l$
+serisi ıraksıyordu (\S\ref{sub:vaka2}). Tabloda o satırlar ``bu metriğin bandı
+ölçülmedi'' etiketiyle durur.
+
+\begin{dikkat}{Ölçüldü: koşuların yalnız \%13'ü hükümlenebiliyor}
+Depodaki 166 koşunun 22'sinde sayısal belirsizlik kayıtlı. Geri kalanın
+$u_{\text{toplam}}$ değeri saf model-form öncülüdür; eşleşik karşılaştırmada
+model götürülünce geriye \emph{ölçülmüş} hiçbir band kalmaz ve araç ``hüküm
+verilemez'' der. Eski sürüm bu koşularda da bir sayı basıyordu --- hem de hiç
+ölçülmemiş bir belirsizliğe dayanarak. Kapatmanın yolu \texttt{-{}-duyarlilik}
+ile yeniden koşmaktır; araç bunu ekranda söylüyor.
+\end{dikkat}
+
 % ══════════════════════════════ 3 ══════════════════════════════
 \section{Belirsizlik Nicelemesi}
 \label{sec:belirsizlik}
@@ -1043,6 +1090,7 @@ $C_l$ & 0{,}01433 & 0{,}04568 & 0{,}09152 \\
 çevrimi), yani mesh-bağımsızlık bandı hâlâ yok ve $C_l$ kamburluğu çözemiyor.
 
 \subsection{Vaka 2 --- İnce kanatta taşıma: RANS'ın yapamadığı}
+\label{sub:vaka2}
 
 \textbf{Problem.} İnce kanatta RANS mutlak taşımayı veremiyor.
 
@@ -1585,9 +1633,9 @@ v1.3 & yüksek & Model-form tablosunun kalan beş hücresi --- deneysel referans
                 yalnız ağ inceltmek yetmiyor \\
 v1.4 & orta   & Docker/Conda kilidi ile yeniden-üretilebilir ortam; çözücü
                 sürüm kilidi \\
-v1.5 & orta   & Arayüz v2 --- kipler, kanıt gezgini ve bandlı sonuç kartları
-                EKLENDİ (\S\ref{sub:kipler}); kalan iş karşılaştırma
-                stüdyosu \\
+v1.5 & orta   & Arayüz v2 --- kipler, kanıt gezgini, bandlı sonuç kartları ve
+                eşleşik karşılaştırma EKLENDİ (\S\ref{sub:kipler},
+                \S\ref{sub:eslesik}) \\
 v1.6 & düşük  & Bellek katsayısı için BÜYÜK koşularla ölçüm (küçük koşu
                 gürültüde kalıyor); hücre$\times$çekirdek$\times$RAM matrisi \\
 v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanması;
@@ -1680,11 +1728,11 @@ olarak değil. Kanıt dosyası zincirin tamamını taşır: üretim komutu
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 31.862 & \texttt{rapor\_sayilari.py} \\
+Kod satırı (kök + \texttt{analysis/}) & 31.953 & \texttt{rapor\_sayilari.py} \\
 Kök modül & 83 & \texttt{rapor\_sayilari.py} \\
 Deney / çapa betiği & 62 & \texttt{experiments/} \\
-Test dosyası & 141 & \texttt{tests/test\_*.py} \\
-Geçen test & 1434 & \texttt{pytest -q} \\
+Test dosyası & 142 & \texttt{tests/test\_*.py} \\
+Geçen test & 1442 & \texttt{pytest -q} \\
 Geçen test (coverage açık) & 1434 & \texttt{-{}-cov} \\
 Satır kapsamı & \textbf{\%47} & 18.928 ifade, 9.979 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
