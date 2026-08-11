@@ -1,0 +1,1334 @@
+{
+  "vaka": "Kapsam — karar katmanı vs genel",
+  "_neden": "Raporun ilkesi: bulduran sey kapsam YUZDESI degil, kapsamin NEREDE dusuk oldugudur. Bu betik kapsanmamis satirlari metin/CLI - savunma - karar dali diye ayirir.",
+  "_yayimlanmaz": "Asagidaki 'karar_katmani.kapsam_pct' MANSET DEGILDIR ve rapora yazilmaz. Raporun Kapsam bolumu, yuzdeyi yukseltmek icin testi kolay olani sayip zoru disarida birakmayi acikca reddeder; yayimlanan sayi %47'dir.",
+  "genel": {
+    "ifade": 19709,
+    "kapsam_pct": 47.9
+  },
+  "karar_katmani": {
+    "modul_sayisi": 15,
+    "ifade": 2647,
+    "eksik": 386,
+    "kapsam_pct": 85.4
+  },
+  "moduller": [
+    {
+      "modul": "validity_envelope.py",
+      "kapsam_pct": 97.7,
+      "ifade": 306,
+      "eksik": 7,
+      "eksik_io": 2,
+      "eksik_savunma": 1,
+      "eksik_karar_dali": 4
+    },
+    {
+      "modul": "report_generator.py",
+      "kapsam_pct": 87.4,
+      "ifade": 657,
+      "eksik": 83,
+      "eksik_io": 17,
+      "eksik_savunma": 5,
+      "eksik_karar_dali": 61
+    },
+    {
+      "modul": "gci_advisor.py",
+      "kapsam_pct": 78.2,
+      "ifade": 119,
+      "eksik": 26,
+      "eksik_io": 12,
+      "eksik_savunma": 6,
+      "eksik_karar_dali": 8
+    },
+    {
+      "modul": "kosu_gecmisi.py",
+      "kapsam_pct": 83.5,
+      "ifade": 103,
+      "eksik": 17,
+      "eksik_io": 11,
+      "eksik_savunma": 1,
+      "eksik_karar_dali": 5
+    },
+    {
+      "modul": "bellek_kapisi.py",
+      "kapsam_pct": 89.2,
+      "ifade": 37,
+      "eksik": 4,
+      "eksik_io": 1,
+      "eksik_savunma": 1,
+      "eksik_karar_dali": 2
+    },
+    {
+      "modul": "urans_kapisi.py",
+      "kapsam_pct": 93.2,
+      "ifade": 73,
+      "eksik": 5,
+      "eksik_io": 0,
+      "eksik_savunma": 0,
+      "eksik_karar_dali": 5
+    },
+    {
+      "modul": "girdi_belirsizligi.py",
+      "kapsam_pct": 94.9,
+      "ifade": 59,
+      "eksik": 3,
+      "eksik_io": 0,
+      "eksik_savunma": 1,
+      "eksik_karar_dali": 2
+    },
+    {
+      "modul": "validation_anchors.py",
+      "kapsam_pct": 93.9,
+      "ifade": 33,
+      "eksik": 2,
+      "eksik_io": 0,
+      "eksik_savunma": 2,
+      "eksik_karar_dali": 0
+    },
+    {
+      "modul": "arayuz_kipleri.py",
+      "kapsam_pct": 100.0,
+      "ifade": 9,
+      "eksik": 0,
+      "eksik_io": 0,
+      "eksik_savunma": 0,
+      "eksik_karar_dali": 0
+    },
+    {
+      "modul": "kanal_ayrismasi.py",
+      "kapsam_pct": 67.4,
+      "ifade": 46,
+      "eksik": 15,
+      "eksik_io": 10,
+      "eksik_savunma": 0,
+      "eksik_karar_dali": 5
+    },
+    {
+      "modul": "arka_uc_sayaci.py",
+      "kapsam_pct": 84.5,
+      "ifade": 58,
+      "eksik": 9,
+      "eksik_io": 6,
+      "eksik_savunma": 0,
+      "eksik_karar_dali": 3
+    },
+    {
+      "modul": "zarf.py",
+      "kapsam_pct": 84.8,
+      "ifade": 197,
+      "eksik": 30,
+      "eksik_io": 9,
+      "eksik_savunma": 2,
+      "eksik_karar_dali": 19
+    },
+    {
+      "modul": "ortam.py",
+      "kapsam_pct": 59.8,
+      "ifade": 92,
+      "eksik": 37,
+      "eksik_io": 10,
+      "eksik_savunma": 2,
+      "eksik_karar_dali": 25
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "kapsam_pct": 81.2,
+      "ifade": 639,
+      "eksik": 120,
+      "eksik_io": 18,
+      "eksik_savunma": 21,
+      "eksik_karar_dali": 81
+    },
+    {
+      "modul": "experiments/model_form_bandi.py",
+      "kapsam_pct": 87.2,
+      "ifade": 219,
+      "eksik": 28,
+      "eksik_io": 12,
+      "eksik_savunma": 4,
+      "eksik_karar_dali": 12
+    }
+  ],
+  "sinanmamis_karar_dallari": [
+    {
+      "modul": "validity_envelope.py",
+      "satir": 489,
+      "kod": "_not.append(f\"min={_mn:.0f} bandin ALTINDA (durma noktasinda beklenir)\")"
+    },
+    {
+      "modul": "validity_envelope.py",
+      "satir": 491,
+      "kod": "return False, ("
+    },
+    {
+      "modul": "validity_envelope.py",
+      "satir": 688,
+      "kod": "ap = f\"{env.cfd_clmax_apparent:.2f}\" if env.cfd_clmax_apparent is not None else \"?\""
+    },
+    {
+      "modul": "validity_envelope.py",
+      "satir": 693,
+      "kod": "c = env.clmax_reference"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 289,
+      "kod": "problems.append(f\"asimptotik oran {asy} (≈1 beklenir)\")"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 332,
+      "kod": "gci = compute_gci(h[-1], h[-1], h[0], cd[-1], cd[-1], cd[0])"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 505,
+      "kod": "return r.get(\"Cl_err_pct\", 1e9) <= TOL_CL_PCT"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 519,
+      "kod": "tols.append(TOL_CL_PCT)"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 523,
+      "kod": "tols.append(TOL_FEA_PCT)"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 526,
+      "kod": "return"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 880,
+      "kod": "d = fea[lt]"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 950,
+      "kod": "pok = sorted([p for p in polar if p.get(\"Cl\") is not None],"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 952,
+      "kod": "if len(pok) >= 2:"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 953,
+      "kod": "sf = (pok[1][\"Cl\"] - pok[0][\"Cl\"]) / (pok[1][\"alpha\"] - pok[0][\"alpha\"])"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 954,
+      "kod": "agree = abs(sv - sf) / (abs(sf) + 1e-9) * 100"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 955,
+      "kod": "line += f\"  vs **OpenFOAM = {sf:.4f}/°** → uyum %{agree:.0f} fark\""
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 994,
+      "kod": "if \"Cd_openrocket\" in rocket_cfd:"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1050,
+      "kod": "base = Path(\".\")"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1051,
+      "kod": "mesh_indep = None"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1052,
+      "kod": "mifile = base / \"mesh_independence.json\""
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1053,
+      "kod": "if mifile.exists():"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1054,
+      "kod": "mesh_indep = json.loads(mifile.read_text(encoding=\"utf-8-sig\")).get(\"levels\")"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1056,
+      "kod": "validation = {}"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1057,
+      "kod": "vfile = base / \"validation\" / \"validation_results.json\""
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1058,
+      "kod": "if vfile.exists():"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1059,
+      "kod": "validation = json.loads(vfile.read_text(encoding=\"utf-8-sig\"))"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1061,
+      "kod": "env = FlightEnvelope("
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1066,
+      "kod": "coupling = None"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1067,
+      "kod": "cfile = base / \"coupling_result.json\""
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1068,
+      "kod": "if cfile.exists():"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1069,
+      "kod": "coupling = json.loads(cfile.read_text(encoding=\"utf-8-sig\"))"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1071,
+      "kod": "fea = None"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1072,
+      "kod": "ffile = base / \"fea_critical.json\""
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1073,
+      "kod": "if ffile.exists():"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1074,
+      "kod": "fea = json.loads(ffile.read_text(encoding=\"utf-8-sig\"))"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1076,
+      "kod": "mesh_quality = None"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1077,
+      "kod": "mqfile = base / \"mesh_quality.json\""
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1078,
+      "kod": "if mqfile.exists():"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1079,
+      "kod": "mesh_quality = json.loads(mqfile.read_text(encoding=\"utf-8-sig\"))"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1081,
+      "kod": "polar = None"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1082,
+      "kod": "pfile = base / \"aoa_polar.json\""
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1083,
+      "kod": "if pfile.exists():"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1084,
+      "kod": "polar = json.loads(pfile.read_text(encoding=\"utf-8-sig\"))"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1086,
+      "kod": "vspaero = None"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1087,
+      "kod": "vfile = base / \"vspaero_polar.json\""
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1088,
+      "kod": "if vfile.exists():"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1089,
+      "kod": "_v = json.loads(vfile.read_text(encoding=\"utf-8-sig\"))"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1091,
+      "kod": "vspaero = _v.get(\"polar\", []) if isinstance(_v, dict) else _v"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1093,
+      "kod": "def _load(name):"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1094,
+      "kod": "f = base / name"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1095,
+      "kod": "return json.loads(f.read_text(encoding=\"utf-8-sig\")) if f.exists() else None"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1097,
+      "kod": "rocket     = _load(\"openrocket_result.json\")"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1098,
+      "kod": "rocket_fin = _load(\"rocket_fin_result.json\")"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1099,
+      "kod": "rocket_cfd = _load(\"rocket_cfd_result.json\")"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1100,
+      "kod": "airfoil_gci = _load(\"gci_airfoil.json\")"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1101,
+      "kod": "transition  = _load(\"transition_results.json\")"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1105,
+      "kod": "fea_validations = []"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1106,
+      "kod": "for f in sorted(base.glob(\"fea_validation*.json\")):"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1107,
+      "kod": "d = json.loads(f.read_text(encoding=\"utf-8-sig\"))"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1108,
+      "kod": "if isinstance(d, dict) and d.get(\"vaka\"):"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1109,
+      "kod": "fea_validations.append(d)"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1111,
+      "kod": "fea_stress_gci = _load(\"fea_stress_gci.json\")   # FEA solution-verification (GCI)"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1112,
+      "kod": "tmr_gci = _load(\"tmr_gci_verdict.json\")          # CFD drag GCI (TMR grid — RESOLVED)"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1114,
+      "kod": "rep = VVReport(\"./report\")"
+    },
+    {
+      "modul": "report_generator.py",
+      "satir": 1115,
+      "kod": "path = rep.build(mesh_indep=mesh_indep, validation=validation,"
+    },
+    {
+      "modul": "gci_advisor.py",
+      "satir": 83,
+      "kod": "rec.update(ogrenilebilir=False,"
+    },
+    {
+      "modul": "gci_advisor.py",
+      "satir": 119,
+      "kod": "return []"
+    },
+    {
+      "modul": "gci_advisor.py",
+      "satir": 215,
+      "kod": "sys.stdout.reconfigure(encoding=\"utf-8\", errors=\"replace\")"
+    },
+    {
+      "modul": "gci_advisor.py",
+      "satir": 216,
+      "kod": "cli = argparse.ArgumentParser()"
+    },
+    {
+      "modul": "gci_advisor.py",
+      "satir": 221,
+      "kod": "if args.komut == \"harvest\":"
+    },
+    {
+      "modul": "gci_advisor.py",
+      "satir": 224,
+      "kod": "if not args.stl:"
+    },
+    {
+      "modul": "gci_advisor.py",
+      "satir": 228,
+      "kod": "cls = ap.classify_vehicle(inspect_geometry(args.stl))"
+    },
+    {
+      "modul": "gci_advisor.py",
+      "satir": 229,
+      "kod": "out = advise(cls[\"metrik\"], args.tip or cls[\"tip\"])"
+    },
+    {
+      "modul": "kosu_gecmisi.py",
+      "satir": 111,
+      "kod": "return False, \"araç tipi (rejim) farklı\""
+    },
+    {
+      "modul": "kosu_gecmisi.py",
+      "satir": 191,
+      "kod": "sys.stdout.reconfigure(encoding=\"utf-8\", errors=\"replace\")"
+    },
+    {
+      "modul": "kosu_gecmisi.py",
+      "satir": 192,
+      "kod": "cli = argparse.ArgumentParser()"
+    },
+    {
+      "modul": "kosu_gecmisi.py",
+      "satir": 198,
+      "kod": "if args.komut == \"listele\":"
+    },
+    {
+      "modul": "kosu_gecmisi.py",
+      "satir": 201,
+      "kod": "if not (args.a and args.b):"
+    },
+    {
+      "modul": "bellek_kapisi.py",
+      "satir": 38,
+      "kod": "if importlib.util.find_spec(\"psutil\") is None:"
+    },
+    {
+      "modul": "bellek_kapisi.py",
+      "satir": 41,
+      "kod": "return psutil.virtual_memory().available / 1e9"
+    },
+    {
+      "modul": "urans_kapisi.py",
+      "satir": 92,
+      "kod": "return f\"~{s / 60:.0f} dakika\""
+    },
+    {
+      "modul": "urans_kapisi.py",
+      "satir": 95,
+      "kod": "return f\"~{s / 86400:.1f} gün\""
+    },
+    {
+      "modul": "urans_kapisi.py",
+      "satir": 147,
+      "kod": "return {\"olculdu\": False, \"neden\": f\"yetersiz örnek ({len(deger)})\"}"
+    },
+    {
+      "modul": "urans_kapisi.py",
+      "satir": 151,
+      "kod": "return {\"olculdu\": False, \"neden\": \"geçiş atıldıktan sonra pencere boş\"}"
+    },
+    {
+      "modul": "urans_kapisi.py",
+      "satir": 177,
+      "kod": "return {\"olculdu\": False, \"neden\": \"medyan periyot sıfır/negatif\","
+    },
+    {
+      "modul": "girdi_belirsizligi.py",
+      "satir": 67,
+      "kod": "return abs(self.u_toplam / self.deger) * 100 if self.deger else None"
+    },
+    {
+      "modul": "girdi_belirsizligi.py",
+      "satir": 100,
+      "kod": "paylar[g.ad] = 0.0"
+    },
+    {
+      "modul": "kanal_ayrismasi.py",
+      "satir": 110,
+      "kod": "if hasattr(_akis, \"reconfigure\"):"
+    },
+    {
+      "modul": "kanal_ayrismasi.py",
+      "satir": 112,
+      "kod": "o = ozet()"
+    },
+    {
+      "modul": "kanal_ayrismasi.py",
+      "satir": 114,
+      "kod": "for x in o[\"bulgular\"]:"
+    },
+    {
+      "modul": "kanal_ayrismasi.py",
+      "satir": 115,
+      "kod": "im = \"  \" if x[\"kabul\"] else \"→ \""
+    },
+    {
+      "modul": "kanal_ayrismasi.py",
+      "satir": 118,
+      "kod": "if not x[\"kabul\"]:"
+    },
+    {
+      "modul": "arka_uc_sayaci.py",
+      "satir": 119,
+      "kod": "sys.stdout.reconfigure(encoding=\"utf-8\", errors=\"replace\")"
+    },
+    {
+      "modul": "arka_uc_sayaci.py",
+      "satir": 120,
+      "kod": "o = ozet()"
+    },
+    {
+      "modul": "arka_uc_sayaci.py",
+      "satir": 123,
+      "kod": "for d, n in o[\"dosyalar\"].items():"
+    },
+    {
+      "modul": "zarf.py",
+      "satir": 51,
+      "kod": "return \"⚠️ Belirsiz\", \"GCI hesaplanamadı (seviyeler ayırt edilemiyor)\""
+    },
+    {
+      "modul": "zarf.py",
+      "satir": 132,
+      "kod": "cd_ler = \", \".join(f\"{s['cells']:,}→{s['Cd']:.4f}\" for s in sev if s.get(\"Cd\") is not None"
+    },
+    {
+      "modul": "zarf.py",
+      "satir": 133,
+      "kod": "return \"❌ Yakınsamadı\", ("
+    },
+    {
+      "modul": "zarf.py",
+      "satir": 192,
+      "kod": "return \"⚠️ Bantlı\", \"validation_band.json boş\""
+    },
+    {
+      "modul": "zarf.py",
+      "satir": 231,
+      "kod": "return \"❓ Ölçülemedi\", \"geriye-basamaklı akış çapası hiçbir modelde tamamlanmadı\""
+    },
+    {
+      "modul": "zarf.py",
+      "satir": 345,
+      "kod": "return \"⚠️ Kanıt yok\", BEYAN"
+    },
+    {
+      "modul": "zarf.py",
+      "satir": 402,
+      "kod": "guv, kanit = \"❓ Okunamadı\", f\"kanıt dosyası şema dışı ({type(e).__name__})\""
+    },
+    {
+      "modul": "zarf.py",
+      "satir": 408,
+      "kod": "p = ROOT / \"README.md\""
+    },
+    {
+      "modul": "zarf.py",
+      "satir": 409,
+      "kod": "metin = p.read_text(encoding=\"utf-8\")"
+    },
+    {
+      "modul": "zarf.py",
+      "satir": 410,
+      "kod": "if BASLANGIC not in metin or BITIS not in metin:"
+    },
+    {
+      "modul": "zarf.py",
+      "satir": 412,
+      "kod": "return False"
+    },
+    {
+      "modul": "zarf.py",
+      "satir": 413,
+      "kod": "bas = metin.index(BASLANGIC) + len(BASLANGIC)"
+    },
+    {
+      "modul": "zarf.py",
+      "satir": 414,
+      "kod": "son = metin.index(BITIS)"
+    },
+    {
+      "modul": "zarf.py",
+      "satir": 415,
+      "kod": "yeni = metin[:bas] + \"\\n\" + zarf_tablosu() + \"\\n\" + metin[son:]"
+    },
+    {
+      "modul": "zarf.py",
+      "satir": 416,
+      "kod": "if yeni == metin:"
+    },
+    {
+      "modul": "zarf.py",
+      "satir": 418,
+      "kod": "return True"
+    },
+    {
+      "modul": "zarf.py",
+      "satir": 421,
+      "kod": "return True"
+    },
+    {
+      "modul": "zarf.py",
+      "satir": 428,
+      "kod": "if hasattr(_akis, \"reconfigure\"):"
+    },
+    {
+      "modul": "zarf.py",
+      "satir": 430,
+      "kod": "if \"--yaz\" in sys.argv:"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 39,
+      "kod": "out[ad] = None"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 49,
+      "kod": "r = subprocess.run(argv, capture_output=True, text=True, timeout=30, check=False)"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 50,
+      "kod": "metin = (r.stdout or \"\") + (r.stderr or \"\")"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 51,
+      "kod": "for satir in metin.splitlines():"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 52,
+      "kod": "if desen.lower() in satir.lower():"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 53,
+      "kod": "return satir.strip()[:120]"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 70,
+      "kod": "out: dict[str, str | None] = {\"openfoam\": None, \"calculix\": None}"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 71,
+      "kod": "if platform.system() != \"Windows\":"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 72,
+      "kod": "return out"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 75,
+      "kod": "for anahtar, komut, desen in ("
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 85,
+      "kod": "r = linux_run(komut, 60)"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 86,
+      "kod": "metin = (getattr(r, \"stdout\", \"\") or \"\") + (getattr(r, \"stderr\", \"\") or \"\")"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 87,
+      "kod": "for satir in metin.splitlines():"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 88,
+      "kod": "if desen in satir.lower():"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 89,
+      "kod": "out[anahtar] = satir.strip()[:120]"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 90,
+      "kod": "break"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 91,
+      "kod": "return out"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 120,
+      "kod": "d[\"cozucu\"] = cozucu_surumleri()"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 145,
+      "kod": "yok.append(alan)"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 172,
+      "kod": "sys.stdout.reconfigure(encoding=\"utf-8\", errors=\"replace\")"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 174,
+      "kod": "if args and args[0] == \"--fark\":"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 175,
+      "kod": "if len(args) < 2:"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 177,
+      "kod": "return 2"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 178,
+      "kod": "d = json.loads(Path(args[1]).read_text(encoding=\"utf-8\"))"
+    },
+    {
+      "modul": "ortam.py",
+      "satir": 179,
+      "kod": "f = fark(d.get(\"_ortam\"))"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 51,
+      "kod": "raise ValueError"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 56,
+      "kod": "r = _lr(\"nproc\", 15)"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 57,
+      "kod": "return max(1, min(int(r.stdout.strip()) // 2, 8))   # mantıksal/2 ≈ fiziksel"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 59,
+      "kod": "return max(1, (os.cpu_count() or 4) // 2)"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 144,
+      "kod": "cached = getattr(self, \"_lref\", None)"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 145,
+      "kod": "if cached is not None:"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 146,
+      "kod": "return cached"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 147,
+      "kod": "m = trimesh.load(str(self.stl_path), force=\"mesh\")"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 148,
+      "kod": "val = (float((m.bounds[1] - m.bounds[0]).max())"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 150,
+      "kod": "self._lref = val"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 151,
+      "kod": "return val"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 186,
+      "kod": "raise ValueError(f\"STL yüklenemedi: {stl_path}\")"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 266,
+      "kod": "reasons.append(f\"yüksek skewness ({skew:.1f}, eşik {SKEW_LIMIT:.0f})\"); verdict = \"warn\""
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 268,
+      "kod": "reasons.append(f\"çok yüksek aspect ratio ({aspect:.0e})\"); verdict = \"warn\""
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 509,
+      "kod": "h1 = case.first_layer_thickness"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 510,
+      "kod": "sizing = ("
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 891,
+      "kod": "txt = _foam_header(\"dictionary\", \"physicalProperties\", \"constant\")"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 908,
+      "kod": "(case_dir / \"constant\" / \"physicalProperties\").write_text(txt)"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 912,
+      "kod": "t = case.t_inf"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 913,
+      "kod": "txt = _foam_header(\"volScalarField\", \"T\", \"0\")"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 927,
+      "kod": "(case_dir / \"0\" / \"T\").write_text(txt)"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 931,
+      "kod": "txt = _foam_header(\"volScalarField\", \"alphat\", \"0\")"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 945,
+      "kod": "(case_dir / \"0\" / \"alphat\").write_text(txt)"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 949,
+      "kod": "p = case.p_inf"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 950,
+      "kod": "txt = _foam_header(\"volScalarField\", \"p\", \"0\")"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 964,
+      "kod": "(case_dir / \"0\" / \"p\").write_text(txt)"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1084,
+      "kod": "shutil.rmtree(case_dir)"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1130,
+      "kod": "_write_gecis_alanlari(case_dir, surface_name, case.turbulence_intensity)"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1132,
+      "kod": "_write_physical_properties_compressible(case_dir, case)"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1138,
+      "kod": "_write_field_p_compressible(case_dir, case, surface_name)"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1139,
+      "kod": "_write_field_T(case_dir, case, surface_name)"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1140,
+      "kod": "_write_field_alphat(case_dir, surface_name)"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1148,
+      "kod": "_write_propeller(case_dir, case.propeller, gmin, gmax, cell_size)"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1153,
+      "kod": "(case_dir / \"constant\" / \"fvConstraints\").write_text("
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1166,
+      "kod": "cap = prop[\"cap_m\"]"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1167,
+      "kod": "yc = float((gmin[1] + gmax[1]) / 2)"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1168,
+      "kod": "zc = float((gmin[2] + gmax[2]) / 2)"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1169,
+      "kod": "t = max(0.06 * cap, 3.0 * bg_cell)"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1170,
+      "kod": "x2 = float(gmin[0]) - 0.02 * float(gmax[0] - gmin[0])"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1171,
+      "kod": "x1 = x2 - t"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1172,
+      "kod": "(case_dir / \"system\" / \"topoSetDict\").write_text("
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1179,
+      "kod": "up = x1 - 1.5 * cap"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1180,
+      "kod": "(case_dir / \"constant\" / \"fvModels\").write_text("
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1229,
+      "kod": "return False"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1316,
+      "kod": "_home = linux_home()"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1317,
+      "kod": "exec_dir = f\"{_home}/cfd_runs/{case.name}\""
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1319,
+      "kod": "prep = linux_run(f\"rm -rf '{exec_dir}' && mkdir -p '{_home}/cfd_runs' && \""
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1321,
+      "kod": "if prep.returncode != 0:"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1322,
+      "kod": "raise RuntimeError(prep.stderr[-200:])"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1325,
+      "kod": "exec_dir, ext4 = wsl_dir, False"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1334,
+      "kod": "ext4 = False"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1337,
+      "kod": "_copy_back()"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1338,
+      "kod": "return res_obj"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1352,
+      "kod": "_wsl_kill(bins, exec_dir)            # Windows-tarafı aşımı: WSL orphan'larını öldür"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1353,
+      "kod": "asama_sureleri.append({\"asama\": log_name.replace(\"log.\", \"\"),"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1391,
+      "kod": "txt = _wsl_run(exec_dir, \"cat postProcessing/forceCoeffs1/*/\""
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1394,
+      "kod": "hist = parse_force_coeffs_text(txt)[3]"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1398,
+      "kod": "hist = []"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1405,
+      "kod": "if time.time() - t0 > tmo:"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1406,
+      "kod": "_wsl_kill(bins, exec_dir); break"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1424,
+      "kod": "elif not _b0:"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1425,
+      "kod": "bellek[\"_olculemedi\"] = \"psutil yok — bellek kullanimi OLCULMEDI\""
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1427,
+      "kod": "_cozucu_bitmesini_bekle(bins, exec_dir, tmo)"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1454,
+      "kod": "return _ret(CFDResult(asama_sureleri=asama_sureleri, case_dir=case_dir, success=False,"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1462,
+      "kod": "return _ret(CFDResult(asama_sureleri=asama_sureleri, case_dir=case_dir, success=False,"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1471,
+      "kod": "return _ret(CFDResult(asama_sureleri=asama_sureleri, case_dir=case_dir, success=False,"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1482,
+      "kod": "cm_txt = _wsl_run(exec_dir, \"cat log.checkMesh 2>/dev/null || true\","
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1492,
+      "kod": "return _ret(CFDResult(asama_sureleri=asama_sureleri, case_dir=case_dir, success=False, ret"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1498,
+      "kod": "r = _step(57, \"topoSet (pervane diski)...\", \"topoSet\", \"log.topoSet\", 300)"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1499,
+      "kod": "if r is None or r.returncode != 0:"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1500,
+      "kod": "return _ret(CFDResult(asama_sureleri=asama_sureleri, case_dir=case_dir, success=False,"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1514,
+      "kod": "mpi_ok = False"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1517,
+      "kod": "if progress_callback:"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1519,
+      "kod": "n = 1"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1524,
+      "kod": "return _ret(CFDResult(asama_sureleri=asama_sureleri, case_dir=case_dir, success=False,"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1533,
+      "kod": "return _ret(CFDResult(asama_sureleri=asama_sureleri, case_dir=case_dir, success=False, ret"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1542,
+      "kod": "rc = _foam_run_early_stop(\"foamRun\", max(timeout - 600, 600),"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1544,
+      "kod": "if rc != 0:"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1545,
+      "kod": "return _ret(CFDResult(asama_sureleri=asama_sureleri, case_dir=case_dir, success=False, ret"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1559,
+      "kod": "return CFDResult(asama_sureleri=asama_sureleri, case_dir=case_dir, success=False, return_c"
+    },
+    {
+      "modul": "analysis/openfoam_runner.py",
+      "satir": 1617,
+      "kod": "return None, None, None, history"
+    },
+    {
+      "modul": "experiments/model_form_bandi.py",
+      "satir": 433,
+      "kod": "neden = (\"duvar işlemi (y⁺) kanıtta KAYITLI DEĞİL — hücreye \""
+    },
+    {
+      "modul": "experiments/model_form_bandi.py",
+      "satir": 438,
+      "kod": "neden = (f\"y⁺ ORTALAMASI bantta ({_y:.1f}) ama TEPESİ dışarıda \""
+    },
+    {
+      "modul": "experiments/model_form_bandi.py",
+      "satir": 523,
+      "kod": "dusurulen.append({"
+    },
+    {
+      "modul": "experiments/model_form_bandi.py",
+      "satir": 550,
+      "kod": "oncul = _MODEL_U_PCT.get(rejim, {}).get(islem)"
+    },
+    {
+      "modul": "experiments/model_form_bandi.py",
+      "satir": 551,
+      "kod": "dis_kaynakli.append({"
+    },
+    {
+      "modul": "experiments/model_form_bandi.py",
+      "satir": 599,
+      "kod": "sys.stdout.reconfigure(encoding=\"utf-8\", errors=\"replace\")"
+    },
+    {
+      "modul": "experiments/model_form_bandi.py",
+      "satir": 600,
+      "kod": "rec = calistir()"
+    },
+    {
+      "modul": "experiments/model_form_bandi.py",
+      "satir": 608,
+      "kod": "ortam.damgala(rec)"
+    },
+    {
+      "modul": "experiments/model_form_bandi.py",
+      "satir": 609,
+      "kod": "(KOK / \"model_form_bandi.json\").write_text("
+    },
+    {
+      "modul": "experiments/model_form_bandi.py",
+      "satir": 612,
+      "kod": "for x in rec[\"capalar\"]:"
+    },
+    {
+      "modul": "experiments/model_form_bandi.py",
+      "satir": 615,
+      "kod": "if rec[\"atanamayan_capalar\"]:"
+    },
+    {
+      "modul": "experiments/model_form_bandi.py",
+      "satir": 617,
+      "kod": "for x in rec[\"atanamayan_capalar\"]:"
+    }
+  ],
+  "_sinirlar": "Karar katmani listesi ELLE tutulur ve olcumun parcasidir; bir modul eklendiginde buraya da eklenmeli. Uc-kova ayrimi DESEN-TABANLIDIR (sezgisel) ve ust sinir verir: ilk surum 321 satiri 'karar dali' saydi, gozle bakilinca buyuk kismi metin/CLI cikti. 'karar dali' kovasindaki satirlar tek tek okunmadan sinanmamis hukum sayilmaz.",
+  "_uretim": "Üretim: python experiments/karar_katmani_kapsami.py",
+  "verdikt": "Yayımlanan satır kapsamı %47.9 (19,709 ifade) ve manşet bu kalır. Hüküm üreten 15 modülde (2,647 ifade) kapsanmamış 386 satırın 108'ü metin/CLI, 46'ü savunma (except/pass); karar dalı adayı 232. Bu son sayı ÜST SINIRDIR — tek tek okunmadan 'sınanmamış hüküm' sayılmaz. İlk okumada bulunan gerçek kapı: gci_advisor.py:83.",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

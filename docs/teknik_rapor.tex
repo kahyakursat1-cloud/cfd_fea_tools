@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-32.050 satır Python $\cdot$ 146 test dosyası $\cdot$ 1.477 geçen test\\[3mm]
+32.050 satır Python $\cdot$ 147 test dosyası $\cdot$ 1.481 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -1144,6 +1144,7 @@ sınırdır}: model-form bileşeni bu hat için ölçülmemiştir.
 \section{Örnek Vaka Çalışmaları}
 
 \subsection{Vaka 1 --- MiniHawk İHA: kapıların iş başında olduğu koşu}
+\label{sub:minihawk}
 
 \textbf{Problem.} 1{,}5\,m açıklıklı, NACA2412 kanatlı bir İHA'nın sürüklemesi
 ve taşıması.
@@ -1947,11 +1948,11 @@ olarak değil. Kanıt dosyası zincirin tamamını taşır: üretim komutu
 \midrule
 Kod satırı (kök + \texttt{analysis/}) & 32.050 & \texttt{rapor\_sayilari.py} \\
 Kök modül & 84 & \texttt{rapor\_sayilari.py} \\
-Deney / çapa betiği & 68 & \texttt{experiments/} \\
-Test dosyası & 146 & \texttt{tests/test\_*.py} \\
-Geçen test & 1.477 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1.477 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
-Satır kapsamı & \textbf{\%47} & 19.709 ifade, 10.269 kapsanmamış \\
+Deney / çapa betiği & 69 & \texttt{experiments/} \\
+Test dosyası & 147 & \texttt{tests/test\_*.py} \\
+Geçen test & 1.481 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1.481 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
+Satır kapsamı & \textbf{\%47} & 19.709 ifade, 10.265 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
 \end{tabular}
@@ -2002,6 +2003,27 @@ testiyle değil \emph{çapa koşularıyla} sınanır ve o koşuların sonuçlar�
 dosyalarına yazılıp testlerle bağlanır. Sayı olduğu gibi verilmiştir: ``\%85
 kapsam'' demek için testi kolay olanı sayıp zoru dışarıda bırakmak, bu raporun
 savunduğu ilkenin tersi olurdu.
+
+Bu kural bir kez daha sınandı. ``Kapsam \%47'' cümlesini yumuşatmanın kolay yolu,
+hüküm üreten 15 modülü ayrı bir küme sayıp \%85 yazmaktı --- ve o sayı gerçekten
+öyle çıkıyor. Yayımlanmadı: manşet \%47{,}9 olarak durmaktadır. Bunun yerine
+kapsanmamış satırlar \emph{tek tek okundu}
+(\texttt{experiments/karar\_katmani\_kapsami.py}). O 15 modülde kapsanmayan 386
+satırın 108'i metin/CLI üretimi, 46'sı savunma (\texttt{except}/\texttt{pass});
+geriye kalan 232 satır ``karar dalı adayı''dır ve bu bir \emph{üst sınırdır} ---
+desen ayrımı sezgiseldir, okunmadan sınanmamış hüküm sayılmaz. Nitekim ilk
+sürüm 321 satırı karar dalı saymıştı; gözle bakılınca büyük kısmı
+\texttt{md.append}, \texttt{cli.add\_argument} gibi metin satırları çıktı.
+
+Okumanın karşılığı bir sayı değil, bir kapı oldu: öncül havuzunun giriş koşulu
+(\texttt{gci\_advisor.py:83}) hiç sınanmamıştı. Bu kapı, seviye $C_d$/hücre
+kayıtlarından bandı yeniden türetilemeyen bir koşunun havuza girmesini engeller;
+girseydi öncül, kaynağı doğrulanamayan bir sayıyla kirlenirdi --- MiniHawk'ta
+çözülmemiş gövdenin \%379'luk GCI'si tam olarak bu türdendi
+(\S\ref{sub:minihawk}). Beş test yazıldı
+(\texttt{tests/test\_gci\_advisor\_kapisi.py}) ve kapı artık bağlı. Aranan şey
+yüzde olsaydı bu kapı bulunmazdı; \emph{hangi karar yolunun} sınanmadığı
+sorulduğu için bulundu.
 
 Testlerin ayırt edici yanı, sabit sonuç yerine \emph{niyet} bağlamalarıdır. Bir
 test ``$C_d$ şu değere eşit olsun'' demez; ``rapor metni kendi ölçtüğü seriyle
