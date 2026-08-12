@@ -1,0 +1,113 @@
+{
+  "vaka": "DES çapası fizibilitesi — silindir, Re=140.000",
+  "_neden": "3B URANS span dekorelasyonunu URETEMEDI (C_L genligi yalniz %2,6 dustu) ve dogru teshis cozunurluk SINIFIYDI. Yol haritasi o gunden beri 'kalan is: DES/LES capasi' diyor; bu bir temenniydi, butcesi hic olculmedi.",
+  "olculen_girdiler": {
+    "u_tau_ms": 0.05331,
+    "u_tau_kaynagi": "3B URANS y⁺ ort=47.268 ve ilk hücre 0.012667 m'den geri çözüldü",
+    "nu_m2s": 7.142857142857143e-06,
+    "kb_hucre": 0.779,
+    "kb_hucre_kaynagi": "bellek_katsayisi.json (3 koşu, R²=0,96)",
+    "hucre_adim_saat": 665280000.0,
+    "hiz_kaynagi": "3B URANS: 403.200 hücre × 3.300 adım / 2,0 saat (4 çekirdek)",
+    "bos_bellek_gb": 4.41
+  },
+  "kurallar": {
+    "izotropi": "azimut adımı ≥ span adımı (ayrılan kesme tabakasında)",
+    "duvar": "y⁺≈1 — DES'in RANS kolu duvarda çözünür olmalı",
+    "buyume": 1.1,
+    "periyot_basina_adim": 200,
+    "periyot": "22 (6 geçiş + 16 istatistik — 2B çapanın bölmesi)"
+  },
+  "satirlar": [
+    {
+      "dz_D": 0.1,
+      "ilk_hucre_m": 0.00026798,
+      "ilk_hucre_mm": 0.268,
+      "n_cevre": 240,
+      "n_radyal": 117,
+      "n_span": 32,
+      "radyal_bolgeler": {
+        "n_sikistirma": 63,
+        "n_duzgun": 35,
+        "n_disa": 19,
+        "n_toplam": 117,
+        "sikistirma_kalinlik_m": 1.0834
+      },
+      "hucre": 898560,
+      "dt_s": 0.025,
+      "adim": 4400,
+      "bellek_gb": 0.7,
+      "bos_bellek_gb": 4.41,
+      "bellege_sigar_mi": true,
+      "sure_saat": 5.9
+    },
+    {
+      "dz_D": 0.05,
+      "ilk_hucre_m": 0.00026798,
+      "ilk_hucre_mm": 0.268,
+      "n_cevre": 240,
+      "n_radyal": 161,
+      "n_span": 63,
+      "radyal_bolgeler": {
+        "n_sikistirma": 55,
+        "n_duzgun": 80,
+        "n_disa": 26,
+        "n_toplam": 161,
+        "sikistirma_kalinlik_m": 0.504
+      },
+      "hucre": 2434320,
+      "dt_s": 0.025,
+      "adim": 4400,
+      "bellek_gb": 1.9,
+      "bos_bellek_gb": 4.41,
+      "bellege_sigar_mi": true,
+      "sure_saat": 16.1
+    },
+    {
+      "dz_D": 0.025,
+      "ilk_hucre_m": 0.00026798,
+      "ilk_hucre_mm": 0.268,
+      "n_cevre": 240,
+      "n_radyal": 250,
+      "n_span": 126,
+      "radyal_bolgeler": {
+        "n_sikistirma": 48,
+        "n_duzgun": 170,
+        "n_disa": 32,
+        "n_toplam": 250,
+        "sikistirma_kalinlik_m": 0.2573
+      },
+      "hucre": 7560000,
+      "dt_s": 0.025,
+      "adim": 4400,
+      "bellek_gb": 5.89,
+      "bos_bellek_gb": 4.41,
+      "bellege_sigar_mi": false,
+      "sure_saat": 50.0
+    }
+  ],
+  "_ne_soylemez": "DES'in DOGRU cevabi verecegini SOYLEMEZ. Hangi Δz/D'de span dekorelasyonunun gercekten olusacagi ancak kosu ile bilinir; burada olculen tek sey hangi cozunurlugun bu donanimda ULASILABILIR oldugudur.",
+  "_kisit": "Sure kestirimi hucre basina maliyeti DOGRUSAL varsayar ve URANS throughput'undan olceklenir; DES ayni cozucu ailesinde kosar ama alt-agi modeli ve daha siki CFL farkli davranabilir. Bellek katsayisi 0,779 kB/hucre URANS kosularindan olculdu.",
+  "_uretim": "Üretim: python experiments/des_fizibilite.py",
+  "mevcut_urans_dz_D": 0.1309,
+  "mevcut_urans_hucre": 403200,
+  "onerilen": 0.05,
+  "verdikt": "ULAŞILABİLİR. Çürüyen 3B URANS koşusunun span adımı Δz/D=0.1309 idi; anlamlı adım Δz/D=0.05 (2.6× ince): 2,434,320 hücre (6.0× mevcut), 1.9 GB (boş 4.41 GB), 16.1 saat. Ahmed duvar-çözünür hücresinin AKSİNE bu çapa bu donanımda koşulabilir — engel bellek değil SÜREdir ve bir gecede biter.",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

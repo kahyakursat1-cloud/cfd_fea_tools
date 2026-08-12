@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-32.050 satır Python $\cdot$ 149 test dosyası $\cdot$ 1.505 geçen test\\[3mm]
+32.073 satır Python $\cdot$ 150 test dosyası $\cdot$ 1.513 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -1006,6 +1006,46 @@ DES/LES gerektirir. Bu, ilk açıklamadan daha güçlü bir sonuçtur çünkü
 çapa'' değil, ölçek-çözünürlüklü bir çapadır. Kayıt, bir tahminin nasıl
 sınanıp düşürüldüğünün örneği olarak duruyor.
 \end{reddedilir}
+
+\begin{olculdu}{O çapa ulaşılabilir mi? Bütçe ölçüldü}
+``Kalan iş: DES/LES çapası'' cümlesi bir temenniydi --- maliyeti hiç
+hesaplanmamıştı. Ahmed duvar-çözünür hücresinde işe yarayan desen aynen
+uygulandı (\texttt{experiments/des\_fizibilite.py}): ``pahalı'' demek yerine
+hücre, bellek ve süreyi \emph{ölçülen} katsayılarla kestirmek.
+
+Bütçenin girdileri ölçüm ve kural diye ayrı tutuldu. \emph{Ölçüm:}
+$u_\tau = 0{,}0533$\,m/s (3B koşunun y$^+$ ortalamasından geri çözüldü),
+0{,}779\,kB/hücre, ve 403.200 hücre $\times$ 3.300 adım / 2{,}0 saat'lik
+çözüm hızı. \emph{Kural:} duvarda y$^+{\approx}1$, ayrılan kesme tabakasında
+izotropi, radyal büyüme $\le 1{,}1$, dökülme periyodu başına $\ge$200 adım ve
+22 periyot (6 geçiş + 16 istatistik --- 2B çapanın kendi bölmesi).
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}rrrrrl@{}}
+\toprule
+$\Delta z/D$ & \textbf{hücre} & $\Delta t$ [s] & \textbf{bellek} & \textbf{süre} & \\
+\midrule
+0{,}10  &   898.560 & 0{,}025 & 0{,}70\,GB &  5{,}9 sa & sığar \\
+0{,}05  & 2.434.320 & 0{,}025 & 1{,}90\,GB & 16{,}1 sa & \textbf{sığar} \\
+0{,}025 & 7.560.000 & 0{,}025 & 5{,}89\,GB & 50{,}0 sa & sığmaz \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Çürüyen koşunun span adımı $\Delta z/D = 0{,}131$ idi, yani ilk satır
+ondan yalnızca biraz ince; anlamlı adım 0{,}05'tir (2{,}6$\times$ ince,
+6$\times$ hücre). Ve o satır bu makineye \emph{sığıyor}. Ahmed hücresinin
+aksine burada engel bellek değil süredir --- ve on altı saat bir gecede biter.
+
+\begin{center}\itshape
+Ölçmeden önce ``pahalı'' sanılan iki işten biri ulaşılmazdı, diğeri bir gece.
+\end{center}
+
+\noindent Bütçenin \emph{söylemediği} şey de kayıtlıdır: DES'in doğru cevabı
+vereceğini göstermez. Span dekorelasyonunun hangi $\Delta z/D$'de gerçekten
+oluşacağı ancak koşuyla bilinir; ölçülen tek şey hangi çözünürlüğün
+ulaşılabilir olduğudur.
+\end{olculdu}
 
 \clearpage
 
@@ -1972,7 +2012,9 @@ v1.1 & yüksek & Eski çözücü sarmalayıcısının kaldırılması; tüm yoll
 v1.2 & orta   & URANS'ın \emph{türbülanslı} vakada sınanması KOŞULDU (2B ve
                 3B): mekanizma çalıştı, fizik tutmadı ve ``üçüncü boyut''
                 açıklaması ölçümle ÇÜRÜTÜLDÜ ($C_L$ genliği yalnız \%2{,}6
-                düştü); kalan iş ölçek-çözünürlüklü (DES/LES) bir çapa \\
+                düştü); kalan iş ölçek-çözünürlüklü (DES/LES) bir çapa ---
+                bütçesi ÖLÇÜLDÜ ve ulaşılabilir: $\Delta z/D{=}0{,}05$'te
+                2{,}4\,M hücre, 1{,}9\,GB, $\approx$16 saat \\
 v1.3 & yüksek & Model-form tablosunun kalan ÜÇ hücresi --- deneysel referanslı
                 çapalarla; ikisinde engel ağ değil REFERANS belirsizliğidir
                 (\%15), yani yalnız ağ inceltmek yetmiyor \\
@@ -2075,13 +2117,13 @@ olarak değil. Kanıt dosyası zincirin tamamını taşır: üretim komutu
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 32.050 & \texttt{rapor\_sayilari.py} \\
+Kod satırı (kök + \texttt{analysis/}) & 32.073 & \texttt{rapor\_sayilari.py} \\
 Kök modül & 84 & \texttt{rapor\_sayilari.py} \\
-Deney / çapa betiği & 73 & \texttt{experiments/} \\
-Test dosyası & 149 & \texttt{tests/test\_*.py} \\
-Geçen test & 1.505 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1.505 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
-Satır kapsamı & \textbf{\%47} & 19.864 ifade, 10.357 kapsanmamış \\
+Deney / çapa betiği & 74 & \texttt{experiments/} \\
+Test dosyası & 150 & \texttt{tests/test\_*.py} \\
+Geçen test & 1.513 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1.513 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
+Satır kapsamı & \textbf{\%47} & 19.951 ifade, 10.391 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
 \end{tabular}
