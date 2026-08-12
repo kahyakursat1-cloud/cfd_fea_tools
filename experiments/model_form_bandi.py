@@ -63,6 +63,22 @@ _NE_GEREKIYOR = {
 }
 
 
+def _u_ref_turet(ref: dict) -> float | None:
+    """Referans bloğundan u_D [%]. Beyan varsa onu alır, yoksa TÜRETİR.
+
+    Kanıt dosyaları deneysel değeri ve mutlak belirsizliğini (Xr/H = 6,26 ± 0,1)
+    zaten taşıyordu; yüzdeye çevirmek yalnız bir bölme. Bir blokta beyan edilip
+    diğerinde edilmemesi, AYNI deneyin iki hücrede farklı belirsizlikle
+    girmesine yol açıyordu.
+    """
+    if ref.get("u_ref_pct") is not None:
+        return float(ref["u_ref_pct"])
+    deger, belirsizlik = ref.get("Xr_H"), ref.get("belirsizlik")
+    if deger and belirsizlik:
+        return round(100.0 * float(belirsizlik) / float(deger), 3)
+    return None
+
+
 def ayrilabilir(ham_sapma_pct: float | None, u_sayisal_pct: float | None,
                 u_ref_pct: float | None) -> dict:
     """ASME V&V 20 karşılaştırma belirsizliği: model hatası GÖRÜLEBİLİR mi?
@@ -303,12 +319,22 @@ def capalari_topla() -> list[dict]:
             band = aile.get("sayisal_band") or {}
             u_say = band.get("u_pct")
             hata = abs(float(ince["hata_pct"]))
+            # AYNI DENEY, AYNI BELIRSIZLIK. Bu blok u_ref'i tasimiyordu ve
+            # ayrilabilirligi u_val = u_num varsayarak hesapliyordu; duvar-
+            # fonksiyonu blogu ise ayni deneyden u_D=%1,597 tasiyordu. Ayni
+            # referansin iki hucrede farkli belirsizlikle girmesi tutarsizdi.
+            # u_D artik ayni yerden TURETILIYOR: belirsizlik/Xr_H.
+            u_ref = _u_ref_turet(aile.get("referans") or {})
+            _ayr = ayrilabilir(hata, u_say, u_ref)
             c.append({"capa": f"geriye-basamak ({aile.get('model')}, duvar-çözünür aile)",
                       "rejim": "separated",
                       "sapma_pct": hata,
                       "ham_sapma_pct": hata,
                       "u_sayisal_pct": round(u_say, 2) if u_say else None,
-                      "ayrilabilir_mi": bool(u_say and hata > u_say),
+                      "u_ref_pct": u_ref,
+                      "u_val_pct": _ayr["u_val_pct"],
+                      "ayrilabilir_mi": _ayr["ayrilabilir_mi"],
+                      "ayrilabilirlik_notu": _ayr["gerekce"],
                       "yplus_ort": _yp.get("ort"), "yplus_max": _yp.get("max"),
                       "yplus_kaynak": ("foamPostProcess yPlus, 'alt' yaması — "
                                        "3-seviye ailenin en ince ağı"),
@@ -326,7 +352,7 @@ def capalari_topla() -> list[dict]:
             ince = max(ok, key=lambda s: s.get("hucre", 0))
             _yp = (ince.get("yplus") or {}).get("alt") or {}
             u_say = (dfn.get("sayisal_band") or {}).get("u_pct")
-            u_ref = (dfn.get("referans") or {}).get("u_ref_pct")
+            u_ref = _u_ref_turet(dfn.get("referans") or {})
             hata = abs(float(ince["hata_pct"]))
             _ayr = ayrilabilir(hata, u_say, u_ref)
             c.append({"capa": f"geriye-basamak ({dfn.get('model')}, duvar-fonksiyonu aile)",

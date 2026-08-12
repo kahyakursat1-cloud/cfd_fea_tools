@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-32.050 satır Python $\cdot$ 147 test dosyası $\cdot$ 1.486 geçen test\\[3mm]
+32.050 satır Python $\cdot$ 148 test dosyası $\cdot$ 1.494 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -1826,6 +1826,16 @@ belirsizdir. Bandı \%10'un altına çekmek gerekirdi ve o noktada bile marj
 \%18{,}05'e karşı \%18{,}0 olurdu. Hücreyi ölçüme çevirmenin yolu daha ince
 ağ değil, \emph{deneysel referanslı} bir çapadır.
 
+Bu hesap sonradan tek çapadan on bire taşındı ve kapalı forma döküldü
+(\texttt{experiments/kapanma\_butcesi.py}): ayrılabilirlik ölçütünün tersi,
+hücrenin kapanması için gereken sayısal bandı doğrudan verir,
+$u_{\mathrm{num}}^{*} = \sqrt{E^2 - u_D^2}$. Yalnız o eşiği yayımlamak
+yanıltıcı olurdu --- tanım gereği orada marj \emph{sıfırdır}. Kullanılabilir
+bir hüküm için pay istenirse ($|E| \ge 1{,}2\,u_{\mathrm{val}}$; 1{,}2 keyfî
+ama beyan edilmiş bir seçimdir) eşik \%10{,}04'ten \%1{,}12'ye iner: bandın
+\textbf{15{,}5 kat} düşmesi gerekir. Yukarıdaki ``daha ince ağ değil'' hükmü
+böylece niteliksel bir kanaat olmaktan çıkıp bir sayıya bağlanmış oldu.
+
 Ölçüt düzeltmesi ayrıca bir kazayı önledi: bandı \%14'e indirmek çapayı
 sayısal tavanın içine sokar ve eski ölçütle ``ayrılabilir'' damgasıyla hücreye
 girerdi --- yani saatlerce hesap, \emph{yanlış} bir ölçümle sonuçlanacaktı.
@@ -1833,7 +1843,19 @@ girerdi --- yani saatlerce hesap, \emph{yanlış} bir ölçümle sonuçlanacakt�
 
 \noindent Referans belirsizliği beyan edilmemiş çapalarda hüküm yalnız sayısal
 banda dayanır ve bu artık açıkça yazılır: ``gerçek $u_{\mathrm{val}}$ bundan
-büyüktür''. Yokluk sıfır sayılmaz.
+büyüktür''. Yokluk sıfır sayılmaz. Sayı olarak: on bir çapanın \textbf{altısı}
+$u_D$ beyan etmiyor (Hoerner tablo değerleri, ders kitabı katsayıları, TMR'nin
+band vermeyen tekil değeri) --- yani tablodaki bazı ``ayrılabilir'' hükümleri
+\emph{koşulludur} ve referans bandı eklendiğinde dönebilir.
+
+Aynı tarama bir tutarsızlık da buldu. Geriye-basamak vakasının duvar-çözünür ve
+duvar-fonksiyonu aileleri \emph{aynı} deneye (Driver \& Seegmiller 1985) karşı
+ölçülüyor, ama $u_D$ yalnız ikincisinde taşınıyordu; birincisi ayrılabilirliği
+$u_{\mathrm{val}} = u_{\mathrm{num}}$ varsayarak hesaplıyordu. Aynı referansın
+iki hücreye farklı belirsizlikle girmesi savunulamaz. Sayı zaten kanıt
+dosyasında duruyordu ($X_r/H = 6{,}26 \pm 0{,}1$) ve yüzdeye çevrilmesi bir
+bölmeydi; artık iki blok da onu aynı yerden türetiyor. Hüküm değişmedi
+(\%10{,}46 hâlâ $u_{\mathrm{val}}=\%2{,}88$'in üstünde), \emph{gerekçe} düzeldi.
 
 \begin{dikkat}{Dördüncü ölçüt: ölçüm mü, üst sınır mı?}
 Bir çapa hücreye \emph{girebilir} ama yine de model hatasını ölçmüş olmayabilir.
@@ -1983,11 +2005,11 @@ olarak değil. Kanıt dosyası zincirin tamamını taşır: üretim komutu
 \midrule
 Kod satırı (kök + \texttt{analysis/}) & 32.050 & \texttt{rapor\_sayilari.py} \\
 Kök modül & 84 & \texttt{rapor\_sayilari.py} \\
-Deney / çapa betiği & 70 & \texttt{experiments/} \\
-Test dosyası & 147 & \texttt{tests/test\_*.py} \\
-Geçen test & 1.486 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1.486 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
-Satır kapsamı & \textbf{\%47} & 19.716 ifade, 10.272 kapsanmamış \\
+Deney / çapa betiği & 71 & \texttt{experiments/} \\
+Test dosyası & 148 & \texttt{tests/test\_*.py} \\
+Geçen test & 1.494 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1.494 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
+Satır kapsamı & \textbf{\%47} & 19.792 ifade, 10.310 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
 \end{tabular}

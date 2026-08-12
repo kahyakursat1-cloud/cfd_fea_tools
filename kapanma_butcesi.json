@@ -1,0 +1,169 @@
+{
+  "vaka": "Kapanma bütçesi — hangi hücreyi AĞ, hangisini REFERANS kapatır",
+  "_neden": "Bos hucrelerin gerekcesi NITELIKSELDI ('referans baskin', 'ag kapatmaz'). ASME V&V 20 olcutu tersine cevrilince ayni soru SAYIYLA cevaplaniyor.",
+  "_formul": "ayrilabilir <=> |E| > sqrt(u_num^2 + u_D^2); u_num* = sqrt(E^2 - u_D^2); u_num** = sqrt((E/1.2)^2 - u_D^2)",
+  "_marj": 1.2,
+  "satirlar": [
+    {
+      "capa": "küp",
+      "rejim": "bluff",
+      "ham_sapma_pct": 6.03,
+      "u_sayisal_pct": 58.33,
+      "u_ref_pct": null,
+      "durum": "referans belirsizliği BEYAN EDİLMEMİŞ",
+      "neden": "u_D bilinmeden kapanma bütçesi hesaplanamaz; u_val yalnız sayısal banda dayanır ve gerçek u_val bundan BÜYÜKTÜR"
+    },
+    {
+      "capa": "NACA0012 α=0 (2B, bağlı akış)",
+      "rejim": "attached_2d",
+      "ham_sapma_pct": 3.52,
+      "u_sayisal_pct": 1.71,
+      "u_ref_pct": null,
+      "durum": "referans belirsizliği BEYAN EDİLMEMİŞ",
+      "neden": "u_D bilinmeden kapanma bütçesi hesaplanamaz; u_val yalnız sayısal banda dayanır ve gerçek u_val bundan BÜYÜKTÜR"
+    },
+    {
+      "capa": "disk",
+      "rejim": "bluff",
+      "ham_sapma_pct": 3.38,
+      "u_sayisal_pct": 4.77,
+      "u_ref_pct": null,
+      "durum": "referans belirsizliği BEYAN EDİLMEMİŞ",
+      "neden": "u_D bilinmeden kapanma bütçesi hesaplanamaz; u_val yalnız sayısal banda dayanır ve gerçek u_val bundan BÜYÜKTÜR"
+    },
+    {
+      "capa": "küre",
+      "rejim": "bluff",
+      "ham_sapma_pct": 25.75,
+      "u_sayisal_pct": 62.97,
+      "u_ref_pct": null,
+      "durum": "referans belirsizliği BEYAN EDİLMEMİŞ",
+      "neden": "u_D bilinmeden kapanma bütçesi hesaplanamaz; u_val yalnız sayısal banda dayanır ve gerçek u_val bundan BÜYÜKTÜR"
+    },
+    {
+      "capa": "küp (çapa koşusu)",
+      "rejim": "bluff",
+      "ham_sapma_pct": 1.78,
+      "u_sayisal_pct": 5.32,
+      "u_ref_pct": null,
+      "durum": "referans belirsizliği BEYAN EDİLMEMİŞ",
+      "neden": "u_D bilinmeden kapanma bütçesi hesaplanamaz; u_val yalnız sayısal banda dayanır ve gerçek u_val bundan BÜYÜKTÜR"
+    },
+    {
+      "capa": "Ahmed 25°",
+      "rejim": "bluff",
+      "ham_sapma_pct": 16.2,
+      "u_sayisal_pct": 274.7,
+      "u_ref_pct": null,
+      "durum": "referans belirsizliği BEYAN EDİLMEMİŞ",
+      "neden": "u_D bilinmeden kapanma bütçesi hesaplanamaz; u_val yalnız sayısal banda dayanır ve gerçek u_val bundan BÜYÜKTÜR"
+    },
+    {
+      "capa": "NACA0012 kanat AR6",
+      "rejim": "lifting",
+      "ham_sapma_pct": 18.05,
+      "u_sayisal_pct": 17.38,
+      "u_ref_pct": 15.0,
+      "durum": "AĞ ÇARE OLABİLİR",
+      "u_val_pct": 22.96,
+      "ayrilabilir_mi": false,
+      "gereken_u_num_pct": 10.04,
+      "marjli_u_num_pct": 1.12,
+      "mevcut_u_num_pct": 17.38,
+      "kac_kat_azalmali": 1.73,
+      "marjli_kac_kat": 15.5,
+      "baskin_terim": "u_num",
+      "neden": "|E|=18.05 > u_D=15.00: ağ inceltmek hücreyi KAPATABİLİR. Sıfır-marjlı eşik u_num<%10.04; 1.2× paylı eşik u_num<%1.12 (şu an %17.38, 15.5× azalma)."
+    },
+    {
+      "capa": "geriye-basamak (kOmegaSST)",
+      "rejim": "separated",
+      "ham_sapma_pct": null,
+      "u_sayisal_pct": null,
+      "u_ref_pct": null,
+      "durum": "ölçülemedi",
+      "neden": "|E| veya u_num yok"
+    },
+    {
+      "capa": "geriye-basamak (kOmegaSST, duvar-çözünür aile)",
+      "rejim": "separated",
+      "ham_sapma_pct": 10.464,
+      "u_sayisal_pct": 2.39,
+      "u_ref_pct": 1.597,
+      "durum": "ayrılabilir",
+      "u_val_pct": 2.87,
+      "ayrilabilir_mi": true,
+      "gereken_u_num_pct": 10.34,
+      "marjli_u_num_pct": 8.57,
+      "mevcut_u_num_pct": 2.39,
+      "kac_kat_azalmali": 0.23,
+      "marjli_kac_kat": 0.3,
+      "baskin_terim": "u_num",
+      "neden": "|E|=10.46 > u_val=2.87: hücre zaten ayrılabilir."
+    },
+    {
+      "capa": "geriye-basamak (kOmegaSST, duvar-fonksiyonu aile)",
+      "rejim": "separated",
+      "ham_sapma_pct": 8.747,
+      "u_sayisal_pct": 1.79,
+      "u_ref_pct": 1.597,
+      "durum": "ayrılabilir",
+      "u_val_pct": 2.4,
+      "ayrilabilir_mi": true,
+      "gereken_u_num_pct": 8.6,
+      "marjli_u_num_pct": 7.11,
+      "mevcut_u_num_pct": 1.79,
+      "kac_kat_azalmali": 0.21,
+      "marjli_kac_kat": 0.3,
+      "baskin_terim": "u_num",
+      "neden": "|E|=8.75 > u_val=2.40: hücre zaten ayrılabilir."
+    },
+    {
+      "capa": "düz levha Cf (duvar-fonksiyonu aile)",
+      "rejim": "attached_2d",
+      "ham_sapma_pct": 2.79,
+      "u_sayisal_pct": 0.08,
+      "u_ref_pct": 3.364,
+      "durum": "AĞ ÇARE DEĞİL",
+      "u_val_pct": 3.36,
+      "ayrilabilir_mi": false,
+      "gereken_u_num_pct": null,
+      "baskin_terim": "u_D",
+      "neden": "|E|=2.79 ≤ u_D=3.36: sayısal band sıfır olsa bile u_val ≥ u_D ve fark ayırt edilemez. REFERANS değişmeli."
+    }
+  ],
+  "ag_kapatabilir": [
+    "NACA0012 kanat AR6"
+  ],
+  "referans_bekleyen": [
+    "düz levha Cf (duvar-fonksiyonu aile)"
+  ],
+  "u_D_beyan_edilmemis": [
+    "küp",
+    "NACA0012 α=0 (2B, bağlı akış)",
+    "disk",
+    "küre",
+    "küp (çapa koşusu)",
+    "Ahmed 25°"
+  ],
+  "_kisit": "u_num* GEREK sarti verir, YETER sarti degil: ag inceltmek u_num'u o bandin altina indirebilirse hucre kapanir; indiremeyecegi de olcumle gorulur. Ayrica |E| ag ile birlikte DEGISIR (model hatasi sabit degil, olculen sapma degisir) --- hedef sabit bir esik degil, hareketli bir hedeftir.",
+  "_uretim": "Üretim: python experiments/kapanma_butcesi.py",
+  "verdikt": "11 çapa incelendi. 1 çapada ağ inceltmek hücreyi kapatabilir; 1 çapada kapatamaz (|E| ≤ u_D ya da 1.2× pay bırakacak band yok) — orada REFERANS değişmeli. 6 çapada u_D HİÇ BEYAN EDİLMEMİŞ: onların ayrılabilirlik hükmü yalnız sayısal banda dayanıyor ve gerçek u_val bundan büyüktür.",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}
