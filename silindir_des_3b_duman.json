@@ -1,0 +1,76 @@
+{
+  "vaka": "Silindir girdap dökülmesi — DES (Re=140000, Δz/D=0.1)",
+  "kaynak": "kOmegaSSTDES — URANS çapalarının TEMEL MODELİYLE aynı",
+  "sinanan_iddia": {
+    "I1": "Span dekorelasyonu OLUŞUR: C_L genliği URANS 3B'ye göre ≥%20.0 düşer",
+    "I2": "St deneysel platoya yaklaşır (URANS 3B'den daha az sapma)",
+    "I3": "Cd deneysel değere yaklaşır (URANS 3B'den daha az sapma)",
+    "_not": "İddialar koşudan ÖNCE modül docstring'inde sabitlendi."
+  },
+  "referans": {
+    "St": 0.2,
+    "St_bandi": [
+      0.19,
+      0.21
+    ],
+    "kaynak": "Roshko, J. Fluid Mech. 10 (1961); Norberg, J. Fluids Struct. 17 (2003) — DENEYSEL; Re=1e4..1e5 boyunca St = 0,19-0,21 platosu",
+    "Cd": 1.2,
+    "Cd_kaynak": "Subkritik silindir, Re=1e5 civari: Cd ≈ 1,2 (Achenbach, J. Fluid Mech. 34 (1968); Norberg 2003). 2B URANS span-yonu korelasyon kaybini temsil EDEMEZ ve Cd'yi sistematik yuksek verir — bu deger YALNIZ EGILIM olarak raporlanir"
+  },
+  "olculen": {
+    "St": null,
+    "Cd_ortalama": 0.5486,
+    "Cl_genlik": 0.00396,
+    "yplus": {
+      "min": 0.0011619507,
+      "max": 0.034532002,
+      "ort": 0.012092252
+    },
+    "_aref_olcegi": 0.3183098861837907
+  },
+  "sapma_pct": {
+    "St": null,
+    "Cd": -54.28
+  },
+  "salinim_olcumu": {
+    "olculdu": false,
+    "neden": "pencerede 1 tam salınım geçişi — salınım görünmüyor (çözüm oturmuş olabilir)",
+    "ortalama": -0.033245726876870746,
+    "genlik": 0.012433355350000001,
+    "pencere_s": 3.65
+  },
+  "kurulum": {
+    "dz_D": 0.1,
+    "dt_s": 0.025,
+    "periyot": 1,
+    "sure_s": 5.0,
+    "cekirdek": 4,
+    "yplus_bandi": [
+      30.0,
+      300.0
+    ],
+    "model": "kOmegaSSTDES",
+    "delta": "maxDeltaxyz"
+  },
+  "_sure_saat": 0.0,
+  "_kapsam": "Tek Re (140.000), tek span uzunlugu (piD), tek cozunurluk. DES sonucu span uzunluguna ve Δz'ye duyarlidir; bu kosu o duyarliligi OLCMEZ.",
+  "_uretim": "Üretim: python experiments/silindir_des_3b.py",
+  "verdikt": "❌ Girdap dökülmesi ÖLÇÜLEMEDİ: pencerede 1 tam salınım geçişi — salınım görünmüyor (çözüm oturmuş olabilir)",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

@@ -71,7 +71,9 @@ PERIYOT_GECIS, PERIYOT_ISTAT = 6, 16
 BASHRC = "/opt/openfoam11/etc/bashrc"
 
 
-def _blockmesh(span: float = 0.05 * D, nz: int = 1, cyclic: bool = False) -> str:
+def _blockmesh(span: float = 0.05 * D, nz: int = 1, cyclic: bool = False,
+               n_radyal: int | None = None, radyal_grading: str | None = None,
+               n_cevre: int | None = None) -> str:
     """Silindir etrafında 4 bloklu O-grid.
 
     VARSAYILAN 2B'dir (tek hücre kalınlık, `empty` yanlar) --- mevcut çağrılar
@@ -85,8 +87,19 @@ def _blockmesh(span: float = 0.05 * D, nz: int = 1, cyclic: bool = False) -> str
     dökülme simetri düzlemine kilitlenmez. Yapılandırılmış O-grid seçildi
     çünkü duvar-normali sıkıştırma doğrudan denetlenebilir --- girdap
     dökülmesinde ayrılma noktasının çözünürlüğü frekansı belirler.
+
+    `n_radyal`/`radyal_grading`/`n_cevre` verilmezse mevcut çağrılar HİÇ
+    DEĞİŞMEZ. DES çapası bunları kullanır: y⁺≈1 için duvarda çok daha ince ilk
+    hücre, izde ise DÜZGÜN dağılım gerekir ve bu tek bir `simpleGrading`
+    oranıyla anlatılamaz --- `radyal_grading` çok-bölgeli sözdizimini
+    (`((uzunluk hücre oran) ...)`) olduğu gibi kabul eder. Mesh yine TEK
+    yerde tanımlı kalır; ikinci bir mesh yazmak iki meshin sessizce
+    ayrışması demektir.
     """
     ri, ro, z = D / 2.0, R_FAR * D / 2.0, span
+    nr = N_RADYAL if n_radyal is None else n_radyal
+    nc = N_CEVRE if n_cevre is None else n_cevre
+    rg = f"{RADYAL_GRADING:g}" if radyal_grading is None else radyal_grading
     aci = [math.radians(45 + 90 * k) for k in range(4)]
     v = []
     for zz in (-z / 2, z / 2):
@@ -109,8 +122,8 @@ def _blockmesh(span: float = 0.05 * D, nz: int = 1, cyclic: bool = False) -> str
         # x-y'den x-z'ye tasinirken el degisti ve blockMesh "inside-out" ile
         # dustu; sira ters cevrildi. x1 yonu RADYAL kalir (grading orada).
         bloklar.append(f"hex ({i0} {i1} {o1} {o0} {j0} {j1} {p1} {p0}) "
-                       f"({N_CEVRE} {N_RADYAL} {nz}) "
-                       f"simpleGrading (1 {RADYAL_GRADING:g} 1)")
+                       f"({nc} {nr} {nz}) "
+                       f"simpleGrading (1 {rg} 1)")
         for r, a_, b_, c_, d_ in ((ri, i0, i1, j0, j1), (ro, o0, o1, p0, p1)):
             am = (aci[k] + aci[k2]) / 2 if k < 3 else aci[k] + math.radians(45)
             for x0, x1, zz in ((a_, b_, -z / 2), (c_, d_, z / 2)):
