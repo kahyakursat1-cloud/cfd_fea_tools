@@ -1,0 +1,95 @@
+{
+  "vaka": "u_D beyan etmeyen çapalar — engel türüne göre ayrım",
+  "_neden": "'u_D yok' tek basina durum tespiti; eyleme cevrilmesi icin her capanin NEDEN u_D'siz oldugu ayrilmali.",
+  "_yontem": "Deponun duz levhada kullandigi yontem: ayni kosulda iki yerlesik korelasyonun farki, u_D'nin savunulabilir ALT kestirimi. Bu betik yontemi tum capalara uygulamayi dener.",
+  "satirlar": [
+    {
+      "capa": "sphere",
+      "kaynak_sayisi": 2,
+      "ref": "White, Fluid Mechanics; Schlichting BL Theory",
+      "Re": "1e3–2e5 (subkritik)",
+      "Cd": 0.47,
+      "durum": "Re-BANDI",
+      "engel": "Capa TEK Cd tasiyor ama gecerli oldugu Re araligini da beyan ediyor; o aralikta Cd degisiyor.",
+      "cd_alt_Re": 0.4662,
+      "cd_ust_Re": 0.4867,
+      "u_D_alt_kestirim_pct": 4.38,
+      "_dogrulama_bekliyor": true,
+      "_neden_beklemede": "Clift-Gauvin sabitleri BIRINCIL KAYNAKTAN dogrulanmadi; sayi model-form hesabina OTOMATIK GIRMEZ.",
+      "_capraz_kontrol": "Korelasyon, capanin TASIDIGI plato degerine (0.47) bandin IKI ucunda da oturuyor (0.4662 ve 0.4867). Bu, sabitlerin yaklasik dogru oldugunun isaretidir ama birincil kaynak dogrulamasi DEGILDIR — yanlis bir formul de tesadufen bir noktada tutabilir, ikisinde birden tutmasi daha zordur.",
+      "korelasyon": "Clift-Gauvin (Schiller-Naumann + plato terimi)",
+      "_hukmu_degistirir_mi": "HAYIR. Kure capasi zaten sayisal band cok buyuk oldugu icin (%63) hicbir hucreye atanmiyor; u_D eklemek o reddi degistirmez. Bu satir bir kapiyi ACMIYOR, bir bosluğu ADLANDIRIYOR."
+    },
+    {
+      "capa": "naca0012_a0",
+      "kaynak_sayisi": 2,
+      "ref": "Ladson NASA TM-4074; NASA Turbulence Modeling Resource",
+      "Re": "6e6",
+      "Cd": 0.0081,
+      "durum": "KAYNAK-EKSİK",
+      "engel": "Capa tanimi 2 kaynak adi tasiyor ama TEK sayi sakliyor. Duz levhada isleyen yontem (iki kaynagin farki = u_D alt kestirimi) burada da uygulanabilir; eksik olan yalnizca IKINCI SAYIDIR.",
+      "gereken": "ikinci kaynagin Cd degeri kayda gecmeli"
+    },
+    {
+      "capa": "ahmed_25",
+      "kaynak_sayisi": 2,
+      "ref": "Ahmed et al. 1984; Meile et al. 2011",
+      "Re": "~1e6",
+      "Cd": 0.285,
+      "durum": "KAYNAK-EKSİK",
+      "engel": "Capa tanimi 2 kaynak adi tasiyor ama TEK sayi sakliyor. Duz levhada isleyen yontem (iki kaynagin farki = u_D alt kestirimi) burada da uygulanabilir; eksik olan yalnizca IKINCI SAYIDIR.",
+      "gereken": "ikinci kaynagin Cd degeri kayda gecmeli"
+    },
+    {
+      "capa": "cube",
+      "kaynak_sayisi": 1,
+      "ref": "Hoerner, Fluid-Dynamic Drag (1965)",
+      "Re": ">1e4 (keskin-kenar, Re-duyarsız)",
+      "Cd": 1.05,
+      "durum": "TEK-KAYNAK",
+      "engel": "Tek tablo degeri var ve ikinci bir yerlesik korelasyon yok; yontem UYGULANAMAZ.",
+      "gereken": "bagimsiz ikinci bir olcum/kaynak"
+    },
+    {
+      "capa": "disk",
+      "kaynak_sayisi": 1,
+      "ref": "Hoerner, Fluid-Dynamic Drag (1965)",
+      "Re": ">1e3 (keskin-kenar, Re-duyarsız)",
+      "Cd": 1.17,
+      "durum": "TEK-KAYNAK",
+      "engel": "Tek tablo degeri var ve ikinci bir yerlesik korelasyon yok; yontem UYGULANAMAZ.",
+      "gereken": "bagimsiz ikinci bir olcum/kaynak"
+    },
+    {
+      "capa": "naca0012_wing_ar6",
+      "durum": "u_D BEYAN EDİLMİŞ",
+      "u_ref_pct": 15.0
+    }
+  ],
+  "sayim": {
+    "Re-BANDI": 1,
+    "KAYNAK-EKSİK": 2,
+    "TEK-KAYNAK": 2,
+    "u_D BEYAN EDİLMİŞ": 1
+  },
+  "_kisit": "Hicbir sayi burada model-form bandina YAZILMAZ. Re-BANDI kestirimi dogrulama bekliyor; KAYNAK-EKSIK satirlari ise literatur isi ister ve o is bu depoda YAPILMADI.",
+  "_uretim": "Üretim: python experiments/referans_belirsizligi.py",
+  "verdikt": "6 çapa: 1 beyanlı, 2 KAYNAK-EKSİK (yöntem uygulanabilir, ikinci sayı kayıtlı değil), 2 TEK-KAYNAK (yöntem uygulanamaz), 1 Re-BANDI (kestirim var, doğrulama bekliyor). Yani u_D boşluğunun tamamı 'ölçülemez' değil: 2 çapada eksik olan ölçüm değil, KAYDA GEÇMEMİŞ bir literatür sayısı.",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

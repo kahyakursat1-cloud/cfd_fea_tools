@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-32.050 satır Python $\cdot$ 148 test dosyası $\cdot$ 1.494 geçen test\\[3mm]
+32.050 satır Python $\cdot$ 149 test dosyası $\cdot$ 1.500 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -1848,6 +1848,39 @@ $u_D$ beyan etmiyor (Hoerner tablo değerleri, ders kitabı katsayıları, TMR'n
 band vermeyen tekil değeri) --- yani tablodaki bazı ``ayrılabilir'' hükümleri
 \emph{koşulludur} ve referans bandı eklendiğinde dönebilir.
 
+Bu altı çapa tek bir sayı olarak durduğu sürece eyleme dönmüyordu, ayrıldı
+(\texttt{experiments/referans\_belirsizligi.py}). Ortaya üç \emph{farklı} engel
+çıktı ve ikisi ``ölçülemez'' değil:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}llp{7.6cm}@{}}
+\toprule
+\textbf{Engel} & \textbf{Çapa} & \textbf{Durum} \\
+\midrule
+KAYNAK-EKSİK & NACA0012 $\alpha{=}0$, Ahmed 25° &
+  Çapa tanımı \emph{iki} kaynak adı taşıyor ama tek sayı saklıyor. Düz levhada
+  işleyen yöntem burada da uygulanabilir; eksik olan ölçüm değil, kayda
+  geçmemiş ikinci sayıdır \\
+TEK-KAYNAK & küp, disk &
+  Tek Hoerner tablo değeri; ikinci bir yerleşik korelasyon yok. Yöntem
+  \emph{uygulanamaz} \\
+Re-BANDI & küre &
+  Çapa tek bir $C_d$ taşıyor ama geçerli olduğu $Re$ aralığını da beyan ediyor
+  ($10^3$--$2{\times}10^5$). O aralıkta $C_d$ değişiyor: 0{,}466--0{,}487, yani
+  $u_D \ge \%4{,}4$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Küre satırındaki sayı \textbf{yayımlanan banda girmiyor} ve girmemesi
+kasıtlıdır: korelasyon sabitleri birincil kaynaktan doğrulanmadı, dolayısıyla
+kanıt dosyasında \texttt{\_dogrulama\_bekliyor} damgasıyla duruyor ve çapa
+tanımı hâlâ $u_D$'siz. Lehine bir işaret var --- korelasyon, çapanın taşıdığı
+0{,}47 platosuna bandın \emph{iki} ucunda da oturuyor --- ama bu doğrulama
+değildir. Zaten hiçbir kapıyı da açmazdı: küre çapası sayısal bandı çok büyük
+olduğu için (\%63) zaten hiçbir hücreye atanmıyor. Satırın işi bir boşluğu
+açmak değil, \emph{adlandırmak}.
+
 Aynı tarama bir tutarsızlık da buldu. Geriye-basamak vakasının duvar-çözünür ve
 duvar-fonksiyonu aileleri \emph{aynı} deneye (Driver \& Seegmiller 1985) karşı
 ölçülüyor, ama $u_D$ yalnız ikincisinde taşınıyordu; birincisi ayrılabilirliği
@@ -2005,11 +2038,11 @@ olarak değil. Kanıt dosyası zincirin tamamını taşır: üretim komutu
 \midrule
 Kod satırı (kök + \texttt{analysis/}) & 32.050 & \texttt{rapor\_sayilari.py} \\
 Kök modül & 84 & \texttt{rapor\_sayilari.py} \\
-Deney / çapa betiği & 71 & \texttt{experiments/} \\
-Test dosyası & 148 & \texttt{tests/test\_*.py} \\
-Geçen test & 1.494 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1.494 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
-Satır kapsamı & \textbf{\%47} & 19.792 ifade, 10.310 kapsanmamış \\
+Deney / çapa betiği & 72 & \texttt{experiments/} \\
+Test dosyası & 149 & \texttt{tests/test\_*.py} \\
+Geçen test & 1.500 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1.500 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
+Satır kapsamı & \textbf{\%47} & 19.855 ifade, 10.352 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
 \end{tabular}
