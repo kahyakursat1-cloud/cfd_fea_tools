@@ -1,0 +1,56 @@
+{
+  "vaka": "NACA0012 α=0 — TMR kod-arası yayılımdan u_D",
+  "_neden": "Capa u_D beyan etmiyordu ve triyaj onu KAYNAK-EKSIK saydi: iki kaynak adi tasiyor ama tek sayi sakliyordu. Kaynaga bakildi, sayi ORADAYDI.",
+  "kaynak": "https://tmbwg.github.io/turbmodels/naca0012_val_sa.html",
+  "kosul": {
+    "model": "SA",
+    "mach": 0.15,
+    "Re": 6000000.0,
+    "alpha_deg": 0.0,
+    "ag": "897x257"
+  },
+  "cd_kodlar": {
+    "CFL3D": 0.00819,
+    "FUN3D": 0.00812,
+    "NTS": 0.00813,
+    "JOE": 0.00812,
+    "SUMB": 0.00813,
+    "TURNS": 0.0083,
+    "GGNS": 0.00817
+  },
+  "yayilim": {
+    "n": 7,
+    "ortalama_cd": 0.008166,
+    "sigma_cd": 6.5e-05,
+    "u_D_pct": 0.796,
+    "aralik_pct": 2.204,
+    "en_uzak_kod": "TURNS",
+    "en_uzak_cd": 0.0083,
+    "en_uzak_haric_u_D_pct": 0.362,
+    "_aykiri_atilmadi": "Hangi kodun dogru oldugunu belirleyecek bir olcutumuz yok; atmak bandi YAPAY daraltirdi.",
+    "capa_cd": 0.0081,
+    "capa_ortalamadan_sapma_pct": 0.81
+  },
+  "u_D_pct": 0.796,
+  "_ne_kapsamaz": "KOD-ARASI yayilim olculdu: ayni modeli ayni agda cozen uygulamalarin farki. DENEYSEL belirsizligi KAPSAMAZ. TMR bu vaka icin acik uyari tasiyor: bu Re araliginda olculen surukleme sinir tabakasinin tetiklenmesinden buyuk olcude etkilenir (McCroskey verisinde Re=3e6'daki tetiklenmis surukleme Re=6e6'dakinden ~%10 yuksek). Referans deneysel olsaydi u_D bundan BUYUK olurdu.",
+  "_sinif": "ALT SINIR",
+  "_uretim": "Üretim: python experiments/tmr_kod_yayilimi.py",
+  "verdikt": "7 bağımsız kod, aynı ağ (897x257) ve aynı model (SA): ortalama C_d=0.008166, 1σ = %0.796 (tam aralık %2.204). Çapanın taşıdığı 0.0081 bu ortalamadan %0.81 sapıyor. u_D = %0.796 olarak ALT SINIR niteliğiyle beyan edildi.",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

@@ -237,12 +237,22 @@ def capalari_topla() -> list[dict]:
             # karistirilirsa hucre haksiz yere "ust sinir" damgasi yer.
             _u = ((tmr.get("lsr") or {}).get("u_pct")
                   or (tmr.get("gci") or {}).get("gci_fine_pct"))
+            # REFERANS BELIRSIZLIGI BU BLOKTA DA OKUNMUYORDU: ayrilabilirlik
+            # u_val = u_num varsayilarak hesaplaniyordu. Ayni kusur geriye-
+            # basamak duvar-cozunur blogunda da vardi. Capa tanimi artik u_D
+            # tasiyor (TMR'nin yedi kodunun yayilimi, %0,796 — ALT SINIR).
+            from validation_anchors import ANCHORS as _A
+            _uref = _A.get("naca0012_a0", {}).get("u_ref_pct")
+            _ayr_tmr = ayrilabilir(_hata, _u, _uref)
             c.append({"capa": "NACA0012 α=0 (2B, bağlı akış)",
                       "rejim": "attached_2d",
                       "sapma_pct": _hata + (_u or 0.0),
                       "ham_sapma_pct": round(_hata, 2),
                       "u_sayisal_pct": round(_u, 2) if _u else None,
-                      "ayrilabilir_mi": bool(_u and _hata > _u),
+                      "u_ref_pct": _uref,
+                      "u_val_pct": _ayr_tmr["u_val_pct"],
+                      "ayrilabilir_mi": _ayr_tmr["ayrilabilir_mi"],
+                      "ayrilabilirlik_notu": _ayr_tmr["gerekce"],
                       # TMR C-grid ailesi y⁺<1 ile üretilir (kanıtın kendi tanımı)
                       "yplus_ort": 1.0,
                       "referans": "NASA TMR / CFL3D"})

@@ -22,13 +22,8 @@
     },
     {
       "capa": "naca0012_a0",
-      "kaynak_sayisi": 2,
-      "ref": "Ladson NASA TM-4074; NASA Turbulence Modeling Resource",
-      "Re": "6e6",
-      "Cd": 0.0081,
-      "durum": "KAYNAK-EKSİK",
-      "engel": "Capa tanimi 2 kaynak adi tasiyor ama TEK sayi sakliyor. Duz levhada isleyen yontem (iki kaynagin farki = u_D alt kestirimi) burada da uygulanabilir; eksik olan yalnizca IKINCI SAYIDIR.",
-      "gereken": "ikinci kaynagin Cd degeri kayda gecmeli"
+      "durum": "u_D BEYAN EDİLMİŞ",
+      "u_ref_pct": 0.796
     },
     {
       "capa": "ahmed_25",
@@ -38,7 +33,18 @@
       "Cd": 0.285,
       "durum": "KAYNAK-EKSİK",
       "engel": "Capa tanimi 2 kaynak adi tasiyor ama TEK sayi sakliyor. Duz levhada isleyen yontem (iki kaynagin farki = u_D alt kestirimi) burada da uygulanabilir; eksik olan yalnizca IKINCI SAYIDIR.",
-      "gereken": "ikinci kaynagin Cd degeri kayda gecmeli"
+      "gereken": "ikinci kaynagin Cd degeri kayda gecmeli",
+      "arama": {
+        "sonuc": "BULUNDU AMA BEYAN EDİLMEDİ",
+        "bulunan": "Meile ve ark. (2011), 25° egim icin cD = 0,299.",
+        "capa_degeri": 0.285,
+        "fark_pct": 4.79,
+        "kaynak_turu": "IKINCIL (CFD dogrulama sayfalari); birincil makale metnine erisilemedi",
+        "neden_beyan_edilmedi": [
+          "Kaynak IKINCIL: sayi birincil makaleden okunmadi.",
+          "Iki deger AYNI Re'de DEGIL (Ahmed ~1e6, Meile 2,784e6); fark, kaynak yayilimi ile Re bagimliligini KARISTIRIR. Duz levhadaki yontem 'ayni kosulda iki korelasyon' diyordu, bu kosul saglanmiyor."
+        ]
+      }
     },
     {
       "capa": "cube",
@@ -68,13 +74,13 @@
   ],
   "sayim": {
     "Re-BANDI": 1,
-    "KAYNAK-EKSİK": 2,
-    "TEK-KAYNAK": 2,
-    "u_D BEYAN EDİLMİŞ": 1
+    "u_D BEYAN EDİLMİŞ": 2,
+    "KAYNAK-EKSİK": 1,
+    "TEK-KAYNAK": 2
   },
   "_kisit": "Hicbir sayi burada model-form bandina YAZILMAZ. Re-BANDI kestirimi dogrulama bekliyor; KAYNAK-EKSIK satirlari ise literatur isi ister ve o is bu depoda YAPILMADI.",
   "_uretim": "Üretim: python experiments/referans_belirsizligi.py",
-  "verdikt": "6 çapa: 1 beyanlı, 2 KAYNAK-EKSİK (yöntem uygulanabilir, ikinci sayı kayıtlı değil), 2 TEK-KAYNAK (yöntem uygulanamaz), 1 Re-BANDI (kestirim var, doğrulama bekliyor). Yani u_D boşluğunun tamamı 'ölçülemez' değil: 2 çapada eksik olan ölçüm değil, KAYDA GEÇMEMİŞ bir literatür sayısı.",
+  "verdikt": "6 çapa: 2 beyanlı, 1 KAYNAK-EKSİK (yöntem uygulanabilir, ikinci sayı kayıtlı değil), 2 TEK-KAYNAK (yöntem uygulanamaz), 1 Re-BANDI (kestirim var, doğrulama bekliyor). Yani u_D boşluğunun tamamı 'ölçülemez' değil: 1 çapada eksik olan ölçüm değil, KAYDA GEÇMEMİŞ bir literatür sayısı.",
   "_ortam": {
     "python": "3.13.12",
     "paketler": {

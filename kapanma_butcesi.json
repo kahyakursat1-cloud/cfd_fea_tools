@@ -18,9 +18,17 @@
       "rejim": "attached_2d",
       "ham_sapma_pct": 3.52,
       "u_sayisal_pct": 1.71,
-      "u_ref_pct": null,
-      "durum": "referans belirsizliği BEYAN EDİLMEMİŞ",
-      "neden": "u_D bilinmeden kapanma bütçesi hesaplanamaz; u_val yalnız sayısal banda dayanır ve gerçek u_val bundan BÜYÜKTÜR"
+      "u_ref_pct": 0.796,
+      "durum": "ayrılabilir",
+      "u_val_pct": 1.89,
+      "ayrilabilir_mi": true,
+      "gereken_u_num_pct": 3.43,
+      "marjli_u_num_pct": 2.82,
+      "mevcut_u_num_pct": 1.71,
+      "kac_kat_azalmali": 0.5,
+      "marjli_kac_kat": 0.6,
+      "baskin_terim": "u_num",
+      "neden": "|E|=3.52 > u_val=1.89: hücre zaten ayrılabilir."
     },
     {
       "capa": "disk",
@@ -140,7 +148,6 @@
   ],
   "u_D_beyan_edilmemis": [
     "küp",
-    "NACA0012 α=0 (2B, bağlı akış)",
     "disk",
     "küre",
     "küp (çapa koşusu)",
@@ -148,7 +155,7 @@
   ],
   "_kisit": "u_num* GEREK sarti verir, YETER sarti degil: ag inceltmek u_num'u o bandin altina indirebilirse hucre kapanir; indiremeyecegi de olcumle gorulur. Ayrica |E| ag ile birlikte DEGISIR (model hatasi sabit degil, olculen sapma degisir) --- hedef sabit bir esik degil, hareketli bir hedeftir.",
   "_uretim": "Üretim: python experiments/kapanma_butcesi.py",
-  "verdikt": "11 çapa incelendi. 1 çapada ağ inceltmek hücreyi kapatabilir; 1 çapada kapatamaz (|E| ≤ u_D ya da 1.2× pay bırakacak band yok) — orada REFERANS değişmeli. 6 çapada u_D HİÇ BEYAN EDİLMEMİŞ: onların ayrılabilirlik hükmü yalnız sayısal banda dayanıyor ve gerçek u_val bundan büyüktür.",
+  "verdikt": "11 çapa incelendi. 1 çapada ağ inceltmek hücreyi kapatabilir; 1 çapada kapatamaz (|E| ≤ u_D ya da 1.2× pay bırakacak band yok) — orada REFERANS değişmeli. 5 çapada u_D HİÇ BEYAN EDİLMEMİŞ: onların ayrılabilirlik hükmü yalnız sayısal banda dayanıyor ve gerçek u_val bundan büyüktür.",
   "_ortam": {
     "python": "3.13.12",
     "paketler": {

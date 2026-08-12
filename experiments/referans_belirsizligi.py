@@ -43,6 +43,35 @@ sys.path.insert(0, str(KOK))
 
 CIKTI = KOK / "referans_belirsizligi.json"
 
+# KAYNAK-EKSIK satirlari icin ARAMA YAPILDI (2026-08-12). Sonuclar burada
+# kayitli; capa tanimina yazilip yazilmadigi AYRI bir karardir ve gerekcesi
+# her satirda duruyor. "Bulundu" ile "beyan edilebilir" ayni sey degildir.
+ARANAN = {
+    "naca0012_a0": {
+        "sonuc": "BEYAN EDİLDİ",
+        "bulunan": ("TMR ayni vakayi ayni agda (897x257) ve ayni modelle (SA) "
+                    "YEDI bagimsiz kodla kosup hepsini yayimliyor; tekil deger "
+                    "yayimladigi SANILIYORDU."),
+        "u_D_pct": 0.796,
+        "kaynak_turu": "BIRINCIL (NASA TMR sayfasinin kendisi)",
+        "kanit": "tmr_kod_yayilimi.json",
+    },
+    "ahmed_25": {
+        "sonuc": "BULUNDU AMA BEYAN EDİLMEDİ",
+        "bulunan": "Meile ve ark. (2011), 25° egim icin cD = 0,299.",
+        "capa_degeri": 0.285,
+        "fark_pct": 4.79,
+        "kaynak_turu": "IKINCIL (CFD dogrulama sayfalari); birincil makale "
+                       "metnine erisilemedi",
+        "neden_beyan_edilmedi": [
+            "Kaynak IKINCIL: sayi birincil makaleden okunmadi.",
+            "Iki deger AYNI Re'de DEGIL (Ahmed ~1e6, Meile 2,784e6); fark, "
+            "kaynak yayilimi ile Re bagimliligini KARISTIRIR. Duz levhadaki "
+            "yontem 'ayni kosulda iki korelasyon' diyordu, bu kosul saglanmiyor.",
+        ],
+    },
+}
+
 # Kaynak adlarini ayiran isaretler: ";" ve " + ". Virgul KULLANILMAZ —
 # "Hoerner, Fluid-Dynamic Drag (1965)" tek kaynaktir ve virgul baslik icindedir.
 _AYIRAC = re.compile(r"\s*;\s*")
@@ -125,6 +154,8 @@ def main() -> int:
                           f"uygulanabilir; eksik olan yalnizca IKINCI SAYIDIR."),
                 "gereken": "ikinci kaynagin Cd degeri kayda gecmeli",
             })
+            if ad in ARANAN:
+                kayit["arama"] = ARANAN[ad]
         else:
             kayit.update({
                 "durum": "TEK-KAYNAK",
@@ -168,6 +199,9 @@ def main() -> int:
     print(rec["vaka"] + "\n" + "=" * 76)
     for s in satirlar:
         print(f"{s['capa']:<22}{s['durum']}")
+        if s.get("arama"):
+            a = s["arama"]
+            print(f"{'':<22}  ARAMA: {a['sonuc']} — {a['kaynak_turu']}")
         if s.get("u_D_alt_kestirim_pct"):
             print(f"{'':<22}  Cd {s['cd_alt_Re']} → {s['cd_ust_Re']} "
                   f"= u_D ≥ %{s['u_D_alt_kestirim_pct']} (DOĞRULAMA BEKLİYOR)")

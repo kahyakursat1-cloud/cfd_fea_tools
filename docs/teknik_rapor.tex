@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-32.050 satır Python $\cdot$ 149 test dosyası $\cdot$ 1.500 geçen test\\[3mm]
+32.050 satır Python $\cdot$ 149 test dosyası $\cdot$ 1.505 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -1860,7 +1860,7 @@ Bu altı çapa tek bir sayı olarak durduğu sürece eyleme dönmüyordu, ayrıl
 KAYNAK-EKSİK & NACA0012 $\alpha{=}0$, Ahmed 25° &
   Çapa tanımı \emph{iki} kaynak adı taşıyor ama tek sayı saklıyor. Düz levhada
   işleyen yöntem burada da uygulanabilir; eksik olan ölçüm değil, kayda
-  geçmemiş ikinci sayıdır \\
+  geçmemiş ikinci sayıdır. \textbf{Kaynağa bakıldı} --- aşağıya bkz. \\
 TEK-KAYNAK & küp, disk &
   Tek Hoerner tablo değeri; ikinci bir yerleşik korelasyon yok. Yöntem
   \emph{uygulanamaz} \\
@@ -1880,6 +1880,45 @@ tanımı hâlâ $u_D$'siz. Lehine bir işaret var --- korelasyon, çapanın taş
 değildir. Zaten hiçbir kapıyı da açmazdı: küre çapası sayısal bandı çok büyük
 olduğu için (\%63) zaten hiçbir hücreye atanmıyor. Satırın işi bir boşluğu
 açmak değil, \emph{adlandırmak}.
+
+\begin{olculdu}{Kaynağa bakıldı: biri kapandı, biri kapanmadı}
+KAYNAK-EKSİK iki satır için kaynaklara gidildi ve sonuçlar birbirinden farklı
+çıktı --- ikisi de yazılmaya değer.
+
+\textbf{NACA0012 $\alpha{=}0$ --- kapandı.} Çapa notu ``TMR tekil değer
+yayımlıyor, band beyan etmiyor'' diyordu. Yanlıştı: TMR aynı vakayı aynı ağda
+(897$\times$257) ve aynı modelle (SA) \emph{yedi} bağımsız kodla koşup hepsini
+yayımlıyor. Çapanın referansı bir deney değil o TMR değeri olduğuna göre,
+referansın belirsizliği aynı şeyi hesaplayan kodların yayılımıdır ve ölçülür:
+ortalama $C_d = 0{,}008166$, $1\sigma = \%0{,}796$, tam aralık \%2{,}204. Yedi
+koddan biri (TURNS, 0{,}00830) belirgin biçimde ayrılıyor; \emph{atılmadı} ---
+hangisinin doğru olduğuna karar verecek bir ölçüt yok ve atmak bandı \%0{,}36'ya
+indirerek yapay biçimde daraltırdı. $u_D = \%0{,}796$ çapaya yazıldı,
+\textbf{alt sınır} etiketiyle: kod-arası yayılım \emph{deneysel} belirsizliği
+kapsamaz ve TMR bu vaka için ayrıca uyarıyor --- bu $Re$ aralığında ölçülen
+sürükleme sınır tabakasının tetiklenmesinden büyük ölçüde etkilenir. Hücre
+hükmü değişmedi (\%3{,}52 hâlâ $u_{\mathrm{val}}{=}\%1{,}89$'un üstünde);
+değişen, hükmün \emph{neye dayandığı}.
+
+\textbf{Ahmed 25° --- kapanmadı.} İkinci değer bulundu: Meile ve ark.\ (2011)
+25° eğim için $c_D = 0{,}299$ veriyor, çapanın taşıdığı 0{,}285'ten \%4{,}8
+uzak. Yine de çapaya \emph{yazılmadı}, iki nedenle. Birincisi sayı yalnız
+ikincil kaynaklardan teyit edilebildi; birincil makale metnine erişilemedi.
+İkincisi ve daha bağlayıcısı: iki değer \emph{aynı Reynolds sayısında değil}
+(Ahmed $\sim$$10^6$, Meile $2{,}784{\times}10^6$), dolayısıyla farkları kaynak
+yayılımıyla $Re$ bağımlılığını karıştırır. Düz levhadaki yöntemin şartı ``aynı
+$Re_x$'te iki korelasyon'' idi ve burada o şart sağlanmıyor.
+
+\begin{center}\itshape
+Bir sayıyı bulmak ile onu beyan edebilmek aynı şey değildir.
+\end{center}
+\end{olculdu}
+
+\noindent Aynı düzeltme sırasında üçüncü bir örnek daha çıktı: TMR çapasının
+ayrılabilirliğini hesaplayan blok da referans belirsizliğini \emph{hiç
+okumuyordu} --- geriye-basamak duvar-çözünür bloğundaki kusurun aynısı. Depoda
+tekrar eden desen artık adı konmuş durumda: ölçüt sonradan sıkılaştırıldığında
+onu \emph{çağıran} yollar tek tek güncellenmiş, biri atlanmış.
 
 Aynı tarama bir tutarsızlık da buldu. Geriye-basamak vakasının duvar-çözünür ve
 duvar-fonksiyonu aileleri \emph{aynı} deneye (Driver \& Seegmiller 1985) karşı
@@ -2038,11 +2077,11 @@ olarak değil. Kanıt dosyası zincirin tamamını taşır: üretim komutu
 \midrule
 Kod satırı (kök + \texttt{analysis/}) & 32.050 & \texttt{rapor\_sayilari.py} \\
 Kök modül & 84 & \texttt{rapor\_sayilari.py} \\
-Deney / çapa betiği & 72 & \texttt{experiments/} \\
+Deney / çapa betiği & 73 & \texttt{experiments/} \\
 Test dosyası & 149 & \texttt{tests/test\_*.py} \\
-Geçen test & 1.500 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1.500 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
-Satır kapsamı & \textbf{\%47} & 19.855 ifade, 10.352 kapsanmamış \\
+Geçen test & 1.505 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1.505 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
+Satır kapsamı & \textbf{\%47} & 19.864 ifade, 10.357 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
 \end{tabular}

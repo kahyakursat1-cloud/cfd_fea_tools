@@ -3,12 +3,12 @@
   "_neden": "Raporun ilkesi: bulduran sey kapsam YUZDESI degil, kapsamin NEREDE dusuk oldugudur. Bu betik kapsanmamis satirlari metin/CLI - savunma - karar dali diye ayirir.",
   "_yayimlanmaz": "Asagidaki 'karar_katmani.kapsam_pct' MANSET DEGILDIR ve rapora yazilmaz. Raporun Kapsam bolumu, yuzdeyi yukseltmek icin testi kolay olani sayip zoru disarida birakmayi acikca reddeder; yayimlanan sayi %47'dir.",
   "genel": {
-    "ifade": 19855,
+    "ifade": 19864,
     "kapsam_pct": 47.9
   },
   "karar_katmani": {
     "modul_sayisi": 15,
-    "ifade": 2656,
+    "ifade": 2659,
     "eksik": 382,
     "kapsam_pct": 85.6
   },
@@ -141,8 +141,8 @@
     },
     {
       "modul": "experiments/model_form_bandi.py",
-      "kapsam_pct": 87.7,
-      "ifade": 228,
+      "kapsam_pct": 87.9,
+      "ifade": 231,
       "eksik": 28,
       "eksik_io": 12,
       "eksik_savunma": 4,
@@ -1242,68 +1242,68 @@
     },
     {
       "modul": "experiments/model_form_bandi.py",
-      "satir": 459,
+      "satir": 469,
       "kod": "neden = (\"duvar işlemi (y⁺) kanıtta KAYITLI DEĞİL — hücreye \""
     },
     {
       "modul": "experiments/model_form_bandi.py",
-      "satir": 464,
+      "satir": 474,
       "kod": "neden = (f\"y⁺ ORTALAMASI bantta ({_y:.1f}) ama TEPESİ dışarıda \""
     },
     {
       "modul": "experiments/model_form_bandi.py",
-      "satir": 549,
+      "satir": 559,
       "kod": "dusurulen.append({"
     },
     {
       "modul": "experiments/model_form_bandi.py",
-      "satir": 576,
+      "satir": 586,
       "kod": "oncul = _MODEL_U_PCT.get(rejim, {}).get(islem)"
     },
     {
       "modul": "experiments/model_form_bandi.py",
-      "satir": 577,
+      "satir": 587,
       "kod": "dis_kaynakli.append({"
     },
     {
       "modul": "experiments/model_form_bandi.py",
-      "satir": 625,
+      "satir": 635,
       "kod": "sys.stdout.reconfigure(encoding=\"utf-8\", errors=\"replace\")"
     },
     {
       "modul": "experiments/model_form_bandi.py",
-      "satir": 626,
+      "satir": 636,
       "kod": "rec = calistir()"
     },
     {
       "modul": "experiments/model_form_bandi.py",
-      "satir": 634,
+      "satir": 644,
       "kod": "ortam.damgala(rec)"
     },
     {
       "modul": "experiments/model_form_bandi.py",
-      "satir": 635,
+      "satir": 645,
       "kod": "(KOK / \"model_form_bandi.json\").write_text("
     },
     {
       "modul": "experiments/model_form_bandi.py",
-      "satir": 638,
+      "satir": 648,
       "kod": "for x in rec[\"capalar\"]:"
     },
     {
       "modul": "experiments/model_form_bandi.py",
-      "satir": 641,
+      "satir": 651,
       "kod": "if rec[\"atanamayan_capalar\"]:"
     },
     {
       "modul": "experiments/model_form_bandi.py",
-      "satir": 643,
+      "satir": 653,
       "kod": "for x in rec[\"atanamayan_capalar\"]:"
     }
   ],
   "_sinirlar": "Karar katmani listesi ELLE tutulur ve olcumun parcasidir; bir modul eklendiginde buraya da eklenmeli. Uc-kova ayrimi DESEN-TABANLIDIR (sezgisel) ve ust sinir verir: ilk surum 321 satiri 'karar dali' saydi, gozle bakilinca buyuk kismi metin/CLI cikti. 'karar dali' kovasindaki satirlar tek tek okunmadan sinanmamis hukum sayilmaz.",
   "_uretim": "Üretim: python experiments/karar_katmani_kapsami.py",
-  "verdikt": "Yayımlanan satır kapsamı %47.9 (19,855 ifade) ve manşet bu kalır. Hüküm üreten 15 modülde (2,656 ifade) kapsanmamış 382 satırın 108'ü metin/CLI, 44'ü savunma (except/pass); karar dalı adayı 230. Bu son sayı ÜST SINIRDIR — tek tek okunmadan 'sınanmamış hüküm' sayılmaz. İlk okumada bulunan gerçek kapı: gci_advisor.py:83.",
+  "verdikt": "Yayımlanan satır kapsamı %47.9 (19,864 ifade) ve manşet bu kalır. Hüküm üreten 15 modülde (2,659 ifade) kapsanmamış 382 satırın 108'ü metin/CLI, 44'ü savunma (except/pass); karar dalı adayı 230. Bu son sayı ÜST SINIRDIR — tek tek okunmadan 'sınanmamış hüküm' sayılmaz. İlk okumada bulunan gerçek kapı: gci_advisor.py:83.",
   "_ortam": {
     "python": "3.13.12",
     "paketler": {

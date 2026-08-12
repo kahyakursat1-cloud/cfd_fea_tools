@@ -21,7 +21,10 @@
       "sapma_pct": 5.23,
       "ham_sapma_pct": 3.52,
       "u_sayisal_pct": 1.71,
+      "u_ref_pct": 0.796,
+      "u_val_pct": 1.89,
       "ayrilabilir_mi": true,
+      "ayrilabilirlik_notu": "u_val = √(1.71² + 0.80²) = %1.89 (ASME V&V 20)",
       "yplus_ort": 1.0,
       "referans": "NASA TMR / CFL3D"
     },

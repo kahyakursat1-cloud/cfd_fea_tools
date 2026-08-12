@@ -80,3 +80,73 @@ def test_triyaj_ENGELI_adiyla_yaziyor():
     for s in eksik:
         assert s.get("engel"), f"{s['capa']}: engel yazılmamış"
         assert s["durum"] in ("KAYNAK-EKSİK", "TEK-KAYNAK", "Re-BANDI"), s
+
+
+# ── kaynağa bakıldı: bulunan sayı nereye yazıldı, nereye yazılmadı ─────────
+
+def test_tmr_u_D_kaynak_ve_kosulla_birlikte_KAYITLI():
+    """Sayı tek başına yetmez: hangi koşulda, hangi ağda, kaç koddan?"""
+    p = KOK / "tmr_kod_yayilimi.json"
+    if not p.exists():
+        return
+    d = json.loads(p.read_text(encoding="utf-8"))
+    assert d["kaynak"].startswith("http"), d["kaynak"]
+    assert d["kosul"]["ag"] and d["kosul"]["model"] and d["kosul"]["Re"]
+    assert len(d["cd_kodlar"]) >= 5, "kod-arası yayılım birkaç koddan hesaplanmaz"
+    assert d["yayilim"]["n"] == len(d["cd_kodlar"])
+
+
+def test_tmr_u_D_capaya_AYNI_sayiyla_gecmis():
+    """Kanıt dosyası ile çapa tanımı ayrışırsa 'metin sabit, veri değişti'."""
+    p = KOK / "tmr_kod_yayilimi.json"
+    if not p.exists():
+        return
+    from validation_anchors import ANCHORS
+    d = json.loads(p.read_text(encoding="utf-8"))
+    assert ANCHORS["naca0012_a0"]["u_ref_pct"] == d["u_D_pct"], (
+        f'çapa {ANCHORS["naca0012_a0"]["u_ref_pct"]} ≠ kanıt {d["u_D_pct"]}')
+
+
+def test_kod_arasi_yayilim_ALT_SINIR_diye_etiketli():
+    """Kod-arası yayılım deneysel belirsizliği KAPSAMAZ; öyle sunulamaz."""
+    p = KOK / "tmr_kod_yayilimi.json"
+    if not p.exists():
+        return
+    d = json.loads(p.read_text(encoding="utf-8"))
+    assert d["_sinif"] == "ALT SINIR"
+    assert "DENEYSEL" in d["_ne_kapsamaz"]
+    from validation_anchors import ANCHORS
+    assert "ALT SINIR" in ANCHORS["naca0012_a0"].get("u_ref_sinif", "")
+
+
+def test_aykiri_kod_ATILMAMIS():
+    """Aykırıyı atmak bandı yapay daraltır; atılmadığı kayıtlı olmalı."""
+    p = KOK / "tmr_kod_yayilimi.json"
+    if not p.exists():
+        return
+    d = json.loads(p.read_text(encoding="utf-8"))
+    y = d["yayilim"]
+    assert y["en_uzak_haric_u_D_pct"] < y["u_D_pct"], (
+        "aykırı çıkarılınca band daralmalı — daralmıyorsa 'en uzak' yanlış")
+    assert d["u_D_pct"] == y["u_D_pct"], "yayımlanan u_D aykırı DAHİL olmalı"
+
+
+def test_ikincil_kaynakli_sayi_capaya_YAZILMAMIS():
+    """Ahmed için değer bulundu ama iki gerekçeyle beyan edilmedi.
+
+    Bulmak ile beyan edebilmek aynı şey değildir: kaynak ikincildi ve iki
+    değer aynı Reynolds sayısında değil.
+    """
+    p = KOK / "referans_belirsizligi.json"
+    if not p.exists():
+        return
+    from validation_anchors import ANCHORS
+    d = json.loads(p.read_text(encoding="utf-8"))
+    s = next((x for x in d["satirlar"] if x["capa"] == "ahmed_25"), None)
+    if not s or "arama" not in s:
+        return
+    a = s["arama"]
+    assert a["sonuc"] == "BULUNDU AMA BEYAN EDİLMEDİ"
+    assert len(a["neden_beyan_edilmedi"]) >= 2, a
+    assert ANCHORS["ahmed_25"]["u_ref_pct"] is None, (
+        "ikincil kaynaklı sayı çapa tanımına sızmış")

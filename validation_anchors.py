@@ -11,6 +11,12 @@
 Kaynaklar: küre subkritik Cd≈0.47 (White, Fluid Mechanics; Schlichting). NACA0012 α=0
 Cd₀≈0.0081 (Ladson NASA TM-4074 / NASA TMR). Ahmed body 25° Cd≈0.285 (Ahmed 1984; Meile
 2011). Rejim model-hatası mertebeleri: RANS-SST harici-aerodinamik V&V literatürü.
+
+u_ref_pct (u_D) BEYAN KURALI: sayı ya kaynağın kendisinden gelir ya da hiç yazılmaz.
+Türetilmişse `u_ref_sinif` alanı neyin ölçüldüğünü söyler — örneğin NACA0012 α=0'ın
+u_D'si TMR'nin yedi kodunun yayılımıdır (ALT SINIR: deneysel belirsizliği kapsamaz).
+Beyan edilmemiş çapaların engeli `referans_belirsizligi.json` içinde adıyla kayıtlı;
+"u_D yok" ile "u_D ölçülemez" aynı şey değildir.
 """
 from __future__ import annotations
 
@@ -32,12 +38,29 @@ ANCHORS = {
         # yaziyordu, yani iki kaynak celisiyordu; dogru olan attached_2d.
         "Cd": 0.0081, "regime": "attached_2d", "Re": "6e6",
         "aref": "kiriş", "ref": "Ladson NASA TM-4074; NASA Turbulence Modeling Resource",
-        "u_ref_pct": None,   # TMR tekil deger yayimliyor, band beyan etmiyor
+        # OLCULDU (tmr_kod_yayilimi.json): TMR tekil deger yayimliyor SANILIYORDU;
+        # aslinda ayni vakayi ayni agda (897x257) ve ayni modelle (SA) YEDI
+        # bagimsiz kodla kosup hepsini yayimliyor. Capanin referansi bir deney
+        # degil o TMR degeri oldugu icin, referansin belirsizligi ayni seyi
+        # hesaplayan kodlarin yayilimidir: 1σ = %0.796 (tam aralik %2.204).
+        # ALT SINIR — kod-arasi yayilim DENEYSEL belirsizligi kapsamaz; TMR bu
+        # vakada olculen suruklemenin sinir-tabaka tetiklemesine cok duyarli
+        # oldugunu ayrica uyariyor.
+        "u_ref_pct": 0.796,
+        "u_ref_sinif": "ALT SINIR (kod-arası yayılım, n=7)",
     },
     "ahmed_25": {
         "Cd": 0.285, "regime": "bluff", "Re": "~1e6",
         "aref": "frontal", "ref": "Ahmed et al. 1984; Meile et al. 2011",
-        "u_ref_pct": None,   # iki kaynak arasi fark var ama sayisal band yok
+        # IKINCI KAYNAK ARANDI, BULUNDU AMA BEYAN EDILMEDI. Meile ve ark.
+        # (2011) 25° egim icin cD=0,299 veriyor; bu deger yalniz IKINCIL
+        # kaynaklardan (CFD dogrulama sayfalari) teyit edilebildi, birincil
+        # makale metnine erisilemedi. Ayrica iki deger AYNI Re'de degil
+        # (Ahmed ~1e6, Meile 2,784e6) — fark, kaynak yayilimi ile Re
+        # bagimliligini KARISTIRIR. Duz levha ornegindeki yontem "ayni kosulda
+        # iki korelasyon" diyordu; bu kosul saglanmiyor. Bu yuzden sayi
+        # kanit dosyasinda beklemede tutuluyor, capaya YAZILMIYOR.
+        "u_ref_pct": None,
     },
     "cube": {
         "Cd": 1.05, "regime": "bluff", "Re": ">1e4 (keskin-kenar, Re-duyarsız)",
