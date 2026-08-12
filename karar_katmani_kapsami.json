@@ -3,14 +3,14 @@
   "_neden": "Raporun ilkesi: bulduran sey kapsam YUZDESI degil, kapsamin NEREDE dusuk oldugudur. Bu betik kapsanmamis satirlari metin/CLI - savunma - karar dali diye ayirir.",
   "_yayimlanmaz": "Asagidaki 'karar_katmani.kapsam_pct' MANSET DEGILDIR ve rapora yazilmaz. Raporun Kapsam bolumu, yuzdeyi yukseltmek icin testi kolay olani sayip zoru disarida birakmayi acikca reddeder; yayimlanan sayi %47'dir.",
   "genel": {
-    "ifade": 19709,
+    "ifade": 19716,
     "kapsam_pct": 47.9
   },
   "karar_katmani": {
     "modul_sayisi": 15,
     "ifade": 2647,
-    "eksik": 386,
-    "kapsam_pct": 85.4
+    "eksik": 382,
+    "kapsam_pct": 85.6
   },
   "moduller": [
     {
@@ -33,12 +33,12 @@
     },
     {
       "modul": "gci_advisor.py",
-      "kapsam_pct": 78.2,
+      "kapsam_pct": 81.5,
       "ifade": 119,
-      "eksik": 26,
+      "eksik": 22,
       "eksik_io": 12,
-      "eksik_savunma": 6,
-      "eksik_karar_dali": 8
+      "eksik_savunma": 4,
+      "eksik_karar_dali": 6
     },
     {
       "modul": "kosu_gecmisi.py",
@@ -474,16 +474,6 @@
       "modul": "report_generator.py",
       "satir": 1115,
       "kod": "path = rep.build(mesh_indep=mesh_indep, validation=validation,"
-    },
-    {
-      "modul": "gci_advisor.py",
-      "satir": 83,
-      "kod": "rec.update(ogrenilebilir=False,"
-    },
-    {
-      "modul": "gci_advisor.py",
-      "satir": 119,
-      "kod": "return []"
     },
     {
       "modul": "gci_advisor.py",
@@ -1313,7 +1303,7 @@
   ],
   "_sinirlar": "Karar katmani listesi ELLE tutulur ve olcumun parcasidir; bir modul eklendiginde buraya da eklenmeli. Uc-kova ayrimi DESEN-TABANLIDIR (sezgisel) ve ust sinir verir: ilk surum 321 satiri 'karar dali' saydi, gozle bakilinca buyuk kismi metin/CLI cikti. 'karar dali' kovasindaki satirlar tek tek okunmadan sinanmamis hukum sayilmaz.",
   "_uretim": "Üretim: python experiments/karar_katmani_kapsami.py",
-  "verdikt": "Yayımlanan satır kapsamı %47.9 (19,709 ifade) ve manşet bu kalır. Hüküm üreten 15 modülde (2,647 ifade) kapsanmamış 386 satırın 108'ü metin/CLI, 46'ü savunma (except/pass); karar dalı adayı 232. Bu son sayı ÜST SINIRDIR — tek tek okunmadan 'sınanmamış hüküm' sayılmaz. İlk okumada bulunan gerçek kapı: gci_advisor.py:83.",
+  "verdikt": "Yayımlanan satır kapsamı %47.9 (19,716 ifade) ve manşet bu kalır. Hüküm üreten 15 modülde (2,647 ifade) kapsanmamış 382 satırın 108'ü metin/CLI, 44'ü savunma (except/pass); karar dalı adayı 230. Bu son sayı ÜST SINIRDIR — tek tek okunmadan 'sınanmamış hüküm' sayılmaz. İlk okumada bulunan gerçek kapı: gci_advisor.py:83.",
   "_ortam": {
     "python": "3.13.12",
     "paketler": {

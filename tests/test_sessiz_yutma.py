@@ -70,8 +70,19 @@ import sessiz_yutma
 # Hicbir satir okunamazsa cagiran "olculemedi" hukmu veriyor, yani bos sonuc
 # basari sayilmiyor. Gerekce kodda yazili.
 # Izlenen sayilar DEGISMEDI: incelenmemis 0, guven yolunda incelenmemis 0.
-TABAN_TOPLAM = 85
-TABAN_GUVEN_YOLU = 58
+#
+# 2026-08-12 — TABAN 85 → 87 (guven yolu 58 → 60). GERILEME DEGIL, iki savunma:
+# (1) `basarim_matrisi._cozucu_exec_s` foamRun log'undan ExecutionTime ayristirir
+#     ve bozuk satiri atlar; okunabilen SON deger doner, hic okunamazsa None ve
+#     hizlanma hesabi o kosuyu DISARIDA birakir — uydurma sayi uretilmez.
+# (2) `rapor_figurleri.fig_basarim_matrisi` ikinci govdenin matrisi yoksa o
+#     govdeyi figurden duser. "Geometriden bagimsiz" hukmunu figur DEGIL
+#     `test_iki_govde_de_olculmus` bagliyor.
+# Ikisi de yeni bir olcum yolunun parcasi: hizlanma artik ASAMA DUVAR SURESINDEN
+# degil ExecutionTime'dan hesaplaniyor (rapordaki 1,96x → 3,10x duzeltmesi).
+# Izlenen sayilar DEGISMEDI: incelenmemis 0, guven yolunda incelenmemis 0.
+TABAN_TOPLAM = 87
+TABAN_GUVEN_YOLU = 60
 TABAN_INCELENMEMIS = 25
 TABAN_INCELENMEMIS_GUVEN_YOLU = 0
 

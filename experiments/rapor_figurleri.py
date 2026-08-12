@@ -313,37 +313,59 @@ def _asama_cizimi(adlar, sureler, hucre, yontem) -> Path | None:
 # ── 6. Basarim matrisi: cekirdek olceklenmesi ───────────────────────────────
 
 def fig_basarim_matrisi() -> Path | None:
-    d = _j("basarim_matrisi.json")
-    ok = [x for x in d["satirlar"] if x["durum"] == "ok" and x.get("cozucu_s")]
-    if len(ok) < 4:
-        return None
-    fig, ax = plt.subplots(1, 2, figsize=(7.4, 3.0))
+    """İki geometri, iki ölçüt.
 
-    butceler = sorted({x["butce"] for x in ok})
-    renkler = ["#1f4e79", "#4a7ba7", "#8fb3d0"]
-    for i, b in enumerate(butceler):
-        g = sorted((x for x in ok if x["butce"] == b), key=lambda x: x["cekirdek"])
-        taban = next((x for x in g if x["cekirdek"] == 1), None)
-        if not taban:
+    Sol panel hızlanmayı foamRun'un kendi ExecutionTime'ından çizer ve iki
+    gövdeyi üst üste bindirir --- eğilimin geometriye bağlı olmadığı görülsün.
+    Sağ panel, ilk sürümün neden yanıltıcı olduğunu gösterir: aşama duvar
+    süresi hücreden bağımsız bir açılış yükü (WSL + mpirun) taşır.
+    """
+    kaynak = [("küp", "basarim_matrisi.json", "#1f4e79", "o-"),
+              ("MiniHawk", "basarim_matrisi_minihawk.json", "#c05621", "s--")]
+    seriler = []
+    for ad, dosya, renk, stil in kaynak:
+        try:
+            d = _j(dosya)
+        # sessiz-yutma: kabul — ikinci gövde matrisi koşulmamış olabilir; o gövde
+        # figürden düşer ve figür tek gövdeyle çizilir. "Geometriden bağımsız"
+        # hükmünü figür değil test_iki_govde_de_olculmus bağlar.
+        except (FileNotFoundError, KeyError):
             continue
-        c = [x["cekirdek"] for x in g]
-        h = [taban["cozucu_s"] / x["cozucu_s"] for x in g]
-        ax[0].plot(c, h, "o-", color=renkler[i % 3], lw=1.6, ms=5,
-                   label=f"{g[0]['cells']:,} hücre")
-        ax[1].plot(c, [x["cozucu_s"] for x in g], "s-", color=renkler[i % 3],
-                   lw=1.6, ms=5, label=f"{g[0]['cells']:,} hücre")
-    c_max = max(x["cekirdek"] for x in ok)
+        ok = [x for x in d["satirlar"]
+              if x["durum"] == "ok" and x.get("cozucu_exec_s")]
+        if len(ok) >= 4:
+            seriler.append((ad, ok, renk, stil))
+    if not seriler:
+        return None
+
+    fig, ax = plt.subplots(1, 2, figsize=(7.4, 3.0))
+    c_max = 1
+    for ad, ok, renk, stil in seriler:
+        for i, b in enumerate(sorted({x["butce"] for x in ok})):
+            g = sorted((x for x in ok if x["butce"] == b),
+                       key=lambda x: x["cekirdek"])
+            taban = next((x for x in g if x["cekirdek"] == 1), None)
+            if not taban:
+                continue
+            c = [x["cekirdek"] for x in g]
+            c_max = max(c_max, *c)
+            ax[0].plot(c, [taban["cozucu_exec_s"] / x["cozucu_exec_s"] for x in g],
+                       stil, color=renk, lw=1.4, ms=4, alpha=0.45 + 0.25 * i,
+                       label=f"{ad} {g[0]['cells'] // 1000}k hücre")
+            ax[1].plot([x["cells"] for x in g],
+                       [x["cozucu_s"] - x["cozucu_exec_s"] for x in g],
+                       stil, color=renk, lw=1.4, ms=4, alpha=0.45 + 0.25 * i)
     ax[0].plot([1, c_max], [1, c_max], ":", color="gray", lw=1.2, label="ideal")
     ax[0].set_xlabel("çekirdek")
-    ax[0].set_ylabel("hızlanma (1 çekirdeğe göre)")
-    ax[0].set_title("Çekirdek ölçeklenmesi — çözücü", fontsize=9)
-    ax[0].legend(fontsize=7)
-    ax[1].set_xlabel("çekirdek")
-    ax[1].set_ylabel("çözücü süresi (s)")
-    ax[1].set_title("Mutlak süre", fontsize=9)
-    ax[1].legend(fontsize=7)
-    fig.suptitle("Küp, tek makine — hızlanma hücre sayısıyla ARTIYOR "
-                 "(küçük ağda ayrıştırma yükü baskın)", fontsize=9.5)
+    ax[0].set_ylabel("hızlanma (ExecutionTime)")
+    ax[0].set_title("Çekirdek ölçeklenmesi — iki gövde", fontsize=9)
+    ax[0].legend(fontsize=6, ncol=2)
+    ax[1].set_xlabel("hücre")
+    ax[1].set_ylabel("aşama $-$ çözücü [s]")
+    ax[1].set_title("Açılış yükü: hücreden bağımsız", fontsize=9)
+    ax[1].set_ylim(bottom=0)
+    fig.suptitle("Hızlanma hücre sayısıyla artıyor ve geometriden bağımsız; "
+                 "duvar süresi sabit açılış yükü taşır", fontsize=9.5)
 
     p = CIKTI / "fig_basarim_matrisi.pdf"
     fig.savefig(p)

@@ -1,0 +1,299 @@
+{
+  "vaka": "Başarım matrisi — geometri bağımlılığı",
+  "_neden": "Rapor cekirdek olceklenmesini TEK geometriyle olcup bunu sinir diye yazmisti. Siniri YAZMAK onu OLCMEK degildir.",
+  "_onceden_sabitlenen_iddia": {
+    "I1": "Hizlanma her satirda idealin ALTINDADIR.",
+    "I2": "Hizlanma hucre sayisiyla ARTAR.",
+    "I3": "En kucuk agda 8 cekirdek 4'ten YAVASTIR.",
+    "_not": "Iddialar olcumden ONCE yazildi (bkz. modul docstring).",
+    "_olcut": "Hizlanma foamRun ExecutionTime'dan hesaplanir. Raporun yayimladigi sayilar ASAMA DUVAR SURESINDEN geliyordu ve icinde hucreden BAGIMSIZ ~8-10 s WSL/mpirun acilis yuku vardi; o yuk kucuk aglarda hizlanmayi bastirir."
+  },
+  "geometriler": [
+    {
+      "geometri": "kup",
+      "butce_sayisi": 3,
+      "en_yuksek_hizlanma": 3.1,
+      "I1_idealin_altinda": true,
+      "I1_ihlal": [],
+      "I2_hucreyle_artan": true,
+      "I2_seri": [
+        {
+          "hucre": 18462,
+          "hizlanma": 2.32
+        },
+        {
+          "hucre": 42153,
+          "hizlanma": 2.99
+        },
+        {
+          "hucre": 96280,
+          "hizlanma": 3.1
+        }
+      ],
+      "I3_8cekirdek_4ten_yavas": true,
+      "I3_duvar_suresinde": true,
+      "sabit_yuk_s": {
+        "60000": 9.0,
+        "150000": 9.7,
+        "350000": 13.2
+      },
+      "mesh_payi_pct": {
+        "60000": 24.0,
+        "150000": 23.7,
+        "350000": 17.3
+      }
+    },
+    {
+      "geometri": "minihawk",
+      "butce_sayisi": 3,
+      "en_yuksek_hizlanma": 3.22,
+      "I1_idealin_altinda": true,
+      "I1_ihlal": [],
+      "I2_hucreyle_artan": true,
+      "I2_seri": [
+        {
+          "hucre": 16240,
+          "hizlanma": 2.02
+        },
+        {
+          "hucre": 41040,
+          "hizlanma": 2.98
+        },
+        {
+          "hucre": 91644,
+          "hizlanma": 3.22
+        }
+      ],
+      "I3_8cekirdek_4ten_yavas": true,
+      "I3_duvar_suresinde": false,
+      "sabit_yuk_s": {
+        "60000": 7.7,
+        "150000": 11.2,
+        "350000": 8.6
+      },
+      "mesh_payi_pct": {
+        "60000": 36.3,
+        "150000": 22.1,
+        "350000": 32.4
+      }
+    }
+  ],
+  "egriler": {
+    "kup": {
+      "60000": {
+        "1": {
+          "hucre": 18462,
+          "cozucu_exec_s": 11.9,
+          "asama_s": 20.9,
+          "sabit_yuk_s": 9.0,
+          "mesh_s": 6.6,
+          "hizlanma": 1.0,
+          "hizlanma_duvar": 1.0,
+          "mesh_payi_pct": 24.0
+        },
+        "4": {
+          "hucre": 18462,
+          "cozucu_exec_s": 5.07,
+          "asama_s": 15.7,
+          "sabit_yuk_s": 10.6,
+          "mesh_s": 4.5,
+          "hizlanma": 2.35,
+          "hizlanma_duvar": 1.33,
+          "mesh_payi_pct": 22.3
+        },
+        "8": {
+          "hucre": 18462,
+          "cozucu_exec_s": 5.12,
+          "asama_s": 16.2,
+          "sabit_yuk_s": 11.1,
+          "mesh_s": 5.0,
+          "hizlanma": 2.32,
+          "hizlanma_duvar": 1.29,
+          "mesh_payi_pct": 23.6
+        }
+      },
+      "150000": {
+        "1": {
+          "hucre": 42153,
+          "cozucu_exec_s": 14.37,
+          "asama_s": 24.1,
+          "sabit_yuk_s": 9.7,
+          "mesh_s": 7.5,
+          "hizlanma": 1.0,
+          "hizlanma_duvar": 1.0,
+          "mesh_payi_pct": 23.7
+        },
+        "4": {
+          "hucre": 42153,
+          "cozucu_exec_s": 5.52,
+          "asama_s": 14.7,
+          "sabit_yuk_s": 9.2,
+          "mesh_s": 7.8,
+          "hizlanma": 2.6,
+          "hizlanma_duvar": 1.64,
+          "mesh_payi_pct": 34.7
+        },
+        "8": {
+          "hucre": 42153,
+          "cozucu_exec_s": 4.81,
+          "asama_s": 15.0,
+          "sabit_yuk_s": 10.2,
+          "mesh_s": 8.4,
+          "hizlanma": 2.99,
+          "hizlanma_duvar": 1.61,
+          "mesh_payi_pct": 35.9
+        }
+      },
+      "350000": {
+        "1": {
+          "hucre": 96280,
+          "cozucu_exec_s": 57.89,
+          "asama_s": 71.1,
+          "sabit_yuk_s": 13.2,
+          "mesh_s": 14.9,
+          "hizlanma": 1.0,
+          "hizlanma_duvar": 1.0,
+          "mesh_payi_pct": 17.3
+        },
+        "4": {
+          "hucre": 96280,
+          "cozucu_exec_s": 22.61,
+          "asama_s": 36.6,
+          "sabit_yuk_s": 14.0,
+          "mesh_s": 15.6,
+          "hizlanma": 2.56,
+          "hizlanma_duvar": 1.94,
+          "mesh_payi_pct": 29.9
+        },
+        "8": {
+          "hucre": 96280,
+          "cozucu_exec_s": 18.65,
+          "asama_s": 32.8,
+          "sabit_yuk_s": 14.1,
+          "mesh_s": 14.5,
+          "hizlanma": 3.1,
+          "hizlanma_duvar": 2.17,
+          "mesh_payi_pct": 30.7
+        }
+      }
+    },
+    "minihawk": {
+      "60000": {
+        "1": {
+          "hucre": 16240,
+          "cozucu_exec_s": 4.38,
+          "asama_s": 12.1,
+          "sabit_yuk_s": 7.7,
+          "mesh_s": 6.9,
+          "hizlanma": 1.0,
+          "hizlanma_duvar": 1.0,
+          "mesh_payi_pct": 36.3
+        },
+        "4": {
+          "hucre": 16240,
+          "cozucu_exec_s": 1.96,
+          "asama_s": 12.1,
+          "sabit_yuk_s": 10.1,
+          "mesh_s": 6.5,
+          "hizlanma": 2.23,
+          "hizlanma_duvar": 1.0,
+          "mesh_payi_pct": 34.9
+        },
+        "8": {
+          "hucre": 16240,
+          "cozucu_exec_s": 2.17,
+          "asama_s": 12.1,
+          "sabit_yuk_s": 9.9,
+          "mesh_s": 6.4,
+          "hizlanma": 2.02,
+          "hizlanma_duvar": 1.0,
+          "mesh_payi_pct": 34.6
+        }
+      },
+      "150000": {
+        "1": {
+          "hucre": 41040,
+          "cozucu_exec_s": 25.88,
+          "asama_s": 37.1,
+          "sabit_yuk_s": 11.2,
+          "mesh_s": 10.5,
+          "hizlanma": 1.0,
+          "hizlanma_duvar": 1.0,
+          "mesh_payi_pct": 22.1
+        },
+        "4": {
+          "hucre": 41040,
+          "cozucu_exec_s": 9.53,
+          "asama_s": 22.9,
+          "sabit_yuk_s": 13.4,
+          "mesh_s": 9.7,
+          "hizlanma": 2.72,
+          "hizlanma_duvar": 1.62,
+          "mesh_payi_pct": 29.8
+        },
+        "8": {
+          "hucre": 41040,
+          "cozucu_exec_s": 8.68,
+          "asama_s": 21.6,
+          "sabit_yuk_s": 12.9,
+          "mesh_s": 9.8,
+          "hizlanma": 2.98,
+          "hizlanma_duvar": 1.72,
+          "mesh_payi_pct": 31.2
+        }
+      },
+      "350000": {
+        "1": {
+          "hucre": 91644,
+          "cozucu_exec_s": 28.12,
+          "asama_s": 36.7,
+          "sabit_yuk_s": 8.6,
+          "mesh_s": 17.6,
+          "hizlanma": 1.0,
+          "hizlanma_duvar": 1.0,
+          "mesh_payi_pct": 32.4
+        },
+        "4": {
+          "hucre": 91644,
+          "cozucu_exec_s": 10.16,
+          "asama_s": 19.2,
+          "sabit_yuk_s": 9.0,
+          "mesh_s": 16.7,
+          "hizlanma": 2.77,
+          "hizlanma_duvar": 1.91,
+          "mesh_payi_pct": 46.5
+        },
+        "8": {
+          "hucre": 91644,
+          "cozucu_exec_s": 8.72,
+          "asama_s": 17.7,
+          "sabit_yuk_s": 9.0,
+          "mesh_s": 16.5,
+          "hizlanma": 3.22,
+          "hizlanma_duvar": 2.07,
+          "mesh_payi_pct": 48.2
+        }
+      }
+    }
+  },
+  "_kisit": "TEK MAKINE kisiti DEVAM EDER — ikinci donanim yok. Burada kapatilan yalnizca GEOMETRI sinridir. Ayrica iki matris farkli oturumlarda kosuldu; mutlak sureler oturumlar arasi karsilastirilmaz, HIZLANMA orani karsilastirilir.",
+  "_uretim": "Üretim: python experiments/basarim_geometri_bagimliligi.py",
+  "verdikt": "İki geometride de İ1–İ3 sağlandı. En yüksek hızlanma küp 3.1×, MiniHawk 3.22× — ölçeklenme eğiliminin geometriyle değişmediği ÖLÇÜLDÜ (iki gövde, tek makine).",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

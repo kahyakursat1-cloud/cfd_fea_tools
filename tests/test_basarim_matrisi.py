@@ -123,3 +123,95 @@ def test_katsayi_olculurse_kapi_ONCULU_birakir(tmp_path, monkeypatch):
     monkeypatch.setattr(bk, "KANIT", kanit)
     k = bk.katsayi()
     assert k["olculdu"] is True and k["kb_hucre"] == 1.8
+
+
+# ── raporun tablosu ölçüme bağlı mı ────────────────────────────────────────
+
+RAPOR = KOK / "docs" / "teknik_rapor.tex"
+KAYNAK = {"küp": KOK / "basarim_matrisi.json",
+          "MiniHawk": KOK / "basarim_matrisi_minihawk.json"}
+
+
+def _rapor_satirlari() -> list[dict]:
+    """Rapordaki hızlanma tablosunu METİNDEN okur (kopyasını değil)."""
+    import re
+    if not RAPOR.exists():
+        return []
+    desen = re.compile(
+        r"^(küp|MiniHawk) & ([\d.]+) & ([\d{},]+) s"
+        r" & ([\d{},]+) s \(([\d{},]+)\$\\times\$\)"
+        r" & ([\d{},]+) s \(([\d{},]+)\$\\times\$\)")
+    out = []
+    for satir in RAPOR.read_text(encoding="utf-8").splitlines():
+        m = desen.match(satir.strip())
+        if m:
+            out.append({
+                "govde": m.group(1),
+                "hucre": int(m.group(2).replace(".", "")),
+                "s1": float(m.group(3).replace("{,}", ".")),
+                "s4": float(m.group(4).replace("{,}", ".")),
+                "h4": float(m.group(5).replace("{,}", ".")),
+                "s8": float(m.group(6).replace("{,}", ".")),
+                "h8": float(m.group(7).replace("{,}", ".")),
+            })
+    return out
+
+
+def test_rapor_hizlanma_tablosu_OLCUMLE_uyusuyor():
+    """Tablo elle yazılmış 12 sayı taşıyor; verinin değişmesi onu bozmalı.
+
+    Bu deponun tekrar tekrar bulduğu kusur sınıfı 'metin sabit, veri değişti'.
+    Hızlanmalar ExecutionTime'dan gelir --- aşama duvar süresinden DEĞİL; ilk
+    sürüm o hatayı yapmış ve 1,96x yayımlamıştı, doğrusu 3,10x.
+    """
+    satirlar = _rapor_satirlari()
+    if not satirlar:
+        return
+    veri = {}
+    for ad, p in KAYNAK.items():
+        if not p.exists():
+            continue
+        for s in json.loads(p.read_text(encoding="utf-8"))["satirlar"]:
+            if s["durum"] == "ok" and s.get("cozucu_exec_s"):
+                veri[(ad, s["cells"], s["cekirdek"])] = s["cozucu_exec_s"]
+    if not veri:
+        return
+    assert len(satirlar) == 6, f"tabloda 6 satır beklenir, {len(satirlar)} var"
+    for r in satirlar:
+        t1 = veri.get((r["govde"], r["hucre"], 1))
+        assert t1, f"{r['govde']} {r['hucre']}: 1-çekirdek ölçümü YOK"
+        for c, sure, hiz in ((4, r["s4"], r["h4"]), (8, r["s8"], r["h8"])):
+            olculen = veri.get((r["govde"], r["hucre"], c))
+            assert olculen, f"{r['govde']} {r['hucre']} c{c}: ölçüm YOK"
+            assert abs(olculen - sure) <= 0.06 * max(sure, 1), (
+                f"{r['govde']} {r['hucre']} c{c}: rapor {sure}s, ölçüm {olculen}s")
+            assert abs(t1 / olculen - hiz) <= 0.02, (
+                f"{r['govde']} {r['hucre']} c{c}: rapor {hiz}x, "
+                f"ölçüm {t1 / olculen:.2f}x")
+
+
+def test_geometri_bagimliligi_ONCEDEN_sabitlenmis():
+    """İddialar ölçümden sonra seçilirse 'sınama' değil, süsleme olur."""
+    p = KOK / "basarim_geometri_bagimliligi.json"
+    if not p.exists():
+        return
+    d = json.loads(p.read_text(encoding="utf-8"))
+    iddia = d["_onceden_sabitlenen_iddia"]
+    assert {"I1", "I2", "I3"} <= set(iddia), iddia
+    kaynak = (KOK / "experiments" / "basarim_geometri_bagimliligi.py").read_text(
+        encoding="utf-8")
+    for k in ("İ1", "İ2", "İ3"):
+        assert k in kaynak.split('"""')[1], f"{k} docstring'de sabitlenmemiş"
+    assert d["_kisit"].count("TEK MAKINE"), "makine kısıtı düşmüş olamaz"
+
+
+def test_iki_govde_de_olculmus():
+    """Geometri sınırının kapandığı iddiası TEK gövdeyle savunulamaz."""
+    p = KOK / "basarim_geometri_bagimliligi.json"
+    if not p.exists():
+        return
+    d = json.loads(p.read_text(encoding="utf-8"))
+    olculen = [g for g in d["geometriler"] if g.get("butce_sayisi")]
+    assert len(olculen) >= 2, "tek gövdeyle geometri bağımsızlığı iddia edilemez"
+    for g in olculen:
+        assert g["I1_idealin_altinda"] is True, g

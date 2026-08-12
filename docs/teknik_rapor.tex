@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-32.050 satır Python $\cdot$ 147 test dosyası $\cdot$ 1.481 geçen test\\[3mm]
+32.050 satır Python $\cdot$ 147 test dosyası $\cdot$ 1.486 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -1417,35 +1417,69 @@ takası \emph{sayıyla} sunar.
 \subsection{Çekirdek ölçeklenmesi}
 \label{sub:bellek}
 
-Tek koşu ``ne kadar sürer'' sorusunu yanıtlamaz. Dokuz koşu ölçüldü (üç hücre
-bütçesi $\times$ üç çekirdek sayısı, küp geometrisi, \emph{sırayla} --- paralel
-koşmak tam da ölçülmek isteneni bozardı):
+Tek koşu ``ne kadar sürer'' sorusunu yanıtlamaz. On sekiz koşu ölçüldü (üç
+hücre bütçesi $\times$ üç çekirdek sayısı $\times$ \emph{iki gövde},
+\emph{sırayla} --- paralel koşmak tam da ölçülmek isteneni bozardı):
 
 \begin{center}\footnotesize
-\begin{tabular}{@{}lrrr@{}}
+\begin{tabular}{@{}llrrr@{}}
 \toprule
-\textbf{Hücre} & \textbf{1 çekirdek} & \textbf{4 çekirdek} & \textbf{8 çekirdek} \\
+\textbf{Gövde} & \textbf{Hücre} & \textbf{1 çekirdek} & \textbf{4 çekirdek} & \textbf{8 çekirdek} \\
 \midrule
-18.462 & 22{,}6 s & 16{,}2 s (1{,}40$\times$) & 17{,}1 s (1{,}32$\times$) \\
-42.153 & 24{,}1 s & 15{,}0 s (1{,}61$\times$) & 14{,}6 s (1{,}65$\times$) \\
-96.280 & 66{,}2 s & 37{,}5 s (1{,}77$\times$) & 33{,}8 s (1{,}96$\times$) \\
+küp & 18.462 & 11{,}9 s & 5{,}07 s (2{,}35$\times$) & 5{,}12 s (2{,}32$\times$) \\
+küp & 42.153 & 14{,}4 s & 5{,}52 s (2{,}60$\times$) & 4{,}81 s (2{,}99$\times$) \\
+küp & 96.280 & 57{,}9 s & 22{,}6 s (2{,}56$\times$) & 18{,}7 s (3{,}10$\times$) \\
+\midrule
+MiniHawk & 16.240 & 4{,}38 s & 1{,}96 s (2{,}23$\times$) & 2{,}17 s (2{,}02$\times$) \\
+MiniHawk & 41.040 & 25{,}9 s & 9{,}53 s (2{,}72$\times$) & 8{,}68 s (2{,}98$\times$) \\
+MiniHawk & 91.644 & 28{,}1 s & 10{,}2 s (2{,}77$\times$) & 8{,}72 s (3{,}22$\times$) \\
 \bottomrule
 \end{tabular}
 \end{center}
 
 \noindent Hızlanma her satırda idealin \emph{altında} ve hücre sayısıyla
-\emph{artıyor}: küçük ağda alan ayrıştırma ve süreçler arası iletişim yükü
-çözümün kendisiyle yarışır --- 18 bin hücrede sekiz çekirdek dörtten
-\emph{yavaştır}. Bu bir kıyaslama değildir (tek geometri, tek makine); planlama
-için taban verir ve ``daha çok çekirdek her zaman daha hızlı'' beklentisini
-sayıyla düzeltir.
+\emph{artıyor}; en küçük ağda sekiz çekirdek dörtten yavaştır. \textbf{İki
+gövdede de} böyledir --- eğri MiniHawk'ta küpün üstüne oturur (en yüksek
+hızlanma 3{,}22$\times$ ve 3{,}10$\times$). Küpün en küçük ağındaki 4$\to$8
+farkı \%1'dir ve tek koşudan ayırt edilemez; MiniHawk'ta aynı fark \%11 ile
+ölçülebilir düzeydedir. Bu bir kıyaslama değildir (\emph{tek makine});
+planlama için taban verir ve ``daha çok çekirdek her zaman daha hızlı''
+beklentisini sayıyla düzeltir.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figurler/fig_basarim_matrisi.pdf}
-\caption{Çekirdek ölçeklenmesi ve mutlak süre. Kesikli çizgi ideal hızlanmadır;
-ölçülen eğriler hep altındadır. \emph{Veri:} \texttt{basarim\_matrisi.json}.}
+\caption{Sol: çekirdek ölçeklenmesi, iki gövde üst üste; kesikli çizgi ideal
+hızlanmadır ve ölçülen eğriler hep altındadır. Sağ: aşama duvar süresi ile
+çözücünün kendi süresi arasındaki fark --- hücre sayısıyla ölçeklenmeyen
+açılış yükü. \emph{Veri:} \texttt{basarim\_matrisi.json},
+\texttt{basarim\_matrisi\_minihawk.json}.}
 \end{figure}
+
+\begin{olculdu}{Yayımlanan hızlanmalar yanlış ölçütten geliyordu}
+İkinci gövde koşulurken bir tutarsızlık göze çarptı: MiniHawk'ın en küçük ağında
+çözücü aşaması bir, dört ve sekiz çekirdekte \emph{12{,}1 s} verdi --- üçü de,
+10\,ms içinde. Hesaplama üç farklı çekirdek sayısında bu kadar aynı çıkmaz;
+demek ki ölçülen şey hesap değildi.
+
+Değildi. Aşama süresi WSL süreç başlatmayı, ortam kurulumunu ve \texttt{mpirun}
+açılışını içeriyor ve bu yük hücre sayısından \emph{bağımsızdır}: ölçüldüğünde
+7{,}7--13{,}2\,s. \texttt{foamRun}'un kendi bildirdiği \texttt{ExecutionTime}
+ise 4{,}38 / 1{,}96 / 2{,}17\,s --- yani çözücü gerçekten $2{,}2\times$
+hızlanmıştı, sabit yük onu gizliyordu.
+
+Bu, raporun \emph{daha önce yayımladığı} sayıları da etkiliyordu. Küpün en büyük
+ağında yayımlanan hızlanma 1{,}96$\times$ idi; aynı koşuların çözücü süresinden
+hesabı 3{,}10$\times$. Tablo düzeltildi ve iki ölçüt artık ayrı tutuluyor:
+kullanıcının beklediği süre aşama süresidir, paralelliğin ölçüsü ise
+\texttt{ExecutionTime}. Eski açıklama da kısmen yanlıştı --- ``küçük ağda alan
+ayrıştırma yükü çözümle yarışır'' denmişti; 16 bin hücrede çözücü rahatça
+$2\times$ hızlanıyor, yarışan şey ayrıştırma değil \emph{açılış} yüküydü.
+
+\begin{center}\itshape
+Aynı sayının üç kez üst üste çıkması bir doğrulama değil, bir uyarıydı.
+\end{center}
+\end{olculdu}
 
 \begin{dikkat}{Aynı kampanya bir ölçümü de reddetti}
 Bu dokuz koşu belleği de ölçtü --- hücre başına bellek katsayısını ölçüme
@@ -1854,8 +1888,9 @@ v1.5 & orta   & Arayüz v2 --- kipler, kanıt gezgini, bandlı sonuç kartları 
                 eşleşik karşılaştırma EKLENDİ (\S\ref{sub:kipler},
                 \S\ref{sub:eslesik}) \\
 v1.6 & düşük  & Bellek katsayısı ÖLÇÜLDÜ (0{,}779 kB/hücre, $R^2{=}0{,}96$;
-                \S\ref{sub:bellek}); kalan iş
-                hücre$\times$çekirdek$\times$RAM matrisinin genişletilmesi \\
+                \S\ref{sub:bellek}); matris ikinci gövdeye GENİŞLETİLDİ ve
+                hızlanmanın geometriden bağımsız olduğu ölçüldü; kalan iş
+                İKİNCİ MAKİNE \\
 v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanması;
                 GPU hızlandırma \\
 \bottomrule
@@ -1948,11 +1983,11 @@ olarak değil. Kanıt dosyası zincirin tamamını taşır: üretim komutu
 \midrule
 Kod satırı (kök + \texttt{analysis/}) & 32.050 & \texttt{rapor\_sayilari.py} \\
 Kök modül & 84 & \texttt{rapor\_sayilari.py} \\
-Deney / çapa betiği & 69 & \texttt{experiments/} \\
+Deney / çapa betiği & 70 & \texttt{experiments/} \\
 Test dosyası & 147 & \texttt{tests/test\_*.py} \\
-Geçen test & 1.481 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1.481 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
-Satır kapsamı & \textbf{\%47} & 19.709 ifade, 10.265 kapsanmamış \\
+Geçen test & 1.486 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1.486 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
+Satır kapsamı & \textbf{\%47} & 19.716 ifade, 10.272 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
 \end{tabular}
@@ -2008,9 +2043,9 @@ Bu kural bir kez daha sınandı. ``Kapsam \%47'' cümlesini yumuşatmanın kolay
 hüküm üreten 15 modülü ayrı bir küme sayıp \%85 yazmaktı --- ve o sayı gerçekten
 öyle çıkıyor. Yayımlanmadı: manşet \%47{,}9 olarak durmaktadır. Bunun yerine
 kapsanmamış satırlar \emph{tek tek okundu}
-(\texttt{experiments/karar\_katmani\_kapsami.py}). O 15 modülde kapsanmayan 386
-satırın 108'i metin/CLI üretimi, 46'sı savunma (\texttt{except}/\texttt{pass});
-geriye kalan 232 satır ``karar dalı adayı''dır ve bu bir \emph{üst sınırdır} ---
+(\texttt{experiments/karar\_katmani\_kapsami.py}). O 15 modülde kapsanmayan 382
+satırın 108'i metin/CLI üretimi, 44'ü savunma (\texttt{except}/\texttt{pass});
+geriye kalan 230 satır ``karar dalı adayı''dır ve bu bir \emph{üst sınırdır} ---
 desen ayrımı sezgiseldir, okunmadan sınanmamış hüküm sayılmaz. Nitekim ilk
 sürüm 321 satırı karar dalı saymıştı; gözle bakılınca büyük kısmı
 \texttt{md.append}, \texttt{cli.add\_argument} gibi metin satırları çıktı.
@@ -2262,7 +2297,9 @@ yarın başka bir OpenFOAM derlemesi çekebilirdi.
 \textbf{Ölçülmemişler:} model-form tablosunun üç hücresi hâlâ literatür
 öncülüyle çalışıyor ve her birinin \emph{neden} kapanmadığı kanıt dosyasına
 yazılı --- ikisinde engel ağ değil referans belirsizliğidir (\%15), yani
-inceltmekle kapanmaz; başarım tek geometri ve tek makineyle sınırlı. Yol
+inceltmekle kapanmaz; başarım \emph{tek makineyle} sınırlı --- geometri sınırı
+ikinci bir gövdeyle ölçülerek kapatıldı (\S\ref{sub:bellek}), ikinci donanım
+yok. Yol
 haritası bunları v1.1--v2.0 aralığına yerleştirir ve hiçbiri ``yakında'' diye
 geçiştirilmemiştir.
 \end{dikkat}

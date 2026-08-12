@@ -4,17 +4,25 @@ NEDEN: rapordaki tek başarım verisi tek bir koşudan gelen aşama dağılımı
 "Ne kadar sürer?" ve "bu makinede kaç hücre kaldırır?" sorularının cevabı yoktu.
 Aşama telemetrisi ve bellek örneklemesi eklendiğine göre ikisi de ölçülebilir.
 
-BU BİR KIYASLAMA (benchmark) DEĞİLDİR: tek geometri (küp), tek makine, tek
-çözücü ayarı. Ölçülen şey bu platformun bu donanımdaki ÖLÇEKLENME EĞİLİMİDİR;
-başka bir makinede sayılar değişir. Amaç mutlak hız iddiası değil, planlama
-için taban vermek ve bellek katsayısını ölçüme bağlamak.
+BU BİR KIYASLAMA (benchmark) DEĞİLDİR: tek makine, tek çözücü ayarı. Ölçülen
+şey bu platformun bu donanımdaki ÖLÇEKLENME EĞİLİMİDİR; başka bir makinede
+sayılar değişir. Amaç mutlak hız iddiası değil, planlama için taban vermek ve
+bellek katsayısını ölçüme bağlamak.
+
+GEOMETRİ KISITI (2026-08-11): matris ilk sürümde TEK geometriyle (küp)
+ölçülmüştü ve rapor bunu sınır olarak yazıyordu. Küp, snappyHexMesh'e yüzey
+işi neredeyse hiç vermez (12 üçgen); ölçülen ölçeklenme eğrisinin gerçek bir
+gövdede aynı kalıp kalmadığı BİLİNMİYORDU. `--geometri` ile ikinci bir gövde
+(MiniHawk) aynı matriste koşulur ve eğilim karşılaştırılabilir. Tek makine
+kısıtı DEVAM EDER --- ikinci donanım yok, bu sınır kapatılmadı.
 
 TASARIM: koşular SIRAYLA yapılır. Paralel koşmak çekirdek ve bellek-bant
 rekabeti yaratır ve tam da ölçmek istediğimiz şeyi bozar.
 
-    python experiments/basarim_matrisi.py            # tam matris
-    python experiments/basarim_matrisi.py --hizli    # tek satır (duman testi)
-Çıktı: basarim_matrisi.json
+    python experiments/basarim_matrisi.py                    # küp (varsayılan)
+    python experiments/basarim_matrisi.py --geometri minihawk
+    python experiments/basarim_matrisi.py --hizli            # tek satır (duman)
+Çıktı: basarim_matrisi.json  /  basarim_matrisi_<geometri>.json
 """
 from __future__ import annotations
 
@@ -28,12 +36,39 @@ HERE = Path(__file__).resolve().parent
 KOK = HERE.parent
 sys.path.insert(0, str(KOK))
 
-STL = KOK / "vehicle_runs" / "gci_kup.stl"
+GEOMETRILER = {
+    "kup": KOK / "vehicle_runs" / "gci_kup.stl",
+    "minihawk": KOK / "vehicle_runs" / "minihawk.stl",
+}
+STL = GEOMETRILER["kup"]
 CIKTI = KOK / "basarim_matrisi.json"
 CALISMA = KOK / "_basarim"
 
 HUCRE_BUTCELERI = (60_000, 150_000, 350_000)
 CEKIRDEKLER = (1, 4, 8)
+
+
+def _cozucu_exec_s(kok: Path) -> float | None:
+    """foamRun'un KENDİ bildirdiği ExecutionTime — aşama duvar süresi değil.
+
+    NEDEN AYRI ÖLÇÜLÜR: aşama süresi WSL süreç başlatma, ortam kurulumu ve
+    `mpirun` açılışını içerir ve bu yük hücre sayısından BAĞIMSIZDIR (~8-10 s).
+    Küçük ağlarda o sabit yük çözüm süresini gölgeler; ondan hesaplanan
+    "hızlanma" paralelliği değil, sabit yükün seyrelmesini ölçer. İlk sürüm
+    tam bu hatayı yapmıştı (2026-08-11 düzeltmesi).
+    """
+    en_son = None
+    for log in kok.rglob("log.foamRun"):
+        for satir in log.read_text(encoding="utf-8", errors="replace").splitlines():
+            if satir.startswith("ExecutionTime = "):
+                try:
+                    en_son = float(satir.split("=")[1].split("s")[0])
+                # sessiz-yutma: kabul — bozuk log satırı atlanır; okunabilen SON
+                # ExecutionTime yine döner, hiç okunamazsa fonksiyon None verir
+                # ve hızlanma hesabı o koşuyu DIŞARIDA bırakır (uydurma yok).
+                except (ValueError, IndexError):
+                    pass
+    return round(en_son, 2) if en_son is not None else None
 
 
 def _tek_kosu(butce: int, cekirdek: int, etiket: str) -> dict:
@@ -59,6 +94,7 @@ def _tek_kosu(butce: int, cekirdek: int, etiket: str) -> dict:
         "asama_sureleri": asama,
         "cozucu_s": round(sum(a["sure_s"] for a in asama
                               if "foamRun" in a.get("asama", "")), 1) or None,
+        "cozucu_exec_s": _cozucu_exec_s(kok),
         "mesh_s": round(sum(a["sure_s"] for a in asama
                             if "snappy" in a.get("asama", "").lower()), 1) or None,
         "bellek": bellek,
@@ -77,14 +113,15 @@ def calistir(hizli: bool = False) -> dict:
         s = _tek_kosu(b, c, etiket)
         satirlar.append(s)
         print(f"    durum={s['durum']} hücre={s['cells']} "
-              f"duvar={s['duvar_s']}s çözücü={s['cozucu_s']}s "
+              f"duvar={s['duvar_s']}s aşama={s['cozucu_s']}s "
+              f"exec={s['cozucu_exec_s']}s "
               f"bellek+={(s['bellek'] or {}).get('artis_gb')}GB", flush=True)
-        (KOK / "basarim_matrisi_kismi.json").write_text(
+        (CIKTI.with_name(CIKTI.stem + "_kismi.json")).write_text(
             json.dumps(satirlar, indent=2, ensure_ascii=False), encoding="utf-8")
 
     ok = [s for s in satirlar if s["durum"] == "ok" and s["cells"]]
     rec = {
-        "vaka": "Başarım matrisi — hücre × çekirdek (küp, tek makine)",
+        "vaka": f"Başarım matrisi — hücre × çekirdek ({STL.stem}, tek makine)",
         "_neden": ("Rapordaki tek basarim verisi TEK kosudan gelen asama "
                    "dagilimiydi; 'ne kadar surer' ve 'kac hucre kaldirir' "
                    "sorularinin olculmus cevabi yoktu."),
@@ -93,10 +130,12 @@ def calistir(hizli: bool = False) -> dict:
                     "cekirdekler": list(CEKIRDEKLER),
                     "sirali": "koşular SIRAYLA — paralel koşu ölçümü bozar"},
         "satirlar": satirlar,
-        "_kisit": ("KIYASLAMA DEGILDIR: tek geometri, tek makine, tek cozucu "
-                   "ayari. Bellek olcumu sistem GENELIDIR (WSL2 VM ayri surec "
-                   "degil) ve kosu oncesi tabana gore artistir — yani UST SINIR."),
-        "_uretim": "Üretim: python experiments/basarim_matrisi.py",
+        "_kisit": ("KIYASLAMA DEGILDIR: TEK MAKINE, tek cozucu ayari. Bellek "
+                   "olcumu sistem GENELIDIR (WSL2 VM ayri surec degil) ve kosu "
+                   "oncesi tabana gore artistir — yani UST SINIR. Geometri "
+                   "kisiti ayrica olculdu (bkz. basarim_geometri_bagimliligi)."),
+        "_uretim": (f"Üretim: python experiments/basarim_matrisi.py "
+                    f"--geometri {STL.stem.replace('gci_', '')}"),
     }
     if ok:
         rec["olcek"] = _olcekleme(ok)
@@ -107,8 +146,14 @@ def calistir(hizli: bool = False) -> dict:
 
 
 def _olcekleme(ok: list[dict]) -> dict:
-    """Çekirdek ölçeklenmesi ve hücre başına maliyet — ölçülenden."""
-    out: dict = {"cekirdek_hizlanmasi": {}, "hucre_basina_ms": {}}
+    """Çekirdek ölçeklenmesi ve hücre başına maliyet — ölçülenden.
+
+    İKİ hızlanma birden verilir ve karıştırılmaz:
+      `cekirdek_hizlanmasi`      — aşama duvar süresinden; KULLANICININ gördüğü
+      `cekirdek_hizlanmasi_exec` — foamRun ExecutionTime'dan; PARALELLİĞİN kendisi
+    """
+    out: dict = {"cekirdek_hizlanmasi": {}, "cekirdek_hizlanmasi_exec": {},
+                 "hucre_basina_ms": {}}
     for b in sorted({s["butce"] for s in ok}):
         grup = sorted((s for s in ok if s["butce"] == b), key=lambda s: s["cekirdek"])
         taban = next((s for s in grup if s["cekirdek"] == 1), None)
@@ -116,6 +161,10 @@ def _olcekleme(ok: list[dict]) -> dict:
             out["cekirdek_hizlanmasi"][f"{b // 1000}k"] = {
                 str(s["cekirdek"]): round(taban["cozucu_s"] / s["cozucu_s"], 2)
                 for s in grup if s["cozucu_s"]}
+        if taban and taban.get("cozucu_exec_s"):
+            out["cekirdek_hizlanmasi_exec"][f"{b // 1000}k"] = {
+                str(s["cekirdek"]): round(taban["cozucu_exec_s"] / s["cozucu_exec_s"], 2)
+                for s in grup if s.get("cozucu_exec_s")}
         for s in grup:
             if s["cozucu_s"] and s["cells"]:
                 out["hucre_basina_ms"][s["etiket"]] = round(
@@ -129,8 +178,21 @@ def _olcekleme(ok: list[dict]) -> dict:
 
 
 def main() -> int:
+    global STL, CIKTI, CALISMA
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if "--geometri" in sys.argv:
+        ad = sys.argv[sys.argv.index("--geometri") + 1]
+        if ad not in GEOMETRILER:
+            print(f"bilinmeyen geometri: {ad} — {list(GEOMETRILER)}")
+            return 1
+        STL = GEOMETRILER[ad]
+        if not STL.exists():
+            print(f"STL yok: {STL}")
+            return 1
+        if ad != "kup":
+            CIKTI = KOK / f"basarim_matrisi_{ad}.json"
+            CALISMA = KOK / f"_basarim_{ad}"
     rec = calistir(hizli="--hizli" in sys.argv)
     CIKTI.write_text(json.dumps(rec, indent=2, ensure_ascii=False) + "\n",
                      encoding="utf-8")
