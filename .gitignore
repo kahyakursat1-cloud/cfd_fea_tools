@@ -222,3 +222,7 @@ aksaray_proje/
 # Baska bir projeye ait tek-seferlik betik (k220/1001 basvuru formu duzenleyicisi);
 # icinde o projenin dosya yollari var, bu depoda isi yok.
 revise_1001_panel.py
+
+# Claude Code calisma araclari (agent/skill tanimlari) — depo icerigi degil,
+# calisma ortami. Yerelde DURUYOR, yalnizca izlenmiyor.
+.claude/
