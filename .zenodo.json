@@ -1,0 +1,32 @@
+{
+  "title": "cfd_fea_tools: guarded CFD/FEA automation with a self-classifying V&V layer",
+  "upload_type": "software",
+  "license": "MIT",
+  "creators": [
+    {
+      "name": "Kahya, Kürşat",
+      "orcid": "0000-0003-4794-4554",
+      "affiliation": "Department of Manufacturing Engineering, Tarsus University, Mersin, Türkiye"
+    },
+    {
+      "name": "Öcalır, Şeref",
+      "orcid": "0000-0003-0123-2295",
+      "affiliation": "Department of Manufacturing Engineering, Tarsus University, Mersin, Türkiye"
+    }
+  ],
+  "description": "<p>An integrated OpenFOAM (CFD) and CalculiX (FEA) analysis pipeline whose distinguishing feature is a guarded, self-classifying verification-and-validation layer. Every output is assigned an uncertainty class; a non-overridable guard withholds the Grid Convergence Index outside the asymptotic range; a force-coefficient plateau criterion supersedes residual-only convergence; and a physical-plausibility bound rejects impossible force coefficients before classification.</p><p>This archive is the snapshot underlying the paper &quot;Guarded Automation for Trustworthy CAE&quot;. It contains the source, the test suite, the evidence files behind every quantitative claim in that paper, and the scripts that regenerate them. Solver case directories are excluded as generated artefacts; each experiment script states the command that regenerates its case.</p>",
+  "keywords": [
+    "verification and validation",
+    "uncertainty classification",
+    "trustworthy automation",
+    "silent-failure detection",
+    "Grid Convergence Index",
+    "coupled CFD/FEA",
+    "OpenFOAM",
+    "CalculiX",
+    "open-source CAE",
+    "reproducibility"
+  ],
+  "language": "eng",
+  "access_right": "open"
+}

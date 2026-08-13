@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using these metadata."
+title: "cfd_fea_tools: guarded CFD/FEA automation with a self-classifying V&V layer"
+type: software
+license: MIT
+repository-code: "https://github.com/kahyakursat1-cloud/cfd_fea_tools"
+authors:
+  - family-names: Kahya
+    given-names: Kürşat
+    orcid: "https://orcid.org/0000-0003-4794-4554"
+    affiliation: "Department of Manufacturing Engineering, Tarsus University, Mersin, Türkiye"
+  - family-names: Öcalır
+    given-names: Şeref
+    orcid: "https://orcid.org/0000-0003-0123-2295"
+    affiliation: "Department of Manufacturing Engineering, Tarsus University, Mersin, Türkiye"
+keywords:
+  - verification and validation
+  - uncertainty classification
+  - trustworthy automation
+  - silent-failure detection
+  - Grid Convergence Index
+  - coupled CFD/FEA
+  - OpenFOAM
+  - CalculiX
