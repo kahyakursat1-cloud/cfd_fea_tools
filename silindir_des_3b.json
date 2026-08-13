@@ -1,0 +1,113 @@
+{
+  "vaka": "Silindir girdap dökülmesi — DES (Re=140000, Δz/D=0.05)",
+  "kaynak": "kOmegaSSTDES — URANS çapalarının TEMEL MODELİYLE aynı",
+  "sinanan_iddia": {
+    "I1": "Span dekorelasyonu OLUŞUR: C_L genliği URANS 3B'ye göre ≥%20.0 düşer",
+    "I2": "St deneysel platoya yaklaşır (URANS 3B'den daha az sapma)",
+    "I3": "Cd deneysel değere yaklaşır (URANS 3B'den daha az sapma)",
+    "_not": "İddialar koşudan ÖNCE modül docstring'inde sabitlendi."
+  },
+  "referans": {
+    "St": 0.2,
+    "St_bandi": [
+      0.19,
+      0.21
+    ],
+    "kaynak": "Roshko, J. Fluid Mech. 10 (1961); Norberg, J. Fluids Struct. 17 (2003) — DENEYSEL; Re=1e4..1e5 boyunca St = 0,19-0,21 platosu",
+    "Cd": 1.2,
+    "Cd_kaynak": "Subkritik silindir, Re=1e5 civari: Cd ≈ 1,2 (Achenbach, J. Fluid Mech. 34 (1968); Norberg 2003). 2B URANS span-yonu korelasyon kaybini temsil EDEMEZ ve Cd'yi sistematik yuksek verir — bu deger YALNIZ EGILIM olarak raporlanir"
+  },
+  "olculen": {
+    "St": 0.27633,
+    "Cd_ortalama": 0.7301,
+    "Cl_genlik": 0.12658,
+    "yplus": {
+      "min": 0.044245571,
+      "max": 1.5092885,
+      "ort": 0.77969303
+    },
+    "_aref_olcegi": 0.3183098861837907
+  },
+  "sapma_pct": {
+    "St": 38.16,
+    "Cd": -39.16
+  },
+  "salinim_olcumu": {
+    "olculdu": true,
+    "frekans_hz": 0.276326,
+    "periyot_s": 3.61891582,
+    "ortalama": -0.006846833611179975,
+    "genlik": 0.3976662995,
+    "genlik_pct": 5808.032,
+    "periyot_sayisi": 19,
+    "pencere_s": 80.0,
+    "periyot_sacilmasi_pct": 126.79,
+    "_yontem": "yukarı-geçiş zamanlarının MEDYAN farkı (doğrusal enterpolasyonlu); düzensiz örneklemede yeniden-örnekleme gerektirmez ama çok-frekanslı sinyalde baskın modu AYIRAMAZ",
+    "_uyari": "periyot saçılması %127 — tek frekanslı değil, medyan baskın modu temsil etmeyebilir"
+  },
+  "spektral_olcum": {
+    "olculdu": true,
+    "frekans_hz": 0.289505,
+    "periyot_s": 3.45417097,
+    "pencere_s": 80.0,
+    "ornek": 3201,
+    "cozunurluk_hz": 0.012496,
+    "belirginlik": 13.97,
+    "_yontem": "Hann pencereli güç spektrumunun tepesi (parabolik enterpolasyonlu), düzgün ağa yeniden örneklenmiş seride",
+    "_uyari": null
+  },
+  "frekans_capraz_kontrol": {
+    "karsilastirildi": true,
+    "gecis_hz": 0.276326,
+    "spektral_hz": 0.289505,
+    "fark_pct": 4.55,
+    "esik_pct": 5.0,
+    "uyumlu": true,
+    "verdikt": "iki bağımsız yöntem uyuştu — frekans güvenilir",
+    "St_spektral": 0.28951,
+    "_neden": "Ön-kayıtlı St ölçümü geçiş-medyanıdır ve DEĞİŞMEDİ. Spektral ölçüm ÇAPRAZ KONTROL olarak eklendi: koşunun %70'inde salinim_olc kendi uyarısını verdi (periyot saçılması %98 — tek frekanslı değil). Sentetik iki-frekanslı sinyalde geçiş-medyanı %6,8 şaşarken spektral %0,002 verdi, yani ayrışma bir yöntem farkını ölçüyor. Ekleme sonuç bilinmeden, ilan edilmiş bir ölçüte dayanarak yapıldı."
+  },
+  "kurulum": {
+    "dz_D": 0.05,
+    "n_radyal": 161,
+    "n_span": 63,
+    "n_cevre": 240,
+    "hucre_kestirim": 2434320,
+    "ilk_hucre_m": 0.00026798,
+    "grading": "((0.053053 0.341615 186.581088) (0.420632 0.496894 1.000000) (0.526316 0.161491 10.834706))",
+    "_kaynak": "--oku: mevcut case'ten okundu, yeniden kurulmadı",
+    "dt_s": 0.025,
+    "periyot": 22,
+    "sure_s": 110.0,
+    "cekirdek": 4,
+    "yplus_bandi": [
+      0.0,
+      5.0
+    ],
+    "model": "kOmegaSSTDES",
+    "delta": "maxDeltaxyz",
+    "duvar_islemi": "nutLowReWallFunction"
+  },
+  "_sure_saat": 10.59,
+  "_kapsam": "Tek Re (140.000), tek span uzunlugu (piD), tek cozunurluk. DES sonucu span uzunluguna ve Δz'ye duyarlidir; bu kosu o duyarliligi OLCMEZ.",
+  "_uretim": "Üretim: python experiments/silindir_des_3b.py",
+  "verdikt": "⚠️ MEKANİZMA ÇALIŞTI, NİCELİK TUTMADI: DES (Δz/D=0.05, 63 span hücresi): St=0.27633 (%+38), Cd=0.7301 (%-39), C_L genliği 0.12658 (URANS 3B 1.27818, düşüş %90.1) | İ1=True İ2=False İ3=False. Salınım genliği eşiği (%20.0) aşarak düştü, yani span dekorelasyonu bu kez OLUŞTU; ancak St/Cd URANS'a göre düzelmedi. Sapmanın kaynağı ÇÖZÜNÜRLÜK DEĞİL MODEL FORMU — bu ölçüldü, çıkarsanmadı: aynı ağ önce duvar-fonksiyonuyla (y⁺=0,009, geçersiz) sonra düşük-Re ile (y⁺=0,78, geçerli) koşuldu ve cevap %1'den az değişti (Cd 0,7247→0,7301, St 0,27523→0,27633). Duvar işlemi GEÇERLİ olan 3B URANS da aynı yönde sapıyor (Cd %-27, St %+30). Subkritik Re'de bağlı sınır tabaka LAMİNERDİR; tam-türbülanslı kapanış onu türbülans sayar, ayrılmayı geciktirir, izi daraltır. Fiziksel doğru kurulum duvar-çözümlü LES'tir ve bu makinede SIĞMAZ (84,7 M hücre / 62,9 GB — silindir_les_fizibilite.json).",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  },
+  "_sure_kaynagi": "log.foamRun ExecutionTime (--oku yolu geçen süreyi bilmez)"
+}

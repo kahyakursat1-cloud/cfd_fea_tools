@@ -23,13 +23,49 @@ def _by_q(verdicts, key):
 
 
 def test_attached_flow_lift_design_safe():
-    """|α|≤8, ses-altı: taşıma DOĞRULANMIŞ + tasarım-güvenli; mutlak drag EĞİLİM."""
-    v = classify_cfd("ucak", 4.0, mach=0.1)
+    """|α|≤8 + AĞ YETERLİLİĞİ: taşıma DOĞRULANMIŞ; mutlak drag EĞİLİM.
+
+    BEKLENTİ DEĞİŞTİ (2026-08-13, gerekçeli): bu test eskiden bağlı akışın TEK
+    BAŞINA design-grade verdiğini donduruyordu. n=44 doğrulayıcı korpus o
+    davranışın yedi yanlış-negatifin altısını ürettiğini ÖLÇTÜ. Kapı artık ağ
+    yeterliliği kanıtı istiyor; test gevşetilmedi, kanıt eklendi.
+    """
+    v = classify_cfd("ucak", 4.0, mach=0.1, ag_yeterli=True)
     lift = _by_q(v, "C_L")
     assert lift.klass == VALIDATED and lift.design_safe is True
     drag = _by_q(v, "C_D")
     assert drag.klass == TREND and drag.design_safe is False
     assert overall_class(v) == TREND          # drag eğilim → genel eğilim
+
+
+def test_attached_flow_lift_ag_kaniti_yoksa_trend():
+    """Ağ yeterliliği GÖSTERİLMEZSE bağlı akış taşıması design-grade ALAMAZ.
+
+    Ölçülen kör nokta: zarf, taşımayı yalnız α'ya bakarak sertifikalıyordu ve
+    doğrulayıcı korpusta bu, %5,8–%23 hatalı altı taşımanın sertifikalanmasına
+    yol açtı. Varsayılan (kanıt yok) MUHAFAZAKÂR olmalı.
+    """
+    lift = _by_q(classify_cfd("ucak", 4.0, mach=0.1), "C_L")
+    assert lift.klass == TREND and lift.design_safe is False
+    assert "AĞ YETERLİLİĞİ" in lift.message
+    # çok-ağlı asimptotik band da kanıt sayılır — ayrı bir bayrak gerekmez
+    assert _by_q(classify_cfd("ucak", 4.0, mach=0.1, has_gci_band=True),
+                 "C_L").klass == VALIDATED
+
+
+def test_fizik_disi_katsayi_zarf_sinifini_EZER():
+    """Cl=4769 gibi fizik-dışı bir sayı hiçbir zarf sınıfıyla kurtarılamaz.
+
+    ÖLÇÜLEN KUSUR: α=8° orta ağda çözücü ıraksadı, Cl=4769/Cd=293 döndürdü,
+    tarama bunu hatasız kaydetti ve zarf DESIGN-GRADE verdi. `force_admissibility`
+    bu modülde zaten vardı ama `classify_cfd` onu hiç çağırmıyordu.
+    """
+    v = classify_cfd("ucak", 8.0, mach=0.1, ag_yeterli=True, Cl=4769.0, Cd=293.0)
+    assert all(x.klass == OUT and not x.design_safe for x in v)
+    assert any("FİZİK KAPISI" in x.message for x in v)
+    # Kapı yalnız fizik-dışında kapanır: makul katsayılar sınıfı DEĞİŞTİRMEZ.
+    ok = classify_cfd("ucak", 4.0, mach=0.1, ag_yeterli=True, Cl=0.42, Cd=0.011)
+    assert _by_q(ok, "C_L").klass == VALIDATED
 
 
 def test_high_alpha_lift_out_of_envelope():

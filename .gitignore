@@ -202,3 +202,23 @@ _silindir_urans/
 _silindir_3b/
 _silindir_3b_kalibre/
 _c2d_*/
+
+# ─── 2026-08-13 oturumu: hakem-raporu koşularının case dizinleri ──────────
+# Hepsi ÜRETİLEN artefakt (~1 GB). Kanıt JSON'ları izlenir; case'ler izlenmez.
+# Üretim komutları experiments/ altındaki betiklerin docstring'lerinde yazılı.
+_a8_K2/
+_a8_K3/
+_a8_gecis/
+_a8_duvar_cozunur/
+_re_esleme/
+_fea_knob_sweep/
+cfd_mesh_sweep_cases/
+
+# ─── Bu depoya ait OLMAYAN işler ──────────────────────────────────────────
+# Ayrı projeler; buraya yalnızca çalışma dizini komşuluğu yüzünden düştüler.
+_basarim_minihawk/
+aksaray_proje/
+
+# Baska bir projeye ait tek-seferlik betik (k220/1001 basvuru formu duzenleyicisi);
+# icinde o projenin dosya yollari var, bu depoda isi yok.
+revise_1001_panel.py

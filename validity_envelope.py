@@ -539,11 +539,37 @@ def savunulabilir(s: dict) -> dict:
 
 
 def classify_cfd(vehicle_type: str, alpha_deg: float, mach: float,
-                 has_gci_band: bool = False, band_pct: float | None = None) -> list[Verdict]:
-    """CFD aerodinamik çıktılarının zarf sınıfı. has_gci_band: 3-mesh asimptotik GCI var mı."""
+                 has_gci_band: bool = False, band_pct: float | None = None,
+                 Cl: float | None = None, Cd: float | None = None,
+                 ag_yeterli: bool | None = None) -> list[Verdict]:
+    """CFD aerodinamik çıktılarının zarf sınıfı. has_gci_band: 3-mesh asimptotik GCI var mı.
+
+    İKİ KAPI, ÖLÇÜLMÜŞ İKİ KÖR NOKTAYI KAPATIR (n=44 doğrulayıcı korpus, 2026-08-13):
+
+    1) FİZİKSEL AKLA-YATKINLIK (`Cl`, `Cd`). `force_admissibility` bu modülde ZATEN
+       vardı ama `classify_cfd` onu HİÇ çağırmıyordu; kapı yalnızca app_analyzer'ın
+       kendi yolunda uygulanıyordu. Sonuç ölçüldü: α=8° orta ağda çözücü ıraksayıp
+       Cl=4769, Cd=293 döndürdü, tarama bunu HATASIZ kaydetti ve zarf DESIGN-GRADE
+       sertifikası verdi. Bir kanat profilinde |Cl|>3 imkânsızdır; bu bir eşik
+       AYARI değil, veriye bakılmadan söylenebilecek bir fizik sınırıdır.
+
+    2) TAŞIMADA AĞ YETERLİLİĞİ (`ag_yeterli`). Zarf, taşıma güvenilirliğini YALNIZ
+       hücum açısına bakarak kuruyordu: bağlı akıştaki her vaka, ağın o akışı
+       çözüp çözmediğine BAKILMADAN design-grade alıyordu. Doğrulayıcı korpustaki
+       yedi yanlış-negatifin ALTISI bu tek kusurdan geldi (hatalar %5,8, %10,7,
+       %23,0 ve daha kötüsü). Kanıt yoksa kapı gevşemez, SIKILAŞIR: gösterilmemiş
+       ağ yeterliliği DOĞRULANMIŞ değil EĞİLİM verir. Yön bilinçlidir — makalenin
+       ilan ettiği maliyet asimetrisi (yanlış-negatif, yanlış-pozitiften pahalı)
+       varsayılanı muhafazakâr olmaya zorlar.
+
+    `ag_yeterli=None` "kanıt sunulmadı" demektir ve bu bir SESSİZ gevşeme değildir:
+    hüküm metni kapının hangi nedenle sıkıldığını yazar.
+    """
     a = abs(alpha_deg or 0.0)
     compressible = (mach or 0.0) >= MACH_INCOMP
     v: list[Verdict] = []
+    # Ağ yeterliliği için kanıt: açıkça beyan edilmiş VEYA çok-ağlı asimptotik band.
+    ag_kanit = bool(ag_yeterli) or bool(has_gci_band)
 
     # ── TAŞIMA (C_L) ──
     if a > ALPHA_VALID_DEG:
@@ -554,10 +580,17 @@ def classify_cfd(vehicle_type: str, alpha_deg: float, mach: float,
     elif compressible:
         v.append(Verdict("C_L (taşıma)", TREND, False,
             f"Ma={mach:.2f}≥0.3 sıkışabilir rejim — taşıma yalnız eğilim düzeyinde."))
+    elif not ag_kanit:
+        v.append(Verdict("C_L (taşıma)", TREND, False,
+            f"Bağlı akış (|α|≤{ALPHA_VALID_DEG:.0f}°) ama AĞ YETERLİLİĞİ GÖSTERİLMEDİ: "
+            "bu ağın taşımayı çözdüğüne dair çok-ağlı band ya da referans-ağ ailesi "
+            "beyanı yok. Hücum açısı tek başına taşıma güvenilirliğini kurmaz — "
+            "ölçüldü: bağlı akışta ağ-kaynaklı %5,8–%23 taşıma hatası. Eğilim ve "
+            "aynı ağla A/B karşılaştırması geçerlidir."))
     else:
         v.append(Verdict("C_L (taşıma)", VALIDATED, True,
-            f"Bağlı akış (|α|≤{ALPHA_VALID_DEG:.0f}°): NACA0012'de NASA Ladson'a karşı ≤%8 — "
-            "tasarım kararı için kullanılabilir."))
+            f"Bağlı akış (|α|≤{ALPHA_VALID_DEG:.0f}°) + ağ yeterliliği gösterildi: "
+            "NACA0012'de NASA Ladson'a karşı ≤%8 — tasarım kararı için kullanılabilir."))
 
     # ── SÜRÜKLEME (C_D, mutlak) ──
     if has_gci_band:
@@ -585,14 +618,46 @@ def classify_cfd(vehicle_type: str, alpha_deg: float, mach: float,
     # ── L/D ve sürükleme kuvveti: mutlak Cd'ye bağlı → en zayıfı miras alır ──
     v.append(Verdict("L/D, sürükleme kuvveti/gücü", TREND, False,
         "Mutlak sürüklemeden türetilir → tasarım sayısı değil; karşılaştırmalı kullanın."))
+
+    # ── FİZİK KAPISI EN SONDA VE EN ÜSTTE: fizik-dışı bir sayı hiçbir zarf
+    # sınıfıyla kurtarılamaz, dolayısıyla yukarıdaki hükümlerin HEPSİNİ ezer.
+    if Cl is not None or Cd is not None:
+        v = apply_physics_gate(v, force_admissibility(
+            Cd, Cl, alpha_deg, rejim=rejim_arac_tipinden(vehicle_type)))
     return v
 
 
+# Kapali-form referansa karsi KABUL SINIRI. Nicelik sinifina gore, cunku
+# turetilmis gerilme yer degistirme alaninin turevidir ve bir mertebe daha kabadir;
+# yer degistirme ve ozdeger birincil FE bilinmeyenidir ve daha hizli yakinsar.
+# AYNI ilke assay'in TAU_BY_Q'sunda da kullaniliyor -- iki yerde ayri sayi tutmak
+# ikisinin ayrisması demek olurdu.
+#
+# NEDEN GEREKLI (dis hakem, 2026-08-13): onceki surumde referans hatasi yalniz
+# RAPORLANIYOR, kapi gorevi GORMUYORDU. Mevcut alti benchmark %0,0-4,8 oldugu icin
+# pratikte fark etmiyordu, ama mimari olarak %20 hatali yeni bir benchmark da
+# design-grade alabilirdi. Kapi o acigi kapatir; mevcut alti vakanin hicbirini
+# yeniden siniflandirmaz.
+BURKULMA_MARJI = 1.5   # yapilandirilabilir gosterim marji, sertifikasyon faktoru DEGIL
+FEA_KABUL_SINIRI = {"gerilme": 0.10, "yer_degistirme": 0.05, "ozdeger": 0.05}
+
+
 def classify_fea(has_singularity: bool = False,
-                 buckling_margin: float | None = None) -> list[Verdict]:
+                 buckling_margin: float | None = None,
+                 referans_hata_pct: float | None = None,
+                 nicelik: str = "gerilme") -> list[Verdict]:
     """FEA yapısal çıktılarının zarf sınıfı (tasarım-güvenli kısım).
 
-    buckling_margin: λ_kritik / yük (verilirse stabilite verdikti eklenir). λ>1 stabil."""
+    buckling_margin: λ_kritik / yük (verilirse stabilite verdikti eklenir). λ>1 stabil.
+    referans_hata_pct: kapalı-forma karşı |q−q_ref|/|q_ref| [%]. Verilirse KAPI olarak
+        kullanılır; verilmezse eski davranış (yalnız raporlama) korunur.
+    nicelik: FEA_KABUL_SINIRI anahtarı — gerilme / yer_degistirme / ozdeger.
+    """
+    sinir = FEA_KABUL_SINIRI.get(nicelik, FEA_KABUL_SINIRI["gerilme"]) * 100.0
+    if referans_hata_pct is not None and referans_hata_pct > sinir:
+        return [Verdict("Kapalı-form referans hatası", TREND, False,
+            f"%{referans_hata_pct:.1f} > kabul sınırı %{sinir:.0f} ({nicelik}): "
+            "uygulama-doğrulaması bu vakada GEÇMEDİ, sonuç yalnız eğilim.")]
     v = [Verdict("Gerilme (temsili, %99-persentil)", VALIDATED, True,
         "6 kanonik V&V %0.0–4.8 (kuvvet/basınç/gövde/termal/buckling) — temsili gerilme "
         "ve emniyet faktörü tasarım kararı için kullanılabilir.")]
@@ -604,12 +669,16 @@ def classify_fea(has_singularity: bool = False,
         # Lineer-elastik özdeğer burkulması Euler'e %0.2 doğrulandı (fea_validation_buckling).
         # İdeal-geometri üst-sınırdır: gerçek kusur/eksantriklik kritik yükü DÜŞÜRÜR → marj
         # 1'e yakınsa güvenli değil; muhafazakâr tasarım marjı ≥1.5 beklenir.
-        safe = buckling_margin >= 1.5
+        # 1.5 bir SERTIFIKASYON faktoru degildir (FAR/CS turevli degil); bu aracin
+        # yapilandirilabilir muhafazakar gosterim marjidir. Gerekcesi: lineer ozdeger
+        # IDEAL geometri ust-sinirini verir, imalat kusuru/eksantriklik kritik yuku
+        # DUSURUR, dolayisiyla 1'e yakin marj guvenli degildir.
+        safe = buckling_margin >= BURKULMA_MARJI
         v.append(Verdict("Burkulma marjı (lineer özdeğer)",
             VALIDATED if safe else TREND, safe,
             f"λ={buckling_margin:.2f}× — *BUCKLE yolu Euler'e %0.2 doğrulandı. "
             "İdeal-geometri ÜST-SINIRıdır; imalat kusuru/eksantriklik kritik yükü düşürür, "
-            f"bu yüzden marj ≥1.5 beklenir ({'sağlandı' if safe else 'SAĞLANMADI — yalnız eğilim'})."))
+            f"bu yüzden marj ≥{BURKULMA_MARJI} beklenir ({'sağlandı' if safe else 'SAĞLANMADI — yalnız eğilim'})."))
     return v
 
 

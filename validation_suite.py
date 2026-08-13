@@ -206,7 +206,13 @@ vertices
         Ux = self.V * math.cos(alpha)
         Uz = self.V * math.sin(alpha)
 
-        I = 0.05   # %5 türbülans yoğunluğu — kOmegaSST stabilitesi için
+        # SERBEST AKIS TURBULANS YOGUNLUGU. Varsayilan %5, kOmegaSST
+        # kararliligi icin secilmisti. GECIS MODELI icin bu YUKSEK: bypass
+        # gecisi hemen tetiklenir ve kOmegaSSTLM pratikte tam-turbulansli
+        # gibi davranir. Anlamli gecis calismasi Tu ~ %0,1-0,2 ister.
+        # Ayarlanabilir olmasi sart, cunku kapanis ile Tu ayri ayri
+        # sinanmadan farkin hangisinden geldigi soylenemez.
+        I = getattr(self, "turb_intensity", 0.05)
         L_t = 0.07 * self.C
         k0     = 1.5 * (self.V * I) ** 2
         omega0 = math.sqrt(k0) / (0.09**0.25 * L_t)
@@ -292,6 +298,46 @@ boundaryField
 {{
     airfoil  {{ type {nut_wall}; value uniform 0; }}
     farfield {{ type calculated; value uniform {nut0:.6e}; }}
+    front    {{ type empty; }}
+    back     {{ type empty; }}
+}}
+""")
+
+        # GECIS MODELI EK ALANLARI. kOmegaSSTLM (Langtry-Menter) iki ek tasima
+        # denklemi cozer ve bu alanlar 0/ altinda YOKSA cozucu daha ilk
+        # iterasyonda "cannot find file .../ReThetat" ile duser (olculdu
+        # 2026-08-13). Model kancasini eklemek yetmiyordu; alanlar da gerekiyor.
+        #
+        # ReThetat baslangici Langtry-Menter ampirik bagintisindan:
+        #   Tu > %1,3 icin  Re_theta_t = 331,5 (Tu - 0,5658)^-0,671   [Tu yuzde]
+        # DIKKAT: bu vakada Tu = %5 (kOmegaSST kararliligi icin secilmisti) ve
+        # bu deger gecis modeli icin YUKSEK — bypass gecisi hemen tetiklenir,
+        # yani model pratikte tam-turbulansli gibi davranir. Anlamli bir gecis
+        # calismasi Tu ~ %0,1-0,2 ister; o da IKINCI bir degiskeni degistirmek
+        # demektir ve tek-degisken karsilastirmasini bozar.
+        if "LM" in getattr(self, "ras_model", ""):
+            tu_pct = I * 100.0
+            re_theta = 331.5 * max(tu_pct - 0.5658, 1e-6) ** -0.671 if tu_pct > 1.3                 else 1173.51 - 589.428 * tu_pct + 0.2196 / max(tu_pct, 1e-6) ** 2
+            (zero / "gammaInt").write_text("""FoamFile
+{ version 2.0; format ascii; class volScalarField; object gammaInt; }
+dimensions [0 0 0 0 0 0 0];
+internalField uniform 1;
+boundaryField
+{
+    airfoil  { type zeroGradient; }
+    farfield { type inletOutlet; inletValue uniform 1; value uniform 1; }
+    front    { type empty; }
+    back     { type empty; }
+}
+""")
+            (zero / "ReThetat").write_text(f"""FoamFile
+{{ version 2.0; format ascii; class volScalarField; object ReThetat; }}
+dimensions [0 0 0 0 0 0 0];
+internalField uniform {re_theta:.4f};
+boundaryField
+{{
+    airfoil  {{ type zeroGradient; }}
+    farfield {{ type inletOutlet; inletValue uniform {re_theta:.4f}; value uniform {re_theta:.4f}; }}
     front    {{ type empty; }}
     back     {{ type empty; }}
 }}
@@ -647,10 +693,15 @@ boundaryField
 
         # Solver dosyalari
         W = 0.1
+        # ITERASYON TAVANI ayarlanabilir. 2000 ile alpha=8 YAKINSAMIYORDU
+        # (olculdu 2026-08-13: 6/6 kosu tavanda bitti, ~1993 kez omega
+        # bounding). Sabit tavan, yakinsamamis kosuyu sonuc diye kaydetmek
+        # demekti; yakinsama artik uzatilabilir.
+        _END = getattr(self, "end_time", 2000)
         (case_dir / "system" / "controlDict").write_text(f"""FoamFile
 {{ version 2.0; format ascii; class dictionary; object controlDict; }}
 application foamRun;
-startFrom startTime; startTime 0; endTime 2000;
+startFrom startTime; startTime 0; endTime {_END};
 deltaT 1; writeInterval 200; purgeWrite 3; writeFormat binary;
 runTimeModifiable true;
 functions
@@ -672,6 +723,14 @@ functions
         relax_k = 0.3 if is_high_aoa else 0.4
         relax_p = 0.2 if is_high_aoa else 0.25
 
+        # GECIS MODELI iki ek tasima denklemi cozer; fvSchemes te karsiligi
+        # YOKSA cozucu ilk iterasyondan sonra "Cannot find scheme for
+        # div(phi,ReThetat)" ile duser (olculdu 2026-08-13). Kapanisi
+        # degistirmek TEK bir degisiklik degil: model adi + iki alan +
+        # iki sema + iki cozucu.
+        _LM_SEMA = ("div(phi,gammaInt) bounded Gauss upwind;\n"
+                    "                  div(phi,ReThetat) bounded Gauss upwind;"
+                    if "LM" in getattr(self, "ras_model", "") else "")
         (case_dir / "system" / "fvSchemes").write_text(f"""FoamFile
 {{ version 2.0; format ascii; class dictionary; object fvSchemes; }}
 ddtSchemes      {{ default steadyState; }}
@@ -681,6 +740,7 @@ divSchemes      {{ default none;
                   div(phi,U)     {div_U};
                   div(phi,k)     bounded Gauss upwind;
                   div(phi,omega) bounded Gauss upwind;
+                  {_LM_SEMA}
                   div((nuEff*dev2(T(grad(U))))) Gauss linear; }}
 laplacianSchemes {{ default Gauss linear corrected; }}
 interpolationSchemes {{ default linear; }}
@@ -694,17 +754,23 @@ solvers
     p {{ solver GAMG; tolerance 1e-8; relTol 0.01; smoother GaussSeidel;
         nPreSweeps 0; nPostSweeps 2; cacheAgglomeration on;
         agglomerator faceAreaPair; nCellsInCoarsestLevel 10; mergeLevels 1; }}
-    "(U|k|omega)" {{ solver smoothSolver; smoother symGaussSeidel;
+    "(U|k|omega|gammaInt|ReThetat)" {{ solver smoothSolver; smoother symGaussSeidel;
                     tolerance 1e-8; relTol 0.01; }}
 }}
 SIMPLE {{ nNonOrthogonalCorrectors 2; consistent yes;
          residualControl {{ p 1e-5; U 1e-5; "(k|omega)" 1e-5; }} }}
 relaxationFactors {{ equations {{ U {relax_U}; k {relax_k}; omega {relax_k}; }} fields {{ p {relax_p}; }} }}
 """)
-        (case_dir / "constant" / "turbulenceProperties").write_text("""FoamFile
-{ version 2.0; format ascii; class dictionary; object turbulenceProperties; }
+        # TURBULANS MODELI ayarlanabilir. Makalenin alpha=8 sonucu (%7,8)
+        # kOmegaSSTLM (Langtry-Menter gecis modeli) ile uretildi; bu dogrulama
+        # ise tam-turbulansli kOmegaSST kosuyordu ve ikisi KARSILASTIRILAMIYORDU.
+        # Olculdu 2026-08-13: duvar islemi duzeltildikten (y+ 357 -> 2,5) sonra
+        # bile alpha=8 tasima hatasi %16,6 kaldi; kalan aday model formu.
+        _RAS = getattr(self, "ras_model", "kOmegaSST")
+        (case_dir / "constant" / "turbulenceProperties").write_text(f"""FoamFile
+{{ version 2.0; format ascii; class dictionary; object turbulenceProperties; }}
 simulationType RAS;
-RAS { RASModel kOmegaSST; turbulence on; printCoeffs on; }
+RAS {{ RASModel {_RAS}; turbulence on; printCoeffs on; }}
 """)
         (case_dir / "constant" / "transportProperties").write_text(f"""FoamFile
 {{ version 2.0; format ascii; class dictionary; object transportProperties; }}

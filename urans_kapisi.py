@@ -195,6 +195,110 @@ def salinim_olc(zaman: list[float], deger: list[float],
             ) if x) or None)}
 
 
+def spektral_olc(zaman: list[float], deger: list[float],
+                 gecis_orani: float = 0.25) -> dict:
+    """`salinim_olc`'in ÇAPRAZ KONTROLÜ — baskın frekansı spektrumdan ölçer.
+
+    `salinim_olc` çok-frekanslı sinyalde baskın modu ayıramadığını kendi
+    çıktısında söyler. Bu fonksiyon o boşluğu kapatır: seriyi düzgün aralığa
+    yeniden örnekler, Hann penceresi uygular ve güç spektrumunun tepesini alır.
+
+    Neden ikisi birden: yöntemler ayrı şeylere duyarlıdır. Sıfır-geçişi medyanı
+    düzensiz örneklemeye dayanıklıdır ama ikincil mod onu kaydırır; spektral
+    tepe baskın modu ayırır ama yeniden-örnekleme ve pencere sızıntısı getirir.
+    İKİSİ AYNI ÇIKARSA sayı güvenilirdir; AYRILIRSA bu bir kusur değil,
+    raporlanacak bir olgudur — sinyal tek frekanslı değildir.
+
+    `belirginlik` = en yüksek tepenin ikinci ayrık tepeye oranı. 1'e yakınsa
+    spektrum tek-tepeli DEĞİLDİR ve "baskın frekans" ifadesi anlamını yitirir.
+    """
+    import numpy as np
+
+    if len(zaman) < 16 or len(zaman) != len(deger):
+        return {"olculdu": False, "neden": f"yetersiz örnek ({len(deger)})"}
+    n0 = int(len(zaman) * gecis_orani)
+    t = np.asarray(zaman[n0:], dtype=float)
+    y = np.asarray(deger[n0:], dtype=float)
+    sure = float(t[-1] - t[0])
+    if len(t) < 16 or sure <= 0:
+        return {"olculdu": False, "neden": "geçiş atıldıktan sonra pencere boş"}
+
+    # Duzgun agda yeniden ornekleme: adjustableTimeStep duzensiz aralik verir,
+    # FFT duzgun aralik ister. Adim, ortalama ornekleme adimi olarak secilir --
+    # en kucugu secmek seriyi gereksiz sisirir, en buyugu bilgi atar.
+    n = len(t)
+    tg = np.linspace(t[0], t[-1], n)
+    yg = np.interp(tg, t, y)
+    yg = yg - yg.mean()
+    if not np.any(yg):
+        return {"olculdu": False, "neden": "pencerede salınım yok (sabit sinyal)"}
+
+    pencere = np.hanning(n)
+    spek = np.abs(np.fft.rfft(yg * pencere)) ** 2
+    frek = np.fft.rfftfreq(n, d=sure / (n - 1))
+    spek[0] = 0.0                      # DC bileseni frekans degildir
+
+    k = int(np.argmax(spek))
+    if k == 0 or k >= len(frek) - 1:
+        return {"olculdu": False, "neden": "tepe spektrumun ucunda — çözülemedi"}
+    # Parabolik enterpolasyon: tepe iki ayrik bin arasina duserse cozunurluk
+    # 1/sure ile sinirli kalir; log-genlikte parabol uydurmak bunu asar.
+    lo, om, hi = (np.log(spek[k - 1] + 1e-300), np.log(spek[k] + 1e-300),
+                  np.log(spek[k + 1] + 1e-300))
+    kayma = 0.5 * (lo - hi) / (lo - 2 * om + hi) if (lo - 2 * om + hi) else 0.0
+    df = frek[1] - frek[0]
+    f = float(frek[k] + kayma * df)
+
+    # Ikinci AYRIK tepe: ana tepenin etegindeki binler ayni tepedir, sayilmaz.
+    maske = np.ones(len(spek), dtype=bool)
+    i = k
+    while i > 0 and spek[i - 1] <= spek[i]:
+        maske[i], i = False, i - 1
+    maske[i] = False
+    i = k
+    while i < len(spek) - 1 and spek[i + 1] <= spek[i]:
+        maske[i], i = False, i + 1
+    maske[i] = False
+    kalan = spek[maske]
+    ikinci = float(kalan.max()) if kalan.size else 0.0
+    belirginlik = float(spek[k] / ikinci) if ikinci > 0 else float("inf")
+
+    return {"olculdu": True, "frekans_hz": round(f, 6),
+            "periyot_s": round(1.0 / f, 8) if f else None,
+            "pencere_s": round(sure, 6), "ornek": n,
+            "cozunurluk_hz": round(float(df), 6),
+            "belirginlik": (round(belirginlik, 2)
+                            if belirginlik != float("inf") else None),
+            "_yontem": ("Hann pencereli güç spektrumunun tepesi (parabolik "
+                        "enterpolasyonlu), düzgün ağa yeniden örneklenmiş seride"),
+            "_uyari": ("; ".join(x for x in (
+                (f"pencerede yalnız {sure * f:.1f} periyot var — spektral "
+                 "çözünürlük zayıf") if sure * f < 10 else None,
+                (f"ikinci tepe ana tepenin %{100 / belirginlik:.0f}'i — spektrum "
+                 "tek-tepeli DEĞİL, 'baskın frekans' yanıltıcı")
+                if belirginlik < 3 else None,
+            ) if x) or None)}
+
+
+def frekans_capraz_kontrol(gecis: dict, spektral: dict,
+                           esik_pct: float = 5.0) -> dict:
+    """İki frekans ölçümünü karşılaştır — ayrışma GİZLENMEZ, raporlanır."""
+    if not (gecis.get("olculdu") and spektral.get("olculdu")):
+        return {"karsilastirildi": False,
+                "neden": "iki yöntemden biri ölçemedi"}
+    fg, fs = gecis["frekans_hz"], spektral["frekans_hz"]
+    fark = 100 * abs(fg - fs) / fs if fs else None
+    uyumlu = fark is not None and fark <= esik_pct
+    return {"karsilastirildi": True, "gecis_hz": fg, "spektral_hz": fs,
+            "fark_pct": round(fark, 2) if fark is not None else None,
+            "esik_pct": esik_pct, "uyumlu": uyumlu,
+            "verdikt": ("iki bağımsız yöntem uyuştu — frekans güvenilir"
+                        if uyumlu else
+                        f"YÖNTEMLER AYRIŞTI (%{fark:.1f} > %{esik_pct}) — sinyal "
+                        "tek frekanslı değil; tek bir Strouhal sayısı bu akışı "
+                        "temsil etmeyebilir")}
+
+
 def recete_guncelle(recete: dict, olcum: dict) -> dict:
     """Öncüle dayalı reçeteyi ÖLÇÜLEN frekansla yeniden hesapla.
 

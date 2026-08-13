@@ -1,0 +1,61 @@
+{
+  "vaka": "NACA0012 α=8° — kapanış ve Tu AYRIŞTIRILIYOR",
+  "sinanan_iddia": {
+    "U1": "K2 ve K3 yakınsar",
+    "U2": "K3 taşıma hatası < %8.0",
+    "U3": "Tu'nun etkisi kapanışınkinden büyük",
+    "_not": "İddialar koşulardan ÖNCE docstring'de sabitlendi."
+  },
+  "sabit_tutulan": {
+    "ag": "n_prof=200, n_norm=200, grading=120000",
+    "duvar": "nutLowReWallFunction + kLowReWallFunction",
+    "baslangic": "mapFields, K1'in yakınsamış çözümünden",
+    "Re": 6000000.0,
+    "alpha": 8
+  },
+  "kosular": [
+    {
+      "etiket": "K1",
+      "model": "kOmegaSST",
+      "Tu": 0.05,
+      "Cl_hata_pct": 16.6,
+      "Cd_hata_pct": 225.0,
+      "_kaynak": "naca0012_a8_rampali.json"
+    },
+    {
+      "etiket": "K2",
+      "model": "kOmegaSSTLM",
+      "Tu": 0.05,
+      "son_iterasyon": 6000,
+      "sigFpe": false,
+      "esleme_ok": true,
+      "Cl": 0.7253238399139798,
+      "Cd": 0.04310016688282934,
+      "Cl_hata_pct": 15.855703026220446,
+      "Cd_hata_pct": 226.51641577901015,
+      "hata": null
+    },
+    {
+      "etiket": "K3",
+      "model": "kOmegaSSTLM",
+      "Tu": 0.0015,
+      "son_iterasyon": 6000,
+      "sigFpe": false,
+      "esleme_ok": true,
+      "Cl": 0.7260190741550525,
+      "Cd": 0.04301540437494899,
+      "Cl_hata_pct": 15.775049401966065,
+      "Cd_hata_pct": 225.87427556779537,
+      "hata": null
+    }
+  ],
+  "fark": {
+    "kapanis_K2_K1": 0.7442969737795551,
+    "Tu_K3_K2": 0.08065362425438138
+  },
+  "U1": true,
+  "U2": false,
+  "U3": false,
+  "verdikt": "⚠️ U2 TUTMADI: K3 hatası %15.8 ≥ %8.0 (K1 %16.6, K2 %15.9). Duvar işlemi, kararsızlık, yakınsama, kapanış ve Tu — beş aday da elendi. Geriye AĞ AİLESİ kalıyor: makalenin %7,8'i NASA TMR referans ağlarında üretildi, bu ise kendi O-grid'imiz. %8 toleransı bu ağ ailesinde DOĞRULANAMAZ.",
+  "_uretim": "Üretim: python experiments/naca0012_a8_uclu_karsilastirma.py"
+}

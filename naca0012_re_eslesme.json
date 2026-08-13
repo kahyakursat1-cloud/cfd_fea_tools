@@ -1,0 +1,135 @@
+{
+  "vaka": "NACA0012 — referansın Reynolds koşulu ÖLÇÜLÜYOR",
+  "sinanan_iddia": {
+    "R1": "iki Re, Cd sapmasında ayırt edilebilir",
+    "R2": "referans koşulunda α=8° taşıma hatası < %8",
+    "_not": "İddialar koşudan ÖNCE modül docstring'inde sabitlendi."
+  },
+  "celiskinin_kaynagi": {
+    "makale": "§5.1: referans Ladson, Re = 6×10⁶ (NASA TMR / TM-4074)",
+    "kod": "validation_suite.NACA0012_REF etiketi: 'Ladson 1988 Re=3e6'",
+    "_not": "Kaynak veri dosyası depoda yok; çelişki ÖLÇÜMLE sınanıyor."
+  },
+  "yogunluk": {
+    "ad": "mid",
+    "n_profil": 200,
+    "n_normal": 80
+  },
+  "hucreler": [
+    {
+      "re": "Re3e6",
+      "Re": 3000000.0,
+      "alpha": 0,
+      "Cl": 0.0008,
+      "Cd": 0.01111,
+      "Cl_ref": 0.0,
+      "Cd_ref": 0.0082,
+      "ref_kaynak": "Ladson 1988 Re=3e6",
+      "Cl_hata_pct": null,
+      "Cd_hata_pct": 35.48780487804877
+    },
+    {
+      "re": "Re3e6",
+      "Re": 3000000.0,
+      "alpha": 4,
+      "Cl": 0.8984,
+      "Cd": -0.00582,
+      "Cl_ref": 0.452,
+      "Cd_ref": 0.0092,
+      "ref_kaynak": "Ladson 1988 Re=3e6",
+      "Cl_hata_pct": 98.76106194690264,
+      "Cd_hata_pct": 163.26086956521738
+    },
+    {
+      "re": "Re3e6",
+      "Re": 3000000.0,
+      "alpha": 8,
+      "Cl": 0.7029,
+      "Cd": 0.04748,
+      "Cl_ref": 0.862,
+      "Cd_ref": 0.0132,
+      "ref_kaynak": "Ladson 1988 Re=3e6",
+      "Cl_hata_pct": 18.45707656612529,
+      "Cd_hata_pct": 259.69696969696975
+    },
+    {
+      "re": "Re6e6",
+      "Re": 6000000.0,
+      "alpha": 0,
+      "Cl": 0.0015,
+      "Cd": 0.01025,
+      "Cl_ref": 0.0,
+      "Cd_ref": 0.0082,
+      "ref_kaynak": "Ladson 1988 Re=3e6",
+      "Cl_hata_pct": null,
+      "Cd_hata_pct": 24.999999999999993
+    },
+    {
+      "re": "Re6e6",
+      "Re": 6000000.0,
+      "alpha": 4,
+      "Cl": 0.4504,
+      "Cd": 0.00871,
+      "Cl_ref": 0.452,
+      "Cd_ref": 0.0092,
+      "ref_kaynak": "Ladson 1988 Re=3e6",
+      "Cl_hata_pct": 0.3539823008849536,
+      "Cd_hata_pct": 5.3260869565217295
+    },
+    {
+      "re": "Re6e6",
+      "Re": 6000000.0,
+      "alpha": 8,
+      "Cl": 0.7062,
+      "Cd": 0.04665,
+      "Cl_ref": 0.862,
+      "Cd_ref": 0.0132,
+      "ref_kaynak": "Ladson 1988 Re=3e6",
+      "Cl_hata_pct": 18.07424593967517,
+      "Cd_hata_pct": 253.40909090909085
+    }
+  ],
+  "ortalama_Cd_sapma_pct": {
+    "Re3e6": 152.81521471341196,
+    "Re6e6": 94.57839262187086
+  },
+  "a8_Cl_hata_pct": {
+    "Re3e6": 18.45707656612529,
+    "Re6e6": 18.07424593967517
+  },
+  "R1": true,
+  "R2": false,
+  "referansa_yakin": "Re6e6",
+  "verdikt": "⚠️ Referans koşulu Re6e6 görünüyor ama α=8° taşıma hatası %18.1 ≥ %8.0: ilan edilen tolerans bu koşulda SAĞLANMIYOR ve tolerans yeniden gerekçelendirilmeli. TESHIS (olculdu): alpha=8 de y+ 16,2–356,7 arasinda degisiyor ve duvar fonksiyonunun gecerli bandinin (30–300) DISINA tasiyor; iterasyon artirmak duzeltmiyor. Cozum duvar-cozunur kurulum.",
+  "_uretim": "Üretim: python experiments/naca0012_re_eslesme.py",
+  "a8_teshis": {
+    "yplus_olculen": {
+      "min": 16.18,
+      "max": 356.7,
+      "ort": 131.97,
+      "patch": "airfoil",
+      "alpha": 8,
+      "Re": 6000000.0
+    },
+    "duvar_islemi": "nutkWallFunction (duvar fonksiyonu)",
+    "gecerli_band": [
+      30,
+      300
+    ],
+    "bulgu": "Yuzeyin bir kismi y+ = 16,2 ile bandin ALTINDA (tampon katman) ve tepe 356,7 ile ustunde. Log yasasi tampon katmanda gecersizdir ve alpha=8 de ayrilmanin basladigi bolge tam orasidir.",
+    "imza": "10.000 iterasyonun 9.966 sinda bounding omega — kotu kosullanmis omega denklemi",
+    "iterasyon_testi": {
+      "2000": {
+        "Cl_hata_pct": 18.1,
+        "Cd_hata_pct": 253.4
+      },
+      "10000": {
+        "Cl_hata_pct": 18.2,
+        "Cd_hata_pct": 248.0
+      },
+      "_sonuc": "iterasyon ARTIRMAK duzeltmiyor; rezidueller 1e-8, cozum oturmus ama YANLIS"
+    },
+    "agin_tasarimi": "validation_suite _write_ogrid: grading=500, ilk hucre ~3 mm, hedef y+~400 (alpha=0 icin)",
+    "cozum": "Duvar-cozunur kurulum: ilk hucreyi y+~1 e indir ve nutLowReWallFunction kullan. Silindir DES inde AYNI kusur bulundu, ama orada duzeltmek sonucu degistirmedi (model-form baskindi); burada durum farkli — ayrilma yeri duvar islemine DUYARLIdir, dolayisiyla bu vaka gercekten duzelebilir."
+  }
+}

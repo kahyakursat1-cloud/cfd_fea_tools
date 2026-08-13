@@ -202,6 +202,23 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
     throughput = float(np.linalg.norm(dF_face, axis=1).sum())
     conservation_err = np.linalg.norm(total_F_node - total_F) / (throughput + 1e-30)
 
+    # MOMENT korunumu. Kuvvet korunumu tek basina YETMEZ: ayni toplam kuvvet
+    # tumuyle yanlis bir uzamsal dagilimla da elde edilebilir, ve yapiya giden
+    # egilme momenti o dagilimdan gelir. Moment artigi dagilimin ilk momentini
+    # sinar.
+    #
+    # DURUST NOT: esit-uctebir dagitimda ucgenin uc kosesinin ortalamasi TAM
+    # olarak agirlik merkezidir, dolayisiyla hem kuvvet hem moment korunumu bu
+    # semada YAPI GEREGI kesindir. Olculen artik bir dogruluk sinavi degil,
+    # uygulamanin teoriye uydugunun ve kayan-nokta birikiminin zararsiz
+    # kaldiginin kanitidir. Farkli bir dagitim semasi (ornegin alan-agirlikli
+    # veya en-yakin-dugum) momenti korumaz; metrik asil orada ayirt eder.
+    f_centroids = fea_nodes[faces].mean(axis=1)                      # (F,3)
+    M_face = np.cross(f_centroids, dF_face).sum(axis=0)
+    M_node = np.cross(fea_nodes, node_forces).sum(axis=0)
+    m_throughput = float(np.linalg.norm(np.cross(f_centroids, dF_face), axis=1).sum())
+    moment_err = float(np.linalg.norm(M_node - M_face) / (m_throughput + 1e-30))
+
     forces = {int(i + 1): tuple(node_forces[i])
               for i in range(len(fea_nodes)) if np.linalg.norm(node_forces[i]) > 1e-9}
 
@@ -218,6 +235,8 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
         "side_Fy_N": round(float(total_F[1]), 4),
         "lift_Fz_N": round(float(total_F[2]), 4),
         "conservation_error": float(conservation_err),
+        "moment_conservation_error": moment_err,
+        "total_moment_Nm": [round(float(x), 4) for x in M_face],
         "node_forces": forces,
     }
 

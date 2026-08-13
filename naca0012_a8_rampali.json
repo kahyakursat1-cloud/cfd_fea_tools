@@ -1,0 +1,59 @@
+{
+  "vaka": "NACA0012 alpha=8 duvar-cozumlu, RAMPALI baslangic (Re=6e6)",
+  "sinanan_iddia": {
+    "E1": "rampali baslangic sigFpe yi onler",
+    "E2": "alpha=8 tasima hatasi < %8",
+    "_not": "Iddialar kosudan ONCE docstring te sabitlendi."
+  },
+  "yontem": {
+    "arac": "mapFields -consistent -sourceTime latestTime",
+    "kaynak": "_re_esleme/Re6e6_a8_uzun (duvar-fonksiyonu, 10000 iter, rezidu 1e-8)",
+    "hedef": "_a8_duvar_cozunur (n_norm=200, grading=120000, nutLowReWallFunction)",
+    "_not": "Sinir kosullari HEDEF ten; tasinan yalniz ic alan."
+  },
+  "E1": true,
+  "E1_kaniti": {
+    "son_iterasyon": 6000,
+    "hedef": 6000,
+    "sigFpe": false,
+    "omega_bounding": 982,
+    "onceki_omega_bounding": "~%100 (9966/10000)",
+    "onceki_son_zaman": 27,
+    "yorum": "Rampali baslangic patlamayi ONLEDI; omega bounding %100 -> %16."
+  },
+  "yplus": {
+    "min": 0.0399,
+    "max": 2.467,
+    "ort": 0.507,
+    "onceki": {
+      "min": 16.18,
+      "max": 356.7
+    },
+    "yorum": "Ag duvar-cozumlu: y+ max 2,47 <= 5."
+  },
+  "olculen": {
+    "Cl": 0.7191,
+    "Cd": 0.04295,
+    "Cl_ref": 0.862,
+    "Cd_ref": 0.0132,
+    "Cl_hata_pct": 16.6,
+    "Cd_hata_pct": 225.0,
+    "_yontem": "forces.dat son satiri, alpha=8 ile donusturuldu, q=0.5*rho*V^2*A (A=0.1 m2)"
+  },
+  "E2": false,
+  "karsilastirma": {
+    "duvar_fonksiyonu": {
+      "yplus_max": 356.7,
+      "Cl_hata_pct": 18.2,
+      "Cd_hata_pct": 248
+    },
+    "duvar_cozumlu": {
+      "yplus_max": 2.467,
+      "Cl_hata_pct": 16.6,
+      "Cd_hata_pct": 225
+    },
+    "degisim": "Cl hatasi %18,2 -> %16,6 (1,6 puan); Cd %248 -> %225"
+  },
+  "verdikt": "E1 TUTTU, E2 TUTMADI. Duvar islemi GERCEKTEN bozuktu (y+ 16-357 -> 0,04-2,47) ve rampali baslangic patlamayi onledi, ama tasima hatasi %18,2 den yalniz %16,6 ya indi — %8 toleransinin cok uzaginda. SAPMANIN KAYNAGI DUVAR ISLEMI DEGIL. Bu, silindir DES inde olculen sonucun aynisi: orada da duzeltme sonucu %1 den az degistirmisti. Kalan aday MODEL FORMU: bu dogrulama tam-turbulansli kOmegaSST kosuyor, oysa makalenin %7,8 lik alpha=8 sonucu kOmegaSSTLM (gecis modeli) ile TMR referans aglarinda uretildi. %8 lift toleransi BAGIMSIZ DOGRULANMAMIS kalir.",
+  "_uretim": "Uretim: python experiments/naca0012_a8_rampali.py (ayristirma hatasi sonrasi kanit elle yazildi)"
+}

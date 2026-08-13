@@ -1,0 +1,112 @@
+{
+  "vaka": "Silindir girdap dökülmesi — DES (Re=140000, Δz/D=0.05)",
+  "kaynak": "kOmegaSSTDES — URANS çapalarının TEMEL MODELİYLE aynı",
+  "sinanan_iddia": {
+    "I1": "Span dekorelasyonu OLUŞUR: C_L genliği URANS 3B'ye göre ≥%20.0 düşer",
+    "I2": "St deneysel platoya yaklaşır (URANS 3B'den daha az sapma)",
+    "I3": "Cd deneysel değere yaklaşır (URANS 3B'den daha az sapma)",
+    "_not": "İddialar koşudan ÖNCE modül docstring'inde sabitlendi."
+  },
+  "referans": {
+    "St": 0.2,
+    "St_bandi": [
+      0.19,
+      0.21
+    ],
+    "kaynak": "Roshko, J. Fluid Mech. 10 (1961); Norberg, J. Fluids Struct. 17 (2003) — DENEYSEL; Re=1e4..1e5 boyunca St = 0,19-0,21 platosu",
+    "Cd": 1.2,
+    "Cd_kaynak": "Subkritik silindir, Re=1e5 civari: Cd ≈ 1,2 (Achenbach, J. Fluid Mech. 34 (1968); Norberg 2003). 2B URANS span-yonu korelasyon kaybini temsil EDEMEZ ve Cd'yi sistematik yuksek verir — bu deger YALNIZ EGILIM olarak raporlanir"
+  },
+  "olculen": {
+    "St": 0.27523,
+    "Cd_ortalama": 0.7247,
+    "Cl_genlik": 0.13866,
+    "yplus": {
+      "min": 3.9233908e-05,
+      "max": 0.043950494,
+      "ort": 0.0090934461
+    },
+    "_aref_olcegi": 0.3183098861837907
+  },
+  "sapma_pct": {
+    "St": 37.61,
+    "Cd": -39.61
+  },
+  "salinim_olcumu": {
+    "olculdu": true,
+    "frekans_hz": 0.275232,
+    "periyot_s": 3.63330429,
+    "ortalama": -0.0018087241451766637,
+    "genlik": 0.435610166,
+    "genlik_pct": 24083.837,
+    "periyot_sayisi": 18,
+    "pencere_s": 80.0,
+    "periyot_sacilmasi_pct": 133.75,
+    "_yontem": "yukarı-geçiş zamanlarının MEDYAN farkı (doğrusal enterpolasyonlu); düzensiz örneklemede yeniden-örnekleme gerektirmez ama çok-frekanslı sinyalde baskın modu AYIRAMAZ",
+    "_uyari": "periyot saçılması %134 — tek frekanslı değil, medyan baskın modu temsil etmeyebilir"
+  },
+  "spektral_olcum": {
+    "olculdu": true,
+    "frekans_hz": 0.287199,
+    "periyot_s": 3.48190825,
+    "pencere_s": 80.0,
+    "ornek": 3201,
+    "cozunurluk_hz": 0.012496,
+    "belirginlik": 5.26,
+    "_yontem": "Hann pencereli güç spektrumunun tepesi (parabolik enterpolasyonlu), düzgün ağa yeniden örneklenmiş seride",
+    "_uyari": null
+  },
+  "frekans_capraz_kontrol": {
+    "karsilastirildi": true,
+    "gecis_hz": 0.275232,
+    "spektral_hz": 0.287199,
+    "fark_pct": 4.17,
+    "esik_pct": 5.0,
+    "uyumlu": true,
+    "verdikt": "iki bağımsız yöntem uyuştu — frekans güvenilir",
+    "St_spektral": 0.2872,
+    "_neden": "Ön-kayıtlı St ölçümü geçiş-medyanıdır ve DEĞİŞMEDİ. Spektral ölçüm ÇAPRAZ KONTROL olarak eklendi: koşunun %70'inde salinim_olc kendi uyarısını verdi (periyot saçılması %98 — tek frekanslı değil). Sentetik iki-frekanslı sinyalde geçiş-medyanı %6,8 şaşarken spektral %0,002 verdi, yani ayrışma bir yöntem farkını ölçüyor. Ekleme sonuç bilinmeden, ilan edilmiş bir ölçüte dayanarak yapıldı."
+  },
+  "kurulum": {
+    "dz_D": 0.05,
+    "n_radyal": 161,
+    "n_span": 63,
+    "n_cevre": 240,
+    "hucre_kestirim": 2434320,
+    "ilk_hucre_m": 0.00026798,
+    "grading": "((0.053053 0.341615 186.581088) (0.420632 0.496894 1.000000) (0.526316 0.161491 10.834706))",
+    "_kaynak": "--oku: mevcut case'ten okundu, yeniden kurulmadı",
+    "dt_s": 0.025,
+    "periyot": 22,
+    "sure_s": 110.0,
+    "cekirdek": 4,
+    "yplus_bandi": [
+      0.0,
+      5.0
+    ],
+    "model": "kOmegaSSTDES",
+    "delta": "maxDeltaxyz",
+    "duvar_islemi": "nutkWallFunction"
+  },
+  "_sure_saat": 0.0,
+  "_kapsam": "Tek Re (140.000), tek span uzunlugu (piD), tek cozunurluk. DES sonucu span uzunluguna ve Δz'ye duyarlidir; bu kosu o duyarliligi OLCMEZ.",
+  "_uretim": "Üretim: python experiments/silindir_des_3b.py",
+  "verdikt": "❌ KURULUM KAPISI DÜŞTÜ — Duvar işlemi `nutkWallFunction` bir DUVAR-FONKSİYONUdur ve y⁺≳30 ister; ölçülen y⁺ = 0.009093. İlk hücre viskoz alt-katmanda kaldığı için log yasası geçersiz, duvar kayma gerilmesi ve onunla birlikte Cd/St GÜVENİLİR DEĞİLDİR. Bu çözüm hipotez sınamak için KULLANILAMAZ; düşük-Re duvar işlemiyle yeniden koşulmalı.",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

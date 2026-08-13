@@ -72,3 +72,30 @@ def test_pressure_sign_and_kinematic_scale(tmp_path):
     trimesh.creation.box(extents=(1, 1, 1)).export(str(stl))
     r = cfd_pressure_to_fea_loads(str(v), str(stl), rho=2.0, p_is_kinematic=True)
     assert r["p_max_Pa"] == pytest.approx(20.0)   # 10 * rho(2.0)
+
+
+def test_moment_conservation_machine_precision(tmp_path):
+    """Kuvvet korunumu tek başına YETMEZ: aynı toplam kuvvet yanlış uzamsal
+    dağılımla da elde edilebilir ve yapıya giden eğilme momenti o dağılımdan gelir.
+    Eşit-üçtebir dağıtımda üç köşenin ortalaması tam olarak ağırlık merkezi
+    olduğundan moment de yapı gereği korunmalı; bu test onu ölçer."""
+    v = tmp_path / "patch.vtk"
+    _write_vtk(v, 100.0)
+    stl = tmp_path / "box.stl"
+    trimesh.creation.box(extents=(1, 1, 1)).export(str(stl))
+    r = cfd_pressure_to_fea_loads(str(v), str(stl), rho=1.225)
+    assert r["status"] == "SUCCESS"
+    assert r["moment_conservation_error"] < 1e-10, r["moment_conservation_error"]
+    assert len(r["total_moment_Nm"]) == 3
+
+
+def test_moment_metric_ASIMETRIK_yukte_de_anlamli(tmp_path):
+    """Simetrik kutuda net moment ≈0 olabilir; metrik throughput'a normalize
+    edildiği için o durumda bile sahte-büyük değer vermemeli."""
+    v = tmp_path / "patch.vtk"
+    _write_vtk(v, 250.0)
+    stl = tmp_path / "wedge.stl"
+    trimesh.creation.box(extents=(2, 1, 0.5)).export(str(stl))
+    r = cfd_pressure_to_fea_loads(str(v), str(stl), rho=1.0)
+    assert r["status"] == "SUCCESS"
+    assert 0.0 <= r["moment_conservation_error"] < 1e-10

@@ -1,0 +1,58 @@
+{
+  "vaka": "Subkritik silindir (Re=140000) duvar-çözümlü LES bütçesi",
+  "fizik": "Subkritik rejimde bağlı sınır tabaka LAMİNER; ayrılma ~80°. Tam-türbülanslı RANS kapanışı ayrılmayı geciktirir → Cd düşük, St yüksek. Depodaki iki ölçüm de bu imzayı taşıyor.",
+  "olculen_imza": {
+    "URANS_3B_kOmegaSST": {
+      "yplus_ort": 47.27,
+      "duvar_islemi": "GEÇERLİ",
+      "Cd_sapma_pct": -26.88,
+      "St_sapma_pct": 29.74
+    },
+    "DES_kOmegaSSTDES": {
+      "yplus_ort": 0.0091,
+      "duvar_islemi": "GEÇERSİZ",
+      "Cd_sapma_pct": -39.61,
+      "St_sapma_pct": 37.61
+    },
+    "_yorum": "Duvar işlemi GEÇERLİ olan koşu da aynı yönde sapıyor; duvar işlemini düzeltmek sapmayı kapatmaz."
+  },
+  "mevcut_modeller": [
+    "DeardorffDiffStress",
+    "Smagorinsky",
+    "SpalartAllmarasDDES",
+    "SpalartAllmarasDES",
+    "SpalartAllmarasIDDES",
+    "WALE",
+    "dynamicKEqn",
+    "dynamicLagrangian",
+    "kEqn",
+    "kOmegaSSTDES"
+  ],
+  "gecis_duyarli_DES": false,
+  "_model_kaynagi": "OpenFOAM 11'e geçersiz model adı verilerek SORULDU",
+  "olcut": {
+    "dx_arti": 50.0,
+    "dz_arti": 20.0,
+    "dy_arti": 1.0,
+    "kaynak": "Piomelli & Balaras 2002; Georgiadis ve ark. 2010 — WRLES"
+  },
+  "butce": {
+    "u_tau_ms": 0.05207,
+    "viskoz_uzunluk_m": 0.00013717841132194456,
+    "dx_m": 0.006858920566097227,
+    "dz_m": 0.002743568226438891,
+    "ilk_hucre_m": 0.00013717841132194456,
+    "n_cevre": 459,
+    "n_span": 1146,
+    "n_radyal": 161,
+    "hucre": 84688254,
+    "bellek_GB": 62.92
+  },
+  "makine_GB_olculen": 13.7,
+  "mevcut_DES_hucre": 2434320,
+  "kat": 34.8,
+  "sigar_mi": false,
+  "verdikt": "Duvar-çözümlü LES 84,688,254 hücre (62.9 GB) gerektiriyor — mevcut DES ağının 35 KATI. Bu makinede SIĞMIYOR (14 GB). Subkritik silindirde Cd/St'yi deneysel banda getirmek bu donanımda YAPILAMAZ; kOmegaSSTDES'in sapması bir çözünürlük eksiği değil MODEL-FORM sınırıdır ve öyle raporlanmalıdır.",
+  "_kapsam": "Düz-levha korelasyonundan MERTEBE kestirimi; silindirde u_tau çevresel olarak değişir ve ayrılma sonrası düşer. Sayı bir üst-sınır değil, doğru MERTEBEdir.",
+  "_uretim": "Üretim: python experiments/silindir_les_fizibilite.py"
+}

@@ -15,8 +15,14 @@ sys.path.insert(0, str(HERE.parent))
 from validation_suite import NACA0012Validation  # noqa: E402
 
 # (etiket, n_prof profil-nokta, n_norm duvar-normal hücre)
-DENSITIES = [("coarse", 120, 40), ("mid", 200, 80), ("fine", 320, 110)]
-ALPHAS = [0, 4, 8]
+# GENISLETILMIS DOGRULAYICI KUME (2026-08-12). Pilot korpus n=29 idi ve makale
+# "dondurulmus esiklerle genisletilmis korpus" vaat ediyor. Esikler (TAU_BY_Q,
+# silent_failure_assay.py) BU GENISLETMEDEN ONCE sabitlendi ve DEGISTIRILMEDI --
+# aksi halde dogrulayici kume degil, yeniden-ayarlanmis bir egitim kumesi olurdu.
+# Izgara 3x3'ten 5x5'e cikiyor; resume mantigi tamamlanmis hucreleri tekrar kosmaz.
+DENSITIES = [("xcoarse", 80, 24), ("coarse", 120, 40), ("mid", 200, 80),
+             ("fine", 320, 110), ("xfine", 420, 150)]
+ALPHAS = [0, 2, 4, 6, 8]
 
 
 def _done_tags(out: Path) -> set:

@@ -1,0 +1,34 @@
+{
+  "vaka": "NACA0012 α=8° kOmegaSSTLM, duvar-çözümlü + rampalı",
+  "sinanan_iddia": {
+    "G1": "geçiş modeli yakınsar",
+    "G2": "α=8° taşıma hatası < %8.0",
+    "_not": "İddialar koşudan ÖNCE docstring'de sabitlendi."
+  },
+  "degisen_tek_sey": "RASModel: kOmegaSST -> kOmegaSSTLM",
+  "elenen_adaylar": {
+    "duvar_islemi": "y⁺ 357→2,5 düzeltildi, hata %18,2→%16,6",
+    "kararsizlik": "sigFpe rampalı başlangıçla çözüldü",
+    "yakinsama": "2000→10000 iterasyon, hata %18,1→%18,2"
+  },
+  "olculen": {
+    "son_iterasyon": 0,
+    "sigFpe": false,
+    "Cl": null,
+    "Cd": null,
+    "Cl_ref": 0.862,
+    "Cd_ref": 0.0132,
+    "Cl_hata_pct": null,
+    "Cd_hata_pct": null,
+    "yplus": null,
+    "ref_kaynak": "Ladson 1988 Re=3e6"
+  },
+  "karsilastirma_tam_turbulansli": {
+    "Cl_hata_pct": 16.6,
+    "Cd_hata_pct": 225.0
+  },
+  "G1": false,
+  "G2": null,
+  "verdikt": "⚠️ G1 TUTMADI: 0/6000 iterasyon. G2 SINANAMAZ.",
+  "_uretim": "Üretim: python experiments/naca0012_a8_gecis_modeli.py"
+}

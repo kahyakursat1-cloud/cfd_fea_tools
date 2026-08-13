@@ -2,45 +2,248 @@
   "tau_by_q": {
     "Cd": 0.1,
     "Cl": 0.05,
-    "stress": 0.1
+    "stress": 0.1,
+    "hoop": 0.1,
+    "Kt-stress": 0.1,
+    "peak-vM": 0.1,
+    "deflection": 0.05,
+    "P_cr": 0.05
   },
-  "n": 29,
+  "n": 44,
   "confusion_per_q": {
-    "TP": 9,
-    "FP": 4,
-    "TN": 14,
-    "FN": 2,
-    "sensitivity": 0.8181818181818182,
-    "specificity": 0.7777777777777778,
-    "prevalence": 0.3793103448275862
+    "TP": 14,
+    "FP": 5,
+    "TN": 18,
+    "FN": 7,
+    "sensitivity": 0.6666666666666666,
+    "specificity": 0.782608695652174,
+    "prevalence": 0.4772727272727273,
+    "precision": 0.7368421052631579,
+    "NPV": 0.72,
+    "balanced_accuracy": 0.7246376811594203,
+    "sensitivity_CI95": [
+      0.4537,
+      0.8281
+    ],
+    "specificity_CI95": [
+      0.581,
+      0.9034
+    ],
+    "precision_CI95": [
+      0.5121,
+      0.8819
+    ],
+    "NPV_CI95": [
+      0.5242,
+      0.8572
+    ],
+    "prevalence_CI95": [
+      0.3375,
+      0.6206
+    ]
   },
   "roc_global_tau_sweep": [
     {
       "tau": 0.02,
-      "sensitivity": 0.6111111111111112,
-      "specificity": 0.8181818181818182
+      "sensitivity": 0.5862068965517241,
+      "specificity": 0.8666666666666667
     },
     {
       "tau": 0.03,
-      "sensitivity": 0.625,
-      "specificity": 0.7692307692307693
+      "sensitivity": 0.5925925925925926,
+      "specificity": 0.8235294117647058
     },
     {
       "tau": 0.05,
-      "sensitivity": 0.75,
-      "specificity": 0.7647058823529411
+      "sensitivity": 0.6521739130434783,
+      "specificity": 0.8095238095238095
     },
     {
       "tau": 0.1,
-      "sensitivity": 0.8,
-      "specificity": 0.7368421052631579
+      "sensitivity": 0.7,
+      "specificity": 0.7916666666666666
     },
     {
       "tau": 0.15,
-      "sensitivity": 0.875,
-      "specificity": 0.7142857142857143
+      "sensitivity": 0.7222222222222222,
+      "specificity": 0.7692307692307693
     }
   ],
+  "duzeltme_sonrasi": {
+    "_ne": "Doğrulayıcı koşudan SONRA uygulanan iki kapı (fiziksel akla-yatkınlık + taşımada ağ yeterliliği) aynı korpusta yeniden ölçüldü; kapılar AYRI AYRI da ölçüldü çünkü ağ kapısı fizik kapısını gölgeler.",
+    "_kredi": "Bu sayılar dondurulmuş-eşik sonucuna KATILMAZ; Şekil 10 dondurulmuş sonucu gösterir.",
+    "ablasyon": {
+      "yalniz_fizik": {
+        "kapilar": [
+          "fizik"
+        ],
+        "confusion": {
+          "TP": 17,
+          "FP": 5,
+          "TN": 18,
+          "FN": 4,
+          "sensitivity": 0.8095238095238095,
+          "specificity": 0.782608695652174,
+          "prevalence": 0.4772727272727273,
+          "precision": 0.7727272727272727,
+          "NPV": 0.8181818181818182,
+          "balanced_accuracy": 0.7960662525879918,
+          "sensitivity_CI95": [
+            0.6,
+            0.9233
+          ],
+          "specificity_CI95": [
+            0.581,
+            0.9034
+          ],
+          "precision_CI95": [
+            0.5656,
+            0.8988
+          ],
+          "NPV_CI95": [
+            0.6148,
+            0.9269
+          ],
+          "prevalence_CI95": [
+            0.3375,
+            0.6206
+          ]
+        },
+        "yeniden_siniflanan": [
+          "naca-Ladson/a8 Cl coarse",
+          "naca-Ladson/a8 Cl mid",
+          "naca-Ladson/a8 Cl fine"
+        ]
+      },
+      "yalniz_ag": {
+        "kapilar": [
+          "ag"
+        ],
+        "confusion": {
+          "TP": 20,
+          "FP": 7,
+          "TN": 16,
+          "FN": 1,
+          "sensitivity": 0.9523809523809523,
+          "specificity": 0.6956521739130435,
+          "prevalence": 0.4772727272727273,
+          "precision": 0.7407407407407407,
+          "NPV": 0.9411764705882353,
+          "balanced_accuracy": 0.8240165631469979,
+          "sensitivity_CI95": [
+            0.7733,
+            0.9915
+          ],
+          "specificity_CI95": [
+            0.4913,
+            0.844
+          ],
+          "precision_CI95": [
+            0.5532,
+            0.8683
+          ],
+          "NPV_CI95": [
+            0.7302,
+            0.9895
+          ],
+          "prevalence_CI95": [
+            0.3375,
+            0.6206
+          ]
+        },
+        "yeniden_siniflanan": [
+          "naca-Ladson/a4 Cl coarse",
+          "naca-Ladson/a4 Cl mid",
+          "naca-Ladson/a4 Cl xcoarse",
+          "naca-Ladson/a4 Cl fine",
+          "naca-Ladson/a8 Cl xcoarse",
+          "naca-Ladson/a8 Cl coarse",
+          "naca-Ladson/a8 Cl mid",
+          "naca-Ladson/a8 Cl fine"
+        ]
+      },
+      "ikisi": {
+        "kapilar": [
+          "fizik",
+          "ag"
+        ],
+        "confusion": {
+          "TP": 20,
+          "FP": 7,
+          "TN": 16,
+          "FN": 1,
+          "sensitivity": 0.9523809523809523,
+          "specificity": 0.6956521739130435,
+          "prevalence": 0.4772727272727273,
+          "precision": 0.7407407407407407,
+          "NPV": 0.9411764705882353,
+          "balanced_accuracy": 0.8240165631469979,
+          "sensitivity_CI95": [
+            0.7733,
+            0.9915
+          ],
+          "specificity_CI95": [
+            0.4913,
+            0.844
+          ],
+          "precision_CI95": [
+            0.5532,
+            0.8683
+          ],
+          "NPV_CI95": [
+            0.7302,
+            0.9895
+          ],
+          "prevalence_CI95": [
+            0.3375,
+            0.6206
+          ]
+        },
+        "yeniden_siniflanan": [
+          "naca-Ladson/a4 Cl coarse",
+          "naca-Ladson/a4 Cl mid",
+          "naca-Ladson/a4 Cl xcoarse",
+          "naca-Ladson/a4 Cl fine",
+          "naca-Ladson/a8 Cl xcoarse",
+          "naca-Ladson/a8 Cl coarse",
+          "naca-Ladson/a8 Cl mid",
+          "naca-Ladson/a8 Cl fine"
+        ]
+      }
+    },
+    "confusion": {
+      "TP": 20,
+      "FP": 7,
+      "TN": 16,
+      "FN": 1,
+      "sensitivity": 0.9523809523809523,
+      "specificity": 0.6956521739130435,
+      "prevalence": 0.4772727272727273,
+      "precision": 0.7407407407407407,
+      "NPV": 0.9411764705882353,
+      "balanced_accuracy": 0.8240165631469979,
+      "sensitivity_CI95": [
+        0.7733,
+        0.9915
+      ],
+      "specificity_CI95": [
+        0.4913,
+        0.844
+      ],
+      "precision_CI95": [
+        0.5532,
+        0.8683
+      ],
+      "NPV_CI95": [
+        0.7302,
+        0.9895
+      ],
+      "prevalence_CI95": [
+        0.3375,
+        0.6206
+      ]
+    }
+  },
   "corpus": [
     {
       "case": "cantilever",
@@ -184,6 +387,16 @@
     },
     {
       "case": "cyl-Lame",
+      "knob": "C3D4-xcoarse",
+      "q": "stress",
+      "naive": 20.9,
+      "truth": 21.03,
+      "flagged": false,
+      "gclass": "design(wd1.01)",
+      "src": "fea_knob_sweep.jsonl"
+    },
+    {
+      "case": "cyl-Lame",
       "knob": "C3D4-coarse",
       "q": "stress",
       "naive": 22.3,
@@ -199,7 +412,7 @@
       "naive": 21.57,
       "truth": 21.03,
       "flagged": false,
-      "gclass": "design",
+      "gclass": "design(wd1.02)",
       "src": "fea_knob_sweep.jsonl"
     },
     {
@@ -209,7 +422,27 @@
       "naive": 21.41,
       "truth": 21.03,
       "flagged": false,
-      "gclass": "design",
+      "gclass": "design(wd1.01)",
+      "src": "fea_knob_sweep.jsonl"
+    },
+    {
+      "case": "cyl-Lame",
+      "knob": "C3D4-xfine",
+      "q": "stress",
+      "naive": 21.34,
+      "truth": 21.03,
+      "flagged": false,
+      "gclass": "design(wd1.01)",
+      "src": "fea_knob_sweep.jsonl"
+    },
+    {
+      "case": "cyl-Lame",
+      "knob": "C3D10-xcoarse",
+      "q": "stress",
+      "naive": 21.25,
+      "truth": 21.03,
+      "flagged": false,
+      "gclass": "design(wd1.01)",
       "src": "fea_knob_sweep.jsonl"
     },
     {
@@ -219,7 +452,7 @@
       "naive": 21.34,
       "truth": 21.03,
       "flagged": false,
-      "gclass": "design",
+      "gclass": "design(wd1.0)",
       "src": "fea_knob_sweep.jsonl"
     },
     {
@@ -229,7 +462,7 @@
       "naive": 21.3,
       "truth": 21.03,
       "flagged": false,
-      "gclass": "design",
+      "gclass": "design(wd1.0)",
       "src": "fea_knob_sweep.jsonl"
     },
     {
@@ -239,7 +472,17 @@
       "naive": 21.29,
       "truth": 21.03,
       "flagged": false,
-      "gclass": "design",
+      "gclass": "design(wd1.0)",
+      "src": "fea_knob_sweep.jsonl"
+    },
+    {
+      "case": "cyl-Lame",
+      "knob": "C3D10-xfine",
+      "q": "stress",
+      "naive": 21.28,
+      "truth": 21.03,
+      "flagged": false,
+      "gclass": "design(wd1.0)",
       "src": "fea_knob_sweep.jsonl"
     },
     {
@@ -250,7 +493,14 @@
       "truth": 0.0082,
       "flagged": true,
       "gclass": "trend(no-GCI)",
-      "src": "cfd_mesh_sweep.jsonl"
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 0,
+        "mach": 0.15,
+        "Cl": 0.0001,
+        "Cd": 0.01357,
+        "ag_yeterli": null
+      }
     },
     {
       "case": "naca-Ladson",
@@ -260,7 +510,14 @@
       "truth": 0.0082,
       "flagged": true,
       "gclass": "trend(no-GCI)",
-      "src": "cfd_mesh_sweep.jsonl"
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 0,
+        "mach": 0.15,
+        "Cl": 0.0014,
+        "Cd": 0.01096,
+        "ag_yeterli": null
+      }
     },
     {
       "case": "naca-Ladson",
@@ -269,8 +526,15 @@
       "naive": 0.01042,
       "truth": 0.0082,
       "flagged": true,
-      "gclass": "trend(non-asymp)",
-      "src": "cfd_mesh_sweep.jsonl"
+      "gclass": "trend(no-GCI)",
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 0,
+        "mach": 0.15,
+        "Cl": 0.0009,
+        "Cd": 0.01042,
+        "ag_yeterli": null
+      }
     },
     {
       "case": "naca-Ladson",
@@ -280,17 +544,14 @@
       "truth": 0.0092,
       "flagged": true,
       "gclass": "trend(no-GCI)",
-      "src": "cfd_mesh_sweep.jsonl"
-    },
-    {
-      "case": "naca-Ladson",
-      "knob": "a4 Cd mid",
-      "q": "Cd",
-      "naive": 0.00899,
-      "truth": 0.0092,
-      "flagged": true,
-      "gclass": "trend(no-GCI)",
-      "src": "cfd_mesh_sweep.jsonl"
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 4,
+        "mach": 0.15,
+        "Cl": 0.4735,
+        "Cd": 0.01471,
+        "ag_yeterli": null
+      }
     },
     {
       "case": "naca-Ladson",
@@ -300,7 +561,31 @@
       "truth": 0.452,
       "flagged": false,
       "gclass": "design(attached)",
-      "src": "cfd_mesh_sweep.jsonl"
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 4,
+        "mach": 0.15,
+        "Cl": 0.4735,
+        "Cd": 0.01471,
+        "ag_yeterli": null
+      }
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a4 Cd mid",
+      "q": "Cd",
+      "naive": 0.00899,
+      "truth": 0.0092,
+      "flagged": true,
+      "gclass": "trend(no-GCI)",
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 4,
+        "mach": 0.15,
+        "Cl": 0.4533,
+        "Cd": 0.00899,
+        "ag_yeterli": null
+      }
     },
     {
       "case": "naca-Ladson",
@@ -310,7 +595,65 @@
       "truth": 0.452,
       "flagged": false,
       "gclass": "design(attached)",
-      "src": "cfd_mesh_sweep.jsonl"
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 4,
+        "mach": 0.15,
+        "Cl": 0.4533,
+        "Cd": 0.00899,
+        "ag_yeterli": null
+      }
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a0 Cd xcoarse",
+      "q": "Cd",
+      "naive": 0.01777,
+      "truth": 0.0082,
+      "flagged": true,
+      "gclass": "trend(no-GCI)",
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 0,
+        "mach": 0.15,
+        "Cl": -0.0013,
+        "Cd": 0.01777,
+        "ag_yeterli": null
+      }
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a4 Cd xcoarse",
+      "q": "Cd",
+      "naive": 0.01614,
+      "truth": 0.0092,
+      "flagged": true,
+      "gclass": "trend(no-GCI)",
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 4,
+        "mach": 0.15,
+        "Cl": 0.5559,
+        "Cd": 0.01614,
+        "ag_yeterli": null
+      }
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a4 Cl xcoarse",
+      "q": "Cl",
+      "naive": 0.5559,
+      "truth": 0.452,
+      "flagged": false,
+      "gclass": "design(attached)",
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 4,
+        "mach": 0.15,
+        "Cl": 0.5559,
+        "Cd": 0.01614,
+        "ag_yeterli": null
+      }
     },
     {
       "case": "naca-Ladson",
@@ -319,8 +662,15 @@
       "naive": 0.02097,
       "truth": 0.0092,
       "flagged": true,
-      "gclass": "trend(non-monotonik)",
-      "src": "a4_fine_gentle"
+      "gclass": "trend(no-GCI)",
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 4,
+        "mach": 0.15,
+        "Cl": 0.4036,
+        "Cd": 0.02097,
+        "ag_yeterli": null
+      }
     },
     {
       "case": "naca-Ladson",
@@ -330,7 +680,150 @@
       "truth": 0.452,
       "flagged": false,
       "gclass": "design(attached)",
-      "src": "a4_fine_gentle"
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 4,
+        "mach": 0.15,
+        "Cl": 0.4036,
+        "Cd": 0.02097,
+        "ag_yeterli": null
+      }
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a8 Cd xcoarse",
+      "q": "Cd",
+      "naive": 0.08303,
+      "truth": 0.0132,
+      "flagged": true,
+      "gclass": "trend(no-GCI)",
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 8,
+        "mach": 0.15,
+        "Cl": 0.812,
+        "Cd": 0.08303,
+        "ag_yeterli": null
+      }
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a8 Cl xcoarse",
+      "q": "Cl",
+      "naive": 0.812,
+      "truth": 0.862,
+      "flagged": false,
+      "gclass": "design(attached)",
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 8,
+        "mach": 0.15,
+        "Cl": 0.812,
+        "Cd": 0.08303,
+        "ag_yeterli": null
+      }
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a8 Cd coarse",
+      "q": "Cd",
+      "naive": -0.01943,
+      "truth": 0.0132,
+      "flagged": true,
+      "gclass": "trend(no-GCI)",
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 8,
+        "mach": 0.15,
+        "Cl": 0.0354,
+        "Cd": -0.01943,
+        "ag_yeterli": null
+      }
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a8 Cl coarse",
+      "q": "Cl",
+      "naive": 0.0354,
+      "truth": 0.862,
+      "flagged": false,
+      "gclass": "design(attached)",
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 8,
+        "mach": 0.15,
+        "Cl": 0.0354,
+        "Cd": -0.01943,
+        "ag_yeterli": null
+      }
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a8 Cd mid",
+      "q": "Cd",
+      "naive": 293.36534,
+      "truth": 0.0132,
+      "flagged": true,
+      "gclass": "trend(no-GCI)",
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 8,
+        "mach": 0.15,
+        "Cl": 4769.148,
+        "Cd": 293.36534,
+        "ag_yeterli": null
+      }
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a8 Cl mid",
+      "q": "Cl",
+      "naive": 4769.148,
+      "truth": 0.862,
+      "flagged": false,
+      "gclass": "design(attached)",
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 8,
+        "mach": 0.15,
+        "Cl": 4769.148,
+        "Cd": 293.36534,
+        "ag_yeterli": null
+      }
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a8 Cd fine",
+      "q": "Cd",
+      "naive": -0.40488,
+      "truth": 0.0132,
+      "flagged": true,
+      "gclass": "trend(no-GCI)",
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 8,
+        "mach": 0.15,
+        "Cl": -1.6925,
+        "Cd": -0.40488,
+        "ag_yeterli": null
+      }
+    },
+    {
+      "case": "naca-Ladson",
+      "knob": "a8 Cl fine",
+      "q": "Cl",
+      "naive": -1.6925,
+      "truth": 0.862,
+      "flagged": false,
+      "gclass": "design(attached)",
+      "src": "cfd_mesh_sweep.jsonl",
+      "_ham": {
+        "alpha": 8,
+        "mach": 0.15,
+        "Cl": -1.6925,
+        "Cd": -0.40488,
+        "ag_yeterli": null
+      }
     }
   ]
 }

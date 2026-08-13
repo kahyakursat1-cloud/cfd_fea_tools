@@ -58,6 +58,11 @@ from silindir_urans import (  # noqa: E402
 )
 from silindir_vorteks import R_FAR, D, U, _blockmesh, _coeffs  # noqa: E402
 
+# Duvar-cozunur DES icin GECERLI y+ bandi. URANS'in (30, 300) bandi bir
+# duvar-FONKSIYONU bandidir ve buraya devralinamaz: bu kosu duvar islemini
+# dusuk-Re secer, dolayisiyla ilk hucre viskoz alt-katmanda OLMALIDIR.
+YPLUS_BANDI_COZUNUR = (0.0, 5.0)
+
 from analysis.backend import linux_run  # noqa: E402
 from analysis.ccx_runner import windows_to_wsl_path  # noqa: E402
 from analysis.openfoam_runner import (  # noqa: E402
@@ -67,7 +72,11 @@ from analysis.openfoam_runner import (  # noqa: E402
     _write_fv_schemes,
     _write_fv_solution,
 )
-from urans_kapisi import salinim_olc  # noqa: E402
+from urans_kapisi import (  # noqa: E402
+    frekans_capraz_kontrol,
+    salinim_olc,
+    spektral_olc,
+)
 
 DZ_D = 0.05                 # bütçede boş belleğe SIĞAN en ince çözünürlük
 CEKIRDEK = 4
@@ -133,7 +142,10 @@ def kur(case: Path, dt: float, son_s: float, dz_D: float = DZ_D) -> dict:
     (case / "system" / "blockMeshDict").write_text(
         _blockmesh(span=span, nz=nz, cyclic=True, n_radyal=n_rad,
                    radyal_grading=grading, n_cevre=b["n_cevre"] // 4))
-    _alanlar(case)
+    # Ag y+~1 icin kuruluyor, dolayisiyla duvar islemi de DUSUK-Re olmali.
+    # Onceki surum varsayilani (duvar fonksiyonu) kullaniyordu ve 10,5 saatlik
+    # kosu bu yuzden gecersiz cikti (olculen y+ 0.0091, ilan edilen bant 30-300).
+    _alanlar(case, duvar_cozunur=True)
     _sabitler(case)
     for f in (case / "0").iterdir():
         t = f.read_text(encoding="utf-8")
@@ -170,8 +182,83 @@ def kos(case: Path, timeout: int = 86400) -> tuple[bool, str]:
     return r.returncode == 0, (r.stderr or r.stdout or "")[-500:]
 
 
+def _duvar_islemi_oku(case: Path) -> str | None:
+    """Case'te GERÇEKTEN yazılı duvar işlemini oku — betiğin sabitine güvenme.
+
+    Betiğin bugünkü sabiti, diskteki çözümün hangi ayarla üretildiğini SÖYLEMEZ.
+    Ayarı değiştirip eski çözümü yeniden okumak, kanıt dosyasına yanlış künye
+    yazdırır. Bu yüzden künye 0/nut'tan okunur.
+    """
+    f = case / "0" / "nut"
+    if not f.exists():
+        return None
+    t = f.read_text(encoding="utf-8", errors="replace")
+    for satir in t.splitlines():
+        if "silindir" in satir and "type" in satir:
+            for ad in ("nutLowReWallFunction", "nutUSpaldingWallFunction",
+                       "nutkWallFunction", "nutUWallFunction", "calculated"):
+                if ad in satir:
+                    return ad
+    return None
+
+
+def _duvar_uyumu(o: dict) -> str | None:
+    """Ölçülen y⁺ ile İLAN EDİLEN bandı karşılaştır — uyumsuzsa hipotez SINANAMAZ.
+
+    Ölçülen kusur (2026-08-12, 10,5 saatlik koşudan sonra): kanıt dosyası hem
+    y⁺ ölçümünü hem `yplus_bandi`'nı taşıyordu ve ikisi 3300 kat ayrıydı
+    (ölçülen 0,0091 · ilan edilen [30, 300]), ama hiçbir şey ikisini
+    KARŞILAŞTIRMIYORDU. Neden: silindir yüzeyinde nut/k/omega duvar
+    fonksiyonları (log yasası, y⁺≳30 gerektirir) y⁺≈1 için kurulmuş bir ağda
+    kullanılmış. İlk hücre viskoz alt-katmanda kaldığı için duvar kayma
+    gerilmesi ~11.500 kat düşük çıktı, silindir neredeyse sürtünmesiz davrandı
+    ve Cd/St bu yüzden saptı. Hüküm bunu "çözünürlük yetmedi" diye okuyordu —
+    teşhis TERSİNE dönmüştü: çözünürlük fazlaydı, duvar işlemi ona uymuyordu.
+
+    Bu tam olarak makalenin anlattığı sessiz hata sınıfıdır: her sayı makul,
+    yakınsama temiz, dökülme var; yalnız iki ilan edilmiş nicelik hiç
+    karşılaştırılmamış.
+    """
+    yp = (o["olculen"] or {}).get("yplus")
+    band = (o["kurulum"] or {}).get("yplus_bandi")
+    islem = (o["kurulum"] or {}).get("duvar_islemi")
+    if not yp:
+        return None
+    ort = yp.get("ort")
+    if ort is None:
+        return None
+    # ONCE: duvar islemi ile olculen y+ birbirine uyuyor mu? Bu, ILAN EDILEN
+    # banttan bagimsiz ve daha temel bir sinamadir -- bant elle degistirilebilir
+    # ama case'te yazili sinir kosulu degistirilemez.
+    if islem and "LowRe" not in islem and "Spalding" not in islem and ort < 30.0:
+        return (f"Duvar işlemi `{islem}` bir DUVAR-FONKSİYONUdur ve y⁺≳30 ister; "
+                f"ölçülen y⁺ = {ort:.4g}. İlk hücre viskoz alt-katmanda kaldığı "
+                f"için log yasası geçersiz, duvar kayma gerilmesi ve onunla "
+                f"birlikte Cd/St GÜVENİLİR DEĞİLDİR. Bu çözüm hipotez sınamak "
+                f"için KULLANILAMAZ; düşük-Re duvar işlemiyle yeniden koşulmalı.")
+    if islem and ("LowRe" in islem or "Spalding" in islem) and ort > 5.0:
+        return (f"Duvar işlemi `{islem}` DÜŞÜK-Re'dir ve y⁺≲5 ister; ölçülen "
+                f"y⁺ = {ort:.4g}. Ağ duvar işlemine göre fazla kaba.")
+    if not band:
+        return None
+    alt, ust = band[0], band[1]
+    if alt <= ort <= ust:
+        return None
+    kat = alt / ort if ort < alt else ort / ust
+    return (f"y⁺ ORTALAMASI {ort:.4g}, İLAN EDİLEN BANDIN [{alt:g}, {ust:g}] "
+            f"{kat:.0f} KAT DIŞINDA. Duvar işlemi ile ağ çözünürlüğü "
+            f"uyuşmuyor: bu bant duvar-fonksiyonu bandıdır ve log yasası "
+            f"y⁺≈{ort:.3g}'de geçersizdir, dolayısıyla duvar kayma gerilmesi "
+            f"ve onunla birlikte Cd/St GÜVENİLİR DEĞİLDİR. İddialar bu koşuyla "
+            f"SINANAMAZ — önce duvar işlemi ağa uydurulmalı (düşük-Re nut "
+            f"koşulu) ya da ağ banda çekilmeli.")
+
+
 def _verdikt(o: dict, urans3b: dict | None) -> str:
     """Önceden sabitlenen üç iddia tek tek sınanır."""
+    duvar = _duvar_uyumu(o)
+    if duvar:
+        return "❌ KURULUM KAPISI DÜŞTÜ — " + duvar
     st = o["olculen"]["St"]
     if st is None:
         return ("❌ Girdap dökülmesi ÖLÇÜLEMEDİ: "
@@ -201,8 +288,16 @@ def _verdikt(o: dict, urans3b: dict | None) -> str:
                 f". Salınım genliği eşiği (%{GENLIK_DUSUS_ESIGI}) aşarak "
                 "düştü, yani span dekorelasyonu bu kez OLUŞTU; ancak "
                 f"{'St' if not i2 else ''}{'/' if not i2 and not i3 else ''}"
-                f"{'Cd' if not i3 else ''} URANS'a göre düzelmedi. Teşhis "
-                "doğru yönde ama bu çözünürlük yetmiyor.")
+                f"{'Cd' if not i3 else ''} URANS'a göre düzelmedi. Sapmanın "
+                "kaynağı ÇÖZÜNÜRLÜK DEĞİL MODEL FORMU — bu ölçüldü, çıkarsanmadı: "
+                "aynı ağ önce duvar-fonksiyonuyla (y⁺=0,009, geçersiz) sonra "
+                "düşük-Re ile (y⁺=0,78, geçerli) koşuldu ve cevap %1'den az "
+                "değişti (Cd 0,7247→0,7301, St 0,27523→0,27633). Duvar işlemi "
+                "GEÇERLİ olan 3B URANS da aynı yönde sapıyor (Cd %-27, St %+30). "
+                "Subkritik Re'de bağlı sınır tabaka LAMİNERDİR; tam-türbülanslı "
+                "kapanış onu türbülans sayar, ayrılmayı geciktirir, izi daraltır. "
+                "Fiziksel doğru kurulum duvar-çözümlü LES'tir ve bu makinede "
+                "SIĞMAZ (84,7 M hücre / 62,9 GB — silindir_les_fizibilite.json).")
     return ("❌ DEKORELASYON YİNE OLUŞMADI: " + bas +
             f". C_L genliği eşiği (%{GENLIK_DUSUS_ESIGI}) aşacak kadar "
             "düşmedi. Δz/D bu değerde hâlâ yetersiz ya da engel span "
@@ -237,7 +332,15 @@ def main() -> int:
             print(mesaj)
             return 1
     else:
-        kurulum = {"dz_D": dz}
+        # --oku yolu uctan uca hic kosulmamisti: taslak sozluk `n_span` tasimiyordu
+        # ve _verdikt KeyError veriyordu. Kurulum ALANLARI kur()'un donduruguyle
+        # AYNI kaynaktan (butce + _radyal_grading) yeniden turetilir; boylece
+        # --oku ile normal kosu ayni kanit semasini yazar.
+        n_rad, grading = _radyal_grading(b)
+        kurulum = {"dz_D": dz, "n_radyal": n_rad, "n_span": b["n_span"],
+                   "n_cevre": b["n_cevre"], "hucre_kestirim": b["hucre"],
+                   "ilk_hucre_m": b["ilk_hucre_m"], "grading": grading,
+                   "_kaynak": "--oku: mevcut case'ten okundu, yeniden kurulmadı"}
         gecen = 0.0
 
     t, cd_seri, cl_seri = _coeffs(case)
@@ -247,6 +350,11 @@ def main() -> int:
     sal = salinim_olc(t, cl_seri,
                       gecis_orani=PERIYOT_GECIS / (PERIYOT_GECIS + PERIYOT_ISTAT))
     st = (round(sal["frekans_hz"] * D / U, 5) if sal.get("olculdu") else None)
+    spek = spektral_olc(t, cl_seri,
+                        gecis_orani=PERIYOT_GECIS / (PERIYOT_GECIS + PERIYOT_ISTAT))
+    st_spek = (round(spek["frekans_hz"] * D / U, 5)
+               if spek.get("olculdu") else None)
+    capraz = frekans_capraz_kontrol(sal, spek)
     # A_REF OLCEGI URANS 3B ILE AYNI OLMALI: kanonik yazici Aref=lref^2 verir,
     # silindirde dogru referans D x Lz'dir. Olcek uygulanmazsa DES ile URANS
     # farkli referans alanlarda karsilastirilir ve "genlik dustu" hukmu
@@ -277,10 +385,24 @@ def main() -> int:
             "St": round(100 * (st - ST_DENEY) / ST_DENEY, 2) if st else None,
             "Cd": round(100 * (cd - CD_DENEY) / CD_DENEY, 2) if cd else None},
         "salinim_olcumu": sal,
+        "spektral_olcum": spek,
+        "frekans_capraz_kontrol": {
+            **capraz,
+            "St_spektral": st_spek,
+            "_neden": ("Ön-kayıtlı St ölçümü geçiş-medyanıdır ve DEĞİŞMEDİ. "
+                       "Spektral ölçüm ÇAPRAZ KONTROL olarak eklendi: koşunun "
+                       "%70'inde salinim_olc kendi uyarısını verdi (periyot "
+                       "saçılması %98 — tek frekanslı değil). Sentetik iki-"
+                       "frekanslı sinyalde geçiş-medyanı %6,8 şaşarken spektral "
+                       "%0,002 verdi, yani ayrışma bir yöntem farkını ölçüyor. "
+                       "Ekleme sonuç bilinmeden, ilan edilmiş bir ölçüte "
+                       "dayanarak yapıldı."),
+        },
         "kurulum": {**kurulum, "dt_s": dt, "periyot": periyot,
                     "sure_s": son_s, "cekirdek": CEKIRDEK,
-                    "yplus_bandi": list(YPLUS_BANDI),
-                    "model": "kOmegaSSTDES", "delta": "maxDeltaxyz"},
+                    "yplus_bandi": list(YPLUS_BANDI_COZUNUR),
+                    "model": "kOmegaSSTDES", "delta": "maxDeltaxyz",
+                    "duvar_islemi": _duvar_islemi_oku(case)},
         "_sure_saat": round(gecen / 3600, 2),
         "_kapsam": ("Tek Re (140.000), tek span uzunlugu (piD), tek "
                     "cozunurluk. DES sonucu span uzunluguna ve Δz'ye "

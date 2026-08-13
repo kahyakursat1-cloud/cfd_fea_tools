@@ -82,7 +82,17 @@ import sessiz_yutma
 # degil ExecutionTime'dan hesaplaniyor (rapordaki 1,96x → 3,10x duzeltmesi).
 # Izlenen sayilar DEGISMEDI: incelenmemis 0, guven yolunda incelenmemis 0.
 TABAN_TOPLAM = 87
-TABAN_GUVEN_YOLU = 60
+# 60 -> 61 (2026-08-13): experiments/naca0012_a8_rampali.py:_forces_oku.
+# OpenFOAM surumleri coefficient.dat ile forceCoeffs.dat arasinda sutun
+# sayisini degistiriyor; okuyucu aday dosyalari sirayla dener. Yutma
+# GEREKCELI (kabul etiketi konuldu) ve hicbiri tutmazsa (None, None)
+# donuyor, yani hata kaybolmuyor.
+# 61 -> 62 (2026-08-13): experiments/model_form_bandi.py:_arsivden_kurtar.
+# validation_anchors_runs disk temizliginde silinince kup capasinin y+'i
+# okunamaz oldu; deger arsiv ciktisindan kurtariliyor. Arsiv dosyasi bozuksa
+# kurtarma yapilmaz ve capa ATLANIR — yutma GEREKCELI, hata kaybolmuyor
+# cunku test_model_form_tek_capa olculmemis hucreyi zaten yakaliyor.
+TABAN_GUVEN_YOLU = 62
 TABAN_INCELENMEMIS = 25
 TABAN_INCELENMEMIS_GUVEN_YOLU = 0
 

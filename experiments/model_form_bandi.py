@@ -257,6 +257,33 @@ def capalari_topla() -> list[dict]:
                       "yplus_ort": 1.0,
                       "referans": "NASA TMR / CFL3D"})
 
+    def _arsivden_kurtar(capa_adi: str) -> dict | None:
+        """Ham koşu silinmişse, önceki çıktı dosyasındaki kaydı geri getir.
+
+        Kurtarılan kayıt YENİDEN ÖLÇÜLMÜŞ SAYILMAZ: `_kaynak` alanı bunu
+        açıkça söyler ve `_olcum_tarihi` korunur. Sessizce taze veriymiş gibi
+        döndürmek, silinen bir koşuyu ölçülmüş göstermek olurdu.
+        """
+        eski = KOK / "model_form_bandi.json"
+        if not eski.exists():
+            return None
+        try:
+            kayit = json.loads(eski.read_text(encoding="utf-8"))
+        # sessiz-yutma: kabul — arşiv dosyası okunamıyorsa (bozuk/yarım yazılmış)
+        # kurtarma YAPILMAZ ve çağıran `continue` ile çapayı ATLAR. Yutulan hata
+        # kaybolmuyor: çapa listede görünmez ve `bluff.wall_function` ölçülmemiş
+        # kalır, ki bunu `test_model_form_tek_capa` zaten yakalar.
+        except (OSError, ValueError):
+            return None
+        for x in kayit.get("capalar", []):
+            if x.get("capa") == capa_adi and x.get("yplus_ort") is not None:
+                y = dict(x)
+                y["_kaynak"] = ("ARŞİVDEN KURTARILDI — ham koşu 2026-08-13 disk "
+                                "temizliğinde silindi; değer önceki çıktıdan geldi, "
+                                "yeniden ölçülmedi")
+                return y
+        return None
+
     # CAPA KOSU ARSIVI: validate_pipeline'in urettigi kosular. Bunlar band
     # dosyasina YAZILIYORDU ama duvar islemi OLCULMEDEN — hepsi 'wall_resolved'
     # hucresine gidiyordu. Olculdu: disk y+=31.3, kup y+=37.3 (ikisi de
@@ -267,6 +294,19 @@ def capalari_topla() -> list[dict]:
                      ("NACA0012 kanat AR6", "_anchor_naca0012_wing_ar6")):
         sj = KOK / "validation_anchors_runs" / kosu / "sonuc.json"
         if not sj.exists():
+            # HAM KOSU SILINMIS: 2026-08-13'te validation_anchors_runs disk
+            # temizliginde silindi (3,88 GB). Silme oncesi kontrol "kanit JSON'u
+            # var mi" idi; DOGRU soru "her tuketici yalniz o JSON'dan mi okuyor"
+            # olmaliydi ve bu tuketici ham kosudan okuyordu. Sonuc: bluff.
+            # wall_function hucresi olculemez hale geldi ve test dustu.
+            #
+            # Deger kaybolmadi: onceki basarili kosunun cikti dosyasinda duruyor.
+            # Oradan kurtarilir ama YENIDEN OLCULMUS gibi gosterilmez —
+            # `_kaynak` alani "arsivden kurtarildi" der ve tarih tasir.
+            kurtarilan = _arsivden_kurtar(ad)
+            if kurtarilan is None:
+                continue
+            c.append(kurtarilan)
             continue
         d = json.loads(sj.read_text(encoding="utf-8"))
         anahtar = kosu.replace("_anchor_", "")

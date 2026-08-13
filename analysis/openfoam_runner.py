@@ -1629,3 +1629,43 @@ def parse_force_coeffs(case_dir: Path) -> tuple[float | None, float | None,
     if not candidates:
         return None, None, None, []
     return parse_force_coeffs_text(candidates[0].read_text(errors="ignore"))
+
+
+def controldict_yamala(case: Path, *, end_time: int | None = None,
+                       start_from: str | None = None,
+                       yplus_ekle: bool = False) -> None:
+    """MEVCUT bir controlDict'i yamalar — yeni case iskelesi YAZMAZ.
+
+    Deneysel betikler koşuyu uzatmak, son zamandan devam etmek ya da yPlus
+    ölçümü eklemek için controlDict'e dokunmak zorunda kalıyordu ve her biri
+    kendi `write_text`'ini yazıyordu. Bu, `test_case_iskele_tutarlilik`'in
+    saydığı "kendi controlDict'ini yazan dosya" sayısını üç artırdı — testin
+    amacı iskele TEKRARINI önlemekti, yama tekrarını değil. Yama artık tek
+    yerden geçiyor.
+    """
+    cd = case / "system" / "controlDict"
+    t = cd.read_text(encoding="utf-8")
+    if start_from is not None:
+        t = re.sub(r"startFrom \w+;", f"startFrom {start_from};", t)
+        if start_from == "startTime":
+            t = re.sub(r"startTime \d+;", "startTime 0;", t)
+    if end_time is not None:
+        t = re.sub(r"endTime \d+;", f"endTime {end_time};", t)
+    if yplus_ekle and "yPlus" not in t:
+        t = t.replace("functions\n{", 'functions\n{\n    yPlus { type yPlus; '
+                      'libs ("libfieldFunctionObjects.so"); writeControl writeTime; }')
+    cd.write_text(t, encoding="utf-8")
+
+
+def case_bul(kok: Path) -> Path | None:
+    """Bir dizin ağacında ÇALIŞTIRILABİLİR OpenFOAM vakasını bul.
+
+    Deneysel betikler vakayı `rglob("system")` + controlDict varlığıyla arıyordu
+    ve her biri o adı kendi kaynağında taşıyordu. `test_case_iskele_tutarlilik`
+    dosyada o adın GEÇMESİNİ sayıyor (yazmasını değil), dolayısıyla arama bile
+    sayacı büyütüyordu. Arama artık tek yerden geçer.
+    """
+    for p in kok.rglob("system"):
+        if (p / "controlDict").exists():
+            return p.parent
+    return None

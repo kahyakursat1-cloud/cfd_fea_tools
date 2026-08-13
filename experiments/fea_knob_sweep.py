@@ -43,9 +43,13 @@ from analysis.tet_mesher import TetMesh  # noqa: E402
 from vehicle_fea import _stress_assessment  # noqa: E402
 
 # (etiket, gmsh ElementOrder, mesh-size böleni: büyük=ince)
+# GENISLETILMIS DOGRULAYICI KUME (2026-08-12): 3 ag yogunlugu -> 5.
+# Esikler (TAU_BY_Q) bu genisletmeden ONCE donduruldu, degistirilmedi.
 KNOBS = [
-    ("C3D4-coarse", 1, 1.5), ("C3D4-mid", 1, 2.5), ("C3D4-fine", 1, 4.0),
-    ("C3D10-coarse", 2, 1.5), ("C3D10-mid", 2, 2.5), ("C3D10-fine", 2, 4.0),
+    ("C3D4-xcoarse", 1, 1.0), ("C3D4-coarse", 1, 1.5), ("C3D4-mid", 1, 2.5),
+    ("C3D4-fine", 1, 4.0), ("C3D4-xfine", 1, 6.0),
+    ("C3D10-xcoarse", 2, 1.0), ("C3D10-coarse", 2, 1.5), ("C3D10-mid", 2, 2.5),
+    ("C3D10-fine", 2, 4.0), ("C3D10-xfine", 2, 6.0),
 ]
 
 

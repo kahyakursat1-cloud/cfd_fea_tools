@@ -1,0 +1,41 @@
+{
+  "vaka": "NACA0012 alpha=8 duvar-cozumlu (Re=6e6) — KOSU DUSTU",
+  "sinanan_iddia": {
+    "D1": "y+ <= 5 (olculur)",
+    "D2": "alpha=8 tasima hatasi < %8",
+    "_not": "Iddialar kosudan ONCE docstring te sabitlendi."
+  },
+  "kurulum": {
+    "n_prof": 200,
+    "n_norm": 200,
+    "grading": 120000,
+    "nut_wall": "nutLowReWallFunction",
+    "k_wall": "kLowReWallFunction",
+    "end_time": 6000
+  },
+  "D1": true,
+  "D1_kaniti": {
+    "yplus_min": 1.965,
+    "yplus_max": 5.312,
+    "yplus_ort": 3.122,
+    "olcum_zamani": "Time=0 (baslangic alani)",
+    "onceki": {
+      "min": 16.18,
+      "max": 356.7,
+      "duvar_islemi": "nutkWallFunction"
+    },
+    "yorum": "Ag duvar-cozumlu hedefi TUTTURDU: y+ 16-357 bandindan 2-5,3 e indi."
+  },
+  "D2": null,
+  "D2_neden_sinanamadi": {
+    "son_zaman": "27s",
+    "hedef": 6000,
+    "hata": "sigFpe (kayan-nokta istisnasi) — GAMG/PCG basinc cozucusunde",
+    "yigin": "incompressibleFluid::correctPressure -> fvMatrix::solve -> GAMGSolver -> PCG::solve -> sumProd",
+    "yorum": "Cozum Time=27 de patladi. Bu yakinsama yavasligi DEGIL sayisal kararsizlik. Muhtemel neden: gradasyon 120.000 ile ilk hucre ~1e-5 m iken cevresel aralik ~5e-3 m; en-boy orani ~500 ve basinc matrisinin kosullanmasi bozuluyor. Baslangic alani da duz akis."
+  },
+  "sonraki_adim": "Rampali baslangic: once mevcut kaba (duvar-fonksiyonu) cozumu mapFields ile duvar-cozumlu aga tasi, sonra sur. Alternatif: gradasyonu dusurup y+~1-3 hedefle ve ilk 500 iterasyonda daha sert relaxation uygula.",
+  "durust_not": "D2 SINANAMADI. Duvar isleminin sapmayi aciklayip aciklamadigi bu kosuyla BILINMIYOR; %8 tolerans bagimsiz dogrulanmamis kalir.",
+  "_uretim": "Uretim: python experiments/naca0012_a8_duvar_cozunur.py (kosu dustu, kanit elle yazildi)",
+  "verdikt": "⚠️ D1 TUTTU, D2 SINANAMADI: ag duvar-cozumlu hedefi tutturdu (y+ 16-357 -> 1,97-5,31) ama cozum Time=27'de sigFpe ile patladi. Duvar isleminin sapmayi aciklayip aciklamadigi BU kosuyla bilinmiyor; rampali baslangicla yeniden kosuldu (naca0012_a8_rampali.json)."
+}

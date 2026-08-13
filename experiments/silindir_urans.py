@@ -73,8 +73,18 @@ NUT_INF = K_INF / OMEGA_INF
 PERIYOT_GECIS, PERIYOT_ISTAT = 6, 16
 
 
-def _alanlar(case: Path) -> None:
-    """U, p ve kOmegaSST alanları — duvarda YÜKSEK-Re (duvar-fonksiyonu)."""
+def _alanlar(case: Path, duvar_cozunur: bool = False) -> None:
+    """U, p ve kOmegaSST alanları.
+
+    duvar_cozunur=False (varsayılan): YÜKSEK-Re duvar fonksiyonu, y⁺ 30-300.
+    duvar_cozunur=True: DÜŞÜK-Re duvar işlemi, y⁺≲1 ağı için.
+
+    Neden ayrım (ölçüldü 2026-08-12): 3B DES koşusu bu yazıcıyı varsayılanla
+    çağırıyordu ama ağı y⁺≈1 için kuruyordu. Duvar fonksiyonu log yasasına
+    dayanır ve ilk hücre viskoz alt-katmanda kalınca duvar kayma gerilmesi
+    ~11.500 kat düşük çıktı; 10,5 saatlik koşu geçersiz oldu. Duvar işlemi
+    ağ çözünürlüğüne göre SEÇİLMELİ, varsayılana bırakılmamalı.
+    """
     (case / "0").mkdir(parents=True, exist_ok=True)
     # SIMETRI KIRICI: silindir_vorteks'te olculdu — tumuyle simetrik kurulumda
     # Karman caddesi HIC baslamiyor (50 s boyunca Cl genligi 1e-22 kaldi).
@@ -99,10 +109,16 @@ def _alanlar(case: Path) -> None:
         "  cikis    { type fixedValue; value uniform 0; }\n"
         "  ustalt   { type slip; }\n"
         "  yanlar   { type empty; }\n}\n")
+    # omegaWallFunction OpenFOAM'da harmanlanmis (viskoz+log) formulasyondur ve
+    # dusuk y+'ta da gecerlidir; degistirilmesi gerekmez. Degisenler nut ve k:
+    #   nutkWallFunction -> nutLowReWallFunction (duvarda nut = 0)
+    #   kqRWallFunction  -> kLowReWallFunction   (viskoz alt-katman k profili)
+    k_duvar = "kLowReWallFunction" if duvar_cozunur else "kqRWallFunction"
+    nut_duvar = "nutLowReWallFunction" if duvar_cozunur else "nutkWallFunction"
     for ad, boyut, ic, duvar in (
-            ("k", "[0 2 -2 0 0 0 0]", K_INF, "kqRWallFunction"),
+            ("k", "[0 2 -2 0 0 0 0]", K_INF, k_duvar),
             ("omega", "[0 0 -1 0 0 0 0]", OMEGA_INF, "omegaWallFunction"),
-            ("nut", "[0 2 -1 0 0 0 0]", NUT_INF, "nutkWallFunction")):
+            ("nut", "[0 2 -1 0 0 0 0]", NUT_INF, nut_duvar)):
         giris = ("calculated" if ad == "nut" else "fixedValue")
         (case / "0" / ad).write_text(
             _foam_header("volScalarField", ad, "0") +
