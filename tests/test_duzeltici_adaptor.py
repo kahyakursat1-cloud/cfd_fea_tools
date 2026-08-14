@@ -15,6 +15,23 @@ import duzeltici_adaptor as A
 class _Sonuc:
     """VehicleAnalysisResult'ın adaptörün okuduğu alanları."""
 
+    # Adaptör bu alanları okur; `hizmet.analiz_et` üzerinden geçen kuyruk yolu
+    # ise ayrıca sınıflandırma için araç/hız/açı ister. Sahte sonuç ikisini de
+    # taşımalı, yoksa test gerçek bir kusuru değil kendi eksikliğini ölçer.
+    status = "ok"
+    vehicle_type = "ucak"
+    velocity = 30.0
+    alpha_deg = 0.0
+    ld = 1.0
+    aref_m2 = 0.1
+    drag_N = 10.0
+    belirsizlik = {}
+    mesh = {}
+    convergence = {}
+    fizik_kabul = {"verdict": "ok", "reasons": []}
+    report = ""
+    error = ""
+
     def __init__(self, cd=0.30, cl=0.1, yplus=None, p=None, uyarilar=None,
                  katman=0, case_dir=""):
         self.cd, self.cl = cd, cl

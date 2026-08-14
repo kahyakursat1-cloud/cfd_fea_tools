@@ -149,3 +149,42 @@ def test_dockerfile_hizmet_GIRIS_NOKTALARINI_kopyalar():
     # Taban imaj digest'e sabit olmali: `:latest` yarin baska bir cozucu ceker
     # ve yayimlanmis bir bant sessizce gecersizlesir.
     assert "@sha256:" in d, "taban imaj digest'e sabit degil"
+
+
+# ── Kuyruk ile eşzamanlı yol AYNI sözleşmeyi döndürmeli ──────────────────────
+def test_kuyruk_ve_senkron_AYNI_sozlesmeyi_uretir(monkeypatch, tmp_path):
+    """İstemci, işin hangi yoldan geldiğine göre farklı ayrıştırıcı yazmamalı."""
+    import api
+    import kuyruk
+    _sahte_hat(monkeypatch)
+    monkeypatch.setattr(kuyruk, "KUYRUK", tmp_path / "k.jsonl")
+    monkeypatch.setattr(kuyruk, "KILIT", tmp_path / "k.lock")
+
+    istek = api.AnalizIstegi(stl="x.stl", tip="ucak", hiz=30.0)
+    senkron = api.analiz(istek)
+
+    kuyruk.ekle({"stl_path": "x.stl", "vehicle_type": "ucak", "velocity": 30.0})
+    kuyruk.calis(once=True)
+    kuyruklu = api.is_durumu(kuyruk.listele()[0]["id"])["sonuc"]
+
+    assert set(senkron) == set(kuyruklu), "iki yolun sözleşmesi ayrıştı"
+    assert kuyruklu["gecerlilik"]["genel"] == senkron["gecerlilik"]["genel"]
+
+
+def test_kuyruk_GUI_alanlarini_KORUR(monkeypatch, tmp_path):
+    """Kuyruk tablosu `cd`/`u_pct`/`hata` okur; sözleşme değişimi onu bozmamalı."""
+    import kuyruk
+    _sahte_hat(monkeypatch)
+    monkeypatch.setattr(kuyruk, "KUYRUK", tmp_path / "k.jsonl")
+    monkeypatch.setattr(kuyruk, "KILIT", tmp_path / "k.lock")
+    kuyruk.ekle({"stl_path": "x.stl", "velocity": 30.0})
+    kuyruk.calis(once=True)
+    son = kuyruk.listele()[0]["sonuc"]
+    assert son["cd"] == 0.31 and son["u_pct"] == 6.0
+    assert "tam" in son
+
+
+def test_bilinmeyen_is_kimligi_ACIKCA_soylenir():
+    import api
+    o = api.is_durumu("yokboyle")
+    assert o["durum"] == "yok" and o["hata"]

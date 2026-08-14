@@ -27,10 +27,24 @@ def test_GUI_ref_bump_GECIRIYOR():
     assert '"ref_bump": "oto"' in inspect.getsource(app_analyzer)
 
 
-def test_kuyruk_parametreleri_OLDUGU_GIBI_gecirir():
-    """Kuyruk **p ile çağırıyorsa GUI'nin eklediği anahtar worker'a ulaşır."""
+def test_kuyruk_parametreleri_OLDUGU_GIBI_gecirir(tmp_path, monkeypatch):
+    """GUI'nin eklediği anahtar worker'a ULAŞMALI.
+
+    BİÇİM DEĞİŞTİ (2026-08-14): test eskiden `kuyruk` kaynağında
+    `run_vehicle_analysis(**p)` dizgisini arıyordu. Kuyruk artık ortak
+    `hizmet.analiz_et` çekirdeğini çağırıyor ve dizgi kayboldu — oysa
+    ANLATTIĞI davranış hiç değişmedi. Kaynak metnini sınamak, doğru bir
+    refactor'da yanlış alarm verir; test artık davranışı ölçüyor: kuyruğa
+    konan anahtar gerçekten koşucuya geçiyor mu?
+    """
     import kuyruk
-    assert "run_vehicle_analysis(**p)" in inspect.getsource(kuyruk)
+    monkeypatch.setattr(kuyruk, "KUYRUK", tmp_path / "k.jsonl")
+    monkeypatch.setattr(kuyruk, "KILIT", tmp_path / "k.lock")
+    gorulen = {}
+    kuyruk.ekle({"stl_path": "x.stl", "ref_bump": "oto", "velocity": 30.0})
+    kuyruk.calis(runner=lambda p: gorulen.update(p) or {"status": "ok"}, once=True)
+    assert gorulen.get("ref_bump") == "oto", "GUI anahtarı worker'a ulaşmadı"
+    assert gorulen.get("velocity") == 30.0
 
 
 def test_pipeline_oto_degerini_TANIYOR():

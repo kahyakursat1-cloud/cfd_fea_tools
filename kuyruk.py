@@ -217,26 +217,27 @@ def calis(runner=None, once: bool = False) -> dict:
             "yarim_bulundu": len(_yarim)}
     try:
         if runner is None:
-            from vehicle_pipeline import run_vehicle_analysis
+            from hizmet import analiz_et
 
             def runner(p):
-                # `duzeltici` bir ÇÖZÜCÜ argümanı değil, yol seçimidir; GUI'nin
-                # iki giriş noktası (ANALİZ ET düğmesi ve kuyruk) AYNI yeteneğe
-                # sahip olmalı. Ayrık bırakmak, aynı motorun iki kullanıcısına
-                # farklı V&V yeteneği vermek demek olurdu ve depoda bunun aynısı
-                # `ref_bump` ile bir kez yaşandı.
+                # TEK ÇEKİRDEK: kuyruk da `hizmet.analiz_et`'i çağırır. Ayrı bir
+                # çağrı yolu tutmak, eşzamanlı (REST/CLI) ve kuyruklu sonuçların
+                # FARKLI ŞEKİLDE dönmesi demek olurdu; istemci hangi yoldan
+                # geldiğine göre farklı ayrıştırıcı yazmak zorunda kalırdı.
+                # `duzeltici` bir çözücü argümanı değil yol seçimidir ve
+                # `analiz_et` onu kendisi ayırır.
                 p = dict(p)
-                if p.pop("duzeltici", False):
-                    from duzeltici_adaptor import duzelterek_analiz
-                    r, duz = duzelterek_analiz(p.pop("stl_path"), **p)
-                    r.duzeltici = duz
-                else:
-                    r = run_vehicle_analysis(**p)
-                return {"status": r.status, "cd": r.cd,
-                        "u_pct": (r.belirsizlik or {}).get("u_toplam_pct"),
-                        "rapor": r.report, "hata": (r.error or "")[-300:],
-                        "duzeltici": (getattr(r, "duzeltici", None).verdikt
-                                      if getattr(r, "duzeltici", None) else None)}
+                tam = analiz_et(p.pop("stl_path"),
+                                duzeltici=p.pop("duzeltici", False), **p)
+                # Düz anahtarlar GUI kuyruk tablosunun okuduğu alanlardır ve
+                # KORUNUR; `tam` ise REST'in döndürdüğü sözleşmenin aynısıdır.
+                s = tam.get("sonuc") or {}
+                return {"status": tam.get("durum"), "cd": s.get("cd"),
+                        "u_pct": (tam.get("belirsizlik") or {}).get("u_toplam_pct"),
+                        "rapor": tam.get("rapor", ""),
+                        "hata": (tam.get("hata") or "")[-300:],
+                        "duzeltici": (tam.get("duzeltici") or {}).get("verdikt"),
+                        "tam": tam}
         while True:
             bekleyen = [i for i in _yukle() if i["durum"] == "bekliyor"]
             if not bekleyen:
