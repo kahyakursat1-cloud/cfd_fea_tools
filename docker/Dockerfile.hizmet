@@ -1,0 +1,55 @@
+# AeroSim-Hub BAŞSIZ hizmet konteyneri: çözücü + Python + CLI/REST.
+#
+# `Dockerfile` (yanındaki) YALNIZ ÇÖZÜCÜ taşır; Python ve GUI host'ta kalır ve
+# `CFD_BACKEND=docker` ile komutlar konteynerde koşar. O kurulum masaüstü
+# kullanımı içindir ve DEĞİŞMİYOR.
+#
+# Bu imaj farklı bir soruyu çözer: okul/bulut dağıtımında host'ta hiçbir şey
+# kurulu olmasın. Python, hat kodu ve başsız arayüz de içeride; dışarıya yalnız
+# bir JSON ucu açılır.
+#
+# İnşa:
+#   docker build -f docker/Dockerfile.hizmet -t aerosim-hizmet .
+#
+# Tek analiz (JSON stdout'a):
+#   docker run --rm -v "$PWD/veri:/veri" aerosim-hizmet \
+#          python cli.py --stl /veri/model.stl --tip ucak --hiz 30
+#
+# REST sunucu:
+#   docker run --rm -p 8000:8000 -v "$PWD/veri:/veri" aerosim-hizmet \
+#          uvicorn api:app --host 0.0.0.0 --port 8000
+#
+# TABAN İMAJ DIGEST'E SABİT — gerekçe için bkz. yanındaki `Dockerfile`.
+# Aynı digest bilerek kullanılır: iki imaj AYNI çözücüyü taşımazsa, masaüstünde
+# üretilen bir bant ile konteynerde üretileni karşılaştırmak anlamını yitirir.
+FROM openfoam/openfoam11-paraview510@sha256:fd10956e0b1eb70f9808baf2857e4baf846a0f6f272f73b6d00546eae96be181
+
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+         calculix-ccx python3 python3-pip python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /uygulama
+
+# Bağımlılıklar ÖNCE: kaynak değişince pip katmanı yeniden kurulmasın.
+COPY requirements.txt* pyproject.toml* /uygulama/
+RUN python3 -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir --upgrade pip \
+    && ( [ -f /uygulama/requirements.txt ] \
+         && /opt/venv/bin/pip install --no-cache-dir -r /uygulama/requirements.txt \
+         || true ) \
+    && /opt/venv/bin/pip install --no-cache-dir numpy scipy matplotlib \
+         fastapi uvicorn pydantic
+
+ENV PATH="/opt/venv/bin:${PATH}" \
+    PYTHONUNBUFFERED=1 \
+    MPLBACKEND=Agg \
+    CFD_BACKEND=yerel
+
+COPY . /uygulama
+
+# GUI YOK: bu imajda PySide6 kurulu değildir ve `app_analyzer` çalışmaz.
+# Bilinçli — başsız dağıtımın bir masaüstü kütüphanesine bağlı olmaması gerekir.
+# Giriş noktaları: `cli.py` (tek analiz, JSON) ve `api.py` (REST).
+CMD ["python", "cli.py", "--help"]

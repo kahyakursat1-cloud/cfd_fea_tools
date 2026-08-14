@@ -548,6 +548,18 @@ REFERANS_AG_AILELERI = frozenset({
     "nasa_tmr_naca0012",   # NASA Turbulence Modeling Resource, NACA0012 ailesi (§5.2)
 })
 
+# ARAÇ YOLUNDA BU BEYAN KULLANILMAZ ve bu bir eksiklik DEĞİLDİR. Listedeki tek
+# aile 2B kanat profilidir; `app_analyzer` ise 3B araç STL'i sınıflandırır ve
+# bir araç geometrisi o aileyi hiçbir zaman meşru olarak beyan edemez. Bu yüzden
+# arayüze "referans ağ ailesi" kutusu EKLENMEDİ: kullanıcının yalnızca yanlış
+# kullanabileceği bir kontrol olurdu. Araç geometrilerinde taşımanın design-grade
+# olmasının tek yolu çok-ağlı asimptotik banddır (`has_gci_band`) ve uygulama
+# onu zaten geçiriyor.
+#
+# Buraya bir ARAÇ referans ailesi eklenirse (ör. Ahmed gövdesi, DrivAer) o zaman
+# çağıranların beyan edebilmesi gerekir; o gün gelene kadar beyan yolu bilerek
+# yalnız kütüphane/doğrulama kodundadır.
+
 
 def referans_ag_kabul(beyan) -> bool:
     """Referans-ağ beyanı GEÇERLİ mi? Yalnız beyaz listedeki aile adları sayılır.
