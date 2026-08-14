@@ -123,7 +123,29 @@ def _sifir_referans_sayisi() -> int:
 
 
 def _dusen_kosu_sayisi() -> int:
-    return sum(1 for d in _jsonl("cfd_mesh_sweep.jsonl") if d.get("error"))
+    """Cozucude DUSEN AYIRT EDILIR yapilandirma sayisi (satir sayisi DEGIL).
+
+    NEDEN AYIRT EDILIR: tarama yeniden baslatilabilir ve `_done_tags` yalnizca
+    BASARILI kosulari "tamamlandi" sayar, dolayisiyla dusmus bir yapilandirma
+    resume'da yeniden denenir ve dosyaya YENIDEN EKLENIR. Satir saymak, ayni
+    yapilandirmanin iki denemesini iki basarisizlik gibi gosterir; makale ise
+    (dogru olarak) yapilandirma sayiyor. Olculdu: 6 satir, 5 yapilandirma
+    (alpha=0/xfine iki kez kayitli).
+    """
+    return len({(d["alpha"], d["density"]) for d in _jsonl("cfd_mesh_sweep.jsonl")
+                if d.get("error")})
+
+
+def _sonucsuz_kosu_sayisi() -> int:
+    """Hata BILDIRMEDEN katsayi da uretmeyen kosular (Cd_sim is None).
+
+    Ucuncu bir dislama sinifi ve daha once HIC sayilmiyordu: `_cfd_hucreleri`
+    bunlari sessizce atliyordu. Cozucu dusmedi, kosu tamamlandi, ama kuvvet
+    katsayisi okunamadi; bir sessiz-hata dedektorunu bunlarla sinamak da
+    anlamsizdir, ama dislama GEREKCELI ve SAYILI olmalidir.
+    """
+    return sum(1 for d in _jsonl("cfd_mesh_sweep.jsonl")
+               if not d.get("error") and d.get("Cd_sim") is None)
 
 
 # FIZIKSEL OLARAK IMKANSIZ deger ureten kosular. Bunlar korpustan CIKARILMAZ --
@@ -191,13 +213,16 @@ def duzeltilmis_flag(cell, kapilar=("fizik", "ag")) -> bool:
     ham = cell.get("_ham")
     if ham is None:
         return cell["flagged"]
-    from validity_envelope import VALIDATED, classify_cfd
+    from validity_envelope import REFERANS_AG_AILELERI, VALIDATED, classify_cfd
     # Kapatilan kapi ETKISIZ hale getirilir: fizik kapisi katsayi verilmeyince,
-    # ag kapisi yeterlilik BEYAN EDILINCE sessizlesir.
+    # ag kapisi yeterlilik BEYAN EDILINCE sessizlesir. Beyan BEYAZ LISTEDEN
+    # gelmeli -- ciplak `True` artik reddediliyor ve bu, ablasyonun fizik kolunu
+    # sessizce ag koluyla ayni sonuca goturmustu (3 yerine 8 yeniden-siniflama).
+    _susturucu = next(iter(REFERANS_AG_AILELERI))
     v = classify_cfd("ucak", ham["alpha"], ham["mach"], has_gci_band=False,
                      Cl=(ham.get("Cl") if "fizik" in kapilar else None),
                      Cd=(ham.get("Cd") if "fizik" in kapilar else None),
-                     ag_yeterli=(ham.get("ag_yeterli") if "ag" in kapilar else True))
+                     ag_yeterli=(ham.get("ag_yeterli") if "ag" in kapilar else _susturucu))
     onek = "C_L" if cell["q"] == "Cl" else "C_D"
     hukum = next(x for x in v if x.quantity.startswith(onek))
     return hukum.klass != VALIDATED

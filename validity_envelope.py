@@ -538,6 +538,27 @@ def savunulabilir(s: dict) -> dict:
     return ret
 
 
+# Ağ yeterliliği için kabul edilen REFERANS AĞ AİLELERİ. Bu bir beyaz listedir ve
+# depoda sürümlenir; çağıranın serbestçe True geçebileceği bir bayrak DEĞİLDİR.
+# Neden: "bu vaka referans ağda koştu" beyanı doğrulanamıyorsa, ağ-yeterliliği
+# kapısı bir kapı olmaktan çıkıp bir nezaket ricasına döner — kapının bütün değeri
+# reddedebilmesinden gelir. Listeye ekleme, o ailenin depoda belgelenmiş ve
+# yayımlanmış bir doğrulama kaydı olmasını gerektirir.
+REFERANS_AG_AILELERI = frozenset({
+    "nasa_tmr_naca0012",   # NASA Turbulence Modeling Resource, NACA0012 ailesi (§5.2)
+})
+
+
+def referans_ag_kabul(beyan) -> bool:
+    """Referans-ağ beyanı GEÇERLİ mi? Yalnız beyaz listedeki aile adları sayılır.
+
+    `True` gibi çıplak bir doğruluk-değeri KABUL EDİLMEZ: hangi ailenin
+    kastedildiği yazılmadıkça beyan denetlenemez. Bilinmeyen ad da reddedilir;
+    sessizce kabul etmek kapıyı işlevsizleştirirdi.
+    """
+    return isinstance(beyan, str) and beyan in REFERANS_AG_AILELERI
+
+
 def classify_cfd(vehicle_type: str, alpha_deg: float, mach: float,
                  has_gci_band: bool = False, band_pct: float | None = None,
                  Cl: float | None = None, Cd: float | None = None,
@@ -568,8 +589,10 @@ def classify_cfd(vehicle_type: str, alpha_deg: float, mach: float,
     a = abs(alpha_deg or 0.0)
     compressible = (mach or 0.0) >= MACH_INCOMP
     v: list[Verdict] = []
-    # Ağ yeterliliği için kanıt: açıkça beyan edilmiş VEYA çok-ağlı asimptotik band.
-    ag_kanit = bool(ag_yeterli) or bool(has_gci_band)
+    # Ağ yeterliliği için kanıt: SÜRÜMLENMİŞ referans-ağ ailesi VEYA çok-ağlı
+    # asimptotik band. `ag_yeterli` serbest bir bayrak DEĞİLDİR: aile adı
+    # REFERANS_AG_AILELERI'nde olmalı, aksi halde beyan REDDEDİLİR (bkz. fonksiyon).
+    ag_kanit = referans_ag_kabul(ag_yeterli) or bool(has_gci_band)
 
     # ── TAŞIMA (C_L) ──
     if a > ALPHA_VALID_DEG:

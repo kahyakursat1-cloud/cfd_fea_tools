@@ -3,6 +3,7 @@ Dayanak gerçek doğrulamalar: α≤8 lift OK / α>8 ~%45 (erken stall), mutlak 
 from validity_envelope import (
     CLMAX_REF,
     OUT,
+    REFERANS_AG_AILELERI,
     TREND,
     VALIDATED,
     analyze_polar_envelope,
@@ -22,6 +23,26 @@ def _by_q(verdicts, key):
     return next(v for v in verdicts if key in v.quantity)
 
 
+# Beyaz listedeki TEK aile; testler adi elle yazmaz ki liste degisirse test de
+# degissin (elle yazilsa liste daralsa bile test yesil kalirdi).
+TMR = next(iter(REFERANS_AG_AILELERI))
+
+
+def test_referans_ag_beyani_BEYAZ_LISTEDEN_gecmeli():
+    """Ciplak `True` veya bilinmeyen bir aile adi ag-yeterliligi KANITI SAYILMAZ.
+
+    Kapinin butun degeri reddedebilmesinden gelir: cagiranin serbestce
+    gecebilecegi bir bayrak, kapi degil nezaket ricasidir. Dis hakem bunu
+    2026-08-13'te sordu ("versioned/whitelisted configuration mi?") ve o an
+    cevap HAYIR'di.
+    """
+    for gecersiz in (True, 1, "kendi_agim", "NASA_TMR", None):
+        lift = _by_q(classify_cfd("ucak", 4.0, mach=0.1, ag_yeterli=gecersiz), "C_L")
+        assert lift.klass == TREND, f"{gecersiz!r} kanit sayildi"
+    assert _by_q(classify_cfd("ucak", 4.0, mach=0.1, ag_yeterli=TMR),
+                 "C_L").klass == VALIDATED
+
+
 def test_attached_flow_lift_design_safe():
     """|α|≤8 + AĞ YETERLİLİĞİ: taşıma DOĞRULANMIŞ; mutlak drag EĞİLİM.
 
@@ -30,7 +51,7 @@ def test_attached_flow_lift_design_safe():
     davranışın yedi yanlış-negatifin altısını ürettiğini ÖLÇTÜ. Kapı artık ağ
     yeterliliği kanıtı istiyor; test gevşetilmedi, kanıt eklendi.
     """
-    v = classify_cfd("ucak", 4.0, mach=0.1, ag_yeterli=True)
+    v = classify_cfd("ucak", 4.0, mach=0.1, ag_yeterli=TMR)
     lift = _by_q(v, "C_L")
     assert lift.klass == VALIDATED and lift.design_safe is True
     drag = _by_q(v, "C_D")
@@ -60,11 +81,11 @@ def test_fizik_disi_katsayi_zarf_sinifini_EZER():
     tarama bunu hatasız kaydetti ve zarf DESIGN-GRADE verdi. `force_admissibility`
     bu modülde zaten vardı ama `classify_cfd` onu hiç çağırmıyordu.
     """
-    v = classify_cfd("ucak", 8.0, mach=0.1, ag_yeterli=True, Cl=4769.0, Cd=293.0)
+    v = classify_cfd("ucak", 8.0, mach=0.1, ag_yeterli=TMR, Cl=4769.0, Cd=293.0)
     assert all(x.klass == OUT and not x.design_safe for x in v)
     assert any("FİZİK KAPISI" in x.message for x in v)
     # Kapı yalnız fizik-dışında kapanır: makul katsayılar sınıfı DEĞİŞTİRMEZ.
-    ok = classify_cfd("ucak", 4.0, mach=0.1, ag_yeterli=True, Cl=0.42, Cd=0.011)
+    ok = classify_cfd("ucak", 4.0, mach=0.1, ag_yeterli=TMR, Cl=0.42, Cd=0.011)
     assert _by_q(ok, "C_L").klass == VALIDATED
 
 
