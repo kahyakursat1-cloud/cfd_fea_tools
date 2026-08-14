@@ -238,6 +238,56 @@ def _fig_velocity_slice(vtk_path, velocity, out):
         return False
 
 
+def _duzeltici_bolumu(s) -> list[str]:
+    """Düzeltici müdahalelerini rapor satırlarına çevir.
+
+    `s` None ise (düzeltici kapalı) HİÇBİR ŞEY yazılmaz — kapalı bir özellik
+    rapora gürültü eklememeli. Açıksa ve hiç müdahale olmadıysa bu da yazılır:
+    "guard baktı, düzeltilecek bir şey bulmadı" ile "guard hiç bakmadı"
+    arasındaki fark okuyucu için gerçektir.
+    """
+    if s is None:
+        return []
+    md = ["\n## Düzeltici müdahaleleri\n",
+          "> Bu bölüm, aracın kurulumu kendiliğinden değiştirip yeniden "
+          "koştuğu durumları listeler. **Hiçbir sonuç değiştirilmemiştir** — "
+          "yalnız kurulum değişmiş ve sayı çözücüden yeniden gelmiştir.\n"]
+    if not s.mudahaleler and not s.engellenenler:
+        md.append("Düzeltici etkindi; tetiklenen bir kusur bulunmadı, kurulum "
+                  "olduğu gibi bırakıldı.\n")
+        return md
+
+    if s.mudahaleler:
+        md.append("| # | Düzeltme | Değişen ayar | Önce | Sonra | Sonuç |")
+        md.append("|---|---|---|---|---|---|")
+        for i, m in enumerate(s.mudahaleler, 1):
+            ayar = ", ".join(f"`{k}`" for k in m.degisiklik if not k.startswith("_")) or "—"
+            o = "—" if m.onceki_hata_pct is None else f"%{m.onceki_hata_pct:.1f}"
+            n = "—" if m.sonraki_hata_pct is None else f"%{m.sonraki_hata_pct:.1f}"
+            yon = ("✅ işe yaradı" if m.ise_yaradi else
+                   "⚠️ etkisiz" if m.ise_yaradi is False else "ölçülemedi")
+            md.append(f"| {i} | {m.duzeltme} | {ayar} | {o} | {n} | {yon} |")
+        md.append("")
+        for m in s.mudahaleler:
+            if m.yan_etki and m.yan_etki.strip() != "Yok":
+                md.append(f"- **{m.duzeltme} yan etkisi:** {m.yan_etki}")
+        if s.etkisiz_sayisi:
+            md.append(f"\n> ⚠️ {s.etkisiz_sayisi} düzeltme gerçek bir kusuru "
+                      "giderdi ama sapmayı azaltmadı. **Kusuru gidermek nedeni "
+                      "bulmak değildir**; sapmanın kaynağı bu düzeltmenin hedefi "
+                      "değil.\n")
+
+    if s.engellenenler:
+        md.append("\n**Tespit edildi ama otomatik düzeltilemedi — elle müdahale "
+                  "gerekiyor:**\n")
+        for ad, neden in s.engellenenler:
+            md.append(f"- `{ad}`: {neden}")
+        md.append("")
+
+    md.append(f"\n**Düzeltici hükmü:** {s.verdikt}\n")
+    return md
+
+
 def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
     """r: VehicleAnalysisResult. Markdown rapor + 300 DPI figürler üretir."""
     out = Path(out_dir)
@@ -287,6 +337,13 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
     if _fz.get("verdict", "ok") != "ok":
         md.append(f"> 🔴 **FİZİK KAPISI:** {'; '.join(_fz.get('reasons', []))} — "
                   "bu koşunun kuvvet katsayıları tasarım kararında KULLANILMAZ.\n")
+
+    # ── DÜZELTİCİ MÜDAHALELERİ (banner'dan hemen sonra) ──────────────────────
+    # Araç kurulumu değiştirip yeniden koştuysa okuyucu bunu EN BAŞTA bilmeli:
+    # aşağıdaki bütün sayılar kullanıcının seçtiği ayarlarla DEĞİL, düzeltilmiş
+    # ayarlarla üretilmiştir. Sessiz bırakmak, tam da bu aracın karşı çıktığı
+    # şeyi yapmak olurdu — sonuç doğru görünür, hangi kurulumdan geldiği bilinmez.
+    md += _duzeltici_bolumu(getattr(r, "duzeltici", None))
     # Kurulum uyarıları EN ÜSTTE: yanlış ölçek/eksen/A_ref aşağıdaki tüm bölümleri
     # geçersizler; okuyucu dört bölüm makul sayı okuduktan SONRA öğrenmemeli.
     for _ku in (getattr(r, "kurulum", None) or []):

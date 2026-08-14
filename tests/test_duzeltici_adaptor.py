@@ -99,3 +99,95 @@ def test_REFERANSSIZ_kosuda_duzeltme_BASARILI_sayilmaz(monkeypatch):
     r, s = A.duzelterek_analiz("x.stl")            # referans YOK
     assert s.mudahaleler[0].ise_yaradi is None
     assert "ölçülemedi" in s.mudahaleler[0].ozet()
+
+
+# ── GUI yolu ──────────────────────────────────────────────────────────────────
+def test_worker_duzeltici_KAPALIYKEN_normal_yolu_kullanir(monkeypatch):
+    """Varsayılan davranış DEĞİŞMEMELİ: kutu kapalıyken düzeltici hiç yüklenmez."""
+    import app_analyzer as app
+    cagrilar = []
+    monkeypatch.setattr(app, "run_vehicle_analysis",
+                        lambda **kw: (cagrilar.append(kw), _Sonuc())[1])
+    w = app.AnalysisWorker({"stl_path": "x.stl", "velocity": 30.0,
+                            "duzeltici": False})
+    w.finished_ok = type("S", (), {"emit": staticmethod(lambda r: None)})()
+    w.failed = type("S", (), {"emit": staticmethod(lambda m: None)})()
+    w.progress = type("S", (), {"emit": staticmethod(lambda p, m: None)})()
+    _Sonuc.status = "ok"
+    w.run()
+    assert len(cagrilar) == 1
+    assert "duzeltici" not in cagrilar[0], "yol seçimi çözücüye SIZDI"
+
+
+def test_worker_duzeltici_ANAHTARINI_cozucuye_GECIRMEZ(monkeypatch):
+    """`duzeltici` bir çözücü argümanı değil; geçerse TypeError olurdu."""
+    import inspect
+
+    import vehicle_pipeline as vp
+    imza = inspect.signature(vp.run_vehicle_analysis).parameters
+    assert "duzeltici" not in imza, (
+        "run_vehicle_analysis 'duzeltici' kabul ediyor — worker'daki pop "
+        "gereksizleşti, ama sessizce iki yol ayrışmasın diye test uyarır")
+
+
+# ── Rapor katmanı ─────────────────────────────────────────────────────────────
+def _sonuc_ile(mudahale=(), engellenen=(), verdikt="test"):
+    s = D.DuzelticiSonuc(sinif=D.TREND, verdikt=verdikt)
+    s.mudahaleler = list(mudahale)
+    s.engellenenler = list(engellenen)
+    return s
+
+
+def test_rapor_duzeltici_KAPALIYKEN_hic_bolum_yazmaz():
+    """Kapalı bir özellik rapora gürültü eklememeli."""
+    from vehicle_report import _duzeltici_bolumu
+    assert _duzeltici_bolumu(None) == []
+
+
+def test_rapor_ACIK_ama_kusursuz_kosuyu_da_SOYLER():
+    """'guard baktı, bir şey bulmadı' ile 'guard hiç bakmadı' aynı şey değil."""
+    from vehicle_report import _duzeltici_bolumu
+    md = "\n".join(_duzeltici_bolumu(_sonuc_ile()))
+    assert "tetiklenen bir kusur bulunmadı" in md
+
+
+def test_rapor_ETKISIZ_duzeltmeyi_GIZLEMEZ():
+    """Kusur giderildi ama sapma sürüyorsa rapor bunu açıkça yazmalı."""
+    from vehicle_report import _duzeltici_bolumu
+    m = D.Mudahale("duvar_islemini_aga_uydur", "…", {"nut_wall": "nutLowRe"},
+                   39.6, 39.2, False, "Ağ gradasyonunu geçersiz kılar")
+    md = "\n".join(_duzeltici_bolumu(_sonuc_ile([m])))
+    assert "etkisiz" in md
+    assert "Kusuru gidermek nedeni bulmak değildir" in md
+    assert "gradasyon" in md, "yan etki raporlanmadı"
+
+
+def test_rapor_ENGELLENEN_kusuru_ve_GEREKCESINI_yazar():
+    from vehicle_report import _duzeltici_bolumu
+    md = "\n".join(_duzeltici_bolumu(
+        _sonuc_ile(engellenen=[("rampali_baslangic", "kaba çözüm BULUNMALI")])))
+    assert "elle müdahale" in md.lower()
+    assert "kaba çözüm BULUNMALI" in md
+
+
+def test_kuyruk_yolu_da_duzelticiyi_DESTEKLER(monkeypatch, tmp_path):
+    """Arayüzün iki giriş noktası AYNI yeteneğe sahip olmalı.
+
+    Depoda bunun aynısı bir kez yaşandı: `ref_bump="oto"` kuyruk yoluna
+    eklenip ana düğmeye eklenmemişti ve düzeltme beş çağıranın yalnız birine
+    ulaşmıştı. `test_giris_noktasi_esdegerligi` o dersin testidir; bu test
+    kuyruk worker'ının anahtarı yalnız TAŞIMAKLA kalmayıp KULLANDIĞINI de
+    bağlar.
+    """
+    import kuyruk
+    monkeypatch.setattr(kuyruk, "KUYRUK", tmp_path / "k.jsonl")
+    monkeypatch.setattr(kuyruk, "KILIT", tmp_path / "k.lock")
+    cagrilar = _sahte_hat(monkeypatch, [_Sonuc(cd=0.40, yplus={"ort": 0.009}),
+                                        _Sonuc(cd=0.31, yplus={"ort": 0.8})])
+    monkeypatch.setattr(A, "_duvar_islemi_oku", lambda c: "nutkWallFunction")
+    _Sonuc.status, _Sonuc.belirsizlik, _Sonuc.report, _Sonuc.error = "ok", {}, "", ""
+
+    kuyruk.ekle({"stl_path": "x.stl", "velocity": 30.0, "duzeltici": True})
+    ozet = kuyruk.calis(once=True)
+    assert ozet["bitti"] == 1
+    assert len(cagrilar) == 2, "kuyruk düzelticiyi kullanmadı (tek koşu)"

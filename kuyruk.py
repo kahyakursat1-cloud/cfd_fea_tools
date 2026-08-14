@@ -220,10 +220,23 @@ def calis(runner=None, once: bool = False) -> dict:
             from vehicle_pipeline import run_vehicle_analysis
 
             def runner(p):
-                r = run_vehicle_analysis(**p)
+                # `duzeltici` bir ÇÖZÜCÜ argümanı değil, yol seçimidir; GUI'nin
+                # iki giriş noktası (ANALİZ ET düğmesi ve kuyruk) AYNI yeteneğe
+                # sahip olmalı. Ayrık bırakmak, aynı motorun iki kullanıcısına
+                # farklı V&V yeteneği vermek demek olurdu ve depoda bunun aynısı
+                # `ref_bump` ile bir kez yaşandı.
+                p = dict(p)
+                if p.pop("duzeltici", False):
+                    from duzeltici_adaptor import duzelterek_analiz
+                    r, duz = duzelterek_analiz(p.pop("stl_path"), **p)
+                    r.duzeltici = duz
+                else:
+                    r = run_vehicle_analysis(**p)
                 return {"status": r.status, "cd": r.cd,
                         "u_pct": (r.belirsizlik or {}).get("u_toplam_pct"),
-                        "rapor": r.report, "hata": (r.error or "")[-300:]}
+                        "rapor": r.report, "hata": (r.error or "")[-300:],
+                        "duzeltici": (getattr(r, "duzeltici", None).verdikt
+                                      if getattr(r, "duzeltici", None) else None)}
         while True:
             bekleyen = [i for i in _yukle() if i["durum"] == "bekliyor"]
             if not bekleyen:

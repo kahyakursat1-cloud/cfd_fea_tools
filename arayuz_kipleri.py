@@ -52,6 +52,12 @@ GORUNURLUK: dict[str, int] = {
     "btn_queue_add": 1,
     "gb_polar": 1,
     "gb_fea": 1,
+    # Düzeltici HER KİPTE görünür (0) ve bu bilinçli bir karardır. Ek koşu
+    # maliyeti getirdiği için `chk_sens` gibi araştırma kipine çekilebilirdi;
+    # ama en çok otopilot kullanıcısının işine yarar: y⁺ uyumsuzluğunu ya da
+    # duvar işleminin ağa uymadığını kendi teşhis edemeyecek olan odur.
+    # Varsayılan KAPALI olduğu için kimseye sürpriz maliyet çıkarmaz.
+    "chk_duzeltici": 0,
     # — Yalnız araştırma —
     "chk_sens": 2,        # mesh-duyarlılık bandı (ek koşu maliyeti)
     "spn_seviye": 2,

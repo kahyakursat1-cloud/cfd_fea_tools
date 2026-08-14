@@ -87,8 +87,23 @@ class AnalysisWorker(QThread):
 
     def run(self):
         try:
-            r = run_vehicle_analysis(
-                progress_cb=lambda p, m: self.progress.emit(p, m), **self.params)
+            p = dict(self.params)
+            # `duzeltici` bir ÇÖZÜCÜ argümanı değil, bu worker'ın yol seçimi;
+            # run_vehicle_analysis'e geçerse TypeError olur.
+            duzeltici_acik = p.pop("duzeltici", False)
+            ilerleme = lambda pc, m: self.progress.emit(pc, m)   # noqa: E731
+
+            if duzeltici_acik:
+                from duzeltici_adaptor import duzelterek_analiz
+                r, duzeltme = duzelterek_analiz(
+                    p.pop("stl_path"), progress_cb=ilerleme, **p)
+                # Sonuca İLİŞTİRİLİR, ayrı sinyal açılmaz: rapor ve arayüz
+                # zaten sonucu taşıyor, ikinci bir kanal iki yerin ayrışması
+                # demek olurdu.
+                r.duzeltici = duzeltme
+            else:
+                r = run_vehicle_analysis(progress_cb=ilerleme, **p)
+
             if r.status == "ok":
                 self.finished_ok.emit(r)
             else:
@@ -575,6 +590,19 @@ class AnalyzerWindow(QMainWindow):
         form.addRow("Hedef y⁺", self.spn_yplus)
         self.chk_sens = QCheckBox("Mesh duyarlılık bandı (2. kaba koşu)")
         form.addRow("", self.chk_sens)
+        # DÜZELTİCİ VARSAYILAN KAPALI. Açıkken araç, guard bir kurulum kusuru
+        # bulursa kurulumu onarıp YENİDEN KOŞAR — yani koşu süresi katlanabilir
+        # ve kullanıcının seçtiği ayarlar değişir. İkisi de sürpriz olmamalı;
+        # bu yüzden istem dışı değil, açıkça istenen bir davranıştır.
+        self.chk_duzeltici = QCheckBox(
+            "Düzeltici: kusur bulunursa kurulumu onar ve yeniden koş")
+        self.chk_duzeltici.setToolTip(
+            "Guard bir kurulum kusuru bulursa (duvar işlemi ağa uymuyor, çözüm "
+            "patlıyor, katsayı fiziksel değil) araç kurulumu düzeltip yeniden "
+            "koşar.\nSONUÇ DEĞİŞTİRİLMEZ — yalnız kurulum değişir ve her "
+            "müdahale rapora yazılır.\nDüzeltilemeyen kusurlar da gerekçesiyle "
+            "raporlanır.\nKoşu süresi düzeltme başına katlanır.")
+        form.addRow("", self.chk_duzeltici)
         # SEVIYE SAYISI ARAYUZDE YOKTU: GUI `mesh_levels`'i hic gecmiyordu, yani
         # her zaman varsayilan 3 seviye kosuyordu. LSR (Eca-Hoekstra) EN AZ 4
         # grid ister — yani arayuz kullanicisi LSR bandini HIC alamiyordu,
@@ -918,6 +946,7 @@ class AnalyzerWindow(QMainWindow):
             "mesh_levels": self.spn_seviye.value(),
             "n_layers": self.spn_layers.value(),
             "yplus_target": self.spn_yplus.value(),
+            "duzeltici": self.chk_duzeltici.isChecked(),
         })
         n = sum(1 for i in kuyruk.listele() if i["durum"] == "bekliyor")
         self._log(f"🗂 Kuyruğa eklendi: {is_['id']} ({self.model_path.name}) — "
@@ -1071,6 +1100,7 @@ class AnalyzerWindow(QMainWindow):
             "mesh_levels": self.spn_seviye.value(),
             "n_layers": self.spn_layers.value(),
             "yplus_target": self.spn_yplus.value(),
+            "duzeltici": self.chk_duzeltici.isChecked(),
         }
         self.worker = AnalysisWorker(params)
         self.worker.progress.connect(self._on_progress)
