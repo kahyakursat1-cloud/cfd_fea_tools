@@ -56,6 +56,13 @@ class Duzeltme:
     on_kosul: str
     yan_etki: str
     kaynak: str
+    # ÖN KOŞUL ARTIK MAKİNE TARAFINDAN SINANIR. Önceki sürümde `on_kosul` yalnız
+    # insan-okur bir dizgiydi ve `uygulanabilir()` ona hiç bakmıyordu; katman
+    # gerçek bir çözücüye bağlanınca bu, YAPILAMAYACAK düzeltmeleri güvenle
+    # önermek demek olurdu (rampalı başlangıç için kaba çözüm yoksa, referans
+    # ağ ailesi ilan edilmemişse). Bir düzeltmenin değeri, uygulanamayacağını
+    # SÖYLEYEBİLMESİNDEN de gelir.
+    on_kosul_saglandi: Callable[[dict], bool] = lambda k: True
 
 
 # ── Tetikleyiciler ────────────────────────────────────────────────────────────
@@ -87,6 +94,40 @@ def _fiziksel_olmayan(k: dict) -> bool:
     return (cl is not None and abs(cl) > 3.0) or (cd is not None and cd < 0)
 
 
+# ── Ön koşullar (makine sınar) ────────────────────────────────────────────────
+def _duvar_islemi_degistirilebilir(k: dict) -> bool:
+    """Duvar işlemini çevirmek TEK BAŞINA yeter mi, yoksa ağ mı yenilenmeli?
+
+    Ölçüm bu ayrımı zorunlu kıldı ve iki yön simetrik DEĞİL:
+      * Duvar fonksiyonu + ÇOK İNCE ağ (y⁺ < 30): ağ zaten yeterince ince,
+        yalnız sınır koşulu yanlış. Çevirmek yeter. (Silindir DES, y⁺=0,009.)
+      * Düşük-Re koşulu + ÇOK KABA ağ (y⁺ > 5): sınır koşulu zaten doğru,
+        eksik olan AĞ. Koşulu çevirmek hiçbir şey düzeltmez; duvar-normal
+        gradasyon ve hücre sayısı yeniden seçilmelidir. (NACA0012 α=8°,
+        y⁺ 16–357 → ancak n_norm=200/grading=120000 ile 0,04–2,47'ye indi.)
+    """
+    islem = (k.get("kurulum") or {}).get("duvar_islemi") or ""
+    ort = ((k.get("olculen") or {}).get("yplus") or {}).get("ort")
+    if ort is None:
+        return False
+    dusuk_re = "LowRe" in islem or "Spalding" in islem
+    return not dusuk_re          # yalnız "duvar fonksiyonu + ince ağ" yönü
+
+
+def _kaba_cozum_var(k: dict) -> bool:
+    return bool((k.get("kurulum") or {}).get("kaba_cozum"))
+
+
+def _referans_ag_ailesi_var(k: dict) -> bool:
+    """Vaka için YAYIMLANMIŞ bir referans ağ ailesi ilan edilmiş mi?
+
+    Beyaz liste `validity_envelope` ile ORTAK: iki yerde ayrı liste tutmak,
+    zarfın reddettiği bir aileyi düzelticinin kabul etmesi demek olurdu.
+    """
+    from validity_envelope import referans_ag_kabul
+    return referans_ag_kabul((k.get("kurulum") or {}).get("referans_ag_ailesi"))
+
+
 # ── Düzeltmeler ───────────────────────────────────────────────────────────────
 KUTUK: list[Duzeltme] = [
     Duzeltme(
@@ -101,7 +142,8 @@ KUTUK: list[Duzeltme] = [
                  "duvar-normal gradasyon artırılır.",
         yan_etki="Ağ gradasyonunu geçersiz kılar (ilk hücre yüksekliği yeniden "
                  "seçilmeli) ve başlangıç alanı düz akışsa kararsızlık doğurabilir.",
-        kaynak="Silindir DES y⁺=0,009 · NACA0012 α=8° y⁺=16–357 (2026-08-13)"),
+        kaynak="Silindir DES y⁺=0,009 · NACA0012 α=8° y⁺=16–357 (2026-08-13)",
+        on_kosul_saglandi=_duvar_islemi_degistirilebilir),
     Duzeltme(
         ad="rampali_baslangic",
         tetikleyici=_sayisal_patlama,
@@ -111,7 +153,8 @@ KUTUK: list[Duzeltme] = [
                  "mapFields ile fizikselleştirilmiş başlangıç alanı kurulur.",
         on_kosul="Aynı geometride yakınsamış bir kaba çözüm BULUNMALI.",
         yan_etki="Yok — sınır koşulları hedeften gelir, taşınan yalnız iç alandır.",
-        kaynak="NACA0012 α=8° duvar-çözümlü: 27/6000 → 6000/6000 (2026-08-13)"),
+        kaynak="NACA0012 α=8° duvar-çözümlü: 27/6000 → 6000/6000 (2026-08-13)",
+        on_kosul_saglandi=_kaba_cozum_var),
     Duzeltme(
         ad="referans_ag_ailesine_gec",
         tetikleyici=_asimptotik_degil,
@@ -122,7 +165,8 @@ KUTUK: list[Duzeltme] = [
                  "(ör. NASA TMR). Yoksa düzeltme uygulanamaz.",
         yan_etki="Ağ ailesi değişince topoloji, alan boyu ve iz çözünürlüğü "
                  "birlikte değişir; farkın tek bir nedene atfedilmesi ARTIK GEÇERSİZ.",
-        kaynak="Airfoil O-grid p≈0,2 → TMR ağları, GCI %1,71"),
+        kaynak="Airfoil O-grid p≈0,2 → TMR ağları, GCI %1,71",
+        on_kosul_saglandi=_referans_ag_ailesi_var),
     Duzeltme(
         ad="fiziksel_olmayani_reddet",
         tetikleyici=_fiziksel_olmayan,
@@ -162,15 +206,34 @@ class DuzelticiSonuc:
     mudahaleler: list[Mudahale] = field(default_factory=list)
     kalan_aday: str | None = None
     verdikt: str = ""
+    # (düzeltme adı, neden uygulanamadı) — tespit edildi ama ön koşulu yok
+    engellenenler: list[tuple[str, str]] = field(default_factory=list)
 
     @property
     def etkisiz_sayisi(self) -> int:
         return sum(1 for m in self.mudahaleler if m.ise_yaradi is False)
 
 
-def uygulanabilir(kanit: dict) -> list[Duzeltme]:
-    """Bu kanıtta tetiklenen düzeltmeler — sıra kütükteki sırayla."""
+def tetiklenen(kanit: dict) -> list[Duzeltme]:
+    """Kusuru TESPİT EDİLEN düzeltmeler — uygulanabilirliğe bakmadan."""
     return [d for d in KUTUK if d.tetikleyici(kanit)]
+
+
+def uygulanabilir(kanit: dict) -> list[Duzeltme]:
+    """Hem tetiklenen HEM ön koşulu sağlanan düzeltmeler."""
+    return [d for d in tetiklenen(kanit) if d.on_kosul_saglandi(kanit)]
+
+
+def engellenen(kanit: dict) -> list[tuple[Duzeltme, str]]:
+    """Kusur TESPİT EDİLDİ ama otomatik düzeltilemiyor — ve NEDENİ.
+
+    Bu liste sessizce atılmaz. Tespit edilip düzeltilemeyen bir kusur, hiç
+    tespit edilmemiş bir kusurdan DAHA DEĞERLİDİR: kullanıcı neyin yanlış
+    olduğunu ve elle ne yapması gerektiğini öğrenir. Sessizce düşürülürse
+    araç, göremediği ile yapamadığını aynı sessizlikte birleştirir.
+    """
+    return [(d, d.on_kosul) for d in tetiklenen(kanit)
+            if not d.on_kosul_saglandi(kanit)]
 
 
 def duzelt(kanit: dict, yeniden_kos: Callable[[dict, dict], dict],
@@ -213,8 +276,16 @@ def duzelt(kanit: dict, yeniden_kos: Callable[[dict, dict], dict],
         if s.sinif == VALIDATED:
             break
 
+    # TESPİT EDİLİP DÜZELTİLEMEYENLER hükme yazılır. Bunları düşürmek, aracın
+    # "kusur yok" ile "kusur var ama elimden gelmiyor" durumlarını aynı
+    # sessizlikte birleştirmesi olurdu.
+    s.engellenenler = [(d.ad, neden) for d, neden in engellenen(kanit)]
+
     if not s.mudahaleler:
-        s.verdikt = "Tetiklenen düzeltme yok; sonuç olduğu gibi bırakıldı."
+        s.verdikt = ("Tetiklenen düzeltme yok; sonuç olduğu gibi bırakıldı."
+                     if not s.engellenenler else
+                     "Kusur TESPİT EDİLDİ ama otomatik düzeltilemiyor; "
+                     "sonuç olduğu gibi bırakıldı ve gerekçe kayıtlı.")
     elif s.sinif == VALIDATED:
         s.verdikt = (f"{len(s.mudahaleler)} düzeltme uygulandı, sonuç "
                      "design-grade'e ulaştı. Her müdahale kayıtlıdır.")
@@ -222,4 +293,7 @@ def duzelt(kanit: dict, yeniden_kos: Callable[[dict, dict], dict],
         s.verdikt = (f"{len(s.mudahaleler)} düzeltme uygulandı "
                      f"({s.etkisiz_sayisi} etkisiz); sonuç hâlâ design-grade "
                      "DEĞİL ve öyle raporlanır. " + (s.kalan_aday or ""))
+    if s.engellenenler:
+        s.verdikt += (" ELLE MÜDAHALE GEREKEN: " +
+                      "; ".join(f"{ad} ({neden})" for ad, neden in s.engellenenler))
     return s

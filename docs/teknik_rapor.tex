@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-32.073 satır Python $\cdot$ 150 test dosyası $\cdot$ 1.513 geçen test\\[3mm]
+32.826 satır Python $\cdot$ 153 test dosyası $\cdot$ 1.563 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -1046,6 +1046,65 @@ vereceğini göstermez. Span dekorelasyonunun hangi $\Delta z/D$'de gerçekten
 oluşacağı ancak koşuyla bilinir; ölçülen tek şey hangi çözünürlüğün
 ulaşılabilir olduğudur.
 \end{olculdu}
+
+\subsection{Reçeteden düzeltmeye: kurulumu onarıp yeniden koşmak}
+\label{sec:duzeltici}
+
+Reçete kullanıcıya \emph{ne yapması gerektiğini} söyler. Bir sonraki adım,
+yapılabilir olanı aracın kendisinin yapmasıdır. Düzeltici katman
+(\texttt{duzeltici.py}) bunu yürütür: guard bir kusur bulunca kurulumu onarır,
+yeniden koşar ve sonucu yeniden sınıflandırır.
+
+\begin{dikkat}{Tasarımın tek kuralı --- ihlal edilirse katman zararlıdır}
+Düzeltici bir \emph{sonucu} asla değiştirmez. Yalnız \emph{kurulumu} değiştirip
+yeniden koşar; sayı her zaman çözücüden gelir. Bir düzeltmenin çıktıyı referansa
+yaklaştırmak için değeri oynadığı an, araç tam da tespit etmek için var olduğu
+sessiz hatayı imal etmeye başlar: sayı doğru görünür, altındaki fizik yanlış
+kalır ve guard artık onu yakalayamaz çünkü referansla uyuşur. Bu kural bir
+testle bağlanmıştır: her düzeltmenin ürettiği anahtarlar taranır ve sonuç
+alanlarına (\texttt{Cl}, \texttt{Cd}, \texttt{sonuc}) dokunan bir düzeltme
+testi düşürür.
+\end{dikkat}
+
+Kütükteki dört düzeltme de gerçek bir koşuda tetiklendi ve sonucu ölçüldü;
+hiçbiri varsayım değildir. Her kural üç şeyi ayrıca yazar: hangi ölçümden
+doğduğu, hangi ön koşulu gerektirdiği ve hangi ayarları geçersiz kıldığı.
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Düzeltme} & \textbf{Ön koşul (makine sınar)} & \textbf{Yan etkisi} \\
+\midrule
+Duvar işlemini ağa uydur & Ağ zaten ince olmalı & Gradasyonu geçersiz kılar \\
+Rampalı başlangıç & Yakınsamış kaba çözüm & Yok \\
+Referans ağ ailesine geç & Beyaz listede aile & Farkın tek nedene atfı geçersiz \\
+Fiziksel olmayanı reddet & Yok (fizikten gelir) & Yok \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{olculdu}{Beş düzeltmenin ikisi sonucu düzeltmedi --- ve tasarımı bu belirledi}
+Silindir DES'inde duvar işlemi gerçekten bozuktu ($y^+ = 0{,}009$, duvar
+fonksiyonu geçerli bandın çok altında). Düzeltildi ($y^+ = 0{,}78$) ve sonuç
+\%1'den az değişti. NACA0012 $\alpha = 8^\circ$'de aynısı oldu: $y^+$ 357'den
+2{,}5'e indi, hata \%18{,}2'den yalnız \%16{,}6'ya.
+
+\textbf{Kusuru gidermek nedeni bulmak değildir.} Düzeltici bunu bilmek
+zorundadır: uyguladığı düzeltmenin işe yarayıp yaramadığını ölçer ve
+yaramadıysa döngüyü durdurup söyler. Bağıl hatada \%10'dan az iyileşme
+``etkisiz'' sayılır ve hüküm ``kusur giderildi ama sapma sürüyor --- kaynak bu
+düzeltmenin hedefi değil'' olur. Gizlenmez.
+\end{olculdu}
+
+\noindent Ön koşulların makine tarafından sınanması sonradan eklendi ve katman
+gerçek çözücüye bağlanınca zorunlu hâle geldi. Önceki sürümde ön koşullar yalnız
+insan-okur dizgilerdi; uygulanabilirlik yalnız tetikleyiciye bakıyordu. Bu,
+ısmarlama bir geometride yapılamayacak düzeltmelerin güvenle önerilmesi
+demekti: rampalı başlangıç için yakınsamış bir kaba çözüm, referans ağ ailesine
+geçiş için yayımlanmış bir aile gerekir ve kullanıcının kendi STL'inde ikisi de
+yoktur. Katman artık bu durumda düzeltme önermez, ama \emph{susmaz} da: kusuru
+tespit ettiğini ve neden düzeltemediğini yazar. Tespit edilip düzeltilemeyen bir
+kusur, hiç tespit edilmemiş bir kusurdan daha değerlidir.
 
 \clearpage
 
@@ -2117,13 +2176,13 @@ olarak değil. Kanıt dosyası zincirin tamamını taşır: üretim komutu
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 32.073 & \texttt{rapor\_sayilari.py} \\
-Kök modül & 84 & \texttt{rapor\_sayilari.py} \\
-Deney / çapa betiği & 74 & \texttt{experiments/} \\
-Test dosyası & 150 & \texttt{tests/test\_*.py} \\
-Geçen test & 1.513 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1.513 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
-Satır kapsamı & \textbf{\%47} & 19.951 ifade, 10.391 kapsanmamış \\
+Kod satırı (kök + \texttt{analysis/}) & 32.826 & \texttt{rapor\_sayilari.py} \\
+Kök modül & 86 & \texttt{rapor\_sayilari.py} \\
+Deney / çapa betiği & 81 & \texttt{experiments/} \\
+Test dosyası & 153 & \texttt{tests/test\_*.py} \\
+Geçen test & 1.563 & \texttt{pytest -q} \\
+Geçen test (coverage açık) & 1.563 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
+Satır kapsamı & \textbf{\%48} & 20.475 ifade, 10.578 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule
 \end{tabular}
