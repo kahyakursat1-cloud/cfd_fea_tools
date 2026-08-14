@@ -25,8 +25,14 @@ from pathlib import Path
 import bellek_kapisi
 
 HERE = Path(__file__).resolve().parent
-KUYRUK = HERE / "kuyruk.jsonl"
-KILIT = HERE / "kuyruk.lock"
+# Kuyruk dizini ORTAMDAN ayarlanabilir. Varsayılan modül dizinidir, yani
+# masaüstü davranışı değişmez. Konteynerde API ile worker AYRI süreçlerdir ve
+# kuyruk dosyasını PAYLAŞMALIDIR; kod dizinini bağlamak (mount) imajın kendi
+# kodunu gölgeleyeceği için kabul edilemez, o yüzden yol dışarı alınır.
+_KOK = Path(os.environ.get("AEROSIM_KUYRUK", HERE))
+_KOK.mkdir(parents=True, exist_ok=True)
+KUYRUK = _KOK / "kuyruk.jsonl"
+KILIT = _KOK / "kuyruk.lock"
 MIN_DISK_GB = 8.0
 
 

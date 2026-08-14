@@ -159,6 +159,9 @@ def test_kuyruk_ve_senkron_AYNI_sozlesmeyi_uretir(monkeypatch, tmp_path):
     _sahte_hat(monkeypatch)
     monkeypatch.setattr(kuyruk, "KUYRUK", tmp_path / "k.jsonl")
     monkeypatch.setattr(kuyruk, "KILIT", tmp_path / "k.lock")
+    # API yol sınırı GERÇEK bir dosya ister; sahte ad artık reddedilir.
+    monkeypatch.setattr(api, "VERI_KOK", tmp_path.resolve())
+    (tmp_path / "x.stl").write_bytes(b"solid x endsolid x")
 
     istek = api.AnalizIstegi(stl="x.stl", tip="ucak", hiz=30.0)
     senkron = api.analiz(istek)
@@ -188,3 +191,95 @@ def test_bilinmeyen_is_kimligi_ACIKCA_soylenir():
     import api
     o = api.is_durumu("yokboyle")
     assert o["durum"] == "yok" and o["hata"]
+
+
+# ── Dosya sınırı (API'ye özgü) ───────────────────────────────────────────────
+def _api_kok(monkeypatch, tmp_path):
+    import api
+    monkeypatch.setattr(api, "VERI_KOK", tmp_path.resolve())
+    return api
+
+
+def test_veri_kokU_DISINDAKI_yol_REDDEDILIR(monkeypatch, tmp_path):
+    """API sunucudaki herhangi bir dosyayı okumamalı.
+
+    Analiz geometriyi okuyup hacim/alan/kütle-merkezi döndürür, yani keyfî
+    yol kabul etmek dolaylı bir dosya-okuma kanalıdır.
+    """
+    from fastapi import HTTPException
+    api = _api_kok(monkeypatch, tmp_path)
+    (tmp_path / "ok.stl").write_bytes(b"solid x endsolid x")
+    assert api._guvenli_yol("ok.stl").endswith("ok.stl")
+
+    disarida = tmp_path.parent / "gizli.stl"
+    disarida.write_bytes(b"x")
+    for kotu in ("../gizli.stl", str(disarida)):
+        with pytest.raises(HTTPException) as e:
+            api._guvenli_yol(kotu)
+        assert e.value.status_code == 400
+
+
+def test_desteklenmeyen_uzanti_ve_YOK_dosya_ayirt_edilir(monkeypatch, tmp_path):
+    from fastapi import HTTPException
+    api = _api_kok(monkeypatch, tmp_path)
+    (tmp_path / "a.txt").write_bytes(b"x")
+    with pytest.raises(HTTPException) as e1:
+        api._guvenli_yol("a.txt")
+    assert e1.value.status_code == 400
+    with pytest.raises(HTTPException) as e2:
+        api._guvenli_yol("yok.stl")
+    assert e2.value.status_code == 404
+
+
+def test_yukleme_KULLANICI_ADINI_dosya_adi_YAPMAZ(monkeypatch, tmp_path):
+    """'../../x.stl' gibi bir ad veri kökünden çıkarmamalı; yalnız uzantı alınır."""
+    import asyncio
+
+    api = _api_kok(monkeypatch, tmp_path)
+
+    class _Istek:
+        async def body(self):
+            return b"solid x endsolid x"
+
+    o = asyncio.run(api.yukle(_Istek(), ad="../../kotu.stl"))
+    assert "/" not in o["stl"] and "\\" not in o["stl"]
+    assert (tmp_path / o["stl"]).exists()
+    assert o["ozgun_ad"] == "../../kotu.stl"      # kayıt için tutulur, kullanılmaz
+
+
+def test_CLI_yol_sinirina_TABI_DEGIL():
+    """Sınır API'ye özgüdür: CLI kullanıcının kendi hesabında koşar ve kendi
+    dosyalarına zaten erişebilir."""
+    import inspect
+
+    import cli
+    assert "_guvenli_yol" not in inspect.getsource(cli)
+
+
+def test_kuyruk_yolu_ORTAMDAN_ayarlanabilir(tmp_path, monkeypatch):
+    """API ile worker ayrı konteynerlerdedir ve kuyruk dosyasını PAYLAŞMALIDIR.
+
+    Kod dizinini bağlamak imajın kendi kodunu gölgelerdi; o yüzden yol dışarı
+    alındı. Varsayılan (ortam değişkeni yokken) modül dizinidir ve masaüstü
+    davranışı değişmez.
+    """
+    import importlib
+
+    monkeypatch.setenv("AEROSIM_KUYRUK", str(tmp_path))
+    import kuyruk
+    k = importlib.reload(kuyruk)
+    try:
+        assert k.KUYRUK.parent == tmp_path.resolve()
+        assert k.KILIT.parent == tmp_path.resolve()
+    finally:
+        monkeypatch.delenv("AEROSIM_KUYRUK")
+        importlib.reload(kuyruk)
+
+
+def test_compose_API_ve_worker_AYNI_imaji_ve_kuyrugu_kullanir():
+    """Ayrı imaj, aynı motorun iki kullanıcısına farklı sürüm vermek olurdu."""
+    from pathlib import Path
+    y = Path("docker/compose.yaml").read_text(encoding="utf-8")
+    assert y.count("image: aerosim-hizmet") == 2, "iki servis aynı imajda değil"
+    assert y.count("AEROSIM_KUYRUK: /kuyruk") == 2, "kuyruk paylaşılmıyor"
+    assert y.count("- veri:/veri") == 2, "veri hacmi paylaşılmıyor"

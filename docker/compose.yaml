@@ -1,0 +1,53 @@
+# AeroSim-Hub başsız dağıtım: API + worker, AYNI imaj, AYNI veri hacmi.
+#
+#   docker compose -f docker/compose.yaml up --build
+#
+# Neden iki servis: `kuyruk.py` dosya-tabanlı bir kilitle TEK worker'a izin
+# verir ve API'nin kendi zamanlayıcısı yoktur. API isteği kaydeder, worker
+# sırayla koşar. Aynı süreçte birleştirmek, uzun bir analiz boyunca API'yi
+# bloke ederdi.
+#
+# İkisi de AYNI imajdır: ayrı imaj, aynı motorun iki kullanıcısına farklı
+# sürüm vermek demek olurdu ve bu depoda o kusur sınıfından üç tane ölçüldü.
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.hizmet
+    image: aerosim-hizmet
+    command: uvicorn api:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      AEROSIM_VERI: /veri
+      AEROSIM_KUYRUK: /kuyruk
+    volumes:
+      - veri:/veri
+      - kuyruk:/kuyruk
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/saglik',timeout=3).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  worker:
+    image: aerosim-hizmet
+    depends_on:
+      - api
+    # `calis()` kuyruk boşalınca döner; döngü onu yeniden başlatır. Kilit
+    # dosyası ikinci bir worker'ı zaten engeller, dolayısıyla `replicas`
+    # artırmak İŞE YARAMAZ — sıra tek çözücüyle korunur.
+    command: >
+      sh -c "while true; do python -c 'import kuyruk,json;
+      print(json.dumps(kuyruk.calis(), ensure_ascii=False))'; sleep 10; done"
+    environment:
+      AEROSIM_VERI: /veri
+      AEROSIM_KUYRUK: /kuyruk
+    volumes:
+      - veri:/veri
+      - kuyruk:/kuyruk
+
+volumes:
+  veri:
+  kuyruk:

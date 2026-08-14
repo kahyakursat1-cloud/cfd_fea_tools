@@ -226,3 +226,4 @@ revise_1001_panel.py
 # Claude Code calisma araclari (agent/skill tanimlari) — depo icerigi degil,
 # calisma ortami. Yerelde DURUYOR, yalnizca izlenmiyor.
 .claude/
+veri/
