@@ -1,0 +1,1073 @@
+{
+  "_neden": "Makale iz-momentum ayrışmasını '~%18' diye iki yerde yazıyordu; arkasında kanıt dosyası yoktu. Bu dosya o sayıyı ölçüme bağlar.",
+  "_uretim": "python experiments/farfield_capraz_kontrol.py",
+  "ariza_esigi_pct": 100.0,
+  "ince_tipler": [
+    "roket",
+    "ucak"
+  ],
+  "n_toplam": 109,
+  "n_ariza": 1,
+  "tumu": {
+    "n": 108,
+    "medyan_pct": 7.06,
+    "ortalama_pct": 9.27,
+    "p90_pct": 18.9,
+    "maks_pct": 25.19,
+    "esik10_ustu_oran": 0.417,
+    "isaretli_medyan_pct": 4.67,
+    "iz_buyuk_sayisi": 79,
+    "iz_buyuk_orani": 0.731
+  },
+  "ince_govde": {
+    "n": 71,
+    "medyan_pct": 6.38,
+    "ortalama_pct": 8.14,
+    "p90_pct": 18.67,
+    "maks_pct": 25.19,
+    "esik10_ustu_oran": 0.31,
+    "isaretli_medyan_pct": 2.98,
+    "iz_buyuk_sayisi": 45,
+    "iz_buyuk_orani": 0.634
+  },
+  "kut_govde": {
+    "n": 37,
+    "medyan_pct": 13.16,
+    "ortalama_pct": 11.45,
+    "p90_pct": 18.9,
+    "maks_pct": 21.72,
+    "esik10_ustu_oran": 0.622,
+    "isaretli_medyan_pct": 13.16,
+    "iz_buyuk_sayisi": 34,
+    "iz_buyuk_orani": 0.919
+  },
+  "tip_bazinda": {
+    "genel": {
+      "n": 17,
+      "medyan_pct": 14.64,
+      "ortalama_pct": 14.53,
+      "p90_pct": 19.02,
+      "maks_pct": 21.72,
+      "esik10_ustu_oran": 0.941,
+      "isaretli_medyan_pct": 14.64,
+      "iz_buyuk_sayisi": 15,
+      "iz_buyuk_orani": 0.882
+    },
+    "multikopter": {
+      "n": 20,
+      "medyan_pct": 6.14,
+      "ortalama_pct": 8.84,
+      "p90_pct": 18.9,
+      "maks_pct": 19.99,
+      "esik10_ustu_oran": 0.35,
+      "isaretli_medyan_pct": 5.96,
+      "iz_buyuk_sayisi": 19,
+      "iz_buyuk_orani": 0.95
+    },
+    "roket": {
+      "n": 30,
+      "medyan_pct": 4.04,
+      "ortalama_pct": 6.08,
+      "p90_pct": 24.62,
+      "maks_pct": 25.19,
+      "esik10_ustu_oran": 0.133,
+      "isaretli_medyan_pct": 0.8,
+      "iz_buyuk_sayisi": 17,
+      "iz_buyuk_orani": 0.567
+    },
+    "ucak": {
+      "n": 41,
+      "medyan_pct": 9.45,
+      "ortalama_pct": 9.64,
+      "p90_pct": 18.04,
+      "maks_pct": 24.8,
+      "esik10_ustu_oran": 0.439,
+      "isaretli_medyan_pct": 4.76,
+      "iz_buyuk_sayisi": 28,
+      "iz_buyuk_orani": 0.683
+    }
+  },
+  "kayitlar": [
+    {
+      "vaka": "_b0/ciftkuyruk_kucuk",
+      "tip": "ucak",
+      "cd_yuzey": 0.05155,
+      "cd_iz": 0.05391,
+      "fark_pct": 4.58,
+      "isaretli_pct": 4.58,
+      "ariza": false
+    },
+    {
+      "vaka": "_b0/genel_kapsul_uzun",
+      "tip": "ucak",
+      "cd_yuzey": 0.04009,
+      "cd_iz": 0.04408,
+      "fark_pct": 9.95,
+      "isaretli_pct": 9.95,
+      "ariza": false
+    },
+    {
+      "vaka": "_b0/genel_kup800",
+      "tip": "ucak",
+      "cd_yuzey": 1.04584,
+      "cd_iz": 1.15643,
+      "fark_pct": 10.57,
+      "isaretli_pct": 10.57,
+      "ariza": false
+    },
+    {
+      "vaka": "_b0/gondol_dort",
+      "tip": "ucak",
+      "cd_yuzey": 0.04188,
+      "cd_iz": 0.04082,
+      "fark_pct": 2.53,
+      "isaretli_pct": -2.53,
+      "ariza": false
+    },
+    {
+      "vaka": "_b0/gripen_AB_Right",
+      "tip": "ucak",
+      "cd_yuzey": 0.1819,
+      "cd_iz": 0.16272,
+      "fark_pct": 10.54,
+      "isaretli_pct": -10.54,
+      "ariza": false
+    },
+    {
+      "vaka": "_b0/izgara_ld7",
+      "tip": "ucak",
+      "cd_yuzey": 0.08866,
+      "cd_iz": 0.0925,
+      "fark_pct": 4.33,
+      "isaretli_pct": 4.33,
+      "ariza": false
+    },
+    {
+      "vaka": "_b0/kaldirici_e_kapsulsu",
+      "tip": "ucak",
+      "cd_yuzey": 0.22213,
+      "cd_iz": 0.24401,
+      "fark_pct": 9.85,
+      "isaretli_pct": 9.85,
+      "ariza": false
+    },
+    {
+      "vaka": "_b0/minihawk_vtol",
+      "tip": "ucak",
+      "cd_yuzey": 0.02057,
+      "cd_iz": 0.01913,
+      "fark_pct": 7.0,
+      "isaretli_pct": -7.0,
+      "ariza": false
+    },
+    {
+      "vaka": "_b0/multikopter_kucuk",
+      "tip": "ucak",
+      "cd_yuzey": 0.18291,
+      "cd_iz": 0.21415,
+      "fark_pct": 17.08,
+      "isaretli_pct": 17.08,
+      "ariza": false
+    },
+    {
+      "vaka": "_b0/su57",
+      "tip": "ucak",
+      "cd_yuzey": 0.08893,
+      "cd_iz": 0.0883,
+      "fark_pct": 0.71,
+      "isaretli_pct": -0.71,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/genel_0_7924_prep",
+      "tip": "genel",
+      "cd_yuzey": 0.58496,
+      "cd_iz": 0.67057,
+      "fark_pct": 14.64,
+      "isaretli_pct": 14.64,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/genel_20_8976_prep",
+      "tip": "genel",
+      "cd_yuzey": 0.45383,
+      "cd_iz": 0.54016,
+      "fark_pct": 19.02,
+      "isaretli_pct": 19.02,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/genel_23_7161_prep",
+      "tip": "genel",
+      "cd_yuzey": 0.22117,
+      "cd_iz": 0.24868,
+      "fark_pct": 12.44,
+      "isaretli_pct": 12.44,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/genel_24_9528_prep",
+      "tip": "genel",
+      "cd_yuzey": 0.48754,
+      "cd_iz": 0.56024,
+      "fark_pct": 14.91,
+      "isaretli_pct": 14.91,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/genel_26_8751_prep",
+      "tip": "genel",
+      "cd_yuzey": 0.63591,
+      "cd_iz": 0.72675,
+      "fark_pct": 14.29,
+      "isaretli_pct": 14.29,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/genel_28_9961_prep",
+      "tip": "genel",
+      "cd_yuzey": 0.5219,
+      "cd_iz": 0.59056,
+      "fark_pct": 13.16,
+      "isaretli_pct": 13.16,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/genel_29_3488_prep",
+      "tip": "genel",
+      "cd_yuzey": 0.66116,
+      "cd_iz": 0.80476,
+      "fark_pct": 21.72,
+      "isaretli_pct": 21.72,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/genel_2_7884_prep",
+      "tip": "genel",
+      "cd_yuzey": 0.37351,
+      "cd_iz": 0.43945,
+      "fark_pct": 17.65,
+      "isaretli_pct": 17.65,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/genel_36_9359_prep",
+      "tip": "genel",
+      "cd_yuzey": 0.42335,
+      "cd_iz": 0.48408,
+      "fark_pct": 14.35,
+      "isaretli_pct": 14.35,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/genel_8_7414_prep",
+      "tip": "genel",
+      "cd_yuzey": 0.46476,
+      "cd_iz": 0.53815,
+      "fark_pct": 15.79,
+      "isaretli_pct": 15.79,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/genel_elipsoid1_prep",
+      "tip": "genel",
+      "cd_yuzey": 0.25964,
+      "cd_iz": 0.30533,
+      "fark_pct": 17.6,
+      "isaretli_pct": 17.6,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/genel_kure0_prep",
+      "tip": "genel",
+      "cd_yuzey": 0.27379,
+      "cd_iz": 0.31081,
+      "fark_pct": 13.52,
+      "isaretli_pct": 13.52,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kaldirici_govde_0_1456_prep",
+      "tip": "ucak",
+      "cd_yuzey": 0.05615,
+      "cd_iz": 0.05726,
+      "fark_pct": 1.98,
+      "isaretli_pct": 1.98,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kaldirici_govde_15_9777_prep",
+      "tip": "ucak",
+      "cd_yuzey": 0.03479,
+      "cd_iz": 0.03734,
+      "fark_pct": 7.33,
+      "isaretli_pct": 7.33,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kaldirici_govde_20_9453_prep",
+      "tip": "ucak",
+      "cd_yuzey": 0.05882,
+      "cd_iz": 0.05986,
+      "fark_pct": 1.77,
+      "isaretli_pct": 1.77,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kaldirici_govde_24_3149_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.22129,
+      "cd_iz": 0.23409,
+      "fark_pct": 5.78,
+      "isaretli_pct": 5.78,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kaldirici_govde_30_1352_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.2476,
+      "cd_iz": 0.25888,
+      "fark_pct": 4.56,
+      "isaretli_pct": 4.56,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kaldirici_govde_30_2166_prep",
+      "tip": "ucak",
+      "cd_yuzey": 0.05122,
+      "cd_iz": 0.05377,
+      "fark_pct": 4.98,
+      "isaretli_pct": 4.98,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kaldirici_govde_31_1200_prep",
+      "tip": "ucak",
+      "cd_yuzey": 0.04055,
+      "cd_iz": 0.0431,
+      "fark_pct": 6.29,
+      "isaretli_pct": 6.29,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kaldirici_govde_34_8522_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.24174,
+      "cd_iz": 0.25716,
+      "fark_pct": 6.38,
+      "isaretli_pct": 6.38,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kaldirici_govde_35_1919_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.3194,
+      "cd_iz": 0.30399,
+      "fark_pct": 4.82,
+      "isaretli_pct": -4.82,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kaldirici_govde_36_4151_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.32511,
+      "cd_iz": 0.31229,
+      "fark_pct": 3.94,
+      "isaretli_pct": -3.94,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kaldirici_govde_38_2665_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.23034,
+      "cd_iz": 0.2425,
+      "fark_pct": 5.28,
+      "isaretli_pct": 5.28,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kaldirici_govde_39_3787_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.24139,
+      "cd_iz": 0.25036,
+      "fark_pct": 3.72,
+      "isaretli_pct": 3.72,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kaldirici_govde_3_4621_prep",
+      "tip": "ucak",
+      "cd_yuzey": 0.04383,
+      "cd_iz": 0.04395,
+      "fark_pct": 0.27,
+      "isaretli_pct": 0.27,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kaldirici_govde_5_1867_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.23407,
+      "cd_iz": 0.2464,
+      "fark_pct": 5.27,
+      "isaretli_pct": 5.27,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kaldirici_govde_7_6102_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.29369,
+      "cd_iz": 0.27606,
+      "fark_pct": 6.0,
+      "isaretli_pct": -6.0,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kanatli_roket_10_6406_prep",
+      "tip": "genel",
+      "cd_yuzey": 0.19806,
+      "cd_iz": 0.20309,
+      "fark_pct": 2.54,
+      "isaretli_pct": 2.54,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kanatli_roket_12_3815_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.30102,
+      "cd_iz": 0.29619,
+      "fark_pct": 1.6,
+      "isaretli_pct": -1.6,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kanatli_roket_15_6385_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.17952,
+      "cd_iz": 0.18309,
+      "fark_pct": 1.99,
+      "isaretli_pct": 1.99,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kanatli_roket_23_3928_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.21242,
+      "cd_iz": 0.21279,
+      "fark_pct": 0.17,
+      "isaretli_pct": 0.17,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kanatli_roket_23_9613_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.2697,
+      "cd_iz": 0.26864,
+      "fark_pct": 0.39,
+      "isaretli_pct": -0.39,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kanatli_roket_25_2780_prep",
+      "tip": "genel",
+      "cd_yuzey": 0.54825,
+      "cd_iz": 0.6472,
+      "fark_pct": 18.05,
+      "isaretli_pct": 18.05,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kanatli_roket_26_8973_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.29636,
+      "cd_iz": 0.27324,
+      "fark_pct": 7.8,
+      "isaretli_pct": -7.8,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kanatli_roket_29_3799_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.28766,
+      "cd_iz": 0.29069,
+      "fark_pct": 1.05,
+      "isaretli_pct": 1.05,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kanatli_roket_2_3380_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.45179,
+      "cd_iz": 0.4478,
+      "fark_pct": 0.88,
+      "isaretli_pct": -0.88,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kanatli_roket_30_3373_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.24861,
+      "cd_iz": 0.25409,
+      "fark_pct": 2.2,
+      "isaretli_pct": 2.2,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kanatli_roket_5_3969_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.32101,
+      "cd_iz": 0.32277,
+      "fark_pct": 0.55,
+      "isaretli_pct": 0.55,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kanatli_roket_7_3509_prep",
+      "tip": "genel",
+      "cd_yuzey": 0.64629,
+      "cd_iz": 0.74507,
+      "fark_pct": 15.28,
+      "isaretli_pct": 15.28,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kanatli_vtol_12_6357_prep",
+      "tip": "ucak",
+      "cd_yuzey": 0.09677,
+      "cd_iz": 0.11423,
+      "fark_pct": 18.04,
+      "isaretli_pct": 18.04,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kanatli_vtol_14_6559_prep",
+      "tip": "ucak",
+      "cd_yuzey": 0.06355,
+      "cd_iz": 0.07355,
+      "fark_pct": 15.74,
+      "isaretli_pct": 15.74,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kanatli_vtol_19_3027_prep",
+      "tip": "ucak",
+      "cd_yuzey": 0.0787,
+      "cd_iz": 0.08614,
+      "fark_pct": 9.45,
+      "isaretli_pct": 9.45,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kanatli_vtol_19_6450_prep",
+      "tip": "ucak",
+      "cd_yuzey": 0.09405,
+      "cd_iz": 0.10547,
+      "fark_pct": 12.14,
+      "isaretli_pct": 12.14,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/kanatli_vtol_1_5219_prep",
+      "tip": "ucak",
+      "cd_yuzey": 0.09126,
+      "cd_iz": 1.67192,
+      "fark_pct": 1732.04,
+      "isaretli_pct": 1732.04,
+      "ariza": true
+    },
+    {
+      "vaka": "_batch_geo/multikopter_15_4523_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.19151,
+      "cd_iz": 0.21578,
+      "fark_pct": 12.67,
+      "isaretli_pct": 12.67,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/multikopter_18_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.8233,
+      "cd_iz": 0.98789,
+      "fark_pct": 19.99,
+      "isaretli_pct": 19.99,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/multikopter_19_2141_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.16894,
+      "cd_iz": 0.17458,
+      "fark_pct": 3.34,
+      "isaretli_pct": 3.34,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/multikopter_1_7354_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.16974,
+      "cd_iz": 0.17429,
+      "fark_pct": 2.68,
+      "isaretli_pct": 2.68,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/multikopter_22_5324_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.11742,
+      "cd_iz": 0.12156,
+      "fark_pct": 3.53,
+      "isaretli_pct": 3.53,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/multikopter_23_2220_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.20015,
+      "cd_iz": 0.20882,
+      "fark_pct": 4.33,
+      "isaretli_pct": 4.33,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/multikopter_24_3485_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.18184,
+      "cd_iz": 0.19326,
+      "fark_pct": 6.28,
+      "isaretli_pct": 6.28,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/multikopter_25_2193_prep",
+      "tip": "ucak",
+      "cd_yuzey": 0.02233,
+      "cd_iz": 0.02434,
+      "fark_pct": 9.0,
+      "isaretli_pct": 9.0,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/multikopter_26_1200_prep",
+      "tip": "ucak",
+      "cd_yuzey": 0.03775,
+      "cd_iz": 0.04051,
+      "fark_pct": 7.31,
+      "isaretli_pct": 7.31,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/multikopter_27_1881_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.11826,
+      "cd_iz": 0.11978,
+      "fark_pct": 1.29,
+      "isaretli_pct": 1.29,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/multikopter_29_1089_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.2009,
+      "cd_iz": 0.22074,
+      "fark_pct": 9.88,
+      "isaretli_pct": 9.88,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/multikopter_2_4023_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.65213,
+      "cd_iz": 0.77467,
+      "fark_pct": 18.79,
+      "isaretli_pct": 18.79,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/multikopter_4_9957_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.83109,
+      "cd_iz": 0.97369,
+      "fark_pct": 17.16,
+      "isaretli_pct": 17.16,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/multikopter_6_8246_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.69308,
+      "cd_iz": 0.82407,
+      "fark_pct": 18.9,
+      "isaretli_pct": 18.9,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/multikopter_8_6439_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.66597,
+      "cd_iz": 0.77716,
+      "fark_pct": 16.7,
+      "isaretli_pct": 16.7,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/roket_14_6664_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.3873,
+      "cd_iz": 0.28983,
+      "fark_pct": 25.17,
+      "isaretli_pct": -25.17,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/roket_14_8759_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.61554,
+      "cd_iz": 0.64476,
+      "fark_pct": 4.75,
+      "isaretli_pct": 4.75,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/roket_15_4726_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.43702,
+      "cd_iz": 0.43512,
+      "fark_pct": 0.43,
+      "isaretli_pct": -0.43,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/roket_16_6159_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.63101,
+      "cd_iz": 0.67422,
+      "fark_pct": 6.85,
+      "isaretli_pct": 6.85,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/roket_24_1397_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.43112,
+      "cd_iz": 0.42963,
+      "fark_pct": 0.35,
+      "isaretli_pct": -0.35,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/roket_31_5499_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.39809,
+      "cd_iz": 0.29782,
+      "fark_pct": 25.19,
+      "isaretli_pct": -25.19,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/roket_7_3195_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.5451,
+      "cd_iz": 0.56367,
+      "fark_pct": 3.41,
+      "isaretli_pct": 3.41,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/roket_8_7528_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.6412,
+      "cd_iz": 0.68565,
+      "fark_pct": 6.93,
+      "isaretli_pct": 6.93,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/roket_LD14_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.36833,
+      "cd_iz": 0.27763,
+      "fark_pct": 24.62,
+      "isaretli_pct": -24.62,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/roket_LD5_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.7034,
+      "cd_iz": 0.72439,
+      "fark_pct": 2.98,
+      "isaretli_pct": 2.98,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/tilt_rotor_11_6392_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.32597,
+      "cd_iz": 0.34435,
+      "fark_pct": 5.64,
+      "isaretli_pct": 5.64,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/tilt_rotor_14_9669_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.28571,
+      "cd_iz": 0.28605,
+      "fark_pct": 0.12,
+      "isaretli_pct": 0.12,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/tilt_rotor_26_5599_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.25974,
+      "cd_iz": 0.27319,
+      "fark_pct": 5.18,
+      "isaretli_pct": 5.18,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/tilt_rotor_26_9933_prep",
+      "tip": "ucak",
+      "cd_yuzey": 0.01293,
+      "cd_iz": 0.0158,
+      "fark_pct": 22.2,
+      "isaretli_pct": 22.2,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/tilt_rotor_8_3762_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.3365,
+      "cd_iz": 0.3601,
+      "fark_pct": 7.01,
+      "isaretli_pct": 7.01,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/ucak_0_2238_prep",
+      "tip": "ucak",
+      "cd_yuzey": 0.01138,
+      "cd_iz": 0.01283,
+      "fark_pct": 12.74,
+      "isaretli_pct": 12.74,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/ucak_17_8094_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.33691,
+      "cd_iz": 0.3492,
+      "fark_pct": 3.65,
+      "isaretli_pct": 3.65,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/ucak_19_2702_prep",
+      "tip": "multikopter",
+      "cd_yuzey": 0.39951,
+      "cd_iz": 0.45411,
+      "fark_pct": 13.67,
+      "isaretli_pct": 13.67,
+      "ariza": false
+    },
+    {
+      "vaka": "_batch_geo/ucak_sf95_prep",
+      "tip": "ucak",
+      "cd_yuzey": 0.00867,
+      "cd_iz": 0.01082,
+      "fark_pct": 24.8,
+      "isaretli_pct": 24.8,
+      "ariza": false
+    },
+    {
+      "vaka": "a320_Body_A320",
+      "tip": "ucak",
+      "cd_yuzey": 0.01485,
+      "cd_iz": 0.01189,
+      "fark_pct": 19.93,
+      "isaretli_pct": -19.93,
+      "ariza": false
+    },
+    {
+      "vaka": "ciftkuyruk_kucuk",
+      "tip": "ucak",
+      "cd_yuzey": 0.06013,
+      "cd_iz": 0.06616,
+      "fark_pct": 10.03,
+      "isaretli_pct": 10.03,
+      "ariza": false
+    },
+    {
+      "vaka": "clean_rocket_fixed",
+      "tip": "roket",
+      "cd_yuzey": 0.27458,
+      "cd_iz": 0.22331,
+      "fark_pct": 18.67,
+      "isaretli_pct": -18.67,
+      "ariza": false
+    },
+    {
+      "vaka": "clean_rocket_fixed_prep",
+      "tip": "roket",
+      "cd_yuzey": 0.1542,
+      "cd_iz": 0.15008,
+      "fark_pct": 2.67,
+      "isaretli_pct": -2.67,
+      "ariza": false
+    },
+    {
+      "vaka": "dogrulama_kup",
+      "tip": "genel",
+      "cd_yuzey": 1.11332,
+      "cd_iz": 0.99091,
+      "fark_pct": 11.0,
+      "isaretli_pct": -11.0,
+      "ariza": false
+    },
+    {
+      "vaka": "gci_kup",
+      "tip": "genel",
+      "cd_yuzey": 1.11332,
+      "cd_iz": 0.99091,
+      "fark_pct": 11.0,
+      "isaretli_pct": -11.0,
+      "ariza": false
+    },
+    {
+      "vaka": "genel_kapsul_uzun",
+      "tip": "ucak",
+      "cd_yuzey": 0.02751,
+      "cd_iz": 0.02882,
+      "fark_pct": 4.76,
+      "isaretli_pct": 4.76,
+      "ariza": false
+    },
+    {
+      "vaka": "gondol_dort",
+      "tip": "ucak",
+      "cd_yuzey": 0.04679,
+      "cd_iz": 0.04758,
+      "fark_pct": 1.69,
+      "isaretli_pct": 1.69,
+      "ariza": false
+    },
+    {
+      "vaka": "gripen_AB_Right",
+      "tip": "ucak",
+      "cd_yuzey": 0.18422,
+      "cd_iz": 0.16087,
+      "fark_pct": 12.68,
+      "isaretli_pct": -12.68,
+      "ariza": false
+    },
+    {
+      "vaka": "izgara_ld7",
+      "tip": "ucak",
+      "cd_yuzey": 0.09639,
+      "cd_iz": 0.10313,
+      "fark_pct": 6.99,
+      "isaretli_pct": 6.99,
+      "ariza": false
+    },
+    {
+      "vaka": "kaldirici_e_kapsulsu",
+      "tip": "ucak",
+      "cd_yuzey": 0.21797,
+      "cd_iz": 0.23154,
+      "fark_pct": 6.23,
+      "isaretli_pct": 6.23,
+      "ariza": false
+    },
+    {
+      "vaka": "mh_katman/minihawk",
+      "tip": "ucak",
+      "cd_yuzey": 0.02712,
+      "cd_iz": 0.02423,
+      "fark_pct": 10.66,
+      "isaretli_pct": -10.66,
+      "ariza": false
+    },
+    {
+      "vaka": "mh_nl/minihawk",
+      "tip": "ucak",
+      "cd_yuzey": 0.0273,
+      "cd_iz": 0.02536,
+      "fark_pct": 7.11,
+      "isaretli_pct": -7.11,
+      "ariza": false
+    },
+    {
+      "vaka": "mh_rb2/minihawk",
+      "tip": "ucak",
+      "cd_yuzey": 0.0187,
+      "cd_iz": 0.01593,
+      "fark_pct": 14.81,
+      "isaretli_pct": -14.81,
+      "ariza": false
+    },
+    {
+      "vaka": "mh_rb3/minihawk",
+      "tip": "ucak",
+      "cd_yuzey": 0.01892,
+      "cd_iz": 0.01669,
+      "fark_pct": 11.79,
+      "isaretli_pct": -11.79,
+      "ariza": false
+    },
+    {
+      "vaka": "minihawk",
+      "tip": "ucak",
+      "cd_yuzey": 0.01923,
+      "cd_iz": 0.01484,
+      "fark_pct": 22.83,
+      "isaretli_pct": -22.83,
+      "ariza": false
+    },
+    {
+      "vaka": "minihawk_duzeltme/minihawk",
+      "tip": "ucak",
+      "cd_yuzey": 0.02712,
+      "cd_iz": 0.02423,
+      "fark_pct": 10.66,
+      "isaretli_pct": -10.66,
+      "ariza": false
+    },
+    {
+      "vaka": "minihawk_vtol",
+      "tip": "ucak",
+      "cd_yuzey": 0.02057,
+      "cd_iz": 0.01913,
+      "fark_pct": 7.0,
+      "isaretli_pct": -7.0,
+      "ariza": false
+    },
+    {
+      "vaka": "multikopter_kucuk",
+      "tip": "ucak",
+      "cd_yuzey": 0.18318,
+      "cd_iz": 0.2071,
+      "fark_pct": 13.06,
+      "isaretli_pct": 13.06,
+      "ariza": false
+    },
+    {
+      "vaka": "test_sphere",
+      "tip": "roket",
+      "cd_yuzey": 0.14124,
+      "cd_iz": 0.14707,
+      "fark_pct": 4.13,
+      "isaretli_pct": 4.13,
+      "ariza": false
+    },
+    {
+      "vaka": "ucak_okkanat",
+      "tip": "ucak",
+      "cd_yuzey": 0.04263,
+      "cd_iz": 0.04419,
+      "fark_pct": 3.66,
+      "isaretli_pct": 3.66,
+      "ariza": false
+    }
+  ]
+}
