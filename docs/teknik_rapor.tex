@@ -2279,11 +2279,65 @@ cevap ``aynı'' değil, ``karşılaştırılamaz''dır.
 \begin{dikkat}{Kilidin kapsamadığı}
 \texttt{ortam\_kilidi.txt} Python yığınının \emph{ölçülen} sürümlerini tutar ve
 bir test onu kurulu sürümlere bağlar --- kilit eskirse süit kırılır. OpenFOAM ve
-CalculiX kilitte \emph{yoktur} (WSL/konteyner tarafında) ve
-\texttt{docker/Dockerfile} taban imajı değiştirilebilir bir etikete bağlıdır,
-digest'e sabitlenmemiştir. Bu bilinen bir yeniden-üretilebilirlik boşluğudur ve
-kapatılmış gibi gösterilmemektedir.
+CalculiX bu kilitte \emph{yoktur}; onlar WSL/konteyner tarafında yaşar ve
+sürümleri ayrı bir kanıt dosyasında kayıtlıdır (OpenFOAM
+\texttt{11-e1fc8c682ae6}, CalculiX 2.17). Taban imaj digest'e sabitlenmiştir.
+
+Kapanmayan boşluk şudur: \textbf{WSL kurulumunun kendisi bir bildirimden
+yeniden üretilemez.} Konteyner yolu bunu kapatır ve ölçülmüştür (aşağıda), ama
+masaüstü yol hâlâ elle kurulmuş bir WSL dağıtımına dayanır.
 \end{dikkat}
+
+\subsection{Başsız dağıtım ve iki ortamın örtüşmesi}
+\label{sub:bassiz}
+
+Aynı çözüm çekirdeği üç arayüzden çağrılır: masaüstü GUI, komut satırı
+(\texttt{cli.py}) ve REST ucu (\texttt{api.py}). Üçü de tek bir işlevi
+(\texttt{hizmet.analiz\_et}) sürer; bu, GUI ile kuyruk yolunun ayrışmasının
+ölçülmüş bir sonucudur (bir düzeltme seçeneği yalnız düğme yoluna eklenmiş,
+kuyruk yolunda yok sayılmıştı).
+
+Konteyner yolu, hiçbir bağımlılığı önceden kurulu olmayan bir makinede uçtan
+uca koşturuldu: dosya yükleme, kuyruğa alma, çözüm ve geçerlilik sınıfıyla
+birlikte dönen sonuç. Bu temiz-oda koşusu beş kusur açığa çıkardı ve hepsi aynı
+sınıftandı: \textbf{geliştirme makinesi eksik beyanı maskeler.} İki paket
+(\texttt{meshio}, \texttt{vtk}) korumasız ithal ediliyordu ama bağımlılık
+listesinde yoktu; çekirdek hesap katmanı bir masaüstü görüntüleyiciye
+(\texttt{pyvista}) bağlıydı; yürütme katmanı ``zaten Linux'tayım'' seçeneğini
+hiç tanımıyordu; ve sözlüğe yazılan dosya adının geçerli bir OpenFOAM
+\texttt{word}'ü olduğu garanti edilmiyordu. Sonuncusu yalnız konteynerde
+göründü çünkü REST ucu yüklemeyi rastgele onaltılık adla saklıyor ve o adların
+yaklaşık \%62'si rakamla başlıyor; \texttt{3b8737f31c36.stl} sözlükte
+\texttt{3} sayısı artı kelime diye ayrıştırılıyordu. Masaüstünde adlar hep
+harfle başladığı için kusur yıllarca görünmedi. Beşi de giderildi ve her biri
+bir teste bağlandı.
+
+\begin{anafikir}{İki ortam aynı sayıyı veriyor --- ölçüldü}
+Masaüstü ve konteyner imajları bilerek aynı taban digest'ini taşır; gerekçe
+``iki ortam aynı çözücüyü koşsun, üretilen bantlar karşılaştırılabilir olsun''
+idi. Bu bir varsayımdı. Aynı geometri, aynı ayar ve tek giriş noktasıyla iki
+ortamda ayrı ayrı çözüldüğünde (değişen tek şey \texttt{CFD\_BACKEND}):
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Ortam} & $\boldsymbol{C_d}$ & \textbf{Hücre} & \textbf{Sınıf} \\
+\midrule
+host-WSL   & 0{,}14124 & 316.514 & TREND \\
+konteyner  & 0{,}14138 & 316.514 & TREND \\
+\midrule
+\textbf{Fark} & \textbf{\%0{,}099} & \textbf{0} & \textbf{aynı} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Ağ üretimi bit-aynı; kalan \%0,1 iterasyon ve kayan-nokta düzeyindedir. Sınıfın
+da eşleşmesi ölçütün parçasıdır: sayı örtüşüp güvenilirlik hükmü ayrışsaydı iki
+ortam aynı sonucu vermiyor olurdu, çünkü sınıf sonucun parçasıdır.
+
+\emph{Sınır:} bu tek bir geometride ve tek bir ayarda ölçüldü. İddia ``iki ortam
+her koşulda örtüşür'' değil, ``ölçülen koşulda örtüştü''dür.
+\end{anafikir}
 
 Ayrıca depo kendi kod hijyenini de sınar: \emph{sessiz yutma} sayacı, gerekçesiz
 \texttt{except} bloklarının sayısının artmasını engeller. Bu raporun figürlerini
