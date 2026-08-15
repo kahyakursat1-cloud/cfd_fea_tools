@@ -25,22 +25,70 @@
 FROM openfoam/openfoam11-paraview510@sha256:fd10956e0b1eb70f9808baf2857e4baf846a0f6f272f73b6d00546eae96be181
 
 USER root
+
+# ENTRYPOINT SIFIRLANIR — ÖLÇÜLDÜ, varsayım değil. Taban imajın entrypoint'i
+#   ["/bin/sh","-c","/bin/sh -c \"/entry.sh\""]
+# biçiminde SABİT bir dizgedir, dolayısıyla konteyner CMD'si `entry.sh`'nin
+# `"$@"`'sine HİÇ ULAŞMAZ; script sonunda argümansız `exec /bin/bash` çalışır,
+# TTY olmadığı için EOF okur ve çıkar. İlk denemede iki konteyner de yalnız
+# OpenFOAM afişini basıp exit 0 verdi — komutlar sessizce yutulmuştu.
+#
+# OpenFOAM ortamını KAYBETMİYORUZ: proje her çözücü çağrısından önce
+# `analysis/openfoam_runner.OF_ENV_PREFIX` ile /opt/openfoam11/etc/bashrc'yi
+# kendisi kaynak alıyor, yani giriş kabuğuna ihtiyaç yok. İmajda doğrulandı:
+# foamRun, blockMesh ve ccx erişilebilir.
+ENTRYPOINT []
+
+# PYTHON: taban imajin kendi 3.8'i kullanilir (Ubuntu 20.04 focal).
+#
+# Once 3.11 denendi (deadsnakes PPA) ve BASARISIZ oldu: kaynak satiri eklendi,
+# InRelease cekildi, ama paket indeksi yuklenmedi (`apt-cache policy python3.11`
+# bos). Ugrasmak yerine olcume bakildi: 3.8 uyumsuzlugu TOPLAM IKI taneydi ve
+# ikisi de `api.py`'deydi — pydantic'in `float | None` acıklamasını calisma
+# zamaninda cozememesi ve `Path.is_relative_to`nun (3.9) olmamasi. Yigininin
+# geri kalani 3.8'de sorunsuz kostu; worker `hizmet`i ice aktarip calisti.
+#
+# Yani risk sinirsiz degil, SINIRLANABILIR. Dogru cozum surumu zorlamak degil,
+# uyumsuzlugu ILK ISTEGE degil INSAYA tasimak: asagidaki ithal-denetimi bunu
+# yapar. Bir modul 3.8'de kirilirsa imaj KURULMAZ; sessizce kurulup ilk
+# istekte patlamaz.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-         calculix-ccx python3 python3-pip python3-venv \
+         calculix-ccx curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+# PYTHON 3.11 — `uv` ile bagimsiz CPython. `pyproject.toml` zaten
+# `requires-python = ">=3.11"` diyor, yani bu bir tercih degil ILAN EDILMIS
+# kisit; taban imajin 3.8'i ile `pip install .` ZATEN reddederdi.
+#
+# deadsnakes PPA denendi ve BASARISIZ oldu: kaynak satiri eklendi, InRelease
+# indi, ama `Packages` indeksi HIC inmedi ve apt bunu SESSIZCE atladi (ne W:
+# ne E:). Listeler temizlenip zorlandiginda da ayni. Apt'yle guresmek yerine
+# surumu dogrudan getiriyoruz — repo guveni ve indeks sorunu devre disi.
+# `UV_INSTALL_DIR` ACIKCA verilir: taban imaj HOME'u /home/openfoam olarak
+# ayarliyor ve `USER root` bunu DEGISTIRMIYOR, dolayisiyla kurulum betigi
+# /root/.local/bin'e degil /home/openfoam/.local/bin'e yaziyordu. Olculdu.
+RUN curl -LsSf https://astral.sh/uv/install.sh \
+      | env UV_INSTALL_DIR=/usr/local/bin sh \
+    && uv python install 3.11
 
 WORKDIR /uygulama
 
-# Bağımlılıklar ÖNCE: kaynak değişince pip katmanı yeniden kurulmasın.
-COPY requirements.txt* pyproject.toml* /uygulama/
-RUN python3 -m venv /opt/venv \
-    && /opt/venv/bin/pip install --no-cache-dir --upgrade pip \
-    && ( [ -f /uygulama/requirements.txt ] \
-         && /opt/venv/bin/pip install --no-cache-dir -r /uygulama/requirements.txt \
-         || true ) \
-    && /opt/venv/bin/pip install --no-cache-dir numpy scipy matplotlib \
-         fastapi uvicorn pydantic
+# BAGIMLILIKLAR pyproject.toml'DAN — elle liste TUTULMAZ. Onceki surum
+# Dockerfile'da alti paket sayiyordu (numpy scipy matplotlib fastapi uvicorn
+# pydantic) ve bu IKINCI BIR BAGIMLILIK LISTESIYDI: `trimesh` orada yoktu,
+# imaj sorunsuz kuruldu, worker isi aldi ve `No module named 'trimesh'` ile
+# dustu. Ayni "iki kaynak ayrisir" kusuru; artik tek kaynak pyproject.
+#
+# Bagimliliklar ONCE kurulur (kaynak degisince bu katman onbellekten gelsin).
+# `analysis/` DE bu katmanda kopyalanir: pyproject `packages = ["analysis"]`
+# diyor ve dizin yoksa setuptools "package directory 'analysis' does not exist"
+# ile duser. Kok betikler (sik degisen) hala sonraki katmanda kalir, yani
+# onbellek yararinin cogu korunur.
+COPY pyproject.toml README.md /uygulama/
+COPY analysis /uygulama/analysis
+RUN uv venv --python 3.11 /opt/venv \
+    && VIRTUAL_ENV=/opt/venv uv pip install --no-cache ".[api]"
 
 ENV PATH="/opt/venv/bin:${PATH}" \
     PYTHONUNBUFFERED=1 \
@@ -48,6 +96,17 @@ ENV PATH="/opt/venv/bin:${PATH}" \
     CFD_BACKEND=yerel
 
 COPY . /uygulama
+
+# İTHAL DENETİMİ — İNŞA ZAMANINDA. Başsız giriş noktaları bu Python sürümünde
+# gerçekten yükleniyor mu? Bu satır olmadan bir sürüm uyumsuzluğu imajı sessizce
+# kurar ve ancak İLK İSTEKTE patlar; ölçüldü, tam bu oldu (pydantic `float|None`
+# ve `Path.is_relative_to`). Artık imaj kurulmaz.
+# ÇÖZÜCÜ YOLU DA İTHAL EDİLİR. Önceki sürüm yalnız `hizmet, cli, api` yüklüyordu
+# ve GEÇTİ — ama `hizmet` çözücüyü TEMBEL ithal ettiği için `trimesh` eksikliği
+# inşada görünmedi; imaj kuruldu, worker işi aldı ve çalışma zamanında düştü.
+# Bir denetim ancak GERÇEKTEN yüklediği şeyi kanıtlar.
+RUN python -c "import hizmet, cli, api, vehicle_pipeline, duzeltici_adaptor, kuyruk; import trimesh, numpy, scipy, gmsh; print('bassiz + cozucu modulleri yuklendi')" \
+    && python cli.py --help > /dev/null
 
 # GUI YOK: bu imajda PySide6 kurulu değildir ve `app_analyzer` çalışmaz.
 # Bilinçli — başsız dağıtımın bir masaüstü kütüphanesine bağlı olmaması gerekir.

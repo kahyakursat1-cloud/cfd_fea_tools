@@ -33,12 +33,24 @@ dependencies = [
     "gmsh>=4.11",
     "psutil>=5.9",       # kuyruk kilidi: PID canli mi. Yoksa kilit devralinmaz
                          # ("sorulamadi" -> guvenli taraf) ve bayat kilit kalir.
+    # Asagidaki ikisi KONTEYNER TEMIZ-ODASINDA ortaya cikti (2026-08-15): ikisi de
+    # KORUMASIZ ithal ediliyor ama bu listede YOKTU. Yerelde kurulu olduklari icin
+    # kimse fark etmemis; temiz bir `pip install .` yapan herkeste kirik gelirdi.
+    "meshio>=5.3",       # analysis/tet_mesher.py — C3D10 uretimi. Yoksa FEA yolu
+                         # ICE AKTARIMDA duser (ModuleNotFoundError), sessizce degil.
+    "vtk>=9.2",          # farfield_drag.py — uzak-alan iz-momentum capraz kontrolu
+                         # (makale §5.2). Yoksa surukleme tutarlilik denetimi yapilamaz.
 ]
 
 [project.optional-dependencies]
 gui = ["PySide6>=6.5"]
+# Bassiz REST arayuzu (api.py). Konteyner bu extra ile kurulur; boylece
+# Dockerfile ikinci bir bagimlilik listesi tutmaz.
+api = ["fastapi>=0.110", "uvicorn>=0.27", "pydantic>=2.5"]
 # 'ml' extra (torch/ultralytics/YOLO) görüntü-işleme ile ../goruntu_isleme'ye taşındı (2026-06-21).
-viz = ["seaborn>=0.12", "plotly>=5.17", "Pillow>=10.0"]   # Pillow: supersonic_report PDF figürleri
+viz = ["seaborn>=0.12", "plotly>=5.17", "Pillow>=10.0",   # Pillow: supersonic_report PDF figürleri
+       "pyvista>=0.43"]   # analysis/result_viewer 3B görüntüleyici; başsız
+                          # dağıtım GEREKTİRMEZ (analysis/__init__ korumalı ithal)
 dev = [
     "ruff>=0.5",
     "mypy>=1.10",

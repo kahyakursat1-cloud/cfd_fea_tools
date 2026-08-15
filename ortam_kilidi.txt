@@ -33,6 +33,9 @@ mapbox-earcut==2.0.0
 manifold3d==3.5.2
 gmsh==4.15.2
 psutil==7.2.2
+# 2026-08-15: konteyner temiz-odasinda eksik beyan olarak bulundu.
+meshio==5.3.5
+vtk==9.6.0
 
 # opsiyonel (GUI / geliştirme)
 PySide6==6.10.2

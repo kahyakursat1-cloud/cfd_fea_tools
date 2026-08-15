@@ -20,6 +20,7 @@ from __future__ import annotations
 import os
 import uuid
 from pathlib import Path
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -49,8 +50,12 @@ def _guvenli_yol(s: str) -> str:
     """
     VERI_KOK.mkdir(parents=True, exist_ok=True)
     p = (VERI_KOK / s).resolve() if not Path(s).is_absolute() else Path(s).resolve()
-    if not p.is_relative_to(VERI_KOK):
-        raise HTTPException(400, f"yol veri kökü dışında: {s} (kök: {VERI_KOK})")
+    # `Path.is_relative_to` Python 3.9'da geldi; `relative_to` + ValueError
+    # her sürümde AYNI kararı verir ve konteyner taban imajı 3.8 taşıyabilir.
+    try:
+        p.relative_to(VERI_KOK)
+    except ValueError:
+        raise HTTPException(400, f"yol veri kökü dışında: {s} (kök: {VERI_KOK})") from None
     if p.suffix.lower() not in UZANTILAR:
         raise HTTPException(400, f"desteklenmeyen uzantı: {p.suffix}")
     if not p.exists():
@@ -59,6 +64,12 @@ def _guvenli_yol(s: str) -> str:
 
 
 class AnalizIstegi(BaseModel):
+    # `Optional[float]` BİLEREK; `float | None` DEĞİL. Konteynerin taban imajı
+    # (OpenFOAM 11 / Ubuntu 20.04) Python 3.8 taşıyor ve pydantic açıklamaları
+    # ÇALIŞMA ZAMANINDA değerlendiriyor — `from __future__ import annotations`
+    # onları dizgeye çevirse bile pydantic çözmeye çalışıp patlıyor. ÖLÇÜLDÜ:
+    # ilk canlı koşuda API bu satırda çöktü, worker sorunsuz koştu. Dosyanın
+    # geri kalanı yeni sözdizimini kullanabilir; sınır yalnız pydantic modeli.
     stl: str = Field(..., description="geometri dosyası yolu (.stl)")
     tip: str = "ucak"
     hiz: float = 30.0
@@ -66,7 +77,7 @@ class AnalizIstegi(BaseModel):
     kalite: str = "standart"
     cekirdek: int = 0
     duzeltici: bool = False
-    referans_cd: float | None = None
+    referans_cd: Optional[float] = None                          # noqa: UP045
 
 
 @app.get("/saglik")

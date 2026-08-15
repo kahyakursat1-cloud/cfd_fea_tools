@@ -3,6 +3,8 @@
 Tüm çözücü çağrıları (OpenFOAM, ccx) tek noktadan geçer; CFD_BACKEND ortam değişkeni
 arka ucu seçer:
   wsl    (varsayılan) — mevcut davranış birebir (Ubuntu-22.04)
+  yerel  — zaten Linux'ta koşuyoruz; komut doğrudan `bash -c` ile çalışır.
+           Konteyner/CI/küme dağıtımı bunu kullanır (`native`/`linux` da kabul).
   docker — aynı bash komutu konteynerde koşar. Önkoşul: konteyner, host sürücüsünü
            AYNI /mnt/<x> yoluna bağlamalı (windows_to_wsl_path değişmeden çalışsın):
            docker run -d --name aerosim -v D:\\:/mnt/d aerosim-hub sleep infinity
@@ -36,8 +38,17 @@ def linux_argv(bash_cmd: str, login: bool = False) -> list[str]:
     kalktı. Varsayılan DEĞİŞMEDİ --- login olmayan çağrılar birebir eskisi gibi.
     """
     bayrak = "-lc" if login else "-c"
-    if backend() == "docker":
+    ad = backend()
+    if ad == "docker":
         return ["docker", "exec", container(), "bash", bayrak, bash_cmd]
+    # YEREL: zaten Linux'tayız, sarmalayıcı YOK. Bu arka uç KONTEYNER İÇİNDE
+    # zorunlu ve eksikti: katman yalnız "Windows'tan WSL'e" ve "Windows'tan
+    # docker'a" biliyordu, "zaten Linux'tayım" seçeneği hiç yoktu. Ölçüldü
+    # (2026-08-15): konteynerde worker `[Errno 2] No such file or directory:
+    # 'wsl'` ile düştü — `CFD_BACKEND=yerel` tanınmadığı için varsayılan wsl
+    # dalına SESSİZCE düşüyordu.
+    if ad in ("yerel", "native", "linux"):
+        return ["bash", bayrak, bash_cmd]
     return ["wsl", "-d", WSL_DISTRO, "--", "bash", bayrak, bash_cmd]
 
 

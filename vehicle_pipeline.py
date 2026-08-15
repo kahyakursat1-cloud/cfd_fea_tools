@@ -1289,6 +1289,28 @@ class VehicleAnalysisResult:
     ortam: dict | None = None
 
 
+def _log_kuyrugu(yol: str | None, satir: int = 40) -> str:
+    """Düşen aşamanın log DOSYASININ son satırları — hatanın kendisi.
+
+    ÖLÇÜLEN KUSUR (2026-08-15): hata metni yalnız log YOLUNU taşıyordu ve
+    `res.stdout` yapısal olarak BOŞTU (her aşama `> log.X 2>&1` ile dosyaya
+    yönlendiriliyor). Yani rapor `--- log.snappyHexMesh ---` başlığını basıp
+    altına hiçbir şey koymuyordu. Masaüstünde bu yalnız zahmetti; BAŞSIZ
+    dağıtımda teşhisi imkânsız kılıyor: yol konteynerin içini gösterir, JSON'u
+    alan kullanıcı o dosyaya ASLA erişemez. Gerçek hata (dict ayrıştırma) ancak
+    konteynere elle girilerek görüldü.
+    """
+    if not yol:
+        return ""
+    try:
+        satirlar = Path(yol).read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError as e:
+        return f"[log okunamadı: {e}]\n\n"
+    if not satirlar:
+        return "[log boş]\n\n"
+    return "--- log kuyruğu ---\n" + "\n".join(satirlar[-satir:]) + "\n\n"
+
+
 def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg=0.0,
                          quality="standart", out_root="vehicle_runs",
                          n_processors=0, rho=1.225,
@@ -1509,7 +1531,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                        if _dusen.get("donus_kodu") is not None else "")
                     + f", {_dusen['sure_s']:.0f} s sonra"
                     + (f"\nLOG: {_log}" if _log else "")
-                    + "\n\n")
+                    + "\n\n" + _log_kuyrugu(_log))
         base.error = _bas + (res.stderr or res.stdout)[-2000:]
         (run_dir / "sonuc.json").write_text(json.dumps(asdict(base), indent=2, ensure_ascii=False), encoding="utf-8")
         return base

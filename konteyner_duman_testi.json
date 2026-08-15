@@ -1,0 +1,69 @@
+{
+  "zincir_tamam": true,
+  "adimlar": [
+    {
+      "adim": "saglik",
+      "ok": true,
+      "ayrinti": "{'durum': 'ayakta', 'surum': '1.0', 'veri_kok': '/veri'}"
+    },
+    {
+      "adim": "yukle",
+      "ok": true,
+      "ayrinti": "64084 bayt -> a7cede0c0490.stl"
+    },
+    {
+      "adim": "analiz-kuyruga",
+      "ok": true,
+      "ayrinti": "{'surum': '1.0', 'durum': 'kuyrukta', 'is_id': 'b252e765', 'durum_ucu': '/is/b252e765'}"
+    },
+    {
+      "adim": "worker",
+      "ok": true,
+      "ayrinti": "bitti"
+    },
+    {
+      "adim": "sozlesme-sinif",
+      "ok": true,
+      "ayrinti": "TREND"
+    },
+    {
+      "adim": "sozlesme-sayi",
+      "ok": true,
+      "ayrinti": "0.21077"
+    }
+  ],
+  "hata": null,
+  "sonuc_ozeti": {
+    "sonuc": {
+      "cd": 0.21077,
+      "cl": -0.01296,
+      "ld": -0.06,
+      "aref_m2": 0.00781,
+      "surukleme_N": 0.403
+    },
+    "gecerlilik": {
+      "genel": "TREND",
+      "nicelikler": [
+        {
+          "nicelik": "C_L (taşıma)",
+          "sinif": "TREND",
+          "tasarimda_kullanilir": false,
+          "gerekce": "Bağlı akış (|α|≤8°) ama AĞ YETERLİLİĞİ GÖSTERİLMEDİ: bu ağın taşımayı çözdüğüne dair çok-ağlı band ya da referans-ağ ailesi beyanı yok. Hücum açısı tek başına taşıma güvenilirliğini kurmaz — ölçüldü: bağlı akışta ağ-kaynaklı %5,8–%23 taşıma hatası. Eğilim ve aynı ağla A/B karşılaştırması geçerlidir."
+        },
+        {
+          "nicelik": "C_D (sürükleme)",
+          "sinif": "TREND",
+          "tasarimda_kullanilir": false,
+          "gerekce": "Bu koşu için çok-ağlı yakınsama bandı (GCI/LSR) hesaplanmadı, dolayısıyla mutlak sürüklemenin sayısal belirsizliği BİLİNMİYOR. Bu geometride hiç ağ-duyarlılığı ölçülmedi. Tasarım sayısı DEĞİL; aynı ağ ayarıyla yapılan A/B karşılaştırması ve eğilim geçerlidir."
+        },
+        {
+          "nicelik": "L/D, sürükleme kuvveti/gücü",
+          "sinif": "TREND",
+          "tasarimda_kullanilir": false,
+          "gerekce": "Mutlak sürüklemeden türetilir → tasarım sayısı değil; karşılaştırmalı kullanın."
+        }
+      ]
+    }
+  },
+  "_uretim": "python experiments/konteyner_duman_testi.py"
+}

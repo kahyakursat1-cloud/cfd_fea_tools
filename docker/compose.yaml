@@ -17,7 +17,11 @@ services:
     image: aerosim-hizmet
     command: uvicorn api:app --host 0.0.0.0 --port 8000
     ports:
-      - "8000:8000"
+      # HOST 8080, konteyner 8000. Windows'ta 8000 portunu bir sistem servisi
+      # (svchost) tutuyordu ve eşleme sessizce çakışıyordu — duman testi
+      # "connection refused" değil "RemoteDisconnected" veriyordu, yani yanlış
+      # sunucuya bağlanıyorduk. Host portu ölçülerek seçildi.
+      - "8080:8000"
     environment:
       AEROSIM_VERI: /veri
       AEROSIM_KUYRUK: /kuyruk

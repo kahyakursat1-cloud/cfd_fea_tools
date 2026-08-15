@@ -24,8 +24,26 @@ from .ccx_runner import CCXResult, run_ccx
 from .frd_parser import FRDResult, parse_frd
 from .geometry_loader import BBOX_SIDES, GeometryInfo, faces_in_axis_band, load_geometry
 from .openfoam_runner import CFDCase, CFDResult, build_case, parse_force_coeffs, run_cfd
-from .result_viewer import build_unstructured_grid, show_standalone
 from .tet_mesher import TetMesh, generate_tet_mesh, repair_mesh
+
+# GÖRÜNTÜLEYİCİ İSTEĞE BAĞLI. `result_viewer` `pyvista` ithal ediyor ve bu satır
+# eskiden koşulsuzdu: `analysis` paketini ithal eden HERKES bir masaüstü 3B
+# görüntüleyiciye bağımlı oluyordu. Başsız konteyner tam burada düştü
+# (2026-08-15) — çekirdek hesap katmanı sunum katmanına bağımlı olmamalı.
+#
+# Ad KORUNUR: `from analysis import show_standalone` çalışmaya devam eder;
+# pyvista yoksa çağrıldığında ANLAŞILIR bir hata verir, ithalde değil.
+try:
+    from .result_viewer import build_unstructured_grid, show_standalone
+except ImportError as _e:                                      # pragma: no cover
+    _viewer_hata = _e
+
+    def _viewer_yok(*_a, **_k):
+        raise ImportError(
+            "3B görüntüleyici için `pyvista` gerekli (isteğe bağlı bağımlılık): "
+            f"pip install 'cfdfea-tools[viz]'  —  özgün hata: {_viewer_hata}")
+
+    build_unstructured_grid = show_standalone = _viewer_yok
 
 __all__ = [
     "GeometryInfo", "load_geometry", "BBOX_SIDES", "faces_in_axis_band",

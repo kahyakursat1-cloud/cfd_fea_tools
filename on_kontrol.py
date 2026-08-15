@@ -25,7 +25,13 @@ ZORUNLU_PY = ["numpy", "scipy", "matplotlib", "trimesh", "gmsh", "yaml",
               # psutil: kuyruk kilidinin sahibi PID hala yasiyor mu. Yoksa
               # "sorulamadi" donulur ve BAYAT KILIT DEVRALINMAZ — makine
               # kapanmasindan sonra kuyruk kalici bloke kalir.
-              "psutil"]
+              "psutil",
+              # meshio/vtk: konteyner temiz-odasinda bulundu (2026-08-15).
+              # meshio yoksa FEA yolu (analysis/tet_mesher) ICE AKTARIMDA duser;
+              # vtk yoksa uzak-alan surukleme capraz kontrolu (farfield_drag,
+              # makale §5.2) yapilamaz. Yerelde kurulu olduklari icin yillarca
+              # gorunmediler.
+              "meshio", "vtk"]
 SECMELI_PY = {"PySide6": "GUI (app_analyzer / launcher)",
               "pandas": "tablo/rapor yardımcıları",
               "plotly": "etkileşimli figürler"}

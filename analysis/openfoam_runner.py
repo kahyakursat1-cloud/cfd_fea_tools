@@ -92,6 +92,32 @@ OF_ENV_PREFIX = (
 )
 
 
+_FOAM_GECERSIZ = re.compile(r"[^A-Za-z0-9_.\-]")
+
+
+def foam_word(ad: str) -> str:
+    """Adı geçerli bir OpenFOAM `word` token'ına çevir (dosya/yüzey adı için).
+
+    ÖLÇÜLEN KUSUR (2026-08-15, konteyner): REST ucu yüklenen dosyayı rastgele
+    onaltılık adla saklıyor; `3b8737f31c36.stl` gibi RAKAMLA BAŞLAYAN bir ad
+    snappyHexMeshDict'e anahtar olarak yazılınca OpenFOAM onu `3` sayısı +
+    `b8737f31c36.stl` kelimesi diye ayrıştırdı ve
+
+        FOAM FATAL IO ERROR: Expected a '(' or a '{' while reading List
+
+    ile düştü. Onaltılık adların ~%62'si rakamla başlar, yani ucun ÇOĞU
+    çağrısı düşerdi. Kusur uca değil BU KATMANA aittir: sözlüğü yazan burası,
+    dolayısıyla token'ın geçerliliğini garanti etmesi gereken de burası --- ve
+    eski kod yalnız boşluğu temizleyerek sorunun varlığını zaten kabul ediyordu.
+
+    Ad DEĞİŞTİĞİNDE dosya o adla kopyalanır; case içi tutarlılık korunur.
+    """
+    t = _FOAM_GECERSIZ.sub("_", ad)
+    if not t or not (t[0].isalpha() or t[0] == "_"):
+        t = "g_" + t                    # rakamla/noktayla başlayan ad -> ön ek
+    return t
+
+
 @dataclass
 class CFDCase:
     """OpenFOAM külesinin tanımı."""
@@ -1086,9 +1112,10 @@ def build_case(case: CFDCase, out_dir: Path) -> Path:
     (case_dir / "constant" / "triSurface").mkdir(parents=True)
     (case_dir / "system").mkdir(parents=True)
 
-    # STL kopyala
-    stl_name = case.stl_path.name
-    surface_name = case.stl_path.stem.replace(" ", "_")
+    # STL kopyala. Dosya adı OpenFOAM SÖZLÜK ANAHTARI olarak yazılacağı için
+    # geçerli bir `word` olmak ZORUNDA — aksi halde dict AYRIŞTIRILAMAZ.
+    stl_name = foam_word(case.stl_path.name)
+    surface_name = foam_word(case.stl_path.stem)
     shutil.copy(case.stl_path, case_dir / "constant" / "triSurface" / stl_name)
 
     # Domain
