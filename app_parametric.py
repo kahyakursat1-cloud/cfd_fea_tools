@@ -75,10 +75,12 @@ class ParametrikAnalizIsi(QThread):
     bitti = Signal(dict)
     dustu = Signal(str)
 
-    def __init__(self, aircraft, hiz: float, mesh_boyut: float, cekirdek: int):
+    def __init__(self, aircraft, hiz: float, mesh_boyut: float, cekirdek: int,
+                 kalite: str = "standart", alpha_deg: float = 0.0):
         super().__init__()
         self.aircraft, self.hiz = aircraft, hiz
         self.mesh_boyut, self.cekirdek = mesh_boyut, cekirdek
+        self.kalite, self.alpha_deg = kalite, alpha_deg
 
     def run(self):
         try:
@@ -95,10 +97,28 @@ class ParametrikAnalizIsi(QThread):
                                    "çözücüye veriliyor")
 
             from hizmet import analiz_et
-            sonuc = analiz_et(
-                str(stl),
-                vehicle_type=_ARAC_TIPI.get(self.aircraft.aircraft_type, "genel"),
-                velocity=self.hiz, n_processors=self.cekirdek)
+            # PARAMETRE SÖZLÜĞÜ AÇIK: giriş-noktası eşdeğerlik denetimi bu
+            # sözlüğü tarar. İlk sürüm anahtarları doğrudan çağrıya yazıyordu ve
+            # DOKUZU birden sessizce varsayılana düşüyordu --- `ref_bump=0`
+            # yüzünden ölçülen y⁺ 803 çıktı (fizik 3 öneriyordu), `mesh_levels`
+            # geçilmediği için LSR bandı hiç üretilemezdi. Tam olarak bu testin
+            # önlemek için var olduğu kusur, dördüncü giriş noktasında tekrarlandı.
+            p = {
+                "stl_path": str(stl),
+                "vehicle_type": _ARAC_TIPI.get(self.aircraft.aircraft_type, "genel"),
+                "velocity": self.hiz,
+                "alpha_deg": self.alpha_deg,
+                "quality": self.kalite,
+                "n_processors": self.cekirdek,
+                "ref_bump": "oto",          # fizik tahmininden yüzey kademesi
+                "mesh_levels": 3,
+                "n_layers": 0,
+                "yplus_target": 30.0,
+                "mesh_sensitivity": False,
+                "nose_axis": "+x",
+                "up_axis": "+z",
+            }
+            sonuc = analiz_et(**p)
             if sonuc.get("durum") != "ok":
                 self.dustu.emit(sonuc.get("hata", "bilinmeyen hata"))
                 return

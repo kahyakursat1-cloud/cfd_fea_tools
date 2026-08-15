@@ -83,6 +83,14 @@ def _tum_yollar() -> dict[str, set[str]]:
     yollar = {}
     yollar.update(_param_sozlukleri("app_analyzer.py"))
     yollar.update(_param_sozlukleri("kuyruk.py"))
+    # DÖRDÜNCÜ GİRİŞ NOKTASI (2026-08-15): Parametrik arayüz `hizmet.analiz_et`
+    # üzerinden hatta bağlandı. Kapsama alınmadığı ilk sürümde DOKUZ parametre
+    # sessizce varsayılana düşüyordu ve bu ölçülebilir bir sonuç doğurdu:
+    # `ref_bump` geçilmediği için y⁺ 803 ölçüldü (duvar-fonksiyonu bandı 30-300),
+    # `mesh_levels` geçilmediği için LSR bandı hiç üretilemezdi. Testin var oluş
+    # sebebi olan kusur, testin GÖRMEDİĞİ bir yolda tekrarlandı --- kapsam
+    # dışında kalan yol, korunmayan yoldur.
+    yollar.update(_param_sozlukleri("app_parametric.py"))
     yollar["vehicle_pipeline.py:CLI"] = _cli_parametreleri()
     return yollar
 
