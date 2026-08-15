@@ -134,8 +134,14 @@ def test_test_sayilari_AYNI_KOSUDA_olculdu(tex):
     if not olcum_dosyasi.exists():
         pytest.skip("rapor_sayilari.json yok")
     d = json.loads(olcum_dosyasi.read_text(encoding="utf-8"))
-    if "gecen_test_cov" not in d:
+    if d.get("gecen_test_cov") is None:
         pytest.skip("test sayıları ölçülmedi (python experiments/rapor_sayilari.py --test)")
+    # KIRMIZI SÜİTTEN ALINAN SAYI RAPORA GİRMEZ. Ölçüm dosyası düşen test
+    # sayısını da taşır; hükmü burada veriyoruz. Üretici sayıyı saklamıyor
+    # (saklamak kilitlenme üretiyordu), yalnız kırmızılığı görünür kılıyor.
+    assert d.get("suit_yesil", True), (
+        f"süit kırmızı ({d.get('dusen_test')} düşen); rapordaki test sayısı "
+        "bu ölçümle doğrulanamaz. Önce düşen testleri düzeltin.")
     for anahtar in ("gecen_test", "gecen_test_cov"):
         beklenen = f"{d[anahtar]:,}".replace(",", ".")
         assert beklenen in tex, f"{anahtar}={d[anahtar]} raporda geçmiyor"

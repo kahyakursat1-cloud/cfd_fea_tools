@@ -157,7 +157,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-32.826 satır Python $\cdot$ 153 test dosyası $\cdot$ 1.563 geçen test\\[3mm]
+33.386 satır Python $\cdot$ 157 test dosyası $\cdot$ 1.588 geçen test\\[3mm]
 6 Ağustos 2026\par}
 \end{titlepage}
 
@@ -2176,12 +2176,13 @@ olarak değil. Kanıt dosyası zincirin tamamını taşır: üretim komutu
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 32.826 & \texttt{rapor\_sayilari.py} \\
+Kod satırı (kök + \texttt{analysis/}) & 33.386 & \texttt{rapor\_sayilari.py} \\
 Kök modül & 86 & \texttt{rapor\_sayilari.py} \\
 Deney / çapa betiği & 81 & \texttt{experiments/} \\
-Test dosyası & 153 & \texttt{tests/test\_*.py} \\
-Geçen test & 1.563 & \texttt{pytest -q} \\
-Geçen test (coverage açık) & 1.563 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
+Test dosyası & 157 & \texttt{tests/test\_*.py} \\
+Geçen test & 1.588 & \texttt{pytest -q}; raporun kendi sayısını denetleyen
+  modül sayıma girmez (sonucu ölçülen niceliğe bağlı) \\
+Geçen test (coverage açık) & 1.588 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
 Satır kapsamı & \textbf{\%48} & 20.475 ifade, 10.578 kapsanmamış \\
 Süit süresi & $\sim$5 dk & 8 çekirdek \\
 \bottomrule

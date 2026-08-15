@@ -93,10 +93,8 @@ def main() -> int:
     # gerçek. Boru hattına yazarken sorun çıkmıyordu, o yüzden ancak doğrudan
     # konsolda görüldü.
     for akis in (sys.stdout, sys.stderr):
-        try:
+        if hasattr(akis, "reconfigure"):
             akis.reconfigure(encoding="utf-8", errors="replace")
-        except (AttributeError, ValueError):
-            pass
 
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--stl", default="test_sphere.stl")
