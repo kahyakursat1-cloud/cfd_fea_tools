@@ -35,6 +35,32 @@ sys.path.insert(0, str(KOK))
 ESIK_YUZDE = 1.0
 
 
+def _damga() -> dict:
+    """Ölçümün HANGİ imaj ve HANGİ kaynak üzerinde yapıldığı.
+
+    Damgasız bir kıyas ölçümü, kapı için işe yaramaz: dosya diskte durur ve
+    "iki ortam örtüşüyor" der, ama imaj yeniden inşa edildiğinde ya da kaynak
+    değiştiğinde o cümle artık bugünün ikilisi hakkında bir şey söylemez. Bu
+    deponun tekrar tekrar ölçtüğü kusur --- yeşil işaret yalnızca gerçekten
+    kontrol ettiği şeyi kanıtlar --- burada da geçerli.
+    """
+    def _kabuk(argv: list[str]) -> str | None:
+        try:
+            r = subprocess.run(argv, cwd=KOK, capture_output=True, text=True, timeout=60)
+            return r.stdout.strip() or None if r.returncode == 0 else None
+        except (OSError, subprocess.SubprocessError):
+            return None
+
+    kap = _kabuk(["docker", "compose", "-f", "docker/compose.yaml", "ps", "-q", "worker"])
+    imaj = _kabuk(["docker", "inspect", "--format", "{{.Image}}", kap]) if kap else None
+    return {
+        "olcum_zamani": time.strftime("%Y-%m-%d %H:%M"),
+        "kaynak_islemesi": _kabuk(["git", "rev-parse", "--short=7", "HEAD"]),
+        "kaynak_kirli": bool(_kabuk(["git", "status", "--porcelain"])),
+        "konteyner_imaji": imaj,
+    }
+
+
 def _cd_al(cikti: str) -> tuple[float | None, str | None, dict]:
     """cli.py stdout'undaki JSON'dan (cd, sınıf, ham) çek."""
     try:
@@ -120,7 +146,8 @@ def main() -> int:
     print(f"      cd={k['cd']} sinif={k.get('sinif')} {k.get('sure_s')} s",
           file=sys.stderr, flush=True)
 
-    ozet: dict = {"ayar": {k2: v for k2, v in ayar.items() if k2 != "tmo"},
+    ozet: dict = {"damga": _damga(),
+                  "ayar": {k2: v for k2, v in ayar.items() if k2 != "tmo"},
                   "stl": stl.name, "kosular": [h, k], "esik_yuzde": ESIK_YUZDE}
     if h["cd"] and k["cd"]:
         fark = abs(h["cd"] - k["cd"]) / abs(h["cd"]) * 100.0
