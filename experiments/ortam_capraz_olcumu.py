@@ -48,6 +48,9 @@ def _damga() -> dict:
         try:
             r = subprocess.run(argv, cwd=KOK, capture_output=True, text=True, timeout=60)
             return r.stdout.strip() or None if r.returncode == 0 else None
+        # sessiz-yutma: kabul — damga alanı `None` kalır ve bu GÖRÜNÜRDÜR:
+        # ortam kapısı damgasız/eksik damgalı ölçümü REDDEDER. Yani burada
+        # yutulan bilgi kaybolmuyor, kapıya "belirlenemedi" olarak taşınıyor.
         except (OSError, subprocess.SubprocessError):
             return None
 

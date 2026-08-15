@@ -35,6 +35,10 @@ def _kabuk(argv: list[str]) -> str | None:
     try:
         r = subprocess.run(argv, cwd=KOK, capture_output=True, text=True, timeout=60)
         return (r.stdout.strip() or None) if r.returncode == 0 else None
+    # sessiz-yutma: kabul — `None` BURADA BİR SİNYALDİR, yutulan bir hata değil.
+    # Çağıran (denetle) onu "belirlenemedi" diye okur ve ilgili engeli DÜŞÜRÜR
+    # ("konteyner erişimi ❌"). Yani docker/git yoksa kapı sessizce geçmez,
+    # aksine geçmez; doğrulanamayan tazelik olumlu kanıt sayılmaz.
     except (OSError, subprocess.SubprocessError):
         return None
 

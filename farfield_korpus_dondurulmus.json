@@ -1080,5 +1080,6 @@
       "isaretli_pct": 3.66,
       "ariza": false
     }
-  ]
+  ],
+  "_dondurma_notu": "Makale bu dosyayı okur. Canlı tarama (farfield_capraz_kontrol.json) yeni koşularla büyür; bu dosya YALNIZ --dondur ile güncellenir ve yayımlanan sayıların kaynağıdır."
 }

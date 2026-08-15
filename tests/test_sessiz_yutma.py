@@ -92,7 +92,12 @@ TABAN_TOPLAM = 87
 # okunamaz oldu; deger arsiv ciktisindan kurtariliyor. Arsiv dosyasi bozuksa
 # kurtarma yapilmaz ve capa ATLANIR — yutma GEREKCELI, hata kaybolmuyor
 # cunku test_model_form_tek_capa olculmemis hucreyi zaten yakaliyor.
-TABAN_GUVEN_YOLU = 62
+# 62 -> 63 (2026-08-15): experiments/ortam_capraz_olcumu.py:_damga._kabuk.
+# Olcumun HANGI imaj/isleme uzerinde yapildigini soran yardimci; docker ya da
+# git ulasilamazsa damga alani None kalir. Yutma GEREKCELI cunku None GORUNUR:
+# ortam kapisi damgasiz/eksik damgali olcumu REDDEDER, yani bilgi kaybolmuyor,
+# kapiya "belirlenemedi" olarak tasiniyor.
+TABAN_GUVEN_YOLU = 63
 TABAN_INCELENMEMIS = 25
 TABAN_INCELENMEMIS_GUVEN_YOLU = 0
 

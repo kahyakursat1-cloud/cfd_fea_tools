@@ -28,6 +28,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -62,6 +63,57 @@ from simulation_runner import SimulationRunner  # SimulationJob: B adiminda geri
 # Unified malzeme kütüphanesi (advanced JSON-backed DB).
 # fea_runner.MATERIAL_LIBRARY (dict) eski API; GUI ise MaterialLibrary objesi bekliyor.
 MATERIAL_LIBRARY = MaterialLibrary()
+
+class ParametrikAnalizIsi(QThread):
+    """Parametrik geometri → STL → `hizmet.analiz_et`. Arayüz donmasın diye iş parçacığı.
+
+    STL üretimi burada YAPILIR ama analiz YAPILMAZ: analiz ortak çekirdeğe
+    devredilir. Bu ayrım bilinçli --- geometri üretimi bu ekrana özgüdür,
+    analiz ise CLI/REST ile paylaşılan tek yoldur.
+    """
+    ilerleme = Signal(int, str)
+    bitti = Signal(dict)
+    dustu = Signal(str)
+
+    def __init__(self, aircraft, hiz: float, mesh_boyut: float, cekirdek: int):
+        super().__init__()
+        self.aircraft, self.hiz = aircraft, hiz
+        self.mesh_boyut, self.cekirdek = mesh_boyut, cekirdek
+
+    def run(self):
+        try:
+            self.ilerleme.emit(5, f"Geometri üretiliyor: {self.aircraft.name}")
+            hedef = Path("vehicle_runs") / "_parametrik"
+            hedef.mkdir(parents=True, exist_ok=True)
+            stl = hedef / f"{self.aircraft.name.replace(' ', '_')}.stl"
+            uretici = MeshGenerator(self.aircraft, mesh_size=self.mesh_boyut)
+            uretici.generate_stl(str(stl))
+            if not stl.exists() or stl.stat().st_size == 0:
+                self.dustu.emit(f"STL üretilemedi: {stl}")
+                return
+            self.ilerleme.emit(15, f"STL hazır ({stl.stat().st_size / 1024:.0f} KB) — "
+                                   "çözücüye veriliyor")
+
+            from hizmet import analiz_et
+            sonuc = analiz_et(
+                str(stl),
+                vehicle_type=_ARAC_TIPI.get(self.aircraft.aircraft_type, "genel"),
+                velocity=self.hiz, n_processors=self.cekirdek)
+            if sonuc.get("durum") != "ok":
+                self.dustu.emit(sonuc.get("hata", "bilinmeyen hata"))
+                return
+            self.bitti.emit(sonuc)
+        except Exception as e:                                   # noqa: BLE001
+            # GENIS YAKALAMA KABUL: iş parçacığında kaçan bir istisna arayüze
+            # HİÇBİR ŞEY söylemeden süreci sonlandırır — kullanıcı "başlattım,
+            # bir şey olmadı" ile kalır. Hata metni yukarı taşınır.
+            self.dustu.emit(f"{type(e).__name__}: {e}")
+
+
+# aircraft_geometry tip adları ile hattın araç tipleri ayrı sözlüklerdir;
+# eşleme TEK yerde durur ki iki taraf sessizce ayrışmasın.
+_ARAC_TIPI = {"fixed_wing": "ucak", "rocket": "roket",
+              "quadrotor": "multikopter", "vtol": "kanatli_vtol"}
 
 # Sahte çıktı üreten yolların TEK reddi. Metin tek yerde durur ki dal başına
 # ayrışmasın ve testle bağlanabilsin.
@@ -308,6 +360,7 @@ class ParametricAnalysisTool(QMainWindow):
         self.runner = SimulationRunner(base_path="./simulations")
         self.current_aircraft = None
         self.results = []
+        self._analiz_isi = None
 
         # Main layout
         main_widget = QWidget()
@@ -654,14 +707,79 @@ Kütle: {self.current_aircraft.mass_properties()['total_mass']:.2f} kg
         QMessageBox.warning(self, DEMO_RET_BASLIK, DEMO_RET_METNI)
 
     def _start_simulation(self):
-        """CFD BAŞLATMAZ — sebebi modül başlığında ölçümüyle yazılı.
+        """Parametrik geometriyi STL'e çevirip ORTAK ÇEKİRDEKTEN analiz koş.
 
         Eski gövde `runner.run_simulation(job)` satırını YORUMDA bırakıp 101
         adımlık `time.sleep` döngüsü koşuyor ve "✅ Simülasyon tamamlandı!"
         yazıyordu. İlerleme çubuğunu doldurmak analiz yapmak değildir.
+
+        Yeni yol `hizmet.analiz_et`i çağırır --- CLI ve REST ucunun kullandığı
+        AYNI işlev. Üç arayüzün ayrı yol tutması bu depoda ölçülmüş bir kusurdur
+        (bir düzeltme seçeneği yalnız düğme yoluna eklenmiş, kuyruk yolunda yok
+        sayılmıştı), bu yüzden burada yeni bir analiz yolu YAZILMAZ.
         """
+        if not self.current_aircraft:
+            QMessageBox.warning(self, "Geometri yok",
+                                "Önce bir uçak/araç seçin: analiz geometriden başlar.")
+            return
+        if self._analiz_isi is not None and self._analiz_isi.isRunning():
+            QMessageBox.information(self, "Koşu sürüyor", "Bir analiz zaten koşuyor.")
+            return
+
         self.progress_bar.setValue(0)
-        self._demo_reddi(self.sim_log)
+        self.sim_log.clear()
+        self.start_btn.setEnabled(False)
+        self._analiz_isi = ParametrikAnalizIsi(
+            self.current_aircraft,
+            hiz=self.wind_speed.value(),
+            mesh_boyut=self.mesh_size.value(),
+            cekirdek=self.num_processors.value(),
+        )
+        self._analiz_isi.ilerleme.connect(self._analiz_ilerleme)
+        self._analiz_isi.bitti.connect(self._analiz_bitti)
+        self._analiz_isi.dustu.connect(self._analiz_dustu)
+        self._analiz_isi.start()
+
+    def _analiz_ilerleme(self, yuzde: int, mesaj: str):
+        self.progress_bar.setValue(yuzde)
+        self.sim_log.append(f"[{yuzde:3d}%] {mesaj}")
+
+    def _analiz_dustu(self, hata: str):
+        self.start_btn.setEnabled(True)
+        self.progress_bar.setValue(0)
+        self.sim_log.append(f"\n❌ {hata}")
+        QMessageBox.critical(self, "Analiz düştü", hata)
+
+    def _analiz_bitti(self, sonuc: dict):
+        """Sözleşmeyi olduğu gibi göster: sayı, SINIFIYLA birlikte."""
+        self.start_btn.setEnabled(True)
+        self.progress_bar.setValue(100)
+        s = sonuc.get("sonuc") or {}
+        g = sonuc.get("gecerlilik") or {}
+        sinif = g.get("genel", "?")
+        cd, cl = s.get("cd"), s.get("cl")
+
+        self.sim_log.append(f"\n✅ Analiz bitti — SINIF: {sinif}")
+        self.sim_log.append(f"   Cd = {cd}    Cl = {cl}")
+        for n in g.get("nicelikler", []):
+            kullanim = "tasarımda kullanılabilir" if n.get("tasarimda_kullanilir") \
+                else "TASARIMDA KULLANILMAZ"
+            self.sim_log.append(f"   • {n.get('nicelik')}: {n.get('sinif')} "
+                                f"({kullanim})\n     {n.get('gerekce', '')}")
+        for u in sonuc.get("uyarilar", []):
+            self.sim_log.append(f"   ⚠ {u}")
+
+        r = self.results_table.rowCount()
+        self.results_table.insertRow(r)
+        drag = s.get("surukleme_N")
+        for sutun, deger in enumerate([
+                self.current_aircraft.name, f"{drag:.3f}" if drag else "—",
+                f"{cl:.5f}" if cl is not None else "—",
+                # Moment ÖLÇÜLMÜYOR: hat bu koşuda moment katsayısı üretmiyor.
+                # Boş bırakmak yerine "—" yazılır; sıfır yazmak ölçülmemiş bir
+                # niceliği ölçülmüş gibi gösterirdi.
+                "—", sinif, datetime.now().strftime("%H:%M:%S")]):
+            self.results_table.setItem(r, sutun, QTableWidgetItem(str(deger)))
 
     def _reset_simulation(self):
         """Sıfırla"""

@@ -40,10 +40,15 @@ def _tip(d: dict, yol: Path) -> str:
 
 def topla() -> dict:
     kayitlar = []
+    okunamayan: list[str] = []
     for f in sorted((KOK / "vehicle_runs").rglob("sonuc.json")):
         try:
             d = json.loads(f.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+        except (OSError, json.JSONDecodeError) as e:
+            # SESSİZCE ATLAMAK korpusu yanlı hale getirir: okunamayan dosya
+            # sayılmazsa "108 vakada medyan %7,1" ifadesi kaç vakanın düştüğünü
+            # gizler. Dosya sayılır ve çıktıya yazılır.
+            okunamayan.append(f"{f.relative_to(KOK)}: {type(e).__name__}")
             continue
         cd, cw = d.get("cd"), d.get("cd_wake")
         if not cd or not cw or cd <= 0:
@@ -87,6 +92,8 @@ def topla() -> dict:
         "ince_tipler": sorted(INCE_TIPLER),
         "n_toplam": len(kayitlar),
         "n_ariza": sum(k["ariza"] for k in kayitlar),
+        "n_okunamayan": len(okunamayan),
+        "okunamayanlar": okunamayan,
         "tumu": ozet(saglam), "ince_govde": ozet(ince), "kut_govde": ozet(kut),
         # Tip bazında da verilir: ikili ince/küt ayrımı bir YORUMDUR,
         # tip kırılımı ise ham gözlemdir. Okuyucu yorumu denetleyebilsin.
@@ -101,8 +108,26 @@ def main() -> int:
         if hasattr(a, "reconfigure"):
             a.reconfigure(encoding="utf-8", errors="replace")
     d = topla()
+
+    # KORPUS DONDURULUR. Tarama "bugün vehicle_runs'ta ne varsa" üzerinden
+    # çalışır ve depo sahibi bir analiz koştuğunda BÜYÜR: ölçüldü (2026-08-15),
+    # tek bir tesisat koşusu vaka sayısını 108'den 109'a, ince-gövde medyanını
+    # \\%6,38'den \\%6,62'ye taşıdı. Makalede yayımlanan bir sayı yazarın
+    # gelişigüzel koşularına bağlı olamaz --- hakem onu yeniden üretemez.
+    # `--dondur` o anki vaka listesini ve istatistikleri ayrı bir dosyaya yazar;
+    # makalenin kanıt denetimi DONDURULMUŞ dosyayı okur. Canlı tarama ile
+    # dondurulmuş dosya arasındaki fark bir SAPMA sinyalidir, sessiz bir
+    # güncelleme değil.
     (KOK / "farfield_capraz_kontrol.json").write_text(
         json.dumps(d, indent=2, ensure_ascii=False), encoding="utf-8")
+    if "--dondur" in sys.argv:
+        d["_dondurma_notu"] = (
+            "Makale bu dosyayı okur. Canlı tarama (farfield_capraz_kontrol.json) "
+            "yeni koşularla büyür; bu dosya YALNIZ --dondur ile güncellenir ve "
+            "yayımlanan sayıların kaynağıdır.")
+        (KOK / "farfield_korpus_dondurulmus.json").write_text(
+            json.dumps(d, indent=2, ensure_ascii=False), encoding="utf-8")
+        print("-> farfield_korpus_dondurulmus.json (makale bunu okur)")
     print(f"vaka: {d['n_toplam']} (arıza {d['n_ariza']})")
     for ad in ("tumu", "ince_govde", "kut_govde"):
         o = d[ad]

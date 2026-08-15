@@ -78,12 +78,36 @@ def test_analiz_govdeleri_TAMAMLANDI_iddia_etmiyor():
             assert "tamamland" not in d and "güvenl" not in d, (ad, m)
 
 
-def test_analiz_dugmeleri_GEREKCELI_ret_veriyor():
+def test_BAGLANMAMIS_dugmeler_GEREKCELI_ret_veriyor():
+    """FEA ve rapor yolları hâlâ çözücüye bağlı DEĞİL; reddetmeye devam etmeli.
+
+    KAPSAM DEĞİŞTİ (2026-08-15): `_start_simulation` artık gerçek analiz koşuyor
+    (bkz. aşağıdaki test), o yüzden bu listeden çıktı. Kalan ikisi bilerek
+    bağlanmadı: `hizmet.analiz_et` bir CFD sözleşmesi döndürür, yapısal yol
+    ayrıdır. Ayrımın testte yazılı olması "unutuldu" ile "bilerek dışarıda"yı
+    ayırır.
+    """
     import app_parametric as ap
-    for ad in ("_start_simulation", "_run_fea_analysis", "_generate_report"):
+    for ad in ("_run_fea_analysis", "_generate_report"):
         assert "_demo_reddi" in _cagrilar(_fn(ad)), ad
     assert "app_analyzer.py" in ap.DEMO_RET_METNI
     assert "ÜRETMEZ" in ap.DEMO_RET_METNI
+
+
+def test_CFD_yolu_artik_GERCEK_cozucuye_gidiyor():
+    """Eski kusur: düğme çözücüyü çağırmadan "tamamlandı" yazıyordu.
+
+    Yeni koşul o kusurun tersidir ve daha katıdır: düğme ORTAK ÇEKİRDEĞİ
+    çağırmalı. "Reddetmiyor" yetmez --- kendi analiz yolunu kurarsa CLI/REST
+    ile ayrışır, ki bu depoda ölçülmüş ayrı bir kusur sınıfıdır.
+    """
+    cagrilar = _cagrilar(_fn("_start_simulation"))
+    assert "_demo_reddi" not in cagrilar, "CFD yolu hâlâ reddediyor"
+    # İş parçacığı kurulur; gerçek çağrı onun `run` gövdesindedir.
+    assert "ParametrikAnalizIsi" in cagrilar
+    is_govdesi = _cagrilar(_fn("run"))
+    assert "analiz_et" in is_govdesi, "ortak çekirdek çağrılmıyor"
+    assert "run_vehicle_analysis" not in is_govdesi, "çekirdek ATLANIYOR"
 
 
 def test_GERCEK_yola_yonlendiriyor():
