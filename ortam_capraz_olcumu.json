@@ -1,0 +1,226 @@
+{
+  "ayar": {
+    "tip": "roket",
+    "hiz": 20.0,
+    "kalite": "standart"
+  },
+  "stl": "test_sphere.stl",
+  "kosular": [
+    {
+      "ortam": "host-wsl",
+      "cd": 0.14124,
+      "sinif": "TREND",
+      "sure_s": 199,
+      "donus_kodu": 0,
+      "stderr_kuyruk": "ası) — Cd yalnız EĞİLİM düzeyindedir. Prizma katmanı (--katman) ile y⁺<1 çöz veya sonucu karşılaştırma amaçlı kullan\n[ 10%] surfaceFeatures...\n[ 20%] blockMesh...\n[ 40%] snappyHexMesh (mesh adapsiyonu, en uzun adım)...\n[ 55%] checkMesh...\n[ 60%] decomposePar (8 işlemci)...\n[ 70%] foamRun (paralel SIMPLE, 8 çekirdek, Cd-izlemeli)...\n[ 72%] Cd yakınsadı (182 iter, drift<0.003) — erken durdu\n[ 95%] reconstructPar...\n[100%] CFD tamamlandı\n[ 78%] y+ olcumu...\n[ 82%] Yuzey basinc alani cikariliyor...\n",
+      "ham": {
+        "surum": "1.0",
+        "durum": "ok",
+        "girdi": {
+          "stl": "D:\\bilsem_beyin\\cfd_fea_tools\\test_sphere.stl",
+          "tip": "roket",
+          "hiz_ms": 20.0,
+          "alpha_deg": 0.0,
+          "mach": 0.0588,
+          "sikisabilir": false
+        },
+        "sonuc": {
+          "cd": 0.14124,
+          "cl": 0.01176,
+          "ld": 0.08,
+          "aref_m2": 0.00781,
+          "surukleme_N": 0.27
+        },
+        "gecerlilik": {
+          "genel": "TREND",
+          "nicelikler": [
+            {
+              "nicelik": "C_L (taşıma)",
+              "sinif": "TREND",
+              "tasarimda_kullanilir": false,
+              "gerekce": "Bağlı akış (|α|≤8°) ama AĞ YETERLİLİĞİ GÖSTERİLMEDİ: bu ağın taşımayı çözdüğüne dair çok-ağlı band ya da referans-ağ ailesi beyanı yok. Hücum açısı tek başına taşıma güvenilirliğini kurmaz — ölçüldü: bağlı akışta ağ-kaynaklı %5,8–%23 taşıma hatası. Eğilim ve aynı ağla A/B karşılaştırması geçerlidir."
+            },
+            {
+              "nicelik": "C_D (sürükleme)",
+              "sinif": "TREND",
+              "tasarimda_kullanilir": false,
+              "gerekce": "Bu koşu için çok-ağlı yakınsama bandı (GCI/LSR) hesaplanmadı, dolayısıyla mutlak sürüklemenin sayısal belirsizliği BİLİNMİYOR. Bu geometride hiç ağ-duyarlılığı ölçülmedi. Tasarım sayısı DEĞİL; aynı ağ ayarıyla yapılan A/B karşılaştırması ve eğilim geçerlidir."
+            },
+            {
+              "nicelik": "L/D, sürükleme kuvveti/gücü",
+              "sinif": "TREND",
+              "tasarimda_kullanilir": false,
+              "gerekce": "Mutlak sürüklemeden türetilir → tasarım sayısı değil; karşılaştırmalı kullanın."
+            }
+          ]
+        },
+        "belirsizlik": {
+          "u_sayisal_pct": null,
+          "u_sayisal_kaynak": null,
+          "u_model_pct": 8.15,
+          "model_kaynak": "ölçülen (validation_band.json, n=2 çapa)",
+          "u_toplam_pct": 8.15,
+          "duvar_cozunur": false,
+          "rapor": "Cd = 0.1412 ± 8.2% (sayısal —% ⊕ model 8.15%)"
+        },
+        "mesh": {
+          "cells": 316514,
+          "non_ortho_max": 30.647138,
+          "skew_max": 0.88505159,
+          "mesh_ok": true
+        },
+        "yakinsama": {
+          "iterasyon": 335,
+          "rezidual_platosu": {
+            "plato": false,
+            "oranlar": {
+              "Ux": 0.4,
+              "Uy": 0.39,
+              "Uz": 0.401,
+              "p": 0.328
+            },
+            "n": 334
+          },
+          "cd_drift_son20pct": 0.015,
+          "drift_ok": true,
+          "son_rezidualler": {
+            "Ux": "2.23e-05",
+            "Uy": "3.96e-05",
+            "Uz": "3.87e-05",
+            "p": "9.97e-05",
+            "omega": "3.45e-06",
+            "k": "1.58e-05"
+          },
+          "rezidual_ok": true,
+          "salinim": {
+            "osilasyon": false,
+            "ortalama": 0.11031403940298508,
+            "genlik": 2e-05,
+            "genlik_pct": 0.02,
+            "gecis": 2
+          }
+        },
+        "duzeltici": null,
+        "uyarilar": [
+          "GEOMETRİ ŞÜPHESİ: tip='roket' ama frontal/yan = 1.00 > 0.5 — narin gövde değil; Barrowman/slender varsayımları geçerli olmayabilir",
+          "PÜRÜZSÜZ GÖVDE (keskin-kenar oranı 0.000 < 0.02): ayrılma noktası geometriyle sabitlenmiyor, sınır-tabaka geçişine bağlı. Duvar-fonksiyonlu tam-türbülanslı RANS bu sınıfta SİSTEMATİK şaşırır (küre drag krizi vakası) — Cd yalnız EĞİLİM düzeyindedir. Prizma katmanı (--katman) ile y⁺<1 çöz veya sonucu karşılaştırma amaçlı kullan",
+          "Ölçülen y⁺ ort=127.27 (log bölgesi üstü) — sürtünme sürüklemesi duvar fonksiyonu sınırında; katman sayısını artırın"
+        ],
+        "case_dir": "D:\\bilsem_beyin\\cfd_fea_tools\\vehicle_runs\\test_sphere\\test_sphere",
+        "rapor": "vehicle_runs\\test_sphere\\rapor\\RAPOR.md"
+      }
+    },
+    {
+      "ortam": "konteyner",
+      "cd": 0.14138,
+      "sinif": "TREND",
+      "sure_s": 127,
+      "donus_kodu": 0,
+      "stderr_kuyruk": "(küre drag krizi vakası) — Cd yalnız EĞİLİM düzeyindedir. Prizma katmanı (--katman) ile y⁺<1 çöz veya sonucu karşılaştırma amaçlı kullan\n[ 10%] surfaceFeatures...\n[ 20%] blockMesh...\n[ 40%] snappyHexMesh (mesh adapsiyonu, en uzun adım)...\n[ 55%] checkMesh...\n[ 58%] mpirun çalışmıyor — seri moda geçildi\n[ 70%] foamRun (seri SIMPLE, Cd-yakınsama izlemeli)...\n[ 72%] Cd yakınsadı (141 iter, drift<0.003) — erken durdu\n[100%] CFD tamamlandı\n[ 78%] y+ olcumu...\n[ 82%] Yuzey basinc alani cikariliyor...\n",
+      "ham": {
+        "surum": "1.0",
+        "durum": "ok",
+        "girdi": {
+          "stl": "/veri/capraz_olcum.stl",
+          "tip": "roket",
+          "hiz_ms": 20.0,
+          "alpha_deg": 0.0,
+          "mach": 0.0588,
+          "sikisabilir": false
+        },
+        "sonuc": {
+          "cd": 0.14138,
+          "cl": 0.01451,
+          "ld": 0.1,
+          "aref_m2": 0.00781,
+          "surukleme_N": 0.271
+        },
+        "gecerlilik": {
+          "genel": "TREND",
+          "nicelikler": [
+            {
+              "nicelik": "C_L (taşıma)",
+              "sinif": "TREND",
+              "tasarimda_kullanilir": false,
+              "gerekce": "Bağlı akış (|α|≤8°) ama AĞ YETERLİLİĞİ GÖSTERİLMEDİ: bu ağın taşımayı çözdüğüne dair çok-ağlı band ya da referans-ağ ailesi beyanı yok. Hücum açısı tek başına taşıma güvenilirliğini kurmaz — ölçüldü: bağlı akışta ağ-kaynaklı %5,8–%23 taşıma hatası. Eğilim ve aynı ağla A/B karşılaştırması geçerlidir."
+            },
+            {
+              "nicelik": "C_D (sürükleme)",
+              "sinif": "TREND",
+              "tasarimda_kullanilir": false,
+              "gerekce": "Bu koşu için çok-ağlı yakınsama bandı (GCI/LSR) hesaplanmadı, dolayısıyla mutlak sürüklemenin sayısal belirsizliği BİLİNMİYOR. Bu geometride hiç ağ-duyarlılığı ölçülmedi. Tasarım sayısı DEĞİL; aynı ağ ayarıyla yapılan A/B karşılaştırması ve eğilim geçerlidir."
+            },
+            {
+              "nicelik": "L/D, sürükleme kuvveti/gücü",
+              "sinif": "TREND",
+              "tasarimda_kullanilir": false,
+              "gerekce": "Mutlak sürüklemeden türetilir → tasarım sayısı değil; karşılaştırmalı kullanın."
+            }
+          ]
+        },
+        "belirsizlik": {
+          "u_sayisal_pct": null,
+          "u_sayisal_kaynak": null,
+          "u_model_pct": 8.15,
+          "model_kaynak": "ölçülen (validation_band.json, n=2 çapa)",
+          "u_toplam_pct": 8.15,
+          "duvar_cozunur": false,
+          "rapor": "Cd = 0.1414 ± 8.2% (sayısal —% ⊕ model 8.15%)"
+        },
+        "mesh": {
+          "cells": 316514,
+          "non_ortho_max": 30.647138,
+          "skew_max": 0.88505159,
+          "mesh_ok": true
+        },
+        "yakinsama": {
+          "iterasyon": 141,
+          "rezidual_platosu": {
+            "plato": false,
+            "oranlar": {
+              "Ux": 0.468,
+              "Uy": 0.511,
+              "Uz": 0.482,
+              "p": 0.482
+            },
+            "n": 140
+          },
+          "cd_drift_son20pct": 0.139,
+          "drift_ok": true,
+          "son_rezidualler": {
+            "Ux": "1.72e-04",
+            "Uy": "2.80e-04",
+            "Uz": "2.84e-04",
+            "p": "1.29e-03",
+            "omega": "2.14e-05",
+            "k": "1.02e-04"
+          },
+          "rezidual_ok": false,
+          "salinim": {
+            "osilasyon": false,
+            "ortalama": 0.11052549523214286,
+            "genlik": 0.000184,
+            "genlik_pct": 0.17,
+            "gecis": 1
+          }
+        },
+        "duzeltici": null,
+        "uyarilar": [
+          "GEOMETRİ ŞÜPHESİ: tip='roket' ama frontal/yan = 1.00 > 0.5 — narin gövde değil; Barrowman/slender varsayımları geçerli olmayabilir",
+          "PÜRÜZSÜZ GÖVDE (keskin-kenar oranı 0.000 < 0.02): ayrılma noktası geometriyle sabitlenmiyor, sınır-tabaka geçişine bağlı. Duvar-fonksiyonlu tam-türbülanslı RANS bu sınıfta SİSTEMATİK şaşırır (küre drag krizi vakası) — Cd yalnız EĞİLİM düzeyindedir. Prizma katmanı (--katman) ile y⁺<1 çöz veya sonucu karşılaştırma amaçlı kullan",
+          "Ölçülen y⁺ ort=127.31 (log bölgesi üstü) — sürtünme sürüklemesi duvar fonksiyonu sınırında; katman sayısını artırın"
+        ],
+        "case_dir": "/uygulama/vehicle_runs/capraz_olcum/capraz_olcum",
+        "rapor": "vehicle_runs/capraz_olcum/rapor/RAPOR.md"
+      }
+    }
+  ],
+  "esik_yuzde": 1.0,
+  "fark_yuzde": 0.099,
+  "ortamlar_ortusuyor": true,
+  "hucre_sayilari": {
+    "host": 316514,
+    "konteyner": 316514
+  },
+  "sinif_ayni": true
+}
