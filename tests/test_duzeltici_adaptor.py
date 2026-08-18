@@ -187,7 +187,8 @@ def test_rapor_ENGELLENEN_kusuru_ve_GEREKCESINI_yazar():
     assert "kaba çözüm BULUNMALI" in md
 
 
-def test_kuyruk_yolu_da_duzelticiyi_DESTEKLER(monkeypatch, tmp_path):
+def test_kuyruk_yolu_da_duzelticiyi_DESTEKLER(monkeypatch, tmp_path,
+                                              bellek_kapisi_acik):
     """Arayüzün iki giriş noktası AYNI yeteneğe sahip olmalı.
 
     Depoda bunun aynısı bir kez yaşandı: `ref_bump="oto"` kuyruk yoluna

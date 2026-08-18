@@ -27,7 +27,8 @@ def test_GUI_ref_bump_GECIRIYOR():
     assert '"ref_bump": "oto"' in inspect.getsource(app_analyzer)
 
 
-def test_kuyruk_parametreleri_OLDUGU_GIBI_gecirir(tmp_path, monkeypatch):
+def test_kuyruk_parametreleri_OLDUGU_GIBI_gecirir(tmp_path, monkeypatch,
+                                                  bellek_kapisi_acik):
     """GUI'nin eklediği anahtar worker'a ULAŞMALI.
 
     BİÇİM DEĞİŞTİ (2026-08-14): test eskiden `kuyruk` kaynağında

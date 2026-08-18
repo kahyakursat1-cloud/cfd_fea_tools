@@ -152,7 +152,8 @@ def test_dockerfile_hizmet_GIRIS_NOKTALARINI_kopyalar():
 
 
 # ── Kuyruk ile eşzamanlı yol AYNI sözleşmeyi döndürmeli ──────────────────────
-def test_kuyruk_ve_senkron_AYNI_sozlesmeyi_uretir(monkeypatch, tmp_path):
+def test_kuyruk_ve_senkron_AYNI_sozlesmeyi_uretir(monkeypatch, tmp_path,
+                                                 bellek_kapisi_acik):
     """İstemci, işin hangi yoldan geldiğine göre farklı ayrıştırıcı yazmamalı."""
     import api
     import kuyruk
@@ -174,7 +175,7 @@ def test_kuyruk_ve_senkron_AYNI_sozlesmeyi_uretir(monkeypatch, tmp_path):
     assert kuyruklu["gecerlilik"]["genel"] == senkron["gecerlilik"]["genel"]
 
 
-def test_kuyruk_GUI_alanlarini_KORUR(monkeypatch, tmp_path):
+def test_kuyruk_GUI_alanlarini_KORUR(monkeypatch, tmp_path, bellek_kapisi_acik):
     """Kuyruk tablosu `cd`/`u_pct`/`hata` okur; sözleşme değişimi onu bozmamalı."""
     import kuyruk
     _sahte_hat(monkeypatch)
