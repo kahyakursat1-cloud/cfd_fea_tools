@@ -152,7 +152,40 @@ def korpus() -> list[dict]:
         })
 
     h += _bandli_capalar()
+    h += _yeni_fea_capalari()
     return h
+
+
+def _yeni_fea_capalari() -> list[dict]:
+    """`fea_capa_bagimsiz` ile ÜRETİLEN çapalar — negatif etiket havuzu.
+
+    Bunlar FEA_KABUL_SINIRI'nı belirleyen altı benchmark'ın DIŞINDA koşuldu:
+    eşik sabitken yeni bir vaka geçerli bir dışarıda-bırakma testidir. Her biri
+    3 ağ seviyesiyle koşuldu, yani u_num ÖLÇÜLDÜ --- tek ağla gelselerdi
+    band bilinmediği için yine BELİRSİZ'e düşerlerdi.
+    """
+    d = _oku("fea_capa_bagimsiz.json")
+    if not d:
+        return []
+    tanim = (("sehim", "kiris sehimi (5wL⁴/384EI)", "yer_degistirme"),
+             ("frekans", "kiris 1. dogal frekansi (Euler-Bernoulli)", "ozdeger"),
+             ("kure", "kalin kure ic yuzey gerilmesi (Lamé)", "gerilme"))
+    out = []
+    for anahtar, etiket, nicelik in tanim:
+        b = d.get(anahtar) or {}
+        if b.get("hata_pct") is None or b.get("u_val_pct") is None:
+            continue
+        out.append({
+            "vaka": etiket, "nicelik": nicelik,
+            "kaynak_dosya": "fea_capa_bagimsiz.json",
+            "dis_referans": d.get("referans_kaynak", "kapalı-form"),
+            "referans_hata_pct": b["hata_pct"],
+            "u_val_pct": b["u_val_pct"],
+            "truth": None, "naive": None,
+            "kurulum_notu": b.get("uyari", ""),
+            "besledigi_kapilar": [],
+        })
+    return out
 
 
 def _bandli_capalar() -> list[dict]:
@@ -215,8 +248,12 @@ def degerlendir(h: list[dict]) -> list[dict]:
         hp = _hata_pct(c)
         if hp is None:
             continue
-        if c["nicelik"] == "gerilme":
-            v = classify_fea(referans_hata_pct=hp, nicelik="gerilme")
+        # Nicelik SINIFI yolu seçer: FEA kapısı sınıf-bazlı eşik kullanır
+        # (gerilme 0,10 · yer_degistirme 0,05 · ozdeger 0,05), CFD kapısı ise
+        # zarf koşullarına bakar. Yolu `nicelik` üzerinden ayırmak, hücreye
+        # ayrıca bir "yol" alanı taşıtmaktan daha az ayrışır.
+        if c["nicelik"] in ("gerilme", "yer_degistirme", "ozdeger"):
+            v = classify_fea(referans_hata_pct=hp, nicelik=c["nicelik"])
             kapi = "FEA_KABUL_SINIRI"
         else:
             v = classify_cfd(c["arac_tipi"], c["alpha_deg"], c["mach"],
@@ -240,25 +277,34 @@ def degerlendir(h: list[dict]) -> list[dict]:
         flagged = genel != VALIDATED
         gercek = hp > TAU * 100.0            # sessiz-hata VAR mı
 
-        # ETİKETİN KENDİSİ ÖLÇÜLEBİLİR Mİ? |E| ≤ u_val ise gözlenen sapma
-        # doğrulama belirsizliğinden AYRILAMAZ; o hücreye "sessiz hata yok"
-        # demek, kanıtın desteklemediği bir etiket yayınlamaktır. Bu, aracın
-        # kendi V&V disiplininin (R_E = |E|/u_val) korpusa uygulanmış hâlidir
-        # ve üçüncü bir kategoriyi zorunlu kılar: BELİRSİZ.
+        # ETİKET, EŞİĞE GÖRE ve BANDIYLA BİRLİKTE kurulur:
+        #   pozitif (sessiz hata VAR) : |E| − u_val > τ
+        #   negatif (sessiz hata YOK) : |E| + u_val < τ
+        #   ikisi de değilse          : BELİRSİZ
+        # İlk sürüm "|E| ≤ u_val → belirsiz" diyordu; bu POZİTİF için doğru
+        # ama NEGATİF için yanlış testti. Frekans çapası bunu gösterdi:
+        # |E|=%0,087 < u_val=%0,112 olmasına rağmen ikisinin TOPLAMI eşiğin
+        # çok altında, yani "sessiz hata yok" GÜVENLE söylenebilir.
         uval = c.get("u_val_pct")
-        belirsiz = uval is not None and hp <= uval
+        bilinmiyor = uval is None
+        u = 0.0 if bilinmiyor else float(uval)
+        esik = TAU * 100.0
+        poz, neg = (hp - u) > esik, (hp + u) < esik
+        belirsiz = not (poz or neg)
+
         neden = ""
         if kapi in c["besledigi_kapilar"]:
             neden = f"bu vaka {kapi} eşiğini besledi"
         elif belirsiz:
-            neden = (f"|E|=%{hp:.2f} ≤ u_val=%{uval:.2f} — sapma doğrulama "
-                     "belirsizliğinden ayrılamıyor, ETİKET KURULAMAZ")
+            neden = (f"|E|=%{hp:.2f} ± u_val=%{u:.2f} eşiği (%{esik:.0f}) "
+                     "iki yönden de aşmıyor — ETİKET KURULAMAZ")
 
         out.append({**c, "hata_pct": round(hp, 2), "guard_sinif": genel,
-                    "flagged": flagged, "sessiz_hata": None if belirsiz else gercek,
+                    "flagged": flagged, "sessiz_hata": None if belirsiz else poz,
+                    "u_val_bilinmiyor": bilinmiyor,
                     "hucre": ("BELİRSİZ" if belirsiz else
-                              "TP" if (gercek and flagged) else
-                              "FN" if gercek else
+                              "TP" if (poz and flagged) else
+                              "FN" if poz else
                               "FP" if flagged else "TN"),
                     "puanlanir": not neden,
                     "puanlanmama_nedeni": neden,
@@ -281,7 +327,7 @@ def _kume(v: str) -> str:
     Dört silindir koşusu dört bağımsız örnek gibi sayılırsa güven fazla dar
     çıkar --- tezin küme-önyüklemesi tarafında öğrenilen dersin aynısı.
     """
-    return v.split(" ")[0].lower()
+    return v.split(" ")[0].lower().replace("kiris","kiris")
 
 
 def ozet(sonuc: list[dict]) -> dict:
@@ -322,6 +368,11 @@ def main() -> int:
             print(f"        DIŞLANDI — {x['puanlanmama_nedeni']}")
         if x.get("kurulum_notu"):
             print(f"        {x['kurulum_notu']}")
+        # SINIRA YAKIN ETİKET, sağlam etiket değildir: eşiğe 1 puandan az
+        # kalan bir hücrenin işareti ölçüm gürültüsüyle dönebilir.
+        pay = TAU * 100.0 - (x["hata_pct"] + (x.get("u_val_pct") or 0.0))
+        if x["puanlanir"] and x["hucre"] == "TN" and pay < 1.0:
+            print(f"        ⚠ eşiğe yalnız {pay:.2f} puan kaldı — etiket SINIRDA")
     print(f"\n  puanlanan={o['n_puanlanan']} (bağımsız küme={o['n_kume']}: "
           f"{', '.join(o['kumeler'])})  dışlanan={o['n_dislanan']}")
     print(f"  TP={o['TP']} FP={o['FP']} TN={o['TN']} FN={o['FN']}")

@@ -97,7 +97,13 @@ TABAN_TOPLAM = 87
 # git ulasilamazsa damga alani None kalir. Yutma GEREKCELI cunku None GORUNUR:
 # ortam kapisi damgasiz/eksik damgali olcumu REDDEDER, yani bilgi kaybolmuyor,
 # kapiya "belirlenemedi" olarak tasiniyor.
-TABAN_GUVEN_YOLU = 63
+# 63 -> 64 (2026-08-19): experiments/fea_capa_bagimsiz.py:_dat_frekanslari.
+# GERİLEME DEĞİL: CalculiX .dat özdeğer bloğu başlık/boş satır da içerir ve
+# sayıya çevrilemeyen satır BEKLENEN durumdur. Yutma bilgi kaybetmiyor —
+# blok bitince okunanlar döner, hiçbiri okunamazsa çağıran "dat frekans
+# taşımıyor" HATASI alır. Gerekçe kodda (kabul etiketi konuldu).
+# İzlenen sayılar DEĞİŞMEDİ: incelenmemiş 0, güven yolunda incelenmemiş 0.
+TABAN_GUVEN_YOLU = 64
 TABAN_INCELENMEMIS = 25
 TABAN_INCELENMEMIS_GUVEN_YOLU = 0
 

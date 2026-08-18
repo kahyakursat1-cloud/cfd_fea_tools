@@ -93,3 +93,32 @@ def test_her_vaka_DIS_referans_kunyesi_tasiyor():
     """'Dış korpus' iddiası, her hücrenin yayımlanmış bir kaynağa dayanmasıdır."""
     for c in dk.korpus():
         assert len(c["dis_referans"]) > 15, c["vaka"]
+
+
+def test_negatif_etiket_BANDIYLA_kuruluyor():
+    """|E| küçük ama band geniş ise 'sessiz hata yok' denemez.
+
+    Kural POZİTİF ve NEGATİF için ayrıdır: |E|−u > τ pozitif, |E|+u < τ negatif.
+    İlk sürüm yalnız '|E| ≤ u_val → belirsiz' diyordu ve bu NEGATİF için yanlış
+    testti: frekans çapası |E|=%0,087 < u_val=%0,112 olduğu hâlde ikisinin
+    toplamı eşiğin çok altında, yani güvenle negatif.
+    """
+    s = {x["vaka"]: x for x in dk.degerlendir(dk.korpus())}
+    frk = next(v for k, v in s.items() if k.startswith("kiris 1."))
+    assert frk["hata_pct"] < frk["u_val_pct"], "vakanın kendisi değişmiş"
+    assert frk["hucre"] == "TN" and frk["puanlanir"]
+
+
+def test_ozgulluk_ARTIK_yayinlanabiliyor():
+    """Yeni çapalar negatif havuzunu eşiğin üstüne çıkardı."""
+    o = dk.ozet(dk.degerlendir(dk.korpus()))
+    assert o["TN"] >= dk.EN_AZ_HUCRE
+    assert o["spec"] is not None and not o["spec_notu"]
+
+
+def test_yeni_capalar_BANDLARIYLA_geliyor():
+    """u_num ölçülmemiş bir çapa negatif etiket kuramaz; hepsi 3 seviyeli."""
+    for c in dk.korpus():
+        if c["kaynak_dosya"] == "fea_capa_bagimsiz.json":
+            assert c["u_val_pct"] is not None and c["u_val_pct"] > 0
+            assert not c["besledigi_kapilar"]
