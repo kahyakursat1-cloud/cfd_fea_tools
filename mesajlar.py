@@ -23,6 +23,13 @@ VARSAYILAN_DIL = "tr"
 
 # Geçerlilik sınıfı adları. Anahtarlar validity_envelope'daki sabitlerdir ve
 # DEĞİŞMEZ; yalnız gösterim çevrilir.
+# ANAHTAR = MAKİNE SABİTİ, görünen ad değil. İlk sürüm Türkçe görünen adla
+# ("DOĞRULANMIŞ", "ZARF-DIŞI") anahtarlanmıştı ama zarf katmanı sabit yayıyor
+# (VALIDATED / TREND / OUT). Üç sınıfın YALNIZ biri ("TREND") tesadüfen
+# eşleşiyordu; diğer ikisi her iki dilde de çevrilmeden geçiyordu. `cevir`
+# eksik anahtarda istisna atmayıp anahtarın kendisini döndürdüğü için kusur
+# sessiz kaldı --- ölçüldü 2026-08-18, VLM yolunun ilk uçtan uca koşusunda
+# `genel_metni` tr ve en'de birden "OUT" bastı. Sözleşme sabittir, sunum değişir.
 SINIF = {
     "DOĞRULANMIŞ": {"tr": "DOĞRULANMIŞ", "en": "VALIDATED"},
     "TREND": {"tr": "YALNIZ-EĞİLİM", "en": "TREND-GRADE"},
@@ -45,6 +52,10 @@ NICELIK = {
     "Burkulma marjı (lineer özdeğer)": {
         "tr": "Burkulma marjı (lineer özdeğer)",
         "en": "Buckling margin (linear eigenvalue)"},
+    "C_Di (indüklenen sürükleme)": {
+        "tr": "C_Di (indüklenen sürükleme)", "en": "C_Di (induced drag)"},
+    "C_D (toplam sürükleme)": {
+        "tr": "C_D (toplam sürükleme)", "en": "C_D (total drag)"},
 }
 
 # "Tasarımda kullanılır" hükmü — sözleşmenin en kısa ve en önemli alanı.
@@ -153,6 +164,85 @@ GEREKCE: dict[str, dict[str, str]] = {
                "This is an IDEAL-GEOMETRY UPPER BOUND; manufacturing defects and "
                "eccentricity reduce the critical load, so a margin ≥{esik} is expected "
                "({hukum_en})."),
+    },
+
+    # ── VLM (VSPAERO) ────────────────────────────────────────────────────
+    # Hızlı çözücü CFD'nin yerine geçmez ve bu, hükümde yazılı olmak zorunda:
+    # VLM potansiyel akış çözer, viskoz terimi HİÇ hesaplamaz.
+    "VLM_CD_TOPLAM_YOK": {
+        "tr": ("VLM potansiyel akış çözücüsüdür ve viskoz sürüklemeyi (yüzey "
+               "sürtünmesi + ayrılma) HİÇ hesaplamaz. Bu koşunun ürettiği tek "
+               "sürükleme bileşeni indüklenen dirençtir; TOPLAM C_D bu yoldan "
+               "ELDE EDİLEMEZ. Toplam sürükleme gerekiyorsa CFD yolu kullanılır."),
+        "en": ("VLM is a potential-flow solver and does not compute viscous drag "
+               "(skin friction + separation) at all. The only drag component this "
+               "run yields is induced drag; TOTAL C_D CANNOT be obtained this way. "
+               "Use the CFD path when total drag is required."),
+    },
+    "VLM_CDI_SPAN_IHLALI": {
+        "tr": ("Açıklık verimi e={e:.2f}, fiziksel sınırı çözücünün kendi hata "
+               "payından (%{tol:.1f}) fazla aşıyor. Eliptik yükleme matematiksel "
+               "ÜST SINIRDIR; e>1 indüklenen direncin FİZİKSEL OLARAK MÜMKÜN "
+               "OLANDAN küçük çıktığı anlamına gelir. Tolerans keyfî değil ölçülmüş: "
+               "çapada VSPAERO'nun Trefftz C_Di'si kapalı-form taşıyıcı-çizgiden "
+               "%7,2 sapıyor. İhlal 20--120 panel aralığının TAMAMINDA sürüyor, "
+               "yani ayrıklaştırma artefaktı değil sistematiktir."),
+        "en": ("Span efficiency e={e:.2f} exceeds the physical bound by more than the "
+               "solver's own error margin ({tol:.1f} %). Elliptic loading is the "
+               "mathematical UPPER BOUND, so e>1 means the induced drag came out "
+               "smaller than physically possible. The tolerance is measured, not "
+               "chosen: in the anchor case VSPAERO's Trefftz C_Di deviates 7.2 % from "
+               "closed-form lifting-line. The violation persists across the whole "
+               "20--120 panel range, so it is systematic rather than a discretisation "
+               "artefact."),
+    },
+    "VLM_SPAN_OLCULMEDI": {
+        "tr": ("Açıklık verimi e HESAPLANAMADI (kanat açıklığı/alanı okunamadı), "
+               "dolayısıyla indüklenen direncin fiziksel sınırı SINANMADI. "
+               "Sınanmamış bir kontrol geçilmiş sayılmaz: sayı eğilim düzeyindedir."),
+        "en": ("Span efficiency e could NOT be computed (wing span/area unavailable), "
+               "so the physical bound on induced drag was NOT tested. An untested "
+               "check does not count as a passed one: the number is trend-level."),
+    },
+    "VLM_CDI_GECERLI": {
+        "tr": ("Açıklık verimi e={e:.2f} fiziksel sınırla tutarlı ve panel bandı "
+               "ölçülmüş (±%{band}). İndüklenen direnç bu bandla tasarım kararında "
+               "kullanılabilir; TOPLAM sürükleme değildir."),
+        "en": ("Span efficiency e={e:.2f} is consistent with the physical bound and a "
+               "panel band was measured (±{band} %). Induced drag is usable in a design "
+               "decision within that band; it is not total drag."),
+    },
+    "VLM_PANEL_KANITI_YOK": {
+        "tr": ("Panel yakınsaması GÖSTERİLMEDİ: bu geometride VLM çözümünün panel "
+               "sayısından bağımsız olduğuna dair ölçüm yok. Ölçülen referans vakada "
+               "band ±%{band} çıkmıştı ve dizi son kademede hâlâ %1,22 değişiyordu; "
+               "kanıtsız bir koşuya o bandı taşımak olmayan bir kesinlik yayınlamaktır."),
+        "en": ("Panel convergence was NOT demonstrated: there is no measurement showing "
+               "this geometry's VLM solution is panel-independent. In the measured "
+               "reference case the band was ±{band} % and the series still moved 1.22 % "
+               "at the finest step; carrying that band to an unproven run would publish "
+               "a precision that does not exist."),
+    },
+    "VLM_CL_BANDI_VAR": {
+        "tr": ("Bağlı akış (|α|≤{sinir:.0f}°) ve panel bandı ölçülmüş (±%{band}). "
+               "Taşıma bu bandla tasarım kararında kullanılabilir."),
+        "en": ("Attached flow (|α| ≤ {sinir:.0f}°) with a measured panel band "
+               "(±{band} %). Lift is usable in a design decision within that band."),
+    },
+    "VLM_ALPHA_STALL_YOK": {
+        "tr": ("α={alpha:.0f}° > {sinir:.0f}°: VLM'de STALL YOKTUR — çözücü taşımayı "
+               "lineer olarak uzatmaya devam eder ve gerçek stall'ı göremez. Bu açıda "
+               "üretilen taşıma bir eğilim bile değildir, bir uzatmadır."),
+        "en": ("α={alpha:.0f}° > {sinir:.0f}°: VLM HAS NO STALL — the solver keeps "
+               "extending lift linearly and cannot see the real stall. Lift produced at "
+               "this angle is not even a trend; it is an extrapolation."),
+    },
+    "VLM_SIKISABILIR": {
+        "tr": ("Ma={mach:.2f}≥0.3: VSPAERO Prandtl--Glauert düzeltmesi uygular ama "
+               "bu düzeltme bu depoda hiçbir referansa karşı ölçülmedi — yalnız eğilim."),
+        "en": ("Ma={mach:.2f} ≥ 0.3: VSPAERO applies a Prandtl--Glauert correction, but "
+               "that correction has not been measured against any reference in this "
+               "repository, so the result is trend-level only."),
     },
 }
 

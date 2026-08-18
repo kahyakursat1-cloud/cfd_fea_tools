@@ -62,6 +62,93 @@ def _duzeltici_dict(s) -> dict | None:
     }
 
 
+def vlm_analiz_et(aircraft, *, alpha_deg: float = 0.0, mach: float = 0.05,
+                  panel_bandi_pct: float | None = None, dil: str = "tr",
+                  vehicle_type: str = "ucak",
+                  output_dir: str = "./vspaero_results") -> dict[str, Any]:
+    """VSPAERO (VLM) hızlı çözücüsü --- CFD ile AYNI çıktı sözleşmesi.
+
+    NEDEN AYNI SÖZLEŞME: VLM bu depoda vardı ama `pipeline`/`openvsp_bridge`
+    üzerinden, karar katmanına HİÇ uğramadan çıkıyordu. Yani hızlı yolun sayısı
+    sınıfsız geliyordu ve CLAUDE.md'nin uyardığı iki-hızlılık tam olarak buydu.
+    Bu işlev VLM'i ortak sözleşmeye bağlar; motoru değiştirmez.
+
+    NEDEN STL ALMIYOR: VLM taşıyıcı-yüzey parametrizasyonu ister (kanat, veter,
+    açıklık, profil), keyfî bir üçgen ağı değil. `analiz_et`'e `cozucu="vlm"`
+    diye bir bayrak koyup STL kabul etmek, çözülemeyecek bir girdiyi kabul
+    ediyormuş gibi yapmak olurdu. Parametrik yolun elinde `aircraft` ZATEN var;
+    STL'i o üretiyor.
+    """
+    from mesajlar import SINIF as _SINIF
+    from mesajlar import cevir as _cevir
+    from mesajlar import dil_dogrula
+    from validity_envelope import classify_vlm, overall_class
+    _dil = dil_dogrula(dil)
+
+    from openvsp_bridge import run_vspaero
+    r = run_vspaero(aircraft, alpha_deg=alpha_deg, mach=mach,
+                    output_dir=output_dir)
+    if str(r.get("status", "")).upper() == "FAILED":
+        return {"surum": SURUM, "durum": "hata", "cozucu": "vlm",
+                "hata": r.get("hata") or "VSPAERO koşusu başarısız"}
+    # IRAKSAMA KAPISI (`openvsp_bridge` uygular, tanımı zarf katmanında):
+    # ıraksamış bir koşuyu sınıflandırmak, saçma bir sayıya hüküm yazmak olurdu.
+    if r.get("kabul_edilemez"):
+        return {"surum": SURUM, "durum": "hata", "cozucu": "vlm",
+                "hata": f"VLM çözümü kabul edilemez: {r['kabul_edilemez']}"}
+
+    cl, cdi = r.get("Cl"), r.get("Cd_i")
+    e = _span_verimi(cl, cdi, _en_boy_orani(aircraft))
+    v = classify_vlm(alpha_deg, mach, Cl=cl, CDi=cdi, e_span=e,
+                     panel_bandi_pct=panel_bandi_pct, vehicle_type=vehicle_type)
+
+    return {
+        "surum": SURUM,
+        "durum": "ok",
+        # ÇÖZÜCÜ ÇIKTIDA YAZILI: bir tüketici elindeki sayının hangi denklem
+        # takımından geldiğini sonuçtan bilmelidir. CFD yolu da bunu yazar.
+        "cozucu": "vlm",
+        "girdi": {"tip": vehicle_type, "alpha_deg": alpha_deg, "mach": mach},
+        # `cd` ANAHTARI YOK. VLM toplam sürükleme üretmez; boş ya da 0 bir `cd`
+        # koymak tüketiciyi yanıltırdı. Yerine indüklenen bileşen kendi adıyla.
+        "sonuc": {"cl": cl, "cd_i": cdi, "span_verimi": e},
+        "dil": _dil,
+        "gecerlilik": {"genel": overall_class(v),
+                       "genel_metni": _cevir(_SINIF, overall_class(v), _dil),
+                       "nicelikler": [_verdict_dict(x, _dil) for x in v]},
+        "panel": {"band_pct": panel_bandi_pct},
+    }
+
+
+def _en_boy_orani(aircraft):
+    """AR = b²/S --- ÇÖZÜCÜ SONUCUNDAN DEĞİL, geometriden.
+
+    İlk sürüm `r.get("AR")` deniyordu ama çözücü sonucu AR taşımıyor; sonuç
+    daima None oluyordu ve açıklık-verimi kapısı bu yüzden HİÇ çalışmıyordu
+    (ölçüldü, ilk uçtan uca koşu). Çapa betiği aynı hesabı zaten geometriden
+    yapıyor; tek doğru kaynak orası.
+    """
+    try:
+        k = aircraft.wing
+        b, s = float(k.span), float(k.area)
+        return (b * b / s) if (b > 0 and s > 0) else None
+    # sessiz-yutma: kabul — geometri okunamazsa AR yoktur ve None DÖNMEK
+    # kapıyı açmaz, KAPATIR: `classify_vlm` e=None'ı "fizik kontrolü
+    # sınanmadı" sayıp CDi'yi eğilime indirir (VLM_SPAN_OLCULMEDI). Yani
+    # sebebin yutulması burada hükmü gevşetmiyor, sıkılaştırıyor.
+    except (AttributeError, TypeError, ValueError):
+        return None
+
+
+def _span_verimi(cl, cdi, ar):
+    """e = CL²/(π·AR·CDi). Eksik girdide None --- uydurulmuş bir e, kapıyı
+    sessizce açardı."""
+    import math
+    if not cl or not cdi or not ar or cdi <= 0 or ar <= 0:
+        return None
+    return (cl * cl) / (math.pi * ar * cdi)
+
+
 def analiz_et(stl_path: str, *, duzeltici: bool = False,
               referans_cd: float | None = None, dil: str = "tr",
               **kw) -> dict[str, Any]:
@@ -110,6 +197,7 @@ def analiz_et(stl_path: str, *, duzeltici: bool = False,
     return {
         "surum": SURUM,
         "durum": "ok",
+        "cozucu": "cfd",
         "girdi": {"stl": str(stl_path), "tip": r.vehicle_type,
                   "hiz_ms": r.velocity, "alpha_deg": r.alpha_deg,
                   "mach": round(ma, 4), "sikisabilir": ma >= MACH_INCOMP},

@@ -696,6 +696,119 @@ BURKULMA_MARJI = 1.5   # yapilandirilabilir gosterim marji, sertifikasyon faktor
 FEA_KABUL_SINIRI = {"gerilme": 0.10, "yer_degistirme": 0.05, "ozdeger": 0.05}
 
 
+# VLM'de STALL YOKTUR: çözücü bağlı-akış varsayar ve α büyüdükçe taşımayı
+# lineer uzatır. Sınır CFD'ninkiyle AYNI tutuldu (ALPHA_VALID_DEG) çünkü ikisi de
+# aynı fiziği --- akımın yüzeye bağlı kalmasını --- varsayıyor; iki ayrı sayı
+# tutmak, aynı varsayımın iki yerde ayrışması demek olurdu.
+#
+# Panel bandı ÖLÇÜLDÜ (vlm_panel_yakinsamasi.json, gerçek araç mini_hawk):
+# 6 seviye, LSR, asimptotik-altı → ±%28,32. Bu band bir kanıt DEĞİL, kanıt
+# sunulmadığında ne kadar bilinmediğinin ölçüsüdür.
+VLM_OLCULEN_BAND_PCT = 28.32
+
+# e≤1 sınırı EXACT çözüm için geçerlidir; sayısal bir çözücü onu kendi hata
+# payı kadar aşabilir. Tolerans veriye bakılarak SEÇİLMEDİ, çapadan alındı:
+# `vlm_induklenen_capa` VSPAERO'nun Trefftz CDi'sini kapalı-form Prandtl
+# taşıyıcı-çizgisiyle kıyasladı ve dikdörtgen kanatta +%7,2 sapma ölçtü. Yani
+# bu çözücünün indüklenen direncinin exact cevaptan ne kadar uzakta durduğu
+# BİLİNİYOR; kapı da o kadarını sayısal gürültü sayar, fazlasını ihlal.
+#
+# Ayrım ölçülmüş ve geniş: doğrulanmış temiz kanatta e≤1,005 (eşiğin altında),
+# gerçek araçta e=1,096--1,276 (eşiğin üstünde, HER panel kademesinde).
+# Sert e>1 eşiği çapanın kendi iyi vakasını yakıyordu.
+VLM_SPAN_TOLERANSI = 0.072
+
+
+def classify_vlm(alpha_deg: float, mach: float, *, Cl: float | None = None,
+                 CDi: float | None = None, e_span: float | None = None,
+                 panel_bandi_pct: float | None = None,
+                 vehicle_type: str = "ucak") -> list[Verdict]:
+    """VLM (VSPAERO) çıktılarının zarf sınıfı.
+
+    CFD'den AYRI bir sınıflandırıcı olmasının nedeni kozmetik değil: VLM farklı
+    bir denklem takımı çözer ve iki kusuru CFD'nin zarfında karşılığı olmayan
+    türdendir.
+
+    1) TOPLAM C_D YOKTUR. VLM viskoz terimi hiç hesaplamaz. Bu koşudan bir
+       "Cd" döndürüp tüketicinin onu toplam sürükleme sanmasına izin vermek,
+       bu deponun tekrar tekrar kapattığı kusurun ta kendisidir (sayı sınıfsız
+       çıkar). Bu yüzden toplam C_D bir DEĞER değil, bir RET hükmü olarak döner.
+
+    2) AÇIKLIK VERİMİ FİZİKSEL SINIRI AŞABİLİR. e = CL²/(π·AR·CDi) için eliptik
+       yükleme üst sınırdır (e≤1). Ölçüldü: gerçek araçta e=1,20--1,28 çıkıyor ve
+       ihlal 20--120 panel aralığının tamamında sürüyor. Yani indüklenen direnç
+       fiziksel olarak mümkün olandan küçük; bu bir yakınsama sorunu değil.
+       Kapı ölçümü hükme çevirir.
+    """
+    a = abs(alpha_deg or 0.0)
+    compressible = (mach or 0.0) >= MACH_INCOMP
+    band = panel_bandi_pct
+    v: list[Verdict] = []
+
+    # ── TAŞIMA (C_L) ──
+    if a > ALPHA_VALID_DEG:
+        _p = {"alpha": alpha_deg, "sinir": ALPHA_VALID_DEG}
+        v.append(Verdict("C_L (taşıma)", OUT, False,
+                         _mesaj("VLM_ALPHA_STALL_YOK", **_p), "VLM_ALPHA_STALL_YOK", _p))
+    elif compressible:
+        _p = {"mach": mach}
+        v.append(Verdict("C_L (taşıma)", TREND, False,
+                         _mesaj("VLM_SIKISABILIR", **_p), "VLM_SIKISABILIR", _p))
+    elif band is None:
+        _p = {"band": VLM_OLCULEN_BAND_PCT}
+        v.append(Verdict("C_L (taşıma)", TREND, False,
+                         _mesaj("VLM_PANEL_KANITI_YOK", **_p), "VLM_PANEL_KANITI_YOK", _p))
+    else:
+        _p = {"sinir": ALPHA_VALID_DEG, "band": band}
+        v.append(Verdict("C_L (taşıma)", VALIDATED, True,
+                         _mesaj("VLM_CL_BANDI_VAR", **_p), "VLM_CL_BANDI_VAR", _p))
+
+    # ── İNDÜKLENEN SÜRÜKLEME (C_Di) ──
+    # Fiziksel sınır ihlali her şeyi ezer: bandı ölçülmüş olması, imkânsız bir
+    # sayıyı kullanılabilir yapmaz.
+    if e_span is not None and e_span > 1.0 + VLM_SPAN_TOLERANSI:
+        _p = {"e": e_span, "tol": VLM_SPAN_TOLERANSI * 100}
+        v.append(Verdict("C_Di (indüklenen sürükleme)", OUT, False,
+                         _mesaj("VLM_CDI_SPAN_IHLALI", **_p), "VLM_CDI_SPAN_IHLALI", _p))
+    elif e_span is None:
+        # KAPI BESLENMEDIYSE GEVSEMEZ. Ölçüldü (VLM yolunun ilk uçtan uca
+        # koşusu): `e` hesaplanamadığı için None geliyordu ve CDi bu yüzden
+        # DOĞRULANMIŞ alıyordu --- yani kurulan kapı sessizce devre dışıydı.
+        # Sınanmamış bir fizik kontrolü, geçilmiş bir kontrol değildir.
+        v.append(Verdict("C_Di (indüklenen sürükleme)", TREND, False,
+                         _mesaj("VLM_SPAN_OLCULMEDI"), "VLM_SPAN_OLCULMEDI", {}))
+    elif band is None:
+        _p = {"band": VLM_OLCULEN_BAND_PCT}
+        v.append(Verdict("C_Di (indüklenen sürükleme)", TREND, False,
+                         _mesaj("VLM_PANEL_KANITI_YOK", **_p), "VLM_PANEL_KANITI_YOK", _p))
+    elif compressible:
+        _p = {"mach": mach}
+        v.append(Verdict("C_Di (indüklenen sürükleme)", TREND, False,
+                         _mesaj("VLM_SIKISABILIR", **_p), "VLM_SIKISABILIR", _p))
+    else:
+        _p = {"e": e_span if e_span is not None else float("nan"), "band": band}
+        v.append(Verdict("C_Di (indüklenen sürükleme)", VALIDATED, True,
+                         _mesaj("VLM_CDI_GECERLI", **_p), "VLM_CDI_GECERLI", _p))
+
+    # ── TOPLAM C_D: bu yoldan ELDE EDİLEMEZ ──
+    # Koşullu değil, KOŞULSUZ. Ne kadar ince panel kullanılırsa kullanılsın
+    # potansiyel akış viskoz sürüklemeyi üretmez.
+    v.append(Verdict("C_D (toplam sürükleme)", OUT, False,
+                     _mesaj("VLM_CD_TOPLAM_YOK"), "VLM_CD_TOPLAM_YOK", {}))
+
+    # ── L/D: toplam sürüklemeye bağlı → en zayıfı miras alır ──
+    v.append(Verdict("L/D, sürükleme kuvveti/gücü", OUT, False,
+                     _mesaj("LD_TUREV"), "LD_TUREV", {}))
+
+    # Fizik kapısı CFD yolundaki ile AYNI: fizik-dışı bir Cl hiçbir zarfla
+    # kurtarılamaz. Cd olarak indüklenen direnç verilir --- toplam olmadığı
+    # zaten yukarıda hükme bağlandı.
+    if Cl is not None or CDi is not None:
+        v = apply_physics_gate(v, force_admissibility(
+            CDi, Cl, alpha_deg, rejim=rejim_arac_tipinden(vehicle_type)))
+    return v
+
+
 def classify_fea(has_singularity: bool = False,
                  buckling_margin: float | None = None,
                  referans_hata_pct: float | None = None,
