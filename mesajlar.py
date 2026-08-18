@@ -30,10 +30,17 @@ VARSAYILAN_DIL = "tr"
 # eksik anahtarda istisna atmayıp anahtarın kendisini döndürdüğü için kusur
 # sessiz kaldı --- ölçüldü 2026-08-18, VLM yolunun ilk uçtan uca koşusunda
 # `genel_metni` tr ve en'de birden "OUT" bastı. Sözleşme sabittir, sunum değişir.
+# ANAHTAR = MAKİNE SABİTİ, görünen ad değil. İlk sürüm Türkçe görünen adla
+# ("DOĞRULANMIŞ", "ZARF-DIŞI") anahtarlanmıştı ama zarf katmanı sabit yayıyor
+# (VALIDATED / TREND / OUT). Üç sınıfın YALNIZ biri ("TREND") tesadüfen
+# eşleşiyordu; diğer ikisi her iki dilde de çevrilmeden geçiyordu. `cevir`
+# eksik anahtarda istisna atmayıp anahtarın kendisini döndürdüğü için kusur
+# sessiz kaldı --- ölçüldü 2026-08-18, VLM yolunun ilk uçtan uca koşusunda
+# `genel_metni` tr ve en'de birden "OUT" bastı. Sözleşme sabittir, sunum değişir.
 SINIF = {
-    "DOĞRULANMIŞ": {"tr": "DOĞRULANMIŞ", "en": "VALIDATED"},
+    "VALIDATED": {"tr": "DOĞRULANMIŞ", "en": "VALIDATED"},
     "TREND": {"tr": "YALNIZ-EĞİLİM", "en": "TREND-GRADE"},
-    "ZARF-DIŞI": {"tr": "ZARF-DIŞI", "en": "OUT-OF-ENVELOPE"},
+    "OUT": {"tr": "ZARF-DIŞI", "en": "OUT-OF-ENVELOPE"},
 }
 
 # Nicelik adları.
