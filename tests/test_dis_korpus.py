@@ -55,6 +55,31 @@ def test_hukum_ELLE_yazilmiyor_siniflandirici_kosuluyor():
         assert x["guard_sinif"] in ("VALIDATED", "TREND", "OUT")
 
 
+def test_SINANAN_NICELIGIN_hukmu_ayikliniyor():
+    """Filtre tutmazsa ölçülen şey Cd kapısı değil, L/D'nin sabit hükmü olur.
+
+    İlk sürüm küçük harf arıyordu ("C_d") ama alan "C_D (sürükleme)"; filtre
+    hiç tutmuyor ve tüm hükümlere düşüyordu. Bandı olan küp bu yüzden TREND
+    görünüyordu — yani kapı ölçülüyor sanılırken başka bir şey ölçülüyordu.
+    """
+    s = {x["vaka"]: x for x in dk.degerlendir(dk.korpus())}
+    kup = next(v for k, v in s.items() if k.startswith("kup"))
+    assert kup["gci_bandi"] is True
+    assert kup["guard_sinif"] == "VALIDATED", (
+        "GCI bandı olan hücre band-sertifikası almalı; TREND ise filtre tutmuyor")
+
+
+def test_olculemez_etiket_BELIRSIZ_isaretlenir():
+    """|E| ≤ u_val ise 'sessiz hata yok' etiketi kanıtla desteklenmez."""
+    s = dk.degerlendir(dk.korpus())
+    bel = [x for x in s if x["hucre"] == "BELİRSİZ"]
+    assert bel, "belirsiz hücre yoksa kategori sınanmamış olur"
+    for x in bel:
+        assert x["hata_pct"] <= x["u_val_pct"]
+        assert x["sessiz_hata"] is None, "etiket kurulamayan hücreye etiket konmuş"
+        assert not x["puanlanir"] and "u_val" in x["puanlanmama_nedeni"]
+
+
 def test_sayilar_KANIT_DOSYASINDAN_okunuyor():
     """Elle kopyalanmış bir sayı, kanıt yenilenince sessizce eskir."""
     kaynak = (KOK / "experiments" / "dis_korpus.py").read_text(encoding="utf-8")

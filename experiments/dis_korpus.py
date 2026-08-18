@@ -150,6 +150,52 @@ def korpus() -> list[dict]:
             "truth": None, "naive": None,
             "besledigi_kapilar": ["FEA_KABUL_SINIRI"],
         })
+
+    h += _bandli_capalar()
+    return h
+
+
+def _bandli_capalar() -> list[dict]:
+    """Dış referansı OLAN ve ağ ailesi koşulmuş vakalar --- negatif aday havuzu.
+
+    Özgüllüğü ölçmek için "doğru çıkmış" hücre gerekir. Bu iki vaka o niyetle
+    eklendi ve ikisi de ETİKETLENEMEDİ; nedeni aşağıda, `u_val_pct` alanında.
+    """
+    h = []
+    d = _oku("duz_levha_aile.json")
+    if d and d.get("seviyeler"):
+        s = d["seviyeler"][-1]
+        r = d["referans"]
+        h.append({
+            "vaka": "duzlevha Cf (Schlichting, y⁺≈50 ailesi)",
+            "nicelik": "Cd", "kaynak_dosya": "duz_levha_aile.json",
+            "dis_referans": "Schlichting 1/7-kuvvet + Schultz-Grunow 1941 — "
+                            "İKİ korelasyonun farkı u_D=%3,36 olarak ölçüldü",
+            "truth": r["Cf"], "naive": s["Cf"],
+            "arac_tipi": "ucak", "alpha_deg": 0.0, "mach": 0.088,
+            # Richardson YÖNLÜ ailede tanımsız → bu bir GCI bandı DEĞİL,
+            # iki-seviye bağıl fark. Depo bu ayrımı zaten yapıyor.
+            "gci_bandi": False, "ag_yeterli": None,
+            "u_val_pct": 3.37,
+            "kurulum_notu": "yönlü aile — Richardson tanımsız, band 2-seviye",
+            "besledigi_kapilar": [],
+        })
+    d = _oku("gci_kup_arac.json")
+    if d and d.get("Cd_ince") is not None:
+        h.append({
+            "vaka": "kup Cd (Hoerner, 4-seviye GCI)",
+            "nicelik": "Cd", "kaynak_dosya": "gci_kup_arac.json",
+            "dis_referans": "Hoerner 1965, Fluid-Dynamic Drag — küp Cd≈1,05",
+            "truth": d["referans"]["Cd"], "naive": d["Cd_ince"],
+            "arac_tipi": "kup", "alpha_deg": 0.0, "mach": 0.029,
+            "gci_bandi": True, "ag_yeterli": None,
+            "u_val_pct": (d.get("belirsizlik") or {}).get("u_sayisal_pct"),
+            "kurulum_notu": "",
+            # Küp FİZİK kapısını besledi (Cd≈1,05 referansı, satır ~26) ama
+            # burada sınanan kapı BAND SERTİFİKASI; fizik kapısı Cd=1,11'de
+            # zaten tetiklenmiyor. Bulaşma kapı-bazlı olduğu için puanlanır.
+            "besledigi_kapilar": ["fizik_kapisi"],
+        })
     return h
 
 
@@ -178,19 +224,44 @@ def degerlendir(h: list[dict]) -> list[dict]:
                              Cl=c["naive"] if c["nicelik"] == "Cl" else None,
                              Cd=c["naive"] if c["nicelik"] == "Cd" else None,
                              ag_yeterli=c["ag_yeterli"])
-            v = [x for x in v if x.quantity.startswith(f"C_{c['nicelik'][1]}")] or v
+            # SINANAN NİCELİĞİ AYIKLA. İlk sürüm küçük harf arıyordu
+            # ("C_d") ama alan "C_D (sürükleme)"; filtre hiç tutmuyor ve
+            # `or v` ile TÜM hükümlere düşüyordu. L/D her koşuda TREND
+            # olduğundan her hücre TREND çıkıyordu: ölçülen şey Cd kapısı
+            # değil, L/D'nin sabit hükmüydü.
+            ad = f"C_{c['nicelik'][1].upper()}"
+            secili = [x for x in v if x.quantity.startswith(ad)]
+            if not secili:
+                raise AssertionError(f"{ad} hükmü üretilmedi: "
+                                     f"{[x.quantity for x in v]}")
+            v = secili
             kapi = "classify_cfd"
         genel = overall_class(v)
         flagged = genel != VALIDATED
         gercek = hp > TAU * 100.0            # sessiz-hata VAR mı
+
+        # ETİKETİN KENDİSİ ÖLÇÜLEBİLİR Mİ? |E| ≤ u_val ise gözlenen sapma
+        # doğrulama belirsizliğinden AYRILAMAZ; o hücreye "sessiz hata yok"
+        # demek, kanıtın desteklemediği bir etiket yayınlamaktır. Bu, aracın
+        # kendi V&V disiplininin (R_E = |E|/u_val) korpusa uygulanmış hâlidir
+        # ve üçüncü bir kategoriyi zorunlu kılar: BELİRSİZ.
+        uval = c.get("u_val_pct")
+        belirsiz = uval is not None and hp <= uval
+        neden = ""
+        if kapi in c["besledigi_kapilar"]:
+            neden = f"bu vaka {kapi} eşiğini besledi"
+        elif belirsiz:
+            neden = (f"|E|=%{hp:.2f} ≤ u_val=%{uval:.2f} — sapma doğrulama "
+                     "belirsizliğinden ayrılamıyor, ETİKET KURULAMAZ")
+
         out.append({**c, "hata_pct": round(hp, 2), "guard_sinif": genel,
-                    "flagged": flagged, "sessiz_hata": gercek,
-                    "hucre": ("TP" if (gercek and flagged) else
+                    "flagged": flagged, "sessiz_hata": None if belirsiz else gercek,
+                    "hucre": ("BELİRSİZ" if belirsiz else
+                              "TP" if (gercek and flagged) else
                               "FN" if gercek else
                               "FP" if flagged else "TN"),
-                    "puanlanir": kapi not in c["besledigi_kapilar"],
-                    "puanlanmama_nedeni": ("" if kapi not in c["besledigi_kapilar"]
-                                           else f"bu vaka {kapi} eşiğini besledi"),
+                    "puanlanir": not neden,
+                    "puanlanmama_nedeni": neden,
                     "sinanan_kapi": kapi})
     return out
 

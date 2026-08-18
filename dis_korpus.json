@@ -1,9 +1,9 @@
 {
  "tau": 0.05,
  "ozet": {
-  "n_toplam": 7,
+  "n_toplam": 9,
   "n_puanlanan": 5,
-  "n_dislanan": 2,
+  "n_dislanan": 4,
   "TP": 4,
   "FP": 1,
   "TN": 0,
@@ -14,7 +14,7 @@
    "silindir"
   ],
   "sens": 1.0,
-  "sens_notu": "",
+  "sens_notu": "1 bağımsız kümeden geliyor; hücre sayısı kümeleri saymaz, aynı geometrinin kurulumları birbirinin tekrarıdır",
   "spec": null,
   "spec_notu": "negatif hücre 1 < 3 — KESTİRİLEMEZ; dış-referanslı vakaların hemen tamamı bir tutarsızlığı SORUŞTURMAK için koşulmuş, yani korpus yapısal olarak hata-ağırlıklı"
  },
@@ -173,6 +173,56 @@
    "puanlanir": false,
    "puanlanmama_nedeni": "bu vaka FEA_KABUL_SINIRI eşiğini besledi",
    "sinanan_kapi": "FEA_KABUL_SINIRI"
+  },
+  {
+   "vaka": "duzlevha Cf (Schlichting, y⁺≈50 ailesi)",
+   "nicelik": "Cd",
+   "kaynak_dosya": "duz_levha_aile.json",
+   "dis_referans": "Schlichting 1/7-kuvvet + Schultz-Grunow 1941 — İKİ korelasyonun farkı u_D=%3,36 olarak ölçüldü",
+   "truth": 0.003735,
+   "naive": 0.003631,
+   "arac_tipi": "ucak",
+   "alpha_deg": 0.0,
+   "mach": 0.088,
+   "gci_bandi": false,
+   "ag_yeterli": null,
+   "u_val_pct": 3.37,
+   "kurulum_notu": "yönlü aile — Richardson tanımsız, band 2-seviye",
+   "besledigi_kapilar": [],
+   "hata_pct": 2.78,
+   "guard_sinif": "TREND",
+   "flagged": true,
+   "sessiz_hata": null,
+   "hucre": "BELİRSİZ",
+   "puanlanir": false,
+   "puanlanmama_nedeni": "|E|=%2.78 ≤ u_val=%3.37 — sapma doğrulama belirsizliğinden ayrılamıyor, ETİKET KURULAMAZ",
+   "sinanan_kapi": "classify_cfd"
+  },
+  {
+   "vaka": "kup Cd (Hoerner, 4-seviye GCI)",
+   "nicelik": "Cd",
+   "kaynak_dosya": "gci_kup_arac.json",
+   "dis_referans": "Hoerner 1965, Fluid-Dynamic Drag — küp Cd≈1,05",
+   "truth": 1.05,
+   "naive": 1.11332,
+   "arac_tipi": "kup",
+   "alpha_deg": 0.0,
+   "mach": 0.029,
+   "gci_bandi": true,
+   "ag_yeterli": null,
+   "u_val_pct": 7.77,
+   "kurulum_notu": "",
+   "besledigi_kapilar": [
+    "fizik_kapisi"
+   ],
+   "hata_pct": 6.03,
+   "guard_sinif": "VALIDATED",
+   "flagged": false,
+   "sessiz_hata": null,
+   "hucre": "BELİRSİZ",
+   "puanlanir": false,
+   "puanlanmama_nedeni": "|E|=%6.03 ≤ u_val=%7.77 — sapma doğrulama belirsizliğinden ayrılamıyor, ETİKET KURULAMAZ",
+   "sinanan_kapi": "classify_cfd"
   }
  ]
 }
