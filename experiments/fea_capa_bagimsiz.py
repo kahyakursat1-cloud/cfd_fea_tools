@@ -72,6 +72,11 @@ TEK_AG_YOK = (
     "GÜVENİLİR NEGATİF etiket üretmek; |E| küçük olsa bile u_num bilinmiyorsa "
     "etiket kurulamaz ve hücre yine BELİRSİZ'e düşerdi.")
 SEVIYELER = (1.0, 1.4, 2.0)     # ağ inceltme çarpanı (h bölen)
+# Küre AYRI: kiriş çapaları üç seviyede yakınsadı (u_num≈%0,01) ama küre
+# yüzey gerilmesi yavaş yakınsıyor --- eğri yüzeyde C3D10 gerilmesi böyledir.
+# Ağı yalnız İHTİYAÇ DUYAN vakada artırmak, yakınsamış olanları boşuna
+# yeniden koşmaktan ucuzdur (küre ağları 8k eleman mertebesinde).
+SEVIYELER_KURE = (1.4, 2.0, 2.8, 4.0)
 
 
 def _mesh(work: Path, ad: str, boy: float, incelik: float = 1.0) -> TetMesh:
@@ -234,7 +239,14 @@ def kure_lame(work: Path, incelik: float = 1.0) -> dict:
     # İÇ YÜZEYDEKİ düğümler: tepe değeri tüm gövdeden almak, mesnet
     # köşesindeki tekilliği ölçmek olurdu.
     rn = np.linalg.norm(p, axis=1)
-    ic_dugum = set(np.where(np.abs(rn - R_IC) < (R_DIS - R_IC) * 0.06)[0] + 1)
+    # SEÇİM BANDI GEOMETRİK OLMALI, duvar kalınlığının yüzdesi DEĞİL.
+    # İlk sürüm bandı 0,06·(r_dış−r_iç) = 3 mm alıyordu; oysa σ_t yüzeyden
+    # 3 mm içeride %12,8 düşüyor (kapalı-formdan hesaplanabilir). Medyan o
+    # bandın içine yayılınca ÖLÇÜM sistematik olarak düşük çıkıyordu ve bu
+    # ayrıklaştırma hatası gibi görünüyordu. gmsh düğümleri CAD yüzeyine
+    # oturtur (kuadratik kenar-orta düğümler de eğrilir), dolayısıyla
+    # yüzey düğümleri için mikron mertebesinde bir tolerans yeterlidir.
+    ic_dugum = set(np.where(np.abs(rn - R_IC) < R_IC * 1e-4)[0] + 1)
     maske = np.array([int(k) in ic_dugum for k in frd.node_ids])
     if not maske.any():
         return {"durum": "hata", "mesaj": "iç yüzey düğümü bulunamadı"}
@@ -328,14 +340,16 @@ def main() -> int:
         "referans_u_D_pct": U_D_PCT,
         "referans_kaynak": "Euler-Bernoulli kiriş teorisi (kapalı-form); "
                            "u_D = (h/L)² kayma-deformasyonu mertebesi",
-        "ag_ailesi": {"incelikler": list(SEVIYELER), "_neden": TEK_AG_YOK},
+        "ag_ailesi": {"incelikler": list(SEVIYELER),
+                      "incelikler_kure": list(SEVIYELER_KURE),
+                      "_neden": TEK_AG_YOK},
     }
 
     for ad, fn, alan, u_d in (("sehim", kiris_sehim, "fem_m", U_D_PCT),
                               ("frekans", kiris_frekans, "fem_hz", U_D_PCT),
                               ("kure", kure_lame, "fem_Pa", U_D_KURE_PCT)):
         seviyeler = []
-        for inc in SEVIYELER:
+        for inc in (SEVIYELER_KURE if ad == "kure" else SEVIYELER):
             d = fn(work, inc)
             d["incelik"] = inc
             seviyeler.append(d)

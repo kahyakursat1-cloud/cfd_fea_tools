@@ -18,6 +18,12 @@
    1.4,
    2.0
   ],
+  "incelikler_kure": [
+   1.4,
+   2.0,
+   2.8,
+   4.0
+  ],
   "_neden": "Tek ağ, ölçülmemiş bir sayısal belirsizlik demektir. Bu çapaların amacı GÜVENİLİR NEGATİF etiket üretmek; |E| küçük olsa bile u_num bilinmiyorsa etiket kurulamaz ve hücre yine BELİRSİZ'e düşerdi."
  },
  "sehim": {
@@ -156,18 +162,8 @@
     "durum": "ok",
     "nicelik": "gerilme",
     "analitik_Pa": 35714285.71428572,
-    "fem_Pa": 32538956.594975203,
-    "hata_pct": 8.890921534069436,
-    "dugum": 2050,
-    "eleman": 1100,
-    "incelik": 1.0
-   },
-   {
-    "durum": "ok",
-    "nicelik": "gerilme",
-    "analitik_Pa": 35714285.71428572,
-    "fem_Pa": 33989021.456569165,
-    "hata_pct": 4.830739921606344,
+    "fem_Pa": 34057641.42224407,
+    "hata_pct": 4.638604017716604,
     "dugum": 5375,
     "eleman": 3143,
     "incelik": 1.4
@@ -176,28 +172,48 @@
     "durum": "ok",
     "nicelik": "gerilme",
     "analitik_Pa": 35714285.71428572,
-    "fem_Pa": 34522319.54978697,
-    "hata_pct": 3.33750526059649,
+    "fem_Pa": 34725355.92917566,
+    "hata_pct": 2.7690033983081577,
     "dugum": 12647,
     "eleman": 7873,
     "incelik": 2.0
+   },
+   {
+    "durum": "ok",
+    "nicelik": "gerilme",
+    "analitik_Pa": 35714285.71428572,
+    "fem_Pa": 35162122.35471955,
+    "hata_pct": 1.5460574067852675,
+    "dugum": 31432,
+    "eleman": 20627,
+    "incelik": 2.8
+   },
+   {
+    "durum": "ok",
+    "nicelik": "gerilme",
+    "analitik_Pa": 35714285.71428572,
+    "fem_Pa": 35418079.30879915,
+    "hata_pct": 0.8293779353623927,
+    "dugum": 87262,
+    "eleman": 59731,
+    "incelik": 4.0
    }
   ],
   "en_ince": {
    "durum": "ok",
    "nicelik": "gerilme",
    "analitik_Pa": 35714285.71428572,
-   "fem_Pa": 34522319.54978697,
-   "hata_pct": 3.33750526059649,
-   "dugum": 12647,
-   "eleman": 7873,
-   "incelik": 2.0
+   "fem_Pa": 35418079.30879915,
+   "hata_pct": 0.8293779353623927,
+   "dugum": 87262,
+   "eleman": 59731,
+   "incelik": 4.0
   },
-  "u_num_pct": 1.5448,
+  "u_num_pct": 0.7227,
   "u_num_yontem": "en ince iki seviye bağıl farkı",
   "u_D_pct": 0.0,
-  "u_val_pct": 1.5448,
-  "hata_pct": 3.33750526059649
+  "u_val_pct": 0.7227,
+  "hata_pct": 0.8293779353623927
  },
- "verdikt": "✅ Üç çapa da negatif etiket kurabiliyor — sehim: |E|=%0.336 ⊕ u_val=%0.111 → eşiğe 4.55 puan (NEGATİF ETİKET KURULABİLİR) · frekans: |E|=%0.087 ⊕ u_val=%0.112 → eşiğe 4.80 puan (NEGATİF ETİKET KURULABİLİR) · kure: |E|=%3.338 ⊕ u_val=%1.545 → eşiğe 0.12 puan (NEGATİF ETİKET KURULABİLİR) ⚠ SINIRDA"
+ "verdikt": "✅ Üç çapa da negatif etiket kurabiliyor — sehim: |E|=%0.336 ⊕ u_val=%0.111 → eşiğe 4.55 puan (NEGATİF ETİKET KURULABİLİR) · frekans: |E|=%0.087 ⊕ u_val=%0.112 → eşiğe 4.80 puan (NEGATİF ETİKET KURULABİLİR) · kure: |E|=%0.829 ⊕ u_val=%0.723 → eşiğe 3.45 puan (NEGATİF ETİKET KURULABİLİR)"
 }
