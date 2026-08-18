@@ -14,7 +14,7 @@ Dayanak (Annex I + 2026-06 doğrulamaları):
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 VALIDATED = "VALIDATED"
 TREND = "TREND"
@@ -63,6 +63,25 @@ class Verdict:
     klass: str
     design_safe: bool
     message: str
+    # KARARLI MAKİNE KODU. `message` sunumdur ve dile göre değişir; `kod`
+    # sözleşmenin parçasıdır ve değişmez. Türkçe okumayan bir tüketici
+    # (Erasmus+ ortağı) hükmü kod üzerinden ayırt edebilsin diye eklendi.
+    # Varsayılan boş: kodu olmayan bir hüküm hâlâ geçerlidir, yalnız
+    # makine düzeyinde ayırt edilemez ve bir test bunu sayar.
+    kod: str = ""
+    parametreler: dict = field(default_factory=dict)
+
+
+def _mesaj(kod: str, **p) -> str:
+    """Hüküm gerekçesinin TÜRKÇE metni --- katalogdan, elle değil.
+
+    Metin burada değil `mesajlar.py`de durur, çünkü aynı cümlenin ikinci bir
+    dilde de yaşaması gerekiyor ve iki dilin iki ayrı yerde tutulması bu
+    deponun tekrar tekrar ölçtüğü ayrışmayı üretir. Türkçe şablonlar mevcut
+    metnin BİREBİR aynısıdır; bu bir yeniden yazım değil, tek-kaynağa toplamadır.
+    """
+    from mesajlar import VARSAYILAN_DIL, gerekce_metni
+    return gerekce_metni(kod, VARSAYILAN_DIL, **p)
 
 
 HAVA_NU = 1.5e-5          # m²/s, ~15 °C
@@ -319,9 +338,11 @@ def apply_physics_gate(verdicts: list[Verdict], fizik: dict | None) -> list[Verd
         return verdicts
     gerekce = "; ".join((fizik or {}).get("reasons", [])) or "fiziksel kabul-edilebilirlik kapısı"
     if v == "inadmissible":
-        return [Verdict(x.quantity, OUT, False, f"FİZİK KAPISI: {gerekce}") for x in verdicts]
+        return [Verdict(x.quantity, OUT, False, _mesaj("FIZIK_KAPISI", gerekce=gerekce),
+                        "FIZIK_KAPISI", {"gerekce": gerekce}) for x in verdicts]
     return [Verdict(x.quantity, TREND if x.klass == VALIDATED else x.klass, False,
-                    f"FİZİK KAPISI (şüpheli): {gerekce}") for x in verdicts]
+                    _mesaj("FIZIK_KAPISI_SUPHELI", gerekce=gerekce),
+                    "FIZIK_KAPISI_SUPHELI", {"gerekce": gerekce}) for x in verdicts]
 
 
 # QoI-duraganlik esigi: DRIFT_LIMIT_PCT (2.0) 'kabul edilebilir', bu ise 'oturmus'
@@ -608,33 +629,29 @@ def classify_cfd(vehicle_type: str, alpha_deg: float, mach: float,
 
     # ── TAŞIMA (C_L) ──
     if a > ALPHA_VALID_DEG:
+        _p = {"alpha": alpha_deg, "sinir": ALPHA_VALID_DEG}
         v.append(Verdict("C_L (taşıma)", OUT, False,
-            f"α={alpha_deg:.0f}° > {ALPHA_VALID_DEG:.0f}°: 2D RANS taşımayı ~%45 DÜŞÜK tahmin "
-            "eder (erken stall — α=10/12°'de ölçüldü). Tasarım sayısı DEĞİL; yalnız "
-            "'bu açıda stall başlıyor' sezgisi için."))
+                         _mesaj("CL_ALPHA_ZARF_DISI", **_p), "CL_ALPHA_ZARF_DISI", _p))
     elif compressible:
+        _p = {"mach": mach}
         v.append(Verdict("C_L (taşıma)", TREND, False,
-            f"Ma={mach:.2f}≥0.3 sıkışabilir rejim — taşıma yalnız eğilim düzeyinde."))
+                         _mesaj("CL_SIKISABILIR", **_p), "CL_SIKISABILIR", _p))
     elif not ag_kanit:
+        _p = {"sinir": ALPHA_VALID_DEG}
         v.append(Verdict("C_L (taşıma)", TREND, False,
-            f"Bağlı akış (|α|≤{ALPHA_VALID_DEG:.0f}°) ama AĞ YETERLİLİĞİ GÖSTERİLMEDİ: "
-            "bu ağın taşımayı çözdüğüne dair çok-ağlı band ya da referans-ağ ailesi "
-            "beyanı yok. Hücum açısı tek başına taşıma güvenilirliğini kurmaz — "
-            "ölçüldü: bağlı akışta ağ-kaynaklı %5,8–%23 taşıma hatası. Eğilim ve "
-            "aynı ağla A/B karşılaştırması geçerlidir."))
+                         _mesaj("CL_AG_KANITI_YOK", **_p), "CL_AG_KANITI_YOK", _p))
     else:
+        _p = {"sinir": ALPHA_VALID_DEG}
         v.append(Verdict("C_L (taşıma)", VALIDATED, True,
-            f"Bağlı akış (|α|≤{ALPHA_VALID_DEG:.0f}°) + ağ yeterliliği gösterildi: "
-            "NACA0012'de NASA Ladson'a karşı ≤%8 — tasarım kararı için kullanılabilir."))
+                         _mesaj("CL_GECERLI", **_p), "CL_GECERLI", _p))
 
     # ── SÜRÜKLEME (C_D, mutlak) ──
     if has_gci_band:
         v.append(Verdict("C_D (sürükleme)", VALIDATED, True,
-            "3-mesh GCI asimptotik bandı — mutlak değer savunulabilir."))
+                         _mesaj("CD_GCI_BANDI_VAR"), "CD_GCI_BANDI_VAR", {}))
     elif compressible:
         v.append(Verdict("C_D (sürükleme)", TREND, False,
-            "Süpersonik inviscid kayma-duvar taban-drag'ı ~%15 fazla — mutlak Cd tasarım "
-            "sayısı DEĞİL; Mach-eğilimi ve A/B karşılaştırması güvenilir."))
+                         _mesaj("CD_SIKISABILIR"), "CD_SIKISABILIR", {}))
     else:
         # ESKİ METİN BU KOŞUYU DEĞİL BAŞKA BİR ÇALIŞMAYI ANLATIYORDU: "bu O-grid
         # ailesinde mesh-yakınsamadı, p≈0.2" cümlesi kanat-profili O-grid
@@ -644,15 +661,17 @@ def classify_cfd(vehicle_type: str, alpha_deg: float, mach: float,
         extra = (f" Tek elde olan 2-ağ duyarlılığı: ±%{band_pct} — bu bir GCI bandı "
                  "DEĞİLDİR (gözlenen mertebe hesaplanamaz)." if band_pct is not None
                  else " Bu geometride hiç ağ-duyarlılığı ölçülmedi.")
+        extra_en = (f" The only figure available is a two-grid sensitivity of ±{band_pct} %, "
+                    "which is NOT a GCI band (the observed order cannot be computed)."
+                    if band_pct is not None
+                    else " No mesh sensitivity was measured for this geometry.")
+        _p = {"ek": extra, "ek_en": extra_en}
         v.append(Verdict("C_D (sürükleme)", TREND, False,
-            "Bu koşu için çok-ağlı yakınsama bandı (GCI/LSR) hesaplanmadı, dolayısıyla "
-            "mutlak sürüklemenin sayısal belirsizliği BİLİNMİYOR." + extra +
-            " Tasarım sayısı DEĞİL; aynı ağ ayarıyla yapılan A/B karşılaştırması ve "
-            "eğilim geçerlidir."))
+                         _mesaj("CD_BAND_YOK", **_p), "CD_BAND_YOK", _p))
 
     # ── L/D ve sürükleme kuvveti: mutlak Cd'ye bağlı → en zayıfı miras alır ──
     v.append(Verdict("L/D, sürükleme kuvveti/gücü", TREND, False,
-        "Mutlak sürüklemeden türetilir → tasarım sayısı değil; karşılaştırmalı kullanın."))
+                     _mesaj("LD_TUREV"), "LD_TUREV", {}))
 
     # ── FİZİK KAPISI EN SONDA VE EN ÜSTTE: fizik-dışı bir sayı hiçbir zarf
     # sınıfıyla kurtarılamaz, dolayısıyla yukarıdaki hükümlerin HEPSİNİ ezer.
@@ -690,16 +709,14 @@ def classify_fea(has_singularity: bool = False,
     """
     sinir = FEA_KABUL_SINIRI.get(nicelik, FEA_KABUL_SINIRI["gerilme"]) * 100.0
     if referans_hata_pct is not None and referans_hata_pct > sinir:
+        _p = {"hata": referans_hata_pct, "sinir": sinir, "nicelik": nicelik}
         return [Verdict("Kapalı-form referans hatası", TREND, False,
-            f"%{referans_hata_pct:.1f} > kabul sınırı %{sinir:.0f} ({nicelik}): "
-            "uygulama-doğrulaması bu vakada GEÇMEDİ, sonuç yalnız eğilim.")]
+                        _mesaj("FEA_REFERANS_HATASI", **_p), "FEA_REFERANS_HATASI", _p)]
     v = [Verdict("Gerilme (temsili, %99-persentil)", VALIDATED, True,
-        "6 kanonik V&V %0.0–4.8 (kuvvet/basınç/gövde/termal/buckling) — temsili gerilme "
-        "ve emniyet faktörü tasarım kararı için kullanılabilir.")]
+                 _mesaj("FEA_GERILME_GECERLI"), "FEA_GERILME_GECERLI", {})]
     if has_singularity:
         v.append(Verdict("Tepe gerilme (tekillik noktası)", TREND, False,
-            "Sivri-köşe tekilliği: tepe değer mesh inceldikçe büyür, fiziksel değil — "
-            "temsili (%99-persentil) değeri kullanın."))
+                         _mesaj("FEA_TEKILLIK"), "FEA_TEKILLIK", {}))
     if buckling_margin is not None:
         # Lineer-elastik özdeğer burkulması Euler'e %0.2 doğrulandı (fea_validation_buckling).
         # İdeal-geometri üst-sınırdır: gerçek kusur/eksantriklik kritik yükü DÜŞÜRÜR → marj
@@ -709,11 +726,12 @@ def classify_fea(has_singularity: bool = False,
         # IDEAL geometri ust-sinirini verir, imalat kusuru/eksantriklik kritik yuku
         # DUSURUR, dolayisiyla 1'e yakin marj guvenli degildir.
         safe = buckling_margin >= BURKULMA_MARJI
+        _p = {"marj": buckling_margin, "esik": BURKULMA_MARJI,
+              "hukum": "sağlandı" if safe else "SAĞLANMADI — yalnız eğilim",
+              "hukum_en": "met" if safe else "NOT met — trend-grade only"}
         v.append(Verdict("Burkulma marjı (lineer özdeğer)",
-            VALIDATED if safe else TREND, safe,
-            f"λ={buckling_margin:.2f}× — *BUCKLE yolu Euler'e %0.2 doğrulandı. "
-            "İdeal-geometri ÜST-SINIRıdır; imalat kusuru/eksantriklik kritik yükü düşürür, "
-            f"bu yüzden marj ≥{BURKULMA_MARJI} beklenir ({'sağlandı' if safe else 'SAĞLANMADI — yalnız eğilim'})."))
+                         VALIDATED if safe else TREND, safe,
+                         _mesaj("FEA_BURKULMA", **_p), "FEA_BURKULMA", _p))
     return v
 
 

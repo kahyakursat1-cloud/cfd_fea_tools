@@ -21,9 +21,24 @@ from typing import Any
 SURUM = "1.0"
 
 
-def _verdict_dict(v) -> dict:
-    return {"nicelik": v.quantity, "sinif": v.klass,
-            "tasarimda_kullanilir": bool(v.design_safe), "gerekce": v.message}
+def _verdict_dict(v, dil: str = "tr") -> dict:
+    """Hükmü sözleşmeye çevir.
+
+    `kod` HER ZAMAN döner ve dile bağlı DEĞİLDİR: çeviri eksik olsa bile
+    tüketici hükmü makine düzeyinde ayırt edebilsin diye. Serbest metin
+    (`gerekce`) ile sınıf adı (`sinif_metni`) sunumdur ve dile göre değişir;
+    `sinif` alanı ise anahtar olarak kalır --- eski tüketiciler kırılmaz.
+    """
+    from mesajlar import KULLANIM, NICELIK, SINIF, cevir, dil_dogrula, gerekce_metni
+    d = dil_dogrula(dil)
+    kod = getattr(v, "kod", "") or ""
+    gerekce = (gerekce_metni(kod, d, **getattr(v, "parametreler", {}) or {})
+               if kod else v.message)
+    return {"nicelik": v.quantity, "nicelik_metni": cevir(NICELIK, v.quantity, d),
+            "sinif": v.klass, "sinif_metni": cevir(SINIF, v.klass, d),
+            "tasarimda_kullanilir": bool(v.design_safe),
+            "kullanim_metni": KULLANIM[bool(v.design_safe)][d],
+            "kod": kod, "gerekce": gerekce}
 
 
 def _duzeltici_dict(s) -> dict | None:
@@ -48,12 +63,24 @@ def _duzeltici_dict(s) -> dict | None:
 
 
 def analiz_et(stl_path: str, *, duzeltici: bool = False,
-              referans_cd: float | None = None, **kw) -> dict[str, Any]:
+              referans_cd: float | None = None, dil: str = "tr",
+              **kw) -> dict[str, Any]:
     """Bir araç analizi koş ve JSON'a hazır sonuç döndür.
 
     `duzeltici=True` ise kurulum kusurları onarılıp yeniden koşulur; hangi
     müdahalelerin yapıldığı ve hangilerinin YAPILAMADIĞI çıktıdadır.
+
+    `dil` yalnız SUNUM katmanını etkiler (tr|en): sınıf adları, nicelik adları
+    ve hüküm gerekçeleri çevrilir. Sözleşme anahtarları (`sinif`, `kod`,
+    `tasarimda_kullanilir`) DEĞİŞMEZ --- bir tüketici dili değiştirdiğinde
+    kodunun kırılmaması gerekir. Tanısal uyarılar (`uyarilar`) şimdilik yalnız
+    Türkçedir ve bu çıktıda AÇIKÇA işaretlenir; yarım çevrilmiş bir arayüzü
+    tam gibi göstermek, aracın geri kalanının duruşuyla çelişirdi.
     """
+    from mesajlar import SINIF as _SINIF
+    from mesajlar import cevir as _cevir
+    from mesajlar import dil_dogrula
+    _dil = dil_dogrula(dil)
     from validity_envelope import (
         MACH_INCOMP,
         apply_physics_gate,
@@ -91,8 +118,10 @@ def analiz_et(stl_path: str, *, duzeltici: bool = False,
         # SINIF SAYIYLA BIRLIKTE GIDER. Çıplak bir Cd döndürmek, bu aracın
         # varlık nedenine aykırıdır: istemci hangi sayının tasarım kararında
         # kullanılabileceğini çıktının kendisinden bilmelidir.
+        "dil": _dil,
         "gecerlilik": {"genel": overall_class(v),
-                       "nicelikler": [_verdict_dict(x) for x in v]},
+                       "genel_metni": _cevir(_SINIF, overall_class(v), _dil),
+                       "nicelikler": [_verdict_dict(x, _dil) for x in v]},
         "belirsizlik": r.belirsizlik,
         "mesh": r.mesh,
         "yakinsama": r.convergence,
