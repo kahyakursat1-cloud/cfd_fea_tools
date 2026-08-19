@@ -25,7 +25,8 @@
 
 ## 1. Sonuç DOĞRULUĞU — her SF iddiasını savunulabilir yap (en kritik)
 
-### 1.1 🔴 Gerilme tekilliği (reentrant corner) bekçisi
+### 1.1 ✅ Gerilme tekilliği bekçisi — `validity_envelope.classify_fea`
+**Doğrulandı (2026-08-19):** `has_singularity` verildiğinde "Tepe gerilme (tekillik noktası)" TREND + tasarım-güvensiz hükmü eklenir; temsili gerilme ayrı kalır.
 **Sorun:** Sivri iç köşede gerilme **sonsuza ıraksar** (mesh inceldikçe artar). "Max von
 Mises"i körlemesine okumak → tekillik-artefaktı → **yanlış SF / yanlış 'güvensiz' verdicti.**
 **Ne:** (a) Tekil bölgeleri tespit et (mesh-refine ile yakınsamayan tepe → bayrakla);
@@ -60,12 +61,14 @@ bu ENFORCE değil DEĞERLENDİRİR (mesh_quality_gate felsefesi) — pratik değ
 (öğrenci destek/yönelim ihtiyacını görür). **Kalan (derin):** in-loop Langelaar AM-filtresi
 (tet-mesh'te kırılgan, ayrı doğrulama ister) — gerçek kısıt-enforce isteyince.
 
-### 2.2 🔴 SIMP filtresi (checkerboard + mesh-bağımlılık)
+### 2.2 ✅ SIMP yoğunluk filtresi — `stress_topopt2d._build_filter`
+**Doğrulandı (2026-08-19):** konik ağırlıklı filtre kuruluyor (satır 91) ve HEM ileri yönde (ρ=Hx/Hs, satır 109) HEM duyarlılık zincirinde (satır 187) uygulanıyor — tanımlı ama kullanılmayan bir filtre değil.
 **Sorun:** Ham SIMP checkerboard + mesh-bağımlı + blurry sınır üretir. **Ne:** **Yoğunluk/
 duyarlılık filtresi** (standart çare) + projeksiyon (keskin 0/1 sınır). **Neden:** Fiziksel,
 mesh-bağımsız, yorumlanabilir tasarım. **Emek:** Orta. (vehicle_topopt'ta filtre var mı kontrol et; yoksa ekle.)
 
-### 2.3 🔴 TO sonucu DOĞRULAMA döngüsü
+### 2.3 ✅ TO sonrası BAĞIMSIZ yeniden-analiz — `experiments/topopt_bagimsiz_dogrulama.py`
+**Doğrulandı (2026-08-19):** eşikleme (gri→ikili), ayrıklaştırma (2×/3× bağımsız grid) ve optimumun ağ-bağımlılığı AYRI AYRI ölçülüyor; iki test dosyası bağlı.
 **Sorun:** SIMP yoğunluk-alanı bulanık; "optimize edildi" demek güvenli demek DEĞİL. **Ne:**
 yoğunluk → eşikle temiz geometri çıkar → yeniden-mesh → **yeniden FEA** → gerçek basılacak
 parçada SF'yi doğrula (1.1/1.2 ile). **Neden:** Doğrulanmamış TO = güvensiz. **Emek:** Orta.
@@ -114,7 +117,8 @@ kaydetme" kavramı uygulanmaz; bu yüzden ayrı bir gate-modülü gereksiz (sade
 (düşük öncelik):** geometri+rejimden tam auto-config (malzeme/yük/eleman otomatik seçimi) —
 şu an kullanıcı `run_structural_check` parametreleriyle seçiyor (öner-onayla yeterli).
 
-### 4.2 🟡 FEA validation suite (commit'li)
+### 4.2 ✅ FEA validation suite — 6 kanonik + 3 bağımsız çapa
+**Doğrulandı (2026-08-19):** `experiments/fea_validation*.py` (6 vaka) + aynı gün eklenen `fea_capa_bagimsiz.py` (kiriş sehimi/frekansı, küresel Lamé — üçü de 3 ağ seviyeli, u_num ölçülü). Hepsi test paketinde.
 **Ne:** Kapalı-form referanslı vakalar: ankastre kiriş (sehim/gerilme), delikli-plaka (Kt
 gerilme-konsantrasyonu), basınçlı silindir (hoop). Toleranslı CI kontrolü. **Neden:** CalculiX
 kurulumu + eleman davranışı doğrulanır (CFD küre/NACA0012 suite'inin eşi). **Emek:** Orta.

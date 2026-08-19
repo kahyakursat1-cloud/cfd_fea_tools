@@ -21,7 +21,8 @@ Bu oturumda saatler, **çözmeden önce yakalanabilecek** sorunlara harcandı (n
 diverjans, timeout, orphan süreç). Literatür de aynısını söylüyor: *"skew/AR defektli
 mesh'ler refine veya exclude edilir; yakınsama drag-stabilizasyonu + residual ile."*
 
-### 1.1 🔴 Mesh-kalite ÖN-GEÇİDİ (pre-solve gate)
+### 1.1 ✅ Mesh-kalite ÖN-GEÇİDİ — `openfoam_runner.mesh_quality_gate`
+**Doğrulandı (2026-08-19, kod okundu):** `analysis/openfoam_runner.py:1505` `log.checkMesh`'i okur; `verdict == "reject"` ise çözücüye GÖNDERMEDEN düşer ("Mesh kalitesiz, çözücüye GÖNDERİLMEDİ"). Bölüm başlığı 🔴 kalmıştı ama sayfanın kendi durum bloğu zaten ✅ diyordu — belge kendi içinde çelişiyordu.
 **Ne:** snappyHexMesh/gmsh sonrası, çözücüden ÖNCE `checkMesh` parse et; eşik aşılırsa
 (maxNonOrtho>70, maxSkew>4, AR>~5e4, negatif hacim) → (a) otomatik bir kademe kabalaştır
 ve yeniden mesh'le, (b) olmuyorsa kullanıcıya net "mesh kalitesiz, çözüm güvenilmez"
@@ -63,7 +64,9 @@ kazanımı: yeni kod gerekmedi.
 
 ## 2. Analiz doğruluğu / V&V — "en iyi analiz" çekirdeği
 
-### 2.1 🔴 Doğrulama (validation) regresyon suite'i (commit'li)
+### 2.1 ◐ Doğrulama regresyon suite'i — BÜYÜK ÖLÇÜDE VAR, çapa üretimi eksik
+**Yapılan (2026-08-19):** `experiments/dis_korpus.py` referanslı kanonik vakaları ölçülmüş toleranslarla taşıyor ve test paketinde koşuyor; `fea_capa_bagimsiz.py` üç kapalı-form çapası üretiyor (3 ağ seviyesi, u_num ölçülü).
+**KALAN — gerçek boşluk:** `validation_anchors_runs` 2026-08-13 disk temizliğinde silindi; CFD çapa değerleri ARŞİVDEN KURTARILDI, yeniden ölçülemiyor. Suite'in CFD ayağı bu yüzden yeniden üretilebilir DEĞİL.
 **Ne:** Referans-değerli kanonik vakalar: süpersonik küre Cd (Charters&Thomas, var),
 NACA0012 ses-altı (Ladson), bilinen roket; her birine **referans + tolerans** + CI'da
 çalışan hafif kontrol. **Neden:** "en iyi analiz" ancak ölçülünce iddia edilir; regresyon
@@ -92,7 +95,8 @@ uyarısı. **Dürüst not:** clean_rocket kaba-mesh'te %18 ayrık (eşik-duyarl�
 (%0.7 açık) az-çözünür; far-field DE aynı çözünürlük duvarında. AMA bu ayrışma tam da
 çapraz-kontrolün işaretlediği şey (GCI=%103 ile tutarlı). İyi-çözünür case'de 2.-mertebe avantaj.
 
-### 2.5 🟡 Prizma katman + y⁺ otomasyonu olgunlaştır
+### 2.5 ✅ Prizma katman + y⁺ otomasyonu — `duzeltici.duvar_islemini_aga_uydur`
+**Doğrulandı (2026-08-19):** düzeltici y⁺/duvar-işlemi uyumsuzluğunu tespit edip kurulumu onarır ve ölçülmüş sonuçları kayıtlı (silindir DES y⁺ 0,009→0,78; NACA0012 α=8° 357→2,5). Aynı gün çapa üretimine de üretim-anı y⁺ kapısı eklendi (`validate_pipeline` → `duvar_hukmu`); band ölçütü `validity_envelope.yplus_duvar_sinifi`'nda TEK KAYNAK.
 **Ne:** y⁺-hedefli ilk-hücre + katman sayısı zaten var; **gerçekleşen y⁺'ı ölç, hedef
 dışıysa otomatik düzelt** (duvar-fonk vs low-Re seçimi). **Neden:** Sürtünme-drag doğruluğu
 y⁺<1 ya da doğru duvar-fonk ister. **Emek:** Orta.
@@ -101,7 +105,8 @@ y⁺<1 ya da doğru duvar-fonk ister. **Emek:** Orta.
 
 ## 3. Otopilot zekâsı / öz-öğrenme
 
-### 3.1 🟡 Sınıflandırma: bbox-tavanını aş (seçici)
+### 3.1 ✅ Sınıflandırma: bbox-tavanı aşıldı — `auto_pilot`
+**Doğrulandı (2026-08-19):** `ince_yassilik` ve `radyal_doluluk` bbox-üstü sinyalleri hesaplanıyor VE kullanılıyor (`auto_pilot.py:72-73, 244`).
 **Ne:** Gerçek avcı↔lifting-body bbox'ta ayrılmıyor (genelleme 4/7). bbox-üstü hafif
 betimleyici (eğrilik histogramı / küçük PointNet) **yalnız belirsiz çiftlerde**. **Neden:**
 Gerçek-dünya isabeti. **Emek:** Yüksek (ayrı yöntem). **Alternatif (ucuz):** öner-onayla +
