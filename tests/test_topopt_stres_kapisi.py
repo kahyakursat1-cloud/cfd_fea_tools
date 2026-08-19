@@ -9,9 +9,16 @@ import pytest
 
 from vehicle_topopt import _stress_gate
 
+# ELEMAN-MERTEBESI KANITI (2026-08-19). "güvenli" kademesi artık koşullu:
+# SF C3D4 (lineer tet) ağında hesaplanıyor ve ağ marjı yalnız ayrıklaştırmayı
+# kapsıyor. Ölçüldü (fea_element_order.json): C3D4 eğilme gerilmesini %59-74
+# DÜŞÜK veriyor → SF o kadar YÜKSEK görünür. Aşağıdaki testler BAŞKA
+# özellikleri sınıyor, o yüzden kanıtı açıkça verip kademeyi açıyorlar.
+EO = {"eleman_mertebesi": {"dogrulandi": True}}
+
 
 def test_guvenli_tasarim():
-    r = _stress_gate({"emniyet_faktoru_temsili": 2.3})
+    r = _stress_gate({"emniyet_faktoru_temsili": 2.3, **EO})
     assert r["durum"] == "güvenli" and r["SF"] == 2.3
     assert r["mesaj"].startswith("✅")
 
@@ -41,7 +48,10 @@ def test_esik_sinirlari_ag_marjiyla(carpan, beklenen):
         return
     from vehicle_topopt import _ag_buyumesi
     esik = 1.5 * (1 + _ag_buyumesi()[0])
-    assert _stress_gate({"emniyet_faktoru_temsili": esik * carpan})["durum"] == beklenen
+    # Bu test EŞİK SINIRINI sınıyor, eleman-mertebesi kapısını değil; kanıt
+    # verilir ki üst kademe açık olsun ve ölçülen şey gerçekten eşik olsun.
+    assert _stress_gate({"emniyet_faktoru_temsili": esik * carpan,
+                         **EO})["durum"] == beklenen
 
 
 @pytest.mark.parametrize("sf,beklenen", [
@@ -53,7 +63,7 @@ def test_esik_sinirlari(sf, beklenen):
 def test_tekillik_robust_sf_tercih_edilir():
     """TO geometrisi jagged → tepe SF büyük olasılıkla SAHTE tekillik. Temsili SF
     varsa o kullanılmalı, tepe değil."""
-    r = _stress_gate({"emniyet_faktoru_temsili": 4.0, "emniyet_faktoru": 0.4})
+    r = _stress_gate({"emniyet_faktoru_temsili": 4.0, "emniyet_faktoru": 0.4, **EO})
     assert r["SF"] == 4.0 and r["durum"] == "güvenli"
 
 
@@ -93,10 +103,10 @@ def test_yuk_aktarilmamissa_guvenli_denmez():
 
 
 def test_fizik_kapisi_okse_normal_hukum():
-    sa = {"emniyet_faktoru_temsili": 2.3, "fizik_kabul": {"verdict": "ok", "reasons": []}}
+    sa = {"emniyet_faktoru_temsili": 2.3, "fizik_kabul": {"verdict": "ok", "reasons": []}, **EO}
     assert _stress_gate(sa)["durum"] == "güvenli"
 
 
 def test_fizik_kapisi_yoksa_geriye_uyumlu():
     """Eski sonuç sözlüklerinde fizik_kabul yok — kapı düşmemeli."""
-    assert _stress_gate({"emniyet_faktoru_temsili": 2.3})["durum"] == "güvenli"
+    assert _stress_gate({"emniyet_faktoru_temsili": 2.3, **EO})["durum"] == "güvenli"

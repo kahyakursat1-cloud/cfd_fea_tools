@@ -78,12 +78,58 @@ def _stress_gate(sa: dict) -> dict:
                 "mesaj": "Stres okunamadı (mesh/çözüm); kompliyans-min stresi GARANTİ ETMEZ."}
     buyume, kaynak = _ag_buyumesi()
     esik_ag = 1.5 * (1 + buyume)
+    # Cagiran, bu tasarim icin eleman-mertebesi dogrulamasi tasiyor mu?
+    _eo = dict(sa.get("eleman_mertebesi") or {})
+    _eo.setdefault("eleman", "C3D4 (lineer tet)")
+    _eo.setdefault("olculen_gerilme_hatasi_pct", "-59..-74 (ankastre kiriş, L/H=20)")
+    _eo.setdefault("kanit", "fea_element_order.json")
+    _eo.setdefault("bu_geometride_olculdu_mu", False)
     if sf >= esik_ag:
-        return {"durum": "güvenli", "SF": sf,
+        # AG MARJI ELEMAN MERTEBESINI KAPSAMIYOR. Bu SF, `generate_tet_mesh(
+        # second_order=False)` ile uretilen LINEER TET (C3D4) aginda hesaplandi.
+        # `_ag_buyumesi` ise AYNI eleman tipiyle yapilmis bir INCELTME
+        # calismasindan gelir — yani ayriklastirmayi olcer, ELEMAN MERTEBESINI
+        # DEGIL. Ikisi ayri hata kaynagidir.
+        #
+        # OLCULDU (fea_element_order.json, 2026-08-19): ankastre kiriste C3D4
+        # egilme gerilmesini %59-74 DUSUK verdi (C3D10 %0,0; sigma(z) uydurma
+        # R^2 ~1). Dusuk gerilme, YUKSEK SF demektir — guvensiz yon.
+        #
+        # O sayi BURAYA DOGRUDAN TASINMAZ: narin kiriste (L/H=20) olculdu ve
+        # kayma kilitlenmesi orada en siddetlidir; TO parcalari daha hantaldir.
+        # Bilinmeyen bir payi tahmin edip esige katmak da, hic saymamak da
+        # yanlis olurdu — dogrusu hukmu KANITA BAGLAMAK.
+        #
+        # "Guvenli" kademesi KALDIRILMADI, KOSULLANDIRILDI: cagiran bu tasarim
+        # icin eleman-mertebesi dogrulamasi (C3D10 yeniden-analiz) tasiyorsa
+        # hukum eskisi gibi verilir. Tasimiyorsa kademe kisitlanir ve nedeni
+        # yazilir. Boylece kademe merdiveni bozulmaz ama iddia kanitsiz kalmaz.
+        if _eo.get("dogrulandi"):
+            return {"durum": "güvenli", "SF": sf,
+                    "ag_marji": {"buyume_pct": round(buyume * 100, 1),
+                                 "esik": round(esik_ag, 2), "kaynak": kaynak},
+                    "eleman_mertebesi": {**_eo, "eleman": "C3D10 ile doğrulandı"},
+                    "mesaj": (f"✅ Kompliyans-optimal tasarım stres-güvenli "
+                              f"(SF_temsili={sf} ≥ {esik_ag:.2f} = 1.5×(1+%"
+                              f"{buyume * 100:.0f} ağ marjı)) ve eleman-mertebesi "
+                              "doğrulaması taşıyor.")}
+        return {"durum": "ag_marjinda", "SF": sf,
                 "ag_marji": {"buyume_pct": round(buyume * 100, 1), "esik": round(esik_ag, 2),
                              "kaynak": kaynak},
-                "mesaj": f"✅ Kompliyans-optimal tasarım stres-güvenli (SF_temsili={sf} ≥ "
-                         f"{esik_ag:.2f} = 1.5×(1+%{buyume * 100:.0f} ağ marjı))."}
+                "eleman_mertebesi": {
+                    "eleman": "C3D4 (lineer tet)",
+                    "olculen_gerilme_hatasi_pct": "-59..-74 (ankastre kiriş, L/H=20)",
+                    "kanit": "fea_element_order.json",
+                    "bu_geometride_olculdu_mu": False},
+                "mesaj": f"🟡 SF_temsili={sf} ağ marjını ({esik_ag:.2f}) geçiyor AMA "
+                         "'güvenli' denemez: bu SF LİNEER TET (C3D4) ağında hesaplandı "
+                         "ve ağ marjı yalnız ayrıklaştırmayı kapsıyor, ELEMAN "
+                         "MERTEBESİNİ değil. Ölçüldü (fea_element_order.json): C3D4 "
+                         "eğilme gerilmesini %59-74 DÜŞÜK veriyor (C3D10 %0,0) — düşük "
+                         "gerilme YÜKSEK SF demektir. O sayı narin kirişte ölçüldü ve bu "
+                         "geometriye doğrudan taşınmaz; bu tasarım için ölçüm YOK. "
+                         "'Güvenli' hükmü için tasarımı C3D10 ile bağımsız yeniden "
+                         "analiz et (vehicle_fea second_order=True kullanır)."}
     if sf >= 1.5:
         return {"durum": "ag_marjinda", "SF": sf,
                 "ag_marji": {"buyume_pct": round(buyume * 100, 1), "esik": round(esik_ag, 2),

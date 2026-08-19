@@ -10,14 +10,16 @@ def test_stress_gate_branches():
     TO gridinde okunan tepe gerilme yakınsamamıştır (topopt_bagimsiz_dogrulama)."""
     from vehicle_topopt import _ag_buyumesi
     esik = 1.5 * (1 + _ag_buyumesi()[0])
-    assert _stress_gate({"emniyet_faktoru_temsili": esik * 1.1})["durum"] == "güvenli"
+    assert _stress_gate({"emniyet_faktoru_temsili": esik * 1.1,
+                         "eleman_mertebesi": {"dogrulandi": True}})["durum"] == "güvenli"
     assert _stress_gate({"emniyet_faktoru_temsili": 1.6})["durum"] == "ag_marjinda"
     assert _stress_gate({"emniyet_faktoru_temsili": 1.2})["durum"] == "marjinal"
     akma = _stress_gate({"emniyet_faktoru_temsili": 0.7})
     assert akma["durum"] == "akma_asildi" and "stress_topopt" in akma["mesaj"]
     assert _stress_gate({})["durum"] == "değerlendirilemedi"
     # temsili yoksa tepe-SF kullanilir (deger degil, KAYNAK testi)
-    assert _stress_gate({"emniyet_faktoru": esik * 1.1})["durum"] == "güvenli"
+    assert _stress_gate({"emniyet_faktoru": esik * 1.1,
+                         "eleman_mertebesi": {"dogrulandi": True}})["durum"] == "güvenli"
 
 
 def test_tet_volumes_unit_tet():

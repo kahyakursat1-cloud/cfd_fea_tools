@@ -105,3 +105,56 @@ def test_burulma_capasi_BAGIMSIZ_ve_gercekten_olculmus():
     assert ince["hata_pct"] < 10.0, (
         f"burulma sapması %{ince['hata_pct']:.2f} — kapalı-form kesin olduğu "
         "için bu kadar sapma ağ ya da sınır koşulu kusuruna işaret eder")
+
+
+# ── TO stres kapısı: ağ marjı ELEMAN MERTEBESİNİ kapsamıyor ────────────────
+
+def test_TO_kapisi_lineer_tetten_GUVENLI_demiyor():
+    """C3D4 ağında hesaplanan SF'den "güvenli" hükmü çıkmamalı.
+
+    ÖLÇÜLDÜ (fea_element_order.json, 2026-08-19): ankastre kirişte C3D4
+    eğilme gerilmesini %59–74 DÜŞÜK veriyor (C3D10 %0,0, σ(z) uydurma R²≈1).
+    Düşük gerilme YÜKSEK SF demektir — güvensiz yön.
+
+    `vehicle_topopt` SF'yi `generate_tet_mesh(second_order=False)` ağında
+    hesaplıyor ama ağ marjı (`_ag_buyumesi`) AYNI eleman tipiyle yapılmış bir
+    inceltme çalışmasından geliyor: ayrıklaştırmayı ölçüyor, eleman
+    mertebesini DEĞİL. İki ayrı hata kaynağı, tek marjla kapatılamaz.
+    """
+    from vehicle_topopt import _stress_gate
+    # Ag marjini RAHATCA gecen bir SF (esik ~2,2).
+    h = _stress_gate({"emniyet_faktoru_temsili": 9.9})
+    assert h["durum"] != "güvenli", (
+        f"lineer tet ağından 'güvenli' hükmü çıktı (SF={h.get('SF')})")
+    assert "eleman_mertebesi" in h, "eleman mertebesi hükümde beyan edilmiyor"
+    assert h["eleman_mertebesi"]["bu_geometride_olculdu_mu"] is False
+    assert "C3D10" in h["mesaj"], "çare (C3D10 ile bağımsız analiz) söylenmiyor"
+
+
+def test_TO_kapisi_AKMA_hukmunu_hala_veriyor():
+    """Kısıtlama yalnız 'güvenli' tarafında; güvensiz hükümler bozulmamalı."""
+    from vehicle_topopt import _stress_gate
+    assert _stress_gate({"emniyet_faktoru_temsili": 0.6})["durum"] == "akma_asildi"
+    assert _stress_gate({"emniyet_faktoru_temsili": 1.2})["durum"] == "marjinal"
+    assert _stress_gate({"emniyet_faktoru_temsili": None})["durum"] == "değerlendirilemedi"
+
+
+def test_eleman_mertebesi_kaniti_GERILMEYI_de_olcuyor():
+    """Sehim yetmez: TO'nun SF'si gerilmeye dayanıyor."""
+    import json
+    from pathlib import Path
+    p = Path(__file__).resolve().parent.parent / "fea_element_order.json"
+    if not p.exists():
+        return
+    d = json.loads(p.read_text(encoding="utf-8"))
+    g = d.get("gerilme_ekseni")
+    assert g, "kanıt yalnız sehim ekseni taşıyor"
+    assert g["C3D4_hata_pct"] is not None and g["C3D10_hata_pct"] is not None
+    # C3D10 gerilmede analitige yakin olmali; degilse estimator bozuktur.
+    assert abs(g["C3D10_hata_pct"]) < 5.0, (
+        f"C3D10 gerilme hatası %{g['C3D10_hata_pct']} — kapalı-form kirişte "
+        "bu kadar sapma tahmin ediciyi şüpheli kılar")
+    # Uydurma kalitesi de kayitli olmali.
+    for r in d["kosular"]:
+        if r["eleman"] == "C3D10" and r.get("sigma_uydurma_R2") is not None:
+            assert r["sigma_uydurma_R2"] > 0.95

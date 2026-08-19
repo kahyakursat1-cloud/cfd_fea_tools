@@ -104,10 +104,26 @@ def test_kapi_ham_1_5_esigine_artik_guvenli_demiyor():
 
 
 def test_yeterince_buyuk_SF_hala_guvenli():
+    """Ağ marjını rahatça geçen SF hâlâ 'güvenli' olabilmeli — AMA artık
+    eleman-mertebesi kanıtıyla.
+
+    2026-08-19: 'güvenli' kademesi KOŞULLU hale geldi. SF, `vehicle_topopt`
+    içinde C3D4 (lineer tet) ağında hesaplanıyor ve ağ marjı (`_ag_buyumesi`)
+    AYNI eleman tipiyle yapılmış bir inceltme çalışmasından geliyor — yani
+    ayrıklaştırmayı ölçüyor, eleman mertebesini DEĞİL. Ölçüldü
+    (fea_element_order.json): C3D4 eğilme gerilmesini %59-74 DÜŞÜK veriyor,
+    C3D10 %0,0 — düşük gerilme YÜKSEK SF demektir.
+
+    Bu test ağ marjının hâlâ işlediğini sınıyor, eleman-mertebesi kapısını
+    değil; kanıt açıkça verilir ki ölçülen şey gerçekten ağ marjı olsun.
+    """
     from vehicle_topopt import _stress_gate
-    g = _stress_gate({"emniyet_faktoru_temsili": 4.0})
+    g = _stress_gate({"emniyet_faktoru_temsili": 4.0,
+                      "eleman_mertebesi": {"dogrulandi": True}})
     assert g["durum"] == "güvenli"
     assert g["ag_marji"]["buyume_pct"] > 0
+    # Kanıt YOKKEN üst kademe kapalı olmalı.
+    assert _stress_gate({"emniyet_faktoru_temsili": 4.0})["durum"] == "ag_marjinda"
 
 
 def test_akma_asildi_hukmu_degismedi():

@@ -15,7 +15,10 @@
       "dugum": 169,
       "eleman_sayisi": 405,
       "delta_mm": 3.8581,
-      "hata_pct": -57.8
+      "hata_pct": -57.8,
+      "sigma_orta_MPa": 6.314,
+      "sigma_hata_pct": -73.7,
+      "sigma_uydurma_R2": 0.8566
     },
     {
       "eleman": "C3D4",
@@ -23,7 +26,10 @@
       "dugum": 260,
       "eleman_sayisi": 573,
       "delta_mm": 4.0302,
-      "hata_pct": -55.9
+      "hata_pct": -55.9,
+      "sigma_orta_MPa": 8.417,
+      "sigma_hata_pct": -64.9,
+      "sigma_uydurma_R2": 0.9255
     },
     {
       "eleman": "C3D4",
@@ -31,7 +37,10 @@
       "dugum": 353,
       "eleman_sayisi": 824,
       "delta_mm": 5.0018,
-      "hata_pct": -45.3
+      "hata_pct": -45.3,
+      "sigma_orta_MPa": 9.838,
+      "sigma_hata_pct": -59.0,
+      "sigma_uydurma_R2": 0.9454
     },
     {
       "eleman": "C3D10",
@@ -39,7 +48,10 @@
       "dugum": 906,
       "eleman_sayisi": 405,
       "delta_mm": 9.0952,
-      "hata_pct": -0.5
+      "hata_pct": -0.5,
+      "sigma_orta_MPa": 24.002,
+      "sigma_hata_pct": 0.0,
+      "sigma_uydurma_R2": 0.9999
     },
     {
       "eleman": "C3D10",
@@ -47,7 +59,10 @@
       "dugum": 1350,
       "eleman_sayisi": 573,
       "delta_mm": 9.1038,
-      "hata_pct": -0.4
+      "hata_pct": -0.4,
+      "sigma_orta_MPa": 23.999,
+      "sigma_hata_pct": -0.0,
+      "sigma_uydurma_R2": 1.0
     },
     {
       "eleman": "C3D10",
@@ -55,7 +70,10 @@
       "dugum": 1875,
       "eleman_sayisi": 824,
       "delta_mm": 9.1154,
-      "hata_pct": -0.3
+      "hata_pct": -0.3,
+      "sigma_orta_MPa": 24.001,
+      "sigma_hata_pct": 0.0,
+      "sigma_uydurma_R2": 1.0
     }
   ],
   "ozet": {
@@ -63,5 +81,12 @@
     "C3D10_en_iyi_hata_pct": 0.3,
     "yorum": "C3D4 (linear, ÜRETİM default) sehimi %58'a kadar DÜŞÜK tahmin (shear-locking → aşırı katı); C3D10 (V&V) analitiğe %0.3. Düşük sehim GÜVENSİZ yöndedir (gerçek deformasyon daha büyük). Sonuç: üretim FEA'sı bükülme-baskın yüklerde C3D10 kullanmalı — özellikle ince kabuk/kanat-spar gibi narin yapılarda."
   },
-  "_not": "Üretim: python experiments/fea_element_order.py. Bağlam: vehicle_fea generate_tet_mesh(second_order=False) → C3D4; bu script C3D10'a geçiş gerekçesi."
+  "gerilme_ekseni": {
+    "_neden": "Sehim yetmez: `vehicle_topopt` C3D4 ağında hesapladığı TEPE GERİLMEDEN güvenlik faktörü hükmü veriyor. Eleman mertebesinin GERİLMEYE etkisi hiç ölçülmemişti; TO'nun ağ-marjı kapısı ayrıklaştırma duyarlılığından gelir, eleman mertebesinden DEĞİL.",
+    "_nerede_olculdu": "ORTA AÇIKLIK (x=L/2), üst lif. Ankastre kökte gerilme TEKİLDİR ve yakınsamaz; kiriş formülü orada nominal değer verir. Aynı disiplin burulma çapasında da uygulandı (St. Venant bölgesi).",
+    "analitik_MPa": 24.0,
+    "C3D4_hata_pct": -73.7,
+    "C3D10_hata_pct": 0.0
+  },
+  "_not": "Üretim: python experiments/fea_element_order.py. BAĞLAM (2026-08-19): vehicle_fea ARTIK second_order=True (C3D10) — bu betiğin önerdiği geçiş üretim FEA'sında YAPILDI. Kalan tek C3D4 tüketicisi vehicle_topopt; orası kompliyans döngüsü için meşru (maliyet) AMA aynı ağdan SF hükmü de veriyor, ve TO'nun ağ-marjı kapısı eleman mertebesini KAPSAMIYOR."
 }
