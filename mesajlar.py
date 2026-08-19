@@ -30,13 +30,6 @@ VARSAYILAN_DIL = "tr"
 # eksik anahtarda istisna atmayıp anahtarın kendisini döndürdüğü için kusur
 # sessiz kaldı --- ölçüldü 2026-08-18, VLM yolunun ilk uçtan uca koşusunda
 # `genel_metni` tr ve en'de birden "OUT" bastı. Sözleşme sabittir, sunum değişir.
-# ANAHTAR = MAKİNE SABİTİ, görünen ad değil. İlk sürüm Türkçe görünen adla
-# ("DOĞRULANMIŞ", "ZARF-DIŞI") anahtarlanmıştı ama zarf katmanı sabit yayıyor
-# (VALIDATED / TREND / OUT). Üç sınıfın YALNIZ biri ("TREND") tesadüfen
-# eşleşiyordu; diğer ikisi her iki dilde de çevrilmeden geçiyordu. `cevir`
-# eksik anahtarda istisna atmayıp anahtarın kendisini döndürdüğü için kusur
-# sessiz kaldı --- ölçüldü 2026-08-18, VLM yolunun ilk uçtan uca koşusunda
-# `genel_metni` tr ve en'de birden "OUT" bastı. Sözleşme sabittir, sunum değişir.
 SINIF = {
     "VALIDATED": {"tr": "DOĞRULANMIŞ", "en": "VALIDATED"},
     "TREND": {"tr": "YALNIZ-EĞİLİM", "en": "TREND-GRADE"},
@@ -174,13 +167,13 @@ GEREKCE: dict[str, dict[str, str]] = {
     },
 
     "CD_REFERANS_HATASI": {
-        "tr": ("Yerleşik referanstan sapma %{hata:.2f} > %{sinir:.0f}: yakınsamış "
+        "tr": ("Yerleşik referanstan sapma %{hata:.2f} > %{sinir:.2f}: yakınsamış "
                "bir çözüm 'sayısal hatam küçük' der, DOĞRU olduğunu söylemez. "
                "Ağ bandı ne kadar dar olursa olsun bu sapmayla tasarım sınıfı "
                "verilemez; sonuç eğilim düzeyindedir. (Aynı kapı FEA tarafında "
                "kapalı-form referansı için zaten uygulanıyordu.)"),
         "en": ("Deviation from the established reference is {hata:.2f} % > "
-               "{sinir:.0f} %: a converged solution says 'my numerical error is "
+               "{sinir:.2f} %: a converged solution says 'my numerical error is "
                "small', not that it is correct. However tight the mesh band, this "
                "deviation cannot earn design grade; the result is trend-level. "
                "(The same gate was already applied on the FEA side for "

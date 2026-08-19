@@ -201,9 +201,14 @@ def analiz_et(stl_path: str, *, duzeltici: bool = False,
     ref_hata = None
     if referans_cd and r.cd is not None:
         ref_hata = abs(r.cd - referans_cd) / abs(referans_cd) * 100.0
+    # SAPMA, BEYAN EDİLEN BÜTÇEYE karşı sınanır --- düz bir yüzdeye karşı
+    # değil. Koşunun kendi u_val'i varsa (sayısal ⊕ model-form ⊕ referans) kapı
+    # onu kullanır: bütçenin İÇİNDE kalan bir sapma, açıklanmamış bir
+    # tutarsızlık değildir (ASME V&V 20, R_E≤1). Bütçe yoksa düz eşiğe düşülür.
+    u_val = (r.belirsizlik or {}).get("u_toplam_pct") if r.belirsizlik else None
     v = classify_cfd(r.vehicle_type, r.alpha_deg, ma, has_gci_band=gci_ok,
                      band_pct=mds.get("fark_pct"), Cl=r.cl, Cd=r.cd,
-                     referans_hata_pct=ref_hata)
+                     referans_hata_pct=ref_hata, u_val_pct=u_val)
     v = apply_physics_gate(v, getattr(r, "fizik_kabul", None) or {})
 
     return {

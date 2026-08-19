@@ -613,7 +613,8 @@ def classify_cfd(vehicle_type: str, alpha_deg: float, mach: float,
                  has_gci_band: bool = False, band_pct: float | None = None,
                  Cl: float | None = None, Cd: float | None = None,
                  ag_yeterli: bool | None = None,
-                 referans_hata_pct: float | None = None) -> list[Verdict]:
+                 referans_hata_pct: float | None = None,
+                 u_val_pct: float | None = None) -> list[Verdict]:
     """CFD aerodinamik çıktılarının zarf sınıfı. has_gci_band: 3-mesh asimptotik GCI var mı.
 
     İKİ KAPI, ÖLÇÜLMÜŞ İKİ KÖR NOKTAYI KAPATIR (n=44 doğrulayıcı korpus, 2026-08-13):
@@ -693,8 +694,19 @@ def classify_cfd(vehicle_type: str, alpha_deg: float, mach: float,
     # kabul sınırını aşıyorsa, band ne olursa olsun tasarım-sınıfı verilemez.
     # Kapı yalnız referans verildiğinde çalışır: referanssız çağrılar birebir
     # eskisi gibi davranır.
-    if referans_hata_pct is not None and referans_hata_pct > CD_REFERANS_KABUL_PCT:
-        _p = {"hata": referans_hata_pct, "sinir": CD_REFERANS_KABUL_PCT}
+    # SINIR SABİT DEĞİL, KANITA BAĞLI. İlk sürüm düz %10 kullanıyordu (FEA'dan
+    # aynen alınmıştı) ve bu bir kategori hatası üretiyordu: geriye-basamak
+    # koşusu %10,46 sapıyor ama o sapma, ölçülmüş `separated.wall_resolved`
+    # model-form bandının (%12,0) İÇİNDE. Yani koşu kötü değil; model biasını
+    # DOĞRU ölçmüş. Sabit eşik onu cezalandırıyordu.
+    #
+    # Doğrusu ASME V&V 20'nin kendi ölçütü: sapma, BEYAN EDİLEN u_val'i aşarsa
+    # açıklanmamış bir tutarsızlık vardır (R_E>1). Aşmıyorsa gürültüden ayırt
+    # edilemez ve hüküm düşürülmez. u_val verilmezse düz eşiğe düşülür --- o
+    # da bir kanıt yokluğu hâli, ve muhafazakâr yön korunur.
+    sinir = u_val_pct if u_val_pct is not None else CD_REFERANS_KABUL_PCT
+    if referans_hata_pct is not None and referans_hata_pct > sinir:
+        _p = {"hata": referans_hata_pct, "sinir": sinir}
         v = [x for x in v if not x.quantity.startswith("C_D")]
         v.append(Verdict("C_D (sürükleme)", TREND, False,
                          _mesaj("CD_REFERANS_HATASI", **_p), "CD_REFERANS_HATASI", _p))

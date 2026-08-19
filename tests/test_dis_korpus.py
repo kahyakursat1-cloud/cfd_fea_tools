@@ -256,3 +256,29 @@ def test_BEYAN_EDILEN_referans_hukme_giriyor():
         assert cd_h["kod"] == "CD_GCI_BANDI_VAR"
     finally:
         sys.modules.pop("vehicle_pipeline", None)
+
+
+def test_kapi_BEYAN_EDILEN_butceye_karsi_sinar_duz_yuzdeye_degil():
+    """Sabit eşik, model biasını DOĞRU ölçen bir koşuyu cezalandırıyordu.
+
+    Geriye-basamak (Driver & Seegmiller) %10,46 sapıyor ama o sapma ölçülmüş
+    `separated.wall_resolved` model-form bandının (%12,0) İÇİNDE: u_val =
+    √(2,39² + 1,60² + 12,0²) = %12,34, yani R_E = 0,85. Koşu kötü değil, model
+    biasını doğru ölçmüş. Düz %10 eşiği bunu göremiyordu.
+    """
+    from validity_envelope import CD_REFERANS_KABUL_PCT, classify_cfd
+
+    def _cd(**kw):
+        v = classify_cfd("kup", 0.0, 0.12, has_gci_band=True, Cl=0.0, Cd=1.0, **kw)
+        return next(x for x in v if x.quantity.startswith("C_D"))
+
+    # Bütçenin İÇİNDE → düşürülmez (düz eşik olsa düşerdi: 10,46 > 10)
+    assert _cd(referans_hata_pct=10.464, u_val_pct=12.34).klass == "VALIDATED"
+    assert CD_REFERANS_KABUL_PCT < 10.464, "vaka artık düz eşiği aşmıyor"
+
+    # Bütçenin DIŞINDA → düşer. Kapı gevşemedi, kanıta bağlandı.
+    assert _cd(referans_hata_pct=40.0, u_val_pct=12.34).kod == "CD_REFERANS_HATASI"
+
+    # Bütçe BEYAN EDİLMEMİŞSE muhafazakâr düz eşiğe düşülür.
+    assert _cd(referans_hata_pct=12.0).kod == "CD_REFERANS_HATASI"
+    assert _cd(referans_hata_pct=8.0).klass == "VALIDATED"
