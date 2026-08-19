@@ -592,10 +592,28 @@ def referans_ag_kabul(beyan) -> bool:
     return isinstance(beyan, str) and beyan in REFERANS_AG_AILELERI
 
 
+# CFD tarafinda REFERANS KABUL SINIRI. FEA'daki FEA_KABUL_SINIRI ile AYNI
+# gerekcenin CFD'ye uygulanmis hali ve ayni sayiyi tasiyor (gerilme %10):
+# mutlak kuvvet katsayisi da bir INTEGRAL turetilmis niceliktir, birincil
+# bilinmeyenden bir mertebe kabadir.
+#
+# NEDEN GEREKLI (olculdu 2026-08-19, dis korpus): `classify_fea` referans
+# hatasini KAPI olarak kullaniyordu ama `classify_cfd` C_D hukmunu YALNIZ
+# banda bakarak veriyordu. GCI bandi olan bir kosu, referanstan ne kadar uzak
+# olursa olsun DOGRULANMIS aliyordu (dogrudan sinandi: Cd=0,30 ve Cd=1,20
+# ayni hukmu aldi). Ayni acik FEA tarafinda bilincli olarak kapatilmisti;
+# CFD tarafinda ACIK kalmisti --- bu deponun "iki-hizli" dedigi ayrisma.
+#
+# YON: kapi yalnizca referans VERILDIGINDE calisir. Referanssiz cagrilar
+# birebir eskisi gibi davranir, yani mevcut hicbir kosu yeniden siniflanmaz.
+CD_REFERANS_KABUL_PCT = 10.0
+
+
 def classify_cfd(vehicle_type: str, alpha_deg: float, mach: float,
                  has_gci_band: bool = False, band_pct: float | None = None,
                  Cl: float | None = None, Cd: float | None = None,
-                 ag_yeterli: bool | None = None) -> list[Verdict]:
+                 ag_yeterli: bool | None = None,
+                 referans_hata_pct: float | None = None) -> list[Verdict]:
     """CFD aerodinamik çıktılarının zarf sınıfı. has_gci_band: 3-mesh asimptotik GCI var mı.
 
     İKİ KAPI, ÖLÇÜLMÜŞ İKİ KÖR NOKTAYI KAPATIR (n=44 doğrulayıcı korpus, 2026-08-13):
@@ -668,6 +686,18 @@ def classify_cfd(vehicle_type: str, alpha_deg: float, mach: float,
         _p = {"ek": extra, "ek_en": extra_en}
         v.append(Verdict("C_D (sürükleme)", TREND, False,
                          _mesaj("CD_BAND_YOK", **_p), "CD_BAND_YOK", _p))
+
+    # ── REFERANS KAPISI: band, DOĞRULUĞU garanti etmez ──
+    # Yakınsamış bir çözüm "sayısal hatam küçük" der; referanstan uzaklığı
+    # hakkında hiçbir şey söylemez. Bir referans BEYAN EDİLDİYSE ve sapma
+    # kabul sınırını aşıyorsa, band ne olursa olsun tasarım-sınıfı verilemez.
+    # Kapı yalnız referans verildiğinde çalışır: referanssız çağrılar birebir
+    # eskisi gibi davranır.
+    if referans_hata_pct is not None and referans_hata_pct > CD_REFERANS_KABUL_PCT:
+        _p = {"hata": referans_hata_pct, "sinir": CD_REFERANS_KABUL_PCT}
+        v = [x for x in v if not x.quantity.startswith("C_D")]
+        v.append(Verdict("C_D (sürükleme)", TREND, False,
+                         _mesaj("CD_REFERANS_HATASI", **_p), "CD_REFERANS_HATASI", _p))
 
     # ── L/D ve sürükleme kuvveti: mutlak Cd'ye bağlı → en zayıfı miras alır ──
     v.append(Verdict("L/D, sürükleme kuvveti/gücü", TREND, False,

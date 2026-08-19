@@ -1,22 +1,23 @@
 {
  "tau": 0.05,
  "ozet": {
-  "n_toplam": 12,
-  "n_puanlanan": 8,
+  "n_toplam": 14,
+  "n_puanlanan": 10,
   "n_dislanan": 4,
-  "TP": 4,
+  "TP": 6,
   "FP": 1,
   "TN": 3,
   "FN": 0,
-  "n_kume": 4,
+  "n_kume": 5,
   "kumeler": [
+   "basamak",
    "kalin",
    "kiris",
    "naca2412",
    "silindir"
   ],
   "sens": 1.0,
-  "sens_notu": "1 bağımsız kümeden geliyor; hücre sayısı kümeleri saymaz, aynı geometrinin kurulumları birbirinin tekrarıdır",
+  "sens_notu": "2 bağımsız kümeden geliyor; hücre sayısı kümeleri saymaz, aynı geometrinin kurulumları birbirinin tekrarıdır",
   "spec": 0.75,
   "spec_notu": ""
  },
@@ -297,6 +298,62 @@
    "puanlanir": true,
    "puanlanmama_nedeni": "",
    "sinanan_kapi": "FEA_KABUL_SINIRI"
+  },
+  {
+   "vaka": "basamak kOmegaSST, duvar-çözünür aile",
+   "nicelik": "Cd",
+   "kaynak_dosya": "model_form_bandi.json",
+   "dis_referans": "Driver & Seegmiller, AIAA J. 23(2), 1985 — deneysel yeniden-yapışma Xr/H=6,26",
+   "truth": null,
+   "naive": null,
+   "referans_hata_pct": 10.464,
+   "u_val_pct": 2.87,
+   "arac_tipi": "kup",
+   "alpha_deg": 0.0,
+   "mach": 0.13,
+   "gci_bandi": false,
+   "ag_yeterli": null,
+   "kurulum_notu": "band SALINIM tabanlı (Eça-Hoekstra U=3·Δ), Richardson asimptotik DEĞİL",
+   "besledigi_kapilar": [
+    "yakinsama_kapisi"
+   ],
+   "hata_pct": 10.46,
+   "guard_sinif": "TREND",
+   "flagged": true,
+   "sessiz_hata": true,
+   "u_val_bilinmiyor": false,
+   "hucre": "TP",
+   "puanlanir": true,
+   "puanlanmama_nedeni": "",
+   "sinanan_kapi": "classify_cfd"
+  },
+  {
+   "vaka": "basamak kOmegaSST, duvar-fonksiyonu aile",
+   "nicelik": "Cd",
+   "kaynak_dosya": "model_form_bandi.json",
+   "dis_referans": "Driver & Seegmiller, AIAA J. 23(2), 1985 — deneysel yeniden-yapışma Xr/H=6,26",
+   "truth": null,
+   "naive": null,
+   "referans_hata_pct": 8.747,
+   "u_val_pct": 2.4,
+   "arac_tipi": "kup",
+   "alpha_deg": 0.0,
+   "mach": 0.13,
+   "gci_bandi": false,
+   "ag_yeterli": null,
+   "kurulum_notu": "band SALINIM tabanlı (Eça-Hoekstra U=3·Δ), Richardson asimptotik DEĞİL",
+   "besledigi_kapilar": [
+    "yakinsama_kapisi"
+   ],
+   "hata_pct": 8.75,
+   "guard_sinif": "TREND",
+   "flagged": true,
+   "sessiz_hata": true,
+   "u_val_bilinmiyor": false,
+   "hucre": "TP",
+   "puanlanir": true,
+   "puanlanmama_nedeni": "",
+   "sinanan_kapi": "classify_cfd"
   }
  ]
 }

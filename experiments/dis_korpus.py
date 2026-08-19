@@ -153,7 +153,48 @@ def korpus() -> list[dict]:
 
     h += _bandli_capalar()
     h += _yeni_fea_capalari()
+    h += _basamak_capalari()
     return h
+
+
+def _basamak_capalari() -> list[dict]:
+    """Geriye-basamaklı akış (Driver & Seegmiller 1985) — İKİNCİ pozitif küme.
+
+    Duyarlılık tek kümeden (silindir) geliyordu ve bu, sayıyı olduğundan
+    güvenli gösterir. Basamak ayrı bir geometri, ayrı bir rejim (separated)
+    ve ayrı bir nicelik (yeniden-yapışma uzunluğu Xr/H).
+
+    BANDI VAR AMA GCI DEĞİL: `basamak_yplus_ailesi` bandı salınım tabanlı
+    (Eça-Hoekstra U=3·Δ, 3 seviye) ve dosyanın kendisi "Richardson asimptotik
+    DEĞİL" diyor. Depo bu ayrımı zaten yapıyor, dolayısıyla `gci_bandi=False`.
+
+    BULAŞMA: basamak `validity_envelope`'ta YAKINSAMA kapısının salınım
+    gerekçesinde anılıyor (keskin kenarlı küt cisimde limit çevrimi). Sınanan
+    kapı band-sertifikası olduğu için puanlanır; beslediği kapı kayda geçer.
+    """
+    d = _oku("model_form_bandi.json")
+    if not d:
+        return []
+    out = []
+    for c in d.get("capalar", []):
+        if "basamak" not in c["capa"] or c.get("u_val_pct") is None:
+            continue
+        out.append({
+            "vaka": "basamak " + c["capa"].split("(")[-1].rstrip(")"),
+            "nicelik": "Cd",     # band-sertifikası yolu; nicelik Xr/H
+            "kaynak_dosya": "model_form_bandi.json",
+            "dis_referans": "Driver & Seegmiller, AIAA J. 23(2), 1985 — "
+                            "deneysel yeniden-yapışma Xr/H=6,26",
+            "truth": None, "naive": None,
+            "referans_hata_pct": c["ham_sapma_pct"],
+            "u_val_pct": c["u_val_pct"],
+            "arac_tipi": "kup", "alpha_deg": 0.0, "mach": 0.13,
+            "gci_bandi": False, "ag_yeterli": None,
+            "kurulum_notu": "band SALINIM tabanlı (Eça-Hoekstra U=3·Δ), "
+                            "Richardson asimptotik DEĞİL",
+            "besledigi_kapilar": ["yakinsama_kapisi"],
+        })
+    return out
 
 
 def _yeni_fea_capalari() -> list[dict]:
@@ -266,6 +307,13 @@ def degerlendir(h: list[dict]) -> list[dict]:
             # `or v` ile TÜM hükümlere düşüyordu. L/D her koşuda TREND
             # olduğundan her hücre TREND çıkıyordu: ölçülen şey Cd kapısı
             # değil, L/D'nin sabit hükmüydü.
+            # REFERANS HATASI GUARD'A GEÇİRİLMEZ --- DAİRESELLİK.
+            # `classify_cfd` artık `referans_hata_pct` kapısı taşıyor (FEA ile
+            # simetrik, 2026-08-19). Ama buradaki `hp` referans hatasının TA
+            # KENDİSİDİR: onu guard'a vermek, dedektöre cevabı söyleyip sonra
+            # "buldun mu?" diye sormak olurdu ve duyarlılık yapay olarak 1'e
+            # çıkardı. Dedektör testi, guard'ın referansı GÖRMEDEN ne dediğini
+            # ölçer. Kapı üretimde referans BEYAN EDİLEN koşular için vardır.
             ad = f"C_{c['nicelik'][1].upper()}"
             secili = [x for x in v if x.quantity.startswith(ad)]
             if not secili:
@@ -379,6 +427,16 @@ def main() -> int:
     for ad in ("sens", "spec"):
         d, n = o[ad], o[f"{ad}_notu"]
         print(f"  {ad}={d if d is not None else 'YOK'}" + (f"  — {n}" if n else ""))
+    print("\n  BULGU — İKİ YOL AYRIŞMIŞ: `classify_fea` referans hatasını KAPI"
+          "\n  olarak kullanıyor (FEA_KABUL_SINIRI), `classify_cfd` ise C_D hükmünü"
+          "\n  YALNIZ banda bakarak veriyor. GCI bandı olan bir koşu, referanstan"
+          "\n  ne kadar uzak olursa olsun DOĞRULANMIŞ alıyor. Aynı açık FEA"
+          "\n  tarafında bilinçli olarak kapatılmıştı (kod yorumu: '%20 hatalı yeni"
+          "\n  bir benchmark da design-grade alabilirdi'); CFD tarafında açık.")
+    print("  Bu bir DAVRANIŞ DEĞİŞİKLİĞİ önerisidir, sessizce uygulanmadı:"
+          "\n  kapı eklemek mevcut yayınlanmış hükümleri yeniden sınıflandırır"
+          "\n  (ör. küp: GCI %3,1 bandı var ama referanstan %6,0 uzak).")
+
     print("\n  YAPISAL UYARI: guard, GCI bandı ya da referans-ağ beyanı olmadan"
           "\n  neredeyse hiç DOĞRULANMIŞ demez. Bu kanıtı taşımayan bir korpusta"
           "\n  özgüllük yapı gereği düşük çıkar; ölçülen şey detektörün ayarı"

@@ -173,6 +173,20 @@ GEREKCE: dict[str, dict[str, str]] = {
                "({hukum_en})."),
     },
 
+    "CD_REFERANS_HATASI": {
+        "tr": ("Yerleşik referanstan sapma %{hata:.2f} > %{sinir:.0f}: yakınsamış "
+               "bir çözüm 'sayısal hatam küçük' der, DOĞRU olduğunu söylemez. "
+               "Ağ bandı ne kadar dar olursa olsun bu sapmayla tasarım sınıfı "
+               "verilemez; sonuç eğilim düzeyindedir. (Aynı kapı FEA tarafında "
+               "kapalı-form referansı için zaten uygulanıyordu.)"),
+        "en": ("Deviation from the established reference is {hata:.2f} % > "
+               "{sinir:.0f} %: a converged solution says 'my numerical error is "
+               "small', not that it is correct. However tight the mesh band, this "
+               "deviation cannot earn design grade; the result is trend-level. "
+               "(The same gate was already applied on the FEA side for "
+               "closed-form references.)"),
+    },
+
     # ── VLM (VSPAERO) ────────────────────────────────────────────────────
     # Hızlı çözücü CFD'nin yerine geçmez ve bu, hükümde yazılı olmak zorunda:
     # VLM potansiyel akış çözer, viskoz terimi HİÇ hesaplamaz.
