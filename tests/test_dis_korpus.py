@@ -7,6 +7,7 @@ gibi raporlardı.
 """
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -362,3 +363,54 @@ def test_CAPA_URETIMI_duvar_kapisini_KENDI_uyguluyor():
     assert "duvar işlemi savunulabilir değil" in src
     # Gerekçe BAŞARILI çapada da taşınır: kapı sessizce geçmiş olmamalı.
     assert src.count("duvar_gerekce") >= 2
+
+
+def test_duyarlilik_UC_TEN_FAZLA_kumeden_geliyor():
+    """Bir oranın tabanı hücre değil KÜME sayısıdır.
+
+    Korpus 6 küme taşırken duyarlılık YALNIZ İKİ kümeden geliyordu ve
+    `sens_notu` bunu açıkça yazıyordu. Dar bir tabandan "sens=1,0" demek,
+    ölçümden çok izlenim üretir. 2026-08-19'da küre ve Ahmed çapaları
+    eklendi (ikisi de o gün koştu, ikisi de yeni geometri).
+    """
+    import re
+    p = KOK / "dis_korpus.json"
+    if not p.exists():
+        return
+    o = json.loads(p.read_text(encoding="utf-8"))["ozet"]
+    m = re.search(r"(\d+) bağımsız kümeden", o.get("sens_notu") or "")
+    if not m:
+        return
+    assert int(m.group(1)) >= 3, (
+        f"duyarlılık {m.group(1)} kümeden geliyor — deponun kendi "
+        "EN_AZ_HUCRE=3 ilkesi küme tabanına da uygulanmalı")
+
+
+def test_BULASMA_iddiasi_KODLA_dogrulaniyor():
+    """Küre/Ahmed hücreleri `duvar_hukmu`'nu besledi ama `classify_cfd`'ye
+    karşı puanlanıyor. Bu ancak o kapı diğerini ÇAĞIRMIYORSA meşrudur.
+
+    İddia yorumda kalırsa denetlenemez; burada koddan doğrulanır.
+    """
+    import inspect
+
+    from validity_envelope import classify_cfd
+    src = inspect.getsource(classify_cfd)
+    assert "duvar_hukmu" not in src, (
+        "classify_cfd artık duvar_hukmu'nu çağırıyor — küre/Ahmed hücreleri "
+        "besledikleri kapıya karşı puanlanır hale geldi, DAİRESEL")
+    assert "yplus" not in src.lower(), (
+        "classify_cfd y⁺ görüyor — duvar ölçümünü besleyen vakalar artık "
+        "bağımsız kanıt değil")
+
+    p = KOK / "dis_korpus.json"
+    if not p.exists():
+        return
+    d = json.loads(p.read_text(encoding="utf-8"))
+    for h in d.get("hucreler", []):
+        if "duvar_hukmu" not in (h.get("besledigi_kapilar") or []):
+            continue
+        assert h.get("sinanan_kapi") != "duvar_hukmu", (
+            f"{h['vaka']}: beslediği kapıya karşı puanlanıyor")
+        assert h.get("puanlanir") is not False or h.get("puanlanmama_nedeni"), (
+            f"{h['vaka']}: puanlanmıyor ama gerekçesi yok")

@@ -276,6 +276,54 @@ def _bandli_capalar() -> list[dict]:
             # zaten tetiklenmiyor. Bulaşma kapı-bazlı olduğu için puanlanır.
             "besledigi_kapilar": ["fizik_kapisi"],
         })
+
+    # KÜRE ve AHMED: 2026-08-19'da koşan ÇAPALAR — İKİ YENİ BAĞIMSIZ KÜME.
+    #
+    # NEDEN GEREKLİ: duyarlılık YALNIZ İKİ kümeden geliyordu (`sens_notu` bunu
+    # açıkça yazıyordu). Küme sayısı bir oranın güven aralığını doğrudan
+    # belirler; iki kümeyle "sens=1,0" demek, dar bir tabandan geniş bir iddia
+    # üretmektir.
+    #
+    # BULAŞMA DENETİMİ (kapı-bazlı, bu modülün 1. tasarım kararı): bu iki koşu
+    # `duvar_hukmu`'nun modele-duyarlı hâlini ve snappy katman kalitesi
+    # ayarlarını BESLEDİ. Ama burada sınanan kapı `classify_cfd` ve o kapı
+    # `duvar_hukmu`'nu ÇAĞIRMIYOR, y⁺'ı hiç GÖRMÜYOR (imzasında yok). Yani
+    # besledikleri kapı ile sınandıkları kapı ayrı; hücreler puanlanabilir.
+    for _ad, _dizin, _ref, _kaynak, _mach in (
+        ("kure", "_anchor_sphere", 0.47,
+         "White, Fluid Mechanics; Schlichting BL Theory — küre subkritik Cd≈0,47",
+         30.0 / 340.0),
+        ("ahmed", "_anchor_ahmed_25", 0.299,
+         "Meile vd. 2011, CFD Letters 3(1) — Ahmed 25° cD=0,299 @ Re=2,784e6",
+         40.0 / 340.0),
+    ):
+        _p = ROOT / "validation_anchors_runs" / _dizin / "sonuc.json"
+        if not _p.exists():
+            continue
+        _d = json.loads(_p.read_text(encoding="utf-8"))
+        if _d.get("cd") is None:
+            continue
+        _md = _d.get("mesh_duyarlilik") or {}
+        _u = ((_md.get("lsr") or {}).get("u_pct")
+              or (_md.get("gci") or {}).get("gci_fine_pct"))
+        _yp = (_d.get("sinir_tabaka") or {}).get("yplus") or {}
+        h.append({
+            "vaka": f"{_ad} Cd (çapa koşusu 2026-08-19)",
+            "nicelik": "Cd", "kaynak_dosya": f"validation_anchors_runs/{_dizin}/sonuc.json",
+            "dis_referans": _kaynak,
+            "truth": _ref, "naive": _d["cd"],
+            "arac_tipi": "genel", "alpha_deg": 0.0, "mach": round(_mach, 3),
+            # Ikisinde de ince seviye YAKINSAMADI, dolayisiyla mesh-bagimsizlik
+            # calismasi YAPILAMADI — band YOK. Bu bir eksiklik degil OLCUM:
+            # kosunun kendi kaydi nedeni yaziyor.
+            "gci_bandi": _u is not None, "ag_yeterli": None,
+            "u_val_pct": _u,
+            "kurulum_notu": (
+                f"y⁺ ort={_yp.get('ort')} max={_yp.get('max')}; "
+                f"model={_d.get('turbulence_model') or 'kayıtsız'}; "
+                + ((_md.get("durum") or "")[:90] if not _u else "band var")),
+            "besledigi_kapilar": ["duvar_hukmu", "katman_kalitesi"],
+        })
     return h
 
 
