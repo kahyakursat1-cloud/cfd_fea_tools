@@ -62,7 +62,7 @@
    "engel": "Clift-Gauvin sabitleri birincil kaynaktan doğrulanmadı; ayrıca çapa setup-uyumsuz (geçiş-baskın)."
   },
   "naca0012_wing_ar6": {
-   "durum": "REFERANS DEĞİŞMELİ",
+   "durum": "ÇÖZÜM YOLU BULUNDU — üç somut engel kaldı",
    "tasidigi": 0.02,
    "u_D_pct": 15.0,
    "engel": "Yarı-analitik (Prandtl taşıma-çizgisi + düz-plaka Cf). u_D=%15 olduğu için ağ ne kadar inceltilirse inceltilsin u_val %15'in ALTINA inemez — model hatası hiç ayrıştırılamaz.",
@@ -82,7 +82,15 @@
      "neden_2_yayin": "Rumsey'in kendi ifadesi: deneysel veri 'toplu olarak hiçbir zaman resmî olarak yayımlanmadı'. Referans olarak alınacaksa hangi sürümün kullanıldığı ayrıca beyan edilmeli.",
      "olumlu_yan": "Tekrarlanabilirlik ÇALIŞMASI VAR (AIAA 2012-0706) — yani u_D türetilebilir bir vaka. Engel referansın kalitesi değil, aracın hesap bütçesi."
     },
-    "hukum": "ALANIN KANONİK 3B TAŞIMA ÇAPALARI BU ARACIN BÜTÇESİNİN DIŞINDA. ONERA M6 rejim olarak, Trap Wing çözünürlük olarak uymuyor. Dolayısıyla 'lifting' hücresi için ölçülmüş bir 3B referans BULUNAMADI — ve uydurulmadı. Dürüst seçenekler: (a) taşıma çapasını 2B'de bırakmak (NACA0012 TMR, u_D=%0,796 ZATEN ölçülü) ve 3B taşıma iddiasını yapmamak, (b) 3B taşımayı gelecek-iş olarak işaretleyip bütçe gerektiğini yazmak. İkisi de yarı-analitik %15'lik referanstan iyidir."
+    "hukum": "ÖNCEKİ HÜKÜM ('kanonik 3B vakalar bu aracın bütçesi dışında, referans bulunamadı') FAZLA KESİNDİ. Kanonik WORKSHOP vakalarına odaklanıp KLASİK NACA literatürünü atlamıştım. NACA TR-460 tam bu çapanın geometrisinde (AR=6 dikdörtgen) DENEYSEL veri veriyor ve açık erişimde. Engeller artık 'bulunamıyor' değil, üç somut iş: (1) grafiği sayısallaştır ya da tablolu muadil bul, (2) çapayı Re≈3,2e6'ya ölçekle, (3) u_D için ikinci kaynak.",
+    "aday_3_NACA_TR460": {
+     "kunye": "Jacobs, E. N., Ward, K. E. & Pinkerton, R. M., 'The Characteristics of 78 Related Airfoil Sections from Tests in the Variable-Density Wind Tunnel', NACA Report 460 (1933)",
+     "durum": "EN GÜÇLÜ ADAY — ama henüz kullanılabilir değil",
+     "neden_uygun": "Modeller kiriş 5 inç × açıklık 30 inç → AR=6 DİKDÖRTGEN, yani bu çapanın geometrisiyle AYNI. Rapor sonuçları HEM sonsuz-AR'ye düzeltilmiş HEM 'aspect ratio 6' hâliyle veriyor. NACA0012 test edilen kesitler arasında. Tünel-duvar etkisi için düzeltilmiş. Re=3.230.000 (tank 20,7 atm). Açık erişim (NTRS 19930091108). Yani DENEYSEL ve AR=6 — yarı-analitik ±%15'lik mevcut referanstan kategorik olarak üstün.",
+     "engel_1_grafik": "DEĞERLER GRAFİK, TABLO DEĞİL. Taranmış raporda Cd eğri olarak çizili; OCR metninden okunan 'yaklaşık 0,006–0,008' bir GRAFİKTEN TAHMİNDİR ve referans değer olarak ALINMADI. Kullanmak için ya şeklin sayısallaştırılması ya da tablolu bir muadil (ör. Abbott & von Doenhoff, 'Summary of Airfoil Data', NACA TR-824) gerekir.",
+     "engel_2_Re": "REYNOLDS UYUŞMAZLIĞI. TR-460 Re≈3,23e6; bu çapa kiriş 0,15 m ve 30 m/s ile Re≈3e5 koşuyor — ON KAT fark. Ahmed'de öğrenilen ders aynen geçerli: koşulu eşleştirmeden referans alınmaz. ÇÖZÜLEBİLİR: kiriş 1,5 m'ye ölçeklenirse 30 m/s'de Re=3e6 olur ve Ma=0,088 ile sıkışamaz kalır. Hücre sayısı çözünürlük kirişe GÖRELİ olduğu için değişmez.",
+     "engel_3_uD": "Rapor deneysel belirsizlik BEYAN ETMİYOR (OCR metninde hata çubuğu, güven aralığı ya da hassasiyet ifadesi yok). Yani u_D hâlâ türetilemiyor; ikinci bağımsız kaynak gerekir."
+    }
    }
   }
  },
