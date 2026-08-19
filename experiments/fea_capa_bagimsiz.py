@@ -403,10 +403,6 @@ def main() -> int:
     return 0
 
 
-if __name__ == "__main__":
-    sys.exit(main())
-
-
 # ── Burulma çapası: ÜÇÜNCÜ bağımsız geometri ──────────────────────────────
 # Korpusun negatif etiketleri iki kümeden geliyordu (kiriş, küre). Özgüllük
 # küme sayısına duyarlıdır; üçüncü BAĞIMSIZ geometri onu güçlendirir.
@@ -463,13 +459,33 @@ def mil_burulma(work: Path, incelik: float = 1.0) -> dict:
     rr = np.linalg.norm(p[uc, :2], axis=1)
     kats = rr > 1e-9
     uc, rr = uc[kats], rr[kats]
-    k = T_TORK / float((rr ** 2).sum())
+    # YUK SAF KUPL OLMALI. Onceki surum F_i = k*r_i*(-y,x)/r yaziyordu ve
+    # toplam MOMENTI tam T ediyordu — ama toplam KUVVETI etmiyor:
+    #   Sum F = k * Sum(-y_i, x_i)
+    # Duzenli bir dagilimda bu ~0'dir, DUZENSIZ tet aginda DEGILDIR. Kalan net
+    # kuvvet burulmanin ustune EGILME bindiriyordu ve olculdu (2026-08-19):
+    # theta(z) uydurmasinin R^2'si 0,198 / 0,109 / 0,042 — ag inceldikce DUSUYOR,
+    # yani egim gurultuden cikariliyordu.
+    #
+    # Duzeltme iki adim: (1) ortalama kuvveti cikar -> Sum F = 0; (2) momenti
+    # yeniden olcekle -> Sum r x F = T. Ikisi birlikte SAF KUPL verir.
+    yon = np.stack([-p[uc, 1] / rr, p[uc, 0] / rr], axis=1)     # tegetsel birim
+    vek = yon * rr[:, None]                                     # F ~ r (buyukluk)
+    vek -= vek.mean(axis=0)                                     # net kuvveti sil
+    _moment = float((p[uc, 0] * vek[:, 1] - p[uc, 1] * vek[:, 0]).sum())
+    if abs(_moment) < 1e-12:
+        return {"durum": "hata", "mesaj": "yük dağılımı moment üretmiyor"}
+    vek *= T_TORK / _moment                                     # momenti T'ye kalibre et
     yukler = []
-    for dugum, r_i in zip(uc, rr):
-        x, y = p[dugum, 0], p[dugum, 1]
+    for dugum, f in zip(uc, vek):
+        buyukluk = float(np.hypot(f[0], f[1]))
+        if buyukluk < 1e-14:
+            continue
         yukler.append(ForceLoad(np.array([dugum + 1], dtype=np.int64),
-                                (-y / r_i, x / r_i, 0.0), k * r_i,
-                                f"T{dugum}"))
+                                (float(f[0] / buyukluk), float(f[1] / buyukluk), 0.0),
+                                buyukluk, f"T{dugum}"))
+    _net = np.abs(vek.sum(axis=0)).max()
+    assert _net < 1e-9 * abs(T_TORK) / R_MIL, f"yük hâlâ net kuvvet taşıyor: {_net:g}"
 
     case = FEACase(name=f"mil{incelik}".replace(".", "_"), mesh=mesh,
                    material=FEAMaterial("CELIK", E, NU, RHO),
@@ -485,27 +501,59 @@ def mil_burulma(work: Path, incelik: float = 1.0) -> dict:
     u = frd.fields["DISP"]
     kimlik = np.asarray(frd.node_ids, dtype=np.int64)
 
-    def _aci(z_hedef):
-        """Kesitteki ortalama burulma açısı: u_teğet / r."""
-        sec = np.where(np.abs(p[:, 2] - z_hedef) < L_MIL * 0.03)[0]
-        hedef = set((sec + 1).tolist())
-        maske = np.array([int(x) in hedef for x in kimlik])
-        if not maske.any():
-            return None
-        idx = kimlik[maske] - 1
-        x, y = p[idx, 0], p[idx, 1]
-        rad = np.hypot(x, y)
-        iyi = rad > R_MIL * 0.3          # eksene yakın düğümde açı gürültülü
-        if not iyi.any():
-            return None
-        ut = (-y[iyi] * u[maske][iyi, 0] + x[iyi] * u[maske][iyi, 1]) / rad[iyi]
-        return float(np.median(ut / rad[iyi]))
-
-    a1, a2 = _aci(0.25 * L_MIL), _aci(0.75 * L_MIL)
-    if a1 is None or a2 is None:
-        return {"durum": "hata", "mesaj": "ara kesit düğümü bulunamadı"}
-    oran = (a2 - a1) / (0.5 * L_MIL)
+    # ARADIGIMIZ NICELIK ZATEN dtheta/dz — O HALDE EGIMI UYDUR.
+    #
+    # Onceki surum iki INCE DILIM (z=0,25L ve 0,75L) secip aralarindaki aci
+    # farkini 0,5L'ye boluyordu. Bu tahmin edici kirilgandi ve olculdu
+    # (2026-08-19): hata h/1,0'da %26,5, h/1,4'te %4,5, h/2,0'da %31,1 —
+    # TUTARSIZ ve MONOTON DEGIL. Kapali-form dairesel kesitte KESIN oldugu
+    # icin bu teori degil TAHMIN EDICI kusuruydu:
+    #   - dilim kalinligi L*0,03 sabitti ama eleman boyu incelikle degisiyor,
+    #     yani her seviyede farkli sayida dugum katmani yakaliyordu;
+    #   - dilimlerin GERCEK z ortalamasi hedeflenen z'ye oturmuyor, oysa
+    #     payda tam 0,5L varsayiliyordu.
+    #
+    # Dogru estimator: St. Venant bolgesindeki TUM dugumlerden theta(z) topla
+    # ve dogru uydur. Egim dogrudan dtheta/dz'dir, dilim yerlesimine duyarsizdir
+    # ve tum veriyi kullanir. R^2 de raporlanir: dogrusallik bozulursa (uc
+    # etkileri bolgeye sizarsa) bu SAYIYLA gorunur, sessizce gecmez.
+    z_alt, z_ust = 0.20 * L_MIL, 0.80 * L_MIL
+    idx = kimlik - 1
+    x, y, z = p[idx, 0], p[idx, 1], p[idx, 2]
+    rad = np.hypot(x, y)
+    iyi = (rad > R_MIL * 0.3) & (z >= z_alt) & (z <= z_ust)
+    if iyi.sum() < 20:
+        return {"durum": "hata", "mesaj": "St. Venant bölgesinde yeterli düğüm yok"}
+    ut = (-y[iyi] * u[iyi, 0] + x[iyi] * u[iyi, 1]) / rad[iyi]
+    theta = ut / rad[iyi]
+    zz = z[iyi]
+    oran, kesme = np.polyfit(zz, theta, 1)
+    _art = theta - (oran * zz + kesme)
+    _tss = float(((theta - theta.mean()) ** 2).sum())
+    r2 = 1.0 - float((_art ** 2).sum()) / _tss if _tss > 0 else 0.0
+    oran = float(oran)
+    # DUSUK R^2 SESSIZCE GECMEZ. Saf burulmada theta(z) DOGRUSALDIR; sacilma
+    # baskin ciktiysa egim gurultuden cikarilmis demektir ve sayi yayimlanamaz.
+    # Bu kapi olmadan hata yuzdesi tesadufen kucuk cikip "yakinsadi" izlenimi
+    # verebilirdi — nitekim net-kuvvet kusuru duzelmeden once tam bu oluyordu.
+    if r2 < 0.90:
+        return {"durum": "hata",
+                "mesaj": (f"θ(z) uydurması güvenilmez (R²={r2:.3f} < 0,90): saf "
+                          "burulmada θ(z) doğrusaldır, saçılma baskınsa eğim "
+                          "gürültüden çıkarılıyordur"),
+                "uydurma_R2": round(r2, 5), "uydurma_dugum": int(iyi.sum())}
     return {"durum": "ok", "nicelik": "yer_degistirme",
+            "estimator": "θ(z) doğrusal uydurma, 0,20L–0,80L (St. Venant bölgesi)",
+            "uydurma_R2": round(r2, 5), "uydurma_dugum": int(iyi.sum()),
             "analitik_rad_m": BURULMA_ORANI_AN, "fem_rad_m": oran,
             "hata_pct": abs(oran - BURULMA_ORANI_AN) / BURULMA_ORANI_AN * 100.0,
             "dugum": int(mesh.num_nodes), "eleman": int(mesh.num_tets)}
+
+
+# GIRIS NOKTASI DOSYANIN SONUNDA. Onceki surumde `if __name__` blogu burulma
+# capasindan ONCE geliyordu; main() `mil_burulma`yi cagirdiginda ad henuz
+# tanimli olmadigi icin NameError atiyordu. Capa kodda duruyordu, testler de
+# gecmisti — ama HIC KOSMAMISTI ve kanit dosyasinda "mil" anahtari yoktu.
+# Ders: bir capayi "yazdim" demek, "kostu" demek degildir.
+if __name__ == "__main__":
+    sys.exit(main())

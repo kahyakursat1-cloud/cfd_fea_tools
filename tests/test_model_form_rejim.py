@@ -204,3 +204,64 @@ class TestKurulumGecerliligi:
         assert wf < 20.0, (
             f"bluff.wall_function = %{wf} — küre (%69,8) bandı ele geçirmiş "
             "olabilir; o koşu kOmegaSSTLM'i duvar-fonksiyonu ağında çalıştırdı")
+
+
+class TestEksikBilgiIddiayiYUKSELTMEZ:
+    """Değerlendirilmemiş bir çapa eklemek hücreyi "ölçüm"e terfi ettiremez.
+
+    ÖLÇÜLDÜ (2026-08-19): Ahmed çapası katman düzeltmesiyle yeniden koştu,
+    duvar kapısını geçti ve `bluff.wall_function` hücresine girdi — ama ince
+    seviyesi yakınsamadığı için sayısal bandı üretilemedi (u_sayisal=None).
+    Eski ölçüt şuydu:
+        all(u_sayisal is not None) and all(not ayrilabilir)
+    İlk yan-koşul bozulunca hücre "ÜST SINIR — hiçbir çapa ayıramıyor"
+    olmaktan ÇIKTI ve "ölçülen" oldu — oysa ayrılabilir çapa sayısı hâlâ
+    SIFIRDI. Yani EKSİK BİLGİ iddiayı GÜÇLENDİRDİ.
+    """
+
+    def _hucre(self):
+        p = KOK / "model_form_bandi.json"
+        if not p.exists():
+            return None
+        d = json.loads(p.read_text(encoding="utf-8"))
+        return ((d.get("olculen_hucreler") or {}).get("bluff") or {}).get(
+            "wall_function")
+
+    def test_sifir_ayrilabilir_capa_UST_SINIR_demektir(self):
+        h = self._hucre()
+        if h is None:
+            return
+        if h.get("ayrilabilir_capa", 0) == 0:
+            assert h.get("_ust_sinir_mi") is True, (
+                f"hiçbir çapa ayıramıyor (ayrilabilir_capa=0) ama hücre ölçüm "
+                f"sayılıyor: {h.get('u_pct')}")
+
+    def test_degerlendirilmemis_capa_AYRI_sayiliyor(self):
+        """Üç durum ayrı kalmalı: ayrılabilir / ayrılamaz / DEĞERLENDİRİLMEDİ."""
+        h = self._hucre()
+        if h is None:
+            return
+        assert "ayrilabilirlik_degerlendirilmedi" in h, (
+            "değerlendirilmeyen çapa sayısı kayıtlı değil — 'ölçmedik' ile "
+            "'ayıramadık' karışır")
+        yok = sum(1 for x in h.get("capalar", [])
+                  if x.get("u_sayisal_pct") is None)
+        assert h["ayrilabilirlik_degerlendirilmedi"] == yok
+
+    def test_olcut_TEK_YONLU(self):
+        """Ölçüt yalnız ayrılabilirliğe bakmalı; eksik veriye DEĞİL."""
+        import inspect
+
+        import experiments.model_form_bandi as mfb
+        src = inspect.getsource(mfb)
+        # TANIMA BAGLA, ILK ESLESMEYE DEGIL. Ilk surum `index('"_ust_sinir_mi"')`
+        # kullaniyordu ve anahtarin OKUNDUGU yeri (model_form_ozeti) buluyordu,
+        # tanimlandigi yeri degil — testin kendisi yanlis yere bakiyordu.
+        anahtar = '"_ust_sinir_mi": '
+        assert src.count(anahtar) == 1, "ölçüt birden çok yerde tanımlı"
+        i = src.index(anahtar)
+        satir = src[i:src.index(chr(10), i)]
+        assert "u_sayisal_pct" not in satir, (
+            "ölçüt hâlâ sayısal bandın VARLIĞINA bakıyor — eksik veri hücreyi "
+            "ölçüme terfi ettirebilir")
+        assert "ayrilabilir_mi" in satir

@@ -215,5 +215,66 @@
   "u_val_pct": 0.7227,
   "hata_pct": 0.8293779353623927
  },
- "verdikt": "✅ Üç çapa da negatif etiket kurabiliyor — sehim: |E|=%0.336 ⊕ u_val=%0.111 → eşiğe 4.55 puan (NEGATİF ETİKET KURULABİLİR) · frekans: |E|=%0.087 ⊕ u_val=%0.112 → eşiğe 4.80 puan (NEGATİF ETİKET KURULABİLİR) · kure: |E|=%0.829 ⊕ u_val=%0.723 → eşiğe 3.45 puan (NEGATİF ETİKET KURULABİLİR)"
+ "mil": {
+  "seviyeler": [
+   {
+    "durum": "ok",
+    "nicelik": "yer_degistirme",
+    "estimator": "θ(z) doğrusal uydurma, 0,20L–0,80L (St. Venant bölgesi)",
+    "uydurma_R2": 1.0,
+    "uydurma_dugum": 1214,
+    "analitik_rad_m": 0.02463112214517428,
+    "fem_rad_m": 0.024631922190663097,
+    "hata_pct": 0.003248108162108387,
+    "dugum": 2357,
+    "eleman": 1208,
+    "incelik": 1.0
+   },
+   {
+    "durum": "ok",
+    "nicelik": "yer_degistirme",
+    "estimator": "θ(z) doğrusal uydurma, 0,20L–0,80L (St. Venant bölgesi)",
+    "uydurma_R2": 1.0,
+    "uydurma_dugum": 2898,
+    "analitik_rad_m": 0.02463112214517428,
+    "fem_rad_m": 0.024631808818556863,
+    "hata_pct": 0.0027878282545751114,
+    "dugum": 5412,
+    "eleman": 2990,
+    "incelik": 1.4
+   },
+   {
+    "durum": "ok",
+    "nicelik": "yer_degistirme",
+    "estimator": "θ(z) doğrusal uydurma, 0,20L–0,80L (St. Venant bölgesi)",
+    "uydurma_R2": 1.0,
+    "uydurma_dugum": 7745,
+    "analitik_rad_m": 0.02463112214517428,
+    "fem_rad_m": 0.02463133630254576,
+    "hata_pct": 0.0008694584445506886,
+    "dugum": 14309,
+    "eleman": 8742,
+    "incelik": 2.0
+   }
+  ],
+  "en_ince": {
+   "durum": "ok",
+   "nicelik": "yer_degistirme",
+   "estimator": "θ(z) doğrusal uydurma, 0,20L–0,80L (St. Venant bölgesi)",
+   "uydurma_R2": 1.0,
+   "uydurma_dugum": 7745,
+   "analitik_rad_m": 0.02463112214517428,
+   "fem_rad_m": 0.02463133630254576,
+   "hata_pct": 0.0008694584445506886,
+   "dugum": 14309,
+   "eleman": 8742,
+   "incelik": 2.0
+  },
+  "u_num_pct": 0.0019,
+  "u_num_yontem": "en ince iki seviye bağıl farkı",
+  "u_D_pct": 0.0,
+  "u_val_pct": 0.0019,
+  "hata_pct": 0.0008694584445506886
+ },
+ "verdikt": "✅ Üç çapa da negatif etiket kurabiliyor — sehim: |E|=%0.336 ⊕ u_val=%0.111 → eşiğe 4.55 puan (NEGATİF ETİKET KURULABİLİR) · frekans: |E|=%0.087 ⊕ u_val=%0.112 → eşiğe 4.80 puan (NEGATİF ETİKET KURULABİLİR) · kure: |E|=%0.829 ⊕ u_val=%0.723 → eşiğe 3.45 puan (NEGATİF ETİKET KURULABİLİR) · mil: |E|=%0.001 ⊕ u_val=%0.002 → eşiğe 5.00 puan (NEGATİF ETİKET KURULABİLİR)"
 }

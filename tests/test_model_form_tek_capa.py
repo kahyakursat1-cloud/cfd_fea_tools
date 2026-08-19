@@ -64,18 +64,34 @@ def test_korunan_oncul_OLCUMU_de_kaydediyor():
 
 def test_UST_SINIR_ile_OLCUM_ayirt_ediliyor():
     """Hiçbir çapa farkı kendi sayısal bandından ayıramıyorsa değer ölçülmüş
-    bir model hatası DEĞİL, üst sınırdır. Üçüncü bir hâl daha var:
-    ayrılabilirlik HİÇ DEĞERLENDİRİLMEMİŞ olabilir — o da 'ayrılamaz'
-    sayılmamalı."""
+    bir model hatası DEĞİL, üst sınırdır.
+
+    "Değerlendirilmedi" ile "ayrılamaz" HÂLÂ ayrı tutulur — ama bu ayrım
+    hücre ETİKETİYLE değil, `ayrilabilirlik_degerlendirilmedi` sayacıyla
+    ifade edilir.
+
+    DÜZELTME (2026-08-19). Bu test önce şunu istiyordu: değerlendirilmemiş
+    çapa varsa `_ust_sinir_mi` False olsun. Niyeti doğruydu (ölçmediğimizi
+    olumsuz ölçüm gibi göstermemek) ama kodlanışı iki ayrı meseleyi
+    karıştırıyordu ve sonucu terse çeviriyordu: ÖLÇÜLDÜ — Ahmed çapası
+    yeniden koşup bluff hücresine girdi, ince seviyesi yakınsamadığı için
+    sayısal bandı üretilemedi (u_sayisal=None), ve hücre "ÜST SINIR — hiçbir
+    çapa ayıramıyor" iken "ölçülen" oldu. Ayrılabilir çapa sayısı hâlâ
+    SIFIRDI. Yani EKSİK BİLGİ iddiayı YÜKSELTMİŞTİ.
+
+    Etiket tek yönlü olmalı: en az bir çapa ayırt ettiyse ölçüm, aksi halde
+    üst sınır. Bilgi eksikliği hiçbir koşulda iddiayı güçlendiremez.
+    """
     rec = calistir()
     for h in rec["olculen_hucreler"].values():
         for v in h.values():
             assert "_ust_sinir_mi" in v
-            if v["ayrilabilirlik_degerlendirilmedi"]:
-                assert v["_ust_sinir_mi"] is False, (
-                    "değerlendirilmemiş çapa 'ayrılamaz' sayılamaz")
-            if v["_ust_sinir_mi"]:
-                assert v["ayrilabilir_capa"] == 0
+            # Uc durum AYRI SAYILMAYA devam ediyor.
+            assert "ayrilabilirlik_degerlendirilmedi" in v
+            # Etiket YALNIZ ayrilabilirlige bakar, iki yonlu ve tam.
+            assert v["_ust_sinir_mi"] is (v["ayrilabilir_capa"] == 0), (
+                f"etiket ayrılabilirlikle tutarsız: ust_sinir="
+                f"{v['_ust_sinir_mi']}, ayrilabilir_capa={v['ayrilabilir_capa']}")
     assert "UST SINIR" in rec["_ayrilabilirlik_notu"] or "ayirt edebiliyor"         in rec["_ayrilabilirlik_notu"]
 
 

@@ -76,15 +76,15 @@
     {
       "capa": "Ahmed 25°",
       "rejim": "bluff",
-      "sapma_pct": 10.76,
-      "ham_sapma_pct": 10.76,
+      "sapma_pct": 9.31,
+      "ham_sapma_pct": 9.31,
       "u_sayisal_pct": null,
       "ayrilabilir_mi": null,
       "u_val_pct": null,
       "u_ref_pct": null,
       "ayrilabilirlik_notu": "sayısal band yok — ayrılabilirlik DEĞERLENDİRİLMEDİ",
-      "yplus_ort": 45.99,
-      "yplus_max": 1236.57,
+      "yplus_ort": 30.41,
+      "yplus_max": 74.62,
       "yplus_kaynak": "çapa koşusu _anchor_ahmed_25",
       "referans": "Meile vd. 2011, CFD Letters 3(1) — cD=0,299 @ Re=2,784e6 (KOSULA ESLESIK); krs. "
     },
@@ -205,11 +205,11 @@
     },
     "bluff": {
       "wall_function": {
-        "u_pct": 8.15,
-        "olculen_pct": 8.15,
+        "u_pct": 9.31,
+        "olculen_pct": 9.31,
         "oncul_pct": 20.0,
         "oncul_korundu": false,
-        "n_capa": 2,
+        "n_capa": 3,
         "ayrilabilir_capa": 0,
         "capalar": [
           {
@@ -227,11 +227,19 @@
             "u_sayisal_pct": 5.28,
             "ayrilabilir_mi": false,
             "referans": "Hoerner, Fluid-Dynamic Drag (1965)"
+          },
+          {
+            "ad": "Ahmed 25°",
+            "sapma_pct": 9.31,
+            "ham_sapma_pct": 9.31,
+            "u_sayisal_pct": null,
+            "ayrilabilir_mi": null,
+            "referans": "Meile vd. 2011, CFD Letters 3(1) — cD=0,299 @ Re=2,784e6 (KOSULA ESLESIK); krs. "
           }
         ],
-        "ayrilabilirlik_degerlendirilmedi": 0,
+        "ayrilabilirlik_degerlendirilmedi": 1,
         "_ust_sinir_mi": true,
-        "_anlam": "2 çapanın EN KÖTÜSÜ"
+        "_anlam": "3 çapanın EN KÖTÜSÜ"
       }
     },
     "separated": {
@@ -296,13 +304,6 @@
       "neden": "y⁺ ÖLÇÜLDÜ (5.5) ama hiçbir duvar işlemine ait değil: duvar-çözünür ≤5.0, duvar-fonksiyonu 30.0–300.0. Tampon bölgede log-yasası geçerli değildir ve viskoz altkatman da çözülmemiştir; bu koşu iki hücreden hiçbirini kalibre EDEMEZ. Eksik kayıt değil, FİZİKSEL bulgu — ve çapanın sapmasının bir bölümünü açıklar"
     },
     {
-      "capa": "Ahmed 25°",
-      "rejim": "bluff",
-      "sapma_pct": 10.76,
-      "yplus_ort": 45.99,
-      "neden": "y⁺ ORTALAMASI bantta (46.0) ama TEPESİ dışarıda (1237 > 300.0): duvarın bir bölümü hiçbir zaman log-bölgesinde değil, koşu duvar-fonksiyonunu temsil etmiyor"
-    },
-    {
       "capa": "NACA0012 kanat AR6",
       "rejim": "lifting",
       "sapma_pct": 35.43,
@@ -344,14 +345,14 @@
     {
       "rejim": "bluff",
       "wall_function": {
-        "deger": 8.15,
+        "deger": 9.31,
         "tur": "ölçüm"
       },
       "wall_resolved": {
         "deger": 10.0,
         "tur": "öncül"
       },
-      "_not": "duvar-fonksiyonu bandı (8.15, ölçüm) duvar-çözünürden (10.0, öncül) DAR. Fizik beklentisi tersidir. Ölçümü öncüle uydurmak için ŞİŞİRİLMEDİ: ölçülmemiş bir sayı, ölçülmüş olanı bozamaz. Muhtemel açıklama — öncül bu hat için fazla muhafazakâr; o hücre de ölçülünce anlaşılacak."
+      "_not": "duvar-fonksiyonu bandı (9.31, ölçüm) duvar-çözünürden (10.0, öncül) DAR. Fizik beklentisi tersidir. Ölçümü öncüle uydurmak için ŞİŞİRİLMEDİ: ölçülmemiş bir sayı, ölçülmüş olanı bozamaz. Muhtemel açıklama — öncül bu hat için fazla muhafazakâr; o hücre de ölçülünce anlaşılacak."
     }
   ],
   "_kisit": "Bir capanin sapmasi, o rejimdeki model-form hatasinin BIR ORNEGIDIR. N=1 olan hucrede dagilim IDDIA EDILMEZ. Duvar islemi kayitli olmayan capa hucreye ATANMAZ — tahmin edilmez. Ayrica sapma, referansin KENDI deneysel belirsizligini de icerir ve o ayristirilmamistir.",
@@ -387,14 +388,14 @@
     "tutarli": true,
     "cumle": "8 hücrenin 5'i deneysel/literatür çapası taşıyor (3 ölçüm + 2 üst sınır), 3'i literatür öncülüyle çalışıyor"
   },
-  "verdikt": "11 capa toplandi; 5 hucre OLCULDU, 5 capa atanamadi, 3 hucre ONCUL kaldi. attached_2d.wall_resolved=%5.23 (n=1); attached_2d.wall_function=%12.0 (n=1); bluff.wall_function=%8.15 (n=2); separated.wall_resolved=%12.0 (n=1); separated.wall_function=%25.0 (n=1)",
+  "verdikt": "11 capa toplandi; 5 hucre OLCULDU, 4 capa atanamadi, 3 hucre ONCUL kaldi. attached_2d.wall_resolved=%5.23 (n=1); attached_2d.wall_function=%12.0 (n=1); bluff.wall_function=%9.31 (n=3); separated.wall_resolved=%12.0 (n=1); separated.wall_function=%25.0 (n=1)",
   "_yazilan": {
     "attached_2d": {
       "wall_resolved": 5.23,
       "wall_function": 12.0
     },
     "bluff": {
-      "wall_function": 8.15
+      "wall_function": 9.31
     },
     "separated": {
       "wall_resolved": 12.0,

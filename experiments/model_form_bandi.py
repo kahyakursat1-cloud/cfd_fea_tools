@@ -615,9 +615,23 @@ def calistir() -> dict:
                 # seyi olumsuz olcum gibi gostermek olurdu.
                 "ayrilabilirlik_degerlendirilmedi":
                     sum(1 for x in liste if x.get("u_sayisal_pct") is None),
-                "_ust_sinir_mi": (
-                    all(x.get("u_sayisal_pct") is not None for x in liste)
-                    and all(not x.get("ayrilabilir_mi") for x in liste)),
+                # HUCRE ANCAK EN AZ BIR CAPA AYIRT EDEBILDIYSE "OLCUM"DUR.
+                #
+                # Onceki kosul su idi:
+                #   all(u_sayisal is not None) and all(not ayrilabilir)
+                # Ilk yan-kosul, DEGERLENDIRILMEMIS bir capa eklendiginde
+                # bozuluyordu ve hucre "UST SINIR" olmaktan CIKIYORDU. Yani
+                # EKSIK BILGI iddiayi YUKSELTIYORDU. Olculdu (2026-08-19):
+                # Ahmed capasi yeniden kosuldu, sayisal bandi uretilemedi
+                # (u_sayisal=None) ve bluff.wall_function hucresi
+                # "UST SINIR — hicbir capa ayiramiyor" iken "olculen" oldu —
+                # oysa ayrilabilir capa sayisi hala SIFIRDI.
+                #
+                # Dogrusu tek yonlu: en az bir capa farki kendi u_val'inden
+                # ayirt ettiyse hucre olcumdur; aksi halde UST SINIRDIR.
+                # "Degerlendirilmedi" ayri bir sayac olarak zaten raporlaniyor
+                # ve hicbir kosulda iddiayi guclendirmez.
+                "_ust_sinir_mi": not any(x.get("ayrilabilir_mi") for x in liste),
                 "_anlam": (
                     (f"TEK ÇAPA (%{en_kotu:.2f}) öncülden (%{oncul}) KÜÇÜK — "
                      "band tek ölçümle DARALTILMADI; öncül korundu, ölçüm kayıtlı"
