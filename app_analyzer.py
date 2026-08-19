@@ -603,6 +603,24 @@ class AnalyzerWindow(QMainWindow):
             "müdahale rapora yazılır.\nDüzeltilemeyen kusurlar da gerekçesiyle "
             "raporlanır.\nKoşu süresi düzeltme başına katlanır.")
         form.addRow("", self.chk_duzeltici)
+        # YERLEŞİK REFERANS (isteğe bağlı). Beyan edilirse sapma hükme girer:
+        # yakınsamış ama referanstan uzak bir koşu tasarım sınıfı ALMAZ
+        # (CD_REFERANS_HATASI). CLI/REST bunu zaten yapabiliyordu; arayüzde
+        # girdi YOKTU ve bu bir borç olarak kayıtlıydı.
+        # 0 = beyan yok → kapı hiç kurulmaz, davranış eskisi gibi.
+        self.spn_ref_cd = QDoubleSpinBox()
+        self.spn_ref_cd.setRange(0.0, 10.0)
+        self.spn_ref_cd.setDecimals(4)
+        self.spn_ref_cd.setSingleStep(0.01)
+        self.spn_ref_cd.setValue(0.0)
+        self.spn_ref_cd.setSpecialValueText("— beyan yok")
+        self.spn_ref_cd.setToolTip(
+            "Bu geometri için YERLEŞİK bir referans Cd biliyorsanız girin "
+            "(ör. küp 1.05, Ahmed 25° 0.285).\nSapma, koşunun kendi belirsizlik "
+            "bütçesini (u_val) aşarsa C_D tasarım kararında KULLANILMAZ olarak "
+            "işaretlenir.\nBoş bırakılırsa (— beyan yok) hüküm yalnız ağ "
+            "bandına dayanır; davranış değişmez.")
+        form.addRow("Referans C_D (varsa):", self.spn_ref_cd)
         # SEVIYE SAYISI ARAYUZDE YOKTU: GUI `mesh_levels`'i hic gecmiyordu, yani
         # her zaman varsayilan 3 seviye kosuyordu. LSR (Eca-Hoekstra) EN AZ 4
         # grid ister — yani arayuz kullanicisi LSR bandini HIC alamiyordu,
@@ -947,6 +965,8 @@ class AnalyzerWindow(QMainWindow):
             "n_layers": self.spn_layers.value(),
             "yplus_target": self.spn_yplus.value(),
             "duzeltici": self.chk_duzeltici.isChecked(),
+            # 0 = beyan yok → None geçilir, kapı kurulmaz.
+            "referans_cd": (self.spn_ref_cd.value() or None),
         })
         n = sum(1 for i in kuyruk.listele() if i["durum"] == "bekliyor")
         self._log(f"🗂 Kuyruğa eklendi: {is_['id']} ({self.model_path.name}) — "
@@ -1101,6 +1121,8 @@ class AnalyzerWindow(QMainWindow):
             "n_layers": self.spn_layers.value(),
             "yplus_target": self.spn_yplus.value(),
             "duzeltici": self.chk_duzeltici.isChecked(),
+            # 0 = beyan yok → None geçilir, kapı kurulmaz.
+            "referans_cd": (self.spn_ref_cd.value() or None),
         }
         self.worker = AnalysisWorker(params)
         self.worker.progress.connect(self._on_progress)
@@ -1309,6 +1331,19 @@ class AnalyzerWindow(QMainWindow):
         title, lab = self.metric_labels[key]
         lab.setText(f"{title}\n{value}")
 
+    @staticmethod
+    def _ref_hata_pct(r):
+        """Beyan edilen referansa göre sapma [%]; beyan yoksa None.
+
+        Sonuç `referans_cd`'yi TAŞIR (boru hattı koyar), yani arayüz kendi
+        girdisini hatırlamak zorunda değil --- hüküm koşunun kendi kaydından
+        kurulur ve rapor ile aynı sayıya dayanır.
+        """
+        ref, cd = getattr(r, "referans_cd", None), getattr(r, "cd", None)
+        if not ref or cd is None:
+            return None
+        return abs(cd - ref) / abs(ref) * 100.0
+
     def _qoi_siniflari(self, r) -> dict:
         """QoI başına geçerlilik sınıfı — raporun banner'ıyla AYNI kaynaktan.
 
@@ -1331,7 +1366,14 @@ class AnalyzerWindow(QMainWindow):
                 (r.velocity or 0.0) / 340.0,
                 has_gci_band=bool(_mds.get("gci"))
                 and str(_mds.get("verdikt", "")).startswith("✅"),
-                band_pct=_mds.get("fark_pct"))
+                band_pct=_mds.get("fark_pct"),
+                # Arayüz artık referans BEYAN EDEBİLİYOR; rozetin de o hükmü
+                # göstermesi gerekir. Geçirilmezse rapor bir hüküm, ekran
+                # başka bir hüküm verir --- kanal ayrışması tarayıcısı bunu
+                # "rapor okuyor, arayüz susuyor" diye yakaladı.
+                referans_hata_pct=self._ref_hata_pct(r),
+                u_val_pct=((r.belirsizlik or {}).get("u_toplam_pct")
+                           if getattr(r, "belirsizlik", None) else None))
             v = apply_physics_gate(v, getattr(r, "fizik_kabul", None) or {})
             im = {VALIDATED: "\n✅ tasarım", TREND: "\n🟡 eğilim",
                   OUT: "\n🔴 zarf-dışı"}

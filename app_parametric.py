@@ -111,6 +111,9 @@ class ParametrikAnalizIsi(QThread):
                 "quality": self.kalite,
                 "n_processors": self.cekirdek,
                 "ref_bump": "oto",          # fizik tahmininden yüzey kademesi
+                # Parametrik ekranda referans beyanı YOK: üretilen geometri
+                # ailesi için yerleşik bir Cd yok, uydurmak yanlış olurdu.
+                "referans_cd": None,
                 "mesh_levels": 3,
                 "n_layers": 0,
                 "yplus_target": 30.0,

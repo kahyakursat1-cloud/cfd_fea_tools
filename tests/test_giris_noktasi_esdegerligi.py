@@ -51,12 +51,6 @@ BILINEN_BOSLUK = {
     "pervane_cap_m": "aktüatör-disk çapı; yukarıdakiyle birlikte gelir. "
                      "Arayüze eklemek ayrı iş: itki kapısının (thrust cap) ve "
                      "bu modelin doğrulama durumunun ayrıca ele alınması gerekir.",
-    "referans_cd": "Yerleşik referansa karşı sapma kapısı (CD_REFERANS_HATASI). "
-                   "CLI ve REST beyan edebiliyor; arayüzde referans girdisi "
-                   "YOK. Bu bir KARAR değil BORÇ — arayüz kullanıcısının "
-                   "referansı olmaması için ilkeli bir sebep yok, alan henüz "
-                   "eklenmedi. Eklemek ayrı iş: girdinin doğrulanması ve "
-                   "hangi niceliğe ait olduğunun sorulması gerekir.",
 }
 
 

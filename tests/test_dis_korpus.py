@@ -202,15 +202,25 @@ def test_referans_kapisi_yalniz_BEYAN_EDILINCE_isirir():
     # Beyan yoksa kapı hiç kurulmamalı: `if referans_cd and ...` koşulu şart.
     assert "if referans_cd and" in src
 
-    # GUI'de beyan edilmiş bir referans YOK; uydurmak yanlış olurdu.
-    # (`vehicle_report` geçirir --- sonuç artık beyanı taşıyor, bkz.
-    # test_RAPOR_ve_SERVIS_ayni_hukmu_kuruyor.)
-    s = (KOK / "app_analyzer.py").read_text(encoding="utf-8")
-    j = s.find("classify_cfd(")
-    assert j > 0
-    assert "referans_hata_pct" not in s[j:j + 400], (
-        "app_analyzer artık referans geçiriyor — GUI'de beyan yok, "
-        "bu bir ÜRETİM DAVRANIŞ DEĞİŞİKLİĞİDİR")
+    # HER SUNUM KANALI referansı geçirir: arayüz artık beyan alabiliyor
+    # (spn_ref_cd), dolayısıyla rozetinin de o hükmü göstermesi gerekir.
+    # Aksi hâlde rapor bir hüküm, ekran başka bir hüküm verirdi.
+    #
+    # KARAKTER PENCERESİ YERİNE AST: ilk sürüm çağrının ardından 400 karaktere
+    # bakıyordu ve argüman 603. karaktere düştüğünde test YANLIŞ SEBEPLE
+    # yeşil kaldı. Pencere uzunluğuna dayanan bir denetim, kodu biçimlendirme
+    # değişikliğiyle sessizce körleşir.
+    import ast
+    for yol in ("app_analyzer.py", "vehicle_report.py"):
+        agac = ast.parse((KOK / yol).read_text(encoding="utf-8"))
+        cagrilar = [n for n in ast.walk(agac) if isinstance(n, ast.Call)
+                    and getattr(n.func, "id", "") == "classify_cfd"]
+        assert cagrilar, f"{yol}: classify_cfd çağrısı bulunamadı"
+        for c in cagrilar:
+            adlar = {k.arg for k in c.keywords}
+            assert "referans_hata_pct" in adlar, (
+                f"{yol}: sunum kanalı referansı geçirmiyor — aynı koşu için "
+                "servisten FARKLI hüküm basar")
 
 
 def test_BEYAN_EDILEN_referans_hukme_giriyor():

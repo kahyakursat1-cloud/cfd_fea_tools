@@ -2220,6 +2220,10 @@ if __name__ == "__main__":
     ap.add_argument("--ref-bump", default="0", dest="ref_bump",
                     help="ek yüzey iyileştirme kademesi; tam sayı ya da "
                          "'oto' (y⁺'ı banda sokan en ucuz kademeyi seçer)")
+    ap.add_argument("--referans-cd", type=float, default=None, dest="referans_cd",
+                    help="bu geometri için YERLEŞİK referans Cd (varsa). "
+                         "Beyan edilirse sapma hükme girer: koşunun kendi "
+                         "u_val'ini aşarsa C_D tasarım kararında kullanılmaz")
     args = ap.parse_args()
     if str(args.ref_bump).lower() != "oto":
         try:
@@ -2236,7 +2240,8 @@ if __name__ == "__main__":
                              mesh_sensitivity=args.duyarlilik, n_layers=args.katman,
                              mesh_levels=args.seviyeler, yplus_target=args.yplus,
                              pervane_itki_n=args.itki, pervane_cap_m=args.cap,
-                             ref_bump=args.ref_bump, progress_cb=_cb)
+                             ref_bump=args.ref_bump, progress_cb=_cb,
+                             referans_cd=args.referans_cd)
     if r.status == "ok":
         print(f"\nCd={r.cd}  CdA={r.cda_m2} m²  Drag={r.drag_N} N"
               + (f"  Cl={r.cl}  L/D={r.ld}" if r.cl is not None else ""))
