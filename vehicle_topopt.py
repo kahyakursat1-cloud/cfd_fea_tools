@@ -159,21 +159,53 @@ def _tet_volumes(P, tets):
     return np.abs(np.einsum("ij,ij->i", a, np.cross(b, c))) / 6.0
 
 
+def tet4_to_tet10(P, tets):
+    """Lineer tet ağını YERİNDE ikinci mertebeye yükselt: (P10, tets10).
+
+    NEDEN YERİNDE: TO'nun ürettiği şey bir CAD gövdesi değil, mevcut ağ
+    üzerindeki bir YOĞUNLUK ALANIDIR. Katı bölgeyi yüzeye çıkarıp yeniden
+    meshlemek geometriyi de, eleman bölünüşünü de, sınır koşulu eşlemesini de
+    değiştirirdi — o zaman ölçülen fark eleman mertebesi DEĞİL, üç şeyin
+    toplamı olurdu. Kenar-ortası düğüm eklemek aynı geometriyi ve aynı
+    elemanları korur, yalnız mertebeyi yükseltir: farkın tek nedeni budur.
+
+    Düğüm numaraları KORUNUR (yalnız yeni düğüm EKLENİR), dolayısıyla mevcut
+    NSET/CLOAD blokları geçerli kalır.
+
+    CalculiX/Abaqus C3D10 sırası: 4 köşe + kenarlar (0-1, 1-2, 2-0, 0-3, 1-3, 2-3).
+    """
+    tets = np.asarray(tets, dtype=np.int64)
+    kenarlar = np.array([(0, 1), (1, 2), (2, 0), (0, 3), (1, 3), (2, 3)])
+    ikili = np.stack([np.sort(tets[:, k], axis=1) for k in kenarlar], axis=1)
+    duz = ikili.reshape(-1, 2)
+    tekil, ters = np.unique(duz, axis=0, return_inverse=True)
+    orta = 0.5 * (P[tekil[:, 0]] + P[tekil[:, 1]])
+    P10 = np.vstack([P, orta])
+    orta_idx = (len(P) + ters).reshape(len(tets), 6)
+    return P10, np.hstack([tets, orta_idx])
+
+
 def _write_inp(path: Path, P, tets, bins_of, bin_rho, e0_mpa, nu, density,
-               fixed_nodes, cload_block: str, penal: float):
-    """TO'ya özel inp: K adet malzeme kutusu + sabit CLOAD bloğu."""
+               fixed_nodes, cload_block: str, penal: float,
+               eleman_tipi: str = "C3D4"):
+    """TO'ya özel inp: K adet malzeme kutusu + sabit CLOAD bloğu.
+
+    `eleman_tipi` C3D10 verilirse `tets` 10 sütunlu olmalıdır (tet4_to_tet10).
+    """
     L = ["*HEADING", "SIMP topoloji optimizasyonu iterasyonu", "*NODE"]
     for i, (x, y, z) in enumerate(P, start=1):
         L.append(f"{i}, {x:.9e}, {y:.9e}, {z:.9e}")
     nb = len(bin_rho)
+    _kolon = 10 if eleman_tipi == "C3D10" else 4
     for b in range(nb):
         ids = np.where(bins_of == b)[0]
         if len(ids) == 0:
             continue
-        L.append(f"*ELEMENT, TYPE=C3D4, ELSET=BIN{b:02d}")
+        L.append(f"*ELEMENT, TYPE={eleman_tipi}, ELSET=BIN{b:02d}")
         for ei in ids:
-            n = tets[ei] + 1
-            L.append(f"{ei+1}, {n[0]}, {n[1]}, {n[2]}, {n[3]}")
+            n = tets[ei][:_kolon] + 1
+            # Abaqus/CalculiX satir basina en cok 16 alan; C3D10 tek satira sigar
+            L.append(f"{ei+1}, " + ", ".join(str(int(x)) for x in n))
     L.append("*ELSET, ELSET=EALL, GENERATE")
     L.append(f"1, {len(tets)}, 1")
     L.append("*NSET, NSET=SABIT")
@@ -473,6 +505,65 @@ def run_topopt(run_dir, material="aluminum_6061", constraint="y_min",
             from vehicle_fea import _stress_assessment
             vm_subset = vm[idx] if (vm is not None and idx) else None
             sa = _stress_assessment(vm_subset, mat.yield_strength) or {}
+
+            # ELEMAN-MERTEBESI DOGRULAMASI. Yukaridaki cozum C3D4 (lineer tet)
+            # aginda yapildi ve olculdu (fea_element_order.json) ki C3D4 egilme
+            # gerilmesini %59-74 DUSUK verebiliyor — dusuk gerilme YUKSEK SF
+            # demektir. `_stress_gate` bu yuzden "guvenli" kademesini kanita
+            # bagladi; kanit BURADA uretilir.
+            #
+            # AYNI AG IKINCI MERTEBEYE YUKSELTILIR, yeniden meshlenmez:
+            # geometri, eleman bolunusu ve dugum numaralari korunur, dolayisiyla
+            # NSET/CLOAD bloklari gecerli kalir ve olculen fark TEK BIR NEDENE
+            # (eleman mertebesi) baglanabilir.
+            eo = {"eleman": "C3D4 (lineer tet)", "dogrulandi": False,
+                  "kanit": "fea_element_order.json",
+                  "bu_geometride_olculdu_mu": False}
+            try:
+                P10, tets10 = tet4_to_tet10(P, tets)
+                inp2 = _write_inp(out_dir / "to_final_c3d10.inp", P10, tets10,
+                                  bins_of, bin_rho, e0_mpa, nu, dens, fixed,
+                                  cload_block, penal, eleman_tipi="C3D10")
+                t2 = inp2.read_text(encoding="utf-8").replace(
+                    "*NODE FILE\nU", "*NODE FILE\nU\n*EL FILE\nS")
+                inp2.write_text(t2, encoding="utf-8")
+                ccx2 = run_ccx(inp2, timeout=7200)
+                if ccx2.success:
+                    frd2 = parse_frd(ccx2.frd_path)
+                    vm2 = frd2.von_mises()
+                    n2i = {int(n): i for i, n in enumerate(frd2.node_ids)}
+                    idx2 = [n2i[int(n) + 1] for n in solid_nodes
+                            if int(n) + 1 in n2i]
+                    sa2 = _stress_assessment(
+                        vm2[idx2] if (vm2 is not None and idx2) else None,
+                        mat.yield_strength) or {}
+                    s1 = sa.get("max_von_mises_MPa")
+                    s2 = sa2.get("max_von_mises_MPa")
+                    eo = {
+                        "eleman": "C3D10 ile doğrulandı (aynı ağ, mertebe yükseltildi)",
+                        "dogrulandi": True, "bu_geometride_olculdu_mu": True,
+                        "dugum_C3D4": int(len(P)), "dugum_C3D10": int(len(P10)),
+                        "sigma_C3D4_MPa": s1, "sigma_C3D10_MPa": s2,
+                        "SF_C3D4": sa.get("emniyet_faktoru_temsili"),
+                        "SF_C3D10": sa2.get("emniyet_faktoru_temsili"),
+                        "fark_pct": (round((s2 - s1) / s1 * 100, 1)
+                                     if (s1 and s2) else None),
+                    }
+                    # HUKUM ARTIK C3D10'DAN OKUNUR. Iki cozum arasinda secim
+                    # yapmak gerekiyorsa dogru olan YUKSEK MERTEBELI olandir;
+                    # kanit uretip yine dusuk mertebeli sayiyi hukme sokmak,
+                    # dogrulamayi susleme haline getirirdi.
+                    if sa2.get("emniyet_faktoru_temsili") is not None:
+                        sa = {**sa2, "fizik_kabul": sa.get("fizik_kabul")}
+                else:
+                    eo["neden"] = f"C3D10 çözümü düştü: {ccx2.stderr[-200:]}"
+            # sessiz-yutma: kabul — dogrulama YAPILAMAZSA hukum kisitli kalir
+            # (`dogrulandi: False`), yani basarisizlik SESSIZ DEGIL: kapi
+            # "ag_marjinda" der ve nedeni yazar. Ana sonuc kaybolmaz.
+            except Exception as _e:
+                eo["neden"] = f"mertebe yükseltmesi yapılamadı: {str(_e)[:200]}"
+            sa["eleman_mertebesi"] = eo
+
             reanaliz = {
                 "max_sehim_mm": round(float(disp.max()) * 1000, 4) if disp is not None else None,
                 "max_vm_kati_MPa": sa.get("max_von_mises_MPa"),    # geri-uyum alias

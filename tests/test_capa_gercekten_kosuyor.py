@@ -158,3 +158,57 @@ def test_eleman_mertebesi_kaniti_GERILMEYI_de_olcuyor():
     for r in d["kosular"]:
         if r["eleman"] == "C3D10" and r.get("sigma_uydurma_R2") is not None:
             assert r["sigma_uydurma_R2"] > 0.95
+
+
+# ── Mertebe yükseltmesi: kapıyı besleyen kanıt GERÇEKTEN üretiliyor mu ─────
+
+def test_tet4_to_tet10_KENAR_dugumlerini_PAYLASIYOR():
+    """Komşu tetlerin ortak kenarı TEK düğüm olmalı; yoksa ağ yırtılır."""
+    import numpy as np
+
+    from vehicle_topopt import tet4_to_tet10
+    P = np.array([[0., 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 1]])
+    t = np.array([[0, 1, 2, 3], [1, 2, 3, 4]])
+    P10, t10 = tet4_to_tet10(P, t)
+    # 2 tet × 6 kenar = 12, ortak yüzün 3 kenarı paylaşılır → 9 tekil
+    assert len(P10) == len(P) + 9, f"kenar düğümü paylaşılmıyor: {len(P10)}"
+    assert t10.shape[1] == 10
+    # Koseler DEGISMEDI: mevcut NSET/CLOAD blokları geçerli kalmalı.
+    assert np.array_equal(t10[:, :4], t)
+    assert np.allclose(P10[:len(P)], P)
+
+
+def test_tet4_to_tet10_C3D10_SIRASI_dogru():
+    """Yanlış sıra sessizce çözülür ama YANLIŞ gerilme verir.
+
+    CalculiX/Abaqus C3D10: 4 köşe + kenarlar (0-1, 1-2, 2-0, 0-3, 1-3, 2-3).
+    """
+    import numpy as np
+
+    from vehicle_topopt import tet4_to_tet10
+    P = np.array([[0., 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    P10, t10 = tet4_to_tet10(P, np.array([[0, 1, 2, 3]]))
+    for j, (a, b) in enumerate([(0, 1), (1, 2), (2, 0), (0, 3), (1, 3), (2, 3)]):
+        assert np.allclose(P10[t10[0][4 + j]], 0.5 * (P[a] + P[b])), (
+            f"kenar {a}-{b} yanlış konumda (sıra bozuk)")
+
+
+def test_TO_final_analizi_C3D10_DOGRULAMASI_uretiyor():
+    """Kapı kanıt istiyor — üreten yol gerçekten var mı?
+
+    `_stress_gate` "güvenli" için `sa["eleman_mertebesi"]["dogrulandi"]`
+    arıyor. O alanı hiçbir yer doldurmuyorsa kapı kalıcı olarak kapalı kalır
+    ve kısıtlama bir ölçüm değil bir engel olur.
+    """
+    import inspect
+
+    import vehicle_topopt as vt
+    src = inspect.getsource(vt.run_topopt)
+    assert "tet4_to_tet10" in src, "mertebe yükseltmesi TO akışında çağrılmıyor"
+    assert 'eleman_tipi="C3D10"' in src, "C3D10 inp'si yazılmıyor"
+    assert 'sa["eleman_mertebesi"] = eo' in src, "kanıt kapıya bağlanmıyor"
+    # Hukum YUKSEK MERTEBEDEN okunmali; kanit uretip dusuk mertebeyi
+    # kullanmak dogrulamayi susleme haline getirirdi.
+    i = src.index('sa["eleman_mertebesi"] = eo')
+    assert "sa = {**sa2" in src[:i], (
+        "C3D10 çözüldüğü hâlde hüküm hâlâ C3D4 sonucundan veriliyor")
