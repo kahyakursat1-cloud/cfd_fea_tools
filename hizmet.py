@@ -190,8 +190,20 @@ def analiz_et(stl_path: str, *, duzeltici: bool = False,
     ma = (r.velocity or 0.0) / 340.0
     mds = getattr(r, "mesh_duyarlilik", None) or {}
     gci_ok = bool(mds.get("gci")) and str(mds.get("verdikt", "")).startswith("✅")
+    # BEYAN EDİLEN REFERANS HÜKME DE GİRER. `referans_cd` bu katmanda vardı ama
+    # YALNIZ düzelticiye gidiyordu: kullanıcı "referansım şu" dediğinde araç
+    # onu düzeltme için kullanıp hüküm verirken görmezden geliyordu, yani %40
+    # sapan bir koşu yine DOĞRULANMIŞ alabiliyordu. Referans beyan etmek,
+    # ölçülmeyi istemektir.
+    #
+    # VARSAYILAN DAVRANIŞ DEĞİŞMEZ: `referans_cd` None ise (CLI/REST
+    # varsayılanı) kapı hiç çalışmaz ve sınıflandırma birebir eskisi gibidir.
+    ref_hata = None
+    if referans_cd and r.cd is not None:
+        ref_hata = abs(r.cd - referans_cd) / abs(referans_cd) * 100.0
     v = classify_cfd(r.vehicle_type, r.alpha_deg, ma, has_gci_band=gci_ok,
-                     band_pct=mds.get("fark_pct"), Cl=r.cl, Cd=r.cd)
+                     band_pct=mds.get("fark_pct"), Cl=r.cl, Cd=r.cd,
+                     referans_hata_pct=ref_hata)
     v = apply_physics_gate(v, getattr(r, "fizik_kabul", None) or {})
 
     return {
@@ -201,6 +213,10 @@ def analiz_et(stl_path: str, *, duzeltici: bool = False,
         "girdi": {"stl": str(stl_path), "tip": r.vehicle_type,
                   "hiz_ms": r.velocity, "alpha_deg": r.alpha_deg,
                   "mach": round(ma, 4), "sikisabilir": ma >= MACH_INCOMP},
+        # HÜKMÜ VEREN SAYI ÇIKTIDA DURUR: referans beyan edildiyse sapma da
+        # görünür olmalı, aksi halde hüküm denetlenemez. Beyan yoksa None.
+        "referans": ({"cd": referans_cd, "hata_pct": round(ref_hata, 3)}
+                     if ref_hata is not None else None),
         "sonuc": {"cd": r.cd, "cl": r.cl, "ld": r.ld, "aref_m2": r.aref_m2,
                   "surukleme_N": r.drag_N},
         # SINIF SAYIYLA BIRLIKTE GIDER. Çıplak bir Cd döndürmek, bu aracın

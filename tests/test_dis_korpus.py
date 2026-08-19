@@ -182,13 +182,12 @@ def test_korpus_guard_a_REFERANSI_vermiyor_dairesellik():
         "korpus guard'a referans hatasını geçiriyor — ölçüm dairesel olur")
 
 
-def test_referans_kapisi_URETIM_yolunu_degistirmiyor():
-    """Kapı yalnız referans BEYAN EDİLDİĞİNDE çalışır.
+def test_referans_kapisi_yalniz_BEYAN_EDILINCE_isirir():
+    """Kapı varsayılan yolu değiştirmez; yalnız referans beyan edilince çalışır.
 
-    Üretim çağıranları (hizmet, vehicle_report, app_analyzer) referans
-    geçirmiyor; dolayısıyla mevcut hiçbir koşu yeniden sınıflanmaz. FEA
-    tarafında da aynı gerekçe kullanılmıştı ("mevcut altı vakanın hiçbirini
-    yeniden sınıflandırmaz").
+    `hizmet` referansı BİLİNÇLİ olarak geçirir (kullanıcı `referans_cd`
+    dediyse ölçülmek istiyordur). Rapor ve GUI yolları geçirmez: onların elinde
+    beyan edilmiş bir referans yok, uydurmak yanlış olurdu.
     """
     from validity_envelope import classify_cfd
 
@@ -196,11 +195,64 @@ def test_referans_kapisi_URETIM_yolunu_degistirmiyor():
         v = classify_cfd("ucak", 4.0, 0.12, has_gci_band=True, Cl=0.4, Cd=0.05, **kw)
         return next(x for x in v if x.quantity.startswith("C_D"))
 
-    assert _cd().kod == "CD_GCI_BANDI_VAR"
-    for yol in ("hizmet.py", "vehicle_report.py", "app_analyzer.py"):
-        src = (KOK / yol).read_text(encoding="utf-8")
-        j = src.find("classify_cfd(")
+    assert _cd().kod == "CD_GCI_BANDI_VAR"      # referanssız → eski davranış
+
+    src = (KOK / "hizmet.py").read_text(encoding="utf-8")
+    assert "referans_hata_pct=ref_hata" in src, "hizmet referansı hükme sokmuyor"
+    # Beyan yoksa kapı hiç kurulmamalı: `if referans_cd and ...` koşulu şart.
+    assert "if referans_cd and" in src
+
+    for yol in ("vehicle_report.py", "app_analyzer.py"):
+        s = (KOK / yol).read_text(encoding="utf-8")
+        j = s.find("classify_cfd(")
         assert j > 0, yol
-        assert "referans_hata_pct" not in src[j:j + 400], (
-            f"{yol} artık referans geçiriyor — bu bir ÜRETİM DAVRANIŞ "
-            "DEĞİŞİKLİĞİDİR, bilinçliyse bu testi güncelleyin")
+        assert "referans_hata_pct" not in s[j:j + 400], (
+            f"{yol} artık referans geçiriyor — beyan edilmiş referansı yok, "
+            "bu bir ÜRETİM DAVRANIŞ DEĞİŞİKLİĞİDİR")
+
+
+def test_BEYAN_EDILEN_referans_hukme_giriyor():
+    """Referans beyan etmek, ölçülmeyi istemektir.
+
+    `referans_cd` hizmet katmanında vardı ama YALNIZ düzelticiye gidiyordu:
+    kullanıcı referansını söylediğinde araç onu düzeltme için kullanıp hüküm
+    verirken görmezden geliyordu. %40 sapan bir koşu yine DOĞRULANMIŞ
+    alabiliyordu.
+    """
+    import types
+
+    import hizmet
+
+    class _R:
+        status, vehicle_type, alpha_deg, velocity = "ok", "ucak", 4.0, 30.0
+        cd, cl, ld, aref_m2, drag_N = 0.50, 0.40, 0.8, 1.0, 10.0
+        belirsizlik = mesh = convergence = None
+        case_dir, report, error = "", "", None
+        mesh_duyarlilik = {"gci": True, "verdikt": "✅ ok"}
+
+    def _kur(monkey_mod):
+        mod = types.ModuleType("vehicle_pipeline")
+        mod.run_vehicle_analysis = lambda stl, **kw: _R()
+        sys.modules["vehicle_pipeline"] = mod
+
+    _kur(None)
+    try:
+        # Referans YOK → davranış eskisi gibi
+        o = hizmet.analiz_et("x.stl")
+        assert o["referans"] is None
+
+        # Referans BEYAN EDİLDİ ve sapma büyük → C_D tasarımda kullanılmaz
+        o = hizmet.analiz_et("x.stl", referans_cd=0.30)      # %66,7 sapma
+        assert o["referans"]["hata_pct"] > 10
+        cd_h = next(x for x in o["gecerlilik"]["nicelikler"]
+                    if x["nicelik"].startswith("C_D"))
+        assert cd_h["kod"] == "CD_REFERANS_HATASI"
+        assert not cd_h["tasarimda_kullanilir"]
+
+        # Referans YAKIN → kapı ısırmaz
+        o = hizmet.analiz_et("x.stl", referans_cd=0.49)      # %2 sapma
+        cd_h = next(x for x in o["gecerlilik"]["nicelikler"]
+                    if x["nicelik"].startswith("C_D"))
+        assert cd_h["kod"] == "CD_GCI_BANDI_VAR"
+    finally:
+        sys.modules.pop("vehicle_pipeline", None)
