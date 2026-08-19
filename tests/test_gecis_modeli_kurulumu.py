@@ -74,9 +74,33 @@ def test_div_semalari_TANIMLI(tmp_path):
 
 
 def test_cozucu_ve_gevsetme_LM_alanlarini_kapsiyor(tmp_path):
+    """BLOK BAZINDA kontrol — dosya genelinde aramak YETMEZ.
+
+    İlk sürüm `"gammaInt" in s` diye TÜM dosyada arıyordu ve `relaxationFactors`
+    içinde bulduğu için geçiyordu; oysa `solvers` bloğu bu alanları İÇERMİYORDU.
+    Testin adı "çözücü VE gevşetme" diyordu ama gerçekte yalnız gevşetmeyi
+    doğruluyordu. Ölçüldü (2026-08-19, küre çapasının ilk koşusu): OpenFOAM
+    "keyword ReThetat is undefined in dictionary IOstream/solvers" ile ANINDA
+    düştü — yani bu koşucudan geçiş modeli hiç çalışamıyormuş.
+    """
     s = (_kur(tmp_path, "kOmegaSSTLM") / "system" / "fvSolution").read_text()
-    assert "gammaInt" in s and "ReThetat" in s
-    assert "gammaInt 0.5" in s and "ReThetat 0.5" in s
+
+    def _blok(ad: str) -> str:
+        i = s.index(ad)
+        d, j = 0, s.index("{", i)
+        for k in range(j, len(s)):
+            d += (s[k] == "{") - (s[k] == "}")
+            if d == 0:
+                return s[j:k + 1]
+        raise AssertionError(f"{ad} bloğu kapanmıyor")
+
+    coz = _blok("solvers")
+    for alan in ("gammaInt", "ReThetat"):
+        assert alan in coz, (
+            f"`solvers` bloğunda {alan} YOK — OpenFOAM 'keyword {alan} is "
+            "undefined in dictionary IOstream/solvers' ile düşer")
+    gev = _blok("relaxationFactors")
+    assert "gammaInt 0.5" in gev and "ReThetat 0.5" in gev
 
 
 def test_ReThetat_serbest_akis_degeri_MAKUL(tmp_path):
@@ -112,3 +136,48 @@ def test_NaN_sonuc_SESSIZCE_gecmiyor(tmp_path, monkeypatch):
     assert '"step": "sayisal"' in src
     assert "oku_sonuc(" in __import__("inspect").getsource(cb.run_validation), \
         "run_validation kapiyi atlayan ayri bir yol kullaniyor"
+
+
+def test_ARAC_yolunun_fvSolution_u_da_LM_alanlarini_kapsiyor(tmp_path):
+    """İKİ AYRI fvSolution YAZICISI VAR ve test yalnız birini kapsıyordu.
+
+    Yukarıdaki testler `construct2d_bridge`'i (2B kanat yolu) sürüyor; ARAÇ
+    yolu ise `analysis.openfoam_runner._write_fv_solution` kullanıyor. LM 2B'de
+    sınanmış, 3B'de çalıştığı VARSAYILMIŞTI.
+
+    Ölçüldü (2026-08-19, küre çapasının ilk koşusu): araç yolunun `solvers`
+    bloğunda gammaInt/ReThetat yoktu ve OpenFOAM "keyword ReThetat is undefined
+    in dictionary IOstream/solvers" ile ANINDA düştü. Yani bu koşucudan geçiş
+    modeli HİÇ çalışamıyormuş; kimse denemediği için görülmemişti.
+    """
+    from analysis.openfoam_runner import _write_fv_solution
+
+    for transient in (False, True):
+        (tmp_path / "system").mkdir(parents=True, exist_ok=True)
+        _write_fv_solution(tmp_path, transient=transient)
+        s = (tmp_path / "system" / "fvSolution").read_text(encoding="utf-8")
+        i = s.index("solvers")
+        d, j = 0, s.index("{", i)
+        for k in range(j, len(s)):
+            d += (s[k] == "{") - (s[k] == "}")
+            if d == 0:
+                blok = s[j:k + 1]
+                break
+        for alan in ("gammaInt", "ReThetat"):
+            assert alan in blok, (
+                f"araç yolu `solvers` bloğunda {alan} YOK (transient={transient}) "
+                "— OpenFOAM 'keyword undefined in dictionary IOstream/solvers' "
+                "ile düşer ve geçiş modeli hiç koşamaz")
+            if transient:
+                # PIMPLE SON DIŞ İTERASYONDA `<alan>Final` ARAR. Steady girdisi
+                # bunu KARŞILAMAZ; ayrı bir `Final` girdisi gerekir. İlk düzeltme
+                # yalnız steady girdisini kapsamıştı — zamana bağlı LM koşusu
+                # yine düşerdi ve bu, kusuru yarım kapatmak olurdu.
+                #
+                # Alan REGEX GRUBUNUN İÇİNDE aranır: "gammaInt)Final" diye
+                # düz metin aramak, grubun ortasındaki alanı ıskalar.
+                import re as _re
+                fin = _re.findall(r'"\(([^"]+)\)Final"', blok)
+                assert fin, "transient `Final` girdisi hiç yok"
+                assert any(alan in g for g in fin), (
+                    f"{alan} `Final` grubunda YOK — PIMPLE son dış iterasyonda düşer")

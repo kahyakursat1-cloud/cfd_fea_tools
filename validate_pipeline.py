@@ -91,7 +91,27 @@ def naca0012_wing(ar: float = 6.0, chord: float = 0.15, n: int = 80) -> trimesh.
 # çapa → (geometri üreteci, pipeline araç-tipi, koşu-parametreleri).
 # Hız seçimi çapanın Re bandına oturur: Ahmed 40 m/s → Re_L≈2.8e6 (Meile 2011);
 # küp/disk keskin-kenarlı, Re-duyarsız → varsayılan hız.
+def sphere_body() -> trimesh.Trimesh:
+    """Kure, D=0,05 m. V=30 m/s ve nu=1,5e-5 ile Re=1,0e5 → ALTKRITIK bandin
+    ortasi (referans Cd=0,47 bandi 1e3–2e5). Cap bilincli secildi: 0,10 m
+    Re=2e5 ile bandin UST UCUNA otururdu ve kritik gecise yakin olurdu."""
+    return trimesh.creation.icosphere(subdivisions=4, radius=0.025)
+
+
 _GEOM = {
+    # KURE — ARTIK ATLANMIYOR. Eski gerekce: "altkritik kure GECIS-BASKIN
+    # (laminer sinir tabakasi + turbulansli iz); tam-turbulansli kOmegaSST ile
+    # setup-uyumsuz". Bu DOGRU ama eksikti: uyumsuzluk MODELDEN geliyordu ve
+    # dogru model (Langtry-Menter) bu depoda ZATEN kurulu. Eksik olan sey capa
+    # kosucusunun `turbulence_model`'i gecirmemesiydi.
+    #
+    # LM'nin on-kosulu DUVAR-COZUNUR mesh (gecis_modeli_onkosulu): laminer
+    # altkatman ayriklastirilmazsa model sayi uretir ama fiziksel karsiligi
+    # olmaz. Bu yuzden n_layers ve y+ hedefi ACIKCA verilir.
+    "sphere": (sphere_body, "genel",
+               {"velocity": 30.0, "quality": "hassas",
+                "n_layers": 10, "yplus_target": 1.0,
+                "turbulence_model": "kOmegaSSTLM"}),
     # cube v6 bulgusu (v5 dizisi 0.961→1.018→1.053→0.916): orta seviye Hoerner'a OTURDU;
     # ince seviye 2.14M hücreyle 2.5M TAVANINA çarpıp bütçe-kesilmişti → mesh ailesinin
     # sistematik üyesi değil (GCI/LSR varsayımı kırılır). Tavan 4M'e çıkarıldı.
@@ -153,10 +173,14 @@ _GEOM = {
 
 # Koşulamayan çapalar — gerekçesiyle (dürüst V&V: setup-uyumsuz koşu validasyon değildir).
 _SKIP_REASON = {
-    "sphere": ("subkritik küre GEÇİŞ-BASKIN (laminer sınır tabakası + türbülanslı iz); "
-               "tam-türbülanslı kOmegaSST ile setup-uyumsuz — 2026-07-06 kampanyası "
-               "Cd=0.349 (türbülanslı-BL davranışı) ölçtü, ref 0.47 laminer-BL. "
-               "LM geçiş-modeli yolu gerekir (TMR/standalone)."),
+    # KÜRE ARTIK ATLANMIYOR (2026-08-19) — bu kayıt TARİHÇE olarak duruyor.
+    # Eski gerekçe: "tam-türbülanslı kOmegaSST ile setup-uyumsuz; 2026-07-06
+    # kampanyası Cd=0.349 ölçtü (türbülanslı-BL davranışı), ref 0.47 laminer-BL.
+    # LM geçiş-modeli yolu gerekir." Teşhis DOĞRUYDU ama sonucu yanlıştı:
+    # LM yolu bu depoda ZATEN kuruluydu (analysis/openfoam_runner: gammaInt,
+    # ReThetat, gecis_modeli_onkosulu). Eksik olan tek şey çapa koşucusunun
+    # `turbulence_model`'i GEÇİRMEMESİYDİ. "Model gerekiyor" ile "model yok"
+    # aynı şey değil.
     "naca0012_a0": "2B airfoil → TMR yolu kapsar (tmr_cfd/), 3B pipeline değil.",
 }
 
@@ -251,7 +275,15 @@ def _run_anchor(name: str, velocity: float, out_root: str) -> dict | None:
                              mesh_sensitivity=True, mesh_levels=4,
                              out_root=out_root, ground_clearance=kw.get("ground_clearance"),
                              refinement_regions=kw.get("refinement_regions"),
-                             max_cells=kw.get("max_cells"), ref_bump=kw.get("ref_bump", 0))
+                             max_cells=kw.get("max_cells"), ref_bump=kw.get("ref_bump", 0),
+                             # GECIS MODELI CAPALARA ULASSIN. `run_vehicle_analysis`
+                             # bu parametreyi ZATEN aliyor ve on-kosul kapisi da var
+                             # (gecis_modeli_onkosulu); eksik olan tek sey capa
+                             # kosucusunun onu GECIRMESIYDI. Kure bu yuzden
+                             # "setup-uyumsuz" diye atlanmisti — oysa uyumsuzluk
+                             # kOmegaSST ile, dogru model mevcuttu.
+                             turbulence_model=kw.get("turbulence_model",
+                                                     "kOmegaSST"))
     if r.status != "ok" or r.cd is None:
         return {"durum": "koşu başarısız", "hata": r.error[-400:]}   # kuyruk: asıl hata sonda
     # GUARD (dürüst V&V): mesh-bağımsızlık kanıtı olmadan banda yazılmaz. Kanıt yolu iki:

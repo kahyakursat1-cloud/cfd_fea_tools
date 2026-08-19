@@ -755,7 +755,7 @@ def _write_fv_solution(case_dir: Path, compressible: bool = False,
            "        tolerance       1e-07;\n"
            "        relTol          0;\n"
            "    }\n"
-           '    "(U|k|omega|nuTilda|e|h)Final"\n    {\n'
+           '    "(U|k|omega|nuTilda|e|h|gammaInt|ReThetat)Final"\n    {\n'
            "        solver          smoothSolver;\n"
            "        smoother        symGaussSeidel;\n"
            "        tolerance       1e-07;\n"
@@ -769,7 +769,13 @@ def _write_fv_solution(case_dir: Path, compressible: bool = False,
         "        tolerance       1e-06;\n"
         "        relTol          0.1;\n"
         "    }\n"
-        "    \"(U|k|omega|nuTilda|e|h)\"\n    {\n"
+        # GECIS MODELI ALANLARI BURADA DA OLMALI. Olculdu (2026-08-19, kure
+        # capasinin ILK kosusu): fvSchemes, residualControl ve
+        # relaxationFactors gammaInt/ReThetat'i ICERIYORDU ama `solvers`
+        # blogu icermiyordu → "keyword ReThetat is undefined in dictionary
+        # IOstream/solvers" ile ANINDA duserdi. Yani bu kosucudan gecis
+        # modeli HIC calisamazmis; kimse denemedigi icin gorulmemis.
+        "    \"(U|k|omega|nuTilda|e|h|gammaInt|ReThetat)\"\n    {\n"
         "        solver          smoothSolver;\n"
         "        smoother        symGaussSeidel;\n"
         "        tolerance       1e-06;\n"

@@ -32,7 +32,8 @@
     "aday_kaynaklar": "Blevins, Applied Fluid Dynamics Handbook; Munson vd., Fundamentals of Fluid Mechanics — ikisi de alanın standart el kitapları",
     "engel_1_erisim": "Kitap tabloları açık web'de değil; sayılar okunamadı.",
     "engel_2_BAGIMSIZLIK": "ASIL ENGEL BU. Keskin-kenarlı küt cisimlerde sonraki el kitapları büyük ölçüde Hoerner'ı ALINTILAR; Hoerner 1965 zaten bir ÖLÇÜM DERLEMESİDİR. Aynı özgün ölçüme dayanan iki değerin farkını u_D saymak, tek kaynağı iki kez saymaktır. Düz levhada yöntem işledi çünkü Schlichting ve Schultz-Grunow AYRI veri kümelerine oturtulmuş BAĞIMSIZ korelasyonlar.",
-    "dogru_yol": "u_D ya birincil deney makalelerinden (belirsizlik beyanıyla) gelmeli ya da bu çapaların u_D'siz olduğu AÇIKÇA yazılmalı. İkinci bir el kitabı değeri eklemek sahte bir bağımsızlık üretirdi."
+    "dogru_yol": "u_D ya birincil deney makalelerinden (belirsizlik beyanıyla) gelmeli ya da bu çapaların u_D'siz olduğu AÇIKÇA yazılmalı. İkinci bir el kitabı değeri eklemek sahte bir bağımsızlık üretirdi.",
+    "DUZELTME_2026_08_19": "Disk için bağımsız birincil kaynak bulundu (Roos & Willmarth 1971); KÜP için henüz bulunamadı. Yani 'bağımsız kaynak yok' hükmü küp için hâlâ açık ama ARANMAYA DEVAM EDİLMELİ — disk örneği o hükmün fazla genel olduğunu gösterdi."
    }
   },
   "disk": {
@@ -44,7 +45,15 @@
     "aday_kaynaklar": "Blevins, Applied Fluid Dynamics Handbook; Munson vd., Fundamentals of Fluid Mechanics — ikisi de alanın standart el kitapları",
     "engel_1_erisim": "Kitap tabloları açık web'de değil; sayılar okunamadı.",
     "engel_2_BAGIMSIZLIK": "ASIL ENGEL BU. Keskin-kenarlı küt cisimlerde sonraki el kitapları büyük ölçüde Hoerner'ı ALINTILAR; Hoerner 1965 zaten bir ÖLÇÜM DERLEMESİDİR. Aynı özgün ölçüme dayanan iki değerin farkını u_D saymak, tek kaynağı iki kez saymaktır. Düz levhada yöntem işledi çünkü Schlichting ve Schultz-Grunow AYRI veri kümelerine oturtulmuş BAĞIMSIZ korelasyonlar.",
-    "dogru_yol": "u_D ya birincil deney makalelerinden (belirsizlik beyanıyla) gelmeli ya da bu çapaların u_D'siz olduğu AÇIKÇA yazılmalı. İkinci bir el kitabı değeri eklemek sahte bir bağımsızlık üretirdi."
+    "dogru_yol": "u_D ya birincil deney makalelerinden (belirsizlik beyanıyla) gelmeli ya da bu çapaların u_D'siz olduğu AÇIKÇA yazılmalı. İkinci bir el kitabı değeri eklemek sahte bir bağımsızlık üretirdi.",
+    "DUZELTME_2026_08_19": "ÖNCEKİ HÜKÜM FAZLA GENELDİ. 'El kitapları Hoerner'ı alıntılıyor, bağımsız kaynak yok' demiştim; aramayı el kitaplarında bitirdiğim için. BİRİNCİL DENEY VAR ve Hoerner'dan bağımsız:",
+    "bagimsiz_birincil_kaynak": {
+     "kunye": "Roos, F. W. & Willmarth, W. W., 'Some Experimental Results on Sphere and Disk Drag', AIAA Journal 9(2), 1971, s. 285–291, doi:10.2514/3.6164",
+     "yontem": "Modeller lineer hava-yatağı arabasıyla gliserin-su karışımında çekildi; kuvvet/moment strain-gauge ile ölçüldü. Re 5–1e5.",
+     "onem": "Hoerner bir DERLEME; bu bir ÖZGÜN ÖLÇÜM. Üstelik hem disk hem KÜRE veriyor — küre çapasının doğrulanmamış Clift-Gauvin kestirimi için de aday.",
+     "engel": "Değerler ücretli duvar arkasında; okunamadı. İkincil özetler Re boyunca ⟨CD⟩∈[1,1; 1,3] diyor ama bu Re'ye bağlı DEĞİŞİM, belirsizlik değil. Çapa Re-duyarsız bölgede olduğu için gereken şey yüksek-Re asimptotu."
+    },
+    "guncel_engel": "ERİŞİM (ücretli duvar), bağımsızlık DEĞİL."
    }
   },
   "sphere": {

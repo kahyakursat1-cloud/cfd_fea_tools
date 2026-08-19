@@ -285,8 +285,16 @@ def test_transient_PIMPLE_FINAL_girdilerini_yaziyor(tmp_path):
     assert "pFinal" in sol and "Final\"" in sol
     son = sol[sol.index("pFinal"):]
     assert "relTol          0;" in son
-    # U ailesi GAMG'ye kaymamali: simetrik olmayan momentum matrisinde uygun degil
-    ublok = sol[sol.index('"(U|k|omega|nuTilda|e|h)Final"'):][:220]
+    # U ailesi GAMG'ye kaymamali: simetrik olmayan momentum matrisinde uygun degil.
+    #
+    # GRUBU REGEX ILE BUL, BIREBIR DIZGIYLE DEGIL. Ilk surum
+    # '"(U|k|omega|nuTilda|e|h)Final"' diye tam esitlik ariyordu; gruba yeni bir
+    # alan eklenince (gammaInt/ReThetat, 2026-08-19) test ValueError ile dustu.
+    # Testin NIYETI "U ailesi smoothSolver kullansin" — grubun tam icerigi degil.
+    import re as _re
+    m = _re.search(r'"\(([^"]*\bU\b[^"]*)\)Final"', sol)
+    assert m, "U ailesi icin `Final` girdisi yok"
+    ublok = sol[m.start():][:260]
     assert "smoothSolver" in ublok and "GAMG" not in ublok
 
 

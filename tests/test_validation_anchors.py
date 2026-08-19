@@ -110,10 +110,26 @@ def test_accept_gate_gci_lsr_priority():
     assert not ok                                                # kanıt yok → RED
 
 
-def test_sphere_skipped_with_honest_reason():
+def test_sphere_ARTIK_kosuluyor_ama_OLCULMUS_nedenle_reddediliyor():
+    """Küre 2026-08-19'da atlama listesinden ÇIKTI — ama çapa olmadı.
+
+    Eski gerekçe: "geçiş-baskın; kOmegaSST ile setup-uyumsuz, LM yolu gerekir."
+    Teşhis doğruydu, sonucu yanlıştı: LM yolu depoda ZATEN kuruluydu, yalnız
+    çapa koşucusu `turbulence_model`'i geçirmiyordu.
+
+    Geçiş sağlandı, küre LM ile KOŞTU ve ölçüm şunu söyledi:
+      Cd = 0,142 (referans 0,47) → sapma ~%70
+      p = 17,86 (makul aralık 0,5–3,0 DIŞI), asimptotik oran ~2e6
+    Yani model değiştirmek sorunu ÇÖZMEDİ; kOmegaSST 0,349 verirken LM 0,142
+    veriyor ve ağ yakınsaması hiç kurulmuyor. Bu ARTIK VARSAYIM DEĞİL ÖLÇÜM.
+    """
     import validate_pipeline as vpl
-    assert "sphere" not in vpl._GEOM and "sphere" in vpl._SKIP_REASON
-    assert "GEÇİŞ" in vpl._SKIP_REASON["sphere"]                 # gerekçe kayıtlı
+    assert "sphere" in vpl._GEOM, "küre koşulabilir olmalı"
+    assert "sphere" not in vpl._SKIP_REASON, "artık atlanmıyor"
+    # LM ön-koşulu: duvar-çözünür mesh. Yapılandırma bunu AÇIKÇA taşımalı.
+    cfg = vpl._GEOM["sphere"][2]
+    assert cfg["turbulence_model"] == "kOmegaSSTLM"
+    assert cfg["n_layers"] > 0 and cfg["yplus_target"] <= 5.0
 
 
 def test_ahmed_body_dimensions():
