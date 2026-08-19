@@ -254,15 +254,18 @@ def test_katman_cokmesi_yakalanir():
     Katman İSTENİP alınamamak, hiç istememekten TEHLİKELİDİR: sonuç sahip olmadığı
     sınır-tabaka çözünürlüğünü iddia eder. Eski uyarı `n_layers == 0` koşuluna bağlıydı,
     yani bu vakada HİÇ ÇIKMIYORDU."""
-    import inspect
-
-    import vehicle_pipeline
-    src = inspect.getsource(vehicle_pipeline.run_vehicle_analysis)
-    assert "KATMAN ÇÖKMESİ" in src
-    i = src.index("KATMAN ÇÖKMESİ ŞÜPHESİ")
-    kosul = src[max(0, i - 400):i]
-    assert "n_layers > 0" in kosul, "kapı yalnız katman İSTENDİĞİNDE çalışmalı"
-    assert "5 * yplus_target" in kosul, "ölçülen y⁺ HEDEFLE kıyaslanmalı"
+    # KAYNAK OKUMAYI BIRAK, DAVRANISI SINA. Onceki surum uyaridan geriye 400
+    # karakter okuyordu ve araya ikinci bir teshis dali girince "kapi yok" diye
+    # dustu — oysa kapi yerindeydi. Teshis 2026-08-19'da saf fonksiyona cikarildi
+    # (`yplus_sapma_teshisi`), artik dogrudan cagrilabilir.
+    from vehicle_pipeline import yplus_sapma_teshisi
+    cokme = {"durum": "COKTU", "istenen": 12, "eklenen": 0.0}
+    m = yplus_sapma_teshisi(4113.52, 12, 1.0, cokme)
+    assert m and "KATMAN ÇÖKMESİ" in m
+    # Katman istenmemisse kapi calismaz.
+    assert yplus_sapma_teshisi(4113.52, 0, 1.0, None) is None
+    # Saglikli kosu (y+ hedefin 5 katinin altinda) tetiklemez.
+    assert yplus_sapma_teshisi(1.2, 12, 1.0, cokme) is None
 
 
 def test_katman_cokmesi_esigi_gercek_veriyle_tetiklenir():
@@ -361,3 +364,51 @@ def test_katman_kapisi_hem_kapaniyor_hem_aciliyor(tmp_path):
 
     assert _oran(trimesh.creation.box(extents=[1.5, 0.4, 0.3])) > 1.0, \
         "künt gövdede katman mümkün olmalı — kapı yanlış alarm veriyor"
+
+
+def test_yplus_sapmasinin_NEDENI_tahmin_edilmiyor_OLCULUYOR():
+    """Aynı y⁺ sapması İKİ ayrı nedenden gelebilir; uyarı hangisi olduğunu bilmeli.
+
+    ÖLÇÜLDÜ (2026-08-19, küre çapası — katman düzeltmesinden SONRA):
+      10 katman istendi, 6,82 örüldü, hedef kalınlığın %96,7'si, durum "ok"
+      ama y⁺ ortalaması 5,54 (hedef 1,0)
+    Yani katmanlar ÖRÜLDÜ ve sorun ilk hücre BOYUTLANDIRMASINDAYDI. Eski uyarı
+    tek neden varsayıp "snappy katman adımı büyük olasılıkla örülemedi" diyor
+    ve kullanıcıyı yanlış yere — mesh ayarlarına — gönderiyordu.
+
+    Katman ölçümü zaten elde (`katman_olcumu`); uyarı onu okumalı.
+    """
+    from vehicle_pipeline import yplus_sapma_teshisi
+    # Kurenin OLCULEN verisi: katmanlar orulmus ama y+ hedefin ustunde.
+    oruldu = {"durum": "ok", "istenen": 10, "eklenen": 6.82,
+              "yamalar": [{"kalinlik_pct": 96.7}]}
+    m = yplus_sapma_teshisi(5.54, 10, 1.0, oruldu)
+    assert m, "y⁺ hedefin 5 katını aşıyor, teşhis çıkmalı"
+    assert "İLK HÜCRE FAZLA KALIN" in m, f"yanlış neden: {m[:120]}"
+    assert "KATMAN ÇÖKMESİ" not in m, (
+        "katmanlar örülmüşken hâlâ çökme deniyor — kullanıcı yanlış yere "
+        "(snappy ayarlarına) gönderiliyor")
+    assert "first_layer_thickness" in m, "doğru çare gösterilmiyor"
+
+    # AYNI y+ sapmasi, katmanlar orulmemisse ZIT teshis vermeli.
+    coktu = {"durum": "COKTU", "istenen": 10, "eklenen": 0.1}
+    m2 = yplus_sapma_teshisi(5.54, 10, 1.0, coktu)
+    assert m2 and "KATMAN ÇÖKMESİ" in m2
+
+
+def test_kure_kosusu_DOGRU_teshisi_tasiyor():
+    """Regresyon: arşivdeki küre koşusu yanlış nedeni söylememeli."""
+    import json
+    from pathlib import Path
+    p = (Path(__file__).resolve().parent.parent
+         / "validation_anchors_runs" / "_anchor_sphere" / "sonuc.json")
+    if not p.exists():
+        return
+    d = json.loads(p.read_text(encoding="utf-8"))
+    kat = (d.get("sinir_tabaka") or {}).get("katman_olcumu") or {}
+    if kat.get("durum") != "ok":
+        return
+    for u in d.get("uyarilar") or []:
+        assert "KATMAN ÇÖKMESİ" not in u, (
+            f"katmanlar örülmüşken (eklenen={kat.get('eklenen')}) uyarı hâlâ "
+            f"çökme diyor: {u[:120]}")

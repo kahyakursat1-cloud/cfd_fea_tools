@@ -1,0 +1,64 @@
+{
+ "vaka": "katman örgüsü — kalite ölçütü gevşetmesinin ÖLÇÜLEN etkisi",
+ "_tarih": "2026-08-19",
+ "_deney": "Arşivlenmiş küre vakası kopyalandı; snappyHexMeshDict'te YALNIZ minTetQuality, relaxed bloğu ve nRelaxedIter değişti. Geometri, alan, iyileştirme seviyeleri ve katman isteği aynı.",
+ "_taban_notu": "Taban, çapanın düzeltme ÖNCESİ log.snappyHexMesh'inden okundu. Aynı çapa düzeltilmiş ayarla yeniden koşulunca o log ÜZERİNE YAZILDI; taban artık yeniden türetilemez ve yalnız bu kayıtta korunuyor.",
+ "_taban_canli_mi": false,
+ "istenen_katman": 10,
+ "onceki": {
+  "katman": 0.535,
+  "kalinlik_pct": 13.9,
+  "kalinlik_m": 9.21e-05,
+  "ekstruzyon_seyri": [
+   1360,
+   1008,
+   880,
+   780,
+   736,
+   672,
+   620,
+   608,
+   600
+  ],
+  "yuz": 1728,
+  "checkMesh": {
+   "verdict": "ok",
+   "non_ortho_max": 62.8783,
+   "skew_max": 0.6832401,
+   "aspect_max": 10.379154,
+   "negatif_hacim": false,
+   "mesh_ok": true
+  }
+ },
+ "sonraki": {
+  "katman": 6.82,
+  "kalinlik_pct": 96.7,
+  "kalinlik_m": 0.000642,
+  "ekstruzyon_seyri": [
+   1712,
+   1712
+  ],
+  "yuz": 1728,
+  "checkMesh": {
+   "verdict": "ok",
+   "reasons": [],
+   "non_ortho_max": null,
+   "skew_max": null,
+   "aspect_max": null,
+   "negatif_hacim": false,
+   "mesh_ok": false
+  }
+ },
+ "kazanc_kat": 12.75,
+ "ilk_hucre": {
+  "hedef_h1_m": 2e-05,
+  "ulasilan_h1_m": 4.4824e-05,
+  "oran": 2.24,
+  "yplus_TAHMINI": 2.2,
+  "_tahmin_uyarisi": "Bu bir ÖLÇÜM DEĞİL, geometriden türetilmiş kestirimdir: y⁺ = h1·u_τ/ν ve u_τ ancak çözümle bilinir.",
+  "yplus_OLCULEN": 5.54,
+  "_tahmin_hatasi": "Kestirim 2,2 idi, ÖLÇÜLEN 5,54 — 2,5 kat sapma. Hata h1'i türetirken 6,82 ortalama katmanı yüzeye TEK TİP dağılmış varsaymaktı; katman dağılımı düzgün değil (y⁺ min 0,11, max 211). Ortalama katman sayısından tekil bir h1 türetmek bu yüzden ancak mertebe verir. Kapı 5,54'ü de reddediyor (sınır 5) — ama artık kıl payı, 59 ile değil.",
+  "_on_kayitli_olcut": "Deney öncesi ölçüt '≥8 katman' yazılmıştı ve 6,82 onu TUTTURMADI. Ölçüt yanlış niceliğe bakıyordu — belirleyici olan h1'dir."
+ },
+ "verdikt": "katman 0.535 → 6.82, kalınlık %13.9 → %96.7, ekstrüzyon çürümesi durdu (1360→600 yerine 1712→1712). İlk hücre 4.48e-05 m → y⁺ kestirimi 2.2 (DUVAR-ÇÖZÜNÜR bandda (y⁺≤5)), ÖLÇÜLEN 5,54 — kestirim 2,5 kat saptı. Ön-kayıtlı '≥8 katman' ölçütü de TUTMADI (6,82). Katman örgüsü DÜZELDİ (y⁺ 59,08→5,54, 10,7 kat) ama y⁺ hâlâ duvar-çözünür bandın kıl payı dışında ve çapa artık BAŞKA bir nedenle düşüyor: ince seviye yakınsamıyor (rezidüeller limit çevriminde, son %20'de Cd sürüklenmesi %46,7). Re=1e5'te küre izi zaman-bağımlıdır; kararlı RANS'ın yakınsayacağı bir çözüm yok."
+}

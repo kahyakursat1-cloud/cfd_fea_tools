@@ -28,6 +28,19 @@ HERE = Path(__file__).resolve().parent
 
 ANCHORS = {
     "sphere": {
+        # ASIL ENGEL OLCULDU (2026-08-19). Katman orgusu duzeltildikten SONRA:
+        #   y+ 59,08 -> 5,54 (katman 0,535 -> 6,82, hedef kalinligin %96,7'si)
+        #   Cd 0,142 -> 0,243 (referansa dogru ama hala yarisi)
+        # Yani duvar cozunurlugu 10,7 kat iyilesti ve capa YINE dustu — ama
+        # artik BASKA bir nedenle: ince seviye YAKINSAMIYOR. Rezidueller
+        # platoya oturuyor (limit cevrimi) ve son %20'de Cd suruklenmesi %46,7
+        # (sinir %2). Bu bir kurulum kusuru degil FIZIK: Re=1e5'te kure izi
+        # zaman-bagimlidir (ayrilmis, kararsiz), kararli RANS'in yakinsayacagi
+        # bir cozum yoktur.
+        #
+        # Sonuc: kure KARARLI-RANS capasi olarak uygun degil. Kapatilmasi
+        # duvar cozunurlugunden degil, URANS'a (ya da zaman-ortalamali bir
+        # yaklasima) gecmekten gecer. Bu ARTIK VARSAYIM DEGIL OLCUM.
         "Cd": 0.47, "regime": "bluff", "Re": "1e3–2e5 (subkritik)",
         "aref": "frontal", "ref": "White, Fluid Mechanics; Schlichting BL Theory",
         "u_ref_pct": None,   # ders kitabı değeri; kaynak band beyan etmiyor

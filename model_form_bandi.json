@@ -46,12 +46,17 @@
     {
       "capa": "küre",
       "rejim": "bluff",
-      "_gecersiz": true,
-      "_gecersiz_neden": "kOmegaSSTLM DUVAR-ÇÖZÜNÜR ağ ister (y⁺≤5) ama ölçülen y⁺ ortalaması 59.1. Laminer altkatman ayrıklaştırılmadan geçiş modeli fiziksel olmayan bir sayı üretir; aynı ağ tam-türbülanslı model için meşru olurdu.",
-      "turbulence_model": "kOmegaSSTLM",
-      "yplus_ort": 59.08,
-      "referans": "White, Fluid Mechanics; Schlichting BL Theory",
-      "sapma_pct": null
+      "sapma_pct": 48.29,
+      "ham_sapma_pct": 48.29,
+      "u_sayisal_pct": null,
+      "ayrilabilir_mi": null,
+      "u_val_pct": null,
+      "u_ref_pct": null,
+      "ayrilabilirlik_notu": "sayısal band yok — ayrılabilirlik DEĞERLENDİRİLMEDİ",
+      "yplus_ort": 5.54,
+      "yplus_max": 211.01,
+      "yplus_kaynak": "çapa koşusu _anchor_sphere",
+      "referans": "White, Fluid Mechanics; Schlichting BL Theory"
     },
     {
       "capa": "küp (çapa koşusu)",
@@ -286,10 +291,9 @@
     {
       "capa": "küre",
       "rejim": "bluff",
-      "sapma_pct": null,
-      "yplus_ort": 59.08,
-      "turbulence_model": "kOmegaSSTLM",
-      "neden": "KURULUM GEÇERSİZ — kOmegaSSTLM DUVAR-ÇÖZÜNÜR ağ ister (y⁺≤5) ama ölçülen y⁺ ortalaması 59.1. Laminer altkatman ayrıklaştırılmadan geçiş modeli fiziksel olmayan bir sayı üretir; aynı ağ tam-türbülanslı model için meşru olurdu."
+      "sapma_pct": 48.29,
+      "yplus_ort": 5.54,
+      "neden": "y⁺ ÖLÇÜLDÜ (5.5) ama hiçbir duvar işlemine ait değil: duvar-çözünür ≤5.0, duvar-fonksiyonu 30.0–300.0. Tampon bölgede log-yasası geçerli değildir ve viskoz altkatman da çözülmemiştir; bu koşu iki hücreden hiçbirini kalibre EDEMEZ. Eksik kayıt değil, FİZİKSEL bulgu — ve çapanın sapmasının bir bölümünü açıklar"
     },
     {
       "capa": "Ahmed 25°",

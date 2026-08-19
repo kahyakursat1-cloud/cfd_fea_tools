@@ -717,6 +717,48 @@ def parse_layer_report(log: Path) -> dict:
     return out
 
 
+def yplus_sapma_teshisi(yplus_ort: float | None, n_layers: int,
+                        yplus_target: float | None,
+                        katman_olcumu: dict | None) -> str | None:
+    """Ölçülen y⁺ hedefin çok üstündeyse NEDENİNİ söyle — tahmin etme, ölç.
+
+    AYNI BELİRTİ İKİ AYRI NEDENDEN GELİR ve ikisinin çaresi zıttır:
+      (a) katmanlar örülemedi  → snappy/yüzey kalitesi işi
+      (b) katmanlar örüldü ama ilk hücre fazla kalın → boyutlandırma işi
+
+    Eski uyarı tek neden varsayıp hep (a) diyordu. ÖLÇÜLDÜ (2026-08-19, küre
+    çapası, katman düzeltmesinden SONRA): 10 katman istendi, 6,82 örüldü, hedef
+    kalınlığın %96,7'si, `katman_hukmu` "ok" dedi — ama y⁺ ortalaması 5,54
+    (hedef 1,0). Yani katmanlar ÖRÜLMÜŞTÜ ve uyarı kullanıcıyı yanlış yere,
+    snappy ayarlarına gönderiyordu. Sorun ilk hücre boyutlandırmasıydı.
+
+    Katman ölçümü zaten elde; bu fonksiyon onu okur. Saf tutulur çünkü
+    satır-içi bir dal ancak kaynak metni okunarak sınanabilir — bir teşhis
+    kuralının kendisi sınanabilir olmalıdır.
+    """
+    if yplus_ort is None or n_layers <= 0 or not yplus_target:
+        return None
+    if yplus_ort <= 5 * yplus_target:
+        return None
+    k = katman_olcumu if isinstance(katman_olcumu, dict) else {}
+    oruldu = (k.get("durum") == "ok"
+              or (k.get("eklenen") or 0) >= 0.5 * max(n_layers, 1))
+    if oruldu:
+        pct = (k.get("yamalar") or [{}])[0].get("kalinlik_pct", "?")
+        return (f"İLK HÜCRE FAZLA KALIN: {n_layers} katman istendi ve "
+                f"{k.get('eklenen')} örüldü (hedef kalınlığın %{pct}'i) — yani "
+                f"katmanlar ÖRÜLDÜ. Ama ölçülen y⁺={yplus_ort:.1f}, hedef "
+                f"{yplus_target:g}. Sorun snappy katman adımında DEĞİL, ilk hücre "
+                "boyutlandırmasında: first_layer_thickness düşürülmeli "
+                "(y⁺ ∝ h₁) ya da genişleme oranı azaltılmalı")
+    return (f"KATMAN ÇÖKMESİ ŞÜPHESİ: {n_layers} prizma katmanı istendi ve y⁺ hedefi "
+            f"{yplus_target:g} idi, ama ÖLÇÜLEN y⁺={yplus_ort:.0f} — hedefin "
+            f"{yplus_ort / yplus_target:.0f} katı. snappyHexMesh katman adımı büyük "
+            "olasılıkla örülemedi (ince firar kenarı/keskin köşe). Sınır tabaka "
+            "ÇÖZÜLMÜYOR; sonuç katmansız koşuyla eşdeğerdir. log.snappyHexMesh "
+            "'Layer mesh' bölümünü ve yüzey kalitesini kontrol edin")
+
+
 def katman_hukmu(rapor: dict, istenen: int, patch: str | None = None) -> dict:
     """İstenen katman örüldü mü? Örülmediyse bunu ÖLÇÜM olarak söyle.
 
@@ -1780,14 +1822,9 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                 f"{YPLUS_BANDI[1]:.0f}) dışında. Fizik tahmini ref_bump={_o} "
                 f"öneriyordu (beklenen y⁺≈{_oneri.get('beklenen_yplus')}). "
                 "Her kademe yüzey hücresini yarıya indirir, hücre sayısını ~8× artırır")
-    if _ypo is not None and n_layers > 0 and yplus_target and _ypo > 5 * yplus_target:
-        uyarilar.append(
-            f"KATMAN ÇÖKMESİ ŞÜPHESİ: {n_layers} prizma katmanı istendi ve y⁺ hedefi "
-            f"{yplus_target:g} idi, ama ÖLÇÜLEN y⁺={_ypo:.0f} — hedefin "
-            f"{_ypo / yplus_target:.0f} katı. snappyHexMesh katman adımı büyük "
-            "olasılıkla örülemedi (ince firar kenarı/keskin köşe). Sınır tabaka "
-            "ÇÖZÜLMÜYOR; sonuç katmansız koşuyla eşdeğerdir. log.snappyHexMesh "
-            "'Layer mesh' bölümünü ve yüzey kalitesini kontrol edin")
+    _teshis = yplus_sapma_teshisi(_ypo, n_layers, yplus_target, kat)
+    if _teshis:
+        uyarilar.append(_teshis)
     if _ypo is not None and _ypo > 30 and n_layers == 0:
         # BÜYÜKLÜĞE GÖRE DERECELENDİR: duvar fonksiyonu log-bölgesi ~30-300'de geçerlidir.
         # MiniHawk hassas_nl koşusunda y⁺=4113 ölçüldü — üst sınırın 13 katı; buna

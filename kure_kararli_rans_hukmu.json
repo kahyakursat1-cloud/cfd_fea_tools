@@ -1,0 +1,27 @@
+{
+ "vaka": "küre çapası — kararlı RANS kapanır mı, URANS çare mi",
+ "_tarih": "2026-08-19",
+ "kosu": "validation_anchors_runs/_anchor_sphere/_anchor_sphere/postProcessing/forceCoeffs1/0/forceCoeffs.dat",
+ "olculen": {
+  "n_ornek": 801,
+  "ikinci_yari_n": 401,
+  "Cd_ort": 0.1892,
+  "Cd_std": 0.033,
+  "salinim_pct": 17.5,
+  "Cd_referans": 0.47,
+  "en_guclu_bilesen_pay_pct": 48.7,
+  "en_guclu_5_pay_pct": 97.2,
+  "salinim_yapili_mi": true
+ },
+ "_olcumun_siniri": "Koşu KARARLI (SIMPLE) çözücüyle yapıldı; eksen fiziksel zaman DEĞİL iterasyondur. Buradan çıkan frekans bir Strouhal sayısı değildir. Ölçüm yalnız 'yapılı limit çevrimi mi, gürültü mü' sorusunu ayırt eder — spektral aralık sorusunu ÇÖZMEZ.",
+ "urans_degerlendirmesi": {
+  "ilkece_gecerli_mi": "EVET. Referans Cd=0,47 zaten ZAMAN-ORTALAMALI deneysel bir değerdir; URANS zaman-ortalamasıyla kıyaslamak meşrudur.",
+  "bu_vakada_neden_zayif": [
+   "SPEKTRAL ARALIK YOK: URANS'ın anlamlı olması için çözülen tutarlı hareketle modellenen türbülans arasında frekans ayrımı gerekir. Re=1e5'te küre izi üç boyutlu ve geniş bantlıdır; 2B silindirin temiz Kármán dökülmesi gibi bir ayrım sunmaz. Tipik sonuç: ya eddy viskozitesi dalgalanmayı söndürüp aynı kararlı cevabı pahalıya verir, ya da fiziksel karşılığı olmayan yapay bir yarı-periyodik çözüm çıkar.",
+   "ASIL ZORLUK ELE ALINMIYOR: subkritik kürede sınır tabaka ayrılmaya kadar LAMINERDIR, geçiş kopmuş kayma tabakasında olur. URANS bu sorunu hiç adreslemez — geçiş modeli (LM) zaten bu yüzden denenmişti.",
+   "MALIYET x BELIRSIZLIK: GCI için 4 ağ seviyesi x URANS, bu makinede (13,7 GB) büyük bir iştir ve getirisi belirsizdir."
+  ],
+  "fiziksel_olarak_dogru_tirmanis": "DES/DDES ya da LES. Depoda kayıtlı tuzak: 10,5 saatlik silindir DES koşusu, y⁺≈1 ağında duvar fonksiyonu kullanıldığı için tümüyle geçersiz sayıldı. Yani bu yol da ucuz değil ve kendi kurulum kapısını ister."
+ },
+ "verdikt": "Küre KARARLI-RANS çapası olarak KAPSAM DIŞI. Gerekçe ölçülmüştür: katman düzeltmesinden sonra bile ince seviye yakınsamıyor (Cd salınımı %17.5, sürüklenme %46,7). URANS'a geçmek İLKECE hatalı değildir ama bu vakada en zayıf seçenektir — spektral aralık yok, laminer-ayrılma sorunu ele alınmıyor, maliyet yüksek. Subkritik-küre çapası gerçekten isteniyorsa ayrı bütçelenmiş bir DES işi olmalıdır."
+}

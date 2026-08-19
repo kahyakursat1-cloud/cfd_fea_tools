@@ -171,18 +171,26 @@ class TestKurulumGecerliligi:
             "model yalnız yapılandırmadan okunuyor — koşunun kendi kaydı öncelikli")
 
     def test_gecersiz_kosu_ATANAMAYANDA_ve_gerekcesiyle(self):
-        """Geçersiz koşu sessizce düşmemeli; nedeniyle listelenmeli."""
+        """Elenen her çapa GEREKÇE taşımalı; kurulum-geçersizler sapma taşımamalı.
+
+        İlk sürüm "en az bir çapa KURULUM GEÇERSİZ olmalı" diyordu ve bu testi
+        O ANKİ VERİYE pinliyordu. Küre katman düzeltmesinden sonra y⁺ 59,08'den
+        5,54'e indi; artık modele-özgü kapıya değil, ÖNCEDEN VAR OLAN tampon-
+        bölge ölçütüne (5<y⁺<30) takılıyor. Yani kural çalışıyor, tetikleyen
+        veri değişti. Kuralın kendisi `test_gecis_modeli_...` ve
+        `test_uretici_kapiyi_...` ile sınanıyor; burada ARTEFAKTIN biçimi
+        denetlenir.
+        """
         p = KOK / "model_form_bandi.json"
         if not p.exists():
             return
         d = json.loads(p.read_text(encoding="utf-8"))
-        gecersiz = [x for x in d.get("atanamayan_capalar", [])
-                    if str(x.get("neden", "")).startswith("KURULUM GEÇERSİZ")]
-        assert gecersiz, "hiçbir çapa kurulum gerekçesiyle elenmemiş"
-        for x in gecersiz:
-            assert x.get("sapma_pct") is None, (
-                f"{x['capa']}: geçersiz koşunun sapması yine de sayı olarak "
-                "taşınıyor — aşağı akışta ölçümmüş gibi okunabilir")
+        for x in d.get("atanamayan_capalar", []):
+            assert x.get("neden"), f"{x['capa']}: gerekçesiz elenmiş"
+            if str(x["neden"]).startswith("KURULUM GEÇERSİZ"):
+                assert x.get("sapma_pct") is None, (
+                    f"{x['capa']}: geçersiz koşunun sapması yine de sayı olarak "
+                    "taşınıyor — aşağı akışta ölçümmüş gibi okunabilir")
 
     def test_kure_bandi_ELE_GECIRMIYOR(self):
         """Regresyon: bluff.wall_function küre olmadan ölçülmeli."""

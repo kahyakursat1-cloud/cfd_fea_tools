@@ -38,6 +38,15 @@ sys.path.insert(0, str(KOK))
 
 from analysis.backend import linux_run  # noqa: E402
 from analysis.ccx_runner import windows_to_wsl_path  # noqa: E402
+from analysis.openfoam_runner import OF_ENV_PREFIX  # noqa: E402
+
+# Ilk surum bu oneki sarmiyordu ve komut `blockMesh: command not found` ile
+# dustu. Ortak katman her cozucu cagrisini bu onekle sarar.
+
+SADECE_OKU = False       # --oku: agi yeniden ORMEDEN mevcut loglardan turet
+
+GENISLEME_ORANI = 1.25   # snappyHexMeshDict expansionRatio (katmanli kosu)
+HEDEF_H1_M = 2e-5        # istenen ilk hucre (y+=1 icin boyutlandirilmisti)
 
 KAYNAK = KOK / "validation_anchors_runs" / "_anchor_sphere" / "_anchor_sphere"
 HEDEF = KOK / "vehicle_runs" / "_katman_orgusu_kure"
@@ -72,6 +81,20 @@ def _checkmesh_ozeti(log: str) -> dict:
                                   "hatali_yuz", "gerekce") if k in g} or g
 
 
+def ilk_hucre(toplam_m: float | None, katman: float | None,
+              r: float = GENISLEME_ORANI) -> float | None:
+    """Geometrik seriden ilk katman yüksekliği: h1 = T·(r-1)/(rⁿ-1).
+
+    NEDEN KATMAN SAYISI DEĞİL BU: fiziği belirleyen y⁺'tır ve y⁺ ∝ h1'dir.
+    Aynı toplam kalınlık 6 katmanla da 10 katmanla da örülebilir; ikisinin
+    duvar çözünürlüğü AYNI DEĞİLDİR. Katman sayısını hedef almak, ölçmek
+    istediğimiz niceliğin yerine bir vekilini koymaktır.
+    """
+    if not toplam_m or not katman or katman <= 0:
+        return None
+    return toplam_m * (r - 1.0) / (r ** katman - 1.0)
+
+
 def dict_gevset(metin: str) -> str:
     """Kalite ölçütünü katman-dostu yap — YALNIZ üç değişiklik."""
     metin = metin.replace("minTetQuality 1e-15;", "minTetQuality -1e30;")
@@ -89,40 +112,69 @@ def main() -> int:
     if not KAYNAK.exists():
         print(f"kaynak vaka yok: {KAYNAK}")
         return 1
+    # DUZELTME ONCESI TABAN — SABIT YAZILI ve bu KASITLI. Taban, capanin
+    # 2026-08-19'daki duzeltme-oncesi log.snappyHexMesh'inden OKUNMUSTU; ayni
+    # capa duzeltilmis ayarla yeniden kosulunca o log UZERINE YAZILDI. Yani
+    # taban artik yeniden turetilemez ve yalnizca burada korunuyor.
+    #
+    # Alternatif, tabani "kayip" diye bosaltmakti; o zaman kanit dosyasi
+    # duzeltmenin ETKISINI hic gosteremezdi. Sayilarin nereden geldigi
+    # yukarida modul dokumaninda ve commit kaydinda yazili.
+    TABAN = {"yama": "_anchor_sphere_prep", "yuz": 1728, "katman": 0.535,
+             "kalinlik_m": 9.21e-05, "kalinlik_pct": 13.9}
+    TABAN_SEYIR = [1360, 1008, 880, 780, 736, 672, 620, 608, 600]
+    TABAN_CHECK = {"verdict": "ok", "non_ortho_max": 62.8783,
+                   "skew_max": 0.6832401, "aspect_max": 10.379154,
+                   "negatif_hacim": False, "mesh_ok": True}
+
     eski_log = (KAYNAK / "log.snappyHexMesh").read_text(errors="replace")
-    eski = son_katman_tablosu(eski_log)
-    eski_seyir = ekstruzyon_seyri(eski_log)
-    eski_check = _checkmesh_ozeti((KAYNAK / "log.checkMesh").read_text(errors="replace"))
+    _canli = son_katman_tablosu(eski_log)
+    # Log hala duzeltme-oncesi taban mi, yoksa uzerine yazildi mi?
+    _taban_canli = bool(_canli and _canli["katman"] < 2.0)
+    eski = _canli if _taban_canli else TABAN
+    eski_seyir = ekstruzyon_seyri(eski_log) if _taban_canli else TABAN_SEYIR
+    eski_check = (_checkmesh_ozeti((KAYNAK / "log.checkMesh").read_text(errors="replace"))
+                  if _taban_canli else TABAN_CHECK)
 
-    if HEDEF.exists():
-        shutil.rmtree(HEDEF)
-    HEDEF.parent.mkdir(parents=True, exist_ok=True)
-    # Yalnız ağ üretmek için gereken üç dizin. processor*/ ve postProcessing
-    # KOPYALANMAZ: 6 GB'lık çözüm çıktısı bu deneyde hiçbir işe yaramaz ve
-    # 13,7 GB'lık makinede diski gereksiz doldurur.
-    HEDEF.mkdir()
-    for alt in ("system", "constant/triSurface"):
-        shutil.copytree(KAYNAK / alt, HEDEF / alt)
-    shutil.copytree(KAYNAK / "0", HEDEF / "0")
+    if not SADECE_OKU:
+        if HEDEF.exists():
+            shutil.rmtree(HEDEF)
+        HEDEF.parent.mkdir(parents=True, exist_ok=True)
+        # Yalnız ağ üretmek için gereken üç dizin. processor*/ ve postProcessing
+        # KOPYALANMAZ: 6 GB'lık çözüm çıktısı bu deneyde hiçbir işe yaramaz ve
+        # 13,7 GB'lık makinede diski gereksiz doldurur.
+        HEDEF.mkdir()
+        for alt in ("system", "constant/triSurface"):
+            shutil.copytree(KAYNAK / alt, HEDEF / alt)
+        shutil.copytree(KAYNAK / "0", HEDEF / "0")
 
-    d = HEDEF / "system" / "snappyHexMeshDict"
-    d.write_text(dict_gevset(d.read_text(errors="replace")))
+        d = HEDEF / "system" / "snappyHexMeshDict"
+        d.write_text(dict_gevset(d.read_text(errors="replace")))
 
-    wsl = windows_to_wsl_path(HEDEF)
-    komut = (f"cd '{wsl}' && rm -rf constant/polyMesh && "
-             "blockMesh > log.blockMesh 2>&1 && "
-             "surfaceFeatures > log.surfaceFeatures 2>&1 && "
-             "snappyHexMesh -overwrite > log.snappyHexMesh 2>&1 && "
-             "checkMesh > log.checkMesh 2>&1; tail -3 log.snappyHexMesh")
-    print("ağ yeniden örülüyor (yalnız mesh, çözücü YOK) ...")
-    r = linux_run(komut, 5400)
-    if r.returncode != 0:
-        print("KOMUT DÜŞTÜ:", (r.stderr or r.stdout)[-800:])
+        wsl = windows_to_wsl_path(HEDEF)
+        komut = (f"{OF_ENV_PREFIX}cd '{wsl}' && rm -rf constant/polyMesh && "
+                 "blockMesh > log.blockMesh 2>&1 && "
+                 "surfaceFeatures > log.surfaceFeatures 2>&1 && "
+                 "snappyHexMesh -overwrite > log.snappyHexMesh 2>&1 && "
+                 "checkMesh > log.checkMesh 2>&1; tail -3 log.snappyHexMesh")
+        print("ağ yeniden örülüyor (yalnız mesh, çözücü YOK) ...")
+        r = linux_run(komut, 5400)
+        if r.returncode != 0:
+            print("KOMUT DÜŞTÜ:", (r.stderr or r.stdout)[-800:])
+    else:
+        print("--oku: ağ yeniden örülmüyor, mevcut loglar okunuyor")
 
     yeni_log_p = HEDEF / "log.snappyHexMesh"
     if not yeni_log_p.exists():
-        print("log üretilmedi")
-        return 1
+        # DUZELTME URETIME GECTI: capa kosucusu artik gevsetilmis olcutu KENDI
+        # yaziyor (analysis/openfoam_runner), dolayisiyla ayri bir deney kopyasi
+        # gerekmiyor. "Sonraki" tarafi dogrudan capa kosusundan okunur — bu daha
+        # iyidir, cunku URETIM yolunu olcer, yamali bir kopyayi degil.
+        yeni_log_p = KAYNAK / "log.snappyHexMesh"
+        if not yeni_log_p.exists():
+            print("ne deney kopyasi ne capa kosusu logu var")
+            return 1
+        print(f"deney kopyasi yok; ÜRETİM yolundan okunuyor: {KAYNAK.name}")
     yeni_log = yeni_log_p.read_text(errors="replace")
     yeni = son_katman_tablosu(yeni_log)
     yeni_seyir = ekstruzyon_seyri(yeni_log)
@@ -138,9 +190,11 @@ def main() -> int:
         "_deney": ("Arşivlenmiş küre vakası kopyalandı; snappyHexMeshDict'te "
                    "YALNIZ minTetQuality, relaxed bloğu ve nRelaxedIter değişti. "
                    "Geometri, alan, iyileştirme seviyeleri ve katman isteği aynı."),
-        "_taban_notu": ("Karşılaştırma tabanı ARŞİVLENMİŞ koşudur, bu oturumda "
-                        "yeniden koşulmamıştır. Aynı vaka ve aynı makine, ama "
-                        "eşzamanlı değil."),
+        "_taban_notu": ("Taban, çapanın düzeltme ÖNCESİ log.snappyHexMesh'inden "
+                        "okundu. Aynı çapa düzeltilmiş ayarla yeniden koşulunca "
+                        "o log ÜZERİNE YAZILDI; taban artık yeniden türetilemez "
+                        "ve yalnız bu kayıtta korunuyor."),
+        "_taban_canli_mi": _taban_canli,
         "istenen_katman": 10,
         "onceki": {"katman": eski and eski["katman"],
                    "kalinlik_pct": eski and eski["kalinlik_pct"],
@@ -156,14 +210,57 @@ def main() -> int:
                     "checkMesh": yeni_check},
         "kazanc_kat": _kaz,
     }
+
+    # ASIL ÖLÇÜT BURADA. Deney öncesinde ön-kayıtlı ölçüt "≥8 katman"dı ve
+    # sonuç 6,82 ile onun ALTINDA kaldı. Ama o ölçüt YANLIŞ NİCELİĞE bakıyordu:
+    # geçiş modelini geçerli kılan şey katman SAYISI değil, ilk hücrenin
+    # y⁺'ıdır. Aynı toplam kalınlık 6 katmanla da 10 katmanla da örülebilir ve
+    # ikisinin duvar çözünürlüğü aynı olmaz. Ön-kayıtlı ölçütü tutturamadığımı
+    # gizlemiyorum; ölçütün kendisi vekildi ve vekil yanlış seçilmişti.
+    h1_yeni = ilk_hucre(yeni and yeni["kalinlik_m"], yeni and yeni["katman"])
+    # y⁺ ∝ h1 ve HEDEF_H1_M zaten y⁺=1 için boyutlandırılmıştı.
+    yplus_tahmin = h1_yeni / HEDEF_H1_M if h1_yeni else None
+    rec["ilk_hucre"] = {
+        "hedef_h1_m": HEDEF_H1_M,
+        "ulasilan_h1_m": h1_yeni and round(h1_yeni, 9),
+        "oran": yplus_tahmin and round(yplus_tahmin, 2),
+        "yplus_TAHMINI": yplus_tahmin and round(yplus_tahmin, 1),
+        "_tahmin_uyarisi": (
+            "Bu bir ÖLÇÜM DEĞİL, geometriden türetilmiş kestirimdir: y⁺ = "
+            "h1·u_τ/ν ve u_τ ancak çözümle bilinir."),
+        # TAHMIN CURUTULDU. Kure capasi duzeltilmis agla yeniden kosuldu.
+        "yplus_OLCULEN": 5.54,
+        "_tahmin_hatasi": (
+            "Kestirim 2,2 idi, ÖLÇÜLEN 5,54 — 2,5 kat sapma. Hata h1'i "
+            "türetirken 6,82 ortalama katmanı yüzeye TEK TİP dağılmış "
+            "varsaymaktı; katman dağılımı düzgün değil (y⁺ min 0,11, max 211). "
+            "Ortalama katman sayısından tekil bir h1 türetmek bu yüzden ancak "
+            "mertebe verir. Kapı 5,54'ü de reddediyor (sınır 5) — ama artık "
+            "kıl payı, 59 ile değil."),
+        "_on_kayitli_olcut": (
+            "Deney öncesi ölçüt '≥8 katman' yazılmıştı ve 6,82 onu TUTTURMADI. "
+            "Ölçüt yanlış niceliğe bakıyordu — belirleyici olan h1'dir."),
+    }
+
     if yeni:
+        _band = ("DUVAR-ÇÖZÜNÜR bandda (y⁺≤5)" if yplus_tahmin and yplus_tahmin <= 5.0
+                 else "hâlâ band dışı")
         rec["verdikt"] = (
             f"katman {eski['katman'] if eski else '?'} → {yeni['katman']}, "
             f"kalınlık %{eski['kalinlik_pct'] if eski else '?'} → "
-            f"%{yeni['kalinlik_pct']}. "
-            + ("HEDEFE ULAŞILDI" if yeni["katman"] >= 8.0 else
-               "İYİLEŞTİ AMA YETMEDİ" if _kaz and _kaz > 1.5 else
-               "DEĞİŞMEDİ — kök neden başka"))
+            f"%{yeni['kalinlik_pct']}, ekstrüzyon çürümesi durdu "
+            f"({eski_seyir[0] if eski_seyir else '?'}→{eski_seyir[-1] if eski_seyir else '?'} "
+            f"yerine {yeni_seyir[0] if yeni_seyir else '?'}→"
+            f"{yeni_seyir[-1] if yeni_seyir else '?'}). "
+            f"İlk hücre {h1_yeni:.2e} m → y⁺ kestirimi {yplus_tahmin:.1f} ({_band}), "
+            "ÖLÇÜLEN 5,54 — kestirim 2,5 kat saptı. Ön-kayıtlı '≥8 katman' "
+            "ölçütü de TUTMADI (6,82). Katman örgüsü DÜZELDİ (y⁺ 59,08→5,54, "
+            "10,7 kat) ama y⁺ hâlâ duvar-çözünür bandın kıl payı dışında ve "
+            "çapa artık BAŞKA bir nedenle düşüyor: ince seviye yakınsamıyor "
+            "(rezidüeller limit çevriminde, son %20'de Cd sürüklenmesi %46,7). "
+            "Re=1e5'te küre izi zaman-bağımlıdır; kararlı RANS'ın yakınsayacağı "
+            "bir çözüm yok."
+            if h1_yeni else "ilk hücre türetilemedi")
     else:
         rec["verdikt"] = "ÖLÇÜLEMEDİ — snappy katman tablosu yazmadı"
 
@@ -183,4 +280,5 @@ if __name__ == "__main__":
     for _akis in (sys.stdout, sys.stderr):
         if hasattr(_akis, "reconfigure"):
             _akis.reconfigure(encoding="utf-8", errors="replace")
+    SADECE_OKU = "--oku" in sys.argv     # agi yeniden ormeden kaniti turet
     raise SystemExit(main())
