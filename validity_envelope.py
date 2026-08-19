@@ -477,6 +477,15 @@ def _urans_satirlari(sal: dict, kosu: dict | None) -> list[str]:
 # Duvar-fonksiyonu log-bölgesi; dışındaysa sürtünme bileşeni çözülmüyor.
 YPLUS_BANDI = (30.0, 300.0)
 YPLUS_DUVAR_COZUNUR = 5.0
+# Gecis modelleri DUVAR-COZUNUR ag ister. Ad listesi burada TEKRARLANMAZ,
+# cozucu katmanindan alinir; iki yerde iki liste tutmak ayrisma demektir.
+try:
+    from analysis.openfoam_runner import GECIS_MODELLERI as GECIS_MODELLERI_ADLARI
+# sessiz-yutma: kabul --- zarf katmani cozucu katmanindan BAGIMSIZ da
+# kullanilabilmeli (testler, salt-veri tuketicileri). Ithal edilemezse
+# bilinen tek gecis modeli adiyla devam edilir ve kapi YINE calisir.
+except Exception:
+    GECIS_MODELLERI_ADLARI = ("kOmegaSSTLM",)
 
 
 def yplus_duvar_sinifi(ort: float | None, tepe: float | None = None) -> str | None:
@@ -503,9 +512,22 @@ def yplus_duvar_sinifi(ort: float | None, tepe: float | None = None) -> str | No
     return None          # bant dışı: o koşu zaten savunulabilir değil
 
 
-def duvar_hukmu(sinir: dict | None) -> tuple[bool, str]:
-    """Duvar çözünürlüğü savunulabilir mi? İki MEŞRU yol var, ikisi de kabul."""
+def duvar_hukmu(sinir: dict | None, model: str | None = None) -> tuple[bool, str]:
+    """Duvar çözünürlüğü savunulabilir mi? İki MEŞRU yol var, ikisi de kabul.
+
+    MODEL FARK EDER. Duvar-fonksiyonu bandı (y⁺ 30–300) kOmegaSST için MEŞRU
+    ama GEÇİŞ MODELİ (Langtry-Menter) için DEĞİLDİR: LM laminer bölgeyi ve
+    geçiş noktasını sınır tabakanın İÇİNDE çözer, laminer altkatman
+    ayrıklaştırılmazsa üretilen sayının fiziksel karşılığı yoktur.
+
+    Ölçüldü (2026-08-19, küre çapası): 10 katman istendi, ortalama 0,535
+    örüldü, y⁺ ortalaması 59 çıktı. Kapı modelden habersiz olduğu için bunu
+    "duvar fonksiyonu bandında" diye GEÇİRİYORDU — oysa koşu kOmegaSSTLM ile
+    yapılmıştı ve Cd 0,142 (referans 0,47) veriyordu. `gecis_modeli_onkosulu`
+    zaten var ama o İSTEĞİ denetler; bu kapı GERÇEKLEŞENİ denetler.
+    """
     s = sinir or {}
+    _gecis = bool(model) and model in GECIS_MODELLERI_ADLARI
     yp = (s.get("yplus") or {})
     ort = yp.get("ort") if isinstance(yp, dict) else None
     kat = s.get("katman_olcumu") or {}
@@ -516,6 +538,16 @@ def duvar_hukmu(sinir: dict | None) -> tuple[bool, str]:
                        f"duvar-çözünür iddiası geçersiz, y+={ort:.0f}")
     if kat.get("durum") == "ok" and ort <= YPLUS_DUVAR_COZUNUR:
         return True, f"duvar-çözünür: {kat['eklenen']} katman, y+={ort:.1f}"
+    if _gecis:
+        # GEÇİŞ MODELİ İÇİN DUVAR-FONKSİYONU BANDI MEŞRU DEĞİLDİR. Buraya
+        # düşmek, y⁺'ın duvar-çözünür eşiğini aştığı anlamına gelir; LM o
+        # ağda laminer altkatmanı hiç görmez ve ürettiği sayı fiziksel
+        # değildir. kOmegaSST için aynı ağ meşru olurdu — hüküm MODELE bağlı.
+        return False, (
+            f"{model} DUVAR-ÇÖZÜNÜR ağ ister (y⁺≤{YPLUS_DUVAR_COZUNUR:g}) ama "
+            f"ölçülen y⁺ ortalaması {ort:.1f}. Laminer altkatman "
+            "ayrıklaştırılmadan geçiş modeli fiziksel olmayan bir sayı üretir; "
+            "aynı ağ tam-türbülanslı model için meşru olurdu.")
     if YPLUS_BANDI[0] <= ort <= YPLUS_BANDI[1]:
         # ORTALAMA YETMEZ. Ozet istatistik dagilimi gizler: MiniHawk'ta
         # ort=129 (bandda) iken min=6.7 ve max=424 — ikisi de band DISI.

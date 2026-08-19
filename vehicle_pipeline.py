@@ -695,7 +695,18 @@ def parse_layer_report(log: Path) -> dict:
         if len(t) < 5:
             break
         try:
-            out["yamalar"].append({"ad": t[0], "yuz": int(t[1]), "katman": int(t[2]),
+            # KATMAN SAYISI ONDALIKTIR. snappyHexMesh yüz başına ORTALAMA
+            # katmanı yazar (ör. "0.535"), tam sayı değil. `int(t[2])`
+            # ValueError atıyor ve TÜM ölçüm düşüyordu — yani katmanların
+            # örülmediği durumda araç bunu SÖYLEYEMİYORDU.
+            #
+            # Ölçüldü (2026-08-19, küre çapası): 10 katman istendi, ortalama
+            # 0,535 örüldü, y⁺ 59 çıktı (hedef ≤1). Depoda katman çökmesini
+            # yakalayan bir hüküm ZATEN var (`katman_hukmu` → "COKTU") ama
+            # ayrıştırıcı önce düştüğü için o savunma veriyi HİÇ görmüyordu.
+            # Aynı imza Ahmed çapasında da vardı.
+            out["yamalar"].append({"ad": t[0], "yuz": int(t[1]),
+                                   "katman": float(t[2]),
                                    "kalinlik_m": float(t[3]),
                                    "kalinlik_pct": float(t[4])})
         except ValueError:

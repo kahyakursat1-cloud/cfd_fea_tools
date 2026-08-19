@@ -307,7 +307,8 @@ def _run_anchor(name: str, velocity: float, out_root: str) -> dict | None:
     # Ölçüt `validity_envelope.duvar_hukmu`: TEK kaynak. Depoda bu ölçütün
     # ikinci bir kopyası vardı ve docstring'i bunu kendisi söylüyordu.
     from validity_envelope import duvar_hukmu
-    _duvar_ok, _duvar_neden = duvar_hukmu(getattr(r, "sinir_tabaka", None))
+    _duvar_ok, _duvar_neden = duvar_hukmu(getattr(r, "sinir_tabaka", None),
+                                          kw.get("turbulence_model"))
     if not _duvar_ok:
         return {"durum": "REDDEDİLDİ — duvar işlemi savunulabilir değil "
                          "(çapa olarak yazılmaz)",

@@ -154,3 +154,37 @@ def test_hassas_quality_is_wall_resolved():
     assert MESH_QUALITY["hassas"]["n_layers"] >= 10
     assert MESH_QUALITY["hassas"]["yplus_target"] <= 1.0
     assert MESH_QUALITY["standart"]["n_layers"] == 0     # standart hâlâ duvar-fonksiyonu
+
+
+def test_duvar_kapisi_MODELE_duyarli():
+    """Aynı ağ kOmegaSST için meşru, geçiş modeli için DEĞİL.
+
+    Ölçüldü (2026-08-19, küre çapası): 10 katman istendi, ortalama 0,535
+    örüldü, y⁺ ortalaması 59 çıktı. Kapı modelden habersizdi ve bunu "duvar
+    fonksiyonu bandında" diye GEÇİRİYORDU — oysa koşu kOmegaSSTLM ile
+    yapılmıştı. `gecis_modeli_onkosulu` İSTEĞİ denetler; bu kapı GERÇEKLEŞENİ.
+    """
+    from validity_envelope import duvar_hukmu
+    kure = {"yplus": {"ort": 59.08, "min": 1.27, "max": 213.96},
+            "katman_olcumu": {"durum": "kismi", "istenen": 10, "eklenen": 0.535}}
+    assert duvar_hukmu(kure, "kOmegaSST")[0] is True
+    ok, neden = duvar_hukmu(kure, "kOmegaSSTLM")
+    assert ok is False and "DUVAR-ÇÖZÜNÜR" in neden
+    # Model verilmezse eski davranış korunur (geriye uyumluluk).
+    assert duvar_hukmu(kure)[0] is True
+
+
+def test_katman_tablosu_ONDALIK_sayiyi_okuyor():
+    """snappyHexMesh yüz başına ORTALAMA katman yazar; `int()` düşüyordu.
+
+    Sonuç: katmanlar örülmediğinde araç bunu SÖYLEYEMİYORDU — çökme hükmü
+    (`katman_hukmu`) vardı ama ayrıştırıcı önce düştüğü için veriyi hiç
+    görmüyordu. Ölçülen satır: "_anchor_sphere_prep 1728 0.535 9.21e-05 13.9".
+    """
+    import inspect
+
+    import vehicle_pipeline as vp
+    src = inspect.getsource(vp)
+    i = src.index('"kalinlik_pct": float(t[4])')
+    blok = src[max(0, i - 400):i]
+    assert '"katman": float(t[2])' in blok, "katman sayısı hâlâ int() ile okunuyor"
