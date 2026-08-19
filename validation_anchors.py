@@ -50,16 +50,31 @@ ANCHORS = {
         "u_ref_sinif": "ALT SINIR (kod-arası yayılım, n=7)",
     },
     "ahmed_25": {
-        "Cd": 0.285, "regime": "bluff", "Re": "~1e6",
-        "aref": "frontal", "ref": "Ahmed et al. 1984; Meile et al. 2011",
-        # IKINCI KAYNAK ARANDI, BULUNDU AMA BEYAN EDILMEDI. Meile ve ark.
-        # (2011) 25° egim icin cD=0,299 veriyor; bu deger yalniz IKINCIL
-        # kaynaklardan (CFD dogrulama sayfalari) teyit edilebildi, birincil
-        # makale metnine erisilemedi. Ayrica iki deger AYNI Re'de degil
-        # (Ahmed ~1e6, Meile 2,784e6) — fark, kaynak yayilimi ile Re
-        # bagimliligini KARISTIRIR. Duz levha ornegindeki yontem "ayni kosulda
-        # iki korelasyon" diyordu; bu kosul saglanmiyor. Bu yuzden sayi
-        # kanit dosyasinda beklemede tutuluyor, capaya YAZILMIYOR.
+        # REFERANS KOSULA ESLESTIRILDI (2026-08-19). Onceki deger 0,285 ve
+        # beyan edilen Re "~1e6" idi; ikisi de KOSUYU ANLATMIYORDU.
+        #
+        # OLCULDU: bu capa V=40 m/s, L=1,044 m ile kosuyor → Re = 2,784e6.
+        # Iki yayimlanmis deger var ve FARKLI KOSULLARDA:
+        #   Ahmed & Ramm 1984 (SAE 840300): cD=0,2875 @ Re=4,29e6, V=60 m/s
+        #   Meile vd. 2011 (CFD Letters 3(1)): cD=0,299 @ Re=2,784e6, V=40 m/s
+        # Yani Meile'nin kosulu bu capanin kosuguyla BIREBIR AYNI.
+        #
+        # Onceki not "iki deger ayni Re'de degil, o yuzden yazilmaz" diyordu.
+        # Bu, u_D TURETMEK icin dogru bir gerekcedir ama REFERANS SECIMI icin
+        # degil: kostugun kosulda olculmus deger, baska bir kosulda olculmus
+        # degerden daha iyi bir referanstir. Sapma %16,2 → %10,8'e iner ve
+        # farkin bir kismi model hatasi degil KOSUL UYUSMAZLIGIYDI.
+        #
+        # KANIT DERECESI: iki BAGIMSIZ ikincil kaynak (SimFlow ve SimScale
+        # dogrulama sayfalari) kosullariyla birlikte uyusuyor; birincil makale
+        # metinleri ucretli duvar arkasinda ve OKUNAMADI. Bu yuzden u_ref
+        # hala beyan EDILMIYOR — iki deger farkli Re'de oldugu icin aradaki
+        # fark u_D degil, Re bagimliligiyla karisir.
+        "Cd": 0.299, "regime": "bluff", "Re": "2,784e6 (V=40 m/s, L=1,044 m)",
+        "aref": "frontal",
+        "ref": ("Meile vd. 2011, CFD Letters 3(1) — cD=0,299 @ Re=2,784e6 "
+                "(KOSULA ESLESIK); krs. Ahmed & Ramm 1984 SAE 840300, "
+                "cD=0,2875 @ Re=4,29e6"),
         "u_ref_pct": None,
     },
     "cube": {
