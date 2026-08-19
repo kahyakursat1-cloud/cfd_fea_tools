@@ -10,7 +10,7 @@
    "not": "Alanın kanonik 2B doğrulama vakası; u_D ÖLÇÜLMÜŞ."
   },
   "ahmed_25": {
-   "durum": "ADAY BULUNDU, KOŞUL DOĞRULANMADI",
+   "durum": "ÇÖZÜLDÜ — referans koşula eşleştirildi",
    "tasidigi": 0.285,
    "aday_degerler": [
     0.285,
@@ -19,19 +19,33 @@
    ],
    "kaynak_adaylari": "Ahmed vd. 1984 (Re≈4,29e6, sabit zemin); Meile vd. 2011 (Cd(Re) fonksiyonu)",
    "engel": "Adaylar farklı Re/zemin/blokajdan geliyor olabilir; koşullar eşleştirilmeden fark u_D sayılamaz. Meile'nin Cd(Re) fonksiyonu AYNI Re'de değer verirse yöntem uygulanabilir — birincil kaynaktan okunmalı.",
-   "not": "Ahmed 1984 alanın kanonik küt-cisim referansı; sorun referansın kalitesinde değil, İKİNCİ değerin koşulunda."
+   "not": "Ahmed 1984 alanın kanonik küt-cisim referansı; sorun referansın kalitesinde değil, İKİNCİ değerin koşulunda.",
+   "cozum": "Araç V=40 m/s, Re=2,784e6'da koşuyor. Meile vd. 2011 TAM bu koşulda cD=0,299 veriyor; eski referans (0,285) Ahmed & Ramm'ın FARKLI koşulundaki (Re=4,29e6, V=60 m/s) 0,2875 değerine yakındı. Referans eşleştirildi: |E| %16,20 → %10,76.",
+   "kanit_derecesi": "İki BAĞIMSIZ ikincil kaynak (SimFlow, SimScale) koşullarıyla birlikte uyuşuyor; birincil makaleler ücretli duvar arkasında. Değeri kullanmak için yeterli, u_D türetmek için DEĞİL."
   },
   "cube": {
-   "durum": "TEK-KAYNAK",
+   "durum": "ÇÖZÜLEMEDİ — ve nedeni yöntemsel",
    "tasidigi": 1.05,
    "kaynak": "Hoerner 1965",
-   "engel": "İkinci yerleşik kaynak (ESDU / Blevins gibi) kayıtlı değil."
+   "engel": "İkinci yerleşik kaynak (ESDU / Blevins gibi) kayıtlı değil.",
+   "arastirma_sonucu": {
+    "aday_kaynaklar": "Blevins, Applied Fluid Dynamics Handbook; Munson vd., Fundamentals of Fluid Mechanics — ikisi de alanın standart el kitapları",
+    "engel_1_erisim": "Kitap tabloları açık web'de değil; sayılar okunamadı.",
+    "engel_2_BAGIMSIZLIK": "ASIL ENGEL BU. Keskin-kenarlı küt cisimlerde sonraki el kitapları büyük ölçüde Hoerner'ı ALINTILAR; Hoerner 1965 zaten bir ÖLÇÜM DERLEMESİDİR. Aynı özgün ölçüme dayanan iki değerin farkını u_D saymak, tek kaynağı iki kez saymaktır. Düz levhada yöntem işledi çünkü Schlichting ve Schultz-Grunow AYRI veri kümelerine oturtulmuş BAĞIMSIZ korelasyonlar.",
+    "dogru_yol": "u_D ya birincil deney makalelerinden (belirsizlik beyanıyla) gelmeli ya da bu çapaların u_D'siz olduğu AÇIKÇA yazılmalı. İkinci bir el kitabı değeri eklemek sahte bir bağımsızlık üretirdi."
+   }
   },
   "disk": {
-   "durum": "TEK-KAYNAK",
+   "durum": "ÇÖZÜLEMEDİ — ve nedeni yöntemsel",
    "tasidigi": 1.17,
    "kaynak": "Hoerner 1965",
-   "engel": "Aynı."
+   "engel": "Aynı.",
+   "arastirma_sonucu": {
+    "aday_kaynaklar": "Blevins, Applied Fluid Dynamics Handbook; Munson vd., Fundamentals of Fluid Mechanics — ikisi de alanın standart el kitapları",
+    "engel_1_erisim": "Kitap tabloları açık web'de değil; sayılar okunamadı.",
+    "engel_2_BAGIMSIZLIK": "ASIL ENGEL BU. Keskin-kenarlı küt cisimlerde sonraki el kitapları büyük ölçüde Hoerner'ı ALINTILAR; Hoerner 1965 zaten bir ÖLÇÜM DERLEMESİDİR. Aynı özgün ölçüme dayanan iki değerin farkını u_D saymak, tek kaynağı iki kez saymaktır. Düz levhada yöntem işledi çünkü Schlichting ve Schultz-Grunow AYRI veri kümelerine oturtulmuş BAĞIMSIZ korelasyonlar.",
+    "dogru_yol": "u_D ya birincil deney makalelerinden (belirsizlik beyanıyla) gelmeli ya da bu çapaların u_D'siz olduğu AÇIKÇA yazılmalı. İkinci bir el kitabı değeri eklemek sahte bir bağımsızlık üretirdi."
+   }
   },
   "sphere": {
    "durum": "KESTİRİM VAR, DOĞRULAMA BEKLİYOR",
@@ -63,5 +77,5 @@
    }
   }
  },
- "verdikt": "ALTI ÇAPADAN BİRİ TAM (naca0012_a0). Kalan beşinde eksik olan şey referansın KALİTESİ değil — Hoerner ve Ahmed 1984 alanın yerleşik kaynakları — İKİNCİ BİR EŞLEŞTİRİLMİŞ DEĞER. u_D'yi saçılmadan türetmek ancak koşullar aynıysa meşrudur. Tek istisna AR6 kanadı: orada referansın kendisi yarı-analitik ve DEĞİŞMESİ gerekiyor. AR6 için araştırma TAMAMLANDI: alanın kanonik 3B vakaları rejim (ONERA M6) ya da hesap bütçesi (Trap Wing, 50–200M hücre vs 4M tavan) nedeniyle uymuyor. Referans bulunamadı ve UYDURULMADI."
+ "verdikt": "ÜÇ FARKLI ENGEL, ÜÇ FARKLI CEVAP. (1) ahmed_25: engel referansın KOŞULUYDU — çözüldü, eşleştirildi, |E| %16,2→%10,8. (2) cube/disk: engel erişim DEĞİL BAĞIMSIZLIK — el kitapları Hoerner'ı alıntılıyor, farkları u_D vermez; sahte bağımsızlık üretmemek için ikinci değer EKLENMEDİ. (3) naca0012_wing_ar6: engel HESAP BÜTÇESİ — alanın kanonik 3B vakaları (ONERA M6 rejim, Trap Wing 50–200M hücre) bu aracın dışında. Üçünde de eksik olan şey aynı görünüyordu ('ikinci kaynak yok') ama nedenleri farklıydı ve yalnız biri kapatılabildi."
 }
