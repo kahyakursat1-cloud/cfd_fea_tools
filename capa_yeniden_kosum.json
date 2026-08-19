@@ -1,0 +1,39 @@
+{
+ "vaka": "Çapa yeniden koşumu — arşivden kurtarılan değerlerin denetimi",
+ "_neden": "validation_anchors_runs 2026-08-13'te silindi ve değerler arşivden kurtarıldı. Kurtarılan değerin GÜNCEL olup olmadığı sorulmamıştı.",
+ "tarih": "2026-08-19",
+ "capalar": {
+  "disk": {
+   "Cd_ref": 1.17,
+   "Cd_yeni": 1.20956,
+   "hata_pct": 3.38,
+   "u_sayisal_pct": 4.22,
+   "arsiv_hata_pct": 3.38,
+   "arsiv_u_pct": 4.77,
+   "yplus": {
+    "ort": 31,
+    "min": 1
+   },
+   "yontem": "SINIRLAYAN band (3-seviye salınımlı, U=3·Δ)",
+   "hukum": "ÜRETİLDİ — arşivle birebir aynı (%3,38)",
+   "referans": "Hoerner, Fluid-Dynamic Drag (1965)"
+  },
+  "kup": {
+   "Cd_ref": 1.05,
+   "Cd_yeni": 1.04599,
+   "hata_pct": 0.38,
+   "u_sayisal_pct": 2.6669,
+   "arsiv_hata_pct": 6.03,
+   "arsiv_u_pct": 58.33,
+   "yplus": {
+    "ort": 37.3,
+    "min": 7.72,
+    "max": 117.78
+   },
+   "yontem": "GCI (3-mesh, asimptotik)",
+   "hukum": "ARŞİV BAYATMIŞ — hata %6,03→%0,38, band %58,3→%2,67. Kod yorumu tavanın 2,5M→4M çıkarıldığını yazıyor; düzeltme yapılmış ama çapa YENİDEN KOŞULMAMIŞTI.",
+   "referans": "Hoerner, Fluid-Dynamic Drag (1965)"
+  }
+ },
+ "verdikt": "İKİ ÇAPA, İKİ FARKLI SONUÇ. disk arşivle birebir üretildi; küp arşivden ÇOK farklı çıktı çünkü arşiv değeri bir yapılandırma düzeltmesinden ÖNCEYE aitti. Tek çapadan 'arşiv güvenilir' genellemesi YANLIŞTI — kurtarılan her değer, kurtarıldığı tarihten sonra kodun değişip değişmediğiyle birlikte okunmalı."
+}

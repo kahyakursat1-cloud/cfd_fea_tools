@@ -66,7 +66,7 @@ kazanımı: yeni kod gerekmedi.
 
 ### 2.1 ◐ Doğrulama regresyon suite'i — BÜYÜK ÖLÇÜDE VAR, çapa üretimi eksik
 **Yapılan (2026-08-19):** `experiments/dis_korpus.py` referanslı kanonik vakaları ölçülmüş toleranslarla taşıyor ve test paketinde koşuyor; `fea_capa_bagimsiz.py` üç kapalı-form çapası üretiyor (3 ağ seviyesi, u_num ölçülü).
-**ÖLÇÜLDÜ (2026-08-19): çapa üretimi YENİDEN KOŞULABİLİR.** `validation_anchors_runs` 2026-08-13'te silinmişti ve değerler arşivden kurtarılmıştı; bu, üretim yolunun kırık olduğu ANLAMINA GELMİYORMUŞ. `disk` çapası yeniden koşuldu: Cd hatası %3,38 → %3,38 BİREBİR üretildi, sayısal band %4,77 → %4,22 daraldı. Yani arşiv değerleri bayat değil, doğrulanmış çıktı.
+**ÖLÇÜLDÜ (2026-08-19): çapa üretimi YENİDEN KOŞULABİLİR.** `validation_anchors_runs` 2026-08-13'te silinmişti ve değerler arşivden kurtarılmıştı; bu, üretim yolunun kırık olduğu ANLAMINA GELMİYORMUŞ. İki çapa yeniden koşuldu ve İKİ FARKLI SONUÇ verdi: `disk` arşivle birebir üretildi (%3,38 → %3,38), ama `kup` arşivden ÇOK farklı çıktı (hata %6,03 → %0,38, band %58,3 → %2,67) — çünkü arşiv değeri bir yapılandırma düzeltmesinden (hücre tavanı 2,5M→4M) ÖNCEYE aitti ve çapa o düzeltmeden sonra hiç koşulmamıştı. **Tek çapadan 'arşiv güvenilir' genellemesi yanlıştır.**
 
 **KALAN:** kalan CFD çapaları (küp, Ahmed, NACA0012 AR6) hâlâ arşivden; her biri ayrı bir CFD koşusu. `sphere` ve `naca0012_a0` atlama listesinde (setup-uyumsuz).
 **Ne:** Referans-değerli kanonik vakalar: süpersonik küre Cd (Charters&Thomas, var),

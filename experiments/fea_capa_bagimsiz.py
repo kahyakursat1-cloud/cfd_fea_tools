@@ -44,6 +44,7 @@ from analysis.calculix_writer import (  # noqa: E402
     FEACase,
     FEAMaterial,
     FixedBC,
+    ForceLoad,
     PressureLoad,
     write_inp,
 )
@@ -347,7 +348,10 @@ def main() -> int:
 
     for ad, fn, alan, u_d in (("sehim", kiris_sehim, "fem_m", U_D_PCT),
                               ("frekans", kiris_frekans, "fem_hz", U_D_PCT),
-                              ("kure", kure_lame, "fem_Pa", U_D_KURE_PCT)):
+                              ("kure", kure_lame, "fem_Pa", U_D_KURE_PCT),
+                              # ÜÇÜNCÜ bağımsız geometri: özgüllük küme sayısına
+                              # duyarlı ve negatifler iki kümeden geliyordu.
+                              ("mil", mil_burulma, "fem_rad_m", U_D_KURE_PCT)):
         seviyeler = []
         for inc in (SEVIYELER_KURE if ad == "kure" else SEVIYELER):
             d = fn(work, inc)
@@ -379,7 +383,7 @@ def main() -> int:
     # Her çapa, negatif etiket kurmaya yetip yetmediğiyle birlikte özetlenir.
     esik = 5.0
     satir = []
-    for ad in ("sehim", "frekans", "kure"):
+    for ad in ("sehim", "frekans", "kure", "mil"):
         b = out.get(ad) or {}
         if b.get("hata_pct") is None or b.get("u_val_pct") is None:
             satir.append(f"{ad}: ÖLÇÜLEMEDİ")
@@ -401,3 +405,107 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+# ── Burulma çapası: ÜÇÜNCÜ bağımsız geometri ──────────────────────────────
+# Korpusun negatif etiketleri iki kümeden geliyordu (kiriş, küre). Özgüllük
+# küme sayısına duyarlıdır; üçüncü BAĞIMSIZ geometri onu güçlendirir.
+#
+# Neden burulma: kapalı-form TAM (St. Venant, dairesel kesitte kesin), yükleme
+# kirişten ve küreden farklı, ve FEA_KABUL_SINIRI'nı belirleyen altı
+# benchmark'ın hiçbiri burulma değil.
+R_MIL, L_MIL, T_TORK = 0.02, 0.30, 500.0      # yarıçap, boy (m), tork (N·m)
+J_KESIT = math.pi * R_MIL ** 4 / 2.0
+G_MODUL = E / (2.0 * (1.0 + NU))
+# Birim boyda burulma açısı — uçlardan UZAKTA (St. Venant bölgesi) geçerli.
+BURULMA_ORANI_AN = T_TORK / (G_MODUL * J_KESIT)      # rad/m
+
+
+def mil_burulma(work: Path, incelik: float = 1.0) -> dict:
+    """Ankastre dairesel mil + uç torku → BİRİM BOYDA burulma açısı.
+
+    UÇ ETKİSİ DIŞLANIR: toplam açı yerine iki ARA kesit arasındaki açı farkı
+    ölçülür (z=0,25L ve z=0,75L). Uçta yükün nasıl dağıtıldığı St. Venant'a
+    göre yalnız yerel etki yapar; ortadaki oran kapalı-formun geçerli olduğu
+    bölgedir. Toplam açıyı ölçmek, ölçtüğü şeyi yük dağıtımına bağlardı.
+    """
+    gmsh.initialize()
+    try:
+        gmsh.option.setNumber("General.Terminal", 0)
+        gmsh.model.occ.addCylinder(0, 0, 0, 0, 0, L_MIL, R_MIL)
+        gmsh.model.occ.synchronize()
+        hh = R_MIL / 2.5 / incelik
+        gmsh.option.setNumber("Mesh.MeshSizeMin", hh)
+        gmsh.option.setNumber("Mesh.MeshSizeMax", hh * 1.5)
+        gmsh.option.setNumber("Mesh.ElementOrder", 2)
+        gmsh.option.setNumber("Mesh.MshFileVersion", 2.2)
+        gmsh.model.mesh.generate(3)
+        msh = work / f"mil{incelik}.msh"
+        gmsh.write(str(msh))
+    finally:
+        gmsh.finalize()
+    m = meshio.read(str(msh))
+    tet = next(c for c in m.cells if c.type == "tetra10")
+    tri = next((c for c in m.cells if c.type == "triangle6"), None)
+    mesh = TetMesh(points=m.points.astype(np.float64), tets=tet.data.astype(np.int64),
+                   surface_tris=(tri.data.astype(np.int64) if tri is not None
+                                 else np.zeros((0, 6), np.int64)),
+                   msh_path=msh, element_type="C3D10")
+
+    p = mesh.points
+    kok = np.where(np.abs(p[:, 2]) < 1e-7)[0]
+    uc = np.where(np.abs(p[:, 2] - L_MIL) < 1e-7)[0]
+    if len(uc) == 0:
+        return {"durum": "hata", "mesaj": "uç yüzey düğümü yok"}
+
+    # TORK = teğetsel kuvvetler. Düğüm i'ye F_i = k·r_i (teğet yön) verilirse
+    # moment Σ r_i·F_i = k·Σ r_i² olur; k = T/Σr_i² ile toplam tam T eder.
+    rr = np.linalg.norm(p[uc, :2], axis=1)
+    kats = rr > 1e-9
+    uc, rr = uc[kats], rr[kats]
+    k = T_TORK / float((rr ** 2).sum())
+    yukler = []
+    for dugum, r_i in zip(uc, rr):
+        x, y = p[dugum, 0], p[dugum, 1]
+        yukler.append(ForceLoad(np.array([dugum + 1], dtype=np.int64),
+                                (-y / r_i, x / r_i, 0.0), k * r_i,
+                                f"T{dugum}"))
+
+    case = FEACase(name=f"mil{incelik}".replace(".", "_"), mesh=mesh,
+                   material=FEAMaterial("CELIK", E, NU, RHO),
+                   fixed_bcs=[FixedBC(kok + 1, "ANKASTRE", 1, 3)],
+                   force_loads=yukler, analysis_type="STATIC")
+    inp = write_inp(case, work)
+    r = run_ccx(inp, timeout=1800)
+    if not r.success:
+        return {"durum": "hata", "mesaj": (r.stderr or r.stdout or "")[-300:]}
+    frd = parse_frd(inp.with_suffix(".frd"))
+    if "DISP" not in frd.fields:
+        return {"durum": "hata", "mesaj": "frd yer değiştirme taşımıyor"}
+    u = frd.fields["DISP"]
+    kimlik = np.asarray(frd.node_ids, dtype=np.int64)
+
+    def _aci(z_hedef):
+        """Kesitteki ortalama burulma açısı: u_teğet / r."""
+        sec = np.where(np.abs(p[:, 2] - z_hedef) < L_MIL * 0.03)[0]
+        hedef = set((sec + 1).tolist())
+        maske = np.array([int(x) in hedef for x in kimlik])
+        if not maske.any():
+            return None
+        idx = kimlik[maske] - 1
+        x, y = p[idx, 0], p[idx, 1]
+        rad = np.hypot(x, y)
+        iyi = rad > R_MIL * 0.3          # eksene yakın düğümde açı gürültülü
+        if not iyi.any():
+            return None
+        ut = (-y[iyi] * u[maske][iyi, 0] + x[iyi] * u[maske][iyi, 1]) / rad[iyi]
+        return float(np.median(ut / rad[iyi]))
+
+    a1, a2 = _aci(0.25 * L_MIL), _aci(0.75 * L_MIL)
+    if a1 is None or a2 is None:
+        return {"durum": "hata", "mesaj": "ara kesit düğümü bulunamadı"}
+    oran = (a2 - a1) / (0.5 * L_MIL)
+    return {"durum": "ok", "nicelik": "yer_degistirme",
+            "analitik_rad_m": BURULMA_ORANI_AN, "fem_rad_m": oran,
+            "hata_pct": abs(oran - BURULMA_ORANI_AN) / BURULMA_ORANI_AN * 100.0,
+            "dugum": int(mesh.num_nodes), "eleman": int(mesh.num_tets)}

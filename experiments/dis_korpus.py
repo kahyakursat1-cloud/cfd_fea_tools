@@ -254,17 +254,23 @@ def _bandli_capalar() -> list[dict]:
             "kurulum_notu": "yönlü aile — Richardson tanımsız, band 2-seviye",
             "besledigi_kapilar": [],
         })
-    d = _oku("gci_kup_arac.json")
-    if d and d.get("Cd_ince") is not None:
+    # KÜP: ARŞİV DEĞİL TAZE ÖLÇÜM. `gci_kup_arac.json` bir yapılandırma
+    # düzeltmesinden (hücre tavanı 2,5M→4M) ÖNCEYE aitti ve çapa o düzeltmeden
+    # sonra hiç koşulmamıştı: hata %6,03 / band %58,3. 2026-08-19'da yeniden
+    # koşuldu → %0,38 / %2,67, asimptotik GCI. Eski dosyadan okumak, düzeltilmiş
+    # bir kusuru ölçmeye devam etmek olurdu.
+    d = (_oku("capa_yeniden_kosum.json").get("capalar") or {}).get("kup")
+    if d:
         h.append({
-            "vaka": "kup Cd (Hoerner, 4-seviye GCI)",
-            "nicelik": "Cd", "kaynak_dosya": "gci_kup_arac.json",
+            "vaka": "kup Cd (Hoerner, yeniden koşum)",
+            "nicelik": "Cd", "kaynak_dosya": "capa_yeniden_kosum.json",
             "dis_referans": "Hoerner 1965, Fluid-Dynamic Drag — küp Cd≈1,05",
-            "truth": d["referans"]["Cd"], "naive": d["Cd_ince"],
+            "truth": d["Cd_ref"], "naive": d["Cd_yeni"],
             "arac_tipi": "kup", "alpha_deg": 0.0, "mach": 0.029,
             "gci_bandi": True, "ag_yeterli": None,
-            "u_val_pct": (d.get("belirsizlik") or {}).get("u_sayisal_pct"),
-            "kurulum_notu": "",
+            "u_val_pct": d["u_sayisal_pct"],
+            "kurulum_notu": f"y⁺ ort={d['yplus']['ort']} max={d['yplus']['max']} "
+                            "— duvar-fonksiyonu bandında, üretim kapısı geçirdi",
             # Küp FİZİK kapısını besledi (Cd≈1,05 referansı, satır ~26) ama
             # burada sınanan kapı BAND SERTİFİKASI; fizik kapısı Cd=1,11'de
             # zaten tetiklenmiyor. Bulaşma kapı-bazlı olduğu için puanlanır.
@@ -427,15 +433,13 @@ def main() -> int:
     for ad in ("sens", "spec"):
         d, n = o[ad], o[f"{ad}_notu"]
         print(f"  {ad}={d if d is not None else 'YOK'}" + (f"  — {n}" if n else ""))
-    print("\n  BULGU — İKİ YOL AYRIŞMIŞ: `classify_fea` referans hatasını KAPI"
-          "\n  olarak kullanıyor (FEA_KABUL_SINIRI), `classify_cfd` ise C_D hükmünü"
-          "\n  YALNIZ banda bakarak veriyor. GCI bandı olan bir koşu, referanstan"
-          "\n  ne kadar uzak olursa olsun DOĞRULANMIŞ alıyor. Aynı açık FEA"
-          "\n  tarafında bilinçli olarak kapatılmıştı (kod yorumu: '%20 hatalı yeni"
-          "\n  bir benchmark da design-grade alabilirdi'); CFD tarafında açık.")
-    print("  Bu bir DAVRANIŞ DEĞİŞİKLİĞİ önerisidir, sessizce uygulanmadı:"
-          "\n  kapı eklemek mevcut yayınlanmış hükümleri yeniden sınıflandırır"
-          "\n  (ör. küp: GCI %3,1 bandı var ama referanstan %6,0 uzak).")
+    # Bu blok bir zamanlar AÇIK bir kusuru anlatıyordu ve kusur kapatıldıktan
+    # sonra metin olduğu gibi kalırsa belge kendi kodunu YANLIŞ anlatır.
+    print("\n  KAPATILDI (2026-08-19): `classify_fea` referans hatasını kapı olarak"
+          "\n  kullanıyor ama `classify_cfd` C_D hükmünü YALNIZ banda bakarak"
+          "\n  veriyordu — GCI bandı olan bir koşu referanstan ne kadar uzak olursa"
+          "\n  olsun DOĞRULANMIŞ alıyordu. Kapı eklendi ve DÜZ YÜZDE değil BEYAN"
+          "\n  EDİLEN u_val'e karşı sınıyor (ASME V&V 20, R_E).")
 
     print("\n  YAPISAL UYARI: guard, GCI bandı ya da referans-ağ beyanı olmadan"
           "\n  neredeyse hiç DOĞRULANMIŞ demez. Bu kanıtı taşımayan bir korpusta"
