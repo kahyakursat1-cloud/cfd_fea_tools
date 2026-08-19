@@ -1,0 +1,161 @@
+{
+ "vaka": "AR6 kanat çapası — NACA TR-586 Tablo I okundu",
+ "_tarih": "2026-08-19",
+ "kaynak": "Jacobs, E. N. & Sherman, A., 'Airfoil Section Characteristics as Affected by Variations of the Reynolds Number', NACA Report 586 (1937; 1939 baskısı) — NTRS 19930091662",
+ "erisim": "AÇIK ERİŞİM; tam metin + Tablo I doğrudan okundu",
+ "model": "5 inç kiriş × 30 inç açıklık → AR=6 dikdörtgen; sonuçlar sonsuz-AR'ye düzeltilmiş SECTION verisi olarak veriliyor",
+ "capa_kosulu": {
+  "kiris_m": 0.15,
+  "hiz_m_s": 30.0,
+  "Re": 300000.0,
+  "alpha_deg": 4.0
+ },
+ "tablo_I_naca0012": [
+  {
+   "R_e_milyon": 8.37,
+   "c_d0min": 0.0069
+  },
+  {
+   "R_e_milyon": 8.45,
+   "c_d0min": 0.0069
+  },
+  {
+   "R_e_milyon": 6.28,
+   "c_d0min": 0.0073
+  },
+  {
+   "R_e_milyon": 3.54,
+   "c_d0min": 0.0077
+  },
+  {
+   "R_e_milyon": 1.74,
+   "c_d0min": 0.0075
+  },
+  {
+   "R_e_milyon": 0.871,
+   "c_d0min": 0.0065
+  },
+  {
+   "R_e_milyon": 0.449,
+   "c_d0min": 0.0105
+  }
+ ],
+ "kaynagin_dogruluk_uyarisi": {
+  "esik_Re": 800000,
+  "alinti": "The drag and pitching-moment results for effective Reynolds Numbers below 800,000 become relatively inaccurate owing to limitations imposed by the sensitivity of the measuring equipment.",
+  "supheli_satirlar": [
+   {
+    "R_e_milyon": 0.449,
+    "c_d0min": 0.0105
+   }
+  ],
+  "uyari_SAYIYLA_gorunuyor": [
+   {
+    "dusuk_Re_milyon": 0.871,
+    "dusuk_cd": 0.0065,
+    "yuksek_Re_milyon": 1.74,
+    "yuksek_cd": 0.0075,
+    "not": "Re DÜŞERKEN sürükleme DÜŞMÜŞ — fiziksel beklentinin tersi; kaynağın düşük-Re uyarısının somut kanıtı"
+   },
+   {
+    "dusuk_Re_milyon": 1.74,
+    "dusuk_cd": 0.0075,
+    "yuksek_Re_milyon": 3.54,
+    "yuksek_cd": 0.0077,
+    "not": "Re DÜŞERKEN sürükleme DÜŞMÜŞ — fiziksel beklentinin tersi; kaynağın düşük-Re uyarısının somut kanıtı"
+   }
+  ]
+ },
+ "engeller": {
+  "1_grafik_tablo": {
+   "durum": "KISMEN ÇÖZÜLDÜ",
+   "cozulen": "Tablo I sayısal; c_d0min değerleri artık kayıtlı.",
+   "kalan": "Tablo I yalnız c_d0min (sıfır-taşıma minimumu) veriyor. Çapa α=4°'de koşuyor ve o noktadaki polar tabloda YOK — Şekil 3'ün sayısallaştırılması gerekir."
+  },
+  "2_Re_uyusmazligi": {
+   "durum": "KESKİNLEŞTİ",
+   "olcum": "Çapa Re = 300,000; tablonun EN DÜŞÜK satırı 449,000. Çapa tablonun ALTINDA.",
+   "sonuc": "Çözüm düşük-Re verisi aramak DEĞİL, çapayı yukarı ölçeklemek: kaynak o bantta kendi verisini güvenilmez ilan ediyor.",
+   "olcekleme_secenekleri": [
+    {
+     "R_e_milyon": 3.54,
+     "c_d0min": 0.0077,
+     "gereken_kiris_m": 1.77,
+     "aciklik_m": 10.62,
+     "mach": 0.088
+    },
+    {
+     "R_e_milyon": 1.74,
+     "c_d0min": 0.0075,
+     "gereken_kiris_m": 0.87,
+     "aciklik_m": 5.22,
+     "mach": 0.088
+    },
+    {
+     "R_e_milyon": 0.871,
+     "c_d0min": 0.0065,
+     "gereken_kiris_m": 0.435,
+     "aciklik_m": 2.61,
+     "mach": 0.088
+    }
+   ]
+  },
+  "3_u_D": {
+   "durum": "YÖN NETLEŞTİ",
+   "not": "İkinci kaynak hâlâ yok, ama kaynağın kendi doğruluk beyanı ve düşük-Re'deki monotonluk ihlali u_D için somut zemin veriyor. Güvenilir bantta (Re≥8e5) c_d0min 0,0069–0,0077 arasında; bu yayılım Re bağımlılığıyla karışık olduğu için doğrudan u_D DEĞİLDİR ve öyle beyan EDİLMEZ."
+  }
+ },
+ "TURBULANS_CARPANI": {
+  "_soru": "Bu referans çapa için güvenilir mi?",
+  "olcum": [
+   {
+    "test_Re": 3180000,
+    "efektif_Re": 8369999,
+    "carpan": 2.632
+   },
+   {
+    "test_Re": 2380000,
+    "efektif_Re": 6280000,
+    "carpan": 2.639
+   },
+   {
+    "test_Re": 1340000,
+    "efektif_Re": 3540000,
+    "carpan": 2.642
+   },
+   {
+    "test_Re": 660000,
+    "efektif_Re": 1740000,
+    "carpan": 2.636
+   },
+   {
+    "test_Re": 330000,
+    "efektif_Re": 871000,
+    "carpan": 2.639
+   },
+   {
+    "test_Re": 170000,
+    "efektif_Re": 449000,
+    "carpan": 2.641
+   }
+  ],
+  "carpan": 2.638,
+  "ne_anlama_geliyor": "Tablo I'in Reynolds sütunu ÖLÇÜM DEĞİL. Test Re'si sabit bir türbülans çarpanıyla (2,64) çarpılmış 'etkin Reynolds sayısı'. Değişken-yoğunluklu tünel YÜKSEK TÜRBÜLANSLIDIR ve bu kavram tam o yüzden vardır.",
+  "carpanin_kaynagi": "NACA TR-558 (Platt, 'Turbulence Factors of NACA Wind Tunnels as Determined by Sphere Tests'; TR-586'nın 10 numaralı referansı). Çarpan, türbülanssız akıştaki kritik KÜRE Reynolds sayısının tünel içindekine oranıdır — yani bir kürenin geçiş noktasından türetilip kanat profiline TAŞINAN bir düzeltmedir.",
+  "neden_engel": "Çapanın BAĞIMSIZ DEĞİŞKENİNDE %164'lük model-tabanlı bir düzeltme demek. Deponun ilan ettiği kural — 'sayı ya kaynağın kendisinden gelir ya hiç yazılmaz; türetilmişse sınıfı söylenir' — burada referansı REDDEDER: yalnız c_d0min değil, hangi Re'ye ait olduğu da türetilmiştir."
+ },
+ "TR824_DENENDI_VE_ELENDI": {
+  "kunye": "Abbott, I. H., von Doenhoff, A. E. & Stivers, L. S., 'Summary of Airfoil Data', NACA Report 824 (1945) — NTRS 19930090976, 261 sayfa, tam metin indirildi",
+  "neden_hedeflendi": "DÜŞÜK-TÜRBÜLANSLI BASINÇLI TÜNEL (LTPT) verisi; türbülans çarpanına gerek yok.",
+  "BULGU": "NACA 0012 BU RAPORDA YOK. Bölüm V ('Aerodynamic Characteristics of Various Airfoil Sections') 90 kesit listeliyor ve dört-haneli simetrik olarak yalnız 0006 ile 0009 var. LTPT'de %12 kalınlıktaki simetrik kesitler laminer-akış serisidir (63₁-012, 64₁-012, 65₁-012), klasik 0012 değil.",
+  "sonuc": "UYGUN DEĞİL — kaynak kaliteli ama aranan kesiti içermiyor"
+ },
+ "DOGRU_KAYNAK_ZATEN_DEPODA": {
+  "kunye": "Ladson, C. L., NASA TM-4074 (1988) — Langley DÜŞÜK-TÜRBÜLANSLI BASINÇLI TÜNEL, NACA 0012",
+  "nerede": "`naca0012_a0` çapasının referansı olarak ZATEN kayıtlı (Cd=0,0081 @ Re=6e6, u_ref=%0,796).",
+  "anlami": "Aranan düşük-türbülanslı NACA 0012 kaynağı bulunamadığı için değil, BAŞKA BİR ÇAPADA durduğu için görülmemişti. AR6 çapasının sorunu 'iyi referans yok' DEĞİL; sorun çapanın KOŞUL SEÇİMİ: Ladson Re≥2e6'da 2B kesit verisi verirken çapa Re=3e5'te 3B AR=6 kanat koşuyor."
+ },
+ "onerilen_yol": "ARTIK KAYNAK ARAMA İŞİ DEĞİL, ÇAPA TASARIMI İŞİ. İki adım: (a) Çapayı Ladson'ın bandına taşı — 30 m/s'de kiriş ≥1,0 m ile Re ≥ 2e6, Ma=0,088 (sıkışamaz zarf içinde). Ağ maliyeti değişmez: çözünürlük kirişe GÖRELİdir, mutlak boyuta değil. (b) α=4° taşıma vakasında referansı iki terime ayır — profil sürüklemesi LADSON'DAN (ölçülmüş), indüklenen sürükleme lifting-line'dan (modellenmiş, e≈0,9). Böylece BASKIN terim ölçülmüş olur ve mevcut ±%15'lik tümüyle-analitik referans düşer; kalan u_D yalnız indüklenen terimin modelinden gelir. Ek olarak α=0° koşusu doğrudan kıyas verir (simetrik kesitte taşıma sıfır → indüklenen sürükleme sıfır → arada model yok), ama o vaka `lifting` hücresini BESLEMEZ çünkü taşıma yoktur.",
+ "_geri_alinan_oneri": "Bu betiğin ilk sürümü 'çapayı Re=1,74e6'ya taşı ve TR-586'yı referans al' diyordu. GERİ ALINDI: türbülans çarpanı ölçülünce görüldü ki taşınacak hedef Re'nin KENDİSİ 2,64'lük bir düzeltme taşıyor. Ölçekleme fikri (kiriş 0,87 m, Ma=0,088, ağ maliyeti değişmez) ve α=0° koşusu fikri (simetrik kesitte indüklenen sürükleme sıfır → arada model olmadan doğrudan kıyas) HÂLÂ geçerli; değişen yalnız hangi kaynağın hedef alınacağı.",
+ "verdikt": "TR-586 ÇAPA REFERANSI OLARAK KULLANILAMAZ. Tablo I okundu ve değerler kayda geçti, ama Reynolds sütunu ölçüm değil: test Re × 2,64 (küre testlerinden türetilen türbülans çarpanı). Buna ek olarak kaynak 8e5 altındaki sürüklemeyi kendi güvenilmez ilan ediyor ve monotonluk ihlali bunu SAYIYLA doğruluyor (0,871e6 → 0,0065 ama 1,740e6 → 0,0075). Çapa referansı DEĞİŞTİRİLMEDİ. TR-824 de denendi ve ELENDİ: kaliteli ama NACA 0012'yi İÇERMİYOR (Bölüm V'te dört-haneli simetrik olarak yalnız 0006 ve 0009 var). ASIL BULGU: aranan düşük-türbülanslı NACA 0012 kaynağı — Ladson TM-4074, Langley LTPT — ZATEN DEPODA, `naca0012_a0` çapasının referansı olarak duruyor. Yani AR6 çapasının sorunu 'iyi referans yok' DEĞİL, çapanın KOŞUL SEÇİMİ: Ladson Re≥2e6'da 2B kesit verisi verirken çapa Re=3e5'te 3B AR=6 kanat koşuyor. Bu bir literatür işi değil, ÇAPA TASARIMI işidir."
+}
