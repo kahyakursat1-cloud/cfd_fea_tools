@@ -1,0 +1,50 @@
+{
+ "vaka": "Çapa referanslarının kaynak denetimi — u_D'yi kim veriyor?",
+ "_neden": "Altı çapanın ikisi TEK-KAYNAKLI (Hoerner), biri kaynak-eksik, biri yarı-analitik. Referans belirsizliği beyan edilmeden model hatası ayrıştırılamaz: u_val ne kadar iyi ölçülürse ölçülsün u_D bilinmiyorsa eksiktir.",
+ "YONTEM_KISITI": "Deponun düz-levhada kullandığı yöntem — 'iki yerleşik kaynağın farkı = u_D' — AYNI KOŞULDA geçerlidir. Düz levhada Schlichting ve Schultz-Grunow AYNI Re_x'te kıyaslandı. Küt cisimlerde farklı çalışmalar farklı Re, farklı zemin koşulu (sabit/hareketli) ve farklı blokaj oranında ölçüm yapar; aradaki saçılmayı doğrudan u_D saymak, KURULUM FARKINI belirsizlik diye etiketlemek olur. Bu yüzden aşağıdaki aday değerler u_D'ye ÇEVRİLMEDİ.",
+ "capalar": {
+  "naca0012_a0": {
+   "durum": "TAMAM",
+   "u_D_pct": 0.796,
+   "kaynak": "Ladson NASA TM-4074 + NASA TMR (7 bağımsız kod, 1σ)",
+   "not": "Alanın kanonik 2B doğrulama vakası; u_D ÖLÇÜLMÜŞ."
+  },
+  "ahmed_25": {
+   "durum": "ADAY BULUNDU, KOŞUL DOĞRULANMADI",
+   "tasidigi": 0.285,
+   "aday_degerler": [
+    0.285,
+    0.299,
+    0.31
+   ],
+   "kaynak_adaylari": "Ahmed vd. 1984 (Re≈4,29e6, sabit zemin); Meile vd. 2011 (Cd(Re) fonksiyonu)",
+   "engel": "Adaylar farklı Re/zemin/blokajdan geliyor olabilir; koşullar eşleştirilmeden fark u_D sayılamaz. Meile'nin Cd(Re) fonksiyonu AYNI Re'de değer verirse yöntem uygulanabilir — birincil kaynaktan okunmalı.",
+   "not": "Ahmed 1984 alanın kanonik küt-cisim referansı; sorun referansın kalitesinde değil, İKİNCİ değerin koşulunda."
+  },
+  "cube": {
+   "durum": "TEK-KAYNAK",
+   "tasidigi": 1.05,
+   "kaynak": "Hoerner 1965",
+   "engel": "İkinci yerleşik kaynak (ESDU / Blevins gibi) kayıtlı değil."
+  },
+  "disk": {
+   "durum": "TEK-KAYNAK",
+   "tasidigi": 1.17,
+   "kaynak": "Hoerner 1965",
+   "engel": "Aynı."
+  },
+  "sphere": {
+   "durum": "KESTİRİM VAR, DOĞRULAMA BEKLİYOR",
+   "u_D_kestirim_pct": 4.38,
+   "engel": "Clift-Gauvin sabitleri birincil kaynaktan doğrulanmadı; ayrıca çapa setup-uyumsuz (geçiş-baskın)."
+  },
+  "naca0012_wing_ar6": {
+   "durum": "REFERANS DEĞİŞMELİ",
+   "tasidigi": 0.02,
+   "u_D_pct": 15.0,
+   "engel": "Yarı-analitik (Prandtl taşıma-çizgisi + düz-plaka Cf). u_D=%15 olduğu için ağ ne kadar inceltilirse inceltilsin u_val %15'in ALTINA inemez — model hatası hiç ayrıştırılamaz.",
+   "arastirma": "Aranan: DÜŞÜK HIZLI, kuvvet verili (CL/CD), yüksek atıflı 3B kanat deneyi. ONERA M6 alanın en çok atıflı 3B vakası (Schmitt & Charpin, AGARD AR-138, 1979) AMA transonik (M=0,84) ve standart veri Cp DAĞILIMI, integre kuvvet değil — aracın sıkışamaz zarfının (Ma<0,3) DIŞINDA. Düşük hızlı kuvvet verisi için NASA yüksek-taşıma atölyesi vakaları (Trap Wing / DLR-F11) aday, ama yüksek-taşıma geometrisi (slat+flap) bu aracın ürettiği basit geometriyle uyuşmuyor."
+  }
+ },
+ "verdikt": "ALTI ÇAPADAN BİRİ TAM (naca0012_a0). Kalan beşinde eksik olan şey referansın KALİTESİ değil — Hoerner ve Ahmed 1984 alanın yerleşik kaynakları — İKİNCİ BİR EŞLEŞTİRİLMİŞ DEĞER. u_D'yi saçılmadan türetmek ancak koşullar aynıysa meşrudur. Tek istisna AR6 kanadı: orada referansın kendisi yarı-analitik ve DEĞİŞMESİ gerekiyor."
+}
