@@ -327,8 +327,17 @@ def build_vehicle_report(r, history, residuals, out_dir: Path) -> Path:
     )
     _mds = getattr(r, "mesh_duyarlilik", None) or {}
     _gci_ok = bool(_mds.get("gci")) and str(_mds.get("verdikt", "")).startswith("✅")
+    # REFERANS VE BÜTÇE SERVİSLE AYNI GEÇİRİLİR. Geçirilmezse rapor, AYNI koşu
+    # için servisten FARKLI bir banner basar: kullanıcı `referans_cd` beyan
+    # ettiğinde JSON `CD_REFERANS_HATASI` derken rapor `CD_GCI_BANDI_VAR`
+    # diyordu. Bir koşunun iki hükmü olamaz.
+    _ref = getattr(r, "referans_cd", None)
+    _ref_hata = (abs(r.cd - _ref) / abs(_ref) * 100.0
+                 if (_ref and r.cd is not None) else None)
+    _u_val = (r.belirsizlik or {}).get("u_toplam_pct") if r.belirsizlik else None
     _verdicts = classify_cfd(r.vehicle_type, r.alpha_deg, Ma,
-                             has_gci_band=_gci_ok, band_pct=_mds.get("fark_pct"))
+                             has_gci_band=_gci_ok, band_pct=_mds.get("fark_pct"),
+                             referans_hata_pct=_ref_hata, u_val_pct=_u_val)
     # Fizik kapısı zarf sınıfını EZER: sayısal olarak kusursuz koşu da fizik-dışı sayı
     # üretebilir; o durumda banner "DOĞRULANMIŞ" demesin.
     _fz = getattr(r, "fizik_kabul", None) or {}

@@ -66,6 +66,11 @@ KABUL = {
                     "`uyarilar` üzerinden gösterir",
     "validity": "zarf sınıfı; arayüz aynı bilgiyi `sonuc_kapisi` hükmüyle "
                 "rozette gösterir",
+    "referans_cd": "beyan edilen yerleşik referans; raporun banner'ı hükmü "
+                   "servisle AYNI kurabilsin diye taşınır. Arayüzde referans "
+                   "GİRDİSİ yok (yalnız CLI/REST), dolayısıyla gösterecek "
+                   "değeri de yok — bu bir KARAR değil BORÇ, bkz. "
+                   "test_giris_noktasi_esdegerligi.BILINEN_BOSLUK",
 }
 
 

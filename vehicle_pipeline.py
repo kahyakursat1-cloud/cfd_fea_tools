@@ -1277,6 +1277,12 @@ class VehicleAnalysisResult:
     case_dir: str = ""
     report: str = ""
     error: str = ""
+    # BEYAN EDİLEN REFERANS: rapor da hükmü SERVİSLE AYNI kurabilsin diye
+    # sonuca taşınır. Taşınmazsa `vehicle_report` kendi `classify_cfd`'sini
+    # referanssız çağırır ve AYNI koşu için servisten FARKLI bir hüküm basar
+    # --- bu deponun "iki-hızlı" dediği ayrışmanın ta kendisi. None ise
+    # davranış birebir eskisi gibidir.
+    referans_cd: float | None = None
     validity: dict | None = None    # geçerlilik-zarfı verdict'i (okula-güvenli kapı)
     fizik_kabul: dict | None = None  # fiziksel kabul-edilebilirlik kapısı (zarf sınıfından ÖNCE)
     kurulum: list | None = None      # kurulum kapısı (ölçek/eksen/A_ref) — raporun EN ÜSTÜNDE
@@ -1319,7 +1325,8 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                          pervane_itki_n=0.0, pervane_cap_m=0.0,
                          ground_clearance=None, mesh_levels=3, refinement_regions=None,
                          max_cells=None, ref_bump=0, turbulence_model="kOmegaSST",
-                         progress_cb=None) -> VehicleAnalysisResult:
+                         progress_cb=None,
+                         referans_cd=None) -> VehicleAnalysisResult:
     stl_path = Path(stl_path)
     stem = stl_path.stem
     preset = VEHICLE_PRESETS[vehicle_type]
@@ -1512,7 +1519,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     base = VehicleAnalysisResult(
         status="failed", vehicle_type=vehicle_type, stl=str(stl_path),
         velocity=velocity, alpha_deg=alpha_deg, geometry=geo,
-        kalite=quality, case_dir=str(case_dir),
+        kalite=quality, case_dir=str(case_dir), referans_cd=referans_cd,
     )
     if not res.success or res.cd is None:
         # HANGI ASAMA DUSTU, HANGI LOGA BAKILACAK. Onceki surum 2000 karakter

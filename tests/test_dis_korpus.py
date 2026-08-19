@@ -202,13 +202,15 @@ def test_referans_kapisi_yalniz_BEYAN_EDILINCE_isirir():
     # Beyan yoksa kapı hiç kurulmamalı: `if referans_cd and ...` koşulu şart.
     assert "if referans_cd and" in src
 
-    for yol in ("vehicle_report.py", "app_analyzer.py"):
-        s = (KOK / yol).read_text(encoding="utf-8")
-        j = s.find("classify_cfd(")
-        assert j > 0, yol
-        assert "referans_hata_pct" not in s[j:j + 400], (
-            f"{yol} artık referans geçiriyor — beyan edilmiş referansı yok, "
-            "bu bir ÜRETİM DAVRANIŞ DEĞİŞİKLİĞİDİR")
+    # GUI'de beyan edilmiş bir referans YOK; uydurmak yanlış olurdu.
+    # (`vehicle_report` geçirir --- sonuç artık beyanı taşıyor, bkz.
+    # test_RAPOR_ve_SERVIS_ayni_hukmu_kuruyor.)
+    s = (KOK / "app_analyzer.py").read_text(encoding="utf-8")
+    j = s.find("classify_cfd(")
+    assert j > 0
+    assert "referans_hata_pct" not in s[j:j + 400], (
+        "app_analyzer artık referans geçiriyor — GUI'de beyan yok, "
+        "bu bir ÜRETİM DAVRANIŞ DEĞİŞİKLİĞİDİR")
 
 
 def test_BEYAN_EDILEN_referans_hukme_giriyor():
@@ -282,3 +284,35 @@ def test_kapi_BEYAN_EDILEN_butceye_karsi_sinar_duz_yuzdeye_degil():
     # Bütçe BEYAN EDİLMEMİŞSE muhafazakâr düz eşiğe düşülür.
     assert _cd(referans_hata_pct=12.0).kod == "CD_REFERANS_HATASI"
     assert _cd(referans_hata_pct=8.0).klass == "VALIDATED"
+
+
+def test_RAPOR_ve_SERVIS_ayni_hukmu_kuruyor():
+    """Bir koşunun iki hükmü olamaz.
+
+    `vehicle_report` kendi `classify_cfd`'sini REFERANSSIZ çağırıyordu:
+    kullanıcı `referans_cd` beyan ettiğinde JSON `CD_REFERANS_HATASI` derken
+    rapor banner'ı `CD_GCI_BANDI_VAR` diyordu — aynı koşu, iki hüküm.
+    """
+    import inspect
+
+    import vehicle_pipeline
+    import vehicle_report
+
+    # Sonuç referansı TAŞIR (yoksa rapor onu hiç göremez)
+    assert "referans_cd" in {f.name for f in
+                             __import__("dataclasses").fields(
+                                 vehicle_pipeline.VehicleAnalysisResult)}
+    # Boru hattı beyanı KABUL EDER ve varsayılanı None (davranış değişmez)
+    imza = inspect.signature(vehicle_pipeline.run_vehicle_analysis)
+    assert imza.parameters["referans_cd"].default is None
+
+    # Rapor, hükmü referans VE bütçeyle kuruyor
+    src = inspect.getsource(vehicle_report)
+    i = src.index("_verdicts = classify_cfd(")
+    cagri = src[i:src.index(")", src.index("u_val_pct", i))]
+    assert "referans_hata_pct=_ref_hata" in cagri
+    assert "u_val_pct=_u_val" in cagri
+
+    # Hizmet referansı boru hattına GEÇİRİYOR
+    hs = (KOK / "hizmet.py").read_text(encoding="utf-8")
+    assert "run_vehicle_analysis(stl_path, referans_cd=referans_cd" in hs

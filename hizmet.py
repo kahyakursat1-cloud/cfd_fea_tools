@@ -181,7 +181,9 @@ def analiz_et(stl_path: str, *, duzeltici: bool = False,
         r, duz = duzelterek_analiz(stl_path, referans=referans_cd, **kw)
     else:
         from vehicle_pipeline import run_vehicle_analysis
-        r = run_vehicle_analysis(stl_path, **kw)
+        # Referans BORU HATTINA da gider: raporu orası üretiyor ve hükmü
+        # servisle AYNI kurabilmesi için beyanı görmesi gerekir.
+        r = run_vehicle_analysis(stl_path, referans_cd=referans_cd, **kw)
 
     if r.status != "ok":
         return {"surum": SURUM, "durum": "hata",
