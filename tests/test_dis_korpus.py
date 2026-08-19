@@ -326,3 +326,39 @@ def test_RAPOR_ve_SERVIS_ayni_hukmu_kuruyor():
     # Hizmet referansı boru hattına GEÇİRİYOR
     hs = (KOK / "hizmet.py").read_text(encoding="utf-8")
     assert "run_vehicle_analysis(stl_path, referans_cd=referans_cd" in hs
+
+
+def test_duvar_olcutu_TEK_KAYNAK():
+    """Aynı ölçüt iki yerde yazılıydı ve dosya bunu kendisi söylüyordu.
+
+    `model_form_bandi._duvar_islemi` y⁺ bandını ve tepe kontrolünü KENDİ
+    yazıyordu; docstring'i "aynı ölçüt duvar_hukmu'nda da var" diyordu. İkisi
+    ayrışırsa hangi koşunun savunulabilir sayıldığı çağıran modüle göre
+    değişirdi.
+    """
+    sys.path.insert(0, str(KOK / "experiments"))
+    from model_form_bandi import _duvar_islemi
+
+    from validity_envelope import yplus_duvar_sinifi
+
+    # Ölçülen vakalar: hüküm ikisinde de AYNI olmalı.
+    for ort, tepe in ((1.0, 3.0), (0.034, 0.048), (46.0, 1237.0),
+                      (112.8, 338.2), (50.6, None), (14.3, 16.8), (20.1, 132.4)):
+        assert _duvar_islemi(ort, tepe) == yplus_duvar_sinifi(ort, tepe)
+
+    # TEPE ölçütü gerçekten ısırıyor: Ahmed ortalaması bandın İÇİNDE.
+    assert yplus_duvar_sinifi(46.0, None) == "wall_function"
+    assert yplus_duvar_sinifi(46.0, 1237.0) is None
+
+
+def test_CAPA_URETIMI_duvar_kapisini_KENDI_uyguluyor():
+    """Kanıtı üreten yer, ürettiği şeyin geçerliliğini bilmeli.
+
+    y⁺'ı hiçbir duvar işlemine ait olmayan bir koşu çapa olarak yazılıyor ve
+    geçersizliği ancak AŞAĞI AKIŞTA fark ediliyordu.
+    """
+    src = (KOK / "validate_pipeline.py").read_text(encoding="utf-8")
+    assert "from validity_envelope import duvar_hukmu" in src
+    assert "duvar işlemi savunulabilir değil" in src
+    # Gerekçe BAŞARILI çapada da taşınır: kapı sessizce geçmiş olmamalı.
+    assert src.count("duvar_gerekce") >= 2

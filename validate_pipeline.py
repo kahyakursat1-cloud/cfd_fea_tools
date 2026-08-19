@@ -266,10 +266,28 @@ def _run_anchor(name: str, velocity: float, out_root: str) -> dict | None:
                 "regime": spec["regime"], "Cd_ref": spec["Cd"], "Cd_ince": r.cd,
                 "hiz_ms": v, "verdikt": md.get("verdikt"), "lsr": md.get("lsr"),
                 "kaynak_ref": spec["ref"]}
+    # DUVAR KAPISI ÜRETİM ANINDA. Bu kapı YOKTU: y⁺'ı hiçbir duvar işlemine
+    # ait olmayan bir koşu (Ahmed 25°: ort=46 ama tepe=1237) çapa olarak
+    # yazılıyor ve geçersizliği ancak AŞAĞI AKIŞTA (`model_form_bandi`)
+    # fark ediliyordu. Kanıtı üreten yerin, ürettiği şeyin geçerli olup
+    # olmadığını bilmesi gerekir --- tüketicinin fark etmesine bırakılmaz.
+    #
+    # Ölçüt `validity_envelope.duvar_hukmu`: TEK kaynak. Depoda bu ölçütün
+    # ikinci bir kopyası vardı ve docstring'i bunu kendisi söylüyordu.
+    from validity_envelope import duvar_hukmu
+    _duvar_ok, _duvar_neden = duvar_hukmu(getattr(r, "sinir_tabaka", None))
+    if not _duvar_ok:
+        return {"durum": "REDDEDİLDİ — duvar işlemi savunulabilir değil "
+                         "(çapa olarak yazılmaz)",
+                "duvar_gerekce": _duvar_neden,
+                "regime": spec["regime"], "Cd_ref": spec["Cd"], "Cd_ince": r.cd,
+                "hiz_ms": v, "kaynak_ref": spec["ref"]}
+
     err = abs(cd_pred - spec["Cd"]) / spec["Cd"] * 100
     return {"regime": spec["regime"], "Cd_ref": spec["Cd"], "Cd_pipeline": round(cd_pred, 5),
             "hata_pct": round(err, 2), "hiz_ms": v, "yontem": yontem,
             "u_sayisal_pct": (r.belirsizlik or {}).get("u_sayisal_pct"),
+            "duvar_gerekce": _duvar_neden,
             "kaynak_ref": spec["ref"]}
 
 

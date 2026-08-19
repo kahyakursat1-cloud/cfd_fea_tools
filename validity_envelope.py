@@ -479,6 +479,30 @@ YPLUS_BANDI = (30.0, 300.0)
 YPLUS_DUVAR_COZUNUR = 5.0
 
 
+def yplus_duvar_sinifi(ort: float | None, tepe: float | None = None) -> str | None:
+    """y⁺ hangi duvar işlemine ait? Hiçbirine değilse None.
+
+    ORTALAMA TEK BAŞINA YETMEZ: tepe y⁺ bandın dışına taşıyorsa duvarın bir
+    bölümü hiçbir zaman log-bölgesinde değildir. Ölçüldü: Ahmed 25° ortalaması
+    46 (bandın içinde) ama tepesi 1237 — o koşu duvar-fonksiyonunu temsil
+    etmiyor.
+
+    TEK KAYNAK: bu ölçüt `model_form_bandi._duvar_islemi` içinde bir kez daha
+    yazılmıştı ve o dosyanın docstring'i "aynı ölçüt duvar_hukmu'nda da var"
+    diyordu --- yani iki kaynak olduğu BİLİNİYORDU. İkisi ayrışırsa hangi
+    koşunun savunulabilir sayıldığı çağıran modüle göre değişirdi.
+    """
+    if ort is None:
+        return None
+    if ort <= YPLUS_DUVAR_COZUNUR:
+        return ("wall_resolved" if tepe is None or tepe <= YPLUS_BANDI[0]
+                else None)
+    if YPLUS_BANDI[0] <= ort <= YPLUS_BANDI[1]:
+        return ("wall_function" if tepe is None or tepe <= YPLUS_BANDI[1]
+                else None)
+    return None          # bant dışı: o koşu zaten savunulabilir değil
+
+
 def duvar_hukmu(sinir: dict | None) -> tuple[bool, str]:
     """Duvar çözünürlüğü savunulabilir mi? İki MEŞRU yol var, ikisi de kabul."""
     s = sinir or {}

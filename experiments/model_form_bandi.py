@@ -165,16 +165,11 @@ def _duvar_islemi(yplus_ort: float | None,
     46 (bandın içinde) ama tepesi 1237 — o koşu duvar-fonksiyonunu temsil
     etmiyor. Aynı ölçüt `validity_envelope.duvar_hukmu`'nda da var.
     """
-    from validity_envelope import YPLUS_BANDI, YPLUS_DUVAR_COZUNUR
-    if yplus_ort is None:
-        return None
-    if yplus_ort <= YPLUS_DUVAR_COZUNUR:
-        return ("wall_resolved" if yplus_max is None
-                or yplus_max <= YPLUS_BANDI[0] else None)
-    if YPLUS_BANDI[0] <= yplus_ort <= YPLUS_BANDI[1]:
-        return ("wall_function" if yplus_max is None
-                or yplus_max <= YPLUS_BANDI[1] else None)
-    return None          # bant dışı: o koşu zaten savunulabilir değil
+    # ÖLÇÜT TEK KAYNAKTAN. Burada bir kez daha yazılmıştı ve bu docstring
+    # zaten "aynı ölçüt duvar_hukmu'nda da var" diyordu --- iki kaynak olduğu
+    # biliniyordu, ayrışması an meselesiydi.
+    from validity_envelope import yplus_duvar_sinifi
+    return yplus_duvar_sinifi(yplus_ort, yplus_max)
 
 
 def _kosudan_yplus(cells: int | None) -> dict | None:
