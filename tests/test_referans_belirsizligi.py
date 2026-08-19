@@ -14,6 +14,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 KOK = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(KOK))
 sys.path.insert(0, str(KOK / "experiments"))
@@ -150,3 +152,68 @@ def test_ikincil_kaynakli_sayi_capaya_YAZILMAMIS():
     assert len(a["neden_beyan_edilmedi"]) >= 2, a
     assert ANCHORS["ahmed_25"]["u_ref_pct"] is None, (
         "ikincil kaynaklı sayı çapa tanımına sızmış")
+
+
+def test_disk_TEK_KAYNAK_engeli_KALKTI_ve_sayi_kanittan_geliyor():
+    """Disk'in u_D'si artık beyanlı; sayı kanıt dosyasıyla BİREBİR eşleşmeli.
+
+    Bulunan (2026-08-19): NACA TN-253 (Knight, Langley, 1926) — 4/8/12 inçlik
+    üç disk, DOĞRUDAN KUVVET ölçümü, Re 33.000–670.000. Çapa Re = 2,0e5'te
+    koşuyor ve tablo o Re'yi üç diskte birden taşıyor, yani Ahmed'i engelleyen
+    "iki değer aynı Re'de değil" sorunu BURADA YOK.
+
+    Kaynağın kendi uyarısı kritik: blokaj düzeltmesi uygulanmamış ve sonuçlar
+    açıkça "sınırsız hava uzayı için değil" deniyor. Çapa sınırsız akışta
+    koştuğu için taşıma zorunlu; iki bağımsız yöntem (S/C→0 ekstrapolasyonu ve
+    Maskell) %0,63 içinde uyuşuyor.
+    """
+    from validation_anchors import ANCHORS
+    p = KOK / "capa_birincil_kaynak.json"
+    if not p.exists():
+        pytest.skip("kanıt üretilmemiş: python experiments/capa_birincil_kaynak.py")
+    d = json.loads(p.read_text(encoding="utf-8"))["disk"]
+
+    assert ANCHORS["disk"]["u_ref_pct"] == d["u_D_alt_kestirim_pct"], (
+        f'çapa {ANCHORS["disk"]["u_ref_pct"]} ≠ kanıt {d["u_D_alt_kestirim_pct"]}')
+    assert "TÜRETİLMİŞ" in ANCHORS["disk"]["u_ref_sinif"], (
+        "blokaj düzeltmesi bu depoda uygulandı; sınıf bunu söylemeli")
+    assert "TN-253" in ANCHORS["disk"]["ref"]
+    # Cd DEĞİŞMEDİ: türetilmiş bir sayı referans yuvasına konmamalı.
+    assert ANCHORS["disk"]["Cd"] == 1.17
+
+    t = d["serbest_havaya_tasima"]
+    assert t["iki_yontem_farki_pct"] < 2.0, (
+        "iki bağımsız blokaj düzeltmesi uyuşmuyor — tek yöntem kendini "
+        "doğrulayamaz, taşıma güvenilir değil")
+    m = t["yontem_2_maskell_1963"]
+    assert m["duzeltme_sonrasi_yayilim_pct"] < d["ham_yayilim_pct"] / 3.0, (
+        "Maskell yayılımı yemiyor — ham saçılmanın kaynağı blokaj olmayabilir")
+
+
+def test_kup_kaynagi_ARANDI_bulundu_ve_GEREKCELI_reddedildi():
+    """"Aranmadı" ile "arandı, bulundu, koşula uymuyor" aynı şey değil.
+
+    Küp için birincil kaynak VAR (Khan vd. 2018). Referans olamamasının nedeni
+    kaynağın yokluğu değil: üst Re'si 5,5e4 iken çapa 2,0e5'te koşuyor, ve PIV
+    iz-momentumundan türetilen sürükleme kuvvet-terazisi sürüklemesiyle özdeş
+    değil. Hoerner'la farkı ~%40 — bu saçılma değil, yöntem farkının imzası.
+    """
+    from validation_anchors import ANCHORS
+    p = KOK / "capa_birincil_kaynak.json"
+    if not p.exists():
+        pytest.skip("kanıt üretilmemiş")
+    k = json.loads(p.read_text(encoding="utf-8"))["kup"]
+    assert k["verdikt"].startswith("BULUNDU AMA")
+    assert len(k["gerekce"]) >= 3, "ret gerekçesi tek cümleye indirgenmiş"
+    # Reddedilen sayı çapa tanımına SIZMAMALI.
+    assert ANCHORS["cube"]["u_ref_pct"] is None
+    assert ANCHORS["cube"]["Cd"] == 1.05
+
+    # Defter de "arandı" demeli — TEK-KAYNAK satırı arama kaydını taşımalı.
+    dp = KOK / "referans_belirsizligi.json"
+    if dp.exists():
+        d = json.loads(dp.read_text(encoding="utf-8"))
+        s = next(x for x in d["satirlar"] if x["capa"] == "cube")
+        assert "arama" in s, (
+            "TEK-KAYNAK satırı arama kaydı taşımıyor — 'arandı ve reddedildi' "
+            "ile 'hiç aranmadı' ayırt edilemiyor")

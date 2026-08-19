@@ -1264,6 +1264,11 @@ class VehicleAnalysisResult:
     alpha_deg: float
     geometry: dict
     kalite: str = ""                    # MESH_QUALITY preset'i — mentor öğrenmesi için kayıt
+    # HANGİ MODELİN KOŞTUĞU SONUÇTA YAZILI DEĞİLDİ. Ölçüldü (2026-08-19): küre
+    # çapası kOmegaSSTLM ile koştu ama sonuc.json bunu hiçbir yerde söylemiyordu,
+    # dolayısıyla aşağı akıştaki hiçbir tüketici "bu ağ bu modele uygun mu"
+    # sorusunu SORAMIYORDU. `duvar_hukmu` modeli alıyor ama kimse veremiyordu.
+    turbulence_model: str = ""
     aref_m2: float | None = None
     aref_mode: str = ""
     cd: float | None = None
@@ -1531,6 +1536,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         status="failed", vehicle_type=vehicle_type, stl=str(stl_path),
         velocity=velocity, alpha_deg=alpha_deg, geometry=geo,
         kalite=quality, case_dir=str(case_dir), referans_cd=referans_cd,
+        turbulence_model=turbulence_model,
     )
     if not res.success or res.cd is None:
         # HANGI ASAMA DUSTU, HANGI LOGA BAKILACAK. Onceki surum 2000 karakter

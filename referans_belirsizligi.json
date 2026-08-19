@@ -28,9 +28,9 @@
     {
       "capa": "ahmed_25",
       "kaynak_sayisi": 2,
-      "ref": "Ahmed et al. 1984; Meile et al. 2011",
-      "Re": "~1e6",
-      "Cd": 0.285,
+      "ref": "Meile vd. 2011, CFD Letters 3(1) — cD=0,299 @ Re=2,784e6 (KOSULA ESLESIK); krs. Ahmed & Ramm 1984 SAE 840300, cD=0,2875 @ Re=4,29e6",
+      "Re": "2,784e6 (V=40 m/s, L=1,044 m)",
+      "Cd": 0.299,
       "durum": "KAYNAK-EKSİK",
       "engel": "Capa tanimi 2 kaynak adi tasiyor ama TEK sayi sakliyor. Duz levhada isleyen yontem (iki kaynagin farki = u_D alt kestirimi) burada da uygulanabilir; eksik olan yalnizca IKINCI SAYIDIR.",
       "gereken": "ikinci kaynagin Cd degeri kayda gecmeli",
@@ -54,17 +54,24 @@
       "Cd": 1.05,
       "durum": "TEK-KAYNAK",
       "engel": "Tek tablo degeri var ve ikinci bir yerlesik korelasyon yok; yontem UYGULANAMAZ.",
-      "gereken": "bagimsiz ikinci bir olcum/kaynak"
+      "gereken": "bagimsiz ikinci bir olcum/kaynak",
+      "arama": {
+        "sonuc": "BULUNDU AMA REFERANS OLARAK KULLANILAMADI",
+        "bulunan": "Khan, Sooraj, Sharma & Agrawal (2018), Exp. Thermal Fluid Sci. 93:257-271 — serbest akista asili kup, Re 500-55.000, PIV. Cd = 0,56-0,68 (temel), 0,63-0,89 (degistirilmis iz taramasi).",
+        "kaynak_turu": "BIRINCIL ama ucretli duvar; ozet ve kunye okunabildi",
+        "neden_beyan_edilmedi": [
+          "KOSUL UYUSMUYOR: ust Re'si 5,5e4; kup capasi Re = 2,0e5'te kosuyor.",
+          "OLCULEN NICELIK AYNI DEGIL: PIV iz-momentumundan turetilen surukleme, kuvvet terazisi suruklemesiyle ozdes degildir. Kunt cisimde iz taramasi sistematik olarak DUSUK okur; kaynagin kendi iki yontemi bile %27 ayrisiyor.",
+          "FARK u_D OLAMAYACAK KADAR BUYUK: Hoerner 1,05 ile ~%40. Bu bir olcum sacilmasi degil, yontem farkinin imzasi."
+        ],
+        "_duzeltme": "Onceki kayit 'bagimsiz birincil kaynak YOK' diyordu; bu YANLISTI. Kaynak var ve birincil — capanin kosuluna ve olctugu nicelige uymuyor. Iki ifade ayni sey degil.",
+        "_acik_kalan": "Re >~ 1e5'te serbest akista kup icin KUVVET TERAZISI olcumu bulunamadi. Kup literaturunun agirligi ya yuzeye-monteli kup (Castro & Robins 1977 — sinir tabaka icinde, farkli problem) ya da dusuk-Re parcacik rejimi."
+      }
     },
     {
       "capa": "disk",
-      "kaynak_sayisi": 1,
-      "ref": "Hoerner, Fluid-Dynamic Drag (1965)",
-      "Re": ">1e3 (keskin-kenar, Re-duyarsız)",
-      "Cd": 1.17,
-      "durum": "TEK-KAYNAK",
-      "engel": "Tek tablo degeri var ve ikinci bir yerlesik korelasyon yok; yontem UYGULANAMAZ.",
-      "gereken": "bagimsiz ikinci bir olcum/kaynak"
+      "durum": "u_D BEYAN EDİLMİŞ",
+      "u_ref_pct": 2.99
     },
     {
       "capa": "naca0012_wing_ar6",
@@ -74,13 +81,13 @@
   ],
   "sayim": {
     "Re-BANDI": 1,
-    "u_D BEYAN EDİLMİŞ": 2,
+    "u_D BEYAN EDİLMİŞ": 3,
     "KAYNAK-EKSİK": 1,
-    "TEK-KAYNAK": 2
+    "TEK-KAYNAK": 1
   },
   "_kisit": "Hicbir sayi burada model-form bandina YAZILMAZ. Re-BANDI kestirimi dogrulama bekliyor; KAYNAK-EKSIK satirlari ise literatur isi ister ve o is bu depoda YAPILMADI.",
   "_uretim": "Üretim: python experiments/referans_belirsizligi.py",
-  "verdikt": "6 çapa: 2 beyanlı, 1 KAYNAK-EKSİK (yöntem uygulanabilir, ikinci sayı kayıtlı değil), 2 TEK-KAYNAK (yöntem uygulanamaz), 1 Re-BANDI (kestirim var, doğrulama bekliyor). Yani u_D boşluğunun tamamı 'ölçülemez' değil: 1 çapada eksik olan ölçüm değil, KAYDA GEÇMEMİŞ bir literatür sayısı.",
+  "verdikt": "6 çapa: 3 beyanlı, 1 KAYNAK-EKSİK (yöntem uygulanabilir, ikinci sayı kayıtlı değil), 1 TEK-KAYNAK (yöntem uygulanamaz), 1 Re-BANDI (kestirim var, doğrulama bekliyor). Yani u_D boşluğunun tamamı 'ölçülemez' değil: 1 çapada eksik olan ölçüm değil, KAYDA GEÇMEMİŞ bir literatür sayısı.",
   "_ortam": {
     "python": "3.13.12",
     "paketler": {

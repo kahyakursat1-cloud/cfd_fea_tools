@@ -92,3 +92,39 @@ def test_build_case_ground_plane(tmp_path):
     assert "omegaWallFunction" in (case_dir / "0" / "omega").read_text().split("bottom")[1][:60]
     assert "nutUSpaldingWallFunction" in (case_dir / "0" / "nut").read_text().split("bottom")[1][:60]
     assert "zeroGradient" in (case_dir / "0" / "p").read_text().split("bottom")[1][:60]
+
+
+def test_katmanli_kosuda_kalite_olcutu_GEVSETILIYOR(tmp_path):
+    """Katman istendiğinde tet-ayrışım ölçütü kapatılır ve `relaxed` yazılır.
+
+    ÖLÇÜLDÜ (2026-08-19, küre çapası — log.snappyHexMesh):
+      istenen 10 katman → ortalama 0,535 örüldü, hedef kalınlığın %13,9'u
+      ekstrüzyon 1360 → 600 / 1728 yüze çürüdü (yalnız %34,7 kapsama)
+    Her yinelemede aynı satır: "faces with face-decomposition tet quality
+    < 1e-15 : 472". Yani katman eklenince ölçüt düşüyor ve snappy katmanı
+    SİLİYOR. `relaxed` alt-sözlüğü hiç olmadığı için gevşetip yeniden deneme
+    yolu da kapalıydı.
+    """
+    case_dir = build_case(_box_case(tmp_path, n_layers=10,
+                                    first_layer_thickness=2e-5),
+                          tmp_path / "out")
+    s = (case_dir / "system" / "snappyHexMeshDict").read_text()
+    assert "minTetQuality -1e30;" in s, (
+        "tet-ayrışım ölçütü hâlâ sıkı — katman ekleme yanlış pozitifle silinir")
+    assert "relaxed" in s and "maxNonOrtho 75;" in s, (
+        "`relaxed` alt-sözlüğü yok — snappy gevşetip yeniden deneyemez")
+    assert "nRelaxedIter" in s, "`relaxed` bloğu nRelaxedIter olmadan devreye girmez"
+    assert "addLayers       true;" in s
+
+
+def test_katmansiz_kosuda_olcut_SIKI_kaliyor(tmp_path):
+    """Gevşetme yalnız katmanlı koşuya ait; katmansız koşular değişmemeli.
+
+    Katmansız koşular bugüne dek sıkı ölçütle sorunsuz üretti; onları da
+    gevşetmek, çözülmemiş bir soruna karşılık gerçek bir kalite tavizi olurdu.
+    """
+    s = (build_case(_box_case(tmp_path), tmp_path / "out")
+         / "system" / "snappyHexMeshDict").read_text()
+    assert "minTetQuality 1e-15;" in s
+    assert "relaxed" not in s
+    assert "addLayers       false;" in s

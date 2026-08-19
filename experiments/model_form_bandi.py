@@ -156,6 +156,26 @@ def model_form_ozeti(rec: dict) -> dict:
 U_SAYISAL_TAVANI = 15.0
 
 
+def _capa_modeli(anahtar: str) -> str:
+    """Çapanın koştuğu türbülans modeli. Koşu kaydı taşıyorsa O kullanılır;
+    eski koşular taşımadığı için yapılandırmaya düşülür.
+
+    Yapılandırma İKİNCİL kaynaktır: koşudan sonra değiştirilmişse eskimiş olur.
+    Bu yüzden çağıran önce `sonuc.json`'daki `turbulence_model`'e bakar —
+    2026-08-19'dan sonraki koşular onu yazıyor.
+    """
+    try:
+        from validate_pipeline import _GEOM
+    # sessiz-yutma: kabul — validate_pipeline trimesh istiyor ve o yoksa
+    # yapılandırma okunamaz. Sonuç varsayılan modele düşer; bu, kapıyı
+    # GEVŞETMEZ çünkü varsayılan (kOmegaSST) duvar-fonksiyonunu meşru sayar
+    # ve zaten eski davranıştır.
+    except Exception:
+        return "kOmegaSST"
+    kw = (_GEOM.get(anahtar) or (None, None, {}))[2] or {}
+    return kw.get("turbulence_model") or "kOmegaSST"
+
+
 def _duvar_islemi(yplus_ort: float | None,
                   yplus_max: float | None = None) -> str | None:
     """y⁺ KAYITLIYSA hücre adı; değilse None (tahmin YOK).
@@ -308,6 +328,30 @@ def capalari_topla() -> list[dict]:
         from validation_anchors import ANCHORS
         spec = ANCHORS.get(anahtar)
         if not spec or d.get("cd") is None:
+            continue
+        # DUVAR İŞLEMİ KOŞAN MODELE UYGUN MU. Ölçüldü (2026-08-19): küre çapası
+        # kOmegaSSTLM ile ama y⁺ ortalaması 59 olan bir ağda koştu; LM duvar-
+        # çözünür ağ ister. Sapması %69,8, sayısal bandı ise %0,02 — yani
+        # "ayrılabilir" sayılıp `bluff.wall_function` bandını TEK BAŞINA
+        # %8,15'ten %69,85'e çekiyordu. Bu model-form hatası değil, bozuk
+        # kurulum. `duvar_hukmu` bunu zaten reddediyordu ama BU tüketici onu
+        # hiç sormuyordu; kapı vardı, bandı üreten yol ondan geçmiyordu.
+        from validity_envelope import duvar_hukmu
+        _model = d.get("turbulence_model") or _capa_modeli(anahtar)
+        _duvar_ok, _duvar_neden = duvar_hukmu(d.get("sinir_tabaka"), _model)
+        # YALNIZ MODELE-OZGU RET burada elenir. `duvar_hukmu` iki ayri sey icin
+        # de duser: (i) model ag ile uyumsuz, (ii) y+ zaten hicbir duvar islemine
+        # ait degil. Ikincisini asagidaki `_duvar_islemi` yolu ZATEN kendi
+        # gerekcesiyle listeliyor ("TEPESI disarida"); ikisini burada birlestirmek
+        # Ahmed'in ayrintili gerekcesini yutardi. Modelsiz hukum GECIYOR ama
+        # modelli DUSUYORSA, ret modele ozgudur.
+        if not _duvar_ok and duvar_hukmu(d.get("sinir_tabaka"))[0]:
+            c.append({"capa": ad, "rejim": spec["regime"],
+                      "_gecersiz": True, "_gecersiz_neden": _duvar_neden,
+                      "turbulence_model": _model,
+                      "yplus_ort": ((d.get("sinir_tabaka") or {}).get("yplus")
+                                    or {}).get("ort"),
+                      "referans": spec["ref"][:80]})
             continue
         hata = abs(d["cd"] - spec["Cd"]) / spec["Cd"] * 100
         md = d.get("mesh_duyarlilik") or {}
@@ -482,6 +526,15 @@ def calistir() -> dict:
     hucreler: dict[str, dict] = {}
     atanamayan: list[dict] = []
     for x in capalar:
+        if x.get("_gecersiz"):
+            # Kurulum hükmü SAYISAL hükümden ÖNCE gelir: geçersiz bir koşunun
+            # sapması ne kadar dar bandla ölçülürse ölçülsün model-form değildir.
+            atanamayan.append({
+                "capa": x["capa"], "rejim": x["rejim"],
+                "sapma_pct": None, "yplus_ort": x.get("yplus_ort"),
+                "turbulence_model": x.get("turbulence_model"),
+                "neden": "KURULUM GEÇERSİZ — " + x["_gecersiz_neden"]})
+            continue
         _u = x.get("u_sayisal_pct")
         if _u is not None and _u > U_SAYISAL_TAVANI:
             atanamayan.append({
@@ -631,7 +684,9 @@ def calistir() -> dict:
         "_neden": ("Deger LITERATUR-ONCULUYDU ve rejimden bagimsiz uygulaniyordu. "
                    "Bagli akis, ayrilmis akis ve kunt cisim ayni model-form "
                    "hatasini tasimaz."),
-        "capalar": [{**x, "sapma_pct": round(x["sapma_pct"], 2)} for x in capalar],
+        "capalar": [{**x, "sapma_pct": (round(x["sapma_pct"], 2)
+                                       if x.get("sapma_pct") is not None else None)}
+                    for x in capalar],
         "olculen_hucreler": ayrinti,
         "atanamayan_capalar": atanamayan,
         "oncul_kalan_hucreler": oncul_kalan,
@@ -681,7 +736,9 @@ def main() -> int:
         json.dumps(rec, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(rec["vaka"] + "\n")
     for x in rec["capalar"]:
-        print(f"  {x['capa']:<34} {x['rejim']:<12} %{x['sapma_pct']:>5.2f}"
+        _s = ("GEÇERSİZ" if x.get("_gecersiz")
+              else f"%{x['sapma_pct']:>5.2f}")
+        print(f"  {x['capa']:<34} {x['rejim']:<12} {_s:>8}"
               f"  y+={x.get('yplus_ort')}")
     if rec["atanamayan_capalar"]:
         print("\n  ATANAMAYAN:")

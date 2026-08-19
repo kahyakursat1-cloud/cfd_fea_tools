@@ -70,6 +70,46 @@ ARANAN = {
             "yontem 'ayni kosulda iki korelasyon' diyordu, bu kosul saglanmiyor.",
         ],
     },
+    "disk": {
+        "sonuc": "BEYAN EDİLDİ",
+        "bulunan": ("NACA TN-253 (Knight, Langley, 1926): 4/8/12 inclik uc disk, "
+                    "DOGRUDAN KUVVET olcumu, Re 33.000-670.000. Capanin kostugu "
+                    "Re = 2,0e5 tabloda UC diskte birden var."),
+        "u_D_pct": 2.99,
+        "kaynak_turu": "BIRINCIL (NACA raporunun tam metni + Tablo I-III okundu)",
+        "kanit": "capa_birincil_kaynak.json",
+        "_tasima": ("Knight blokaj duzeltmesi UYGULAMIYOR ve sonuclarin serbest "
+                    "hava icin gecerli OLMADIGINI acikca yaziyor. Capa sinirsiz "
+                    "akista kostugu icin tasima sart: S/C->0 ekstrapolasyonu "
+                    "1,1396, Maskell(theta=2,5) 1,1324, fark %0,63 -> 1,1360."),
+        "_kendi_kendini_sinama": ("Blokaji 9 kat farkli uc disk, duzeltme ONCESI "
+                                  "%9,0 ayrisiyordu, SONRASI %2,1. Yayilimin "
+                                  "kaynagi gercekten blokajmis."),
+    },
+    "cube": {
+        "sonuc": "BULUNDU AMA REFERANS OLARAK KULLANILAMADI",
+        "bulunan": ("Khan, Sooraj, Sharma & Agrawal (2018), Exp. Thermal Fluid "
+                    "Sci. 93:257-271 — serbest akista asili kup, Re 500-55.000, "
+                    "PIV. Cd = 0,56-0,68 (temel), 0,63-0,89 (degistirilmis iz "
+                    "taramasi)."),
+        "kaynak_turu": "BIRINCIL ama ucretli duvar; ozet ve kunye okunabildi",
+        "neden_beyan_edilmedi": [
+            "KOSUL UYUSMUYOR: ust Re'si 5,5e4; kup capasi Re = 2,0e5'te kosuyor.",
+            "OLCULEN NICELIK AYNI DEGIL: PIV iz-momentumundan turetilen "
+            "surukleme, kuvvet terazisi suruklemesiyle ozdes degildir. Kunt "
+            "cisimde iz taramasi sistematik olarak DUSUK okur; kaynagin kendi "
+            "iki yontemi bile %27 ayrisiyor.",
+            "FARK u_D OLAMAYACAK KADAR BUYUK: Hoerner 1,05 ile ~%40. Bu bir "
+            "olcum sacilmasi degil, yontem farkinin imzasi.",
+        ],
+        "_duzeltme": ("Onceki kayit 'bagimsiz birincil kaynak YOK' diyordu; bu "
+                      "YANLISTI. Kaynak var ve birincil — capanin kosuluna ve "
+                      "olctugu nicelige uymuyor. Iki ifade ayni sey degil."),
+        "_acik_kalan": ("Re >~ 1e5'te serbest akista kup icin KUVVET TERAZISI "
+                        "olcumu bulunamadi. Kup literaturunun agirligi ya "
+                        "yuzeye-monteli kup (Castro & Robins 1977 — sinir tabaka "
+                        "icinde, farkli problem) ya da dusuk-Re parcacik rejimi."),
+    },
 }
 
 # Kaynak adlarini ayiran isaretler: ";" ve " + ". Virgul KULLANILMAZ —
@@ -163,6 +203,13 @@ def main() -> int:
                           "korelasyon yok; yontem UYGULANAMAZ."),
                 "gereken": "bagimsiz ikinci bir olcum/kaynak",
             })
+            # ARAMA KAYDI TEK-KAYNAK SATIRLARINA DA ILISIR. Onceki surumde
+            # yalniz KAYNAK-EKSIK dalina ilisiyordu, yani "arandi ve bulunamadi"
+            # ile "hic aranmadi" AYNI GORUNUYORDU. Kup icin kaynak ARANDI,
+            # BULUNDU ve gerekceli olarak REDDEDILDI — bu, aramamakla ayni sey
+            # degil ve kayitta gorunmeliydi.
+            if ad in ARANAN:
+                kayit["arama"] = ARANAN[ad]
         satirlar.append(kayit)
 
     say = {}

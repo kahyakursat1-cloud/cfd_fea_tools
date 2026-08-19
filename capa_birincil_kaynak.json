@@ -1,0 +1,83 @@
+{
+ "vaka": "disk + küp çapaları: bağımsız BİRİNCİL kaynak araması",
+ "_tarih": "2026-08-19",
+ "capa_kosulu": {
+  "hiz_m_s": 30.0,
+  "cap_m": 0.1,
+  "Re": 200000.0,
+  "akis": "sınırsız (CFD uzak-alan)"
+ },
+ "disk": {
+  "kaynak": "NACA TN-253, Montgomery Knight, Langley Memorial Aeronautical Laboratory, Aralık 1926 — 'Wind Tunnel Standardization Disk Drag' (NTRS 19930087643)",
+  "erisim": "AÇIK ERİŞİM, tam metin + Tablo I-III okundu",
+  "yontem": "doğrudan kuvvet: tel süspansiyon + tünel sürükleme terazisi, ayrı tare ölçümü; Cd = D/(qS), S = disk alanı",
+  "Re_araligi": "33.000 – 670.000 (karakteristik uzunluk = disk çapı)",
+  "kaynagin_beyan_ettigi_hata_pct": 1.0,
+  "_hata_notu": "50 noktanın 3'ü hariç tekrar ölçümler %1 içinde uyuşuyor",
+  "KAYNAGIN_KENDI_UYARISI": "Blokaj düzeltmesi UYGULANMAMIŞ. Knight: sonuçlar 'yalnız bu tünelin karakteristiği olarak sunulur, sınırsız hava uzayında hareket eden dairesel bir diskin karakteristiği olarak değil'. Üç eğri arasındaki fark da blokaja atfediliyor.",
+  "capa_Re_sinde_ham_degerler": [
+   {
+    "disk_inc": 4.0,
+    "tikama_S_C": 0.00444,
+    "Cd_ham": 1.1617
+   },
+   {
+    "disk_inc": 8.0,
+    "tikama_S_C": 0.01778,
+    "Cd_ham": 1.1823
+   },
+   {
+    "disk_inc": 12.0,
+    "tikama_S_C": 0.04,
+    "Cd_ham": 1.2702
+   }
+  ],
+  "ham_yayilim_pct": 9.0,
+  "serbest_havaya_tasima": {
+   "yontem_1_dogrusal_ekstrapolasyon": {
+    "Cd_S_C_sifir": 1.1396,
+    "egim": 3.143,
+    "varsayim": "küçük S/C'de Cd–blokaj ilişkisi doğrusal"
+   },
+   "yontem_2_maskell_1963": {
+    "theta": 2.5,
+    "duzeltilmis": [
+     1.1469,
+     1.1233,
+     1.127
+    ],
+    "ortalama": 1.1324,
+    "duzeltme_sonrasi_yayilim_pct": 2.09,
+    "_kendi_kendini_sinama": "Blokajı 9 kat farklı üç disk düzeltmeden ÖNCE %9.0 ayrışıyordu, SONRA %2.1. Düzeltme farkı gerçekten yiyor — yani ham yayılımın kaynağı blokajdır."
+   },
+   "iki_yontem_farki_pct": 0.63,
+   "serbest_hava_Cd": 1.136
+  },
+  "hoerner_ile_kiyas": {
+   "hoerner": 1.17,
+   "TN253_serbest_hava": 1.136,
+   "fark_pct": 2.99
+  },
+  "u_D_alt_kestirim_pct": 2.99,
+  "u_D_sinif": "ALT SINIR — aynı Re'de iki bağımsız kaynağın farkı (Hoerner el kitabı vs TN-253 blokaj-düzeltilmiş). TN-253 tarafı TÜRETİLMİŞ: blokaj düzeltmesi kaynağın kendisinde yok, bu betikte uygulandı.",
+  "olculen_cfd": 1.20956,
+  "sapma_hoernere_pct": 3.38,
+  "sapma_TN253e_pct": 6.48,
+  "verdikt": "TEK-KAYNAK ENGELİ KALKTI — u_D beyan edilebilir"
+ },
+ "kup": {
+  "kaynak": "Khan, M.H.; Sooraj, P.; Sharma, A.; Agrawal, A. (2018), 'Flow around a cube for Reynolds numbers between 500 and 55,000', Experimental Thermal and Fluid Science 93:257–271, doi:10.1016/j.expthermflusci.2017.12.013",
+  "erisim": "ÜCRETLİ DUVAR — yalnız özet ve künye okunabildi",
+  "yontem": "PIV; sürükleme iz-momentum (wake survey) ile TÜRETİLİYOR",
+  "bildirilen_Cd": "0,56–0,68 (temel yöntem); 0,63–0,89 (değiştirilmiş iz taraması)",
+  "verdikt": "BULUNDU AMA REFERANS OLARAK KULLANILAMADI",
+  "gerekce": [
+   "KOŞUL UYUŞMUYOR: üst Re'si 5,5e4; küp çapası Re = 2,0e5'te koşuyor. Kaynak çapanın rejimini kapsamıyor.",
+   "ÖLÇÜLEN NİCELİK AYNI DEĞİL: PIV iz-momentumundan türetilen sürükleme, kuvvet terazisi sürüklemesiyle özdeş değildir; künt cisimde güçlü 3B iz ve düzlem-dışı momentum akısı nedeniyle iz taraması sistematik olarak DÜŞÜK okur. Kaynağın kendi iki yöntemi bile %27 ayrışıyor (0,68 vs 0,89).",
+   "FARK u_D OLAMAYACAK KADAR BÜYÜK: Hoerner 1,05 ile arasındaki fark ~%40. Bu, iki ölçümün saçılması değil, tanım/yöntem farkının imzasıdır; u_D diye yazmak sahte-kesinlik olurdu."
+  ],
+  "_duzeltme": "Önceki kayıt küp için 'bağımsız birincil kaynak YOK' diyordu. Bu YANLIŞTI — kaynak var ve birincil. Doğru ifade: kaynak var, çapanın koşuluna ve ölçtüğü niceliğe uymuyor.",
+  "acik_kalan": "Re ≳ 1e5'te serbest akışta küp için KUVVET TERAZİSİ ölçümü hâlâ bulunamadı. Küp literatürünün ağırlığı ya yüzeye-monteli küp (Castro & Robins 1977, sınır tabaka içinde — farklı problem) ya da parçacık rejiminde düşük Re."
+ },
+ "verdikt": "disk: TEK-KAYNAK engeli KALKTI — NACA TN-253 (birincil, kuvvet terazisi, koşula eşleşik Re) blokaj-düzeltilerek serbest havaya taşındı (Cd=1.1360); Hoerner 1,17 ile farkı u_D olarak beyan edildi (%2.99). küp: birincil kaynak BULUNDU (Khan vd. 2018) ama çapanın Re'sini kapsamıyor ve iz-taramasıyla ölçüyor — referans olamadı, u_D beyan EDİLMEDİ."
+}

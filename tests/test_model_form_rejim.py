@@ -83,19 +83,25 @@ class TestKanit:
     def test_ATANAMAYAN_capa_TAHMIN_edilmiyor(self):
         """Çapa bir hücreye atanamıyorsa NEDENİ yazılır; tahmin YASAK.
 
-        DÖRT ayrı neden var ve dördü de kabul; hangisi olduğu okuyucu için
+        BEŞ ayrı neden var ve beşi de kabul; hangisi olduğu okuyucu için
         önemlidir, o yüzden hepsi aynı torbaya konmaz:
           (a) y⁺ hiç kayıtlı değil — eksik kayıt;
           (b) y⁺ ölçüldü ama tampon bölgede (5<y⁺<30) — fiziksel bulgu;
           (c) y⁺ ortalaması bantta ama TEPESİ dışarıda — duvarın bir bölümü
               hiçbir zaman log-bölgesinde değil;
-          (d) çapanın SAYISAL bandı, ölçmek istediği model hatasından büyük.
+          (d) çapanın SAYISAL bandı, ölçmek istediği model hatasından büyük;
+          (e) y⁺ bir duvar işlemine ait AMA koşan türbülans modeli o duvar
+              işlemini kabul etmiyor (geçiş modeli, duvar-fonksiyonu ağında).
+
+        (e) 2026-08-19'da eklendi: küre kOmegaSSTLM ile y⁺≈59 ağda koştu ve
+        (b)-(d) eleklerinin HİÇBİRİNE takılmadı — sapması %69,8, sayısal bandı
+        %0,02. Tek başına `bluff.wall_function`'ı %8,15'ten %69,85'e çıkarıyordu.
         """
         d = self._d()
         if not d:
             return
         gecerli = ("KAYITLI DEĞİL", "Tampon bölgede", "TEPESİ dışarıda",
-                   "SAYISAL BAND ÇOK BÜYÜK")
+                   "SAYISAL BAND ÇOK BÜYÜK", "KURULUM GEÇERSİZ")
         for x in d["atanamayan_capalar"]:
             assert any(g in x["neden"] for g in gecerli), x["neden"]
             if x.get("yplus_ort") is None:
@@ -128,3 +134,65 @@ class TestKanit:
         assert isinstance(d["oncul_kalan_hucreler"], list)
         for x in d["oncul_kalan_hucreler"]:
             assert x["rejim"] in _MODEL_U_PCT
+
+
+class TestKurulumGecerliligi:
+    """Bandı besleyen koşu, KOŞTUĞU MODELE uygun bir ağda mı koşmuş?
+
+    ÖLÇÜLDÜ (2026-08-19): küre çapası kOmegaSSTLM ile ama y⁺ ortalaması 59 olan
+    bir ağda koştu — LM duvar-çözünür ağ ister. Sapması %69,8, sayısal bandı
+    %0,02. Yani mevcut iki elek (sayısal-band tavanı ve y⁺ bandı) İKİSİ DE onu
+    geçiriyordu: band çok dar olduğu için "ayrılabilir" sayıldı ve y⁺ 59
+    duvar-fonksiyonu bandının içindeydi. Sonuç: `bluff.wall_function` tek bir
+    bozuk koşuyla %8,15'ten %69,85'e çıkıyordu — 8,5 kat.
+
+    `duvar_hukmu` bu koşuyu ZATEN reddediyordu; bandı üreten yol ona hiç
+    sormuyordu. Kusur kapının yokluğu değil, kapıdan geçmeyen yoldu.
+    """
+
+    def test_gecis_modeli_duvar_fonksiyonu_aginda_BANDA_GIRMEZ(self):
+        from validity_envelope import duvar_hukmu
+        kure = {"yplus": {"ort": 59.08, "min": 1.27, "max": 213.96}}
+        assert duvar_hukmu(kure, "kOmegaSST")[0] is True, (
+            "aynı ağ kOmegaSST için meşru olmalı — kapı fazla dar")
+        assert duvar_hukmu(kure, "kOmegaSSTLM")[0] is False
+
+    def test_uretici_kapiyi_GERCEKTEN_cagiriyor(self):
+        """Kapı çağrılmıyorsa var olmasının anlamı yok."""
+        import inspect
+
+        import experiments.model_form_bandi as mfb
+        src = inspect.getsource(mfb.capalari_topla)
+        assert "duvar_hukmu(" in src, "üretici kurulum hükmünü hiç sormuyor"
+        # Model, ÖNCE koşunun kendi kaydından okunmalı; yapılandırma ikincildir
+        # (koşudan sonra değişmiş olabilir).
+        i = src.index("duvar_hukmu(")
+        assert 'd.get("turbulence_model")' in src[max(0, i - 400):i], (
+            "model yalnız yapılandırmadan okunuyor — koşunun kendi kaydı öncelikli")
+
+    def test_gecersiz_kosu_ATANAMAYANDA_ve_gerekcesiyle(self):
+        """Geçersiz koşu sessizce düşmemeli; nedeniyle listelenmeli."""
+        p = KOK / "model_form_bandi.json"
+        if not p.exists():
+            return
+        d = json.loads(p.read_text(encoding="utf-8"))
+        gecersiz = [x for x in d.get("atanamayan_capalar", [])
+                    if str(x.get("neden", "")).startswith("KURULUM GEÇERSİZ")]
+        assert gecersiz, "hiçbir çapa kurulum gerekçesiyle elenmemiş"
+        for x in gecersiz:
+            assert x.get("sapma_pct") is None, (
+                f"{x['capa']}: geçersiz koşunun sapması yine de sayı olarak "
+                "taşınıyor — aşağı akışta ölçümmüş gibi okunabilir")
+
+    def test_kure_bandi_ELE_GECIRMIYOR(self):
+        """Regresyon: bluff.wall_function küre olmadan ölçülmeli."""
+        p = KOK / "validation_band.json"
+        if not p.exists():
+            return
+        band = json.loads(p.read_text(encoding="utf-8"))
+        wf = (band.get("bluff") or {}).get("wall_function")
+        if wf is None:
+            return
+        assert wf < 20.0, (
+            f"bluff.wall_function = %{wf} — küre (%69,8) bandı ele geçirmiş "
+            "olabilir; o koşu kOmegaSSTLM'i duvar-fonksiyonu ağında çalıştırdı")

@@ -78,14 +78,52 @@ ANCHORS = {
         "u_ref_pct": None,
     },
     "cube": {
+        # BIRINCIL KAYNAK ARANDI VE BULUNDU (2026-08-19) ama REFERANS OLAMADI:
+        # Khan vd. 2018, Exp. Thermal Fluid Sci. 93:257-271 — serbest akista
+        # asili kup, Re 500-55.000, PIV. Uc ayri engel:
+        #   (1) Ust Re'si 5,5e4; bu capa Re = 2,0e5'te kosuyor.
+        #   (2) Olculen nicelik ayni degil: PIV iz-momentumundan turetilen
+        #       suruklemedir, kuvvet terazisi suruklemesi degil. Kaynagin KENDI
+        #       iki yontemi bile %27 ayrisiyor (0,68 vs 0,89).
+        #   (3) Hoerner'la fark ~%40 — bu bir olcum sacilmasi degil, yontem
+        #       farkinin imzasi. u_D diye yazmak sahte-kesinlik olurdu.
+        # Onceki kayit "bagimsiz birincil kaynak YOK" diyordu; bu YANLISTI.
+        # Dogrusu: kaynak var, capanin kosuluna ve olctugu nicelige uymuyor.
+        # Ayrinti: capa_birincil_kaynak.json
         "Cd": 1.05, "regime": "bluff", "Re": ">1e4 (keskin-kenar, Re-duyarsız)",
         "aref": "frontal", "ref": "Hoerner, Fluid-Dynamic Drag (1965)",
         "u_ref_pct": None,   # Hoerner tablo degeri; band beyan etmiyor
     },
     "disk": {
+        # TEK-KAYNAK ENGELI KALKTI (2026-08-19). Bagimsiz BIRINCIL kaynak:
+        # NACA TN-253 (Knight, Langley, 1926) — 4/8/12 inclik uc disk, DOGRUDAN
+        # KUVVET olcumu (tel suspansiyon + surukleme terazisi + tare), Cd = D/(qS)
+        # ve S = disk alani, yani capanin tanimiyla AYNI. Re 33.000-670.000; bu
+        # capa Re = 2,0e5'te kosuyor, tablo o Re'yi UC diskte birden tasiyor.
+        #
+        # ONEMLI: Knight blokaj duzeltmesi UYGULAMIYOR ve bunu acikca soyluyor
+        # ("yalniz bu tunelin karakteristigi ... sinirsiz hava uzayinda hareket
+        # eden bir diskin degil"). Capa ise sinirsiz akista kosuyor, o yuzden
+        # serbest-havaya tasindi. IKI BAGIMSIZ yontem: S/C->0 ekstrapolasyonu
+        # 1,1396; Maskell (1963, theta=2,5) 1,1324. Fark %0,63 -> 1,1360.
+        # Maskell kendi kendini siniyor: blokaji 9 kat farkli uc disk duzeltme
+        # ONCESI %9,0 ayrisiyordu, SONRASI %2,1 — yani ham yayilimin kaynagi
+        # gercekten blokaj.
+        #
+        # Cd DEGISTIRILMEDI. Hoerner 1,17 serbest-hava el kitabi degeri ve
+        # capanin kosuluyla uyumlu; TN-253 tarafi ise blokaj duzeltmesi BU
+        # DEPODA uygulandigi icin turetilmis. Turetilmis bir sayiyi referans
+        # yuvasina koymak, onu u_D olarak beyan etmekten daha kotudur.
         "Cd": 1.17, "regime": "bluff", "Re": ">1e3 (keskin-kenar, Re-duyarsız)",
-        "aref": "frontal", "ref": "Hoerner, Fluid-Dynamic Drag (1965)",
-        "u_ref_pct": None,   # Hoerner tablo degeri; band beyan etmiyor
+        "aref": "frontal",
+        "ref": ("Hoerner, Fluid-Dynamic Drag (1965); NACA TN-253 (Knight 1926) "
+                "— blokaj-düzeltilmiş serbest-hava Cd = 1,136 @ Re = 2,0e5"),
+        # Ayni Re'de iki bagimsiz kaynagin farki: |1,17 - 1,1360| / 1,1360.
+        # Ahmed'de bu yontem Re uyusmadigi icin uygulanAMAmisti; burada Re
+        # birebir eslesiyor, yani engel gercekten kalkti.
+        "u_ref_pct": 2.99,
+        "u_ref_sinif": ("ALT SINIR (aynı Re'de iki bağımsız kaynağın farkı; "
+                        "TN-253 tarafı blokaj-düzeltmesiyle TÜRETİLMİŞ)"),
     },
     "naca0012_wing_ar6": {
         "Cd": 0.020, "regime": "lifting", "Re": "3e5 (c=0.15 m, 30 m/s), α=4°",

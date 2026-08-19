@@ -563,8 +563,34 @@ def _write_snappy(case_dir: Path, stl_name: str, surface_name: str,
         "    minMedialAxisAngle 90;\n"
         "    nBufferCellsNoExtrude 0;\n"
         "    nLayerIter 50;\n"
+        # `relaxed` blogu ancak nRelaxedIter ile devreye girer; ikisi bir arada
+        # anlamlidir. Bu yokken snappy gevsetilmis olcutu HIC denemiyordu.
+        "    nRelaxedIter 20;\n"
         "}\n\n"
     )
+    # KATMAN ISTENDIGINDE KALITE OLCUTU GEVSETILIR — ve bu bir taviz degil,
+    # OpenFOAM'in kendi onerisi. Olculdu (2026-08-19, kure capasi):
+    #   istenen 10 katman, ort 0,535 oruldu; hedef kalinligin %13,9'u
+    #   ekstruzyon 1360 -> 600 / 1728 yuze curudu (yalniz %34,7 kapsama)
+    # Log her yinelemede ayni satiri yaziyordu:
+    #   "faces with face-decomposition tet quality < 1e-15 : 472"
+    # Yani katman eklenince tet-ayrisim olcutu dusuyor ve snappy katmani
+    # SILIYOR. Bu olcut katman ekleme sirasinda yanlis pozitif uretmesiyle
+    # bilinir; OpenFOAM'in kendi belgesi "cok negatif bir sayiya ayarlayarak
+    # devre disi birak" diyor.
+    #
+    # Ikinci eksik: `relaxed` alt-sozlugu HIC YOKTU. O olmadan snappy
+    # nRelaxIter'dan sonra olcutu gevsetip YENIDEN DENEYEMEZ, tek yapabildigi
+    # katmani atmaktir. Bu yuzden `nRelaxedIter` de eklendi.
+    #
+    # Gevsetme YALNIZ katman istenen kosuda uygulanir: katmansiz kosular
+    # bugune dek bu siki olcutle sorunsuz uretti, onlari degistirmek icin
+    # sebep yok.
+    _katmanli = case.n_layers > 0
+    _tet = "-1e30" if _katmanli else "1e-15"
+    _relaxed = ("    relaxed\n    {\n"
+                "        maxNonOrtho 75;\n"
+                "    }\n") if _katmanli else ""
     txt += (
         "meshQualityControls\n{\n"
         "    maxNonOrtho 65;\n"
@@ -572,7 +598,7 @@ def _write_snappy(case_dir: Path, stl_name: str, surface_name: str,
         "    maxInternalSkewness 4;\n"
         "    maxConcave 80;\n"
         "    minVol 1e-13;\n"
-        "    minTetQuality 1e-15;\n"
+        f"    minTetQuality {_tet};\n"
         "    minArea -1;\n"
         "    minTwist 0.02;\n"
         "    minDeterminant 0.001;\n"
@@ -581,6 +607,7 @@ def _write_snappy(case_dir: Path, stl_name: str, surface_name: str,
         "    minTriangleTwist -1;\n"
         "    nSmoothScale 4;\n"
         "    errorReduction 0.75;\n"
+        + _relaxed +
         "}\n\n"
         "writeFlags ( scalarLevels layerSets layerFields );\n"
         "mergeTolerance 1e-6;\n"
