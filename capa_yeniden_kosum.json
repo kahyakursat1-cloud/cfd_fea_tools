@@ -35,9 +35,9 @@
    "referans": "Hoerner, Fluid-Dynamic Drag (1965)"
   },
   "ahmed_25": {
-   "Cd_ref": 0.285,
+   "Cd_ref": 0.299,
    "Cd_yeni": 0.33117,
-   "hata_pct": 16.2,
+   "hata_pct": 10.76,
    "arsiv_hata_pct": 16.2,
    "arsiv_u_pct": 274.7,
    "u_sayisal_pct": null,
@@ -48,8 +48,10 @@
    },
    "katman": "ölçülemedi (tablo bulundu, satır ayrıştırılamadı; istenen 8)",
    "yontem": "YOK — ağ ailesi hiç üretilemedi (seviyeler/gci/lsr boş)",
-   "hukum": "REDDEDİLDİ. Cd arşivle BİREBİR üretildi (%16,2) ama çapa KULLANILAMAZ: ağ bağımsızlığı gösterilemedi ve y⁺ tepesi 1237 — yani duvar işlemi hâlâ geçersiz. Koddaki 'ref_bump +1 → örülebilir kenar' beklentisi ÖLÇÜMLE DOĞRULANMADI: katmanlar yine örülmedi, y⁺ tepesi arşivdekiyle aynı kaldı (1237 vs 1236,6).",
-   "referans": "Ahmed et al. 1984; Meile et al. 2011"
+   "hukum": "REDDEDİLDİ. Cd arşivle BİREBİR üretildi (%16,2) ama çapa KULLANILAMAZ: ağ bağımsızlığı gösterilemedi ve y⁺ tepesi 1237 — yani duvar işlemi hâlâ geçersiz. Koddaki 'ref_bump +1 → örülebilir kenar' beklentisi ÖLÇÜMLE DOĞRULANMADI: katmanlar yine örülmedi, y⁺ tepesi arşivdekiyle aynı kaldı (1237 vs 1236,6). REFERANS SONRADAN DÜZELTİLDİ (koşula eşleştirildi): |E| %16,2 → %10,76. Bu dosyadaki ilk kayıt eski referansa göreydi.",
+   "referans": "Meile vd. 2011, CFD Letters 3(1) — cD=0,299 @ Re=2,784e6, V=40 m/s (KOŞULA EŞLEŞİK); krş. Ahmed & Ramm 1984 SAE 840300, cD=0,2875 @ Re=4,29e6, V=60 m/s",
+   "Cd_ref_eski": 0.285,
+   "hata_pct_eski": 16.2
   }
  },
  "verdikt": "ÜÇ ÇAPA, ÜÇ FARKLI SONUÇ. `disk` arşivle birebir üretildi. `kup` arşivden ÇOK farklı çıktı çünkü arşiv değeri bir yapılandırma düzeltmesinden ÖNCEYE aitti — düzeltme yapılmış, çapa yeniden koşulmamıştı. `ahmed_25` ise Cd'yi birebir üretti ama ağ ailesi hiç kurulamadı ve y⁺ tepesi 1237'de kaldı; yapılandırma değişikliği bu vakada İŞE YARAMAMIŞ. Yani 'arşiv güvenilir mi' sorusunun tek bir cevabı yok: her çapa ayrı ayrı denetlenmeli."
