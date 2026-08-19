@@ -43,8 +43,25 @@
    "tasidigi": 0.02,
    "u_D_pct": 15.0,
    "engel": "Yarı-analitik (Prandtl taşıma-çizgisi + düz-plaka Cf). u_D=%15 olduğu için ağ ne kadar inceltilirse inceltilsin u_val %15'in ALTINA inemez — model hatası hiç ayrıştırılamaz.",
-   "arastirma": "Aranan: DÜŞÜK HIZLI, kuvvet verili (CL/CD), yüksek atıflı 3B kanat deneyi. ONERA M6 alanın en çok atıflı 3B vakası (Schmitt & Charpin, AGARD AR-138, 1979) AMA transonik (M=0,84) ve standart veri Cp DAĞILIMI, integre kuvvet değil — aracın sıkışamaz zarfının (Ma<0,3) DIŞINDA. Düşük hızlı kuvvet verisi için NASA yüksek-taşıma atölyesi vakaları (Trap Wing / DLR-F11) aday, ama yüksek-taşıma geometrisi (slat+flap) bu aracın ürettiği basit geometriyle uyuşmuyor."
+   "arastirma": "Aranan: DÜŞÜK HIZLI, kuvvet verili (CL/CD), yüksek atıflı 3B kanat deneyi. ONERA M6 alanın en çok atıflı 3B vakası (Schmitt & Charpin, AGARD AR-138, 1979) AMA transonik (M=0,84) ve standart veri Cp DAĞILIMI, integre kuvvet değil — aracın sıkışamaz zarfının (Ma<0,3) DIŞINDA. Düşük hızlı kuvvet verisi için NASA yüksek-taşıma atölyesi vakaları (Trap Wing / DLR-F11) aday, ama yüksek-taşıma geometrisi (slat+flap) bu aracın ürettiği basit geometriyle uyuşmuyor.",
+   "arastirma_sonucu": {
+    "tarih": "2026-08-19",
+    "kaynak": "Rumsey, C. L., 'High-Lift Prediction Workshops: Retrospective, Lessons...', ICAS/NASA NTRS 20240006238 — birincil metinden okundu",
+    "aday_1_ONERA_M6": {
+     "kunye": "Schmitt & Charpin, AGARD AR-138 (1979)",
+     "durum": "UYGUN DEĞİL",
+     "neden": "Alanın en çok atıflı 3B vakası ama TRANSONİK (M=0,84) ve standart veri Cp DAĞILIMI, integre kuvvet değil. Aracın sıkışamaz zarfının (Ma<0,3) dışında."
+    },
+    "aday_2_NASA_Trap_Wing": {
+     "kunye": "HLPW-1 (2010), NASA Langley 14×22 Ses-altı Tüneli, Re_MAC=4,3e6; tekrarlanabilirlik: Hannon, Washburn, Jenkins & Watson, AIAA 2012-0706, doi:10.2514/6.2012-706",
+     "durum": "UYGUN DEĞİL — İKİ AYRI NEDENLE",
+     "neden_1_butce": "HLPW-1'de EN İNCE ağlar 50–200 MİLYON hücre; 'iyi uygulama' ağları bile 100M altında. Bu aracın hücre tavanı 4M — yani gereken çözünürlük 1-2 MERTEBE dışında.",
+     "neden_2_yayin": "Rumsey'in kendi ifadesi: deneysel veri 'toplu olarak hiçbir zaman resmî olarak yayımlanmadı'. Referans olarak alınacaksa hangi sürümün kullanıldığı ayrıca beyan edilmeli.",
+     "olumlu_yan": "Tekrarlanabilirlik ÇALIŞMASI VAR (AIAA 2012-0706) — yani u_D türetilebilir bir vaka. Engel referansın kalitesi değil, aracın hesap bütçesi."
+    },
+    "hukum": "ALANIN KANONİK 3B TAŞIMA ÇAPALARI BU ARACIN BÜTÇESİNİN DIŞINDA. ONERA M6 rejim olarak, Trap Wing çözünürlük olarak uymuyor. Dolayısıyla 'lifting' hücresi için ölçülmüş bir 3B referans BULUNAMADI — ve uydurulmadı. Dürüst seçenekler: (a) taşıma çapasını 2B'de bırakmak (NACA0012 TMR, u_D=%0,796 ZATEN ölçülü) ve 3B taşıma iddiasını yapmamak, (b) 3B taşımayı gelecek-iş olarak işaretleyip bütçe gerektiğini yazmak. İkisi de yarı-analitik %15'lik referanstan iyidir."
+   }
   }
  },
- "verdikt": "ALTI ÇAPADAN BİRİ TAM (naca0012_a0). Kalan beşinde eksik olan şey referansın KALİTESİ değil — Hoerner ve Ahmed 1984 alanın yerleşik kaynakları — İKİNCİ BİR EŞLEŞTİRİLMİŞ DEĞER. u_D'yi saçılmadan türetmek ancak koşullar aynıysa meşrudur. Tek istisna AR6 kanadı: orada referansın kendisi yarı-analitik ve DEĞİŞMESİ gerekiyor."
+ "verdikt": "ALTI ÇAPADAN BİRİ TAM (naca0012_a0). Kalan beşinde eksik olan şey referansın KALİTESİ değil — Hoerner ve Ahmed 1984 alanın yerleşik kaynakları — İKİNCİ BİR EŞLEŞTİRİLMİŞ DEĞER. u_D'yi saçılmadan türetmek ancak koşullar aynıysa meşrudur. Tek istisna AR6 kanadı: orada referansın kendisi yarı-analitik ve DEĞİŞMESİ gerekiyor. AR6 için araştırma TAMAMLANDI: alanın kanonik 3B vakaları rejim (ONERA M6) ya da hesap bütçesi (Trap Wing, 50–200M hücre vs 4M tavan) nedeniyle uymuyor. Referans bulunamadı ve UYDURULMADI."
 }
