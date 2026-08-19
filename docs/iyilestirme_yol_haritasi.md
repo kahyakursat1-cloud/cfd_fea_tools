@@ -66,7 +66,9 @@ kazanımı: yeni kod gerekmedi.
 
 ### 2.1 ◐ Doğrulama regresyon suite'i — BÜYÜK ÖLÇÜDE VAR, çapa üretimi eksik
 **Yapılan (2026-08-19):** `experiments/dis_korpus.py` referanslı kanonik vakaları ölçülmüş toleranslarla taşıyor ve test paketinde koşuyor; `fea_capa_bagimsiz.py` üç kapalı-form çapası üretiyor (3 ağ seviyesi, u_num ölçülü).
-**KALAN — gerçek boşluk:** `validation_anchors_runs` 2026-08-13 disk temizliğinde silindi; CFD çapa değerleri ARŞİVDEN KURTARILDI, yeniden ölçülemiyor. Suite'in CFD ayağı bu yüzden yeniden üretilebilir DEĞİL.
+**ÖLÇÜLDÜ (2026-08-19): çapa üretimi YENİDEN KOŞULABİLİR.** `validation_anchors_runs` 2026-08-13'te silinmişti ve değerler arşivden kurtarılmıştı; bu, üretim yolunun kırık olduğu ANLAMINA GELMİYORMUŞ. `disk` çapası yeniden koşuldu: Cd hatası %3,38 → %3,38 BİREBİR üretildi, sayısal band %4,77 → %4,22 daraldı. Yani arşiv değerleri bayat değil, doğrulanmış çıktı.
+
+**KALAN:** kalan CFD çapaları (küp, Ahmed, NACA0012 AR6) hâlâ arşivden; her biri ayrı bir CFD koşusu. `sphere` ve `naca0012_a0` atlama listesinde (setup-uyumsuz).
 **Ne:** Referans-değerli kanonik vakalar: süpersonik küre Cd (Charters&Thomas, var),
 NACA0012 ses-altı (Ladson), bilinen roket; her birine **referans + tolerans** + CI'da
 çalışan hafif kontrol. **Neden:** "en iyi analiz" ancak ölçülünce iddia edilir; regresyon
