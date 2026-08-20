@@ -41,11 +41,12 @@ def test_akma_asildi_kompliyans_korlugu_adlandirilir():
 # (topopt_bagimsiz_dogrulama.json — aynı tasarım 3× ince ağda %47 daha yüksek
 # tepe von Mises verdi). 1.5 ile ölçülen büyümenin şişirdiği eşik arasındaki
 # aralık artık ayrı bir hâldir: "ag_marjinda".
+# (None, None) parametresi KALDIRILDI: hicbir sey sinamiyordu ve govdedeki
+# `if carpan is None: return` ile atlaniyordu — yani test listesinde gorunup
+# sessizce gecen bir olu vakaydi.
 @pytest.mark.parametrize("carpan,beklenen", [
-    (1.05, "güvenli"), (0.99, "ag_marjinda"), (None, None)])
+    (1.05, "güvenli"), (0.99, "ag_marjinda")])
 def test_esik_sinirlari_ag_marjiyla(carpan, beklenen):
-    if carpan is None:
-        return
     from vehicle_topopt import _ag_buyumesi
     esik = 1.5 * (1 + _ag_buyumesi()[0])
     # Bu test EŞİK SINIRINI sınıyor, eleman-mertebesi kapısını değil; kanıt

@@ -21,6 +21,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 KOK = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(KOK))
 sys.path.insert(0, str(KOK / "experiments"))
@@ -84,12 +86,12 @@ def test_ayni_deney_iki_hucrede_AYNI_u_D_ile_giriyor():
     """
     p = KOK / "model_form_bandi.json"
     if not p.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not p.exists()')
     d = json.loads(p.read_text(encoding="utf-8"))
     aileler = [c for c in d["capalar"]
                if "geriye-basamak" in (c.get("capa") or "") and "aile" in c["capa"]]
     if len(aileler) < 2:
-        return
+        pytest.skip('kanıt/girdi yok: len(aileler) < 2')
     u_d = {c["capa"]: c.get("u_ref_pct") for c in aileler}
     assert all(v is not None for v in u_d.values()), u_d
     assert len(set(u_d.values())) == 1, (
@@ -100,7 +102,7 @@ def test_kanit_dosyasi_marji_BEYAN_ediyor():
     """1,2 keyfî bir seçim; keyfî olduğu ve ne olduğu yazılı olmalı."""
     p = KOK / "kapanma_butcesi.json"
     if not p.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not p.exists()')
     d = json.loads(p.read_text(encoding="utf-8"))
     assert d["_marj"] == MARJ
     assert "u_num**" in d["_formul"] or "E/" in d["_formul"]

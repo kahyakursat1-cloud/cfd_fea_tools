@@ -11,6 +11,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 KOK = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(KOK / "experiments"))
 
@@ -376,11 +378,11 @@ def test_duyarlilik_UC_TEN_FAZLA_kumeden_geliyor():
     import re
     p = KOK / "dis_korpus.json"
     if not p.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not p.exists()')
     o = json.loads(p.read_text(encoding="utf-8"))["ozet"]
     m = re.search(r"(\d+) bağımsız kümeden", o.get("sens_notu") or "")
     if not m:
-        return
+        pytest.skip('kanıt/girdi yok: not m')
     assert int(m.group(1)) >= 3, (
         f"duyarlılık {m.group(1)} kümeden geliyor — deponun kendi "
         "EN_AZ_HUCRE=3 ilkesi küme tabanına da uygulanmalı")
@@ -405,7 +407,7 @@ def test_BULASMA_iddiasi_KODLA_dogrulaniyor():
 
     p = KOK / "dis_korpus.json"
     if not p.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not p.exists()')
     d = json.loads(p.read_text(encoding="utf-8"))
     for h in d.get("hucreler", []):
         if "duvar_hukmu" not in (h.get("besledigi_kapilar") or []):

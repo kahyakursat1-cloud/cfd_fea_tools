@@ -13,6 +13,8 @@ taşınmıyor. XFOIL'in panel + e^N yöntemi tam bu rejim için tasarlandı.
 import json
 from pathlib import Path
 
+import pytest
+
 import xfoil_kesit as xk
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -59,7 +61,7 @@ def test_OLCULEN_kanit_bandi_tasiyor():
     """Kesit kanıtı ölçülmüş ayrıklaştırma bandı olmadan birleştiriciye girmemeli."""
     p = ROOT / "kesit_re35e4.json"
     if not p.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not p.exists()')
     d = json.loads(p.read_text(encoding="utf-8"))
     pb = d.get("panel_bagimsizligi")
     assert pb, "panel-bağımsızlık ölçülmemiş"
@@ -83,7 +85,7 @@ class TestBirlestirmeArtikCalisiyor:
     def test_depo_verisi_XFOIL_kesitini_tercih_ediyor(self):
         import polar_birlestirme as pb
         if not (ROOT / "kesit_re35e4.json").exists():
-            return
+            pytest.skip('kanıt/girdi yok: not (ROOT / "kesit_re35e4.json").exists()')
         d = pb._depo_verisi()
         assert "XFOIL" in d["kesit_kaynagi"]
         assert d["kesit_cd_mesh_bagimsiz"] is True
@@ -97,7 +99,7 @@ class TestBirlestirmeArtikCalisiyor:
         her degisiklikte kirilir."""
         import polar_birlestirme as pb
         if not (ROOT / "kesit_re35e4.json").exists():
-            return
+            pytest.skip('kanıt/girdi yok: not (ROOT / "kesit_re35e4.json").exists()')
         d = pb._depo_verisi()
         o = pb.birlesik_polar(d["vlm_polar"], d["kesit"], re_kanat=d["re_kanat"],
                               re_kesit=d["re_kesit"],
@@ -122,7 +124,7 @@ class TestBirlestirmeArtikCalisiyor:
     def test_TASIMA_bandi_hala_UYDURULMUYOR(self):
         import polar_birlestirme as pb
         if not (ROOT / "kesit_re35e4.json").exists():
-            return
+            pytest.skip('kanıt/girdi yok: not (ROOT / "kesit_re35e4.json").exists()')
         d = pb._depo_verisi()
         o = pb.birlesik_polar(d["vlm_polar"], d["kesit"], re_kanat=d["re_kanat"],
                               re_kesit=d["re_kesit"],

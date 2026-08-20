@@ -8,6 +8,8 @@ import json
 import math
 from pathlib import Path
 
+import pytest
+
 from girdi_belirsizligi import GirdiBelirsizligi, birlestir, yay
 
 KOK = Path(__file__).resolve().parent.parent
@@ -91,7 +93,7 @@ class TestKanit:
     def test_ZINCIR_birlestiriciyle_AYNI(self):
         d = self._d()
         if not d:
-            return
+            pytest.skip('kanıt/girdi yok: not d')
         import polar_birlestirme as pb
         v = pb._depo_verisi()
         o = pb.birlesik_polar(
@@ -105,7 +107,7 @@ class TestKanit:
                if v.get(k) is not None})
         n4 = next((x for x in o["noktalar"] if x["alpha"] == 4.0), None)
         if not n4 or "Cd_toplam" not in n4:
-            return
+            pytest.skip('kanıt/girdi yok: not n4 or "Cd_toplam" not in n4')
         bagil = abs(d["Cd_nominal"] - n4["Cd_toplam"]) / n4["Cd_toplam"]
         assert bagil < 0.02, (
             f"UQ modeli {d['Cd_nominal']} veriyor, birlestirici "
@@ -114,7 +116,7 @@ class TestKanit:
     def test_BASKIN_girdi_ve_KISIT_yazili(self):
         d = self._d()
         if not d:
-            return
+            pytest.skip('kanıt/girdi yok: not d')
         assert d["baskin_girdi"] in {g["ad"] for g in d["girdiler"]}
         assert "RANS YOLUNDA YAYILMADI" in d["_kisit"]
         assert d["toplam_belirsizlik"]["alt_sinir_mi"] is True
@@ -123,7 +125,7 @@ class TestKanit:
         """Ölçüm tüketiciye ulaşmalı: yayımlanan band girdi bileşenini
         içermiyorsa bu AÇIKÇA yazılmalı."""
         if not (KOK / "girdi_uq_kanat.json").exists():
-            return
+            pytest.skip('kanıt/girdi yok: not (KOK / "girdi_uq_kanat.json").exists()')
         import polar_birlestirme as pb
         v = pb._depo_verisi()
         o = pb.birlesik_polar(

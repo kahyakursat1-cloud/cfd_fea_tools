@@ -9,6 +9,8 @@ plan mesh'i oraya düzgün seriliyor.
 import json
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parent.parent
 KANIT = ROOT / "minihawk_mesh_teshisi.json"
 DELTA = ROOT / "delta_entegrasyon.json"
@@ -23,7 +25,7 @@ def test_ESIK_kodun_TEK_KAYNAGINDAN():
     from analysis.openfoam_runner import YUZEY_YUZ_ESIGI
     d = _d()
     if not d:
-        return
+        pytest.skip('kanıt/girdi yok: not d')
     assert d["yuzey_yuz_esigi"] == YUZEY_YUZ_ESIGI
 
 
@@ -31,7 +33,7 @@ def test_YUZEY_YUZ_monotonlugu_OLCULUYOR():
     """Hücre artarken yüzey yüzü artmıyorsa aile tek-parametreli değildir."""
     d = _d()
     if not d:
-        return
+        pytest.skip('kanıt/girdi yok: not d')
     y = [v for _, v in ((k["ad"], k.get("yuzey_yuz")) for k in d["seviyeler"]) if v]
     gercek = all(a <= b for a, b in zip(y, y[1:]))
     assert d["yuzey_yuz_monoton"] == gercek
@@ -45,7 +47,7 @@ def test_BELIRTI_ile_SEBEP_ayriliyor():
     çelişmemeli)."""
     d = _d()
     if not d:
-        return
+        pytest.skip('kanıt/girdi yok: not d')
     assert "arka plan" in d["_kok_neden"].lower()
     if d.get("yuzey_cozuldu"):
         assert "COZULDU" in d["verdikt"]
@@ -61,7 +63,7 @@ def test_ZATEN_DUZELTILMIS_oldugu_yaziyor():
     yapmaya kalkar."""
     d = _d()
     if not d:
-        return
+        pytest.skip('kanıt/girdi yok: not d')
     assert "b62980c" in d.get("_zaten_duzeltildi", "")
     assert "YENIDEN KOSU" in d.get("_gereken", "").upper()
     assert "b62980c" in d["verdikt"]
@@ -82,7 +84,7 @@ def test_YAMA_YOK_ile_SIFIR_YUZ_ayri():
     """Patch hiç yoksa bu '0 yüz' demek değildir; ikisi karışmamalı."""
     d = _d()
     if not d:
-        return
+        pytest.skip('kanıt/girdi yok: not d')
     # Hukum yalniz GUNCEL kademelerden verilir; bayatlar kayitta kalir.
     for k in d["seviyeler"]:
         if k.get("yuzey_yuz") is None and k["ad"] in d["guncel_seviyeler"]:
@@ -94,14 +96,14 @@ def test_KISIT_yeniden_hesaplama_IDDIA_ETMIYOR():
     """Teşhis loglardan üretildi; çözücü sonuçları yeniden koşulmadı."""
     d = _d()
     if not d:
-        return
+        pytest.skip('kanıt/girdi yok: not d')
     assert "YENIDEN HESAPLANMADI" in d["_kisit"]
 
 
 def test_DELTA_kok_nedeni_ONCE_soyluyor():
     """Δ 'GCI yüksek' deyip kök nedeni atlarsa okuyucu yanlış işi yapar."""
     if not DELTA.exists() or not KANIT.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not DELTA.exists() or not KANIT.exists()')
     d = json.loads(DELTA.read_text(encoding="utf-8"))
     assert "(0)" in d["_gerekli"], "gerekli adimlar sirali degil"
     # Adimlar OLCUMDEN turetilmeli: yuzey cozulduyse (0) ISARETLI olmali,

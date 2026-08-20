@@ -11,6 +11,8 @@ aynı öznitelik vektörüne sahip ve 31 kaydın 26'sının en-yakın mesafesi T
 SIFIRDI. Eşiği o dağılımdan türetmek yarısı sıfır olan bir dağılımdan
 türetmekti.
 """
+import pytest
+
 import mentor
 
 
@@ -22,7 +24,7 @@ class TestAyrikGeometri:
     def test_TEKRAR_kosular_mesafe_istatistiginden_CIKARILIYOR(self):
         pool = _pool()
         if len(pool) < 4:
-            return
+            pytest.skip('kanıt/girdi yok: len(pool) < 4')
         ayrik = mentor._ayrik_geometriler(pool)
         assert len(ayrik) <= len(pool)
         anahtarlar = [mentor._geometri_anahtari(c) for c in ayrik]
@@ -33,7 +35,7 @@ class TestAyrikGeometri:
         düşmüyorsa dedup işe yaramıyordur."""
         pool = _pool()
         if len(pool) < 6:
-            return
+            pytest.skip('kanıt/girdi yok: len(pool) < 6')
         import auto_pilot as ap
 
         def sifir_orani(kayitlar):
@@ -55,7 +57,7 @@ class TestOodKapisi:
     def test_UZAK_geometri_DAGILIM_DISI(self):
         r = mentor.advise_mesh(self._UZAK, tip="ucak")
         if not r:
-            return
+            pytest.skip('kanıt/girdi yok: not r')
         o = r["ood"]
         assert o["dagilim_disi"] is True
         assert o["guvenilir"] is False
@@ -66,7 +68,7 @@ class TestOodKapisi:
         'havuzun ortasındaki' geometriyi ayırt edemez."""
         r = mentor.advise_mesh(self._YAKIN, tip="ucak")
         if not r:
-            return
+            pytest.skip('kanıt/girdi yok: not r')
         o = r["ood"]
         for alan in ("en_yakin_mesafe", "havuz_esigi", "havuz_medyan_mesafe"):
             assert isinstance(o.get(alan), (int, float)), f"{alan} yok"
@@ -76,7 +78,7 @@ class TestOodKapisi:
         görünür ama tek geometridir."""
         r = mentor.advise_mesh(self._YAKIN, tip="ucak")
         if not r:
-            return
+            pytest.skip('kanıt/girdi yok: not r')
         o = r["ood"]
         assert o["komsu_ayrik_geometri"] <= o["komsu_kayit"]
         if o["komsu_ayrik_geometri"] < 2:
@@ -86,7 +88,7 @@ class TestOodKapisi:
         """Eşik uydurulmamalı: havuzun kendi mesafe dağılımından gelmeli."""
         pool = _pool()
         if len(pool) < 6:
-            return
+            pytest.skip('kanıt/girdi yok: len(pool) < 6')
         d = mentor._havuz_en_yakin_mesafeler(pool)
         i = min(int(len(d) * mentor.OOD_YUZDELIK), len(d) - 1)
         r = mentor.advise_mesh(self._YAKIN)

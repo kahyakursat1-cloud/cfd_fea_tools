@@ -403,11 +403,11 @@ def test_kure_kosusu_DOGRU_teshisi_tasiyor():
     p = (Path(__file__).resolve().parent.parent
          / "validation_anchors_runs" / "_anchor_sphere" / "sonuc.json")
     if not p.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not p.exists()')
     d = json.loads(p.read_text(encoding="utf-8"))
     kat = (d.get("sinir_tabaka") or {}).get("katman_olcumu") or {}
     if kat.get("durum") != "ok":
-        return
+        pytest.skip('kanıt/girdi yok: kat.get("durum") != "ok"')
     for u in d.get("uyarilar") or []:
         assert "KATMAN ÇÖKMESİ" not in u, (
             f"katmanlar örülmüşken (eklenen={kat.get('eklenen')}) uyarı hâlâ "

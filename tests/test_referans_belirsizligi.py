@@ -59,7 +59,7 @@ def test_dogrulanmamis_sayi_banda_SIZMIYOR():
     """Re-BANDI kestirimi damgalı çıkmalı ve otomatik kullanılmamalı."""
     p = KOK / "referans_belirsizligi.json"
     if not p.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not p.exists()')
     d = json.loads(p.read_text(encoding="utf-8"))
     for s in d["satirlar"]:
         if s.get("u_D_alt_kestirim_pct") is not None:
@@ -75,7 +75,7 @@ def test_triyaj_ENGELI_adiyla_yaziyor():
     """'u_D yok' yetmez; her satır neden yok olduğunu söylemeli."""
     p = KOK / "referans_belirsizligi.json"
     if not p.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not p.exists()')
     d = json.loads(p.read_text(encoding="utf-8"))
     eksik = [s for s in d["satirlar"] if s["durum"] != "u_D BEYAN EDİLMİŞ"]
     assert eksik, "triyaj boş çıktı"
@@ -90,7 +90,7 @@ def test_tmr_u_D_kaynak_ve_kosulla_birlikte_KAYITLI():
     """Sayı tek başına yetmez: hangi koşulda, hangi ağda, kaç koddan?"""
     p = KOK / "tmr_kod_yayilimi.json"
     if not p.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not p.exists()')
     d = json.loads(p.read_text(encoding="utf-8"))
     assert d["kaynak"].startswith("http"), d["kaynak"]
     assert d["kosul"]["ag"] and d["kosul"]["model"] and d["kosul"]["Re"]
@@ -102,7 +102,7 @@ def test_tmr_u_D_capaya_AYNI_sayiyla_gecmis():
     """Kanıt dosyası ile çapa tanımı ayrışırsa 'metin sabit, veri değişti'."""
     p = KOK / "tmr_kod_yayilimi.json"
     if not p.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not p.exists()')
     from validation_anchors import ANCHORS
     d = json.loads(p.read_text(encoding="utf-8"))
     assert ANCHORS["naca0012_a0"]["u_ref_pct"] == d["u_D_pct"], (
@@ -113,7 +113,7 @@ def test_kod_arasi_yayilim_ALT_SINIR_diye_etiketli():
     """Kod-arası yayılım deneysel belirsizliği KAPSAMAZ; öyle sunulamaz."""
     p = KOK / "tmr_kod_yayilimi.json"
     if not p.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not p.exists()')
     d = json.loads(p.read_text(encoding="utf-8"))
     assert d["_sinif"] == "ALT SINIR"
     assert "DENEYSEL" in d["_ne_kapsamaz"]
@@ -125,7 +125,7 @@ def test_aykiri_kod_ATILMAMIS():
     """Aykırıyı atmak bandı yapay daraltır; atılmadığı kayıtlı olmalı."""
     p = KOK / "tmr_kod_yayilimi.json"
     if not p.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not p.exists()')
     d = json.loads(p.read_text(encoding="utf-8"))
     y = d["yayilim"]
     assert y["en_uzak_haric_u_D_pct"] < y["u_D_pct"], (
@@ -141,12 +141,12 @@ def test_ikincil_kaynakli_sayi_capaya_YAZILMAMIS():
     """
     p = KOK / "referans_belirsizligi.json"
     if not p.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not p.exists()')
     from validation_anchors import ANCHORS
     d = json.loads(p.read_text(encoding="utf-8"))
     s = next((x for x in d["satirlar"] if x["capa"] == "ahmed_25"), None)
     if not s or "arama" not in s:
-        return
+        pytest.skip('kanıt/girdi yok: not s or "arama" not in s')
     a = s["arama"]
     assert a["sonuc"] == "BULUNDU AMA BEYAN EDİLMEDİ"
     assert len(a["neden_beyan_edilmedi"]) >= 2, a

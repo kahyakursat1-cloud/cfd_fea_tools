@@ -11,6 +11,8 @@ depoda avlanan kusurun ta kendisidir.
 """
 import math
 
+import pytest
+
 import polar_birlestirme as pb
 
 _VLM = [{"alpha": 0.0, "Cl": 0.0, "Cd_i": 0.0},
@@ -161,7 +163,7 @@ class TestBandAilesi:
     def test_DEPO_iki_yonlu_aileyi_TERCIH_ediyor(self):
         from pathlib import Path
         if not (Path(pb.HERE) / "vlm_iki_yonlu_yakinsama.json").exists():
-            return
+            pytest.skip('kanıt/girdi yok: not (Path(pb.HERE) / "vlm_iki_yonlu_yakinsama.json").exists()')
         d = pb._depo_verisi()
         assert d.get("band_kaynak_dosyasi") == "vlm_iki_yonlu_yakinsama.json"
         assert d.get("band_ailesi")
@@ -299,7 +301,7 @@ class TestProfilAracinProfiliMi:
     def test_DEPO_verisi_gercek_profilleri_tasiyor(self):
         from pathlib import Path
         if not (Path(pb.HERE) / "kesit_re35e4.json").exists():
-            return
+            pytest.skip('kanıt/girdi yok: not (Path(pb.HERE) / "kesit_re35e4.json").exists()')
         d = pb._depo_verisi()
         assert d.get("arac_profili"), "aracin profili okunmuyor"
         assert d.get("kesit_profili"), "kesit profili okunmuyor"

@@ -11,6 +11,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 KOK = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(KOK))
 sys.path.insert(0, str(KOK / "experiments"))
@@ -36,7 +38,7 @@ def test_matris_cozucu_suresini_olcuyor():
     aşama kaydedilmiyordu. Matris onu görüyorsa delik kapanmış demektir."""
     d = _matris()
     if not d:
-        return
+        pytest.skip('kanıt/girdi yok: not d')
     ok = [x for x in d["satirlar"] if x["durum"] == "ok"]
     assert ok, "matriste tamamlanmış koşu yok"
     assert all(x["cozucu_s"] for x in ok), "çözücü süresi ölçülmemiş"
@@ -51,7 +53,7 @@ def test_hizlanma_IDEALIN_altinda_ve_boyutla_artiyor():
     d = _matris()
     h = (d.get("olcek") or {}).get("cekirdek_hizlanmasi") or {}
     if not h:
-        return
+        pytest.skip('kanıt/girdi yok: not h')
     for _butce, kayit in h.items():
         for cek, hiz in kayit.items():
             assert hiz <= int(cek) + 1e-9, "hızlanma ideali AŞAMAZ"
@@ -65,7 +67,7 @@ def test_hizlanma_IDEALIN_altinda_ve_boyutla_artiyor():
 def test_matris_KIYASLAMA_olmadigini_soyluyor():
     d = _matris()
     if not d:
-        return
+        pytest.skip('kanıt/girdi yok: not d')
     assert "KIYASLAMA DEGILDIR" in d["_kisit"]
     assert "sirali" in d["kurulum"]
 
@@ -84,7 +86,7 @@ def test_sacilan_olcum_katsayi_SAYILMAZ():
     """
     rec = calistir()
     if not rec["kosular"]:
-        return
+        pytest.skip('kanıt/girdi yok: not rec["kosular"]')
     dag = rec["dagilim"]
     if rec.get("kb_hucre") is None:
         assert "OLCULEMEDI" in rec["verdikt"]
@@ -110,7 +112,7 @@ def test_matris_kosulari_katsayi_toplamasina_giriyor():
     görmezdi ve elimizdeki en kontrollü ölçüm seti dışarıda kalırdı."""
     kayit = topla()
     if not (KOK / "basarim_matrisi.json").exists():
-        return
+        pytest.skip('kanıt/girdi yok: not (KOK / "basarim_matrisi.json").exists()')
     assert any(k["kosu"].startswith("basarim/") for k in kayit)
 
 
@@ -166,7 +168,7 @@ def test_rapor_hizlanma_tablosu_OLCUMLE_uyusuyor():
     """
     satirlar = _rapor_satirlari()
     if not satirlar:
-        return
+        pytest.skip('kanıt/girdi yok: not satirlar')
     veri = {}
     for ad, p in KAYNAK.items():
         if not p.exists():
@@ -175,7 +177,7 @@ def test_rapor_hizlanma_tablosu_OLCUMLE_uyusuyor():
             if s["durum"] == "ok" and s.get("cozucu_exec_s"):
                 veri[(ad, s["cells"], s["cekirdek"])] = s["cozucu_exec_s"]
     if not veri:
-        return
+        pytest.skip('kanıt/girdi yok: not veri')
     assert len(satirlar) == 6, f"tabloda 6 satır beklenir, {len(satirlar)} var"
     for r in satirlar:
         t1 = veri.get((r["govde"], r["hucre"], 1))
@@ -194,7 +196,7 @@ def test_geometri_bagimliligi_ONCEDEN_sabitlenmis():
     """İddialar ölçümden sonra seçilirse 'sınama' değil, süsleme olur."""
     p = KOK / "basarim_geometri_bagimliligi.json"
     if not p.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not p.exists()')
     d = json.loads(p.read_text(encoding="utf-8"))
     iddia = d["_onceden_sabitlenen_iddia"]
     assert {"I1", "I2", "I3"} <= set(iddia), iddia
@@ -209,7 +211,7 @@ def test_iki_govde_de_olculmus():
     """Geometri sınırının kapandığı iddiası TEK gövdeyle savunulamaz."""
     p = KOK / "basarim_geometri_bagimliligi.json"
     if not p.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not p.exists()')
     d = json.loads(p.read_text(encoding="utf-8"))
     olculen = [g for g in d["geometriler"] if g.get("butce_sayisi")]
     assert len(olculen) >= 2, "tek gövdeyle geometri bağımsızlığı iddia edilemez"

@@ -21,6 +21,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 KOK = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(KOK))
 
@@ -51,7 +53,7 @@ def test_dongudeki_her_capa_KANITTA_var():
     adlar = _dongudeki_capalar()
     assert adlar, "main() içinde çapa demeti bulunamadı — test kör kalmış"
     if not KANIT.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not KANIT.exists()')
     d = json.loads(KANIT.read_text(encoding="utf-8"))
     eksik = [a for a in adlar if a not in d]
     assert not eksik, (
@@ -92,7 +94,7 @@ def test_dongudeki_her_capa_FONKSIYONU_main_ONCESINDE_tanimli():
 def test_burulma_capasi_BAGIMSIZ_ve_gercekten_olculmus():
     """Burulma, mevcut çapalardan farklı bir yükleme tipi olmalı ve sayı taşımalı."""
     if not KANIT.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not KANIT.exists()')
     d = json.loads(KANIT.read_text(encoding="utf-8"))
     mil = d.get("mil")
     if mil is None:
@@ -145,7 +147,7 @@ def test_eleman_mertebesi_kaniti_GERILMEYI_de_olcuyor():
     from pathlib import Path
     p = Path(__file__).resolve().parent.parent / "fea_element_order.json"
     if not p.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not p.exists()')
     d = json.loads(p.read_text(encoding="utf-8"))
     g = d.get("gerilme_ekseni")
     assert g, "kanıt yalnız sehim ekseni taşıyor"

@@ -11,6 +11,8 @@ raporlamak olurdu.
 import json
 from pathlib import Path
 
+import pytest
+
 from validation_anchors import _MODEL_U_PCT, model_uncertainty_pct
 
 KOK = Path(__file__).resolve().parent.parent
@@ -99,7 +101,7 @@ class TestKanit:
         """
         d = self._d()
         if not d:
-            return
+            pytest.skip('kanıt/girdi yok: not d')
         # (f) KOŞU DÜŞTÜ — 2026-08-20: toplayıcı `cd is None` dalında sessizce
         # `continue` ediyordu; AR6 çapası koşulmuş ama kanıtta hiç iz
         # bırakmıyordu. Artık düşen koşu da gerekçesiyle listeleniyor.
@@ -126,7 +128,7 @@ class TestKanit:
     def test_N_capa_yazili_ve_TEK_ornek_isaretli(self):
         d = self._d()
         if not d:
-            return
+            pytest.skip('kanıt/girdi yok: not d')
         for _r, h in d["olculen_hucreler"].items():
             for _i, v in h.items():
                 assert v["n_capa"] >= 1
@@ -137,13 +139,13 @@ class TestKanit:
         """Sapma, referansın kendi deneysel belirsizliğini de içerir."""
         d = self._d()
         if not d:
-            return
+            pytest.skip('kanıt/girdi yok: not d')
         assert "referansin KENDI deneysel" in d["_kisit"]
 
     def test_ONCUL_kalan_hucreler_SAYILIYOR(self):
         d = self._d()
         if not d:
-            return
+            pytest.skip('kanıt/girdi yok: not d')
         assert isinstance(d["oncul_kalan_hucreler"], list)
         for x in d["oncul_kalan_hucreler"]:
             assert x["rejim"] in _MODEL_U_PCT
@@ -196,7 +198,7 @@ class TestKurulumGecerliligi:
         """
         p = KOK / "model_form_bandi.json"
         if not p.exists():
-            return
+            pytest.skip('kanıt/girdi yok: not p.exists()')
         d = json.loads(p.read_text(encoding="utf-8"))
         for x in d.get("atanamayan_capalar", []):
             assert x.get("neden"), f"{x['capa']}: gerekçesiz elenmiş"
@@ -209,11 +211,11 @@ class TestKurulumGecerliligi:
         """Regresyon: bluff.wall_function küre olmadan ölçülmeli."""
         p = KOK / "validation_band.json"
         if not p.exists():
-            return
+            pytest.skip('kanıt/girdi yok: not p.exists()')
         band = json.loads(p.read_text(encoding="utf-8"))
         wf = (band.get("bluff") or {}).get("wall_function")
         if wf is None:
-            return
+            pytest.skip('kanıt/girdi yok: wf is None')
         assert wf < 20.0, (
             f"bluff.wall_function = %{wf} — küre (%69,8) bandı ele geçirmiş "
             "olabilir; o koşu kOmegaSSTLM'i duvar-fonksiyonu ağında çalıştırdı")
@@ -243,7 +245,7 @@ class TestEksikBilgiIddiayiYUKSELTMEZ:
     def test_sifir_ayrilabilir_capa_UST_SINIR_demektir(self):
         h = self._hucre()
         if h is None:
-            return
+            pytest.skip('kanıt/girdi yok: h is None')
         if h.get("ayrilabilir_capa", 0) == 0:
             assert h.get("_ust_sinir_mi") is True, (
                 f"hiçbir çapa ayıramıyor (ayrilabilir_capa=0) ama hücre ölçüm "
@@ -253,7 +255,7 @@ class TestEksikBilgiIddiayiYUKSELTMEZ:
         """Üç durum ayrı kalmalı: ayrılabilir / ayrılamaz / DEĞERLENDİRİLMEDİ."""
         h = self._hucre()
         if h is None:
-            return
+            pytest.skip('kanıt/girdi yok: h is None')
         assert "ayrilabilirlik_degerlendirilmedi" in h, (
             "değerlendirilmeyen çapa sayısı kayıtlı değil — 'ölçmedik' ile "
             "'ayıramadık' karışır")
@@ -305,7 +307,7 @@ class TestBayatArsivKendiYerineGecenleYanYanaDurmaz:
     def test_kup_TEK_olculen_satir_tasiyor(self):
         c = self._capalar()
         if c is None:
-            return
+            pytest.skip('kanıt/girdi yok: c is None')
         olculen = [x for x in c
                    if "küp" in x["capa"] and not x.get("_gecersiz")]
         assert len(olculen) <= 1, (
@@ -314,7 +316,7 @@ class TestBayatArsivKendiYerineGecenleYanYanaDurmaz:
     def test_atlanan_arsiv_GEREKCESIYLE_kayitli(self):
         c = self._capalar()
         if c is None:
-            return
+            pytest.skip('kanıt/girdi yok: c is None')
         arsiv = [x for x in c if x.get("_atlanan_arsiv")]
         for x in arsiv:
             assert x.get("_gecersiz") is True
@@ -359,7 +361,7 @@ class TestLiftingHucresiKapandi:
     def test_lifting_hucresi_OLCULEN(self):
         d = self._d()
         if not d:
-            return
+            pytest.skip('kanıt/girdi yok: not d')
         h = (d.get("olculen_hucreler") or {}).get("lifting") or {}
         assert h, "lifting hücresi hâlâ öncül — 2B çapa banda ulaşmıyor"
         assert "wall_resolved" in h, "TMR C-grid y⁺<1'dir, duvar-çözünür olmalı"
@@ -368,7 +370,7 @@ class TestLiftingHucresiKapandi:
         """Kampanya verdict'i Cl için; band Cd'nin kendi mertebesini hesaplamalı."""
         d = self._d()
         if not d:
-            return
+            pytest.skip('kanıt/girdi yok: not d')
         a10 = next((x for x in d["capalar"] if "α=10" in x["capa"]), None)
         assert a10, "α=10 çapası toplanmamış"
         p = a10.get("richardson_p")

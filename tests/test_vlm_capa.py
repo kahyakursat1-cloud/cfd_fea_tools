@@ -19,6 +19,8 @@ import json
 import math
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parent.parent
 KANIT = ROOT / "vlm_capa.json"
 
@@ -37,7 +39,7 @@ def test_olcut_KAPALI_FORM_kalsin():
 def test_kesisim_2pi_yi_geri_veriyor():
     d = _d()
     if not d:
-        return
+        pytest.skip('kanıt/girdi yok: not d')
     u = d["uyum"]
     assert u["dogrusal_R2"] > 0.99, u
     assert abs(u["a_2B_olculen_per_rad"] - 2 * math.pi) / (2 * math.pi) * 100 < 5.0
@@ -48,7 +50,7 @@ def test_PANEL_yakinsamasi_olculmus():
     """e>1 iki farklı şey olabilir; ayrımı ölçüm yapar."""
     d = _d()
     if not d:
-        return
+        pytest.skip('kanıt/girdi yok: not d')
     pk = d["panel_yakinsamasi"]
     e = [k["e_max"] for k in pk["kosular"] if k["e_max"]]
     assert len(e) >= 3
@@ -60,7 +62,7 @@ def test_e_asimi_SINIFLANDIRILIYOR():
     """Ne göz ardı ediliyor ne de körü körüne reddediliyor."""
     d = _d()
     if not d:
-        return
+        pytest.skip('kanıt/girdi yok: not d')
     a = d["span_verimi_asimi"]
     assert a["sinif"] in ("sinir icinde", "artik ayriklastirma")
     if a["asim"] and a["asim"] > 0:
@@ -85,7 +87,7 @@ def test_DOGRULAMA_ile_GECERLEME_karistirilmiyor():
     viskoz gerçekle farkı AYRI bir sorudur ve bu çapa onu ölçmez."""
     d = _d()
     if not d:
-        return
+        pytest.skip('kanıt/girdi yok: not d')
     assert "verification" in d["_kisit"]
     assert "OLCMEZ" in d["_kisit"] or "ÖLÇMEZ" in d["_kisit"]
 
@@ -108,7 +110,7 @@ class TestGercekGeometriYakinsamasi:
         import json
         p = ROOT / "vlm_panel_yakinsamasi.json"
         if not p.exists():
-            return
+            pytest.skip('kanıt/girdi yok: not p.exists()')
         d = json.loads(p.read_text(encoding="utf-8"))
         kb = d.get("kanonik_band")
         assert kb, "kanonik band hesaplanmamis"
@@ -121,7 +123,7 @@ class TestGercekGeometriYakinsamasi:
         import json
         p = ROOT / "vlm_panel_yakinsamasi.json"
         if not p.exists():
-            return
+            pytest.skip('kanıt/girdi yok: not p.exists()')
         d = json.loads(p.read_text(encoding="utf-8"))
         assert all(k.get("uc_kumeleme") == 0.25 for k in d["kayitlar"])
 
@@ -132,7 +134,7 @@ class TestGercekGeometriYakinsamasi:
         import json
         p = ROOT / "vlm_panel_yakinsamasi.json"
         if not p.exists():
-            return
+            pytest.skip('kanıt/girdi yok: not p.exists()')
         d = json.loads(p.read_text(encoding="utf-8"))
         monoton = d["yakinsama"]["monoton"]
         seri = d["yakinsama"]["seri"]
@@ -161,7 +163,7 @@ class TestGercekGeometriYakinsamasi:
     def test_birlestirici_OLCULEN_bandi_tasiyor(self):
         import polar_birlestirme as pb
         if not (ROOT / "vlm_panel_yakinsamasi.json").exists():
-            return
+            pytest.skip('kanıt/girdi yok: not (ROOT / "vlm_panel_yakinsamasi.json").exists()')
         d = pb._depo_verisi()
         assert d.get("vlm_band_pct") is not None
         o = pb.birlesik_polar(d["vlm_polar"], d["kesit"], re_kanat=d["re_kanat"],
@@ -188,7 +190,7 @@ class TestGercekGeometriYakinsamasi:
         pk = ROOT / "vlm_panel_yakinsamasi.json"
         capa = ROOT / "vlm_capa.json"
         if not (pk.exists() and capa.exists()):
-            return
+            pytest.skip('kanıt/girdi yok: not (pk.exists() and capa.exists())')
         d = json.loads(pk.read_text(encoding="utf-8"))
         band = d["vlm_band_pct"]
         capa_hata = json.loads(capa.read_text(encoding="utf-8"))["uyum"]["hata_pct"]
@@ -235,7 +237,7 @@ class TestIraksamaKapisi:
         import json
         p = ROOT / "vspaero_polar.json"
         if not p.exists():
-            return
+            pytest.skip('kanıt/girdi yok: not p.exists()')
         from validity_envelope import vlm_kabul_edilebilir
         for n in json.loads(p.read_text(encoding="utf-8"))["polar"]:
             assert vlm_kabul_edilebilir(n) is None, (n, "kabul edilemez nokta YAYINDA")
@@ -269,7 +271,7 @@ class TestBeyanInsaKiyasi:
         import json
         p = ROOT / "vspaero_polar.json"
         if not p.exists():
-            return
+            pytest.skip('kanıt/girdi yok: not p.exists()')
         d = json.loads(p.read_text(encoding="utf-8"))
         n = (d.get("polar") or [{}])[0]
         if "geometri_sapmalari" not in n:

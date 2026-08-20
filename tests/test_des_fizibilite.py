@@ -15,6 +15,8 @@ import math
 import sys
 from pathlib import Path
 
+import pytest
+
 KOK = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(KOK))
 sys.path.insert(0, str(KOK / "experiments"))
@@ -42,11 +44,11 @@ def test_bellek_katsayisi_OLCULEN_dosyayla_ayni():
     """Kestirim kendi katsayısını taşımamalı; ölçülen kanıtla aynı olmalı."""
     p = KOK / "bellek_katsayisi.json"
     if not p.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not p.exists()')
     d = json.loads(p.read_text(encoding="utf-8"))
     olculen = d.get("kb_hucre") or (d.get("dogrusal") or {}).get("b_kb_hucre")
     if olculen is None:
-        return
+        pytest.skip('kanıt/girdi yok: olculen is None')
     assert abs(olculen - KB_HUCRE) < 0.01, f"kanıt {olculen} ≠ betik {KB_HUCRE}"
 
 
@@ -92,7 +94,7 @@ def test_kanit_OLCUM_ile_KURALI_ayri_tutuyor():
     """Hangi sayı ölçüm, hangisi seçim — okuyucu ayırt edebilmeli."""
     p = KOK / "des_fizibilite.json"
     if not p.exists():
-        return
+        pytest.skip('kanıt/girdi yok: not p.exists()')
     d = json.loads(p.read_text(encoding="utf-8"))
     assert "olculen_girdiler" in d and "kurallar" in d
     for alan in ("u_tau_kaynagi", "kb_hucre_kaynagi", "hiz_kaynagi"):

@@ -15,6 +15,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 KOK = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(KOK))
 sys.path.insert(0, str(KOK / "experiments"))
@@ -209,7 +211,7 @@ def test_disk_ve_kup_capalari_DUVAR_FONKSIYONU_hucresinde():
     rec = calistir()
     hf = (rec["olculen_hucreler"].get("bluff") or {}).get("wall_function")
     if not hf:
-        return
+        pytest.skip('kanıt/girdi yok: not hf')
     adlar = [c["ad"] for c in hf["capalar"]]
     assert any("disk" in a for a in adlar)
     assert hf["n_capa"] >= 2, "ikinci çapa geldi, hücre artık n=2"

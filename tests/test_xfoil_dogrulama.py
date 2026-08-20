@@ -18,6 +18,8 @@ taşır; tek başına koşunca yakınsıyor.
 import json
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parent.parent
 KANIT = ROOT / "xfoil_dogrulama.json"
 
@@ -38,7 +40,7 @@ def test_referans_DEPODAN_okunuyor():
 def test_OLCULEN_sapma_makul():
     d = _d()
     if not d:
-        return
+        pytest.skip('kanıt/girdi yok: not d')
     s = d["sapma_pct"]
     assert abs(s["Cl"]) < 5.0, s
     assert abs(s["Cd_vs_serbest_gecis"]) < 15.0, s
@@ -51,7 +53,7 @@ def test_REYNOLDS_farki_ACIKCA_yaziliyor():
     ÖLÇÜM olarak değil — karıştırılırsa olmayan bir kesinlik yayınlanır."""
     d = _d()
     if not d:
-        return
+        pytest.skip('kanıt/girdi yok: not d')
     k = d["_kisit"]
     assert "3.5e5" in k and "ONCUL" in k
     assert "OLCUM olarak DEGIL" in k
@@ -61,7 +63,7 @@ def test_N_KRIT_secimi_kisitta_geciyor():
     """N_krit geçiş yerini ve dolayısıyla Cd'yi doğrudan belirler."""
     d = _d()
     if not d:
-        return
+        pytest.skip('kanıt/girdi yok: not d')
     assert "N_krit" in d["_kisit"]
 
 
@@ -81,6 +83,6 @@ def test_supurmede_TUM_acilar_donuyor():
     """Kurtarma çalışmazsa referans açısı yine kaybolur."""
     d = _d()
     if not d:
-        return
+        pytest.skip('kanıt/girdi yok: not d')
     assert d.get("xfoil", {}).get("Cl") is not None
     assert abs(d["alpha"] - 4.0) < 1e-9
