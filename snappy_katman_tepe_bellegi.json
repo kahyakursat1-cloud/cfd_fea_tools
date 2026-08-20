@@ -1,0 +1,64 @@
+{
+  "vaka": "snappyHexMesh katman adımı tepe belleği (Ahmed, n_layers=3)",
+  "verdikt": "✅ ÖLÇÜLDÜ: snappy katman tepesi 1.656 kB/hücre + 0.055 GB (R²=0.99996, n=4). Çözüm katsayısının ~2.13 katı — meshleme ~0,25M hücreden sonra BAĞLAYICI aşamadır. Geri-tahmin: AR6'nın 6M hücresi için 9.99 GB öngörür, o an boş olan 7,9 GB'ın üstünde — gözlenen OOM ile uyumlu.",
+  "_neden": "snappyHexMesh KATMAN adımının tepe belleğini ÖLÇ — kapının beyan ettiği boşluk.",
+  "yuzey_ucgen": 2208,
+  "seviyeler": [
+    {
+      "ad": "ahmed_r1_200k",
+      "durum": "ok",
+      "tepe_rss_gb": 0.143,
+      "katman_hedef": 3,
+      "katman_eklendi": null,
+      "katman_kalinlik_pct": null,
+      "checkMesh_rc": 0,
+      "hucre": 54748,
+      "yuz": 169382,
+      "bos_gb_baslangic": 6.0
+    },
+    {
+      "ad": "ahmed_r2_500k",
+      "durum": "ok",
+      "tepe_rss_gb": 0.291,
+      "katman_hedef": 3,
+      "katman_eklendi": null,
+      "katman_kalinlik_pct": null,
+      "checkMesh_rc": 0,
+      "hucre": 142362,
+      "yuz": 437989,
+      "bos_gb_baslangic": 4.23
+    },
+    {
+      "ad": "ahmed_r2_1000k",
+      "durum": "ok",
+      "tepe_rss_gb": 0.509,
+      "katman_hedef": 3,
+      "katman_eklendi": null,
+      "katman_kalinlik_pct": null,
+      "checkMesh_rc": 0,
+      "hucre": 272756,
+      "yuz": 834538,
+      "bos_gb_baslangic": 4.12
+    },
+    {
+      "ad": "ahmed_r3_2000k",
+      "durum": "ok",
+      "tepe_rss_gb": 0.993,
+      "katman_hedef": 3,
+      "katman_eklendi": null,
+      "katman_kalinlik_pct": null,
+      "checkMesh_rc": 0,
+      "hucre": 567549,
+      "yuz": 1735707,
+      "bos_gb_baslangic": 4.07
+    }
+  ],
+  "fitler": {
+    "hucre_basina": {
+      "n": 4,
+      "egim": 1.655821983157875e-06,
+      "sabit": 0.054556359335568294,
+      "R2": 0.9999636642221245
+    }
+  }
+}

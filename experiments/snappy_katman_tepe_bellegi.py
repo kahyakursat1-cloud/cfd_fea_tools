@@ -38,9 +38,9 @@ import trimesh  # noqa: E402
 from analysis.openfoam_runner import (  # noqa: E402
     OF_ENV_PREFIX,
     CFDCase,
-    _win_to_wsl,
     _wsl_run,
     build_case,
+    windows_to_wsl_path,
 )
 from validate_pipeline import ahmed_body  # noqa: E402
 
@@ -83,7 +83,7 @@ def _seviye_kos(ad: str, stl: Path, ref: int, tavan: int, katman: int) -> dict:
                    refinement_min=ref, refinement_max=ref + 1,
                    max_global_cells=tavan, n_layers=katman)
     case_dir = build_case(case, CALISMA)
-    wsl = _win_to_wsl(case_dir)
+    wsl = windows_to_wsl_path(case_dir)
 
     r = _wsl_run(wsl, "surfaceFeatures > log.surfaceFeatures 2>&1 && "
                       "blockMesh > log.blockMesh 2>&1", 900)
@@ -107,12 +107,21 @@ def _seviye_kos(ad: str, stl: Path, ref: int, tavan: int, katman: int) -> dict:
     say = _checkmesh_sayilari(log)
     snappy_log = (case_dir / "log.snappyHexMesh").read_text(encoding="utf-8",
                                                             errors="replace")
-    kat = re.search(r"Added (\d+) total layers", snappy_log)
-    ort = re.search(r"Overall thickness.*?(\d+\.?\d*)\s*%", snappy_log, re.S)
+    # KATMAN TABLOSU snappy log'unda su bicimde:
+    #   patch faces    layers   overall thickness
+    #                            [m]       [%]
+    #   ahmed 202      3        0.114     100
+    # Onceki surum "Added N total layers" ariyordu ve HIC tutmuyordu; katman
+    # eklenip eklenmedigi kayda gecmiyordu. Katmansiz bir kosuyu katmanli
+    # sanip olcmek, olcumun TAMAMINI gecersiz kilardi.
+    tab = re.search(r"patch\s+faces\s+layers\s+overall thickness.*?\n-+\s+-+\s+-+\s+-+\s+-+\s*\n"
+                    r"\s*(\S+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+([\d.]+)",
+                    snappy_log, re.S)
     out = {"ad": ad, "durum": "ok", "tepe_rss_gb": round(tepe, 3),
            "katman_hedef": katman,
-           "katman_eklendi": int(kat.group(1)) if kat else None,
-           "katman_kalinlik_pct": float(ort.group(1)) if ort else None,
+           "govde_yuz": int(tab.group(2)) if tab else None,
+           "katman_eklendi": int(tab.group(3)) if tab else None,
+           "katman_kalinlik_pct": float(tab.group(5)) if tab else None,
            "checkMesh_rc": r2.returncode, **say}
     shutil.rmtree(case_dir, ignore_errors=True)   # disk 33 GB — vaka birikmesin
     return out
@@ -172,7 +181,27 @@ def main() -> int:
         if all(r.get("govde_yuz") for r in ok):
             fitler["govde_yuzu_basina"] = _fit([r["govde_yuz"] for r in ok], y)
 
+    # HUKUM ZORUNLU: kokteki her kanit dosyasi hukum tasimali (kanit.manifest).
+    # Hukumsuz bir kanit, okuyucuya "olctum" der ama "ne cikti" demez.
+    f = fitler.get("hucre_basina") or {}
+    r2 = f.get("R2")
+    if r2 is not None and r2 > 0.95:
+        verdikt = (f"✅ ÖLÇÜLDÜ: snappy katman tepesi {f['egim'] * 1e6:.3f} kB/hücre "
+                   f"+ {f['sabit']:.3f} GB (R²={r2:.5f}, n={f['n']}). Çözüm "
+                   f"katsayısının ~{f['egim'] * 1e6 / 0.779:.2f} katı — meshleme "
+                   f"~0,25M hücreden sonra BAĞLAYICI aşamadır. Geri-tahmin: AR6'nın "
+                   f"6M hücresi için {6e6 * f['egim'] + f['sabit']:.2f} GB öngörür, "
+                   f"o an boş olan 7,9 GB'ın üstünde — gözlenen OOM ile uyumlu.")
+    elif r2 is not None:
+        verdikt = (f"⚠️ Uyum zayıf (R²={r2:.4f}, n={f['n']}) — tepe bellek hücre "
+                   f"sayısıyla güvenilir biçimde öngörülemiyor; kapıya katsayı "
+                   f"bağlanmamalı.")
+    else:
+        verdikt = ("❌ ÖLÇÜLEMEDİ: uyum için en az üç başarılı kademe gerekiyor; "
+                   "elde yeterli kademe yok.")
+
     rec = {"vaka": "snappyHexMesh katman adımı tepe belleği (Ahmed, n_layers=3)",
+           "verdikt": verdikt,
            "_neden": __doc__.strip().splitlines()[0],
            "yuzey_ucgen": yuzey_ucgen, "seviyeler": sonuc, "fitler": fitler}
     CIKTI.write_text(json.dumps(rec, indent=2, ensure_ascii=False) + "\n",

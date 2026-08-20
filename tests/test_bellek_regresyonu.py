@@ -91,9 +91,18 @@ def test_kapi_olculen_katsayiyi_KULLANIR(kanit):
 
 
 def test_raporlanan_iki_sayi_birbiriyle_TUTARLI():
-    """gereken_gb, RAPORLANAN ham_gb'den türetilebilmeli — yuvarlama kaçağı yok."""
+    """Raporlanan sayılar birbirinden türetilebilmeli — yuvarlama kaçağı yok.
+
+    2026-08-20'de kapı iki aşamalı oldu (meshleme tepesi ÖLÇÜLDÜ): `gereken_gb`
+    artık BAĞLAYICI aşamanın ham değerinden türer, `cozum_gereken_gb` ise
+    çözümünkinden. Kural aynı — her raporlanan sayı, yanında raporlanan bir ham
+    değerden ve paydan yeniden üretilebilmeli.
+    """
     import bellek_kapisi as bk
     for n in (50_000, 365_608, 1_000_000, 5_000_000):
         t = bk.tahmini_gb(n)
-        assert t["gereken_gb"] == pytest.approx(t["ham_gb"] * bk.GUVENLIK_PAYI,
+        bagli = max(t["ham_gb"], t["mesh_ham_gb"])
+        assert t["gereken_gb"] == pytest.approx(bagli * bk.GUVENLIK_PAYI,
                                                 rel=1e-3), n
+        assert t["cozum_gereken_gb"] == pytest.approx(
+            t["ham_gb"] * bk.GUVENLIK_PAYI, rel=1e-3), n

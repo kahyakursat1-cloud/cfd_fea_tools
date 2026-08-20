@@ -77,7 +77,28 @@ zaten bayat diye REDDEDİLİYOR. Kanıttaki 12 çapanın hepsi taze koşudan ya 
 kodu 137 (SIGKILL = OOM)** ile 1319 s sonra öldü; log kuyruğu `displacementMedialAxis`,
 yani prizma-katman adımı. Bu tam olarak `bellek_kapisi`'nin "ÇÖZÜM aşaması kapsanır,
 snappyHexMesh KATMAN adımının tepe belleği ÖLÇÜLMEDİ" diye kapsam dışı bıraktığı yer —
-kapının beyanı doğruymuş ve bu, o boşluğun ölçülmüş ilk örneği. Kök neden bellek değil
+kapının beyanı doğruymuş ve bu, o boşluğun ölçülmüş ilk örneği.
+
+**BOŞLUK KAPANDI (2026-08-20)** — `experiments/snappy_katman_tepe_bellegi.py`. Ahmed
+gövdesi, `n_layers=3`, dört kademe, snappyHexMesh `/usr/bin/time -v` altında, tepe RSS:
+
+| hücre | tepe RSS | kB/hücre |
+|---|---|---|
+| 54.748 | 0,143 GB | 2,61 |
+| 142.362 | 0,291 GB | 2,04 |
+| 272.756 | 0,509 GB | 1,87 |
+| 567.549 | 0,993 GB | 1,75 |
+
+**tepe = 1,656 kB/hücre + 0,055 GB, R² = 0,99996** — çözüm katsayısının (0,779) **2,13
+katı**, yani ~0,25M hücreden sonra bağlayıcı aşama meshlemedir. Katman örgüsü teyitli
+(log tablosu: gövde yaması 202 yüz, 3/3 katman, %100 kalınlık) — katmansız bir yolu
+katmanlı sanıp ölçme riski kapatıldı.
+
+**Geri-tahmin doğrulaması:** katsayı 55k–568k aralığında oturtuldu ve 10× ötelenerek
+AR6'nın 6M hücresi için 9,99 GB öngörüyor; o an boş olan 7,9 GB'ın üstünde, yani OOM.
+Gözlenen tam buydu. Kapı artık o vakayı REDDEDİYOR (12,99 GB gerekir) ve hükmünde
+bağlayıcı aşamayı adıyla yazıyor. Önerilen hücre tavanı da bağlayıcı aşamadan türetiliyor
+— çözümden türetmek yine aşılabilir bir tavan önerirdi. Kök neden bellek değil
 GEOMETRİ (firar kenarı kirişin %0,24'ü, açıklık 18 m → ~97M hücre); donanım yükseltmesi
 işi imkânsızdan makul-ihtimale taşır. `sphere` ve `naca0012_a0` atlama listesinde
 (setup-uyumsuz). Ayrıca 2026-08-20'de düzeltildi: toplayıcı düşen koşuyu SESSİZCE

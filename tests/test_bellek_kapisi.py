@@ -75,8 +75,15 @@ def test_bellek_okunamazsa_ENGEL_degil_ama_sessiz_de_degil(monkeypatch):
 
 
 def test_guvenlik_payi_ham_tahminin_uzerine_biner():
+    # Pay, BAGLAYICI asamanin ham tahmininin uzerine biner. Meshleme ve cozum
+    # ARDISIK calistigi icin tepe ikisinin BUYUGUDUR — toplamak gereginden
+    # kati, yalniz cozume bakmak ise AR6'da OOM'a goturmustu.
     t = bk.tahmini_gb(1_000_000)
-    assert t["gereken_gb"] == pytest.approx(t["ham_gb"] * bk.GUVENLIK_PAYI, rel=1e-3)
+    bagli = max(t["ham_gb"], t["mesh_ham_gb"])
+    assert t["gereken_gb"] == pytest.approx(bagli * bk.GUVENLIK_PAYI, rel=1e-3)
+    assert t["baglayici_asama"] in ("meshleme", "çözüm")
+    assert t["cozum_gereken_gb"] == pytest.approx(t["ham_gb"] * bk.GUVENLIK_PAYI,
+                                                  rel=1e-3)
 
 
 def test_tahmin_kaynagi_HER_mesajda_yaziyor():
@@ -144,30 +151,37 @@ def test_katsayi_olcumu_kosu_yokken_UYDURMAZ():
         assert rec["n_kosu"] >= 1 and rec["kb_hucre"] > 0
 
 
-def test_SIGAR_hukmu_KAPSAMINI_soyluyor():
-    """"Sığar" hangi aşama için geçerli? Söylenmezse okuyucu tümü sanar.
+def test_MESHLEME_tepesi_OLCULDU_ve_AR6_artik_REDDEDILIYOR():
+    """Kapinin en pahali hatasi: AR6 capasi icin "sigar" dedi, snappyHexMesh
+    1319 s sonra SIGKILL (137) ile oldu — KATMAN adiminda.
 
-    ÖLÇÜLDÜ (2026-08-19, AR6 çapası 4. deneme): kapı "6.000.000 hücre
-    ~6,07 GB; boş 7,9 GB — sığar" dedi ve snappyHexMesh 1319 saniye sonra
-    SIGKILL ile öldürüldü (çıkış 137), KATMAN ekleme adımında
-    (displacementMedialAxis). Hüküm yanlıştı.
+    Kok neden asama korluguydu: katsayi COZUM kosularindan turetilmisti
+    (0,779 kB/hucre) ve snappy'nin katman tepesini kapsamiyordu. Kapi bunu
+    durustce BEYAN ediyordu ama beyan, olcumun yerini tutmaz.
 
-    KÖK NEDEN AŞAMA KÖRLÜĞÜ: katsayı ÇÖZÜM koşularından türetildi
-    (basarim/b60k_c*, 0,779 kB/hücre + 0,215 GB, R²=0,96) ve çözücünün
-    belleğini ölçüyor. snappy'nin katman adımı bambaşka bir tepe yapar;
-    medial-axis geçici veri yapıları son hücre sayısıyla orantılı DEĞİL.
+    OLCULDU (2026-08-20, experiments/snappy_katman_tepe_bellegi.py): Ahmed,
+    n_layers=3, dort kademe 55k-568k hucre, /usr/bin/time -v tepe RSS ->
+    1,656 kB/hucre + 0,055 GB, R2=0,99996. Cozum katsayisinin 2,13 kati.
 
-    Snappy için bir katsayı UYDURULMADI — ölçülmedi. Yapılan tek şey hükmün
-    kapsamını beyan etmek.
+    Test MESAJ METNINE degil, kapiyi KANDIRAN GERCEK VAKAYA baglanir: 6M
+    hucre, o an bos olan 7,9 GB. Katsayi 55k-568k araliginda oturtulup 10x
+    otelenerek bu vakayi dogru reddediyor.
     """
     from bellek_kapisi import hukum
-    h = hukum(1000, bos_gb=100.0)          # rahatça sığan bir vaka
+    ar6 = hukum(6_000_000, bos_gb=7.9)
+    assert ar6["kosulabilir"] is False, "AR6 vakasi YINE sigar deniyor"
+    assert ar6["baglayici_asama"] == "meshleme"
+    # Cozum TEK BASINA sigiyordu — hatanin tam olarak neden olustugu gorunur
+    # kalmali; aksi halde gelecekte biri "cozum sigiyor" diye geri alabilir.
+    assert ar6["cozum_gereken_gb"] < 7.9 < ar6["gereken_gb"]
+    # Onerilen tavan BAGLAYICI asamadan turetilmeli, yoksa yine asilabilir.
+    assert hukum(ar6["onerilen_max_cells"], bos_gb=7.9)["kosulabilir"] is True
+
+    # Sigan bir vakada da hangi asamanin bagladigi YAZILI olmali.
+    h = hukum(1000, bos_gb=100.0)
     assert h["kosulabilir"] is True
-    assert h.get("kapsam") == "ÇÖZÜM aşaması"
-    assert "snappyHexMesh" in (h.get("kapsanmayan") or ""), (
-        "kapsanmayan aşama adıyla yazılmıyor")
-    assert "UYARI" in h["mesaj"] and "OOM" in h["mesaj"], (
-        "mesaj okuyucuya meshleme riskini söylemiyor")
+    assert "ölçülü" in h.get("kapsam", "")
+    assert h.get("kapsanmayan"), "kalan kapsam bosluğu hala beyan edilmeli"
 
 
 def test_SIGMAZ_hukmu_bozulmadi():

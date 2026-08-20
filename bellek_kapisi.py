@@ -32,6 +32,29 @@ ONCUL_KB_HUCRE = 1.0        # ölçüm yokken kullanılan mertebe (ölçüm DEĞ
 GUVENLIK_PAYI = 1.3         # işletim sistemi + diğer süreçler + parçalanma
 EN_AZ_BOS_GB = 2.0          # bunun altında hiçbir koşu başlatılmaz
 
+# MESHLEME TEPESİ — ÖLÇÜLDÜ 2026-08-20, kapının kendi beyan ettiği boşluk.
+# `experiments/snappy_katman_tepe_bellegi.py`: Ahmed gövdesi, n_layers=3, dört
+# kademe (54.748 / 142.362 / 272.756 / 567.549 hücre), snappyHexMesh
+# `/usr/bin/time -v` altında, tepe RSS okundu:
+#     0,143 / 0,291 / 0,509 / 0,993 GB   →   1,656 kB/hücre + 0,055 GB, R²=0,99996
+# Katman örgüsü TEYİTLİ (log tablosu: gövde yaması 202 yüz, 3/3 katman, %100
+# kalınlık) — katmansız bir yolu katmanlı sanıp ölçme riski kapatıldı.
+#
+# GERİ-TAHMİN DOĞRULAMASI: AR6 çapası 6M hücrede koşmuştu; bu katsayı 9,99 GB
+# öngörüyor, o an boş olan 7,9 GB'ın üstünde — yani OOM. Gözlenen tam buydu
+# (snappyHexMesh, çıkış kodu 137, displacementMedialAxis). Katsayı 55k–568k
+# aralığında oturtulup 10× ötelenerek doğru hüküm verdi.
+#
+# ÇÖZÜM katsayısının 2,13 KATI: meshleme ~0,25M hücreden sonra bağlayıcı olan
+# aşamadır. Kapı bunu bilmediği için AR6'da "sığar" demişti.
+#
+# SINIR: tek geometri (Ahmed), n_layers=3. Katmansız meshlemede tepe daha
+# düşüktür, yani bu değer o yol için ÜST SINIRDIR — muhafazakâr, uydurma değil.
+MESH_KB_HUCRE = 1.656
+MESH_SABIT_GB = 0.055
+MESH_KAYNAK = ("ölçülen (4 kademe, Ahmed n_layers=3, R²=0,99996, "
+               "snappy_katman_tepe_bellegi.json)")
+
 
 def bos_bellek_gb() -> float | None:
     """Kullanılabilir bellek (GB). psutil yoksa None — 'ölçülemedi'."""
@@ -66,8 +89,17 @@ def tahmini_gb(cells: int) -> dict:
     # kendi bicimini uyguluyor.
     k = katsayi()
     ham = cells * k["kb_hucre"] / 1e6                # kB -> GB
+    mesh_ham = cells * MESH_KB_HUCRE / 1e6 + MESH_SABIT_GB
+    # BAGLAYICI ASAMA MAX'TIR, TOPLAM DEGIL: meshleme ve cozum ayni anda degil
+    # ARDISIK calisir, yani tepe ikisinin buyugudur. Toplamak gereginden kati
+    # olurdu; yalniz cozume bakmak ise AR6'da OOM'a goturdu.
+    bagli = "meshleme" if mesh_ham > ham else "çözüm"
+    ham_bagli = max(ham, mesh_ham)
     return {**k, "cells": cells, "ham_gb": ham,
-            "gereken_gb": ham * GUVENLIK_PAYI,
+            "mesh_ham_gb": mesh_ham, "mesh_kaynak": MESH_KAYNAK,
+            "baglayici_asama": bagli,
+            "gereken_gb": ham_bagli * GUVENLIK_PAYI,
+            "cozum_gereken_gb": ham * GUVENLIK_PAYI,
             "guvenlik_payi": GUVENLIK_PAYI}
 
 
@@ -88,12 +120,20 @@ def hukum(cells: int, bos_gb: float | None = None) -> dict:
                 "mesaj": f"Boş bellek {bos:.1f} GB < mutlak taban "
                          f"{EN_AZ_BOS_GB} GB — hiçbir koşu başlatılmaz."}
     if t["gereken_gb"] > bos:
-        onerilen = int(bos / GUVENLIK_PAYI * 1e6 / t["kb_hucre"])
+        # ONERILEN TAVAN BAGLAYICI ASAMADAN turetilir. Cozum katsayisindan
+        # turetmek, meshleme baglayiciyken YINE asilabilir bir tavan onerirdi.
+        if t["baglayici_asama"] == "meshleme":
+            onerilen = int(max(0.0, bos / GUVENLIK_PAYI - MESH_SABIT_GB)
+                           * 1e6 / MESH_KB_HUCRE)
+        else:
+            onerilen = int(bos / GUVENLIK_PAYI * 1e6 / t["kb_hucre"])
         return {**out, "kosulabilir": False, "onerilen_max_cells": onerilen,
-                "mesaj": (f"{cells:,} hücre için ~{t['gereken_gb']:.2f} GB gerekir, "
-                          f"boş {bos:.1f} GB. Bütçeyi ~{onerilen:,} hücreye "
-                          f"indirin ya da belleği boşaltın. Tahmin kaynağı: "
-                          f"{t['kaynak']}")}
+                "mesaj": (f"{cells:,} hücre için ~{t['gereken_gb']:.2f} GB gerekir "
+                          f"(bağlayıcı aşama: {t['baglayici_asama']}; çözüm tek "
+                          f"başına ~{t['cozum_gereken_gb']:.2f} GB), boş {bos:.1f} GB. "
+                          f"Bütçeyi ~{onerilen:,} hücreye indirin ya da belleği "
+                          f"boşaltın. Tahmin kaynağı: {t['kaynak']} + "
+                          f"{t['mesh_kaynak']}")}
     # KAPSAM BEYAN EDILIR — "sigar" hukmu HANGI ASAMA icin gecerli?
     #
     # OLCULDU (2026-08-19, AR6 capasi 4. deneme): kapi "6.000.000 hucre
@@ -107,17 +147,20 @@ def hukum(cells: int, bos_gb: float | None = None) -> dict:
     # tepe yapar: medial-axis hesabi tum yuzey noktalarinin mesafe alanini
     # tutar ve gecici veri yapilari son hucre sayisiyla orantili DEGILDIR.
     #
-    # SNAPPY ICIN BIR KATSAYI UYDURULMADI — olculmedi. Yapilan tek sey
-    # hukmun KAPSAMINI soylemek: "sigar" cozum asamasi icindir, meshleme
-    # tepesi KAPSANMAZ. Bu, "olcemedim" ile "iyi"yi ayirmanin bu kapidaki
-    # karsiligi.
+    # BOSLUK KAPANDI (2026-08-20): snappy katman tepesi OLCULDU (MESH_KB_HUCRE,
+    # yukaridaki gerekce). Kapsam beyani artik "olcemedim" degil, olculen iki
+    # asamadan HANGISININ bagladigini soyluyor. Beyan kaldirilmadi, GERCEGE
+    # UYDURULDU — kapsamini soylemeyi birakmak, boslugu kapatmakla ayni sey
+    # degildir.
     return {**out, "kosulabilir": True,
-            "kapsam": "ÇÖZÜM aşaması",
-            "kapsanmayan": ("snappyHexMesh KATMAN adımının tepe belleği "
-                            "(displacementMedialAxis) — katsayı çözüm "
-                            "koşularından türetildi, meshleme tepesi ÖLÇÜLMEDİ"),
+            "kapsam": "meshleme (snappy katman) + ÇÖZÜM — ikisi de ölçülü",
+            "kapsanmayan": ("katmansız meshleme ve decomposePar/reconstructPar "
+                            "tepe değerleri ayrıca ölçülmedi; katman katsayısı "
+                            "tek geometride (Ahmed, n_layers=3) ölçüldü ve "
+                            "katmansız yol için ÜST SINIRDIR"),
             "mesaj": (f"{cells:,} hücre ~{t['gereken_gb']:.2f} GB; boş {bos:.1f} GB "
-                      f"— ÇÖZÜM aşaması için sığar. Tahmin kaynağı: {t['kaynak']}. "
-                      "UYARI: snappyHexMesh katman adımının tepe belleği bu "
-                      "tahminde YOK; katmanlı büyük ağlarda meshleme OOM ile "
-                      "düşebilir (ölçüldü: 6M hücre, 7,9 GB boş → SIGKILL).")}
+                      f"— sığar. Bağlayıcı aşama: {t['baglayici_asama']} "
+                      f"(meshleme tepesi ~{t['mesh_ham_gb']:.2f} GB, çözüm "
+                      f"~{t['ham_gb']:.2f} GB; tepe ikisinin BÜYÜĞÜDÜR çünkü "
+                      f"ardışık çalışırlar). Tahmin kaynağı: {t['kaynak']} + "
+                      f"{t['mesh_kaynak']}.")}
