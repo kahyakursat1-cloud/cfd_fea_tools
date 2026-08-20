@@ -99,3 +99,66 @@ def test_moment_metric_ASIMETRIK_yukte_de_anlamli(tmp_path):
     r = cfd_pressure_to_fea_loads(str(v), str(stl), rho=1.0)
     assert r["status"] == "SUCCESS"
     assert 0.0 <= r["moment_conservation_error"] < 1e-10
+
+
+# ── TERS YÖN: yapı yer değiştirmesi → akışkan ağı ─────────────────────────
+
+def test_rijit_hareket_BIREBIR_tasiniyor():
+    """Yük aktarımı KORUNUM ister, yer değiştirme aktarımı TUTARLILIK.
+
+    Yapı rijit ötelenirse akışkan ağı da aynen ötelenmeli. Aksi halde yapı
+    HİÇ DEFORME OLMADAN ağ bozulur — 2-yönlü FSI'de bu, ilk turda çözümü
+    kirletir ve hata her turda birikir.
+
+    Ters-mesafe ağırlıkları birim-bölünüm sağlar (toplamı 1), o yüzden sabit
+    bir alan hatasız taşınır. Bu özellik CFD KOŞMADAN sınanabilir.
+    """
+    import numpy as np
+
+    from coupling_fsi import fea_displacement_to_cfd_points as tasi
+    rng = np.random.default_rng(0)
+    fea, cfd = rng.random((40, 3)), rng.random((25, 3))
+    t = np.array([0.3, -0.7, 1.1])
+    out = tasi(fea, np.tile(t, (40, 1)), cfd)
+    assert np.abs(out - t).max() < 1e-12, "rijit öteleme bozuluyor"
+
+
+def test_cakisan_nokta_AYNEN_aliniyor():
+    """Sıfır mesafede ağırlık tanımsız; değer doğrudan atanmalı."""
+    import numpy as np
+
+    from coupling_fsi import fea_displacement_to_cfd_points as tasi
+    rng = np.random.default_rng(1)
+    fea, d = rng.random((30, 3)), rng.random((30, 3))
+    out = tasi(fea, d, fea[:8])
+    assert np.abs(out - d[:8]).max() == 0.0
+
+
+def test_sifir_yer_degistirme_SIFIR_kaliyor():
+    import numpy as np
+
+    from coupling_fsi import fea_displacement_to_cfd_points as tasi
+    rng = np.random.default_rng(2)
+    fea, cfd = rng.random((20, 3)), rng.random((15, 3))
+    assert np.abs(tasi(fea, np.zeros((20, 3)), cfd)).max() == 0.0
+
+
+def test_pointDisplacement_OpenFOAM_ayristirabilir(tmp_path):
+    """Bozuk sözlük çözücüyü açıklamasız düşürür."""
+    import numpy as np
+
+    from coupling_fsi import write_point_displacement as yaz
+    d = np.array([[1e-3, 0, 0], [0, 2e-3, 0], [0, 0, 3e-3]])
+    s = yaz(tmp_path, "govde", d).read_text()
+    assert "FoamFile" in s and "pointVectorField" in s
+    assert "dimensions      [0 1 0 0 0 0 0];" in s, "yer değiştirme boyutu yanlış"
+    assert "nonuniform List<vector>" in s
+    # Uzak alan SABIT: deformasyon disari tasmamali.
+    for y in ("inlet", "outlet", "top", "bottom", "front", "back"):
+        assert y in s
+    # Liste uzunlugu nokta sayisiyla ESLESMELI (OpenFOAM sikica denetler).
+    satir = s.splitlines()
+    i = satir.index("nonuniform List<vector>".join(["        value           ", ""]).rstrip()) \
+        if False else next(j for j, L in enumerate(satir) if "nonuniform" in L)
+    assert satir[i + 1].strip() == "3", "liste uzunluğu nokta sayısıyla uyuşmuyor"
+    assert satir[i + 2].strip() == "("

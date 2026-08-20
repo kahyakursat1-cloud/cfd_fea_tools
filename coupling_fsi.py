@@ -255,6 +255,94 @@ def write_cload(node_forces: dict, out_path: str) -> str:
     return out_path
 
 
+# ── TERS YON: yapi yer degistirmesi -> akiskan agi ────────────────────────────
+#
+# 2-YONLU FSI'NIN EKSIK HALKASI BUYDU. Olculdu (2026-08-19):
+#   · `cfd_pressure_to_fea_loads` (basinc -> yuk) URETIMDE (pipeline.py)
+#   · `fsi_twoway.partitioned_fsi` (Aitken) DOGRULANMIS ama yalniz TESTLERDEN
+#     cagriliyor — uretimde tek cagirani yok
+#   · Depoda `pointDisplacement` HIC gecmiyordu
+# Yani donusu tasiyacak parca yoktu; kuplaj turu ilkece kapanamiyordu.
+#
+# YUK AKTARIMI ILE YER DEGISTIRME AKTARIMI AYNI SEY DEGIL:
+#   yuk        -> KORUNUM gerekir (toplam kuvvet degismemeli); yukarida yuzey
+#                 kuvveti uce bolunuyor ve korunum ayrica olculuyor.
+#   yer degis. -> TUTARLILIK gerekir. Rijit hareket BIREBIR korunmali, yoksa
+#                 yapi hic deforme olmadan akiskan agi bozulur. Bu ozellik
+#                 CFD KOSMADAN sinanabilir ve testler onu bagliyor.
+#
+# YONTEM: k en-yakin FEA dugumunden ters-mesafe agirlikli interpolasyon.
+# Agirliklar birim-bolunum saglar (toplami 1), dolayisiyla sabit bir alan
+# (rijit oteleme) TAM olarak yeniden uretilir. En-yakin-komsu de rijit hareketi
+# korur ama yuzeyde basamaklar birakir; ters-mesafe puruzsuzdur ve ayni
+# garantiyi verir.
+
+def fea_displacement_to_cfd_points(fea_nodes, fea_disp, cfd_points,
+                                   k: int = 4, guc: float = 2.0):
+    """FEA dugum yer degistirmelerini CFD yuzey noktalarina tasi.
+
+    fea_nodes  : (K,3) FEA yuzey dugum koordinatlari
+    fea_disp   : (K,3) o dugumlerdeki yer degistirme
+    cfd_points : (M,3) akiskan yamasinin noktalari
+    Donduru    : (M,3) CFD noktalarindaki yer degistirme
+
+    Birim-bolunum: sum(w_i) = 1, yani SABIT bir alan HATASIZ tasinir (rijit
+    oteleme testi bunu bagliyor). Bir CFD noktasi bir FEA dugumune cakisirsa
+    o dugumun degeri AYNEN alinir — sifir mesafede agirlik tanimsizdir.
+    """
+    from scipy.spatial import cKDTree
+
+    fea_nodes = np.asarray(fea_nodes, dtype=float)
+    fea_disp = np.asarray(fea_disp, dtype=float)
+    cfd_points = np.asarray(cfd_points, dtype=float)
+    if len(fea_nodes) == 0 or len(cfd_points) == 0:
+        return np.zeros((len(cfd_points), 3))
+    kk = int(min(max(k, 1), len(fea_nodes)))
+    d, idx = cKDTree(fea_nodes).query(cfd_points, k=kk)
+    if kk == 1:
+        d, idx = d[:, None], idx[:, None]
+
+    out = np.zeros((len(cfd_points), 3))
+    cakisan = d[:, 0] < 1e-12
+    out[cakisan] = fea_disp[idx[cakisan, 0]]
+
+    kalan = ~cakisan
+    if kalan.any():
+        w = 1.0 / np.power(d[kalan], guc)
+        w /= w.sum(axis=1, keepdims=True)          # BIRIM BOLUNUM
+        out[kalan] = np.einsum("mk,mkc->mc", w, fea_disp[idx[kalan]])
+    return out
+
+
+def write_point_displacement(case_dir, patch_name, disp_by_point,
+                             uzak_yamalar=("inlet", "outlet", "top", "bottom",
+                                           "front", "back")):
+    """0/pointDisplacement'i GOVDE yamasinda olculen degerlerle yaz.
+
+    Govde `fixedValue` + nonuniform liste; uzak alan sabit sifir (deformasyon
+    disari tasmaz). `openfoam_runner._write_mesh_motion` iskeleti kurar, bu
+    fonksiyon her kuplaj turunda GOVDE degerlerini gunceller.
+    """
+    d = np.asarray(disp_by_point, dtype=float)
+    nl = chr(10)
+    g = ["FoamFile", "{", "    format      ascii;",
+         "    class       pointVectorField;", '    location    "0";',
+         "    object      pointDisplacement;", "}", "",
+         "dimensions      [0 1 0 0 0 0 0];", "",
+         "internalField   uniform (0 0 0);", "", "boundaryField", "{"]
+    for y in uzak_yamalar:
+        g += [f"    {y}", "    {", "        type            fixedValue;",
+              "        value           uniform (0 0 0);", "    }"]
+    g += [f"    {patch_name}", "    {", "        type            fixedValue;",
+          "        value           nonuniform List<vector>", str(len(d)), "("]
+    g += [f"({v[0]:.9e} {v[1]:.9e} {v[2]:.9e})" for v in d]
+    g += [")", "    }", "}", ""]
+    yol = Path(case_dir) / "0" / "pointDisplacement"
+    yol.parent.mkdir(parents=True, exist_ok=True)
+    yol.write_text(nl.join(g))
+    return yol
+
+
 if __name__ == "__main__":
     import json
     import sys
