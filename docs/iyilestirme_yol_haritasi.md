@@ -163,7 +163,7 @@ geometriden çıkarılamaz. (iii) Zaten kanonik girdi döndürülmez — eksenel
 PCA enine düzlemde keyfî açı seçtiği için kanonik roket ~0,1° dönüp ağı bozuyor ve
 yanlış "hizalandı" beyanı veriyordu; en yakın eksen-permütasyonuna oturtuldu.
 
-### 3.4 ◐ Birim-ölçek tespiti — SINIR ÖLÇÜLDÜ, sessizlik kaldırıldı (2026-08-20)
+### 3.4 ✅ Birim-ölçek tespiti — sınıf önceli uygulandı, sınır beyanlı (2026-08-20)
 **Ne:** >50→mm sezgisi gerçek CAD'de tutarsız (f16 1.5m çıktı). Geometri-tipi + tipik-boy
 priori ile daha akıllı. **Neden:** Re/hız/mesh hepsi ölçeğe bağlı.
 
@@ -187,8 +187,33 @@ listeleyip kararı çağırana bırakıyor. Yanlış ölçeklemelerin **5/10'u a
 kalan 5'i ilkece ayırt edilemez. Uyarı `auto_configure` uyarılarına bağlandı — üretim
 yolundan geçtiği testle doğrulanıyor (bu deponun baskın kusuru: kapı var, çağıran yok).
 
-**KALAN (ürün kararı):** sınıfa özel boy önceli (ör. BİLSEM roketi 0,3–2 m) tanımlanırsa
-belirsiz aday sayısı düşer ve kalan 5 vakanın bir kısmı da yakalanabilir.
+**ÖNCEL TANIMLANDI (kullanıcı beyanı, 2026-08-20): BİLSEM roketleri 0,3–2 m.** Uygulandı;
+kanatçıklı roketler ayrı etiket aldığı için (ölçüldü: 3 ve 4 kanatçıkta `kanatli_roket`)
+öncel her iki sınıfa bağlı. Uçtan uca ölçüm (6 roket boyu × 4 birim, `auto_configure`):
+
+| dosya birimi | öncesi | sonrası |
+|---|---|---|
+| m | 6/6 | 6/6 |
+| mm | 6/6 | 6/6 |
+| cm | **0/6 (sessizce yanlış)** | **6/6** |
+| inç | 0/6 | 2/6 (kalanı beyanlı varsayım) |
+
+Kalan belirsizliğin tamamı cm↔inç (2,54× ayrı); inç **elenmiyor**, metrik varsayılıyor ve
+bedel yazılıyor ("dosya inç ise Lmax 2,54× hatalı olur") — gerçekleşen sapma 2,536×.
+İki tuzak: sınıf bandı nominaldir, sert sınır değil (2,0 m'lik roket ağ yuvarlamasıyla
+kenardan düşüyordu → %5 pay; %15 denendi, inç adayını banda sokup temiz çözümü bozdu),
+ve güvenlik kuralı — mevcut sonuç bandın içindeyse dokunulmaz, çünkü öncel o vakada
+yanlış olabilir (5 m'lik roket `band_disi` alır, ölçeği BOZULMAZ).
+
+**BİRİM SİSTEMİ KARARI (2026-08-20): iç sistem coherent SI (metre) KALIYOR.** mm–t–s–MPa'ya
+geçme önerisi değerlendirildi ve reddedildi. Üç gerekçe: (i) çözmek istediği sorunu
+çözmüyor — belirsizlik *dosyanın* ne demek istediğinde, bizim neyle hesapladığımızda
+değil; ham Lmax 90 hangi iç birimde olursak olalım cm↔mm belirsizdir. (ii) Yarıçapı
+ölçüldü: ρ=1,225 otuz dört dosyada, ν on sekizde, g yedide, yedi çapanın hepsi SI Re/L/U
+üzerinden tanımlı — dönüşüm ölçülmüş çapa tabanını yeniden türetip yeniden koşmayı
+gerektirir. (iii) FSI arayüzünde CFD ve FEA şu an aynı sistemde; iki sistem yük/deplasman
+aktarımına çarpan sokar ve yeni bir sessiz-hata sınıfı açar. mm okunabilirliği istenirse
+doğru yer **sunum katmanıdır** (rapor/arayüz mm gösterir, hesap SI kalır).
 
 ---
 
