@@ -142,6 +142,20 @@ class CFDCase:
     t_inf: float = 288.15          # K
     p_inf: float = 101325.0       # Pa (sıkışabilir yolda mutlak basınç)
     bg_cell_size: float | None = None  # None = otomatik (L/8)
+    # 2-YONLU FSI ICIN AG HAREKETI. Olculdu (2026-08-19): Aitken kuplaj motoru
+    # (`fsi_twoway.partitioned_fsi`) DOGRULANMIS ama YALNIZ TESTLERDEN
+    # cagriliyor; uretimde tek cagiran yok. 1-yonlu basinc->yuk yolu
+    # (`coupling_fsi`) pipeline.py'de calisiyor ama donusu YOK: yapinin
+    # deformasyonu akiskan agina hic aktarilamiyordu cunku depoda
+    # `dynamicMotionSolver`/`pointDisplacement` HIC GECMIYORDU.
+    #
+    # Yani 2-yonlu FSI'nin eksigi ne cozucu ne kuplaj semasiydi — AKISKAN
+    # TARAFI AG DEFORMASYONUYDU. preCICE eklemek bu parcayi da COZMEZ
+    # (onun OpenFOAM adaptoru de hareketli-ag kurulumunu sizden ister) ve
+    # ustelik zaten dogrulanmis kuplaj semasini degistirirdi.
+    #
+    # Varsayilan False: mevcut kosularin HICBIRI etkilenmez.
+    mesh_motion: bool = False
     end_time: int = 300            # SIMPLE iterasyonu
     write_interval: int = 100
     n_processors: int = 0          # 0 = otomatik (WSL nproc, max 8)
@@ -613,6 +627,58 @@ def _write_snappy(case_dir: Path, stl_name: str, surface_name: str,
         "mergeTolerance 1e-6;\n"
     )
     (case_dir / "system" / "snappyHexMeshDict").write_text(txt)
+
+
+def _write_mesh_motion(case_dir: Path, surface_name: str,
+                       ground: bool = False) -> None:
+    """2-yönlü FSI'nin EKSİK HALKASI: yapı deformasyonunu akışkan ağına taşı.
+
+    İki dosya gerekir ve ikisi de yoktu:
+      constant/dynamicMeshDict — hareket çözücüsü (Laplacian, ters-mesafe
+        yayılımı). Yapı yüzeyi kıpırdayınca iç düğümler pürüzsüz kayar; bu
+        olmadan hareket sınırda kalır ve hücreler bozulur.
+      0/pointDisplacement — sınır koşulları. GÖVDE YÜZEYİ `fixedValue`'dur
+        çünkü değeri DIŞARIDAN (FEA'dan) yazılır; uzak alan `fixedValue 0`,
+        yani deformasyon uzağa taşmaz.
+
+    NEDEN LAPLACIAN + TERS MESAFE: `displacementLaplacian` küçük-orta
+    deformasyonda sağlamdır ve ek alan çözümü ucuzdur. `inverseDistance`
+    yayılımı hareketi cisme yakın tutar; uzak alan hücreleri neredeyse hiç
+    kıpırdamaz, dolayısıyla uzak-alan ağ kalitesi korunur. Büyük deformasyonda
+    (kanat burulması gibi) bu yetmez ve yeniden-meshleme gerekir — o SINIR
+    burada AÇIKÇA belirtilir, sessizce varsayılmaz.
+    """
+    txt = _foam_header("dictionary", "dynamicMeshDict", "constant")
+    txt += (
+        "dynamicFvMesh   dynamicMotionSolverFvMesh;\n\n"
+        "motionSolverLibs (\"libfvMotionSolvers.so\");\n\n"
+        "motionSolver    displacementLaplacian;\n\n"
+        "displacementLaplacianCoeffs\n{\n"
+        "    diffusivity     inverseDistance (%s);\n"
+        "}\n" % surface_name
+    )
+    (case_dir / "constant" / "dynamicMeshDict").write_text(txt)
+
+    uzak = ("inlet", "outlet", "top", "front", "back")
+    txt = _foam_header("volVectorField", "pointDisplacement", "0")
+    txt += (
+        "dimensions      [0 1 0 0 0 0 0];\n\n"
+        "internalField   uniform (0 0 0);\n\n"
+        "boundaryField\n{\n"
+    )
+    for y in uzak:
+        txt += f"    {y}\n    {{\n        type            fixedValue;\n" \
+               "        value           uniform (0 0 0);\n    }\n"
+    # Zemin varsa kaymaz; yoksa `bottom` da uzak-alan gibi davranir.
+    txt += ("    bottom\n    {\n        type            fixedValue;\n"
+            "        value           uniform (0 0 0);\n    }\n")
+    # GOVDE: deger DISARIDAN yazilir (FEA yer degistirmesi). `fixedValue` ile
+    # baslatilir; kuplaj turunda bu alan guncellenir.
+    txt += (f"    {surface_name}\n    {{\n"
+            "        type            fixedValue;\n"
+            "        value           uniform (0 0 0);\n    }\n")
+    txt += "}\n"
+    (case_dir / "0" / "pointDisplacement").write_text(txt)
 
 
 def _write_surface_features(case_dir: Path, stl_name: str) -> None:
@@ -1174,6 +1240,10 @@ def build_case(case: CFDCase, out_dir: Path) -> Path:
     _write_block_mesh(case_dir, dmin, dmax, cell_size, ground=ground)
     _write_snappy(case_dir, stl_name, surface_name, inside_pt, case)
     _write_surface_features(case_dir, stl_name)
+    # AG HAREKETI YALNIZ ISTENDIGINDE. Varsayilan kapali: mevcut kosularin
+    # hicbiri etkilenmez ve dosyalar bile yazilmaz.
+    if case.mesh_motion:
+        _write_mesh_motion(case_dir, surface_name, ground=ground)
     lref = L
     # İz-düzlemi: gövde arkası 2 boy (uzak-iz basınç toparlanması), domain içinde
     wake_x = float(gmax[0] + 2.0 * lref)

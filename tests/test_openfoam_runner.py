@@ -128,3 +128,50 @@ def test_katmansiz_kosuda_olcut_SIKI_kaliyor(tmp_path):
     assert "minTetQuality 1e-15;" in s
     assert "relaxed" not in s
     assert "addLayers       false;" in s
+
+
+def test_ag_hareketi_ISTENMEDEN_yazilmiyor(tmp_path):
+    """Varsayılan kapalı — mevcut koşuların hiçbiri etkilenmemeli."""
+    case_dir = build_case(_box_case(tmp_path), tmp_path / "out")
+    assert not (case_dir / "constant" / "dynamicMeshDict").exists()
+    assert not (case_dir / "0" / "pointDisplacement").exists()
+
+
+def test_ag_hareketi_2YONLU_FSI_nin_EKSIK_HALKASI(tmp_path):
+    """Yapı deformasyonunu akışkan ağına taşıyan dosyalar.
+
+    ÖLÇÜLDÜ (2026-08-19): 2-yönlü FSI'nin eksiği ne çözücü ne kuplaj şemasıydı.
+      · `fsi_twoway.partitioned_fsi` (Aitken) DOĞRULANMIŞ ama üretimde tek
+        çağıranı YOK — yalnız testlerden çağrılıyor.
+      · `coupling_fsi.cfd_pressure_to_fea_loads` (1-yönlü) pipeline.py'de
+        ÇALIŞIYOR ama dönüşü yok.
+      · Depoda `dynamicMotionSolver` / `pointDisplacement` HİÇ GEÇMİYORDU —
+        yani yapının deformasyonu akışkan ağına aktarılamıyordu.
+    preCICE eklemek bu parçayı çözmez (onun OpenFOAM adaptörü de hareketli-ağ
+    kurulumunu çağırandan ister) ve zaten doğrulanmış kuplaj şemasını
+    değiştirirdi.
+    """
+    case_dir = build_case(_box_case(tmp_path, mesh_motion=True), tmp_path / "out")
+    dm = (case_dir / "constant" / "dynamicMeshDict").read_text()
+    assert "dynamicMotionSolverFvMesh" in dm
+    assert "displacementLaplacian" in dm
+    # Ters-mesafe yayilimi hareketi cisme yakin tutar; uzak alan ag kalitesi korunur.
+    assert "inverseDistance" in dm
+
+    pd = (case_dir / "0" / "pointDisplacement").read_text()
+    assert "dimensions      [0 1 0 0 0 0 0];" in pd, "yer değiştirme boyutu yanlış"
+    # UZAK ALAN SABIT: deformasyon disari tasmamali.
+    for yama in ("inlet", "outlet", "top", "front", "back"):
+        assert yama in pd, f"{yama} sınır koşulu yazılmamış"
+    # GOVDE fixedValue: degeri DISARIDAN (FEA'dan) yazilacak.
+    assert "kutu" in pd, "gövde yaması pointDisplacement'ta yok"
+    assert pd.count("fixedValue") >= 7
+
+
+def test_ag_hareketi_dosyalari_OpenFOAM_basligi_tasiyor(tmp_path):
+    """Başlıksız dosya OpenFOAM tarafından ayrıştırılamaz — sessizce düşer."""
+    case_dir = build_case(_box_case(tmp_path, mesh_motion=True), tmp_path / "out")
+    for p in (case_dir / "constant" / "dynamicMeshDict",
+              case_dir / "0" / "pointDisplacement"):
+        t = p.read_text()
+        assert "FoamFile" in t and "version" in t, f"{p.name} başlıksız"

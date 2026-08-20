@@ -196,6 +196,29 @@ _GEOM = {
     #      Duvar fonksiyonu burada TAVIZ DEGIL: Ladson seti TRIPPED ve NASA TMR
     #      onu "fully turbulent CFD kuvvetleriyle kiyas icin en uygun" diyor,
     #      yani tam-turbulansli duvar-fonksiyonu kurulumu referansla TUTARLI.
+    # IKINCI DENEME DE KAPANMADI — KOK NEDEN GEOMETRIK (olculdu 2026-08-19).
+    # ref_bump=4 ise yaradi: hucre 650k -> 2,31M, Cd hatasi %163 -> %79.
+    # Ama capa yine dustu ve aracin kendi uyarilari nedeni yazdi:
+    #   "KATMAN SAYISI SINIRLANDI: 8 katmanin yigini 30,15 mm, en ince ozellik
+    #    11,05 mm -> yaka basina 2,76 mm sinir. 1 katmana dusuruldu"
+    #   "KATMAN COKTU: 1 prizma katmani istendi, 0 oruldu"
+    # 3 m kiriste NACA0012'nin FIRAR KENARI 11,05 mm. y+=50 icin ilk hucre
+    # ~0,67 mm ve 8 katmanlik yigin 30 mm — firar kenarindan KALIN. Katman
+    # kapisi bunu dogru yakalayip 1'e indirdi, o da orulemedi.
+    # Sonuc: sinir tabaka hic cozulmuyor (y+ tepe 1162) ve ince kanatta
+    # cozulmemis sinir tabaka erken ayrilma -> TASIMA KAYBI. Olculen
+    # Cl = 0,066, beklenen 0,330 (5 kat dusuk). Ag kademeleri de yakinsamiyor:
+    # Cd 0,01521 -> 0,02373 -> 0,02341 -> 0,02707 (LSR bandi %131).
+    #
+    # DOGRULANAN: Cl'nin dusuk cikmasi referans-alan kusuru DEGIL. Boru hatti
+    # forceCoeffs'un Aref'ini (lref^2 = 324) gercek planforma (54) yeniden
+    # olcekliyor ve bunu HEM Cd HEM Cl'e uyguluyor; liftDir de dogru
+    # (-sin a, 0, cos a). Yani acik gercek.
+    #
+    # SIRADAKI ADIM (uygulanmadi): katman yigini firar kenarina SIGMALI —
+    # daha az katman + daha kucuk genisleme orani (or. 4 katman, r=1,15 ->
+    # yigin ~3,3 mm < 11 mm). Bu, y+ hedefini korurken yigini uc kat
+    # inceltir. Ayri bir kosu isi.
     "naca0012_wing_ar6": (lambda: naca0012_wing(ar=6.0, chord=3.0), "ucak",
                           {"alpha_deg": 4.0, "quality": "hassas",
                            "n_layers": 8, "yplus_target": 50.0,
