@@ -1,280 +1,281 @@
 {
- "vaka": "Bağımsız FEA çapaları — FEA_KABUL_SINIRI'nı belirleyen altı benchmark'ın DIŞINDA",
- "_neden": "dis_korpus özgüllüğü yayınlayamadı: güvenilir NEGATİF etiket kuracak (|E| küçük ve band dar) hücre yoktu.",
- "geometri": {
-  "b_m": 0.05,
-  "h_m": 0.05,
-  "L_m": 1.5,
-  "L_over_h": 30.0,
-  "E_Pa": 210000000000.0,
-  "nu": 0.3,
-  "rho": 7850.0
- },
- "referans_u_D_pct": 0.111,
- "referans_kaynak": "Euler-Bernoulli kiriş teorisi (kapalı-form); u_D = (h/L)² kayma-deformasyonu mertebesi",
- "ag_ailesi": {
-  "incelikler": [
-   1.0,
-   1.4,
-   2.0
-  ],
-  "incelikler_kure": [
-   1.4,
-   2.0,
-   2.8,
-   4.0
-  ],
-  "_neden": "Tek ağ, ölçülmemiş bir sayısal belirsizlik demektir. Bu çapaların amacı GÜVENİLİR NEGATİF etiket üretmek; |E| küçük olsa bile u_num bilinmiyorsa etiket kurulamaz ve hücre yine BELİRSİZ'e düşerdi."
- },
- "sehim": {
-  "seviyeler": [
-   {
-    "durum": "ok",
-    "nicelik": "yer_degistirme",
-    "analitik_m": 0.006026785714285713,
-    "fem_m": 0.00604562,
-    "hata_pct": 0.31250962962965084,
-    "dugum": 2690,
-    "eleman": 1163,
-    "incelik": 1.0
-   },
-   {
-    "durum": "ok",
-    "nicelik": "yer_degistirme",
-    "analitik_m": 0.006026785714285713,
-    "fem_m": 0.00604656,
-    "hata_pct": 0.328106666666696,
-    "dugum": 8632,
-    "eleman": 4271,
-    "incelik": 1.4
-   },
-   {
-    "durum": "ok",
-    "nicelik": "yer_degistirme",
-    "analitik_m": 0.006026785714285713,
-    "fem_m": 0.00604705,
-    "hata_pct": 0.3362370370370613,
-    "dugum": 19514,
-    "eleman": 10670,
-    "incelik": 2.0
-   }
-  ],
-  "en_ince": {
-   "durum": "ok",
-   "nicelik": "yer_degistirme",
-   "analitik_m": 0.006026785714285713,
-   "fem_m": 0.00604705,
-   "hata_pct": 0.3362370370370613,
-   "dugum": 19514,
-   "eleman": 10670,
-   "incelik": 2.0
+  "vaka": "Bağımsız FEA çapaları — FEA_KABUL_SINIRI'nı belirleyen altı benchmark'ın DIŞINDA",
+  "_uretim": "Üretim: python experiments/fea_capa_bagimsiz.py",
+  "_neden": "dis_korpus özgüllüğü yayınlayamadı: güvenilir NEGATİF etiket kuracak (|E| küçük ve band dar) hücre yoktu.",
+  "geometri": {
+    "b_m": 0.05,
+    "h_m": 0.05,
+    "L_m": 1.5,
+    "L_over_h": 30.0,
+    "E_Pa": 210000000000.0,
+    "nu": 0.3,
+    "rho": 7850.0
   },
-  "u_num_pct": 0.0081,
-  "u_num_yontem": "en ince iki seviye bağıl farkı",
-  "u_D_pct": 0.111,
-  "u_val_pct": 0.1113,
-  "hata_pct": 0.3362370370370613
- },
- "frekans": {
-  "seviyeler": [
-   {
-    "durum": "ok",
-    "nicelik": "ozdeger",
-    "analitik_hz": 18.567034071336987,
-    "fem_hz": 18.58873,
-    "hata_pct": 0.11685188156415115,
-    "modlar_hz": [
-     18.589,
-     18.589,
-     115.914,
-     115.916,
-     322.015,
-     322.027
+  "referans_u_D_pct": 0.111,
+  "referans_kaynak": "Euler-Bernoulli kiriş teorisi (kapalı-form); u_D = (h/L)² kayma-deformasyonu mertebesi",
+  "ag_ailesi": {
+    "incelikler": [
+      1.0,
+      1.4,
+      2.0
     ],
-    "dugum": 2690,
-    "eleman": 1163,
-    "incelik": 1.0
-   },
-   {
-    "durum": "ok",
-    "nicelik": "ozdeger",
-    "analitik_hz": 18.567034071336987,
-    "fem_hz": 18.58576,
-    "hata_pct": 0.10085578876553765,
-    "modlar_hz": [
-     18.586,
-     18.586,
-     115.879,
-     115.88,
-     321.85,
-     321.851
+    "incelikler_kure": [
+      1.4,
+      2.0,
+      2.8,
+      4.0
     ],
-    "dugum": 8632,
-    "eleman": 4271,
-    "incelik": 1.4
-   },
-   {
-    "durum": "ok",
-    "nicelik": "ozdeger",
-    "analitik_hz": 18.567034071336987,
-    "fem_hz": 18.58326,
-    "hata_pct": 0.08739106418757894,
-    "modlar_hz": [
-     18.583,
-     18.583,
-     115.861,
-     115.862,
-     321.789,
-     321.792
+    "_neden": "Tek ağ, ölçülmemiş bir sayısal belirsizlik demektir. Bu çapaların amacı GÜVENİLİR NEGATİF etiket üretmek; |E| küçük olsa bile u_num bilinmiyorsa etiket kurulamaz ve hücre yine BELİRSİZ'e düşerdi."
+  },
+  "sehim": {
+    "seviyeler": [
+      {
+        "durum": "ok",
+        "nicelik": "yer_degistirme",
+        "analitik_m": 0.006026785714285713,
+        "fem_m": 0.00604562,
+        "hata_pct": 0.31250962962965084,
+        "dugum": 2690,
+        "eleman": 1163,
+        "incelik": 1.0
+      },
+      {
+        "durum": "ok",
+        "nicelik": "yer_degistirme",
+        "analitik_m": 0.006026785714285713,
+        "fem_m": 0.00604656,
+        "hata_pct": 0.328106666666696,
+        "dugum": 8632,
+        "eleman": 4271,
+        "incelik": 1.4
+      },
+      {
+        "durum": "ok",
+        "nicelik": "yer_degistirme",
+        "analitik_m": 0.006026785714285713,
+        "fem_m": 0.00604705,
+        "hata_pct": 0.3362370370370613,
+        "dugum": 19514,
+        "eleman": 10670,
+        "incelik": 2.0
+      }
     ],
-    "dugum": 19514,
-    "eleman": 10670,
-    "incelik": 2.0
-   }
-  ],
-  "en_ince": {
-   "durum": "ok",
-   "nicelik": "ozdeger",
-   "analitik_hz": 18.567034071336987,
-   "fem_hz": 18.58326,
-   "hata_pct": 0.08739106418757894,
-   "modlar_hz": [
-    18.583,
-    18.583,
-    115.861,
-    115.862,
-    321.789,
-    321.792
-   ],
-   "dugum": 19514,
-   "eleman": 10670,
-   "incelik": 2.0
+    "en_ince": {
+      "durum": "ok",
+      "nicelik": "yer_degistirme",
+      "analitik_m": 0.006026785714285713,
+      "fem_m": 0.00604705,
+      "hata_pct": 0.3362370370370613,
+      "dugum": 19514,
+      "eleman": 10670,
+      "incelik": 2.0
+    },
+    "u_num_pct": 0.0081,
+    "u_num_yontem": "en ince iki seviye bağıl farkı",
+    "u_D_pct": 0.111,
+    "u_val_pct": 0.1113,
+    "hata_pct": 0.3362370370370613
   },
-  "u_num_pct": 0.0135,
-  "u_num_yontem": "en ince iki seviye bağıl farkı",
-  "u_D_pct": 0.111,
-  "u_val_pct": 0.1118,
-  "hata_pct": 0.08739106418757894
- },
- "kure": {
-  "seviyeler": [
-   {
-    "durum": "ok",
-    "nicelik": "gerilme",
-    "analitik_Pa": 35714285.71428572,
-    "fem_Pa": 34057641.42224407,
-    "hata_pct": 4.638604017716604,
-    "dugum": 5375,
-    "eleman": 3143,
-    "incelik": 1.4
-   },
-   {
-    "durum": "ok",
-    "nicelik": "gerilme",
-    "analitik_Pa": 35714285.71428572,
-    "fem_Pa": 34725355.92917566,
-    "hata_pct": 2.7690033983081577,
-    "dugum": 12647,
-    "eleman": 7873,
-    "incelik": 2.0
-   },
-   {
-    "durum": "ok",
-    "nicelik": "gerilme",
-    "analitik_Pa": 35714285.71428572,
-    "fem_Pa": 35162122.35471955,
-    "hata_pct": 1.5460574067852675,
-    "dugum": 31432,
-    "eleman": 20627,
-    "incelik": 2.8
-   },
-   {
-    "durum": "ok",
-    "nicelik": "gerilme",
-    "analitik_Pa": 35714285.71428572,
-    "fem_Pa": 35418079.30879915,
-    "hata_pct": 0.8293779353623927,
-    "dugum": 87262,
-    "eleman": 59731,
-    "incelik": 4.0
-   }
-  ],
-  "en_ince": {
-   "durum": "ok",
-   "nicelik": "gerilme",
-   "analitik_Pa": 35714285.71428572,
-   "fem_Pa": 35418079.30879915,
-   "hata_pct": 0.8293779353623927,
-   "dugum": 87262,
-   "eleman": 59731,
-   "incelik": 4.0
+  "frekans": {
+    "seviyeler": [
+      {
+        "durum": "ok",
+        "nicelik": "ozdeger",
+        "analitik_hz": 18.567034071336987,
+        "fem_hz": 18.58873,
+        "hata_pct": 0.11685188156415115,
+        "modlar_hz": [
+          18.589,
+          18.589,
+          115.914,
+          115.916,
+          322.015,
+          322.027
+        ],
+        "dugum": 2690,
+        "eleman": 1163,
+        "incelik": 1.0
+      },
+      {
+        "durum": "ok",
+        "nicelik": "ozdeger",
+        "analitik_hz": 18.567034071336987,
+        "fem_hz": 18.58576,
+        "hata_pct": 0.10085578876553765,
+        "modlar_hz": [
+          18.586,
+          18.586,
+          115.879,
+          115.88,
+          321.85,
+          321.851
+        ],
+        "dugum": 8632,
+        "eleman": 4271,
+        "incelik": 1.4
+      },
+      {
+        "durum": "ok",
+        "nicelik": "ozdeger",
+        "analitik_hz": 18.567034071336987,
+        "fem_hz": 18.58326,
+        "hata_pct": 0.08739106418757894,
+        "modlar_hz": [
+          18.583,
+          18.583,
+          115.861,
+          115.862,
+          321.789,
+          321.792
+        ],
+        "dugum": 19514,
+        "eleman": 10670,
+        "incelik": 2.0
+      }
+    ],
+    "en_ince": {
+      "durum": "ok",
+      "nicelik": "ozdeger",
+      "analitik_hz": 18.567034071336987,
+      "fem_hz": 18.58326,
+      "hata_pct": 0.08739106418757894,
+      "modlar_hz": [
+        18.583,
+        18.583,
+        115.861,
+        115.862,
+        321.789,
+        321.792
+      ],
+      "dugum": 19514,
+      "eleman": 10670,
+      "incelik": 2.0
+    },
+    "u_num_pct": 0.0135,
+    "u_num_yontem": "en ince iki seviye bağıl farkı",
+    "u_D_pct": 0.111,
+    "u_val_pct": 0.1118,
+    "hata_pct": 0.08739106418757894
   },
-  "u_num_pct": 0.7227,
-  "u_num_yontem": "en ince iki seviye bağıl farkı",
-  "u_D_pct": 0.0,
-  "u_val_pct": 0.7227,
-  "hata_pct": 0.8293779353623927
- },
- "mil": {
-  "seviyeler": [
-   {
-    "durum": "ok",
-    "nicelik": "yer_degistirme",
-    "estimator": "θ(z) doğrusal uydurma, 0,20L–0,80L (St. Venant bölgesi)",
-    "uydurma_R2": 1.0,
-    "uydurma_dugum": 1214,
-    "analitik_rad_m": 0.02463112214517428,
-    "fem_rad_m": 0.024631922190663097,
-    "hata_pct": 0.003248108162108387,
-    "dugum": 2357,
-    "eleman": 1208,
-    "incelik": 1.0
-   },
-   {
-    "durum": "ok",
-    "nicelik": "yer_degistirme",
-    "estimator": "θ(z) doğrusal uydurma, 0,20L–0,80L (St. Venant bölgesi)",
-    "uydurma_R2": 1.0,
-    "uydurma_dugum": 2898,
-    "analitik_rad_m": 0.02463112214517428,
-    "fem_rad_m": 0.024631808818556863,
-    "hata_pct": 0.0027878282545751114,
-    "dugum": 5412,
-    "eleman": 2990,
-    "incelik": 1.4
-   },
-   {
-    "durum": "ok",
-    "nicelik": "yer_degistirme",
-    "estimator": "θ(z) doğrusal uydurma, 0,20L–0,80L (St. Venant bölgesi)",
-    "uydurma_R2": 1.0,
-    "uydurma_dugum": 7745,
-    "analitik_rad_m": 0.02463112214517428,
-    "fem_rad_m": 0.02463133630254576,
-    "hata_pct": 0.0008694584445506886,
-    "dugum": 14309,
-    "eleman": 8742,
-    "incelik": 2.0
-   }
-  ],
-  "en_ince": {
-   "durum": "ok",
-   "nicelik": "yer_degistirme",
-   "estimator": "θ(z) doğrusal uydurma, 0,20L–0,80L (St. Venant bölgesi)",
-   "uydurma_R2": 1.0,
-   "uydurma_dugum": 7745,
-   "analitik_rad_m": 0.02463112214517428,
-   "fem_rad_m": 0.02463133630254576,
-   "hata_pct": 0.0008694584445506886,
-   "dugum": 14309,
-   "eleman": 8742,
-   "incelik": 2.0
+  "kure": {
+    "seviyeler": [
+      {
+        "durum": "ok",
+        "nicelik": "gerilme",
+        "analitik_Pa": 35714285.71428572,
+        "fem_Pa": 34057641.42224407,
+        "hata_pct": 4.638604017716604,
+        "dugum": 5375,
+        "eleman": 3143,
+        "incelik": 1.4
+      },
+      {
+        "durum": "ok",
+        "nicelik": "gerilme",
+        "analitik_Pa": 35714285.71428572,
+        "fem_Pa": 34725355.92917566,
+        "hata_pct": 2.7690033983081577,
+        "dugum": 12647,
+        "eleman": 7873,
+        "incelik": 2.0
+      },
+      {
+        "durum": "ok",
+        "nicelik": "gerilme",
+        "analitik_Pa": 35714285.71428572,
+        "fem_Pa": 35162122.35471955,
+        "hata_pct": 1.5460574067852675,
+        "dugum": 31432,
+        "eleman": 20627,
+        "incelik": 2.8
+      },
+      {
+        "durum": "ok",
+        "nicelik": "gerilme",
+        "analitik_Pa": 35714285.71428572,
+        "fem_Pa": 35418079.30879915,
+        "hata_pct": 0.8293779353623927,
+        "dugum": 87262,
+        "eleman": 59731,
+        "incelik": 4.0
+      }
+    ],
+    "en_ince": {
+      "durum": "ok",
+      "nicelik": "gerilme",
+      "analitik_Pa": 35714285.71428572,
+      "fem_Pa": 35418079.30879915,
+      "hata_pct": 0.8293779353623927,
+      "dugum": 87262,
+      "eleman": 59731,
+      "incelik": 4.0
+    },
+    "u_num_pct": 0.7227,
+    "u_num_yontem": "en ince iki seviye bağıl farkı",
+    "u_D_pct": 0.0,
+    "u_val_pct": 0.7227,
+    "hata_pct": 0.8293779353623927
   },
-  "u_num_pct": 0.0019,
-  "u_num_yontem": "en ince iki seviye bağıl farkı",
-  "u_D_pct": 0.0,
-  "u_val_pct": 0.0019,
-  "hata_pct": 0.0008694584445506886
- },
- "verdikt": "✅ Üç çapa da negatif etiket kurabiliyor — sehim: |E|=%0.336 ⊕ u_val=%0.111 → eşiğe 4.55 puan (NEGATİF ETİKET KURULABİLİR) · frekans: |E|=%0.087 ⊕ u_val=%0.112 → eşiğe 4.80 puan (NEGATİF ETİKET KURULABİLİR) · kure: |E|=%0.829 ⊕ u_val=%0.723 → eşiğe 3.45 puan (NEGATİF ETİKET KURULABİLİR) · mil: |E|=%0.001 ⊕ u_val=%0.002 → eşiğe 5.00 puan (NEGATİF ETİKET KURULABİLİR)"
+  "mil": {
+    "seviyeler": [
+      {
+        "durum": "ok",
+        "nicelik": "yer_degistirme",
+        "estimator": "θ(z) doğrusal uydurma, 0,20L–0,80L (St. Venant bölgesi)",
+        "uydurma_R2": 1.0,
+        "uydurma_dugum": 1214,
+        "analitik_rad_m": 0.02463112214517428,
+        "fem_rad_m": 0.024631922190663097,
+        "hata_pct": 0.003248108162108387,
+        "dugum": 2357,
+        "eleman": 1208,
+        "incelik": 1.0
+      },
+      {
+        "durum": "ok",
+        "nicelik": "yer_degistirme",
+        "estimator": "θ(z) doğrusal uydurma, 0,20L–0,80L (St. Venant bölgesi)",
+        "uydurma_R2": 1.0,
+        "uydurma_dugum": 2898,
+        "analitik_rad_m": 0.02463112214517428,
+        "fem_rad_m": 0.024631808818556863,
+        "hata_pct": 0.0027878282545751114,
+        "dugum": 5412,
+        "eleman": 2990,
+        "incelik": 1.4
+      },
+      {
+        "durum": "ok",
+        "nicelik": "yer_degistirme",
+        "estimator": "θ(z) doğrusal uydurma, 0,20L–0,80L (St. Venant bölgesi)",
+        "uydurma_R2": 1.0,
+        "uydurma_dugum": 7745,
+        "analitik_rad_m": 0.02463112214517428,
+        "fem_rad_m": 0.02463133630254576,
+        "hata_pct": 0.0008694584445506886,
+        "dugum": 14309,
+        "eleman": 8742,
+        "incelik": 2.0
+      }
+    ],
+    "en_ince": {
+      "durum": "ok",
+      "nicelik": "yer_degistirme",
+      "estimator": "θ(z) doğrusal uydurma, 0,20L–0,80L (St. Venant bölgesi)",
+      "uydurma_R2": 1.0,
+      "uydurma_dugum": 7745,
+      "analitik_rad_m": 0.02463112214517428,
+      "fem_rad_m": 0.02463133630254576,
+      "hata_pct": 0.0008694584445506886,
+      "dugum": 14309,
+      "eleman": 8742,
+      "incelik": 2.0
+    },
+    "u_num_pct": 0.0019,
+    "u_num_yontem": "en ince iki seviye bağıl farkı",
+    "u_D_pct": 0.0,
+    "u_val_pct": 0.0019,
+    "hata_pct": 0.0008694584445506886
+  },
+  "verdikt": "✅ Üç çapa da negatif etiket kurabiliyor — sehim: |E|=%0.336 ⊕ u_val=%0.111 → eşiğe 4.55 puan (NEGATİF ETİKET KURULABİLİR) · frekans: |E|=%0.087 ⊕ u_val=%0.112 → eşiğe 4.80 puan (NEGATİF ETİKET KURULABİLİR) · kure: |E|=%0.829 ⊕ u_val=%0.723 → eşiğe 3.45 puan (NEGATİF ETİKET KURULABİLİR) · mil: |E|=%0.001 ⊕ u_val=%0.002 → eşiğe 5.00 puan (NEGATİF ETİKET KURULABİLİR)"
 }

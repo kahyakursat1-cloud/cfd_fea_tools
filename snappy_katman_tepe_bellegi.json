@@ -1,5 +1,6 @@
 {
   "vaka": "snappyHexMesh katman adımı tepe belleği (Ahmed, n_layers=3)",
+  "_uretim": "Üretim: python experiments/snappy_katman_tepe_bellegi.py",
   "verdikt": "✅ ÖLÇÜLDÜ: snappy katman tepesi 1.656 kB/hücre + 0.055 GB (R²=0.99996, n=4). Çözüm katsayısının ~2.13 katı — meshleme ~0,25M hücreden sonra BAĞLAYICI aşamadır. Geri-tahmin: AR6'nın 6M hücresi için 9.99 GB öngörür, o an boş olan 7,9 GB'ın üstünde — gözlenen OOM ile uyumlu.",
   "_neden": "snappyHexMesh KATMAN adımının tepe belleğini ÖLÇ — kapının beyan ettiği boşluk.",
   "yuzey_ucgen": 2208,

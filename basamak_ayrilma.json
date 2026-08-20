@@ -1,10 +1,10 @@
 {
-  "vaka": "Geriye-basamakli akis, yeniden-yapisma uzunlugu â€” H=12.7 mm, U=44.29 m/s, Re_H=37499, ER=1.125",
+  "vaka": "Geriye-basamakli akis, yeniden-yapisma uzunlugu — H=12.7 mm, U=44.29 m/s, Re_H=37499, ER=1.125",
   "kaynak": "OpenFOAM 11 foamRun/incompressibleFluid, 2D blockMesh",
   "referans": {
     "Xr_H": 6.26,
     "belirsizlik": 0.1,
-    "kaynak": "Driver & Seegmiller, AIAA J. 23(2), 1985 â€” deneysel"
+    "kaynak": "Driver & Seegmiller, AIAA J. 23(2), 1985 — deneysel"
   },
   "_olcum_notu": "Xr, alt duvarda tau_x isaret degisiminden okunur ve yuzey-merkezi indeksi x'e DOGRUSAL esleme ile cevrilir; mesh x-yonunde graded oldugu icin bu esleme yaklasiktir (birkac yuzde mertebesinde ek belirsizlik). Model karsilastirmasi bu hatadan ETKILENMEZ.",
   "seviyeler": [
@@ -106,12 +106,12 @@
         "k",
         "epsilon"
       ],
-      "_not": "residualControl saglanmadi â€” bu Xr HUKME GIRMEZ, yalniz model davranisini gostermek icin kayitli"
+      "_not": "residualControl saglanmadi — bu Xr HUKME GIRMEZ, yalniz model davranisini gostermek icin kayitli"
     }
   ],
-  "verdikt": "En iyi model kOmegaSST: Xr/H=5.54 vs deney 6.26 â†’ hata %-11.6. Ayrilma GEOMETRIK olarak sabitken (keskin kose) RANS yeniden-yapisma uzunlugunu bu bantta veriyor â€” 'ayrilmis akis' bu sinifta EGILIM duzeyinde kullanilabilir. YAKINSAMAYAN: kEpsilon (20000 iterasyon, p, Ux, Uy, k, epsilon platoda, tani Xr/Hâ‰ˆ4.791) â€” bu model(ler) bu kurulumda sabit noktaya oturmuyor; degerleri hukme girmedi.",
-  "_uretim": "Ãœretim: python experiments/basamak_ayrilma.py",
+  "verdikt": "En iyi model kOmegaSST: Xr/H=5.54 vs deney 6.26 → hata %-11.6. Ayrilma GEOMETRIK olarak sabitken (keskin kose) RANS yeniden-yapisma uzunlugunu bu bantta veriyor — 'ayrilmis akis' bu sinifta EGILIM duzeyinde kullanilabilir. YAKINSAMAYAN: kEpsilon (20000 iterasyon, p, Ux, Uy, k, epsilon platoda, tani Xr/H≈4.791) — bu model(ler) bu kurulumda sabit noktaya oturmuyor; degerleri hukme girmedi.",
+  "_uretim": "Üretim: python experiments/basamak_ayrilma.py",
   "_son_dogrulama_ts": 1785239059,
-  "_son_dogrulama": "2026-07-28 â€” Ã¼retim komutuyla yeniden koÅŸuldu; sonuÃ§ gÃ¼ncel kodla karÅŸÄ±laÅŸtÄ±rÄ±ldÄ±.",
+  "_son_dogrulama": "2026-07-28 — üretim komutuyla yeniden koşuldu; sonuç güncel kodla karşılaştırıldı.",
   "_yplus_notu": "y+ SONRADAN olculdu: cozum diskteyken foamPostProcess ile, YENIDEN COZMEDEN. kOmegaSST icin kosu yine de tekrarlandi ve Xr/H ile hata AYNI cikti (yeniden-uretilebilirlik kontrolu). kEpsilon kaydi ONCEKI tam kosudan korundu: bu turdaki tekrar 900 s duvar-saati siniriyla kesildi ve o kesinti 'cozucu dustu' diye kaydedilecekti — oysa cozucu dusmedi, SURE doldu. Yanlis etiketle kayit birakmaktansa gecerli olan geri alindi."
 }
