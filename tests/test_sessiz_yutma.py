@@ -81,7 +81,16 @@ import sessiz_yutma
 # Ikisi de yeni bir olcum yolunun parcasi: hizlanma artik ASAMA DUVAR SURESINDEN
 # degil ExecutionTime'dan hesaplaniyor (rapordaki 1,96x → 3,10x duzeltmesi).
 # Izlenen sayilar DEGISMEDI: incelenmemis 0, guven yolunda incelenmemis 0.
-TABAN_TOPLAM = 87
+TABAN_TOPLAM = 88
+# 87 -> 88 (2026-08-20): YENI BIR YUTMA EKLENMEDI — GORUNMEZ olan biri gorunur
+# oldu. `revise_1001_panel.py` UTF-8 BOM ile basliyor ve tarayici dosyayi
+# `encoding="utf-8"` ile okudugu icin BOM `﻿` olarak satir 1'e dusuyor,
+# ast.parse SyntaxError veriyor ve dosya SESSIZCE atlaniyordu. Yani taban 87
+# degil 88'di; fark olculmemis kapsamdan geliyordu. Dort tarayici da
+# (`sessiz_yutma`, `kanal_ayrismasi`, `oksuz_alan`, `oksuz_savunma`)
+# `utf-8-sig`e gecirildi — BOM'suz dosyada da dogru calisir.
+# Gorunur olan yutma incelendi ve gerekcelendirildi: docx paragraf STILI
+# kopyalanamazsa paragraf varsayilan stille eklenir (guven yolunda degil).
 # 60 -> 61 (2026-08-13): experiments/naca0012_a8_rampali.py:_forces_oku.
 # OpenFOAM surumleri coefficient.dat ile forceCoeffs.dat arasinda sutun
 # sayisini degistiriyor; okuyucu aday dosyalari sirayla dener. Yutma

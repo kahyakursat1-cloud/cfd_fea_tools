@@ -113,7 +113,7 @@ def _kaydediyor_mu(gov: list[ast.stmt]) -> bool:
 def tara() -> list[dict]:
     bulgular = []
     for f in _dosyalar():
-        metin = f.read_text(encoding="utf-8", errors="replace")
+        metin = f.read_text(encoding="utf-8-sig", errors="replace")
         try:
             agac = ast.parse(metin)
         except SyntaxError:

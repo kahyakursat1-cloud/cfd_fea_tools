@@ -1,0 +1,17 @@
+{
+  "vaka": "Öksüz savunma taraması",
+  "_uretim": "Üretim: python oksuz_savunma.py --json",
+  "verdikt": "✅ İncelenmemiş öksüz savunma YOK (1 muaf, gerekçeli)",
+  "bulunan": [
+    {
+      "fonksiyon": "evaluate_surrogate",
+      "dosya": "design_explorer.py",
+      "satir": 112,
+      "anahtar": "design_explorer.evaluate_surrogate",
+      "ad_izi": true,
+      "hukum_donuyor": false,
+      "muaf": true,
+      "gerekce": "KABUL — sekil optimizasyonu surucusu 2026-08-20'de KAPATILDI (gorev #38: onerilen ucuz katman VSPAERO'nun induklenen direnci %21/%62 sapiyor). Vekil degerlendirici o yonun kalintisi; canlandirilirsa cagrilir."
+    }
+  ]
+}

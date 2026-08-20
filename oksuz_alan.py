@@ -63,7 +63,7 @@ def _kaynaklar() -> dict[str, str]:
         r = p.relative_to(KOK).as_posix()
         if r.startswith((".venv/", "_")) or "site-packages" in r:
             continue
-        out[r] = p.read_text(encoding="utf-8", errors="replace")
+        out[r] = p.read_text(encoding="utf-8-sig", errors="replace")
     return out
 
 

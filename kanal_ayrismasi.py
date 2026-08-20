@@ -84,7 +84,7 @@ def _desen(alan: str) -> re.Pattern:
 
 
 def tara() -> list[dict]:
-    kaynak = {ad: (KOK / yol).read_text(encoding="utf-8", errors="replace")
+    kaynak = {ad: (KOK / yol).read_text(encoding="utf-8-sig", errors="replace")
               for ad, yol in KANALLAR.items()}
     out = []
     for alan in _alanlar():
