@@ -100,8 +100,11 @@ class TestKanit:
         d = self._d()
         if not d:
             return
+        # (f) KOŞU DÜŞTÜ — 2026-08-20: toplayıcı `cd is None` dalında sessizce
+        # `continue` ediyordu; AR6 çapası koşulmuş ama kanıtta hiç iz
+        # bırakmıyordu. Artık düşen koşu da gerekçesiyle listeleniyor.
         gecerli = ("KAYITLI DEĞİL", "Tampon bölgede", "TEPESİ dışarıda",
-                   "SAYISAL BAND ÇOK BÜYÜK", "KURULUM GEÇERSİZ")
+                   "SAYISAL BAND ÇOK BÜYÜK", "KURULUM GEÇERSİZ", "KOŞU DÜŞTÜ")
         for x in d["atanamayan_capalar"]:
             assert any(g in x["neden"] for g in gecerli), x["neden"]
             # "y+ YOK => nedeni KAYITLI DEGIL olmali" kurali yalniz
@@ -109,7 +112,12 @@ class TestKanit:
             # nedeniyle ONCEDEN elenen bir kayit (or. bayat arsiv) y+ tasimaz
             # cunku hic degerlendirilmemistir — onu "eksik kayit" saymak
             # yanlis teshis olurdu.
-            if x.get("yplus_ort") is None and "KURULUM GEÇERSİZ" not in x["neden"]:
+            # Düşen koşu da (bayat arşiv gibi) hiç DEĞERLENDİRİLMEMİŞTİR:
+            # snappyHexMesh öldüğü için sınır tabaka ölçümü zaten yoktur.
+            # Onu "eksik kayıt" saymak yanlış teşhis olurdu.
+            _degerlendirilmedi = ("KURULUM GEÇERSİZ", "KOŞU DÜŞTÜ")
+            if x.get("yplus_ort") is None and not any(
+                    g in x["neden"] for g in _degerlendirilmedi):
                 assert "KAYITLI DEĞİL" in x["neden"]
         atanan = {(r, i) for r, h in d["olculen_hucreler"].items() for i in h}
         for x in d["atanamayan_capalar"]:

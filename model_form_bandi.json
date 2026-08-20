@@ -101,6 +101,14 @@
       "referans": "Meile vd. 2011, CFD Letters 3(1) — cD=0,299 @ Re=2,784e6 (KOSULA ESLESIK); krs. "
     },
     {
+      "capa": "NACA0012 kanat AR6",
+      "rejim": "lifting",
+      "_dustu": true,
+      "_dustu_neden": "DÜŞEN AŞAMA: snappyHexMesh — hata (dönüş kodu 137), 1319 s sonra",
+      "kosu_dizini": "D:\\bilsem_beyin\\cfd_fea_tools\\validation_anchors_runs\\_anchor_naca0012_wing_ar6",
+      "sapma_pct": null
+    },
+    {
       "capa": "geriye-basamak (kOmegaSST)",
       "rejim": "separated",
       "sapma_pct": 11.58,
@@ -323,6 +331,13 @@
       "neden": "y⁺ ÖLÇÜLDÜ (5.5) ama hiçbir duvar işlemine ait değil: duvar-çözünür ≤5.0, duvar-fonksiyonu 30.0–300.0. Tampon bölgede log-yasası geçerli değildir ve viskoz altkatman da çözülmemiştir; bu koşu iki hücreden hiçbirini kalibre EDEMEZ. Eksik kayıt değil, FİZİKSEL bulgu — ve çapanın sapmasının bir bölümünü açıklar"
     },
     {
+      "capa": "NACA0012 kanat AR6",
+      "rejim": "lifting",
+      "sapma_pct": null,
+      "neden": "KOŞU DÜŞTÜ — DÜŞEN AŞAMA: snappyHexMesh — hata (dönüş kodu 137), 1319 s sonra",
+      "kosu_dizini": "D:\\bilsem_beyin\\cfd_fea_tools\\validation_anchors_runs\\_anchor_naca0012_wing_ar6"
+    },
+    {
       "capa": "geriye-basamak (kOmegaSST)",
       "rejim": "separated",
       "sapma_pct": 11.58,
@@ -394,7 +409,7 @@
     "tutarli": true,
     "cumle": "8 hücrenin 6'i deneysel/literatür çapası taşıyor (3 ölçüm + 3 üst sınır), 2'i literatür öncülüyle çalışıyor"
   },
-  "verdikt": "11 capa toplandi; 6 hucre OLCULDU, 3 capa atanamadi, 2 hucre ONCUL kaldi. lifting.wall_resolved=%5.41 (n=1); attached_2d.wall_resolved=%5.23 (n=1); attached_2d.wall_function=%12.0 (n=1); bluff.wall_function=%9.31 (n=3); separated.wall_resolved=%12.0 (n=1); separated.wall_function=%25.0 (n=1)",
+  "verdikt": "12 capa toplandi; 6 hucre OLCULDU, 4 capa atanamadi, 2 hucre ONCUL kaldi. lifting.wall_resolved=%5.41 (n=1); attached_2d.wall_resolved=%5.23 (n=1); attached_2d.wall_function=%12.0 (n=1); bluff.wall_function=%9.31 (n=3); separated.wall_resolved=%12.0 (n=1); separated.wall_function=%25.0 (n=1)",
   "_yazilan": {
     "lifting": {
       "wall_resolved": 5.41

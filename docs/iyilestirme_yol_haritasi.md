@@ -68,7 +68,20 @@ kazanımı: yeni kod gerekmedi.
 **Yapılan (2026-08-19):** `experiments/dis_korpus.py` referanslı kanonik vakaları ölçülmüş toleranslarla taşıyor ve test paketinde koşuyor; `fea_capa_bagimsiz.py` üç kapalı-form çapası üretiyor (3 ağ seviyesi, u_num ölçülü).
 **ÖLÇÜLDÜ (2026-08-19): çapa üretimi YENİDEN KOŞULABİLİR.** `validation_anchors_runs` 2026-08-13'te silinmişti ve değerler arşivden kurtarılmıştı; bu, üretim yolunun kırık olduğu ANLAMINA GELMİYORMUŞ. İki çapa yeniden koşuldu ve İKİ FARKLI SONUÇ verdi: `disk` arşivle birebir üretildi (%3,38 → %3,38), ama `kup` arşivden ÇOK farklı çıktı (hata %6,03 → %0,38, band %58,3 → %2,67) — çünkü arşiv değeri bir yapılandırma düzeltmesinden (hücre tavanı 2,5M→4M) ÖNCEYE aitti ve çapa o düzeltmeden sonra hiç koşulmamıştı. **Tek çapadan 'arşiv güvenilir' genellemesi yanlıştır.**
 
-**KALAN:** kalan CFD çapaları (küp, Ahmed, NACA0012 AR6) hâlâ arşivden; her biri ayrı bir CFD koşusu. `sphere` ve `naca0012_a0` atlama listesinde (setup-uyumsuz).
+**ÖNCÜL BAYATMIŞ — ÖLÇÜLDÜ (2026-08-20):** "küp, Ahmed, NACA0012 AR6 hâlâ arşivden" artık
+DOĞRU DEĞİL. Beş çapanın da taze koşu çıktısı var (`validation_anchors_runs/_anchor_*/sonuc.json`,
+19–20 Ağustos): disk, küre, küp ve Ahmed Cd üretti; arşiv etiketli tek girdi (`küp (arşiv)`)
+zaten bayat diye REDDEDİLİYOR. Kanıttaki 12 çapanın hepsi taze koşudan ya da literatürden.
+
+**KALAN — tek çapa: 3B AR6, ve nedeni ÖLÇÜLDÜ.** Koşu `snappyHexMesh` aşamasında **dönüş
+kodu 137 (SIGKILL = OOM)** ile 1319 s sonra öldü; log kuyruğu `displacementMedialAxis`,
+yani prizma-katman adımı. Bu tam olarak `bellek_kapisi`'nin "ÇÖZÜM aşaması kapsanır,
+snappyHexMesh KATMAN adımının tepe belleği ÖLÇÜLMEDİ" diye kapsam dışı bıraktığı yer —
+kapının beyanı doğruymuş ve bu, o boşluğun ölçülmüş ilk örneği. Kök neden bellek değil
+GEOMETRİ (firar kenarı kirişin %0,24'ü, açıklık 18 m → ~97M hücre); donanım yükseltmesi
+işi imkânsızdan makul-ihtimale taşır. `sphere` ve `naca0012_a0` atlama listesinde
+(setup-uyumsuz). Ayrıca 2026-08-20'de düzeltildi: toplayıcı düşen koşuyu SESSİZCE
+atıyordu (`cd is None → continue`), artık gerekçesi ve log yoluyla kanıta giriyor.
 **Ne:** Referans-değerli kanonik vakalar: süpersonik küre Cd (Charters&Thomas, var),
 NACA0012 ses-altı (Ladson), bilinen roket; her birine **referans + tolerans** + CI'da
 çalışan hafif kontrol. **Neden:** "en iyi analiz" ancak ölçülünce iddia edilir; regresyon

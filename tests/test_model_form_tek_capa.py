@@ -221,3 +221,42 @@ def test_validate_pipeline_ARTIK_band_yazmiyor():
     src = (KOK / "validate_pipeline.py").read_text(encoding="utf-8")
     assert "_BAND_FILE.write_text" not in src
     assert "model_form_bandi.py" in src
+
+
+def test_DUSEN_kosu_kanitta_iz_birakir():
+    """KURAL: denenmiş ama düşmüş bir çapa kanıttan SESSİZCE atılamaz.
+
+    Toplayıcıda `if ... d.get("cd") is None: continue` vardı. AR6 çapası
+    koşuldu (STL hazırlandı, üç ağ seviyesi kuruldu, snappyHexMesh 1319 s
+    sonra dönüş kodu 137 ile öldü) ama kanıt dosyasında HİÇ iz bırakmıyordu:
+    kanıtı okuyan biri çapanın denenmediğini sanırdı. Gerekçe koşu düzeyinde
+    zaten kayıtlıydı (`sonuc.json["error"]`); eksik olan onu TAŞIYAN yoldu.
+
+    Test değere değil KURALA bağlı: hangi çapanın düştüğü pinlenmez; diskte
+    düşmüş koşu varsa kanıtta gerekçesiyle görünmesi aranır.
+    """
+    kanit = KOK / "model_form_bandi.json"
+    if not kanit.exists():
+        import pytest
+        pytest.skip("model_form_bandi.json yok")
+    d = json.loads(kanit.read_text(encoding="utf-8"))
+
+    dusenler = []
+    for sj in sorted((KOK / "validation_anchors_runs").glob("_anchor_*/sonuc.json")):
+        r = json.loads(sj.read_text(encoding="utf-8"))
+        if r.get("cd") is None:
+            dusenler.append(sj.parent.name.replace("_anchor_", ""))
+    if not dusenler:
+        import pytest
+        pytest.skip("diskte düşmüş çapa koşusu yok")
+
+    kayitli = " ".join(json.dumps(a, ensure_ascii=False)
+                       for a in d.get("atanamayan_capalar", []))
+    assert "KOŞU DÜŞTÜ" in kayitli, (
+        f"diskte {len(dusenler)} düşmüş çapa koşusu var ({dusenler}) ama "
+        "kanıtta hiçbiri 'KOŞU DÜŞTÜ' kaydı taşımıyor — sessizce atılmışlar")
+    for a in d.get("atanamayan_capalar", []):
+        if "KOŞU DÜŞTÜ" in a.get("neden", ""):
+            # gerekce BOS OLAMAZ: 'kosu dustu' tek basina bilgi degildir
+            assert len(a["neden"]) > len("KOŞU DÜŞTÜ — ") + 10
+            assert a.get("kosu_dizini"), "log'a giden yol kayıtlı değil"

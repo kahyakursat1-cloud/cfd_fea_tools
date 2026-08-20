@@ -394,7 +394,22 @@ def capalari_topla() -> list[dict]:
         anahtar = kosu.replace("_anchor_", "")
         from validation_anchors import ANCHORS
         spec = ANCHORS.get(anahtar)
-        if not spec or d.get("cd") is None:
+        if not spec:
+            continue
+        if d.get("cd") is None:
+            # DENENDI AMA DUSTU — SESSIZCE ATILMAZ. Bu dal eskiden `continue`
+            # idi: AR6 capasi kosuldu (STL hazirlandi, uc ag seviyesi kuruldu,
+            # snappyHexMesh dondu) ama kanit dosyasinda HIC iz birakmiyordu;
+            # kaniti okuyan biri capanin denenmedigini sanirdi. Gerekce koşu
+            # duzeyinde ZATEN kayitli (sonuc.json["error"]: dusen asama, donus
+            # kodu, log yolu ve log kuyrugu) — eksik olan onu TASIYAN yoldu.
+            # Bu dosyadaki diger tum retler gerekce tasiyor; yalniz bu dal
+            # bırakıyordu.
+            _hata = (d.get("error") or "").strip()
+            _ilk = next((s for s in _hata.splitlines() if s.strip()), "")
+            c.append({"capa": ad, "rejim": spec["regime"], "_dustu": True,
+                      "_dustu_neden": _ilk or "koşu düştü; gerekçe kayıtlı değil",
+                      "kosu_dizini": str(sj.parent)})
             continue
         # DUVAR İŞLEMİ KOŞAN MODELE UYGUN MU. Ölçüldü (2026-08-19): küre çapası
         # kOmegaSSTLM ile ama y⁺ ortalaması 59 olan bir ağda koştu; LM duvar-
@@ -593,6 +608,13 @@ def calistir() -> dict:
     hucreler: dict[str, dict] = {}
     atanamayan: list[dict] = []
     for x in capalar:
+        if x.get("_dustu"):
+            # Kosu DUSTU: sapma yok, ama denendigi ve NEDEN dustugu kanita girer.
+            atanamayan.append({
+                "capa": x["capa"], "rejim": x["rejim"], "sapma_pct": None,
+                "neden": "KOŞU DÜŞTÜ — " + x["_dustu_neden"],
+                "kosu_dizini": x.get("kosu_dizini")})
+            continue
         if x.get("_gecersiz"):
             # Kurulum hükmü SAYISAL hükümden ÖNCE gelir: geçersiz bir koşunun
             # sapması ne kadar dar bandla ölçülürse ölçülsün model-form değildir.
@@ -818,6 +840,7 @@ def main() -> int:
     print(rec["vaka"] + "\n")
     for x in rec["capalar"]:
         _s = ("GEÇERSİZ" if x.get("_gecersiz")
+              else "DÜŞTÜ" if x.get("_dustu")
               else f"%{x['sapma_pct']:>5.2f}")
         print(f"  {x['capa']:<34} {x['rejim']:<12} {_s:>8}"
               f"  y+={x.get('yplus_ort')}")
