@@ -1209,7 +1209,7 @@ Kod doğrulama (kapalı-form karşılaştırma) & \ev & \ev & 6 FEA çapası \\
 Girdi belirsizliği yayılımı & \ev & \ev & \texttt{girdi\_belirsizligi} (4 girdi) \\
 Deneysel referansla geçerleme & \ks & \ev & \texttt{zarf} (14 koşul) \\
 Geçerlilik alanı (validation domain) beyanı & \ev & \ev & \texttt{validity\_envelope} \\
-Model-form belirsizliği & \ks & \ev & 5/8 hücre çapalı: 3 ölçüm + 2 üst sınır \\
+Model-form belirsizliği & \ks & \ev & 6/8 hücre çapalı: 3 ölçüm + 3 üst sınır \\
 Sonucun izlenebilirliği (komut + ortam) & \ev & \ev & \texttt{kanit}, \texttt{ortam} \\
 \bottomrule
 \end{tabular}
@@ -1217,8 +1217,8 @@ Sonucun izlenebilirliği (komut + ortam) & \ev & \ev & \texttt{kanit}, \texttt{o
 
 \noindent Sekiz adımın altısı tam, ikisi kısmî otomatiktir. Kısmî olan ikisi
 şunlardır: deneysel referansla geçerleme (çapa sayısı sınırlı) ve model-form
-belirsizliği (rejim$\times$duvar tablosunun sekiz hücresinden beşi çapa taşır;
-üçü ölçüm, ikisi üst sınır).\footnote{Bu sayı tek kaynaktan üretilir
+belirsizliği (rejim$\times$duvar tablosunun sekiz hücresinden altısı çapa taşır;
+üçü ölçüm, üçü üst sınır).\footnote{Bu sayı tek kaynaktan üretilir
 (\texttt{model\_form\_ozeti}) ve rapordaki her tekrarı testle bağlıdır. Önceki
 sürümde dört ayrı yerde elle yazılıydı ve birbirini tutmuyordu; dahası taban da
 yanlıştı --- \texttt{attached\_2d} rejimi eklendiğinde toplam yediden sekize
@@ -1672,9 +1672,9 @@ gerçek hücre sayısını yüzey iyileştirme kademesi belirler.
         da kuramdan sapar (yakın-alan $-\%21$, Trefftz $+\%62$); bu yüzden
         indüklenen direnç kuramdan üretilir.
   \item[Model-form belirsizliği.] Rejim$\times$duvar işlemi tablosuna ayrıldı;
-        sekiz hücrenin \textbf{beşi} çapa taşıyor (üçü ölçüm, ikisi üst
-        sınır), üçü literatür-öncülüyle
-        çalışır. Beş hücre \emph{aynı kalitede değildir} ve bu ayrım artık
+        sekiz hücrenin \textbf{altısı} çapa taşıyor (üçü ölçüm, üçü üst
+        sınır), ikisi literatür-öncülüyle
+        çalışır. Altı hücre \emph{aynı kalitede değildir} ve bu ayrım artık
         yayımlanıyor: 2B bağlı akış \%5{,}23 ($n{=}1$) bir \emph{ölçümdür} ---
         çapanın farkı (\%3{,}52) kendi ayrıklaştırma bandından (\%1{,}71)
         büyük, yani model hatası sayısal hatadan ayrılabiliyor. Ayrılmış
@@ -1690,9 +1690,11 @@ gerçek hücre sayısını yüzey iyileştirme kademesi belirler.
         Ahmed 25° ile NACA0012 kanat çapasının ayrıklaştırma bandı, ölçmek
         istediği model hatasından büyük (\%274{,}7 ve \%17{,}4); küp GCI
         koşusunun y$^+$ ortalaması bantta ama tepesi dışarıda (338 > 300).
-        Kalan üç hücrenin \emph{neden} kapanmadığı da kanıt dosyasına yazılı
-        (\S\ref{sub:bluffwr}): ikisinde engel ağ değil referans belirsizliğidir
-        (\%15), üçüncüsü ise fiziksel olarak dardır.
+        Kalan iki hücrenin \emph{neden} kapanmadığı da kanıt dosyasına yazılı
+        (\S\ref{sub:bluffwr}): küt/duvar-çözümlü hücrede engel ağ değil
+        FİZİKTİR (küre izi kararsız; kararlı RANS yakınsamıyor), taşıma/%
+        duvar-fonksiyonu hücresinde ise eldeki iki taşıma çapası da
+        duvar-çözümlüdür.
   \item[Teknik borç --- iki hızlı katman.] Bağımsız V\&V betikleri
         \texttt{wsl bash -c} çağrısını kendileri kuruyor ve arka uç seçimini
         atlıyordu: \texttt{CFD\_BACKEND=docker} ayarlandığında araç hattı
@@ -2074,9 +2076,12 @@ v1.2 & orta   & URANS'ın \emph{türbülanslı} vakada sınanması KOŞULDU (2B 
                 düştü); kalan iş ölçek-çözünürlüklü (DES/LES) bir çapa ---
                 bütçesi ÖLÇÜLDÜ ve ulaşılabilir: $\Delta z/D{=}0{,}05$'te
                 2{,}4\,M hücre, 1{,}9\,GB, $\approx$16 saat \\
-v1.3 & yüksek & Model-form tablosunun kalan ÜÇ hücresi --- deneysel referanslı
-                çapalarla; ikisinde engel ağ değil REFERANS belirsizliğidir
-                (\%15), yani yalnız ağ inceltmek yetmiyor \\
+v1.3 & yüksek & Model-form tablosunun kalan İKİ hücresi --- deneysel referanslı
+                çapalarla. Engeller AYRI: küt/duvar-çözümlü hücrede sorun ağ
+                değil FİZİKTİR (küre izi kararsız; kararlı RANS yakınsamıyor,
+                ölçüldü), taşıma/duvar-fonksiyonu hücresinde ise eldeki iki
+                taşıma çapası da duvar-çözümlüdür --- duvar-fonksiyonu ağıyla
+                ayrı bir aile koşulması gerekir \\
 v1.4 & orta   & Docker/Conda kilidi ile yeniden-üretilebilir ortam; çözücü
                 sürüm kilidi \\
 v1.5 & orta   & Arayüz v2 --- kipler, kanıt gezgini, bandlı sonuç kartları ve
@@ -2532,8 +2537,8 @@ hat, GPU \\
 \begin{dikkat}{Bu sürümde kapanmamış olanlar}
 \textbf{Türbülanslı URANS doğrulaması yok:} zaman-çözünür yol laminer girdap
 dökülmesinde doğrulandı, k--$\omega$ SST ile bağımsız bir çapa henüz yok.
-\textbf{Model-form:} sekiz hücrenin beşi çapalı (üç ölçüm, iki üst sınır),
-üçü literatür öncülü. \textbf{Backend:} ortak katmanı atlayan çağrı 36'dan \textbf{3}'e
+\textbf{Model-form:} sekiz hücrenin altısı çapalı (üç ölçüm, üç üst sınır),
+ikisi literatür öncülü. \textbf{Backend:} ortak katmanı atlayan çağrı 36'dan \textbf{3}'e
 düşürüldü; kalan üç satır eşdeğerlik ölçümünün karşılaştırma tabanıdır. Case
 iskelesini yineleyen eski betikler borç olarak kaldı. \textbf{Yeniden üretilebilirlik:} çözücü sürümleri artık ölçülüyor ve
 kilit dosyasında kayıtlı (OpenFOAM \texttt{11-e1fc8c682ae6}, CalculiX 2.17);

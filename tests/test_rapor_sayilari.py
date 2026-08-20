@@ -85,8 +85,10 @@ def test_raporda_capali_orani_KANITLA_uyusuyor(tex, ozet):
 def test_sozel_tekrarlar_da_AYNI_sayiyi_soyluyor(tex, ozet):
     """Sayı rakamla değil yazıyla geçtiğinde de aynı olmalı; hakem çelişkiyi
     tam olarak bu tekrarlarda buldu."""
-    yazi = {8: "sekiz", 7: "yedi", 5: "beş", 4: "dört", 3: "üç", 2: "iki"}
-    top, cap = yazi[ozet["toplam_hucre"]], yazi[ozet["capali"]]
+    # Sayi-kelime tablosu TEK KAYNAKTAN (_YAZI). Yerel kopyada 6 eksikti ve
+    # capali 5'ten 6'ya cikinca test KeyError ile patladi — yani tabloyu
+    # eksik tutmak, denetimi sessizce cikarilamaz hale getiriyordu.
+    top, cap = _YAZI[ozet["toplam_hucre"]], _YAZI[ozet["capali"]]
     kaliplar = re.findall(r"(\w+) hücrenin \\textbf\{(\w+)\}ü", tex)
     for bulunan_top, bulunan_cap in kaliplar:
         assert bulunan_top == top, f"'{bulunan_top} hücrenin' — beklenen '{top}'"
@@ -95,6 +97,13 @@ def test_sozel_tekrarlar_da_AYNI_sayiyi_soyluyor(tex, ozet):
 
 _YAZI = {0: "sıfır", 1: "bir", 2: "iki", 3: "üç", 4: "dört", 5: "beş",
          6: "altı", 7: "yedi", 8: "sekiz"}
+
+
+def _tr_kucult(s: str) -> str:
+    """Turkce-dogru kucult. str.lower() 'İ'yi 'i'+birlesen-nokta yapar, 'iki'
+    ile esitlenmez. Rapor sayiyi VURGU icin buyuk yazabilir ('kalan İKİ
+    hücre'); test bicimlemeye degil SAYIYA baglanmali."""
+    return s.replace("İ", "i").replace("I", "ı").lower()
 
 
 def test_olcum_ve_ust_sinir_AYRIMI_da_tutarli(tex, ozet):
@@ -167,7 +176,7 @@ def test_yol_haritasindaki_KALAN_hucre_sayisi_dogru(tex, ozet):
     bulunan = re.findall(rf"kalan\s+({_s}|\d+)\s+hücre", tex, re.IGNORECASE)
     assert bulunan, "yol haritası kalan-hücre ifadesi taşımıyor"
     for b in bulunan:
-        assert b.lower() in (_YAZI[kalan], str(kalan)), \
+        assert _tr_kucult(b) in (_YAZI[kalan], str(kalan)), \
             f"'kalan {b} hücre' — beklenen '{_YAZI[kalan]}' ({kalan})"
 
 
