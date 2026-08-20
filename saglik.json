@@ -1,0 +1,55 @@
+{
+  "vaka": "Depo sağlık toplayıcısı — beş öz-denetim ölçeri",
+  "_uretim": "Üretim: python saglik.py --json",
+  "verdikt": "✅ Beş ölçer de sıfır açık madde bildiriyor; taranamayan dosya yok",
+  "acik_toplam": 0,
+  "olculemeyen": [],
+  "kapsam_disi": [],
+  "olcerler": [
+    {
+      "toplam": 88,
+      "acik": 0,
+      "detay": "0 gerekçesiz / 88 yutma (0 güven yolunda)",
+      "taranamayan": [],
+      "olcer": "sessiz_yutma",
+      "soru": "hata sebebi yutuluyor mu",
+      "olculdu": true
+    },
+    {
+      "toplam": 1,
+      "acik": 0,
+      "detay": "0 çağrılmayan savunma (1 gerekçeli muaf)",
+      "taranamayan": [],
+      "olcer": "oksuz_savunma",
+      "soru": "savunma çağrılıyor mu",
+      "olculdu": true
+    },
+    {
+      "toplam": 0,
+      "acik": 0,
+      "detay": "0 alan üretilir ama hiç okunmaz",
+      "taranamayan": [],
+      "olcer": "oksuz_alan",
+      "soru": "üretilen alan okunuyor mu",
+      "olculdu": true
+    },
+    {
+      "toplam": 15,
+      "acik": 0,
+      "detay": "0 gerekçesiz / 15 ayrışma (15 kabul)",
+      "taranamayan": [],
+      "olcer": "kanal_ayrismasi",
+      "soru": "bir kanal söylüyor öbürü susuyor mu",
+      "olculdu": true
+    },
+    {
+      "toplam": 103,
+      "acik": 0,
+      "detay": "0 beyansız komutsuz, 0 bayat / 103 kanıt (7 beyanlı komutsuz)",
+      "taranamayan": [],
+      "olcer": "kanit",
+      "soru": "kanıt üretilebilir ve taze mi",
+      "olculdu": true
+    }
+  ]
+}
