@@ -1,0 +1,14 @@
+{
+  "vaka": "FSI kuplaj — KURU KOŞU",
+  "_uretim": "Üretim: python fsi_surucu.py --kuru validation_anchors_runs\\_anchor_ahmed_25",
+  "verdikt": "⚠️ YALNIZ TESİSAT DENETLENDİ — CFD koşulmadı, fiziksel yakınsama İDDİA EDİLMİYOR",
+  "tesisat": {
+    "fea_dugum": 1106,
+    "cfd_nokta": 17375,
+    "fea_stl": "validation_anchors_runs\\_anchor_ahmed_25\\_anchor_ahmed_25_prep.stl",
+    "vtk": "D:\\bilsem_beyin\\cfd_fea_tools\\validation_anchors_runs\\_anchor_ahmed_25\\_anchor_ahmed_25\\postProcessing\\yuzeyBasinc\\800\\yuzey.vtk",
+    "rijit_oteleme_hatasi_m": 8.673617379884035e-19,
+    "tesisat": "UYUMLU",
+    "_kapsam": "YALNIZ TESİSAT — parçalar uyuşuyor ve taşıma operatörü bu geometride rijit ötelemeyi hatasız taşıyor. Fiziksel yakınsama İDDİA EDİLMİYOR; o GERÇEK kuplaj turundan gelir."
+  }
+}
