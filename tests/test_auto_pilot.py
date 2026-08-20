@@ -239,3 +239,88 @@ def test_izolasyon_tum_kaynaklari_kapsiyor(tmp_path, monkeypatch):
     assert ap._load_cases() == [], "izolasyona rağmen kütüphane boş değil"
     for ad in ap.KAYNAK_ADLARI:
         assert getattr(ap, ad).parent == tmp_path, f"{ad} izole edilmedi"
+
+
+# ── Cd aykırılık kapısı: SAĞLAM istatistik + teşhis ayrımı ─────────────────
+
+def _kutuphane(monkeypatch, tmp_path, degerler, tip="roket"):
+    import json
+
+    import auto_pilot as ap
+    p = tmp_path / "seed.jsonl"
+    p.write_text("\n".join(json.dumps(
+        {"onayli_tip": tip, "metrik": {"L_D": 5}, "cd_toplam": v})
+        for v in degerler), encoding="utf-8")
+    monkeypatch.setattr(ap, "SEED", p)
+    monkeypatch.setattr(ap, "REAL_SEED", tmp_path / "yok1.jsonl")
+    monkeypatch.setattr(ap, "NX_SEED", tmp_path / "yok2.jsonl")
+    monkeypatch.setattr(ap, "MEMORY", tmp_path / "yok3.jsonl")
+    return ap
+
+
+def test_aykirilar_SD_yi_sisirip_KENDILERINI_gizleyemiyor(tmp_path, monkeypatch):
+    """Aykırı-dedektörünü ortalama+sd ile kurmak kendi kendini baltalar.
+
+    ÖLÇÜLDÜ (2026-08-19, `ucak` tipi n=14): 12 vaka 0,0039-0,0211 ve 2 vaka
+    0,337/0,400 (16-19 KAT büyük).
+      ortalama+sd : mu=0,062 sd=0,126 → eşik 0,377 → 0,337 BAYRAKLANMIYOR
+      medyan+MAD  : med=0,0136 σ≈0,0088 → eşik 0,0221 → İKİSİ de bayraklı
+    Üçüncü bir aykırı gelseydi sd daha da şişer, ikisi birden kaçardı.
+    """
+    ap = _kutuphane(monkeypatch, tmp_path,
+                    [0.004, 0.005, 0.008, 0.009, 0.010, 0.011, 0.016, 0.018,
+                     0.020, 0.021, 0.337, 0.400])
+    assert ap.cd_outlier("roket", 0.337) is not None, (
+        "aykırı kendi şişirdiği bandın arkasına saklanıyor")
+    assert ap.cd_outlier("roket", 0.400) is not None
+    # Normal degerler etkilenmemeli.
+    assert ap.cd_outlier("roket", 0.012) is None
+
+
+def test_KUME_ile_YALNIZ_aykiri_AYRI_teshis_aliyor(tmp_path, monkeypatch):
+    """"Yalnızsın" ile "senin gibi bir küme var" aynı şey değil.
+
+    Tek başına uzakta duran değer muhtemelen bir KUSURDUR. Etrafında benzer
+    bir küme varsa o küme büyük olasılıkla başka bir REFERANS ALANI
+    sözleşmesiyle hesaplanmıştır; "geometrini kontrol et" demek yanlış yere
+    bakmaktır. Ölçüldü: tilt_rotor'da 12 vaka 0,009-0,023 ve 4 vaka
+    0,26-0,337 — bu düzenlilik gürültü değil sözleşme farkının imzası.
+    """
+    ap = _kutuphane(monkeypatch, tmp_path,
+                    [0.010, 0.011, 0.012, 0.013, 0.014, 0.015, 0.016, 0.018,
+                     0.26, 0.29, 0.31, 0.33])
+    kume = ap.cd_outlier("roket", 0.30)
+    assert kume and "REFERANS ALANI" in kume, (
+        "benzer küme varken tek-hata teşhisi veriliyor")
+    yalniz = ap.cd_outlier("roket", 2.5)
+    assert yalniz and "REFERANS ALANI" not in yalniz, (
+        "komşusuz aykırıya sözleşme teşhisi veriliyor")
+    assert "geometri/ayar" in yalniz
+
+
+def test_komsuluk_GORELI_olculuyor(tmp_path, monkeypatch):
+    """σ dar alt kümeden gelir; mutlak pencere yanlış ölçektedir.
+
+    İlk sürüm |v−cd| ≤ 2.5σ kullanıyordu ve küme tespiti çalışmıyordu:
+    tilt_rotor'da σ=0,008 ama aykırı küme 0,26-0,337 aralığına yayılıyor
+    (~10σ). İki-kat bandı ölçekten bağımsızdır.
+    """
+    import inspect
+
+    import auto_pilot as ap
+    src = inspect.getsource(ap.cd_outlier)
+    assert "0.5 * cd <= v <= 2.0 * cd" in src, (
+        "komşuluk hâlâ σ ile ölçülüyor — küme tespiti ölçek değiştirince bozulur")
+
+
+def test_aref_mode_KUTUPHANEYE_yaziliyor():
+    """Cd yalnız aynı referans alanına göre kıyaslanabilir; kayıt onu unutmamalı."""
+    import inspect
+
+    import auto_pilot as ap
+    src = inspect.getsource(ap.record_case)
+    assert '"aref_mode"' in src, "referans alanı kaydedilmiyor"
+    # Kapi da onu OKUMALI, yoksa kayit bosuna.
+    assert "aref_mode" in inspect.signature(ap.cd_outlier).parameters
+    gsrc = inspect.getsource(ap.referee_gate)
+    assert 'aref_mode' in gsrc, "kapı referans alanını cd_outlier'a geçirmiyor"

@@ -102,7 +102,9 @@ def referee_gate(metrik: dict, vtype: str, result: dict | None) -> dict:
     if drift is not None and abs(drift) > 5.0:
         nedenler.append(f"zayıf yakınsama (Cd drift %{abs(drift):.1f} > %5)")
     if cd is not None and cd > 0:
-        flag = cd_outlier(vtype, cd)        # geçmiş dağılıma göre aykırılık
+        # AREF_MODE GECIRILIR: Cd yalniz ayni referans alanina gore
+        # hesaplanmis degerlerle kiyaslanabilir.
+        flag = cd_outlier(vtype, cd, (r or {}).get("aref_mode"))
         if flag:
             nedenler.append("aykırı: " + flag)
     cd_guvenilir = (cd is not None) and not nedenler
@@ -119,6 +121,12 @@ def record_case(metrik: dict, otopilot_tip: str, onayli_tip: str,
     rec = {"ts": time.strftime("%Y-%m-%d %H:%M"), "dosya": dosya, "metrik": metrik,
            "otopilot_tip": otopilot_tip, "onayli_tip": onayli_tip,
            "cd_toplam": cd_raw if gate["cd_guvenilir"] else None,
+           # REFERANS ALANI KAYDEDILIR. Onceden yazilmiyordu ve kutuphanedeki
+           # 277 vakanin HICBIRI tasimiyor; `cd_outlier` bu yuzden farkli
+           # referans alanina gore hesaplanmis Cd'leri ayni havuzda
+           # toplayabiliyordu (planform vs frontal farki tam o mertebede).
+           "aref_mode": (result or {}).get("aref_mode"),
+           "aref_m2": (result or {}).get("aref_m2"),
            "rejim": (result or {}).get("rejim")}
     if gate["suspect"]:
         rec["suspect"] = True
@@ -169,20 +177,81 @@ def learned_vote(metrik: dict, k: int = 5) -> dict | None:
             "komsu": len(scored), "kutuphane": len(cases)}
 
 
-def cd_outlier(vtype: str, cd: float) -> str | None:
-    """Birikmiş aynı-tip Cd dağılımına göre aykırı sonuç bayrağı."""
+def cd_outlier(vtype: str, cd: float, aref_mode: str | None = None) -> str | None:
+    """Birikmiş aynı-tip Cd dağılımına göre aykırı sonuç bayrağı.
+
+    SAGLAM ISTATISTIK (medyan + MAD), ORTALAMA + SD DEGIL.
+    Aykiri-dedektorunu ortalama ve standart sapmayla kurmak kendi kendini
+    baltalar: aykirilar sd'yi sisirir ve KENDILERINI gizler.
+
+    OLCULDU (2026-08-19, `ucak` tipi, n=14): dagilim iki kumeli —
+    12 vaka 0,0039-0,0211 arasinda, 2 vaka 0,337 ve 0,400 (16-19 KAT buyuk).
+      ortalama+sd : mu=0,062  sd=0,126  -> esik 2,5sd = 0,377
+                    0,337 BAYRAKLANMIYOR (tipik degerin 17 kati olmasina ragmen)
+      medyan+MAD  : med=0,0136  sigma=0,0088 -> esik = 0,0221
+                    IKI aykiri da bayraklaniyor, normaller etkilenmiyor
+    Ucuncu bir aykiri gelseydi sd daha da siser ve ikisi birden kacardi.
+
+    AREF_MODE AYRIMI: Cd yalniz AYNI referans alanina gore hesaplanmis
+    degerlerle kiyaslanabilir; planform ile frontal arasindaki fark tam bu
+    mertebededir. Kutuphanedeki 277 eski vaka `aref_mode` TASIMIYOR (kayit
+    fonksiyonu yazmiyordu; artik yaziyor). Bu yuzden eslestirme SIKI DEGIL:
+    mod iki tarafta da biliniyorsa esitlik aranir, biri bilinmiyorsa vaka
+    havuzda kalir ve bu hukumde SOYLENIR — eski veriyi atmak calisan bir
+    kapiyi kor etmek olurdu.
+    """
     if cd is None:
         return None
-    vals = [c["cd_toplam"] for c in _load_cases()
-            if c.get("onayli_tip") == vtype and c.get("cd_toplam")]
+    hepsi = [c for c in _load_cases()
+             if c.get("onayli_tip") == vtype and c.get("cd_toplam")]
+    if aref_mode:
+        havuz = [c for c in hepsi
+                 if c.get("aref_mode") in (None, aref_mode)]
+        _mod_bilinmeyen = sum(1 for c in havuz if c.get("aref_mode") is None)
+    else:
+        havuz, _mod_bilinmeyen = hepsi, len(hepsi)
+    vals = sorted(c["cd_toplam"] for c in havuz)
     if len(vals) < 5:
         return None
-    mu = sum(vals) / len(vals)
-    sd = (sum((v - mu) ** 2 for v in vals) / len(vals)) ** 0.5
-    sd_eff = max(sd, 0.1 * abs(mu))   # özdeş değerlerde göreli taban
-    if sd_eff > 0 and abs(cd - mu) > 2.5 * sd_eff:
-        return (f"C_D={cd:.3f}, bu tipteki {len(vals)} vakanın ortalamasından "
-                f"({mu:.3f}±{sd:.3f}) belirgin sapıyor — geometri/ayar kontrolü önerilir.")
+
+    def _med(x):
+        n = len(x)
+        return x[n // 2] if n % 2 else 0.5 * (x[n // 2 - 1] + x[n // 2])
+
+    med = _med(vals)
+    mad = _med(sorted(abs(v - med) for v in vals))
+    # 1,4826: normal dagilimda MAD'i standart sapmaya cevirir.
+    # Taban: yarisindan fazlasi ozdesse MAD=0 olur ve kapi her seyi bayraklar.
+    sigma = max(1.4826 * mad, 0.1 * abs(med))
+    if sigma > 0 and abs(cd - med) > 2.5 * sigma:
+        # "YALNIZSIN" ile "SENIN GIBI BIR KUME VAR" AYNI SEY DEGIL.
+        # Tek basina uzakta duran bir deger muhtemelen bir KUSURDUR. Ama
+        # etrafinda benzer bir kume varsa, o kume buyuk olasilikla baska bir
+        # REFERANS ALANI sozlesmesiyle hesaplanmistir ve "geometrini kontrol
+        # et" demek yanlis yere bakmaktir.
+        #
+        # OLCULDU (2026-08-19): tilt_rotor'da 12 vaka 0,009-0,023 ve 4 vaka
+        # 0,26-0,337 (14-37 KAT sicrama); kanatli_roket'te 17 vaka 0,167-0,322
+        # ve 3 vaka 0,452-0,646. Bu kadar duzenli iki-kumelilik gurultu degil,
+        # sozlesme farkinin imzasidir (planform vs frontal oran mertebesi).
+        # KOMSULUK GORELI OLCULUR, sigma ile DEGIL. Ilk surum `|v-cd| <= 2.5*sigma`
+        # kullaniyordu ve ise yaramadi: sigma DAR olan alt kumeden gelir
+        # (tilt_rotor'da 0,008) ama aykiri kume genis bir aralikta durur
+        # (0,26-0,337, yani ~10 sigma). Mutlak pencere yanlis olcektedir.
+        # Iki-kat bandi olcekten bagimsizdir ve sozlesme farkini yakalar.
+        komsu = sum(1 for v in vals if 0.5 * cd <= v <= 2.0 * cd)
+        if komsu >= 3:
+            _tani = (f"AMA benzer {komsu} vaka daha var — bu, tek bir hatadan çok "
+                     "FARKLI REFERANS ALANI (planform↔frontal) işaretidir; "
+                     "önce A_ref sözleşmesini doğrulayın")
+        else:
+            _tani = (f"ve yakınında yalnız {komsu} vaka var — "
+                     "geometri/ayar kontrolü önerilir")
+        _not = (f" [{_mod_bilinmeyen} vakanın referans alanı kayıtlı değil — "
+                "eski kayıtlar]" if _mod_bilinmeyen else "")
+        return (f"C_D={cd:.3f}, bu tipteki {len(vals)} vakanın medyanından "
+                f"({med:.3f}, sağlam σ≈{sigma:.3f}) belirgin sapıyor{_not} "
+                f"{_tani}.")
     return None
 
 
