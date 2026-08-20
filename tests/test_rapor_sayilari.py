@@ -239,3 +239,38 @@ def test_ELLE_yazilmis_bolum_atfi_KALMADI(tex):
     çözülmemiş atıfı kendisi söyler."""
     elle = re.findall(r"\\S\s*\d", tex)
     assert not elle, f"elle yazılmış bölüm atfı: {elle} — \\ref kullanın"
+
+
+def _sayilar(s: str) -> set:
+    r"""Metindeki AYIRT EDICI sayilar. Tek/cift haneli tam sayilar (5, 15)
+    ambiguous — atlanir; ondalikli ya da 3+ haneli olanlar alinir. LaTeX
+    aralik makrosu ve ondalik ayraci normalize edilir: rapor '4,68\,M' yazar,
+    kanit '4,68 M' — denetim BICIMLEMEYE degil SAYIYA bakmali."""
+    t = s.replace(r"\,", "").replace(r"\%", "%").replace(",", ".")
+    return set(re.findall(r"\d+\.\d+|\d{3,}", t))
+
+
+def test_ACIK_hucrelerin_gerekcesi_kanittan_geliyor(tex):
+    """Sayı kapısı gerekçeleri OKUMUYOR; bu yüzden kanıta dayanmayan bir
+    gerekçe raporda serbestçe durabiliyordu (2026-08-20: küt hücre için
+    'küre izi kararsız', taşıma hücresi için 'iki çapa da duvar-çözümlü'
+    yazılmıştı — ikisi de kanıt dosyasında YOK).
+
+    KURAL: her açık hücrenin rapordaki gerekçesi, kanıttaki gerekçenin
+    ÖLÇÜLEN sayılarına dayanmalı. Tümünü istemek aşırı katı olur (kanıt
+    metni yan sayılar da taşır); en az ikisi aranır.
+    """
+    if not KANIT.exists():
+        pytest.skip("model_form_bandi.json yok")
+    d = json.loads(KANIT.read_text(encoding="utf-8"))
+    acik = d.get("oncul_kalan_hucreler") or []
+    if not acik:
+        pytest.skip("açık hücre kalmamış")
+    rapor = _sayilar(tex)
+    for h in acik:
+        kanit = _sayilar(h.get("kapanmasi_icin", ""))
+        ortak = kanit & rapor
+        assert len(ortak) >= 2, (
+            f"{h['rejim']}.{h['duvar']} gerekçesi kanıttan gelmiyor: "
+            f"kanıttaki ölçülen sayılar {sorted(kanit)}, raporda bulunan "
+            f"{sorted(ortak)}")
