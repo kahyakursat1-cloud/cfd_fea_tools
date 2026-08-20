@@ -81,7 +81,12 @@ import sessiz_yutma
 # Ikisi de yeni bir olcum yolunun parcasi: hizlanma artik ASAMA DUVAR SURESINDEN
 # degil ExecutionTime'dan hesaplaniyor (rapordaki 1,96x → 3,10x duzeltmesi).
 # Izlenen sayilar DEGISMEDI: incelenmemis 0, guven yolunda incelenmemis 0.
-TABAN_TOPLAM = 88
+TABAN_TOPLAM = 89
+# 88 -> 89 (2026-08-21): analysis/openfoam_runner._son_zaman — FSI kuplaj turu
+# icin eklenen `run_cfd_yeniden`'in yardimcisi. Vaka dizinindeki SAYISAL zaman
+# dizinlerini bulur; `system`, `constant`, `0.org` gibi sayisal OLMAYAN adlar
+# ValueError verir ve elenir. Yutulan sey bir HATA degil, elemenin kriterinin
+# ta kendisi — gerekcesi kodda yazili.
 # 87 -> 88 (2026-08-20): YENI BIR YUTMA EKLENMEDI — GORUNMEZ olan biri gorunur
 # oldu. `revise_1001_panel.py` UTF-8 BOM ile basliyor ve tarayici dosyayi
 # `encoding="utf-8"` ile okudugu icin BOM `﻿` olarak satir 1'e dusuyor,
@@ -112,7 +117,9 @@ TABAN_TOPLAM = 88
 # blok bitince okunanlar döner, hiçbiri okunamazsa çağıran "dat frekans
 # taşımıyor" HATASI alır. Gerekçe kodda (kabul etiketi konuldu).
 # İzlenen sayılar DEĞİŞMEDİ: incelenmemiş 0, güven yolunda incelenmemiş 0.
-TABAN_GUVEN_YOLU = 64
+TABAN_GUVEN_YOLU = 65
+# 64 -> 65 (2026-08-21): ayni kayit. `analysis/` guven yolu dizinidir, o yuzden
+# hem toplam hem guven-yolu sayaci artar; INCELENMEMIS sayisi ise 0 kalir.
 TABAN_INCELENMEMIS = 25
 TABAN_INCELENMEMIS_GUVEN_YOLU = 0
 

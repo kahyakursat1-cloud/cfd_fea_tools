@@ -151,7 +151,12 @@ def kuplaj_haritasi(vaka: KuplajVakasi):
                 "analysis.openfoam_runner.run_cfd_yeniden YOK — kuplaj turu "
                 "hareketli agda CFD yeniden-cozumu gerektiriyor. Tesisatin "
                 "geri kalani `--kuru` ile dogrulanabilir.")
-        _of.run_cfd_yeniden(vaka.run_dir)
+        _r = _of.run_cfd_yeniden(vaka.run_dir)
+        if _r.get("durum") != "ok":
+            raise RuntimeError(f"CFD yeniden-cozumu dustu: {_r.get('durum')}")
+        # Yuzey VTK'si BU katmanda uretilir (analysis/ kendi icinde kapali).
+        from vehicle_pipeline import export_surface_vtk
+        export_surface_vtk(_r["case"], _r["govde_yamasi"])
 
         # 3) Akiskan -> yapi: yuzey basinci -> dugum kuvvetleri -> CalculiX
         yukler = cfd_pressure_to_fea_loads(_son_vtk(vaka), str(fea_stl),

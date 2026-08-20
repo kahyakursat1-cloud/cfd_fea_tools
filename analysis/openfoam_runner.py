@@ -1799,3 +1799,93 @@ def case_bul(kok: Path) -> Path | None:
         if (p / "controlDict").exists():
             return p.parent
     return None
+
+
+def run_cfd_yeniden(case_dir: Path, ek_iter: int = 200,
+                    timeout: int = 3600) -> dict:
+    """MEVCUT bir vakayı YER DEĞİŞTİRMİŞ ağla yeniden çöz — FSI kuplaj turu için.
+
+    `run_cfd` vakayı SIFIRDAN kurar (blockMesh + snappy + çöz) ve bir kuplaj
+    turunda kullanılamaz: her dış iterasyonda ağı yeniden örmek hem saçma
+    pahalıdır hem de yüzey düğüm numaralandırmasını değiştirip taşıma
+    operatörünü geçersiz kılar. Bu fonksiyon ağı KORUR, yalnız hareket ettirir.
+
+    Üç adım:
+      1. `moveDynamicMesh -noFunctionObjects` — `0/pointDisplacement`'taki gövde
+         değerlerini `constant/dynamicMeshDict`'in çözücüsüyle iç ağa yayar
+         (`_write_mesh_motion` iskeleti kurar, `write_point_displacement` gövde
+         değerlerini her turda günceller).
+      2. `foamRun` — `startFrom latestTime` ile devam. Sıfırdan başlamak önceki
+         turun yakınsamış alanını atar ve tur maliyetini katlar.
+      3. `export_surface_vtk` — yeni yüzey basıncı (çözücüyü yeniden koşmaz).
+
+    ÖN KOŞUL DENETLENİR, VARSAYILMAZ: dynamicMeshDict ve 0/pointDisplacement
+    yoksa AÇIKÇA düşer. Sessizce hareketsiz çözmek, kuplaj turunu fark
+    edilmeden tek-yönlü hale getirirdi — sonuç "yakınsadı" der ve yanlıştır.
+    """
+    case_dir = Path(case_dir)
+    case = case_bul(case_dir) or case_dir
+    eksik = [ad for ad, p in (("constant/dynamicMeshDict",
+                               case / "constant" / "dynamicMeshDict"),
+                              ("0/pointDisplacement",
+                               case / "0" / "pointDisplacement"))
+             if not p.exists()]
+    if eksik:
+        raise FileNotFoundError(
+            f"{case}: ağ hareketi kurulu değil ({', '.join(eksik)}). "
+            "CFDCase(mesh_motion=True) ile kurulan bir vaka gerekir; "
+            "hareketsiz çözmek kuplaj turunu sessizce tek-yönlü yapardı.")
+
+    wsl = windows_to_wsl_path(case)
+    adimlar = []
+
+    r = _wsl_run(wsl, "moveDynamicMesh -noFunctionObjects "
+                      "> log.moveDynamicMesh 2>&1", timeout)
+    adimlar.append({"adim": "moveDynamicMesh", "donus": r.returncode})
+    if r.returncode != 0:
+        return {"durum": "AG HAREKETI DUSTU", "adimlar": adimlar,
+                "log": str(case / "log.moveDynamicMesh")}
+
+    son = _son_zaman(case)
+    controldict_yamala(case, start_from="latestTime",
+                       end_time=int(son) + int(ek_iter))
+    r = _wsl_run(wsl, "foamRun > log.foamRun_fsi 2>&1", timeout)
+    adimlar.append({"adim": "foamRun", "donus": r.returncode,
+                    "baslangic": son, "bitis_hedefi": int(son) + int(ek_iter)})
+    if r.returncode != 0:
+        return {"durum": "COZUM DUSTU", "adimlar": adimlar,
+                "log": str(case / "log.foamRun_fsi")}
+
+    # YUZEY VTK'SI CAGIRANIN ISI. `export_surface_vtk` kok katmanda
+    # (vehicle_pipeline) ve `analysis/` paketi KENDI ICINDE KAPALI olmalidir —
+    # bagimlilik yonu kok -> paket, tersi degil (test_paketleme bunu bagliyor).
+    # Ilk surumde buradan import ediyordum ve kapaliligi kirmisti.
+    return {"durum": "ok", "adimlar": adimlar,
+            "govde_yamasi": _govde_yamasi(case), "case": str(case),
+            "_sonraki": ("yüzey VTK'sı çağıran tarafından üretilir: "
+                         "vehicle_pipeline.export_surface_vtk(case, govde_yamasi)")}
+
+
+def _son_zaman(case: Path) -> float:
+    """En büyük sayısal zaman dizini — `latestTime`'ın karşılığı."""
+    zamanlar = []
+    for p in case.iterdir():
+        try:
+            zamanlar.append(float(p.name))
+        # sessiz-yutma: kabul — sayısal OLMAYAN dizin (system, constant, 0.org)
+        # zaman değildir; eleme kriterin ta kendisi, hata değil
+        except (ValueError, OSError):
+            continue
+    return max(zamanlar) if zamanlar else 0.0
+
+
+def _govde_yamasi(case: Path) -> str:
+    """boundary dosyasından gövde (wall, uzak-alan olmayan) yamasının adı."""
+    b = case / "constant" / "polyMesh" / "boundary"
+    uzak = {"inlet", "outlet", "top", "bottom", "front", "back",
+            "farfield", "ground", "defaultFaces"}
+    if b.exists():
+        for m in re.finditer(r"^\s{4}(\w+)\s*$", b.read_text(encoding="utf-8"), re.M):
+            if m.group(1) not in uzak:
+                return m.group(1)
+    return "gövde"

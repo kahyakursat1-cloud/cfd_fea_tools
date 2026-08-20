@@ -162,3 +162,35 @@ def test_pointDisplacement_OpenFOAM_ayristirabilir(tmp_path):
         if False else next(j for j, L in enumerate(satir) if "nonuniform" in L)
     assert satir[i + 1].strip() == "3", "liste uzunluğu nokta sayısıyla uyuşmuyor"
     assert satir[i + 2].strip() == "("
+
+
+def test_YENIDEN_COZUM_ag_hareketi_yokken_SESSIZCE_kosmaz(tmp_path):
+    """KURAL: kuplaj turu hareketsiz bir ağda sessizce koşamaz.
+
+    `run_cfd_yeniden` ağı KORUR ve yalnız hareket ettirir — her turda yeniden
+    örmek hem pahalıdır hem de yüzey düğüm numaralandırmasını değiştirip
+    taşıma operatörünü geçersiz kılar. Ama ön koşul (dynamicMeshDict +
+    0/pointDisplacement) yoksa sessizce hareketsiz çözmek, kuplaj turunu fark
+    edilmeden TEK YÖNLÜ yapar: sonuç "yakınsadı" der ve yanlıştır.
+    """
+    import pytest
+
+    from analysis.openfoam_runner import run_cfd_yeniden
+
+    case = tmp_path / "vaka"
+    (case / "system").mkdir(parents=True)
+    (case / "system" / "controlDict").write_text("startFrom latestTime;\n")
+    with pytest.raises(FileNotFoundError) as e:
+        run_cfd_yeniden(case)
+    assert "dynamicMeshDict" in str(e.value)
+    assert "pointDisplacement" in str(e.value)
+    assert "tek-yönlü" in str(e.value), "gerekçe eylem planı üretmiyor"
+
+
+def test_FSI_surucusu_eksik_parcayi_ADIYLA_soyluyor():
+    # map_fn, CFD yeniden-cozumu olmadan donerse "yakinsadi" der ve bu sahte
+    # kesinliktir. Eksik varsa ACIKCA dusmeli.
+    import fsi_surucu
+    src = __import__("pathlib").Path(fsi_surucu.__file__).read_text(encoding="utf-8")
+    assert "NotImplementedError" in src
+    assert "run_cfd_yeniden" in src
