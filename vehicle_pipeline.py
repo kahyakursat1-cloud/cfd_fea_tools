@@ -232,23 +232,46 @@ def birim_sinif_cozumu(ham_lmax: float, mevcut_lmax: float, band) -> dict:
     ama ölçeği doğrudur); statüko yalnız mevcut sonuç bandı ihlal ediyorken ve
     başka TEK bir birim varsayımı bandı tutturuyorken bozulur.
     """
-    lo, hi = band
+    # Sınıf bandı NOMİNAL bir aralıktır, sert sınır değil — pay olmadan tam
+    # kenardaki cisim düşüyordu: 2,0 m'lik roketin ağ yuvarlamasıyla ham değeri
+    # 200,3 olunca cm→2,003 > 2,0 sınırını aşıp aday listesinden çıkıyor ve
+    # geometri 0,2 m'de kalıyordu. Taşma yalnız %0,15 olduğu için pay DAR
+    # tutuldu: %15 pay inç adayını (90×0,0254=2,286) banda sokup temiz bir
+    # çözümü gereksiz yere belirsize çeviriyordu. %5 hem kenarı kurtarıyor
+    # hem inç adayını dışarıda bırakıyor.
+    lo, hi = band[0] / 1.05, band[1] * 1.05
     if lo <= mevcut_lmax <= hi:
         return {"karar": "dokunulmadi"}
     adaylar = {b: s for b, s in BIRIMLER_M.items() if lo <= ham_lmax * s <= hi}
     if len(adaylar) == 1:
         b, s = next(iter(adaylar.items()))
         return {"karar": "cozuldu", "birim": b, "yeni_lmax": ham_lmax * s,
-                "gerekce": (f"sınıf boy önceli ({lo}–{hi} m) birimi TEK adaya "
+                "gerekce": (f"sınıf boy önceli ({lo:.2f}–{hi:.2f} m)birimi TEK adaya "
                             f"indirdi: {b}. Mevcut sonuç {mevcut_lmax:.4g} m "
                             f"bandın dışındaydı, {ham_lmax * s:.4g} m'ye düzeltildi")}
+    if len(adaylar) > 1:
+        # Kalan belirsizligin tamami cm<->inc (yalniz 2,54x ayri). Metrige
+        # kisitlamak 21/21 cozuyor. Inci ELEMEK yerine metrigi VARSAYIP bedeli
+        # beyan ediyoruz: "cozuldu" deyip sessizce 2,54x yanilmak, duzeltmeye
+        # calistigimiz sessiz hatanin aynisi olurdu.
+        metrik = {b: s for b, s in adaylar.items() if b != "inç"}
+        if len(metrik) == 1:
+            b, s = next(iter(metrik.items()))
+            oran = BIRIMLER_M["inç"] / s if "inç" in adaylar else None
+            bedel = (f" Dosya inç cinsindeyse Lmax {oran:.2f}× hatalı olur."
+                     if oran else "")
+            return {"karar": "metrik_varsayildi", "birim": b,
+                    "yeni_lmax": ham_lmax * s,
+                    "gerekce": (f"sınıf boy önceli ({lo:.2f}–{hi:.2f} m){', '.join(sorted(adaylar))} "
+                                f"adaylarını bıraktı; METRİK varsayıldı → {b} "
+                                f"({ham_lmax * s:.4g} m).{bedel}")}
     if not adaylar:
         return {"karar": "band_disi",
-                "gerekce": (f"{mevcut_lmax:.4g} m, sınıf bandının ({lo}–{hi} m) "
+                "gerekce": (f"{mevcut_lmax:.4g} m, sınıf bandının ({lo:.2f}–{hi:.2f} m) "
                             f"dışında ve hiçbir birim varsayımı bandı tutturmuyor "
                             f"— ölçek değil GEOMETRİ beklenenden farklı olabilir")}
     return {"karar": "belirsiz", "adaylar": sorted(adaylar),
-            "gerekce": (f"{mevcut_lmax:.4g} m sınıf bandının ({lo}–{hi} m) dışında; "
+            "gerekce": (f"{mevcut_lmax:.4g} m sınıf bandının ({lo:.2f}–{hi:.2f} m) dışında; "
                         f"banda düşen birim varsayımları: {', '.join(sorted(adaylar))}"
                         f" — tek adaya inmediği için ölçek DEĞİŞTİRİLMEDİ")}
 

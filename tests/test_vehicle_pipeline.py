@@ -465,10 +465,14 @@ def test_sinif_onceli_birimi_TEK_ADAYA_indirince_cozer():
     c = birim_sinif_cozumu(90.0, 0.09, band)
     assert c["karar"] == "cozuldu" and c["birim"] == "cm"
     assert c["yeni_lmax"] == pytest.approx(0.9)
-    # ayni roket inc cinsinden: ham 35.43 -> cm ve inc ikisi de banda dusuyor
-    belirsiz = birim_sinif_cozumu(35.43, 35.43, band)
-    assert belirsiz["karar"] == "belirsiz"
-    assert set(belirsiz["adaylar"]) == {"cm", "inç"}
+    # ayni roket inc cinsinden: ham 35.43 -> cm ve inc IKISI de banda dusuyor.
+    # KURAL: kalan belirsizligin tamami cm<->inc; inci ELEMEK yerine metrigi
+    # VARSAYIP bedeli beyan et — sessizce 2,54x yanilmak, duzeltmeye calistigimiz
+    # sessiz hatanin aynisi olurdu.
+    varsayim = birim_sinif_cozumu(35.43, 35.43, band)
+    assert varsayim["karar"] == "metrik_varsayildi"
+    assert varsayim["birim"] == "cm"
+    assert "2.54" in varsayim["gerekce"] and "inç" in varsayim["gerekce"]
 
 
 def test_sinif_onceli_MEVCUT_SONUC_BANDDAYSA_dokunmaz():

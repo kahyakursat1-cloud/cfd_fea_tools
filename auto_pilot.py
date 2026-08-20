@@ -425,13 +425,16 @@ def auto_configure(stl_path, out_dir="vehicle_runs/_autoprep",
     _band = SINIF_BOY_BANDI_M.get(tip)
     if _band:
         _c = birim_sinif_cozumu(info.get("ham_lmax", lmax), lmax, _band)
-        if _c["karar"] == "cozuldu":
+        if _c["karar"] in ("cozuldu", "metrik_varsayildi"):
             _m = trimesh.load(str(prep), force="mesh")
             _m.apply_scale(_c["yeni_lmax"] / lmax)
             _m.export(str(prep))
             geo = inspect_geometry(prep)
             lmax = geo["lmax_m"]
-            birim_notu = f"Birim sınıf önceliyle DÜZELTİLDİ: {_c['gerekce']}."
+            _bas = ("Birim sınıf önceliyle DÜZELTİLDİ"
+                    if _c["karar"] == "cozuldu"
+                    else "Birim VARSAYIMLA düzeltildi")
+            birim_notu = f"{_bas}: {_c['gerekce']}."
         elif _c["karar"] != "dokunulmadi":
             birim_notu = f"Birim/ölçek şüphesi: {_c['gerekce']}."
 
