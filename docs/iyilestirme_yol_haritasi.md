@@ -114,9 +114,17 @@ betimleyici (eğrilik histogramı / küçük PointNet) **yalnız belirsiz çiftl
 Gerçek-dünya isabeti. **Emek:** Yüksek (ayrı yöntem). **Alternatif (ucuz):** öner-onayla +
 MEMORY zaten kuyruğu kapatıyor — belki yeterli.
 
-### 3.2 🟡 Cd-aykırılık öğrenmesini besle
-**Ne:** `cd_outlier` tip başına ≥5 çapa ister; çeşitli geometride (başarılı) koşu biriktir.
-**Neden:** Aykırı-sonuç bekçisi ancak dağılım olunca çalışır. **Emek:** Düşük (ama CFD-zamanı).
+### 3.2 ✅ Cd-aykırılık öğrenmesi — BESLENDİ, sonra İSTATİSTİĞİ düzeltildi
+**Veri tamam (ölçüldü 2026-08-19):** sekiz tipin hepsinde 12–20 vaka (eşik 5) ve kapı
+üretim yolundan çağrılıyor (`auto_pilot:105`, `:543`). "Koşu biriktir" işi bitmişti.
+**Asıl kusur istatistikteydi:** ortalama+sd ile kurulan aykırı-dedektörü, aykırıların
+sd'yi şişirip KENDİLERİNİ gizlemesine izin veriyordu. `ucak` (n=14): 12 vaka
+0,0039–0,0211 + 2 vaka 0,337/0,400 → eşik 0,377, yani 17 katı olan değer BAYRAKLANMIYOR.
+**Düzeltildi:** medyan+MAD (sağlam) → eşik 0,0221, ikisi de yakalanıyor.
+**İkinci kusur:** `record_case` `aref_mode` yazmıyordu; kapı planform↔frontal Cd'leri
+aynı havuzda topluyordu (tilt_rotor'da 14–37 kat iki-kümelilik). Artık kaydediliyor.
+**Teşhis ayrımı:** komşusuz aykırı → "geometri/ayar"; kümesi olan → "farklı referans
+alanı, A_ref sözleşmesini doğrula".
 
 ### 3.3 🟢 Yönelim-kanoniklestirmeyi genişlet
 **Ne:** `canonicalize_axial` yalnız eksenel cismi düzeltiyor; kanat/genel için de
