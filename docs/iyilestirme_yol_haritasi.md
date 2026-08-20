@@ -74,11 +74,17 @@ NACA0012 ses-altı (Ladson), bilinen roket; her birine **referans + tolerans** +
 çalışan hafif kontrol. **Neden:** "en iyi analiz" ancak ölçülünce iddia edilir; regresyon
 yakalar; yayın-kredibilitesi. **Emek:** Orta. (supersonic_validation.json çekirdek; sistematikleştir.)
 
-### 2.2 🟡 Mesh-bağımsızlık (GCI) otomasyonu — robust mesh ile
-**Ne:** `compute_gci`/`gci_verdict` var; eksik olan **3 seviyeyi güvenilir üreten** mesh.
-Domain/far-field otomatik boyutlama (aşağı) + 1.1 gate ile birlikte GCI'ı otomatik koştur.
-**Neden:** ASME V&V 20: discretization belirsizliği adım-adım. **Emek:** Orta-yüksek.
-**Not:** Airfoil drag GCI ayrı zor problem ([[airfoil-drag-gci-acik]]); önce 3B araç-Cd GCI'a odaklan.
+### 2.2 ✅ Mesh-bağımsızlık (GCI) otomasyonu — ÖNCÜL BAYATMIŞ, otomasyon çalışıyor
+**Ölçüldü (2026-08-19, beş çapa koşusu):** ağ üretimi ÇALIŞIYOR — küp 4 seviye + GCI,
+disk 3 seviye + GCI. Madde "eksik olan 3 seviyeyi güvenilir üreten mesh" diyordu; ağlar
+üretiliyor. Kalan üç çapada (ahmed, küre, AR6) sorun MESHLEME DEĞİL YAKINSAMA:
+"ince seviye YAKINSAMADI — rezidüeller platoya oturdu (limit çevrimi)".
+**Ve bu ret KASITLI ve DOĞRU:** bant, raporlanan Cd'nin belirsizliğini anlatır; raporlanan
+değer ince seviyeden gelir. İnce seviye yakınsamadıysa kaba seviyelerden çıkan bant onu
+TARİF ETMEZ — kod bunu açıkça söyleyip aileyi reddediyor ("referans seviye kapıdan
+geçmeden aile anlamsızdır"). 2-seviye vekil-bant ve ≥3-seviye GCI dalları zaten var.
+**Kalan gerçek iş otomasyon değil FİZİK:** küre ve Ahmed zaman-bağımlı (bu oturumda
+ölçüldü); kararlı RANS'ın yakınsayacağı çözüm yok. Çözüm URANS/DES, GCI otomasyonu değil.
 
 ### 2.3 ✅ Far-field / domain otomatik boyutlama — `farfield_domain()`
 **Yapıldı:** Domain çarpanları geometri-bilinçli. **Taşıyıcı (lift_relevant) cisimde** upstream/
@@ -126,9 +132,36 @@ aynı havuzda topluyordu (tilt_rotor'da 14–37 kat iki-kümelilik). Artık kayd
 **Teşhis ayrımı:** komşusuz aykırı → "geometri/ayar"; kümesi olan → "farklı referans
 alanı, A_ref sözleşmesini doğrula".
 
-### 3.3 🟢 Yönelim-kanoniklestirmeyi genişlet
+### 3.3 ✅ Yönelim-kanoniklestirmeyi genişlet (2026-08-20)
 **Ne:** `canonicalize_axial` yalnız eksenel cismi düzeltiyor; kanat/genel için de
-güvenli kanoniklestirme (PCA + sınıf-bilinçli). **Neden:** Rastgele yönelimli CAD. **Emek:** Orta.
+güvenli kanoniklestirme (PCA + sınıf-bilinçli). **Neden:** Rastgele yönelimli CAD.
+
+**ÖLÇÜLDÜ — öncül eksikti: fonksiyon yalnız genişlemeye değil DÜZELTMEYE muhtaçtı.**
+Şekil testi `bbox` ekstentleriyle kuruluydu; bbox dönme-değişmez değil. Kanadın
+`e_mid/e_thin` oranı yönelimle 8,33 → 1,01 saçılıyor, yani **eğik duran kanat
+"eksenel" sanılıp açıklığı akışa çevriliyordu** (aktif bozma), eğik roket ise
+(1,92 / 2,38) hiç hizalanmıyordu. Ölçülen sınıflandırma etkisi (NACA0012 AR6,
+c=0,15 m):
+
+| yönelim | ön alan | sınıf |
+|---|---|---|
+| kanonik | 0,0162 m² | uçak ✓ |
+| 90° y | 0,1350 (8,3× fazla) | tilt_rotor ✗ |
+| 90° z | 0,0018 (9× az) | kanatlı_roket ✗ |
+| rastgele | 0,0316 | kanatlı_roket ✗ |
+
+**Yapıldı:** şekil testi yüzey-alanı ağırlıklı asal (PCA) çerçeveye taşındı — o
+çerçevede oran roket 1,00 / kanat 8,31 / Ahmed 1,29 olarak SABİT. Yassı cisim
+dalı eklendi (kalınlık→z, kiriş→x, açıklık→y). Rastgele yönelimden geri kazanım:
+roket ve kanat %0,01, Ahmed %1,35 (eğik art gövde asal ekseni yatırıyor).
+
+**Beyan edilen sınırlar:** (i) ± yön ÖLÇÜLMEZ, girdiden devralınır — merkez-kayması
+ölçütü denendi (koni-burunlu roket −0,073, düz silindir 0,000, Ahmed −0,002) ama
+eşiği dört şekle kalibre etmek aşırı-uydurma olurdu; burun yönü `nose_axis`'in
+işidir. (ii) Küt cisme dokunulmaz: eğik küpün köşe-önde mi yüz-önde mi istendiği
+geometriden çıkarılamaz. (iii) Zaten kanonik girdi döndürülmez — eksenel simetride
+PCA enine düzlemde keyfî açı seçtiği için kanonik roket ~0,1° dönüp ağı bozuyor ve
+yanlış "hizalandı" beyanı veriyordu; en yakın eksen-permütasyonuna oturtuldu.
 
 ### 3.4 🟢 Birim-ölçek tespitini iyileştir
 **Ne:** >50→mm sezgisi gerçek CAD'de tutarsız (f16 1.5m çıktı). Geometri-tipi + tipik-boy

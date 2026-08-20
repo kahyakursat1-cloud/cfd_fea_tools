@@ -140,22 +140,106 @@ def canonicalize_axial(m: trimesh.Trimesh):
     uçuş yönüne hizalar — uzun eksen→+x, ince eksen→+z. run_supersonic uzun-ekseni
     ≈+x ve frontal'i +x izdüşümü varsayar; dikey/yan modellenen roketi düzeltir.
 
-    Yassı/kanat (kesit yuvarlak değil) ve küt cisimlere DOKUNMAZ — onlar zaten
-    doğru sınıflanır ve ses-altı yolu nose_axis parametresini kullanır (çift-dönme
-    riski yok). Döner: (mesh, açıklama|None)."""
-    ext = (m.bounds[1] - m.bounds[0]).astype(float)
-    order = np.argsort(ext)                       # küçük→büyük eksen indeksi
-    e_thin, e_mid, e_long = ext[order[0]], ext[order[1]], ext[order[2]]
+    YASSI cismi (kanat/kuyruk: kalınlık«kiriş) da hizalar — kalınlık→z, kiriş→x,
+    açıklık→y. Küt cisme DOKUNMAZ. Döner: (mesh, açıklama|None).
+
+    Şekil testi bbox'ta DEĞİL asal (PCA) çerçevede kurulur: bbox dönme-değişmez
+    değildir ve eğik yönelimde hüküm çevirir. Ölçüldü (2026-08-20, üç cisim ×
+    rastgele dönme): bbox e_mid/e_thin roket 1.00→2.38, kanat 8.33→1.01 saçılıyor;
+    PCA'da roket 1.00, kanat 8.31, Ahmed 1.29 SABİT. Eski bbox testi bu yüzden
+    eğik kanadı eksenel sanıp açıklığı akışa çeviriyordu (aktif bozma) ve eğik
+    roketi hizalamıyordu.
+
+    SINIR (ölçüldü): asal eksen, geometrik eksenden eğik-arkalı cisimde sapar.
+    Rastgele yönelimden geri kazanım roket/kanatta %0.01, Ahmed'de %1.35 (eğik
+    art gövde asal çerçeveyi yatırıyor). Küt cisme (kesit ne yuvarlak ne yassı)
+    hiç dokunulmaz: eğik duran küpün köşe-önde mi yüz-önde mi istendiği
+    geometriden çıkarılamaz.
+
+    İŞARET ÖLÇÜLMEZ: ± yön (burun hangi uçta) girdiden DEVRALINIR — dönüşüm
+    birime en yakın olacak şekilde seçilir. Ön-arka asimetri ölçütü denendi
+    (merkez kayması: koni-burunlu roket −0.073, düz silindir 0.000, Ahmed
+    −0.002) ama eşiği dört şekle kalibre etmek aşırı-uydurma olurdu; burun yönü
+    `nose_axis` parametresinin işidir. Kanoniklestirme EKSENLERİ düzeltir —
+    sınıflandırma ve ön-alan zaten işaretten bağımsızdır."""
+    R, ext = _principal_frame(m)
+    e_thin, e_mid, e_long = ext
     # eksenel imza: belirgin uzun eksen (e_long»e_mid) + yuvarlak kesit (e_mid≈e_thin)
-    if not (e_long >= 2.0 * e_mid and e_mid <= 1.7 * e_thin):
-        return m, None
-    long_axis = int(order[2])
-    if long_axis == 0:
-        return m, None                            # zaten +x hizalı
-    axis = [0, 1, 0] if long_axis == 2 else [0, 0, 1]   # z→x: y-ekseni; y→x: z-ekseni
+    if e_long >= 2.0 * e_mid and e_mid <= 1.7 * e_thin:
+        hedef, sinif = (2, 1, 0), "eksenel"           # uzun→x, orta→y, ince→z
+    elif e_mid >= 6.0 * e_thin:
+        # yassı: ince eksen kalınlıktır (→z); kalan ikiden KISA olan kiriş (→x).
+        # açıklık/kiriş < 1.5 ise hangisinin kiriş olduğu belirsiz — dokunma.
+        if e_long < 1.5 * e_mid:
+            return m, None
+        hedef, sinif = (1, 2, 0), "yassı"             # kiriş→x, açıklık→y, ince→z
+    else:
+        return m, None                                # küt cisim
+    if sinif == "eksenel" and e_mid <= 1.05 * e_thin:
+        # Enine öz-değerler DEJENERE: eksenel simetride PCA o düzlemde keyfî bir
+        # açı seçer, yönelim bilgi taşımaz. Sadece uzun ekseni ±x'e taşıyan
+        # MİNİMAL dönme uygulanır; aksi halde zaten kanonik roket boşuna dönüyor.
+        # Eşik dar tutuldu: Ahmed e_mid/e_thin=1.29 ile "eksenel" testini geçiyor
+        # ama kesiti yuvarlak DEĞİL — enine yönelimi (yerden yükseklik) gerçek
+        # bilgidir ve tam çerçeveyle hizalanmalıdır.
+        v = R[:, 2].copy()
+        if v[0] < 0:
+            v = -v
+        Q = trimesh.geometry.align_vectors(v, np.array([1.0, 0.0, 0.0]))[:3, :3]
+    else:
+        M = R[:, list(hedef)]
+        if np.linalg.det(M) < 0:
+            M[:, 1] = -M[:, 1]
+        # İşareti girdiye en yakın seç: köşegeni pozitif yapacak sütun ±'ları.
+        for k in range(3):
+            if M[k, k] < 0:
+                M[:, k] = -M[:, k]
+        if np.linalg.det(M) < 0:
+            j = int(np.argmin(np.abs(np.diag(M))))
+            M[:, j] = -M[:, j]
+        Q = M.T
+    Q = _en_yakin_permutasyon(Q)
+    if np.allclose(Q, np.eye(3), atol=1e-6):
+        return m, None                                # zaten kanonik — ağa dokunma
+    T = np.eye(4)
+    T[:3, :3] = Q
     out = m.copy()
-    out.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, axis))
-    return out, f"eksenel hizalama: uzun eksen {'xyz'[long_axis]}→x (uçuş yönü)"
+    out.apply_transform(T)
+    return out, (f"{sinif} hizalama: asal eksenler→xyz (kiriş/uzun→x, ince→z); "
+                 f"± yön girdiden devralındı, ÖLÇÜLMEDİ")
+
+
+def _en_yakin_permutasyon(M, tol: float = 0.05):
+    """Dönme M eksen-permütasyonuna yakınsa TAM permütasyona oturt, değilse aynen
+    döndür. Gerekçe: eksenel simetrik cisimde (silindir/roket) iki enine öz-değer
+    dejeneredir, PCA o düzlemde keyfî bir eksen seçer. Oturtma olmadan ZATEN
+    kanonik roket ~0.1° döndürülüp ağı bozuyor ve 'hizalandı' beyanı veriyordu."""
+    P = np.zeros((3, 3))
+    for k in range(3):
+        j = int(np.argmax(np.abs(M[:, k])))
+        P[j, k] = np.sign(M[j, k])
+    if (np.abs(P).sum(0) == 1).all() and (np.abs(P).sum(1) == 1).all() \
+            and np.linalg.det(P) > 0 and np.abs(M - P).max() < tol:
+        return P
+    return M
+
+
+def _principal_frame(m: trimesh.Trimesh):
+    """Yüzey-alanı ağırlıklı asal eksen çerçevesi. Döner: (R 3×3 sütunları
+    ince→orta→uzun asal eksenler, o çerçevedeki sıralı ekstentler).
+
+    Alan ağırlığı ZORUNLU: düğüm-sayımı üçgen yoğunluğuna duyarlıdır (koni
+    tabanındaki 48 düğüm, tepedeki 1 düğümü bastırıp asimetriyi %1'e düşürmüştü).
+    """
+    c = m.vertices.mean(0)
+    tri = m.triangles.mean(1) - c
+    A = m.area_faces
+    K = (tri * A[:, None]).T @ tri / A.sum()
+    _, R = np.linalg.eigh(K)
+    P = (m.vertices - c) @ R
+    ext = P.max(0) - P.min(0)
+    order = np.argsort(ext)
+    return R[:, order], ext[order]
 
 
 def weld_axial_segments(m: trimesh.Trimesh):

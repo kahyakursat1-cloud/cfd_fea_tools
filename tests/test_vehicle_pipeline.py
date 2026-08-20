@@ -331,3 +331,76 @@ class TestRefBumpCLI:
 def vp_kok():
     from pathlib import Path
     return Path(__file__).resolve().parent.parent
+
+
+def _kanonik_cisimler():
+    from validate_pipeline import ahmed_body, naca0012_wing
+
+    govde = trimesh.creation.cylinder(radius=0.04, height=0.7, sections=48)
+    burun = trimesh.creation.cone(radius=0.04, height=0.2, sections=48)
+    burun.apply_translation([0, 0, 0.35])
+    roket = trimesh.util.concatenate([govde, burun])
+    roket.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [0, 1, 0]))
+    return {"roket": roket, "kanat": naca0012_wing(ar=6.0, chord=0.15),
+            "ahmed": ahmed_body()}
+
+
+@pytest.mark.parametrize("ad", ["roket", "kanat", "ahmed"])
+def test_kanoniklestirme_donme_degismez(ad):
+    # KURAL: kanoniklestirmenin cikti YONELIMI, girdinin yonelimine bagli
+    # OLMAMALI. Bbox tabanli eski test bunu saglamiyordu (kanat e_mid/e_thin
+    # 8.33 -> 1.01 saciliyor, egik kanat "eksenel" sanilip acikligi akisa
+    # ceviriliyordu). Deger PINLENMEZ: kanonik girdinin kendi sonucu referans.
+    from vehicle_pipeline import canonicalize_axial
+
+    m0 = _kanonik_cisimler()[ad]
+    ref = np.sort(canonicalize_axial(m0)[0].bounds[1]
+                  - canonicalize_axial(m0)[0].bounds[0])[::-1]
+    rng = np.random.default_rng(11)
+    tol = 0.02 if ad == "ahmed" else 0.005   # Ahmed: egik art govde asal ekseni yatirir
+    for _ in range(6):
+        m = m0.copy()
+        m.apply_transform(trimesh.transformations.random_rotation_matrix(rng.random(3)))
+        out, _ = canonicalize_axial(m)
+        e = np.sort(out.bounds[1] - out.bounds[0])[::-1]
+        assert np.abs(e - ref).max() / ref.max() < tol
+
+
+@pytest.mark.parametrize("ad", ["roket", "kanat", "ahmed"])
+def test_kanonik_girdiye_dokunulmaz(ad):
+    # KURAL: zaten kanonik olan cisim DONDURULMEMELI. Aksi halde ag bosuna
+    # bozulur ve "hizalandi" beyani yanlis olur. (Silindirin enine oz-degerleri
+    # dejenere oldugu icin PCA orada keyfi aci seciyordu.)
+    from vehicle_pipeline import canonicalize_axial
+
+    out, note = canonicalize_axial(_kanonik_cisimler()[ad])
+    assert note is None
+
+
+def test_yassi_cisim_kirisi_akisa_bakar():
+    # KURAL: kanatta KIRIS akis eksenine (x), ACIKLIK yana (y) gitmeli.
+    # Regresyon: eski bbox testi egik kanadi eksenel sanip acikligi x'e
+    # cevirerek on alani ~8x sisiriyordu.
+    from vehicle_pipeline import canonicalize_axial
+
+    kanat = _kanonik_cisimler()["kanat"]
+    rng = np.random.default_rng(4)
+    for _ in range(6):
+        m = kanat.copy()
+        m.apply_transform(trimesh.transformations.random_rotation_matrix(rng.random(3)))
+        e = canonicalize_axial(m)[0].bounds[1] - canonicalize_axial(m)[0].bounds[0]
+        assert e[2] == pytest.approx(min(e), rel=1e-6)   # kalinlik -> z
+        assert e[0] < e[1]                               # kiris(x) < aciklik(y)
+
+
+def test_kut_cisim_dondurulmez():
+    # KURAL: kesit ne yuvarlak ne yassi ise yonelim geometriden CIKARILAMAZ
+    # (egik kup kose-onde mi yuz-onde mi istendi?) -> tahmin etme, dokunma.
+    from vehicle_pipeline import canonicalize_axial
+
+    kup = trimesh.creation.box(extents=[0.3, 0.3, 0.3])
+    rng = np.random.default_rng(7)
+    for _ in range(5):
+        m = kup.copy()
+        m.apply_transform(trimesh.transformations.random_rotation_matrix(rng.random(3)))
+        assert canonicalize_axial(m)[1] is None
