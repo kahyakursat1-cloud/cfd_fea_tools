@@ -209,6 +209,46 @@ def canonicalize_axial(m: trimesh.Trimesh):
                  f"± yön girdiden devralındı, ÖLÇÜLMEDİ")
 
 
+ARAC_BOY_BANDI_M = (0.05, 10.0)      # BİLSEM araçları: roket/İHA/dron
+BIRIMLER_M = {"m": 1.0, "inç": 0.0254, "cm": 0.01, "mm": 0.001}
+
+
+def birim_varsayimi(ham_lmax: float, band=ARAC_BOY_BANDI_M) -> dict:
+    """Birim sezgisinin VARSAYIMINI ve sonucun akla yatkın olup olmadığını
+    beyan eder. Ölçekleme kararını DEĞİŞTİRMEZ — yalnız görünür kılar.
+
+    Neden yalnız beyan: kural (>50 birim → ÷1000) yalnız metre ve mm'yi tanır.
+    Ölçüldü (beş araç × dört birim): m ve mm'de 10/10 doğru, cm ve inç'te 10/10
+    YANLIŞ — ve hatalar SESSİZ. cm'deki 15 m'lik F-16 1,5 m çıkıyor ve bu bir
+    model uçak için gayet makul görünüyor.
+
+    TEMEL SINIR: dış bilgi olmadan '1,5 m'lik model uçak' ile 'yanlış
+    ölçeklenmiş 15 m'lik F-16' geometrik olarak AYIRT EDİLEMEZ. Bu yüzden
+    burada tahmin üretilmiyor; sonuç banda düşmüyorsa hangi birim
+    varsayımlarının banda düşeceği listeleniyor ve karar çağırana bırakılıyor.
+    Ölçek Re'yi, hızı ve ağı birden belirlediğinden sessiz tahmin pahalıdır.
+    """
+    lo, hi = band
+    olcekli = ham_lmax > 50.0
+    cikti = ham_lmax * 0.001 if olcekli else ham_lmax
+    varsayim = "mm (÷1000 uygulandı)" if olcekli else "m (ölçekleme yok)"
+    if lo <= cikti <= hi:
+        return {"birim_varsayimi": varsayim, "birim_akla_yatkin": True}
+    adaylar = [b for b, s in BIRIMLER_M.items() if lo <= ham_lmax * s <= hi]
+    return {
+        "birim_varsayimi": varsayim,
+        "birim_akla_yatkin": False,
+        "birim_uyarisi": (
+            f"birim belirsiz: ham Lmax={ham_lmax:.4g} → {cikti:.4g} m, "
+            f"araç bandının ({lo}–{hi} m) DIŞINDA. "
+            + (f"Banda düşen birim varsayımları: {', '.join(adaylar)}. "
+               f"Doğrusunu çağıran belirtmeli — ölçek Re'yi, hızı ve ağı "
+               f"birden belirler." if adaylar
+               else "Hiçbir birim varsayımı bandı tutturmuyor; geometri "
+                    "araç ölçeğinde olmayabilir.")),
+    }
+
+
 def _en_yakin_permutasyon(M, tol: float = 0.05):
     """Dönme M eksen-permütasyonuna yakınsa TAM permütasyona oturt, değilse aynen
     döndür. Gerekçe: eksenel simetrik cisimde (silindir/roket) iki enine öz-değer
@@ -361,6 +401,7 @@ def prepare_geometry(path, out_dir: Path, progress_cb=None,
         m.apply_scale(0.001)
         info["onarimlar"].append(f"birim ölçek mm→m (÷1000; ham Lmax={lmax:.0f})")
         info["birim_olcek"] = "mm→m"
+    info.update(birim_varsayimi(lmax))
 
     prepared = out_dir / f"{Path(info['kaynak']).stem}_prep.stl"
     m.export(str(prepared))

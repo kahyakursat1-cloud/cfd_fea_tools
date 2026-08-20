@@ -404,3 +404,51 @@ def test_kut_cisim_dondurulmez():
         m = kup.copy()
         m.apply_transform(trimesh.transformations.random_rotation_matrix(rng.random(3)))
         assert canonicalize_axial(m)[1] is None
+
+
+def test_birim_sezgisi_m_ve_mm_de_dogru_cm_inc_te_SESSIZ_yaniliyor():
+    # OLCUM (kural degil, mevcut davranisin sinirinin kaydi): esik yalniz m ve
+    # mm'yi taniyor. Bu test o siniri SABITLER — biri esigi degistirirse hangi
+    # birimlerin bozuldugu gorunur kalir.
+    from vehicle_pipeline import birim_varsayimi
+
+    gercek = {"roket": 0.9, "iha": 1.2, "dron": 0.45, "f16": 15.0, "kesit": 0.15}
+    birim = {"m": 1.0, "cm": 0.01, "mm": 0.001, "inc": 0.0254}
+    dogru = dict.fromkeys(birim, 0)
+    for L in gercek.values():
+        for b, s in birim.items():
+            ham = L / s
+            cikti = ham * 0.001 if ham > 50.0 else ham
+            dogru[b] += abs(cikti - L) / L < 0.01
+    assert dogru["m"] == dogru["mm"] == len(gercek)     # taninan iki birim
+    assert dogru["cm"] == dogru["inc"] == 0             # taninmayan iki birim
+    # ve bunlarin bir kismi SESSIZ: cikti banda dusuyor, uyari uretilemiyor
+    assert birim_varsayimi(1500.0)["birim_akla_yatkin"]      # cm'de F-16 -> 1.5 m
+
+
+def test_birim_bandi_disinda_ADAYLARI_listeler():
+    # KURAL: sonuc arac bandinin disindaysa tahmin URETME — hangi birim
+    # varsayimlarinin banda dusecegini listele, karari cagirana birak.
+    # Olcek Re'yi, hizi ve agi birden belirledigi icin sessiz tahmin pahali.
+    from vehicle_pipeline import ARAC_BOY_BANDI_M, birim_varsayimi
+
+    r = birim_varsayimi(45.0)                 # 45 birim -> 45 m, band disi
+    assert r["birim_akla_yatkin"] is False
+    assert "cm" in r["birim_uyarisi"] and "inç" in r["birim_uyarisi"]
+    lo, hi = ARAC_BOY_BANDI_M
+    assert f"{lo}" in r["birim_uyarisi"] and f"{hi}" in r["birim_uyarisi"]
+
+    yok = birim_varsayimi(0.02)               # hicbir birim bandi tutturmuyor
+    assert yok["birim_akla_yatkin"] is False
+    assert "Hiçbir birim" in yok["birim_uyarisi"]
+
+
+def test_birim_olcek_anahtari_YALNIZ_olceklendiginde_dolar():
+    # REGRESYON: birim_olcek'i her zaman doldurmak auto_pilot'a yanlis uyari
+    # yazdiriyordu ("Birim ölçeği uygulandı: m (ölçekleme yok)"). Beyan ayri
+    # anahtarda (birim_varsayimi) tutulur.
+    from vehicle_pipeline import birim_varsayimi
+
+    assert "birim_olcek" not in birim_varsayimi(0.9)
+    assert birim_varsayimi(0.9)["birim_varsayimi"].startswith("m ")
+    assert birim_varsayimi(900.0)["birim_varsayimi"].startswith("mm ")

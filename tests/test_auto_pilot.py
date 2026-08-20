@@ -324,3 +324,19 @@ def test_aref_mode_KUTUPHANEYE_yaziliyor():
     assert "aref_mode" in inspect.signature(ap.cd_outlier).parameters
     gsrc = inspect.getsource(ap.referee_gate)
     assert 'aref_mode' in gsrc, "kapı referans alanını cd_outlier'a geçirmiyor"
+
+
+def test_birim_uyarisi_KULLANICI_YUZUNE_ulasiyor(tmp_path):
+    # Bu deponun baskin kusuru: kapi VAR ama uretim yolu onu cagirmiyor.
+    # birim_uyarisi'ni yalniz uretmek yetmez — auto_configure'in uyarilarina
+    # dusmeli, yoksa info sozlugunde olu kalir.
+    import trimesh
+
+    from auto_pilot import auto_configure
+
+    m = trimesh.creation.cylinder(radius=2.0, height=45.0, sections=24)
+    p = tmp_path / "band_disi.stl"
+    m.export(p)
+    cfg = auto_configure(str(p), out_dir=str(tmp_path / "out"))
+    uyarilar = cfg.get("uyarilar") or []
+    assert any("birim belirsiz" in u for u in uyarilar), uyarilar

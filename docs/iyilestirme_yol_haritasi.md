@@ -163,9 +163,32 @@ geometriden çıkarılamaz. (iii) Zaten kanonik girdi döndürülmez — eksenel
 PCA enine düzlemde keyfî açı seçtiği için kanonik roket ~0,1° dönüp ağı bozuyor ve
 yanlış "hizalandı" beyanı veriyordu; en yakın eksen-permütasyonuna oturtuldu.
 
-### 3.4 🟢 Birim-ölçek tespitini iyileştir
+### 3.4 ◐ Birim-ölçek tespiti — SINIR ÖLÇÜLDÜ, sessizlik kaldırıldı (2026-08-20)
 **Ne:** >50→mm sezgisi gerçek CAD'de tutarsız (f16 1.5m çıktı). Geometri-tipi + tipik-boy
-priori ile daha akıllı. **Neden:** Re/hız/mesh hepsi ölçeğe bağlı. **Emek:** Düşük-orta.
+priori ile daha akıllı. **Neden:** Re/hız/mesh hepsi ölçeğe bağlı.
+
+**ÖLÇÜLDÜ (5 araç × 4 birim):** kural **m ve mm'de 10/10 doğru, cm ve inç'te 10/10
+yanlış**. Yol haritasındaki "f16 1,5 m çıktı" belirtisi birebir üretildi: cm cinsinden
+15 m'lik F-16 → ham 1500 → ÷1000 → 1,5 m.
+
+**Öncelli tasarım ÇALIŞMIYOR — sayıya bakıldı:** araç bandı 0,05–10 m (200× genişlik),
+aday birimler arası fark ≤39×. Bu yüzden çoğu girdide iki-üç aday birden makul çıkar ve
+"belirsiz" hükmü kural olur, istisna değil. Sınıflandırmanın ölçekten bağımsız olduğu
+doğrulandı (6 mertebe boyunca aynı sınıf), yani "önce sınıflandır sonra ölçekle" teknik
+olarak mümkün — ama sınıfa özel dar boy önceli bir **ürün kararıdır**, geometriden
+çıkarılamaz.
+
+**TEMEL SINIR:** dış bilgi olmadan *1,5 m'lik model uçak* ile *yanlış ölçeklenmiş 15 m'lik
+F-16* geometrik olarak AYIRT EDİLEMEZ.
+
+**Yapılan (tahmin değil, görünürlük):** `birim_varsayimi()` varsayımı her koşuda beyan
+ediyor; sonuç araç bandının dışındaysa hangi birim varsayımlarının banda düşeceğini
+listeleyip kararı çağırana bırakıyor. Yanlış ölçeklemelerin **5/10'u artık görünür**,
+kalan 5'i ilkece ayırt edilemez. Uyarı `auto_configure` uyarılarına bağlandı — üretim
+yolundan geçtiği testle doğrulanıyor (bu deponun baskın kusuru: kapı var, çağıran yok).
+
+**KALAN (ürün kararı):** sınıfa özel boy önceli (ör. BİLSEM roketi 0,3–2 m) tanımlanırsa
+belirsiz aday sayısı düşer ve kalan 5 vakanın bir kısmı da yakalanabilir.
 
 ---
 

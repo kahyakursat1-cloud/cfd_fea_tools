@@ -447,6 +447,11 @@ def auto_configure(stl_path, out_dir="vehicle_runs/_autoprep",
         uyarilar.append("Sınıflandırma güveni düşük — planı kontrol edin.")
     if info.get("birim_olcek"):
         uyarilar.append(f"Birim ölçeği uygulandı: {info['birim_olcek']} (Lmax={lmax:.2f} m).")
+    # Birim sezgisi yalniz m ve mm'yi tanir; cm/inc girdide SESSIZCE yanlis
+    # olcekler. Sonuc arac bandinin disindaysa bunu kullanici yuzune tasi —
+    # aksi halde uyari info sozlugunde olu kalirdi.
+    if info.get("birim_uyarisi"):
+        uyarilar.append(info["birim_uyarisi"])
     # GCI-öncülü (öğrenilen): geçmiş mesh-yakınsama sonuçlarından koşu-öncesi beklenti.
     # Yalnız PLAN uyarısıdır; ölçülen band değildir, UQ/rapora girmez (gci_advisor).
     try:
