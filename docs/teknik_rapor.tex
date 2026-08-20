@@ -1691,10 +1691,17 @@ gerçek hücre sayısını yüzey iyileştirme kademesi belirler.
         istediği model hatasından büyük (\%274{,}7 ve \%17{,}4); küp GCI
         koşusunun y$^+$ ortalaması bantta ama tepesi dışarıda (338 > 300).
         Kalan iki hücrenin \emph{neden} kapanmadığı da kanıt dosyasına yazılı
-        (\S\ref{sub:bluffwr}): küt/duvar-çözümlü hücrede engel ağ değil
-        FİZİKTİR (küre izi kararsız; kararlı RANS yakınsamıyor), taşıma/%
-        duvar-fonksiyonu hücresinde ise eldeki iki taşıma çapası da
-        duvar-çözümlüdür.
+        (\S\ref{sub:bluffwr}) ve iki gerekçe AYRIDIR. Küt/duvar-çözümlü hücrede
+        engel maliyet değil hücrenin kendisi: küp ve diskte ayrılma noktası
+        \emph{geometriktir} (keskin kenar), küre çapasının aralığı ise
+        subkritiktir ve orada yüzey sınır tabakası laminerdir --- y$^+{<}5$ ağ
+        türbülanslı tabakayı değil laminer tabakayı çözer. Hücre ancak
+        yüksek-Re, eğimli yüzeyli gövdelerde (Ahmed) tanımlıdır ve Ahmed'in
+        duvar-çözünür bütçesi ölçüldü: 4,68\,M hücre, 4,74\,GB --- bu makinenin
+        boş belleğini (4,62\,GB) aşıyor. Taşıma/duvar-fonksiyonu hücresinde ise
+        koşu \emph{vardır} (sapma \%35,43) ama sayısal bandı (\%17,4) referans
+        belirsizliğinden (\%15) büyüktür: model hatası sayısal hatadan
+        ayrılamadığı için hücre öncüle döndürüldü.
   \item[Teknik borç --- iki hızlı katman.] Bağımsız V\&V betikleri
         \texttt{wsl bash -c} çağrısını kendileri kuruyor ve arka uç seçimini
         atlıyordu: \texttt{CFD\_BACKEND=docker} ayarlandığında araç hattı
@@ -2077,11 +2084,12 @@ v1.2 & orta   & URANS'ın \emph{türbülanslı} vakada sınanması KOŞULDU (2B 
                 bütçesi ÖLÇÜLDÜ ve ulaşılabilir: $\Delta z/D{=}0{,}05$'te
                 2{,}4\,M hücre, 1{,}9\,GB, $\approx$16 saat \\
 v1.3 & yüksek & Model-form tablosunun kalan İKİ hücresi --- deneysel referanslı
-                çapalarla. Engeller AYRI: küt/duvar-çözümlü hücrede sorun ağ
-                değil FİZİKTİR (küre izi kararsız; kararlı RANS yakınsamıyor,
-                ölçüldü), taşıma/duvar-fonksiyonu hücresinde ise eldeki iki
-                taşıma çapası da duvar-çözümlüdür --- duvar-fonksiyonu ağıyla
-                ayrı bir aile koşulması gerekir \\
+                çapalarla. Engeller AYRI ve ikisi de ölçülü: küt/duvar-çözümlü
+                hücre yalnız yüksek-Re eğimli gövdede tanımlı ve Ahmed'in
+                duvar-çözünür bütçesi (4,68\,M hücre, 4,74\,GB) bu makinenin
+                boş belleğini aşıyor; taşıma/duvar-fonksiyonu hücresinde koşu
+                var ama sayısal bandı (\%17,4) referans belirsizliğini (\%15)
+                aşıyor --- gereken daha ince ağ ailesi ya da daha dar referans \\
 v1.4 & orta   & Docker/Conda kilidi ile yeniden-üretilebilir ortam; çözücü
                 sürüm kilidi \\
 v1.5 & orta   & Arayüz v2 --- kipler, kanıt gezgini, bandlı sonuç kartları ve
