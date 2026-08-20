@@ -260,3 +260,26 @@ def test_damgala_alani_yaziyor(tmp_path, monkeypatch):
     assert kanit.damgala(["k.json"]) == 1
     d = _json.loads(p.read_text(encoding="utf-8"))
     assert d["_son_dogrulama_ts"] > 0 and "yeniden" in d["_son_dogrulama"]
+
+
+def test_komutsuz_kanit_MUTLAKA_beyan_tasir():
+    """KURAL: üretim komutu olmayan her kanıt, NEDEN olmadığını beyan etmeli.
+
+    Beyanlı eksik ile sessiz eksik AYRI şeylerdir ve manifest ikisini aynı
+    gösteriyordu. Bu 2026-08-20'de somut zarar verdi: `gci_cgridP_*` dosyaları
+    "üreticisi yok, ölü" sanılıp SİLİNMESİ önerildi — oysa üreticileri
+    (`exp_cgrid_run_parallel.py`; dosya adını f-string kurduğu için düz metin
+    araması bulamıyor) de tam beyanları da vardı.
+
+    Test dosya ADI pinlemez: komutsuz olan HANGİSİ olursa olsun beyan aranır.
+    """
+    komutsuz = [k for k in kanit.manifest()
+                if k["sinif"] == "kanit" and not k.get("uretim")]
+    sessiz = [k["dosya"] for k in komutsuz if not k.get("uretim_beyanli")]
+    assert sessiz == [], (
+        "Bu kanıtların üretim komutu YOK ve neden olmadığı da yazılmıyor; "
+        f"'yeniden üretilemez' hükmü verilemez: {sessiz}")
+    for k in komutsuz:
+        assert k.get("uretim_beyani"), f"{k['dosya']}: beyan boş"
+        # Beyan GEREKÇE tasimali, tek kelime degil
+        assert len(k["uretim_beyani"]) > 40, k["dosya"]

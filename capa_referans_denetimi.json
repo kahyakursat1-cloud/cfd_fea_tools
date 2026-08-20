@@ -1,98 +1,106 @@
 {
- "vaka": "Çapa referanslarının kaynak denetimi — u_D'yi kim veriyor?",
- "_neden": "Altı çapanın ikisi TEK-KAYNAKLI (Hoerner), biri kaynak-eksik, biri yarı-analitik. Referans belirsizliği beyan edilmeden model hatası ayrıştırılamaz: u_val ne kadar iyi ölçülürse ölçülsün u_D bilinmiyorsa eksiktir.",
- "YONTEM_KISITI": "Deponun düz-levhada kullandığı yöntem — 'iki yerleşik kaynağın farkı = u_D' — AYNI KOŞULDA geçerlidir. Düz levhada Schlichting ve Schultz-Grunow AYNI Re_x'te kıyaslandı. Küt cisimlerde farklı çalışmalar farklı Re, farklı zemin koşulu (sabit/hareketli) ve farklı blokaj oranında ölçüm yapar; aradaki saçılmayı doğrudan u_D saymak, KURULUM FARKINI belirsizlik diye etiketlemek olur. Bu yüzden aşağıdaki aday değerler u_D'ye ÇEVRİLMEDİ.",
- "capalar": {
-  "naca0012_a0": {
-   "durum": "TAMAM",
-   "u_D_pct": 0.796,
-   "kaynak": "Ladson NASA TM-4074 + NASA TMR (7 bağımsız kod, 1σ)",
-   "not": "Alanın kanonik 2B doğrulama vakası; u_D ÖLÇÜLMÜŞ."
-  },
-  "ahmed_25": {
-   "durum": "ÇÖZÜLDÜ — referans koşula eşleştirildi",
-   "tasidigi": 0.285,
-   "aday_degerler": [
-    0.285,
-    0.299,
-    0.31
-   ],
-   "kaynak_adaylari": "Ahmed vd. 1984 (Re≈4,29e6, sabit zemin); Meile vd. 2011 (Cd(Re) fonksiyonu)",
-   "engel": "Adaylar farklı Re/zemin/blokajdan geliyor olabilir; koşullar eşleştirilmeden fark u_D sayılamaz. Meile'nin Cd(Re) fonksiyonu AYNI Re'de değer verirse yöntem uygulanabilir — birincil kaynaktan okunmalı.",
-   "not": "Ahmed 1984 alanın kanonik küt-cisim referansı; sorun referansın kalitesinde değil, İKİNCİ değerin koşulunda.",
-   "cozum": "Araç V=40 m/s, Re=2,784e6'da koşuyor. Meile vd. 2011 TAM bu koşulda cD=0,299 veriyor; eski referans (0,285) Ahmed & Ramm'ın FARKLI koşulundaki (Re=4,29e6, V=60 m/s) 0,2875 değerine yakındı. Referans eşleştirildi: |E| %16,20 → %10,76.",
-   "kanit_derecesi": "İki BAĞIMSIZ ikincil kaynak (SimFlow, SimScale) koşullarıyla birlikte uyuşuyor; birincil makaleler ücretli duvar arkasında. Değeri kullanmak için yeterli, u_D türetmek için DEĞİL."
-  },
-  "cube": {
-   "durum": "ÇÖZÜLEMEDİ — ve nedeni yöntemsel",
-   "tasidigi": 1.05,
-   "kaynak": "Hoerner 1965",
-   "engel": "İkinci yerleşik kaynak (ESDU / Blevins gibi) kayıtlı değil.",
-   "arastirma_sonucu": {
-    "aday_kaynaklar": "Blevins, Applied Fluid Dynamics Handbook; Munson vd., Fundamentals of Fluid Mechanics — ikisi de alanın standart el kitapları",
-    "engel_1_erisim": "Kitap tabloları açık web'de değil; sayılar okunamadı.",
-    "engel_2_BAGIMSIZLIK": "ASIL ENGEL BU. Keskin-kenarlı küt cisimlerde sonraki el kitapları büyük ölçüde Hoerner'ı ALINTILAR; Hoerner 1965 zaten bir ÖLÇÜM DERLEMESİDİR. Aynı özgün ölçüme dayanan iki değerin farkını u_D saymak, tek kaynağı iki kez saymaktır. Düz levhada yöntem işledi çünkü Schlichting ve Schultz-Grunow AYRI veri kümelerine oturtulmuş BAĞIMSIZ korelasyonlar.",
-    "dogru_yol": "u_D ya birincil deney makalelerinden (belirsizlik beyanıyla) gelmeli ya da bu çapaların u_D'siz olduğu AÇIKÇA yazılmalı. İkinci bir el kitabı değeri eklemek sahte bir bağımsızlık üretirdi.",
-    "DUZELTME_2026_08_19": "Disk için bağımsız birincil kaynak bulundu (Roos & Willmarth 1971); KÜP için henüz bulunamadı. Yani 'bağımsız kaynak yok' hükmü küp için hâlâ açık ama ARANMAYA DEVAM EDİLMELİ — disk örneği o hükmün fazla genel olduğunu gösterdi."
-   }
-  },
-  "disk": {
-   "durum": "ÇÖZÜLEMEDİ — ve nedeni yöntemsel",
-   "tasidigi": 1.17,
-   "kaynak": "Hoerner 1965",
-   "engel": "Aynı.",
-   "arastirma_sonucu": {
-    "aday_kaynaklar": "Blevins, Applied Fluid Dynamics Handbook; Munson vd., Fundamentals of Fluid Mechanics — ikisi de alanın standart el kitapları",
-    "engel_1_erisim": "Kitap tabloları açık web'de değil; sayılar okunamadı.",
-    "engel_2_BAGIMSIZLIK": "ASIL ENGEL BU. Keskin-kenarlı küt cisimlerde sonraki el kitapları büyük ölçüde Hoerner'ı ALINTILAR; Hoerner 1965 zaten bir ÖLÇÜM DERLEMESİDİR. Aynı özgün ölçüme dayanan iki değerin farkını u_D saymak, tek kaynağı iki kez saymaktır. Düz levhada yöntem işledi çünkü Schlichting ve Schultz-Grunow AYRI veri kümelerine oturtulmuş BAĞIMSIZ korelasyonlar.",
-    "dogru_yol": "u_D ya birincil deney makalelerinden (belirsizlik beyanıyla) gelmeli ya da bu çapaların u_D'siz olduğu AÇIKÇA yazılmalı. İkinci bir el kitabı değeri eklemek sahte bir bağımsızlık üretirdi.",
-    "DUZELTME_2026_08_19": "ÖNCEKİ HÜKÜM FAZLA GENELDİ. 'El kitapları Hoerner'ı alıntılıyor, bağımsız kaynak yok' demiştim; aramayı el kitaplarında bitirdiğim için. BİRİNCİL DENEY VAR ve Hoerner'dan bağımsız:",
-    "bagimsiz_birincil_kaynak": {
-     "kunye": "Roos, F. W. & Willmarth, W. W., 'Some Experimental Results on Sphere and Disk Drag', AIAA Journal 9(2), 1971, s. 285–291, doi:10.2514/3.6164",
-     "yontem": "Modeller lineer hava-yatağı arabasıyla gliserin-su karışımında çekildi; kuvvet/moment strain-gauge ile ölçüldü. Re 5–1e5.",
-     "onem": "Hoerner bir DERLEME; bu bir ÖZGÜN ÖLÇÜM. Üstelik hem disk hem KÜRE veriyor — küre çapasının doğrulanmamış Clift-Gauvin kestirimi için de aday.",
-     "engel": "Değerler ücretli duvar arkasında; okunamadı. İkincil özetler Re boyunca ⟨CD⟩∈[1,1; 1,3] diyor ama bu Re'ye bağlı DEĞİŞİM, belirsizlik değil. Çapa Re-duyarsız bölgede olduğu için gereken şey yüksek-Re asimptotu."
+  "vaka": "Çapa referanslarının kaynak denetimi — u_D'yi kim veriyor?",
+  "_neden": "Altı çapanın ikisi TEK-KAYNAKLI (Hoerner), biri kaynak-eksik, biri yarı-analitik. Referans belirsizliği beyan edilmeden model hatası ayrıştırılamaz: u_val ne kadar iyi ölçülürse ölçülsün u_D bilinmiyorsa eksiktir.",
+  "YONTEM_KISITI": "Deponun düz-levhada kullandığı yöntem — 'iki yerleşik kaynağın farkı = u_D' — AYNI KOŞULDA geçerlidir. Düz levhada Schlichting ve Schultz-Grunow AYNI Re_x'te kıyaslandı. Küt cisimlerde farklı çalışmalar farklı Re, farklı zemin koşulu (sabit/hareketli) ve farklı blokaj oranında ölçüm yapar; aradaki saçılmayı doğrudan u_D saymak, KURULUM FARKINI belirsizlik diye etiketlemek olur. Bu yüzden aşağıdaki aday değerler u_D'ye ÇEVRİLMEDİ.",
+  "capalar": {
+    "naca0012_a0": {
+      "durum": "TAMAM",
+      "u_D_pct": 0.796,
+      "kaynak": "Ladson NASA TM-4074 + NASA TMR (7 bağımsız kod, 1σ)",
+      "not": "Alanın kanonik 2B doğrulama vakası; u_D ÖLÇÜLMÜŞ."
     },
-    "guncel_engel": "ERİŞİM (ücretli duvar), bağımsızlık DEĞİL."
-   }
-  },
-  "sphere": {
-   "durum": "KESTİRİM VAR, DOĞRULAMA BEKLİYOR",
-   "u_D_kestirim_pct": 4.38,
-   "engel": "Clift-Gauvin sabitleri birincil kaynaktan doğrulanmadı; ayrıca çapa setup-uyumsuz (geçiş-baskın)."
-  },
-  "naca0012_wing_ar6": {
-   "durum": "ÇÖZÜM YOLU BULUNDU — üç somut engel kaldı",
-   "tasidigi": 0.02,
-   "u_D_pct": 15.0,
-   "engel": "Yarı-analitik (Prandtl taşıma-çizgisi + düz-plaka Cf). u_D=%15 olduğu için ağ ne kadar inceltilirse inceltilsin u_val %15'in ALTINA inemez — model hatası hiç ayrıştırılamaz.",
-   "arastirma": "Aranan: DÜŞÜK HIZLI, kuvvet verili (CL/CD), yüksek atıflı 3B kanat deneyi. ONERA M6 alanın en çok atıflı 3B vakası (Schmitt & Charpin, AGARD AR-138, 1979) AMA transonik (M=0,84) ve standart veri Cp DAĞILIMI, integre kuvvet değil — aracın sıkışamaz zarfının (Ma<0,3) DIŞINDA. Düşük hızlı kuvvet verisi için NASA yüksek-taşıma atölyesi vakaları (Trap Wing / DLR-F11) aday, ama yüksek-taşıma geometrisi (slat+flap) bu aracın ürettiği basit geometriyle uyuşmuyor.",
-   "arastirma_sonucu": {
-    "tarih": "2026-08-19",
-    "kaynak": "Rumsey, C. L., 'High-Lift Prediction Workshops: Retrospective, Lessons...', ICAS/NASA NTRS 20240006238 — birincil metinden okundu",
-    "aday_1_ONERA_M6": {
-     "kunye": "Schmitt & Charpin, AGARD AR-138 (1979)",
-     "durum": "UYGUN DEĞİL",
-     "neden": "Alanın en çok atıflı 3B vakası ama TRANSONİK (M=0,84) ve standart veri Cp DAĞILIMI, integre kuvvet değil. Aracın sıkışamaz zarfının (Ma<0,3) dışında."
+    "ahmed_25": {
+      "durum": "ÇÖZÜLDÜ — referans koşula eşleştirildi",
+      "tasidigi": 0.285,
+      "aday_degerler": [
+        0.285,
+        0.299,
+        0.31
+      ],
+      "kaynak_adaylari": "Ahmed vd. 1984 (Re≈4,29e6, sabit zemin); Meile vd. 2011 (Cd(Re) fonksiyonu)",
+      "engel": "Adaylar farklı Re/zemin/blokajdan geliyor olabilir; koşullar eşleştirilmeden fark u_D sayılamaz. Meile'nin Cd(Re) fonksiyonu AYNI Re'de değer verirse yöntem uygulanabilir — birincil kaynaktan okunmalı.",
+      "not": "Ahmed 1984 alanın kanonik küt-cisim referansı; sorun referansın kalitesinde değil, İKİNCİ değerin koşulunda.",
+      "cozum": "Araç V=40 m/s, Re=2,784e6'da koşuyor. Meile vd. 2011 TAM bu koşulda cD=0,299 veriyor; eski referans (0,285) Ahmed & Ramm'ın FARKLI koşulundaki (Re=4,29e6, V=60 m/s) 0,2875 değerine yakındı. Referans eşleştirildi: |E| %16,20 → %10,76.",
+      "kanit_derecesi": "İki BAĞIMSIZ ikincil kaynak (SimFlow, SimScale) koşullarıyla birlikte uyuşuyor; birincil makaleler ücretli duvar arkasında. Değeri kullanmak için yeterli, u_D türetmek için DEĞİL."
     },
-    "aday_2_NASA_Trap_Wing": {
-     "kunye": "HLPW-1 (2010), NASA Langley 14×22 Ses-altı Tüneli, Re_MAC=4,3e6; tekrarlanabilirlik: Hannon, Washburn, Jenkins & Watson, AIAA 2012-0706, doi:10.2514/6.2012-706",
-     "durum": "UYGUN DEĞİL — İKİ AYRI NEDENLE",
-     "neden_1_butce": "HLPW-1'de EN İNCE ağlar 50–200 MİLYON hücre; 'iyi uygulama' ağları bile 100M altında. Bu aracın hücre tavanı 4M — yani gereken çözünürlük 1-2 MERTEBE dışında.",
-     "neden_2_yayin": "Rumsey'in kendi ifadesi: deneysel veri 'toplu olarak hiçbir zaman resmî olarak yayımlanmadı'. Referans olarak alınacaksa hangi sürümün kullanıldığı ayrıca beyan edilmeli.",
-     "olumlu_yan": "Tekrarlanabilirlik ÇALIŞMASI VAR (AIAA 2012-0706) — yani u_D türetilebilir bir vaka. Engel referansın kalitesi değil, aracın hesap bütçesi."
+    "cube": {
+      "durum": "ÇÖZÜLEMEDİ — ve nedeni yöntemsel",
+      "tasidigi": 1.05,
+      "kaynak": "Hoerner 1965",
+      "engel": "İkinci yerleşik kaynak (ESDU / Blevins gibi) kayıtlı değil.",
+      "arastirma_sonucu": {
+        "aday_kaynaklar": "Blevins, Applied Fluid Dynamics Handbook; Munson vd., Fundamentals of Fluid Mechanics — ikisi de alanın standart el kitapları",
+        "engel_1_erisim": "Kitap tabloları açık web'de değil; sayılar okunamadı.",
+        "engel_2_BAGIMSIZLIK": "ASIL ENGEL BU. Keskin-kenarlı küt cisimlerde sonraki el kitapları büyük ölçüde Hoerner'ı ALINTILAR; Hoerner 1965 zaten bir ÖLÇÜM DERLEMESİDİR. Aynı özgün ölçüme dayanan iki değerin farkını u_D saymak, tek kaynağı iki kez saymaktır. Düz levhada yöntem işledi çünkü Schlichting ve Schultz-Grunow AYRI veri kümelerine oturtulmuş BAĞIMSIZ korelasyonlar.",
+        "dogru_yol": "u_D ya birincil deney makalelerinden (belirsizlik beyanıyla) gelmeli ya da bu çapaların u_D'siz olduğu AÇIKÇA yazılmalı. İkinci bir el kitabı değeri eklemek sahte bir bağımsızlık üretirdi.",
+        "DUZELTME_2026_08_19": "Disk için bağımsız birincil kaynak bulundu (Roos & Willmarth 1971); KÜP için henüz bulunamadı. Yani 'bağımsız kaynak yok' hükmü küp için hâlâ açık ama ARANMAYA DEVAM EDİLMELİ — disk örneği o hükmün fazla genel olduğunu gösterdi."
+      }
     },
-    "hukum": "ÖNCEKİ HÜKÜM ('kanonik 3B vakalar bu aracın bütçesi dışında, referans bulunamadı') FAZLA KESİNDİ. Kanonik WORKSHOP vakalarına odaklanıp KLASİK NACA literatürünü atlamıştım. NACA TR-460 tam bu çapanın geometrisinde (AR=6 dikdörtgen) DENEYSEL veri veriyor ve açık erişimde. Engeller artık 'bulunamıyor' değil, üç somut iş: (1) grafiği sayısallaştır ya da tablolu muadil bul, (2) çapayı Re≈3,2e6'ya ölçekle, (3) u_D için ikinci kaynak.",
-    "aday_3_NACA_TR460": {
-     "kunye": "Jacobs, E. N., Ward, K. E. & Pinkerton, R. M., 'The Characteristics of 78 Related Airfoil Sections from Tests in the Variable-Density Wind Tunnel', NACA Report 460 (1933)",
-     "durum": "EN GÜÇLÜ ADAY — ama henüz kullanılabilir değil",
-     "neden_uygun": "Modeller kiriş 5 inç × açıklık 30 inç → AR=6 DİKDÖRTGEN, yani bu çapanın geometrisiyle AYNI. Rapor sonuçları HEM sonsuz-AR'ye düzeltilmiş HEM 'aspect ratio 6' hâliyle veriyor. NACA0012 test edilen kesitler arasında. Tünel-duvar etkisi için düzeltilmiş. Re=3.230.000 (tank 20,7 atm). Açık erişim (NTRS 19930091108). Yani DENEYSEL ve AR=6 — yarı-analitik ±%15'lik mevcut referanstan kategorik olarak üstün.",
-     "engel_1_grafik": "DEĞERLER GRAFİK, TABLO DEĞİL. Taranmış raporda Cd eğri olarak çizili; OCR metninden okunan 'yaklaşık 0,006–0,008' bir GRAFİKTEN TAHMİNDİR ve referans değer olarak ALINMADI. Kullanmak için ya şeklin sayısallaştırılması ya da tablolu bir muadil (ör. Abbott & von Doenhoff, 'Summary of Airfoil Data', NACA TR-824) gerekir.",
-     "engel_2_Re": "REYNOLDS UYUŞMAZLIĞI. TR-460 Re≈3,23e6; bu çapa kiriş 0,15 m ve 30 m/s ile Re≈3e5 koşuyor — ON KAT fark. Ahmed'de öğrenilen ders aynen geçerli: koşulu eşleştirmeden referans alınmaz. ÇÖZÜLEBİLİR: kiriş 1,5 m'ye ölçeklenirse 30 m/s'de Re=3e6 olur ve Ma=0,088 ile sıkışamaz kalır. Hücre sayısı çözünürlük kirişe GÖRELİ olduğu için değişmez.",
-     "engel_3_uD": "Rapor deneysel belirsizlik BEYAN ETMİYOR (OCR metninde hata çubuğu, güven aralığı ya da hassasiyet ifadesi yok). Yani u_D hâlâ türetilemiyor; ikinci bağımsız kaynak gerekir."
+    "disk": {
+      "durum": "ÇÖZÜLEMEDİ — ve nedeni yöntemsel",
+      "tasidigi": 1.17,
+      "kaynak": "Hoerner 1965",
+      "engel": "Aynı.",
+      "arastirma_sonucu": {
+        "aday_kaynaklar": "Blevins, Applied Fluid Dynamics Handbook; Munson vd., Fundamentals of Fluid Mechanics — ikisi de alanın standart el kitapları",
+        "engel_1_erisim": "Kitap tabloları açık web'de değil; sayılar okunamadı.",
+        "engel_2_BAGIMSIZLIK": "ASIL ENGEL BU. Keskin-kenarlı küt cisimlerde sonraki el kitapları büyük ölçüde Hoerner'ı ALINTILAR; Hoerner 1965 zaten bir ÖLÇÜM DERLEMESİDİR. Aynı özgün ölçüme dayanan iki değerin farkını u_D saymak, tek kaynağı iki kez saymaktır. Düz levhada yöntem işledi çünkü Schlichting ve Schultz-Grunow AYRI veri kümelerine oturtulmuş BAĞIMSIZ korelasyonlar.",
+        "dogru_yol": "u_D ya birincil deney makalelerinden (belirsizlik beyanıyla) gelmeli ya da bu çapaların u_D'siz olduğu AÇIKÇA yazılmalı. İkinci bir el kitabı değeri eklemek sahte bir bağımsızlık üretirdi.",
+        "DUZELTME_2026_08_19": "ÖNCEKİ HÜKÜM FAZLA GENELDİ. 'El kitapları Hoerner'ı alıntılıyor, bağımsız kaynak yok' demiştim; aramayı el kitaplarında bitirdiğim için. BİRİNCİL DENEY VAR ve Hoerner'dan bağımsız:",
+        "bagimsiz_birincil_kaynak": {
+          "kunye": "Roos, F. W. & Willmarth, W. W., 'Some Experimental Results on Sphere and Disk Drag', AIAA Journal 9(2), 1971, s. 285–291, doi:10.2514/3.6164",
+          "yontem": "Modeller lineer hava-yatağı arabasıyla gliserin-su karışımında çekildi; kuvvet/moment strain-gauge ile ölçüldü. Re 5–1e5.",
+          "onem": "Hoerner bir DERLEME; bu bir ÖZGÜN ÖLÇÜM. Üstelik hem disk hem KÜRE veriyor — küre çapasının doğrulanmamış Clift-Gauvin kestirimi için de aday.",
+          "engel": "Değerler ücretli duvar arkasında; okunamadı. İkincil özetler Re boyunca ⟨CD⟩∈[1,1; 1,3] diyor ama bu Re'ye bağlı DEĞİŞİM, belirsizlik değil. Çapa Re-duyarsız bölgede olduğu için gereken şey yüksek-Re asimptotu."
+        },
+        "guncel_engel": "ERİŞİM (ücretli duvar), bağımsızlık DEĞİL."
+      }
+    },
+    "sphere": {
+      "durum": "KESTİRİM VAR, DOĞRULAMA BEKLİYOR",
+      "u_D_kestirim_pct": 4.38,
+      "engel": "Clift-Gauvin sabitleri birincil kaynaktan doğrulanmadı; ayrıca çapa setup-uyumsuz (geçiş-baskın)."
+    },
+    "naca0012_wing_ar6": {
+      "durum": "ÇÖZÜM YOLU BULUNDU — üç somut engel kaldı",
+      "tasidigi": 0.02,
+      "u_D_pct": 15.0,
+      "engel": "Yarı-analitik (Prandtl taşıma-çizgisi + düz-plaka Cf). u_D=%15 olduğu için ağ ne kadar inceltilirse inceltilsin u_val %15'in ALTINA inemez — model hatası hiç ayrıştırılamaz.",
+      "arastirma": "Aranan: DÜŞÜK HIZLI, kuvvet verili (CL/CD), yüksek atıflı 3B kanat deneyi. ONERA M6 alanın en çok atıflı 3B vakası (Schmitt & Charpin, AGARD AR-138, 1979) AMA transonik (M=0,84) ve standart veri Cp DAĞILIMI, integre kuvvet değil — aracın sıkışamaz zarfının (Ma<0,3) DIŞINDA. Düşük hızlı kuvvet verisi için NASA yüksek-taşıma atölyesi vakaları (Trap Wing / DLR-F11) aday, ama yüksek-taşıma geometrisi (slat+flap) bu aracın ürettiği basit geometriyle uyuşmuyor.",
+      "arastirma_sonucu": {
+        "tarih": "2026-08-19",
+        "kaynak": "Rumsey, C. L., 'High-Lift Prediction Workshops: Retrospective, Lessons...', ICAS/NASA NTRS 20240006238 — birincil metinden okundu",
+        "aday_1_ONERA_M6": {
+          "kunye": "Schmitt & Charpin, AGARD AR-138 (1979)",
+          "durum": "UYGUN DEĞİL",
+          "neden": "Alanın en çok atıflı 3B vakası ama TRANSONİK (M=0,84) ve standart veri Cp DAĞILIMI, integre kuvvet değil. Aracın sıkışamaz zarfının (Ma<0,3) dışında."
+        },
+        "aday_2_NASA_Trap_Wing": {
+          "kunye": "HLPW-1 (2010), NASA Langley 14×22 Ses-altı Tüneli, Re_MAC=4,3e6; tekrarlanabilirlik: Hannon, Washburn, Jenkins & Watson, AIAA 2012-0706, doi:10.2514/6.2012-706",
+          "durum": "UYGUN DEĞİL — İKİ AYRI NEDENLE",
+          "neden_1_butce": "HLPW-1'de EN İNCE ağlar 50–200 MİLYON hücre; 'iyi uygulama' ağları bile 100M altında. Bu aracın hücre tavanı 4M — yani gereken çözünürlük 1-2 MERTEBE dışında.",
+          "neden_2_yayin": "Rumsey'in kendi ifadesi: deneysel veri 'toplu olarak hiçbir zaman resmî olarak yayımlanmadı'. Referans olarak alınacaksa hangi sürümün kullanıldığı ayrıca beyan edilmeli.",
+          "olumlu_yan": "Tekrarlanabilirlik ÇALIŞMASI VAR (AIAA 2012-0706) — yani u_D türetilebilir bir vaka. Engel referansın kalitesi değil, aracın hesap bütçesi."
+        },
+        "hukum": "ÖNCEKİ HÜKÜM ('kanonik 3B vakalar bu aracın bütçesi dışında, referans bulunamadı') FAZLA KESİNDİ. Kanonik WORKSHOP vakalarına odaklanıp KLASİK NACA literatürünü atlamıştım. NACA TR-460 tam bu çapanın geometrisinde (AR=6 dikdörtgen) DENEYSEL veri veriyor ve açık erişimde. Engeller artık 'bulunamıyor' değil, üç somut iş: (1) grafiği sayısallaştır ya da tablolu muadil bul, (2) çapayı Re≈3,2e6'ya ölçekle, (3) u_D için ikinci kaynak.",
+        "aday_3_NACA_TR460": {
+          "kunye": "Jacobs, E. N., Ward, K. E. & Pinkerton, R. M., 'The Characteristics of 78 Related Airfoil Sections from Tests in the Variable-Density Wind Tunnel', NACA Report 460 (1933)",
+          "durum": "EN GÜÇLÜ ADAY — ama henüz kullanılabilir değil",
+          "neden_uygun": "Modeller kiriş 5 inç × açıklık 30 inç → AR=6 DİKDÖRTGEN, yani bu çapanın geometrisiyle AYNI. Rapor sonuçları HEM sonsuz-AR'ye düzeltilmiş HEM 'aspect ratio 6' hâliyle veriyor. NACA0012 test edilen kesitler arasında. Tünel-duvar etkisi için düzeltilmiş. Re=3.230.000 (tank 20,7 atm). Açık erişim (NTRS 19930091108). Yani DENEYSEL ve AR=6 — yarı-analitik ±%15'lik mevcut referanstan kategorik olarak üstün.",
+          "engel_1_grafik": "DEĞERLER GRAFİK, TABLO DEĞİL. Taranmış raporda Cd eğri olarak çizili; OCR metninden okunan 'yaklaşık 0,006–0,008' bir GRAFİKTEN TAHMİNDİR ve referans değer olarak ALINMADI. Kullanmak için ya şeklin sayısallaştırılması ya da tablolu bir muadil (ör. Abbott & von Doenhoff, 'Summary of Airfoil Data', NACA TR-824) gerekir.",
+          "engel_2_Re": "REYNOLDS UYUŞMAZLIĞI. TR-460 Re≈3,23e6; bu çapa kiriş 0,15 m ve 30 m/s ile Re≈3e5 koşuyor — ON KAT fark. Ahmed'de öğrenilen ders aynen geçerli: koşulu eşleştirmeden referans alınmaz. ÇÖZÜLEBİLİR: kiriş 1,5 m'ye ölçeklenirse 30 m/s'de Re=3e6 olur ve Ma=0,088 ile sıkışamaz kalır. Hücre sayısı çözünürlük kirişe GÖRELİ olduğu için değişmez.",
+          "engel_3_uD": "Rapor deneysel belirsizlik BEYAN ETMİYOR (OCR metninde hata çubuğu, güven aralığı ya da hassasiyet ifadesi yok). Yani u_D hâlâ türetilemiyor; ikinci bağımsız kaynak gerekir."
+        }
+      }
     }
-   }
+  },
+  "verdikt": "ÜÇ FARKLI ENGEL, ÜÇ FARKLI CEVAP. (1) ahmed_25: engel referansın KOŞULUYDU — çözüldü, eşleştirildi, |E| %16,2→%10,8. (2) cube/disk: engel erişim DEĞİL BAĞIMSIZLIK — el kitapları Hoerner'ı alıntılıyor, farkları u_D vermez; sahte bağımsızlık üretmemek için ikinci değer EKLENMEDİ. (3) naca0012_wing_ar6: engel HESAP BÜTÇESİ — alanın kanonik 3B vakaları (ONERA M6 rejim, Trap Wing 50–200M hücre) bu aracın dışında. Üçünde de eksik olan şey aynı görünüyordu ('ikinci kaynak yok') ama nedenleri farklıydı ve yalnız biri kapatılabildi.",
+  "_uretim_eksik": {
+    "uretici": null,
+    "bilinen_argumanlar": null,
+    "kayitli_olmayan": [
+      "toplayan betik"
+    ],
+    "neden": "Tam komut UYDURULMADI: bu dosyayi YAZAN betik depoda yok. Icerik bir HESAP degil LITERATUR denetimidir — her capanin u_D referansini kimin verdigi (Hoerner tek-kaynakli mi, kaynak eksik mi, yari-analitik mi) elle arastirilip kaydedildi. Yeniden uretmek kaynak taramasini tekrarlamak demektir, bir komut kosmak degil. Programatik tuketicisi YOK; yalniz experiments/ar6_referans_tr586.py docstringinde aniliyor."
   }
- },
- "verdikt": "ÜÇ FARKLI ENGEL, ÜÇ FARKLI CEVAP. (1) ahmed_25: engel referansın KOŞULUYDU — çözüldü, eşleştirildi, |E| %16,2→%10,8. (2) cube/disk: engel erişim DEĞİL BAĞIMSIZLIK — el kitapları Hoerner'ı alıntılıyor, farkları u_D vermez; sahte bağımsızlık üretmemek için ikinci değer EKLENMEDİ. (3) naca0012_wing_ar6: engel HESAP BÜTÇESİ — alanın kanonik 3B vakaları (ONERA M6 rejim, Trap Wing 50–200M hücre) bu aracın dışında. Üçünde de eksik olan şey aynı görünüyordu ('ikinci kaynak yok') ama nedenleri farklıydı ve yalnız biri kapatılabildi."
 }

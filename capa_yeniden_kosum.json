@@ -1,70 +1,78 @@
 {
- "vaka": "Çapa yeniden koşumu — arşivden kurtarılan değerlerin denetimi",
- "_neden": "validation_anchors_runs 2026-08-13'te silindi ve değerler arşivden kurtarıldı. Kurtarılan değerin GÜNCEL olup olmadığı sorulmamıştı.",
- "tarih": "2026-08-19",
- "capalar": {
-  "disk": {
-   "Cd_ref": 1.17,
-   "Cd_yeni": 1.20956,
-   "hata_pct": 3.38,
-   "u_sayisal_pct": 4.22,
-   "arsiv_hata_pct": 3.38,
-   "arsiv_u_pct": 4.77,
-   "yplus": {
-    "ort": 31,
-    "min": 1
-   },
-   "yontem": "SINIRLAYAN band (3-seviye salınımlı, U=3·Δ)",
-   "hukum": "ÜRETİLDİ — arşivle birebir aynı (%3,38)",
-   "referans": "Hoerner, Fluid-Dynamic Drag (1965)"
+  "vaka": "Çapa yeniden koşumu — arşivden kurtarılan değerlerin denetimi",
+  "_neden": "validation_anchors_runs 2026-08-13'te silindi ve değerler arşivden kurtarıldı. Kurtarılan değerin GÜNCEL olup olmadığı sorulmamıştı.",
+  "tarih": "2026-08-19",
+  "capalar": {
+    "disk": {
+      "Cd_ref": 1.17,
+      "Cd_yeni": 1.20956,
+      "hata_pct": 3.38,
+      "u_sayisal_pct": 4.22,
+      "arsiv_hata_pct": 3.38,
+      "arsiv_u_pct": 4.77,
+      "yplus": {
+        "ort": 31,
+        "min": 1
+      },
+      "yontem": "SINIRLAYAN band (3-seviye salınımlı, U=3·Δ)",
+      "hukum": "ÜRETİLDİ — arşivle birebir aynı (%3,38)",
+      "referans": "Hoerner, Fluid-Dynamic Drag (1965)"
+    },
+    "kup": {
+      "Cd_ref": 1.05,
+      "Cd_yeni": 1.04599,
+      "hata_pct": 0.38,
+      "u_sayisal_pct": 2.6669,
+      "arsiv_hata_pct": 6.03,
+      "arsiv_u_pct": 58.33,
+      "yplus": {
+        "ort": 37.3,
+        "min": 7.72,
+        "max": 117.78
+      },
+      "yontem": "GCI (3-mesh, asimptotik)",
+      "hukum": "ARŞİV BAYATMIŞ — hata %6,03→%0,38, band %58,3→%2,67. Kod yorumu tavanın 2,5M→4M çıkarıldığını yazıyor; düzeltme yapılmış ama çapa YENİDEN KOŞULMAMIŞTI.",
+      "referans": "Hoerner, Fluid-Dynamic Drag (1965)"
+    },
+    "ahmed_25": {
+      "Cd_ref": 0.299,
+      "Cd_yeni": 0.33117,
+      "hata_pct": 10.76,
+      "arsiv_hata_pct": 16.2,
+      "arsiv_u_pct": 274.7,
+      "u_sayisal_pct": null,
+      "yplus": {
+        "ort": 45.99,
+        "min": 2.44,
+        "max": 1236.57
+      },
+      "katman": "ölçülemedi (tablo bulundu, satır ayrıştırılamadı; istenen 8)",
+      "yontem": "YOK — ağ ailesi hiç üretilemedi (seviyeler/gci/lsr boş)",
+      "hukum": "REDDEDİLDİ. Cd arşivle BİREBİR üretildi (%16,2) ama çapa KULLANILAMAZ: ağ bağımsızlığı gösterilemedi ve y⁺ tepesi 1237 — yani duvar işlemi hâlâ geçersiz. Koddaki 'ref_bump +1 → örülebilir kenar' beklentisi ÖLÇÜMLE DOĞRULANMADI: katmanlar yine örülmedi, y⁺ tepesi arşivdekiyle aynı kaldı (1237 vs 1236,6). REFERANS SONRADAN DÜZELTİLDİ (koşula eşleştirildi): |E| %16,2 → %10,76. Bu dosyadaki ilk kayıt eski referansa göreydi.",
+      "referans": "Meile vd. 2011, CFD Letters 3(1) — cD=0,299 @ Re=2,784e6, V=40 m/s (KOŞULA EŞLEŞİK); krş. Ahmed & Ramm 1984 SAE 840300, cD=0,2875 @ Re=4,29e6, V=60 m/s",
+      "Cd_ref_eski": 0.285,
+      "hata_pct_eski": 16.2
+    },
+    "sphere": {
+      "Cd_ref": 0.47,
+      "Cd_yeni": 0.14181,
+      "hata_pct": 69.83,
+      "u_sayisal_pct": null,
+      "yontem": "YOK — p=17,86 (makul 0,5–3,0 DIŞI), asimptotik oran ~2e6",
+      "turbulans_modeli": "kOmegaSSTLM (Langtry-Menter geçiş modeli)",
+      "onceki_kosu": "kOmegaSST ile Cd=0,349 (2026-07-06 kampanyası)",
+      "hukum": "KOŞTU AMA ÇAPA OLMADI. Atlama gerekçesi 'LM geçiş-modeli yolu gerekir' diyordu; yol ZATEN kuruluydu, yalnız çapa koşucusu turbulence_model'i geçirmiyordu. Geçiş sağlandı — ve model değiştirmek sorunu ÇÖZMEDİ: kOmegaSST 0,349 verirken LM 0,142 veriyor (referans 0,47), sapma %70'e ÇIKTI. Ağ bağımsızlığı da hiç kurulmadı. Sonuç olumsuz ama artık VARSAYIM DEĞİL ÖLÇÜM: 'geçiş modeli kullanılsa düzelirdi' hipotezi sınandı ve ÇÜRÜDÜ.",
+      "yan_bulgu": "Koşu, LM'nin bu koşucudan HİÇ çalışamadığını ortaya çıkardı: fvSolution `solvers` bloğunda gammaInt/ReThetat yoktu, OpenFOAM 'keyword ReThetat is undefined' ile anında düşüyordu. Steady VE transient(Final) girdileri düzeltildi. LM 2B köprüde test edilmiş, 3B araç yolunda çalıştığı VARSAYILMIŞTI — iki ayrı fvSolution yazıcısı var, test yalnız birini kapsıyordu.",
+      "referans": "White, Fluid Mechanics; Schlichting BL Theory"
+    }
   },
-  "kup": {
-   "Cd_ref": 1.05,
-   "Cd_yeni": 1.04599,
-   "hata_pct": 0.38,
-   "u_sayisal_pct": 2.6669,
-   "arsiv_hata_pct": 6.03,
-   "arsiv_u_pct": 58.33,
-   "yplus": {
-    "ort": 37.3,
-    "min": 7.72,
-    "max": 117.78
-   },
-   "yontem": "GCI (3-mesh, asimptotik)",
-   "hukum": "ARŞİV BAYATMIŞ — hata %6,03→%0,38, band %58,3→%2,67. Kod yorumu tavanın 2,5M→4M çıkarıldığını yazıyor; düzeltme yapılmış ama çapa YENİDEN KOŞULMAMIŞTI.",
-   "referans": "Hoerner, Fluid-Dynamic Drag (1965)"
-  },
-  "ahmed_25": {
-   "Cd_ref": 0.299,
-   "Cd_yeni": 0.33117,
-   "hata_pct": 10.76,
-   "arsiv_hata_pct": 16.2,
-   "arsiv_u_pct": 274.7,
-   "u_sayisal_pct": null,
-   "yplus": {
-    "ort": 45.99,
-    "min": 2.44,
-    "max": 1236.57
-   },
-   "katman": "ölçülemedi (tablo bulundu, satır ayrıştırılamadı; istenen 8)",
-   "yontem": "YOK — ağ ailesi hiç üretilemedi (seviyeler/gci/lsr boş)",
-   "hukum": "REDDEDİLDİ. Cd arşivle BİREBİR üretildi (%16,2) ama çapa KULLANILAMAZ: ağ bağımsızlığı gösterilemedi ve y⁺ tepesi 1237 — yani duvar işlemi hâlâ geçersiz. Koddaki 'ref_bump +1 → örülebilir kenar' beklentisi ÖLÇÜMLE DOĞRULANMADI: katmanlar yine örülmedi, y⁺ tepesi arşivdekiyle aynı kaldı (1237 vs 1236,6). REFERANS SONRADAN DÜZELTİLDİ (koşula eşleştirildi): |E| %16,2 → %10,76. Bu dosyadaki ilk kayıt eski referansa göreydi.",
-   "referans": "Meile vd. 2011, CFD Letters 3(1) — cD=0,299 @ Re=2,784e6, V=40 m/s (KOŞULA EŞLEŞİK); krş. Ahmed & Ramm 1984 SAE 840300, cD=0,2875 @ Re=4,29e6, V=60 m/s",
-   "Cd_ref_eski": 0.285,
-   "hata_pct_eski": 16.2
-  },
-  "sphere": {
-   "Cd_ref": 0.47,
-   "Cd_yeni": 0.14181,
-   "hata_pct": 69.83,
-   "u_sayisal_pct": null,
-   "yontem": "YOK — p=17,86 (makul 0,5–3,0 DIŞI), asimptotik oran ~2e6",
-   "turbulans_modeli": "kOmegaSSTLM (Langtry-Menter geçiş modeli)",
-   "onceki_kosu": "kOmegaSST ile Cd=0,349 (2026-07-06 kampanyası)",
-   "hukum": "KOŞTU AMA ÇAPA OLMADI. Atlama gerekçesi 'LM geçiş-modeli yolu gerekir' diyordu; yol ZATEN kuruluydu, yalnız çapa koşucusu turbulence_model'i geçirmiyordu. Geçiş sağlandı — ve model değiştirmek sorunu ÇÖZMEDİ: kOmegaSST 0,349 verirken LM 0,142 veriyor (referans 0,47), sapma %70'e ÇIKTI. Ağ bağımsızlığı da hiç kurulmadı. Sonuç olumsuz ama artık VARSAYIM DEĞİL ÖLÇÜM: 'geçiş modeli kullanılsa düzelirdi' hipotezi sınandı ve ÇÜRÜDÜ.",
-   "yan_bulgu": "Koşu, LM'nin bu koşucudan HİÇ çalışamadığını ortaya çıkardı: fvSolution `solvers` bloğunda gammaInt/ReThetat yoktu, OpenFOAM 'keyword ReThetat is undefined' ile anında düşüyordu. Steady VE transient(Final) girdileri düzeltildi. LM 2B köprüde test edilmiş, 3B araç yolunda çalıştığı VARSAYILMIŞTI — iki ayrı fvSolution yazıcısı var, test yalnız birini kapsıyordu.",
-   "referans": "White, Fluid Mechanics; Schlichting BL Theory"
+  "verdikt": "ÜÇ ÇAPA, ÜÇ FARKLI SONUÇ. `disk` arşivle birebir üretildi. `kup` arşivden ÇOK farklı çıktı çünkü arşiv değeri bir yapılandırma düzeltmesinden ÖNCEYE aitti — düzeltme yapılmış, çapa yeniden koşulmamıştı. `ahmed_25` ise Cd'yi birebir üretti ama ağ ailesi hiç kurulamadı ve y⁺ tepesi 1237'de kaldı; yapılandırma değişikliği bu vakada İŞE YARAMAMIŞ. Yani 'arşiv güvenilir mi' sorusunun tek bir cevabı yok: her çapa ayrı ayrı denetlenmeli.",
+  "_uretim_eksik": {
+    "uretici": null,
+    "bilinen_argumanlar": null,
+    "kayitli_olmayan": [
+      "toplayan betik"
+    ],
+    "neden": "Tam komut UYDURULMADI: bu dosyayi YAZAN betik depoda yok. Icerik 2026-08-19 oturumunda IKI capa yeniden kosulup (disk, kup) arsiv degerleriyle ELDE karsilastirilarak olusturuldu; birlestiren script hic yazilmadi. HAM VERI HALA MEVCUT: validation_anchors_runs/_anchor_disk/sonuc.json ve _anchor_cube/sonuc.json — karsilastirma oradan yeniden turetilebilir. YUK TASIYOR: experiments/dis_korpus.py:262 kup girdisini programatik okuyor, dosya silinirse o tuketici kirilir."
   }
- },
- "verdikt": "ÜÇ ÇAPA, ÜÇ FARKLI SONUÇ. `disk` arşivle birebir üretildi. `kup` arşivden ÇOK farklı çıktı çünkü arşiv değeri bir yapılandırma düzeltmesinden ÖNCEYE aitti — düzeltme yapılmış, çapa yeniden koşulmamıştı. `ahmed_25` ise Cd'yi birebir üretti ama ağ ailesi hiç kurulamadı ve y⁺ tepesi 1237'de kaldı; yapılandırma değişikliği bu vakada İŞE YARAMAMIŞ. Yani 'arşiv güvenilir mi' sorusunun tek bir cevabı yok: her çapa ayrı ayrı denetlenmeli."
 }

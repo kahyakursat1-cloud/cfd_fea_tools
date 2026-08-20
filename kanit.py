@@ -245,6 +245,21 @@ def sinifla(p: Path) -> dict:
         # GEREKÇESİZ ❌ bir bilgi vermiyor: "yeniden üretilemez" ile NEDEN
         # üretilemediği ayrı şeyler ve ikincisi eylem planı üretir.
         kayit["uretilemez_neden"] = str(d.get("_uretilemez") or "")[:300]
+        # BEYANLI EKSİK ≠ SESSİZ EKSİK. Komutu olmayan bir kanıt iki ayrı
+        # durumda olabilir: (a) kimse yazmamış — borç, (b) neden yazılamadığı
+        # AÇIKÇA kaydedilmiş — bilinen sınır. Manifest ikisini aynı gösteriyordu
+        # ve bu 2026-08-20'de somut zarar verdi: `gci_cgridP_*` dosyaları
+        # "üreticisi yok, ölü" sanılıp SİLİNMESİ önerildi; oysa üreticileri de
+        # (`exp_cgrid_run_parallel.py`, dosya adını f-string kurduğu için düz
+        # metin araması bulamıyor) tam beyanları da vardı. Bu deponun
+        # "ölçemedim ≠ iyi" ilkesinin bu kapıdaki karşılığı.
+        _beyan = d.get("_uretim_eksik") or d.get("_uretilemez")
+        kayit["uretim_beyanli"] = bool(_beyan)
+        if isinstance(_beyan, dict):
+            kayit["uretim_beyani"] = str(_beyan.get("neden") or _beyan)[:300]
+            kayit["uretici"] = kayit["uretici"] or str(_beyan.get("uretici") or "")
+        elif _beyan:
+            kayit["uretim_beyani"] = str(_beyan)[:300]
     if kayit["eskimis"]:
         kayit["not"] = "ESKİMİŞ — güncel dosya için _SUPERSEDED notuna bak"
     return kayit
