@@ -142,3 +142,37 @@ def test_katsayi_olcumu_kosu_yokken_UYDURMAZ():
         assert "OLCULEMEDI" in rec["verdikt"]
     else:
         assert rec["n_kosu"] >= 1 and rec["kb_hucre"] > 0
+
+
+def test_SIGAR_hukmu_KAPSAMINI_soyluyor():
+    """"Sığar" hangi aşama için geçerli? Söylenmezse okuyucu tümü sanar.
+
+    ÖLÇÜLDÜ (2026-08-19, AR6 çapası 4. deneme): kapı "6.000.000 hücre
+    ~6,07 GB; boş 7,9 GB — sığar" dedi ve snappyHexMesh 1319 saniye sonra
+    SIGKILL ile öldürüldü (çıkış 137), KATMAN ekleme adımında
+    (displacementMedialAxis). Hüküm yanlıştı.
+
+    KÖK NEDEN AŞAMA KÖRLÜĞÜ: katsayı ÇÖZÜM koşularından türetildi
+    (basarim/b60k_c*, 0,779 kB/hücre + 0,215 GB, R²=0,96) ve çözücünün
+    belleğini ölçüyor. snappy'nin katman adımı bambaşka bir tepe yapar;
+    medial-axis geçici veri yapıları son hücre sayısıyla orantılı DEĞİL.
+
+    Snappy için bir katsayı UYDURULMADI — ölçülmedi. Yapılan tek şey hükmün
+    kapsamını beyan etmek.
+    """
+    from bellek_kapisi import hukum
+    h = hukum(1000, bos_gb=100.0)          # rahatça sığan bir vaka
+    assert h["kosulabilir"] is True
+    assert h.get("kapsam") == "ÇÖZÜM aşaması"
+    assert "snappyHexMesh" in (h.get("kapsanmayan") or ""), (
+        "kapsanmayan aşama adıyla yazılmıyor")
+    assert "UYARI" in h["mesaj"] and "OOM" in h["mesaj"], (
+        "mesaj okuyucuya meshleme riskini söylemiyor")
+
+
+def test_SIGMAZ_hukmu_bozulmadi():
+    """Kapsam beyanı yalnız 'sığar' tarafında; ret hükümleri değişmemeli."""
+    from bellek_kapisi import hukum
+    h = hukum(10_000_000_000, bos_gb=8.0)
+    assert h["kosulabilir"] is False
+    assert "onerilen_max_cells" in h

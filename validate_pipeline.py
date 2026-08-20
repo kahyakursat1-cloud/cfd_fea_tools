@@ -215,13 +215,86 @@ _GEOM = {
     # olcekliyor ve bunu HEM Cd HEM Cl'e uyguluyor; liftDir de dogru
     # (-sin a, 0, cos a). Yani acik gercek.
     #
-    # SIRADAKI ADIM (uygulanmadi): katman yigini firar kenarina SIGMALI —
-    # daha az katman + daha kucuk genisleme orani (or. 4 katman, r=1,15 ->
-    # yigin ~3,3 mm < 11 mm). Bu, y+ hedefini korurken yigini uc kat
-    # inceltir. Ayri bir kosu isi.
+    # UCUNCU DENEME — ONCEKI ONERIM YANLIS KALDIRACI SECIYORDU.
+    # Commit'e "daha az katman + kucuk genisleme orani" yazmistim. Sinirlayiciyi
+    # (`katman_sayisi_sigdir`) okuyunca gorundu ki gercek kaldirac Y+ HEDEFI:
+    # yigin h1 ile DOGRUSAL, h1 de y+ ile dogrusal. Gercek fonksiyonla olculdu
+    # (kiris 3 m, 30 m/s, firar kenari 11,05 mm -> yaka basina sinir 2,76 mm):
+    #
+    #   y+    h1 (mm)   8-katman yigin   sigan n   yigin (mm)   marj
+    #    1     0,0267        0,53           8        0,531
+    #    3     0,0802        1,59           8        1,592      %42
+    #    4     0,1070        2,12           8        2,122      %23   <- SECILEN
+    #    5     0,1337        2,65           8        2,653      % 4
+    #   30     0,8022       15,92           2        1,805
+    #   50     1,3371       26,53           1        1,337      <- 2. denemede
+    #
+    # IKI KISIT ARASINDA SIKISMA VAR:
+    #   yigin firar kenarina sigmali        -> y+ KUCUK olmali
+    #   h1 yuzey hucresine gore asiri ince  -> y+ BUYUK olmali
+    #                       olmamali (snappy oremiyor)
+    # 2. deneme y+=50 ile ikinci kisiti kolladi ve BIRINCIYE takildi (1 katman,
+    # o da orulemedi). 1. deneme y+=1 ile birinciyi kolladi ama yuzey
+    # cozunmemisti (ref_bump="oto", hucre 125 mm) ve h1/hucre 1:9000'di.
+    #
+    # y+=4 ikisini birden karsiliyor: 8 katman %23 marjla sigiyor ve
+    # h1/hucre ~1:140 (bump=4'te yuzey ~15 mm) snappy'nin calisabilecegi
+    # bantta. Ayrica y+<=5 DUVAR-COZUNUR banttir, yani basarirsa capa
+    # `duvar_hukmu`'ndan da gecer — 2. denemedeki y+ 236 gecemezdi.
+    # DORDUNCU DENEME — y+ AYARININ HIC ETKISI OLMADIGI OLCULDU.
+    # 3. deneme (y+=4) 2. denemeyle (y+=50) BIREBIR AYNI sonucu verdi:
+    # cd 0,02707, cl 0,06634, hucre 2.309.368. Nedeni: her ikisinde de SIFIR
+    # katman oruldu, dolayisiyla ag ve cozum ozdes. Katman parametresini
+    # oynamak bir ust basamaktaki kisidi degistirmiyor.
+    #
+    # ASIL ENGEL ARACIN KENDI UYARISINDA:
+    #   "KATMAN YAPILAMAZ: en ince ozellik 7,27 mm, yuzey hucresi 7,8 mm —
+    #    ozellik hucrenin 0,93 kati"
+    # Cozunmemis bir ozelligin uzerine katman orulemez. Siralama: ONCE ozellik
+    # cozunecek, SONRA katman. Uc denememin ucu de katman tarafini ayarladi.
+    #
+    # HEDEFLI INCELTME ISE YARAMAZ — hesaplandi: firar kenari seridini 18 m
+    # aciklik boyunca ~1 mm'ye indirmek ~1,5 MILYAR hucre eder. Aciklik cok
+    # buyuk; `refinement_regions` bu geometride cozum degil.
+    #
+    # ARACIN KENDI ONERISI DAHA UCUZ ve iki kez hakli cikti (bump=4 onerisi
+    # orani 0,09'dan 0,93'e cikardi, 10 kat):
+    #   "INCE OZELLIK: ince ozellik yalniz 4,85 hucre (hedef >=6);
+    #    ref_bump=1 ile hedefe ulasilir VE BUTCEYE SIGAR"
+    # Yani bir kademe daha yeterli ve sigacagini kendisi hesapladi. Butce
+    # 4M -> 6M'e cikarildi ki tavan kesintisi olmasin (tavana carpan aile
+    # sistematik olmaz ve GCI varsayimi kirilir — kup capasinda olculdu).
+    # 4. DENEME OOM ILE OLDU — DONANIM SINIRI, KURULUM HATASI DEGIL.
+    # ref_bump=5 / 6M hucre ile snappyHexMesh 1319 s sonra SIGKILL yedi
+    # (cikis 137), KATMAN adiminda (displacementMedialAxis). Bellek kapisi
+    # "sigar" demisti ve YANILDI; o kusur ayrica duzeltildi (kapi artik
+    # hukmunun COZUM asamasi icin oldugunu ve snappy meshleme tepesini
+    # KAPSAMADIGINI beyan ediyor).
+    #
+    # DORT DENEMENIN OLCULEN HARITASI:
+    #   1) bump=oto, y+=1   -> yuzey 125 mm, ozellik/hucre 0,09; katman 0
+    #   2) bump=4,   y+=50  -> yuzey  7,8 mm, ozellik/hucre 0,93; katman 0
+    #   3) bump=4,   y+=4   -> 2. ile BIREBIR AYNI (0 katman -> ayni ag)
+    #   4) bump=5,   y+=4   -> OOM (snappy katman adimi)
+    # Ozellik/hucre orani 0,09 -> 0,93 ile 10 kat iyilesti ama hedef >=6 ve
+    # oraya gitmek bu makinede bellege sigmiyor.
+    #
+    # KOK NEDEN GEOMETRIK VE OLCEKTEN BAGIMSIZ: NACA0012'nin firar kenari
+    # kirisin ~%0,24'u. Aciklik 18 m oldugu icin o inceligi tum aciklik
+    # boyunca cozmek milyarlarca hucre ister; hedefli inceltme de kurtarmiyor
+    # (hesaplandi: ~1,5 milyar).
+    #
+    # CAPA CALISAN YAPILANDIRMAYA GERI ALINDI (bump=4, 6 katman, y+=4,
+    # 4M tavan): kosuyor, sonuc uretiyor ve REDDEDILIYOR — sayisal band
+    # %131, Cl 0,066 (beklenen 0,330). Yani capa hala kapanmiyor ama en
+    # azindan OOM ile dusmuyor ve reddi GEREKCELI.
+    #
+    # KAPANMASI ICIN GEREKEN: ya daha fazla bellek, ya AR=6 sartini
+    # gevseten bir capa tasarimi (or. daha kisa aciklik + duzeltme), ya da
+    # 2B kesit capasi + lifting-line ile ayri bir yol. Ucu de AYRI IS.
     "naca0012_wing_ar6": (lambda: naca0012_wing(ar=6.0, chord=3.0), "ucak",
                           {"alpha_deg": 4.0, "quality": "hassas",
-                           "n_layers": 8, "yplus_target": 50.0,
+                           "n_layers": 8, "yplus_target": 4.0,
                            "ref_bump": 4, "max_cells": 4_000_000}),
 }
 

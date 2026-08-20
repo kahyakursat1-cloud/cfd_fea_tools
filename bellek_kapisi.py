@@ -94,6 +94,30 @@ def hukum(cells: int, bos_gb: float | None = None) -> dict:
                           f"boş {bos:.1f} GB. Bütçeyi ~{onerilen:,} hücreye "
                           f"indirin ya da belleği boşaltın. Tahmin kaynağı: "
                           f"{t['kaynak']}")}
+    # KAPSAM BEYAN EDILIR — "sigar" hukmu HANGI ASAMA icin gecerli?
+    #
+    # OLCULDU (2026-08-19, AR6 capasi 4. deneme): kapi "6.000.000 hucre
+    # ~6,07 GB; bos 7,9 GB — sigar" dedi ve snappyHexMesh 1319 saniye sonra
+    # SIGKILL ile olduruldu (cikis kodu 137), katman ekleme adiminda
+    # (displacementMedialAxis). Yani hukum YANLISTI.
+    #
+    # KOK NEDEN ASAMA KORLUGU: katsayi `basarim/b60k_c*` gibi COZUM
+    # kosularindan turetildi (kb_hucre 0,779 + 0,215 GB sabit, R^2=0,96) ve
+    # cozucunun bellegini olcuyor. snappyHexMesh'in KATMAN adimi bambaska bir
+    # tepe yapar: medial-axis hesabi tum yuzey noktalarinin mesafe alanini
+    # tutar ve gecici veri yapilari son hucre sayisiyla orantili DEGILDIR.
+    #
+    # SNAPPY ICIN BIR KATSAYI UYDURULMADI — olculmedi. Yapilan tek sey
+    # hukmun KAPSAMINI soylemek: "sigar" cozum asamasi icindir, meshleme
+    # tepesi KAPSANMAZ. Bu, "olcemedim" ile "iyi"yi ayirmanin bu kapidaki
+    # karsiligi.
     return {**out, "kosulabilir": True,
+            "kapsam": "ÇÖZÜM aşaması",
+            "kapsanmayan": ("snappyHexMesh KATMAN adımının tepe belleği "
+                            "(displacementMedialAxis) — katsayı çözüm "
+                            "koşularından türetildi, meshleme tepesi ÖLÇÜLMEDİ"),
             "mesaj": (f"{cells:,} hücre ~{t['gereken_gb']:.2f} GB; boş {bos:.1f} GB "
-                      f"— sığar. Tahmin kaynağı: {t['kaynak']}")}
+                      f"— ÇÖZÜM aşaması için sığar. Tahmin kaynağı: {t['kaynak']}. "
+                      "UYARI: snappyHexMesh katman adımının tepe belleği bu "
+                      "tahminde YOK; katmanlı büyük ağlarda meshleme OOM ile "
+                      "düşebilir (ölçüldü: 6M hücre, 7,9 GB boş → SIGKILL).")}
