@@ -495,3 +495,26 @@ def test_boy_onceli_YALNIZ_beyan_edilen_siniflarda():
 
     assert set(SINIF_BOY_BANDI_M) == {"roket", "kanatli_roket"}
     assert all(b == (0.3, 2.0) for b in SINIF_BOY_BANDI_M.values())
+
+
+def test_oncel_DOSYAYI_EZEMEZ_sadece_kendi_tahminini_revize_eder():
+    """KURAL: sınıf önceli, `>50 birim → ÷1000` heuristiğinin KENDİ tahminini
+    revize edebilir; dosya değeri olduğu gibi alındıysa onu EZEMEZ.
+
+    Bu koruma olmadan sınıfı `kanatli_roket` çıkan GERÇEKTEN büyük cisimler
+    sessizce küçülüyordu (ölçüldü 2026-08-20): 15 m→0,381 · 20 m→0,508 ·
+    30 m→0,3 · 60 m→0,6, üstelik "çözüldü" hükmüyle. Kök neden: kod "bandın
+    dışında"yı *birim yanlış* diye okuyordu, oysa *cisim öncelin kapsamı
+    dışında* da olabilir — ve ikisi geometriden AYIRT EDİLEMEZ.
+    """
+    from vehicle_pipeline import birim_sinif_cozumu
+
+    band = (0.3, 2.0)
+    for L in (5.0, 15.0, 20.0, 30.0, 60.0):
+        r = birim_sinif_cozumu(L, L, band, olcek_uygulandi=False)
+        assert r["karar"] == "kapsam_disi", (L, r)
+        assert "yeni_lmax" not in r          # ölçeğe DOKUNULMAZ
+
+    # Kendi tahminimizi revize etmek MESRU: ham 90 -> heuristik 0.09 m verdi
+    r = birim_sinif_cozumu(90.0, 0.09, band, olcek_uygulandi=True)
+    assert r["karar"] == "cozuldu" and r["yeni_lmax"] == pytest.approx(0.9)

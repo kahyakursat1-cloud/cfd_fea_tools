@@ -424,7 +424,8 @@ def auto_configure(stl_path, out_dir="vehicle_runs/_autoprep",
     birim_notu = None
     _band = SINIF_BOY_BANDI_M.get(tip)
     if _band:
-        _c = birim_sinif_cozumu(info.get("ham_lmax", lmax), lmax, _band)
+        _c = birim_sinif_cozumu(info.get("ham_lmax", lmax), lmax, _band,
+                                olcek_uygulandi=bool(info.get("birim_olcek")))
         if _c["karar"] in ("cozuldu", "metrik_varsayildi"):
             _m = trimesh.load(str(prep), force="mesh")
             _m.apply_scale(_c["yeni_lmax"] / lmax)

@@ -220,7 +220,8 @@ BIRIMLER_M = {"m": 1.0, "inç": 0.0254, "cm": 0.01, "mm": 0.001}
 SINIF_BOY_BANDI_M = {"roket": (0.3, 2.0), "kanatli_roket": (0.3, 2.0)}
 
 
-def birim_sinif_cozumu(ham_lmax: float, mevcut_lmax: float, band) -> dict:
+def birim_sinif_cozumu(ham_lmax: float, mevcut_lmax: float, band,
+                       olcek_uygulandi: bool | None = None) -> dict:
     """Sınıfa özel boy önceliyle birimi çözer. Döner: karar + gerekçe.
 
     ÖLÇÜLDÜ (7 roket boyu × 4 birim): genel bandla (0,05–10 m) tek-aday
@@ -242,6 +243,25 @@ def birim_sinif_cozumu(ham_lmax: float, mevcut_lmax: float, band) -> dict:
     lo, hi = band[0] / 1.05, band[1] * 1.05
     if lo <= mevcut_lmax <= hi:
         return {"karar": "dokunulmadi"}
+    # ÖNCEL YALNIZ KENDİ TAHMİNİMİZİ REVİZE EDEBİLİR, DOSYAYI EZEMEZ.
+    # Ölçüldü (2026-08-20): bu koruma olmadan sınıfı `kanatli_roket` çıkan
+    # GERÇEKTEN BÜYÜK cisimler sessizce küçülüyordu — 15 m→0,381 · 20 m→0,508
+    # · 30 m→0,3 · 60 m→0,6, üstelik "çözüldü" hükmüyle. Kök neden: kod
+    # "bandın dışında"yı *birim yanlış* diye okuyordu, oysa *cisim öncelin
+    # kapsamı dışında* da olabilir ve ikisi geometriden ayırt edilemez.
+    #
+    # Ayrım ölçekleme GEÇMİŞİNDE: `>50 birim → ÷1000` kuralının kendisi bir
+    # tahmindir ve öncelin onu revize etmesi meşrudur. Dosya değeri olduğu gibi
+    # alındıysa (kural tetiklenmedi) öncelin onu ezmesi çok daha güçlü bir
+    # iddiadır ve desteklenmez. `olcek_uygulandi=None` geriye-uyum içindir.
+    if olcek_uygulandi is False:
+        return {"karar": "kapsam_disi",
+                "gerekce": (f"{mevcut_lmax:.4g} m sınıf bandının "
+                            f"({lo:.2f}–{hi:.2f} m) dışında ama dosya ölçeği "
+                            f"OLDUĞU GİBİ alınmıştı — öncel kendi tahminini "
+                            f"revize edebilir, dosya değerini ezemez. Cisim "
+                            f"gerçekten bu boyutta olabilir; ölçek "
+                            f"DEĞİŞTİRİLMEDİ")}
     adaylar = {b: s for b, s in BIRIMLER_M.items() if lo <= ham_lmax * s <= hi}
     if len(adaylar) == 1:
         b, s = next(iter(adaylar.items()))
