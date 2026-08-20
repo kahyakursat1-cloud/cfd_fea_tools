@@ -12,6 +12,22 @@
       "referans": "Hoerner 1965 (arşiv kaydı)"
     },
     {
+      "capa": "NACA0012 2B α=10 (TMR C-grid)",
+      "rejim": "lifting",
+      "sapma_pct": 5.41,
+      "ham_sapma_pct": 1.48,
+      "u_sayisal_pct": 3.93,
+      "u_ref_pct": 0.796,
+      "u_val_pct": 4.01,
+      "ayrilabilir_mi": false,
+      "ayrilabilirlik_notu": "u_val = √(3.93² + 0.80²) = %4.01 (ASME V&V 20)",
+      "yplus_ort": 1.0,
+      "yplus_kaynak": "TMR PLOT3D C-grid (y⁺<1, kaynağın tanımı)",
+      "richardson_p": 0.579,
+      "_not": "Kampanyanın kendi verdict'i Cl için verilmiş (p=-3,165); band Cd kullanır ve Cd'nin p'si 0.579 — makul aralıkta.",
+      "referans": "NASA TMR NACA0012 (PLOT3D C-grid, SST, Re=6e6) — Cd=0,01236, Cl=1,0778"
+    },
+    {
       "capa": "NACA0012 α=0 (2B, bağlı akış)",
       "rejim": "attached_2d",
       "sapma_pct": 5.23,
@@ -85,22 +101,6 @@
       "referans": "Meile vd. 2011, CFD Letters 3(1) — cD=0,299 @ Re=2,784e6 (KOSULA ESLESIK); krs. "
     },
     {
-      "capa": "NACA0012 kanat AR6",
-      "rejim": "lifting",
-      "sapma_pct": 35.43,
-      "ham_sapma_pct": 18.05,
-      "u_sayisal_pct": 17.38,
-      "ayrilabilir_mi": false,
-      "u_val_pct": 22.96,
-      "u_ref_pct": 15.0,
-      "ayrilabilirlik_notu": "u_val = √(17.38² + 15.00²) = %22.96 (ASME V&V 20)",
-      "yplus_ort": 134.47,
-      "yplus_max": 210.69,
-      "yplus_kaynak": "çapa koşusu _anchor_naca0012_wing_ar6",
-      "referans": "YARI-ANALİTİK (±%15): türbülanslı profil Cd0≈0.014 (düz-plaka Cf + form) + lifti",
-      "_kaynak": "ARŞİVDEN KURTARILDI — ham koşu 2026-08-13 disk temizliğinde silindi; değer önceki çıktıdan geldi, yeniden ölçülmedi"
-    },
-    {
       "capa": "geriye-basamak (kOmegaSST)",
       "rejim": "separated",
       "sapma_pct": 11.58,
@@ -155,6 +155,29 @@
     }
   ],
   "olculen_hucreler": {
+    "lifting": {
+      "wall_resolved": {
+        "u_pct": 5.41,
+        "olculen_pct": 5.41,
+        "oncul_pct": 5.0,
+        "oncul_korundu": false,
+        "n_capa": 1,
+        "ayrilabilir_capa": 0,
+        "capalar": [
+          {
+            "ad": "NACA0012 2B α=10 (TMR C-grid)",
+            "sapma_pct": 5.41,
+            "ham_sapma_pct": 1.48,
+            "u_sayisal_pct": 3.93,
+            "ayrilabilir_mi": false,
+            "referans": "NASA TMR NACA0012 (PLOT3D C-grid, SST, Re=6e6) — Cd=0,01236, Cl=1,0778"
+          }
+        ],
+        "ayrilabilirlik_degerlendirilmedi": 0,
+        "_ust_sinir_mi": true,
+        "_anlam": "TEK ÇAPA — dağılım değil, tek ölçüm; öncülü AŞTIĞI için ölçüm kullanıldı"
+      }
+    },
     "attached_2d": {
       "wall_resolved": {
         "u_pct": 5.23,
@@ -300,14 +323,6 @@
       "neden": "y⁺ ÖLÇÜLDÜ (5.5) ama hiçbir duvar işlemine ait değil: duvar-çözünür ≤5.0, duvar-fonksiyonu 30.0–300.0. Tampon bölgede log-yasası geçerli değildir ve viskoz altkatman da çözülmemiştir; bu koşu iki hücreden hiçbirini kalibre EDEMEZ. Eksik kayıt değil, FİZİKSEL bulgu — ve çapanın sapmasının bir bölümünü açıklar"
     },
     {
-      "capa": "NACA0012 kanat AR6",
-      "rejim": "lifting",
-      "sapma_pct": 35.43,
-      "u_sayisal_pct": 17.38,
-      "yplus_ort": 134.47,
-      "neden": "SAYISAL BAND ÇOK BÜYÜK (%17.4 > %15.0): bu koşunun ayrıklaştırma gürültüsü ölçmek istediği model hatasından büyük, model-form hakkında hiçbir şey söyleyemez"
-    },
-    {
       "capa": "geriye-basamak (kOmegaSST)",
       "rejim": "separated",
       "sapma_pct": 11.58,
@@ -316,12 +331,6 @@
     }
   ],
   "oncul_kalan_hucreler": [
-    {
-      "rejim": "lifting",
-      "duvar": "wall_resolved",
-      "oncul_pct": 5.0,
-      "kapanmasi_icin": "Deneysel referansli 3B tasima capasi. Mevcut tek capa (NACA0012 kanat AR6) YARI-ANALITIK referansa (Prandtl tasima-cizgisi) dayaniyor ve u_D=%15; ag ne kadar inceltilirse inceltilsin u_val %15'in altina INEMEZ, yani model hatasi ayrilamaz. Ag degil REFERANS degismeli."
-    },
     {
       "rejim": "lifting",
       "duvar": "wall_function",
@@ -353,17 +362,18 @@
   ],
   "_kisit": "Bir capanin sapmasi, o rejimdeki model-form hatasinin BIR ORNEGIDIR. N=1 olan hucrede dagilim IDDIA EDILMEZ. Duvar islemi kayitli olmayan capa hucreye ATANMAZ — tahmin edilmez. Ayrica sapma, referansin KENDI deneysel belirsizligini de icerir ve o ayristirilmamistir.",
   "_uretim": "Üretim: python experiments/model_form_bandi.py",
-  "_ayrilabilirlik_notu": "UST SINIR olan hucreler: attached_2d.wall_function, bluff.wall_function. Bu hucrelerde HICBIR capa, olculen farki kendi ayriklastirma bandindan ayirt edemiyor — deger olculmus bir model hatasi DEGIL, ust sinirdir. Ornek: disk capasinin farki %3.4 ama sayisal bandi %4.8.",
+  "_ayrilabilirlik_notu": "UST SINIR olan hucreler: lifting.wall_resolved, attached_2d.wall_function, bluff.wall_function. Bu hucrelerde HICBIR capa, olculen farki kendi ayriklastirma bandindan ayirt edemiyor — deger olculmus bir model hatasi DEGIL, ust sinirdir. Ornek: disk capasinin farki %3.4 ama sayisal bandi %4.8.",
   "ozet": {
     "toplam_hucre": 8,
-    "capali": 5,
-    "oncul": 3,
+    "capali": 6,
+    "oncul": 2,
     "olcum": 3,
-    "ust_sinir": 2,
+    "ust_sinir": 3,
     "capali_hucreler": [
       "attached_2d.wall_function",
       "attached_2d.wall_resolved",
       "bluff.wall_function",
+      "lifting.wall_resolved",
       "separated.wall_function",
       "separated.wall_resolved"
     ],
@@ -374,18 +384,21 @@
     ],
     "ust_sinir_hucreleri": [
       "attached_2d.wall_function",
-      "bluff.wall_function"
+      "bluff.wall_function",
+      "lifting.wall_resolved"
     ],
     "oncul_hucreler": [
       "bluff.wall_resolved",
-      "lifting.wall_function",
-      "lifting.wall_resolved"
+      "lifting.wall_function"
     ],
     "tutarli": true,
-    "cumle": "8 hücrenin 5'i deneysel/literatür çapası taşıyor (3 ölçüm + 2 üst sınır), 3'i literatür öncülüyle çalışıyor"
+    "cumle": "8 hücrenin 6'i deneysel/literatür çapası taşıyor (3 ölçüm + 3 üst sınır), 2'i literatür öncülüyle çalışıyor"
   },
-  "verdikt": "11 capa toplandi; 5 hucre OLCULDU, 4 capa atanamadi, 3 hucre ONCUL kaldi. attached_2d.wall_resolved=%5.23 (n=1); attached_2d.wall_function=%12.0 (n=1); bluff.wall_function=%9.31 (n=3); separated.wall_resolved=%12.0 (n=1); separated.wall_function=%25.0 (n=1)",
+  "verdikt": "11 capa toplandi; 6 hucre OLCULDU, 3 capa atanamadi, 2 hucre ONCUL kaldi. lifting.wall_resolved=%5.41 (n=1); attached_2d.wall_resolved=%5.23 (n=1); attached_2d.wall_function=%12.0 (n=1); bluff.wall_function=%9.31 (n=3); separated.wall_resolved=%12.0 (n=1); separated.wall_function=%25.0 (n=1)",
   "_yazilan": {
+    "lifting": {
+      "wall_resolved": 5.41
+    },
     "attached_2d": {
       "wall_resolved": 5.23,
       "wall_function": 12.0

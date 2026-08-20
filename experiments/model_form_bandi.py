@@ -267,6 +267,47 @@ def capalari_topla() -> list[dict]:
                   "yplus_kosu": (_yp or {}).get("kosu"),
                   "referans": (kup.get("referans") or {}).get("kaynak", "Hoerner 1965")})
 
+    # LIFTING HUCRESI — 2B alpha=10 capasi. 3B AR6 bu makinede kapanmiyor
+    # (firar kenari kirisin %0,24'u, AR=6'da aciklik 18 m -> ~97M hucre gerekir);
+    # 2B'de aciklik yok ve TMR C-grid ailesi zaten kosmus.
+    _a10 = _j("tmr_gci_verdict_a10.json")
+    if _a10 and _a10.get("seviyeler"):
+        from validation_anchors import ANCHORS as _A10
+        _spec = _A10.get("naca0012_a10_2d") or {}
+        _ref = float(_spec.get("Cd") or 0.0)
+        _cd = [float(s["Cd"]) for s in _a10["seviyeler"] if s.get("Cd") is not None]
+        if _ref and len(_cd) >= 3:
+            # KAMPANYANIN KENDI VERDICT'I Cl ICIN — o dosyada p=-3,165 yaziyor
+            # ama `birincil_nicelik: "Cl"`. Band Cd kullanir; Cd'nin Richardson
+            # mertebesi BURADA yeniden hesaplanir (kaba->ince sirali liste).
+            f3, f2, f1 = _cd[0], _cd[1], _cd[2]
+            e21, e32 = f2 - f1, f3 - f2
+            if e21 and e32:
+                _p = math.log(abs(e32 / e21)) / math.log(2.0)
+                if _p > 0:
+                    _fext = f1 + e21 / (2.0 ** _p - 1.0)
+                    _gci = 1.25 * abs(e21 / f1) / (2.0 ** _p - 1.0) * 100.0
+                    _h = abs(_fext - _ref) / _ref * 100.0
+                    _ay = ayrilabilir(_h, _gci, _spec.get("u_ref_pct"))
+                    c.append({
+                        "capa": "NACA0012 2B α=10 (TMR C-grid)",
+                        "rejim": "lifting",
+                        "sapma_pct": _h + _gci,
+                        "ham_sapma_pct": round(_h, 2),
+                        "u_sayisal_pct": round(_gci, 2),
+                        "u_ref_pct": _spec.get("u_ref_pct"),
+                        "u_val_pct": _ay["u_val_pct"],
+                        "ayrilabilir_mi": _ay["ayrilabilir_mi"],
+                        "ayrilabilirlik_notu": _ay["gerekce"],
+                        # TMR C-grid ailesi y+<1 ile uretilir (kanitin kendi tanimi)
+                        "yplus_ort": 1.0,
+                        "yplus_kaynak": "TMR PLOT3D C-grid (y⁺<1, kaynağın tanımı)",
+                        "richardson_p": round(_p, 3),
+                        "_not": ("Kampanyanın kendi verdict'i Cl için verilmiş "
+                                 "(p=-3,165); band Cd kullanır ve Cd'nin p'si "
+                                 f"{_p:.3f} — makul aralıkta."),
+                        "referans": _spec.get("ref", "NASA TMR")[:80]})
+
     tmr = _j("tmr_gci_verdict.json")
     if tmr and tmr.get("seviyeler"):
         ref = float(tmr.get("TMR_referans_SST_alpha0") or 0.0)

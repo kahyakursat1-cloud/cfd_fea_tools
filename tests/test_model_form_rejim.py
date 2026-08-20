@@ -323,3 +323,56 @@ class TestBayatArsivKendiYerineGecenleYanYanaDurmaz:
         src = inspect.getsource(mfb.capalari_topla)
         assert "_kup_taze.exists()" in src, (
             "arşiv koşulsuz atlanıyor — taze koşu silinirse çapa tümüyle kaybolur")
+
+
+class TestLiftingHucresiKapandi:
+    """`lifting` hücresi 3B'ye MUHTAÇ DEĞİL — 2B α=10 çapası kapatıyor.
+
+    ÖLÇÜLDÜ (2026-08-19): 3B AR6 çapası DÖRT denemede kapanmadı ve nedeni
+    geometrik. NACA0012'nin firar kenarı kirişin ~%0,24'ü; AR=6'da açıklık
+    18 m ve o inceliği tüm açıklık boyunca çözmek ~97M hücre (~97 GB) ister —
+    bu makinede de makul bir RAM yükseltmesinde de yok. Kök neden BELLEK
+    DEĞİL GEOMETRİ.
+
+    2B'de açıklık yok: yapısal C-grid firar kenarını doğal kümeler. TMR
+    PLOT3D ailesi (57k/229k/918k) zaten koşmuş ve Cd'si temiz yakınsıyor.
+
+    KRİTİK AYRIM: kampanyanın kendi verdict'i "mesh bağımsızlığı
+    GÖSTERİLEMEDİ, p=-3,165" diyor ama o hüküm Cl İÇİNDİR
+    (`birincil_nicelik: "Cl"`). Band Cd kullanır ve Cd'nin p'si 0,579 —
+    makul aralıkta. Yani "çapa geçersiz" değil, "başka nicelik için verilmiş
+    bir hüküm".
+    """
+
+    def _d(self):
+        p = KOK / "model_form_bandi.json"
+        return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
+
+    def test_lifting_hucresi_OLCULEN(self):
+        d = self._d()
+        if not d:
+            return
+        h = (d.get("olculen_hucreler") or {}).get("lifting") or {}
+        assert h, "lifting hücresi hâlâ öncül — 2B çapa banda ulaşmıyor"
+        assert "wall_resolved" in h, "TMR C-grid y⁺<1'dir, duvar-çözünür olmalı"
+
+    def test_Cd_nin_p_si_YENIDEN_hesaplaniyor(self):
+        """Kampanya verdict'i Cl için; band Cd'nin kendi mertebesini hesaplamalı."""
+        d = self._d()
+        if not d:
+            return
+        a10 = next((x for x in d["capalar"] if "α=10" in x["capa"]), None)
+        assert a10, "α=10 çapası toplanmamış"
+        p = a10.get("richardson_p")
+        assert p is not None, "Cd'nin Richardson mertebesi kayıtlı değil"
+        assert 0.5 <= p <= 3.0, f"Cd p={p} makul aralık dışında"
+        assert "Cl için" in (a10.get("_not") or ""), (
+            "kampanya verdict'inin BAŞKA nicelik için olduğu yazılmamış")
+
+    def test_capa_TMR_kaynak_sinifini_BEYAN_ediyor(self):
+        from validation_anchors import ANCHORS
+        a = ANCHORS["naca0012_a10_2d"]
+        assert a["regime"] == "lifting"
+        assert "TMR" in a["ref"]
+        # Kod-arasi yayilim DENEYSEL belirsizligi kapsamaz; sinif bunu demeli.
+        assert "ALT SINIR" in a["u_ref_sinif"]

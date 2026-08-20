@@ -1,4 +1,7 @@
 {
+  "lifting": {
+    "wall_resolved": 5.41
+  },
   "attached_2d": {
     "wall_resolved": 5.23,
     "wall_function": 12.0

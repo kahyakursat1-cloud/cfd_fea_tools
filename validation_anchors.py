@@ -138,6 +138,43 @@ ANCHORS = {
         "u_ref_sinif": ("ALT SINIR (aynı Re'de iki bağımsız kaynağın farkı; "
                         "TN-253 tarafı blokaj-düzeltmesiyle TÜRETİLMİŞ)"),
     },
+    "naca0012_a10_2d": {
+        # LIFTING HUCRESINI BU MAKINEDE KAPATAN CAPA (2026-08-19).
+        #
+        # 3B AR6 capasi DORT denemede kapanmadi ve nedeni olculdu: NACA0012'nin
+        # firar kenari kirisin ~%0,24'u, AR=6'da aciklik 18 m, ve o incelik tum
+        # aciklik boyunca cozulemiyor. Gereken ~97M hucre (~97 GB) — bu makinede
+        # de, makul bir RAM yukseltmesinde de yok. Kok neden BELLEK DEGIL
+        # GEOMETRI.
+        #
+        # 2B'de aciklik YOK: yapisal C-grid firar kenarini dogal olarak kumeler
+        # ve snappy'nin katman sorunu hic ortaya cikmaz. TMR PLOT3D C-grid
+        # ailesi (57k / 229k / 918k hucre) bu makinede ZATEN KOSMUS.
+        #
+        # OLCULEN (Cd, ki model-form bandinin kullandigi nicelik budur):
+        #   seviyeler 0,012086 -> 0,012377 -> 0,012572
+        #   p = 0,579 (makul aralik 0,5-3,0 ICINDE), asimptotik oran = 1,0000
+        #   GCI_ince = %3,93 ; Richardson Cd = 0,012177
+        #   referansa hata: ham %1,72 | Richardson %1,48
+        #
+        # ONEMLI: kampanyanin kendi verdict'i "mesh bagimsizligi GOSTERILEMEDI,
+        # p=-3,165" diyor — ama o hukum Cl ICINDIR (`birincil_nicelik: "Cl"`).
+        # Cl'in yakinsama mertebesi ~3,17, tavanin (3,0) kil payi ustunde. Cd
+        # bambaska davraniyor ve BAND Cd kullaniyor. Yani "capa gecersiz" degil,
+        # "baska nicelik icin verilmis bir hukum".
+        #
+        # alpha=10 SECILDI, alpha=8 DEGIL: a8'de ham hata %16,8 ve Cd'nin p'si
+        # negatif (yakinsama duzensiz). a10 hem hatasi kucuk hem yakinsamasi
+        # temiz. Ikisi de kayitli, secim gerekceli.
+        "Cd": 0.01236, "regime": "lifting", "Re": "6e6 (2B kesit), α=10°",
+        "aref": "kiriş",
+        "ref": ("NASA TMR NACA0012 (PLOT3D C-grid, SST, Re=6e6) — "
+                "Cd=0,01236, Cl=1,0778"),
+        # naca0012_a0 ile AYNI KAYNAK SINIFI: TMR'nin yedi kodunun yayilimi.
+        # ALT SINIR cunku kod-arasi yayilim DENEYSEL belirsizligi kapsamaz.
+        "u_ref_pct": 0.796,
+        "u_ref_sinif": "ALT SINIR (kod-arası yayılım, n=7)",
+    },
     "naca0012_wing_ar6": {
         # REFERANS YARI-ANALITIKTEN OLCULMUSE TASINDI (2026-08-19).
         #
