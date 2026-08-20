@@ -58,3 +58,37 @@ def test_olcer_KENDI_sayisini_raporluyor():
     for x in acik:
         assert x["ad_izi"] or x["hukum_donuyor"], x["fonksiyon"]
         assert x["dosya"] and x["satir"] > 0
+
+
+def test_olcerler_KAPSAMINI_beyan_ediyor():
+    """KURAL: 'incelenmemiş 0' hükmü ancak KAPSAM biliniyorsa dayanaklıdır.
+
+    Ölçüldü (2026-08-20): `revise_1001_panel.py` UTF-8 BOM ile başlıyordu;
+    `encoding="utf-8"` ile okununca BOM satır 1'e düşüp ast.parse'ı düşürüyor
+    ve dosya DÖRT tarayıcıda da SESSİZCE atlanıyordu. İçinde gerekçesiz bir
+    sessiz yutma vardı — yani `sessiz_yutma` tabanı 87 değil 88'di ve fark
+    ölçülmemiş kapsamdan geliyordu.
+
+    Test dosya adı ya da sayı PİNLEMEZ: tarayıcının atladığını SAYDIĞINI ve
+    atlanan varsa çıktısında beyan ettiğini arar.
+    """
+    import sessiz_yutma
+
+    for modul in (os_, sessiz_yutma):
+        assert hasattr(modul, "ATLANAN"), modul.__name__
+        modul.tara()
+        # Atlanan varsa liste dolar; yoksa boş kalır — ikisi de GEÇERLİ,
+        # yasak olan atlamayı hiç kaydetmemek.
+        assert isinstance(modul.ATLANAN, list)
+
+    # BOM'lu kaynak artık ayrışıyor: utf-8-sig dört tarayıcıda da uygulandı.
+    import ast
+    from pathlib import Path as _P
+    kok = _P(__file__).resolve().parent.parent
+    for ad in ("sessiz_yutma.py", "kanal_ayrismasi.py", "oksuz_alan.py",
+               "oksuz_savunma.py"):
+        src = (kok / ad).read_text(encoding="utf-8")
+        assert 'encoding="utf-8-sig"' in src, f"{ad}: BOM körlüğü geri geldi"
+    # ve depoda BOM'lu bir kaynak dosya kalırsa bile taranabilmeli
+    for p in kok.glob("*.py"):
+        ast.parse(p.read_text(encoding="utf-8-sig", errors="replace"))

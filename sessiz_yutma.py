@@ -110,13 +110,27 @@ def _kaydediyor_mu(gov: list[ast.stmt]) -> bool:
     return False
 
 
+ATLANAN: list[str] = []
+
+
 def tara() -> list[dict]:
+    ATLANAN.clear()
     bulgular = []
     for f in _dosyalar():
         metin = f.read_text(encoding="utf-8-sig", errors="replace")
         try:
             agac = ast.parse(metin)
-        except SyntaxError:
+        except SyntaxError as e:
+            # KAPSAM BOSLUGU YUTULMAZ, SAYILIR. Ayristirilamayan dosya taranamaz;
+            # onu sessizce gecmek "INCELENMEMIS: 0" hukmunu DAYANAKSIZ birakir.
+            # Olculdu (2026-08-20): revise_1001_panel.py UTF-8 BOM ile basliyordu,
+            # `encoding="utf-8"` ile okununca BOM satir 1'e dusup SyntaxError
+            # veriyordu ve dosya SESSIZCE atlaniyordu — icinde gerekcesiz bir
+            # yutma vardi. Yani taban 87 degil 88'di ve fark olculmemis
+            # kapsamdan geliyordu. (BOM `utf-8-sig` ile cozuldu; bu kayit
+            # BASKA bir ayristirma hatasi cikarsa gorunur olsun diye duruyor.)
+            ATLANAN.append(f"{f.relative_to(ROOT).as_posix()}: "
+                           f"ayrıştırılamadı (satır {e.lineno})")
             continue
         satirlar = metin.splitlines()
         fonk = {}
@@ -166,10 +180,21 @@ def main() -> int:
     print(f"\n**Toplam:** {len(b)} sessiz yutma ({len(gy)} güven yolunda)")
     print(f"**İNCELENMEMİŞ:** {len(inc)} ({len(inc_gy)} güven yolunda) — asıl izlenen sayı")
     print(f"**Kabul edilmiş (gerekçesi kodda yazılı):** {len(b) - len(inc)}")
+    # Kapsam BEYAN EDILIR: taranamayan dosya varken "incelenmemis 0" dayanaksizdir.
+    if ATLANAN:
+        print(f"\n  ⚠ TARANAMAYAN {len(set(ATLANAN))} dosya — "
+              f"bu hüküm onları KAPSAMAZ:")
+        for x in dict.fromkeys(ATLANAN):
+            print(f"    {x}")
+    else:
+        print("Kapsam: taranan tüm .py dosyaları ayrıştı (atlanan yok).")
     if "--json" in sys.argv:
         (ROOT / "sessiz_yutma.json").write_text(
             json.dumps({"toplam": len(b), "guven_yolu": len(gy),
                         "incelenmemis": len(inc), "incelenmemis_guven_yolu": len(inc_gy),
+                        # Kapsam kanita da girer: "incelenmemis 0" hukmunu
+                        # okuyan, taramanin neyi KAPSAMADIGINI da gormeli.
+                        "taranamayan": list(dict.fromkeys(ATLANAN)),
                         "bulgular": b},
                        indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         print("-> sessiz_yutma.json")
