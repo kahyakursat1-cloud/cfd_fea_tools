@@ -14,7 +14,14 @@ import time
 from collections import Counter
 from pathlib import Path
 
-from vehicle_pipeline import inspect_geometry, prepare_geometry
+import trimesh
+
+from vehicle_pipeline import (
+    SINIF_BOY_BANDI_M,
+    birim_sinif_cozumu,
+    inspect_geometry,
+    prepare_geometry,
+)
 
 # ── Öğrenme: büyüyen vaka kütüphanesi (instance-based / k-NN) ────────────────
 # SEED: uzman (hakem) etiketli kanonik taban — uygulamayla birlikte gelir (commit'li).
@@ -407,6 +414,27 @@ def auto_configure(stl_path, out_dir="vehicle_runs/_autoprep",
     cls = classify_vehicle(geo)
     tip = cls["tip"]
     lmax = geo["lmax_m"]
+
+    # SINIFA OZEL boy onceli birimi cozebiliyorsa olcegi DUZELT. Genel band
+    # (0.05-10 m) 200x genis oldugu icin cogu girdide iki-uc birim birden makul
+    # cikiyordu; roket oncelinde (0.3-2 m) tek-aday cozunurluk 9/28 -> 21/28.
+    # Siniflandirmanin olcekten bagimsiz oldugu olculdu (6 mertebe), o yuzden
+    # once siniflandirip sonra olceklemek gecerli. Duzeltme UYARIYA yazilir:
+    # sessiz yeniden-olcekleme, duzelttigi sessiz hatanin aynisi olurdu.
+    birim_notu = None
+    _band = SINIF_BOY_BANDI_M.get(tip)
+    if _band:
+        _c = birim_sinif_cozumu(info.get("ham_lmax", lmax), lmax, _band)
+        if _c["karar"] == "cozuldu":
+            _m = trimesh.load(str(prep), force="mesh")
+            _m.apply_scale(_c["yeni_lmax"] / lmax)
+            _m.export(str(prep))
+            geo = inspect_geometry(prep)
+            lmax = geo["lmax_m"]
+            birim_notu = f"Birim sınıf önceliyle DÜZELTİLDİ: {_c['gerekce']}."
+        elif _c["karar"] != "dokunulmadi":
+            birim_notu = f"Birim/ölçek şüphesi: {_c['gerekce']}."
+
     regime = _regime_for_tip(tip)
     quality = _quality_for(lmax, geo.get("ucgen_sayisi", 0), regime)
 
@@ -452,6 +480,8 @@ def auto_configure(stl_path, out_dir="vehicle_runs/_autoprep",
     # aksi halde uyari info sozlugunde olu kalirdi.
     if info.get("birim_uyarisi"):
         uyarilar.append(info["birim_uyarisi"])
+    if birim_notu:
+        uyarilar.append(birim_notu)
     # GCI-öncülü (öğrenilen): geçmiş mesh-yakınsama sonuçlarından koşu-öncesi beklenti.
     # Yalnız PLAN uyarısıdır; ölçülen band değildir, UQ/rapora girmez (gci_advisor).
     try:

@@ -212,6 +212,46 @@ def canonicalize_axial(m: trimesh.Trimesh):
 ARAC_BOY_BANDI_M = (0.05, 10.0)      # BİLSEM araçları: roket/İHA/dron
 BIRIMLER_M = {"m": 1.0, "inç": 0.0254, "cm": 0.01, "mm": 0.001}
 
+# SINIFA ÖZEL boy önceli — yalnız kullanıcının BEYAN ETTİĞİ sınıflar burada olur.
+# Uydurma aralık EKLEME: önceli olmayan sınıf genel banda düşer ve davranışı
+# değişmez. Roket bandı (0,3–2 m) kullanıcı beyanı, 2026-08-20. Kanatçıklı roket
+# ayrı etiket alıyor (ölçüldü: 3 ve 4 kanatçıkta 'kanatli_roket'), o yüzden ikisi
+# de listede — yoksa gerçek roketlerin çoğu önceliyi ıskalardı.
+SINIF_BOY_BANDI_M = {"roket": (0.3, 2.0), "kanatli_roket": (0.3, 2.0)}
+
+
+def birim_sinif_cozumu(ham_lmax: float, mevcut_lmax: float, band) -> dict:
+    """Sınıfa özel boy önceliyle birimi çözer. Döner: karar + gerekçe.
+
+    ÖLÇÜLDÜ (7 roket boyu × 4 birim): genel bandla (0,05–10 m) tek-aday
+    çözünürlük 9/28; roket önceliyle (0,3–2 m) 21/28. Kalan 7 belirsizliğin
+    tamamı cm↔inç (yalnız 2,54× ayrı).
+
+    GÜVENLİK KURALI — mevcut sonuç bandın İÇİNDEYSE dokunulmaz. Öncel bir
+    varsayımdır ve o vakada yanlış olabilir (5 m'lik bir roket bandın dışındadır
+    ama ölçeği doğrudur); statüko yalnız mevcut sonuç bandı ihlal ediyorken ve
+    başka TEK bir birim varsayımı bandı tutturuyorken bozulur.
+    """
+    lo, hi = band
+    if lo <= mevcut_lmax <= hi:
+        return {"karar": "dokunulmadi"}
+    adaylar = {b: s for b, s in BIRIMLER_M.items() if lo <= ham_lmax * s <= hi}
+    if len(adaylar) == 1:
+        b, s = next(iter(adaylar.items()))
+        return {"karar": "cozuldu", "birim": b, "yeni_lmax": ham_lmax * s,
+                "gerekce": (f"sınıf boy önceli ({lo}–{hi} m) birimi TEK adaya "
+                            f"indirdi: {b}. Mevcut sonuç {mevcut_lmax:.4g} m "
+                            f"bandın dışındaydı, {ham_lmax * s:.4g} m'ye düzeltildi")}
+    if not adaylar:
+        return {"karar": "band_disi",
+                "gerekce": (f"{mevcut_lmax:.4g} m, sınıf bandının ({lo}–{hi} m) "
+                            f"dışında ve hiçbir birim varsayımı bandı tutturmuyor "
+                            f"— ölçek değil GEOMETRİ beklenenden farklı olabilir")}
+    return {"karar": "belirsiz", "adaylar": sorted(adaylar),
+            "gerekce": (f"{mevcut_lmax:.4g} m sınıf bandının ({lo}–{hi} m) dışında; "
+                        f"banda düşen birim varsayımları: {', '.join(sorted(adaylar))}"
+                        f" — tek adaya inmediği için ölçek DEĞİŞTİRİLMEDİ")}
+
 
 def birim_varsayimi(ham_lmax: float, band=ARAC_BOY_BANDI_M) -> dict:
     """Birim sezgisinin VARSAYIMINI ve sonucun akla yatkın olup olmadığını
@@ -397,6 +437,7 @@ def prepare_geometry(path, out_dir: Path, progress_cb=None,
     # Birim sezgisi: CAD (STEP/IGES) konvansiyonel mm; çözücü metre bekler.
     # BİLSEM araçları (roket/İHA/dron) 0.05–10 m; >50 birim => mm, ÷1000.
     lmax = float((m.bounds[1] - m.bounds[0]).max())
+    info["ham_lmax"] = lmax          # ölçekleme ÖNCESİ; sınıf önceli bunu kullanır
     if lmax > 50.0:
         m.apply_scale(0.001)
         info["onarimlar"].append(f"birim ölçek mm→m (÷1000; ham Lmax={lmax:.0f})")

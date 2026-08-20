@@ -340,3 +340,26 @@ def test_birim_uyarisi_KULLANICI_YUZUNE_ulasiyor(tmp_path):
     cfg = auto_configure(str(p), out_dir=str(tmp_path / "out"))
     uyarilar = cfg.get("uyarilar") or []
     assert any("birim belirsiz" in u for u in uyarilar), uyarilar
+
+
+def test_sinif_onceli_DUZELTMESI_uretim_yolundan_geciyor(tmp_path):
+    # Kapi VAR ama uretim yolu cagirmiyor deseni: cozum yalniz saf fonksiyonda
+    # kalmamali, auto_configure'in olceginI gercekten duzeltmeli ve uyariya
+    # yazmali (sessiz yeniden-olcekleme, duzelttigi sessiz hatanin aynisi olurdu).
+    import numpy as np
+    import trimesh
+
+    from auto_pilot import auto_configure
+
+    # 0.9 m'lik roket cm cinsinden yazilmis: ham Lmax 90 -> eski kural 0.09 m
+    govde = trimesh.creation.cylinder(radius=4.0, height=70.0, sections=48)
+    burun = trimesh.creation.cone(radius=4.0, height=20.0, sections=48)
+    burun.apply_translation([0, 0, 35.0])
+    r = trimesh.util.concatenate([govde, burun])
+    r.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [0, 1, 0]))
+    p = tmp_path / "roket_cm.stl"
+    r.export(p)
+
+    cfg = auto_configure(str(p), out_dir=str(tmp_path / "out"))
+    assert cfg["lmax_m"] == pytest.approx(0.9, rel=0.02)
+    assert any("sınıf önceliyle DÜZELTİLDİ" in u for u in (cfg.get("uyarilar") or []))

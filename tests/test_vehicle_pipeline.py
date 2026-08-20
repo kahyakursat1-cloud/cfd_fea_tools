@@ -452,3 +452,42 @@ def test_birim_olcek_anahtari_YALNIZ_olceklendiginde_dolar():
     assert "birim_olcek" not in birim_varsayimi(0.9)
     assert birim_varsayimi(0.9)["birim_varsayimi"].startswith("m ")
     assert birim_varsayimi(900.0)["birim_varsayimi"].startswith("mm ")
+
+
+def test_sinif_onceli_birimi_TEK_ADAYA_indirince_cozer():
+    # KURAL: sinifa ozel dar band birimi tek adaya indiriyorsa coz; indirmiyorsa
+    # TAHMIN URETME. Olculdu (7 roket boyu x 4 birim): genel bandla 9/28,
+    # roket onceliyle 21/28 tek-aday.
+    from vehicle_pipeline import birim_sinif_cozumu
+
+    band = (0.3, 2.0)
+    # 0.9 m roket cm cinsinden: ham 90, mevcut kural 0.09 m verir (band disi)
+    c = birim_sinif_cozumu(90.0, 0.09, band)
+    assert c["karar"] == "cozuldu" and c["birim"] == "cm"
+    assert c["yeni_lmax"] == pytest.approx(0.9)
+    # ayni roket inc cinsinden: ham 35.43 -> cm ve inc ikisi de banda dusuyor
+    belirsiz = birim_sinif_cozumu(35.43, 35.43, band)
+    assert belirsiz["karar"] == "belirsiz"
+    assert set(belirsiz["adaylar"]) == {"cm", "inç"}
+
+
+def test_sinif_onceli_MEVCUT_SONUC_BANDDAYSA_dokunmaz():
+    # GUVENLIK: oncel bir varsayimdir, o vakada yanlis olabilir. Statuko yalniz
+    # mevcut sonuc bandi IHLAL ediyorken bozulur — aksi halde dogru olcekli bir
+    # geometri onceli tutturmadigi icin bozulurdu.
+    from vehicle_pipeline import birim_sinif_cozumu
+
+    assert birim_sinif_cozumu(900.0, 0.9, (0.3, 2.0))["karar"] == "dokunulmadi"
+    # 5 m'lik bir roket: band disi ama hicbir birim varsayimi bandi tutturmuyor
+    buyuk = birim_sinif_cozumu(5.0, 5.0, (0.3, 2.0))
+    assert buyuk["karar"] == "band_disi"
+
+
+def test_boy_onceli_YALNIZ_beyan_edilen_siniflarda():
+    # Uydurma aralik eklenmemeli: onceli olmayan sinif genel banda duser ve
+    # davranisi degismez. Kanatcikli roket AYRI etiket aliyor (olculdu), o
+    # yuzden ikisi de listede olmali.
+    from vehicle_pipeline import SINIF_BOY_BANDI_M
+
+    assert set(SINIF_BOY_BANDI_M) == {"roket", "kanatli_roket"}
+    assert all(b == (0.3, 2.0) for b in SINIF_BOY_BANDI_M.values())
