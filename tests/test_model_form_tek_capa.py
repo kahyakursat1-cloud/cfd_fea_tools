@@ -104,14 +104,26 @@ def test_zarf_UST_SINIRI_okuyucuya_soyluyor():
 
 # ── y⁺ bağı: ölçüm tüketicisine ULAŞIYOR mu ───────────────────────────────
 
-def test_kup_capasinin_yplusu_artik_kosudan_geliyor():
-    """Küp çapasının y⁺'ı ölçülmüştü ama çapa dosyasına yazılmamıştı; bu yüzden
-    `bluff.wall_function` hiçbir zaman ölçülemiyordu."""
+def test_kup_capasinin_yplusu_TUKETICIYE_ULASIYOR():
+    """Küp çapasının y⁺'ı ölçülmüştü ama tüketicisine ulaşmıyordu.
+
+    2026-08-19 GÜNCELLEMESİ: test eskiden ARŞİV girdisini ("küp") arıyordu ve
+    y⁺'ın hücre-sayısı eşleşmesiyle bağlandığını denetliyordu. O arşiv artık
+    ATLANIYOR, çünkü çapa yeniden koşuldu (`_anchor_cube`) ve iki satırı yan
+    yana raporlamak düzeltilmiş bir kusuru hâlâ varmış gibi gösteriyordu.
+
+    Testin ASIL İDDİASI değişmedi: küpün y⁺'ı bandı üreten yola ULAŞMALI ve
+    NEREDEN geldiği yazılı olmalı. Hangi mekanizmayla ulaştığı (arşiv eşleşmesi
+    ya da doğrudan çapa koşusu) ikincildir.
+    """
     rec = calistir()
-    kup = next(x for x in rec["capalar"] if x["capa"] == "küp")
-    assert kup["yplus_ort"] is not None
-    assert kup["yplus_kosu"], "y⁺'ın hangi koşudan geldiği yazılmalı"
-    assert "birebir" in kup["yplus_kaynak"]
+    kup = [x for x in rec["capalar"]
+           if "küp" in x["capa"] and not x.get("_gecersiz")]
+    assert kup, "hiçbir ölçülen küp satırı yok"
+    for k in kup:
+        assert k["yplus_ort"] is not None, f"{k['capa']}: y⁺ ulaşmıyor"
+        assert k.get("yplus_kaynak"), (
+            f"{k['capa']}: y⁺'ın nereden geldiği yazılmamış")
 
 
 def test_yplus_bagi_TAHMINLE_kurulmaz():

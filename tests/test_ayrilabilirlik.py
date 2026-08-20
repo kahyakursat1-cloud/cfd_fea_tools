@@ -64,10 +64,23 @@ def test_u_val_bilesenlerin_HER_BIRINDEN_buyuk():
 
 
 def test_kanat_capasinin_belirsizligi_SAYI_olarak_tasiniyor():
-    """Metinde '±%15' yazması yetmez; karar veren yere sayı olarak ulaşmalı."""
+    """Belirsizlik metinde kalmamalı; karar veren yere SAYI olarak ulaşmalı.
+
+    2026-08-19: referans yarı-analitikten ölçülmüşe taşındı ve u_D %15 -> %1,0
+    oldu (profil sürüklemesi Ladson TM-4074'ten ÖLÇÜLMÜŞ, indüklenen terim
+    lifting-line'dan MODELLENMİŞ). Test eskiden 15.0 sayısına pinliydi; asıl
+    iddia o sayı DEĞİL, "beyan edilen belirsizlik karar yoluna ulaşıyor mu"dur.
+
+    %15 ile %1 arasındaki fark önemliydi: u_D=%15 iken u_val'in TABANI %15'ti
+    ve ağ ne kadar inceltilirse inceltilsin çapa ilkece kapanamazdı.
+    """
     spec = ANCHORS["naca0012_wing_ar6"]
-    assert spec.get("u_ref_pct") == 15.0
-    assert "%15" in spec["ref"], "metin ile sayı ayrışmamalı"
+    u = spec.get("u_ref_pct")
+    assert isinstance(u, (int, float)) and u > 0, "u_D sayı olarak taşınmıyor"
+    # Turetilmis bir u_D ise sinifi neyin kapsandigini SOYLEMELI.
+    if u < 5.0:
+        assert "ALT SINIR" in spec.get("u_ref_sinif", ""), (
+            "küçük u_D beyan ediliyor ama neyin kapsanmadığı yazılmamış")
 
 
 def test_alpha0_capasi_LIFTING_degil():

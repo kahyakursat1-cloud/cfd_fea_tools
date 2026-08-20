@@ -104,7 +104,12 @@ class TestKanit:
                    "SAYISAL BAND ÇOK BÜYÜK", "KURULUM GEÇERSİZ")
         for x in d["atanamayan_capalar"]:
             assert any(g in x["neden"] for g in gecerli), x["neden"]
-            if x.get("yplus_ort") is None:
+            # "y+ YOK => nedeni KAYITLI DEGIL olmali" kurali yalniz
+            # DEGERLENDIRILEN capalar icin gecerlidir. Kurulum gecersizligi
+            # nedeniyle ONCEDEN elenen bir kayit (or. bayat arsiv) y+ tasimaz
+            # cunku hic degerlendirilmemistir — onu "eksik kayit" saymak
+            # yanlis teshis olurdu.
+            if x.get("yplus_ort") is None and "KURULUM GEÇERSİZ" not in x["neden"]:
                 assert "KAYITLI DEĞİL" in x["neden"]
         atanan = {(r, i) for r, h in d["olculen_hucreler"].items() for i in h}
         for x in d["atanamayan_capalar"]:
@@ -265,3 +270,56 @@ class TestEksikBilgiIddiayiYUKSELTMEZ:
             "ölçüt hâlâ sayısal bandın VARLIĞINA bakıyor — eksik veri hücreyi "
             "ölçüme terfi ettirebilir")
         assert "ayrilabilir_mi" in satir
+
+
+class TestBayatArsivKendiYerineGecenleYanYanaDurmaz:
+    """Yeniden koşulmuş bir çapanın ESKİ arşiv kaydı listede kalmamalı.
+
+    ÖLÇÜLDÜ (2026-08-19): rapor İKİ "küp" satırı gösteriyordu —
+      küp                (arşiv)      ham %6,03  band %58,3  → "atanamadı"
+      küp (çapa koşusu)  (taze)       ham %1,79  band %5,28  → atandı
+    Arşiv, hücre tavanı 2,5M→4M düzeltmesinden ÖNCEYE aitti ve çapa o
+    düzeltmeden sonra yeniden koşulmuştu; `capa_yeniden_kosum.json` bunu
+    açıkça yazıyor ("ARŞİV BAYATMIŞ").
+
+    Bant KİRLENMİYORDU (sayısal tavan arşivi zaten eliyor) ama OKUYUCU
+    yanılıyordu: araç, düzelttiği bir kusuru hâlâ raporluyor gibi
+    görünüyordu. Doğru davranış: taze koşu varsa arşivi ATLA — ama SESSİZCE
+    değil, gerekçesiyle.
+    """
+
+    def _capalar(self):
+        p = KOK / "model_form_bandi.json"
+        if not p.exists():
+            return None
+        return json.loads(p.read_text(encoding="utf-8"))["capalar"]
+
+    def test_kup_TEK_olculen_satir_tasiyor(self):
+        c = self._capalar()
+        if c is None:
+            return
+        olculen = [x for x in c
+                   if "küp" in x["capa"] and not x.get("_gecersiz")]
+        assert len(olculen) <= 1, (
+            f"birden çok ölçülen küp satırı: {[x['capa'] for x in olculen]}")
+
+    def test_atlanan_arsiv_GEREKCESIYLE_kayitli(self):
+        c = self._capalar()
+        if c is None:
+            return
+        arsiv = [x for x in c if x.get("_atlanan_arsiv")]
+        for x in arsiv:
+            assert x.get("_gecersiz") is True
+            assert x.get("sapma_pct") is None, (
+                f"{x['capa']}: atlanan arşiv yine de sapma taşıyor — "
+                "aşağı akışta ölçümmüş gibi okunabilir")
+            assert "BAYAT" in (x.get("_gecersiz_neden") or "").upper()
+
+    def test_taze_kosu_yoksa_arsiv_HALA_okunur(self):
+        """Atlama koşullu olmalı: taze ölçüm yoksa arşiv tek kaynaktır."""
+        import inspect
+
+        import experiments.model_form_bandi as mfb
+        src = inspect.getsource(mfb.capalari_topla)
+        assert "_kup_taze.exists()" in src, (
+            "arşiv koşulsuz atlanıyor — taze koşu silinirse çapa tümüyle kaybolur")

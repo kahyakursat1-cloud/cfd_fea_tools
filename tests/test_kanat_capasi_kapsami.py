@@ -23,10 +23,23 @@ def test_kanat_capasi_YALNIZ_Cd_referansi_tasiyor():
     assert "Cl" not in a and "CL" not in a
 
 
-def test_kanat_capasi_OTO_bump_kullaniyor():
-    """bump=0'da kanat hiç çözülmüyordu (kirişte 13 hücre, CL 18 kat düşük)."""
+def test_kanat_capasi_YETERLI_bump_kullaniyor():
+    """Kanat GERÇEKTEN çözülmeli — bump=0'da kirişte 13 hücre, CL 18 kat düşüktü.
+
+    2026-08-19: ölçüt "oto" DEĞERİNDEN çözünürlük SONUCUNA bağlandı. Çapa
+    Re=6e6'ya taşınınca (kiriş 0,15 -> 3,0 m) "oto" yetmedi ve koşu düştü:
+    aracın kendi uyarısı "en ince özellik 11,34 mm, yüzey hücresi 125,0 mm —
+    özellik hücrenin 0,09 katı" dedi; 12 katman istendi 0 örüldü, Cl 0,067
+    (beklenen 0,33), Cd hatası %163. Aynı uyarı çareyi de yazıyordu:
+    "ref_bump=4 ile hedefe ulaşılır ve bütçeye sığar".
+
+    Yani "oto" bu ölçekte doğru seçimi yapamadı. Test artık DEĞERİ değil
+    NİYETİ bağlıyor: bump ya otomatik ya da açıkça yeterince yüksek olmalı.
+    """
     _gen, _tip, kw = vp._GEOM["naca0012_wing_ar6"]
-    assert kw.get("ref_bump") == "oto"
+    bump = kw.get("ref_bump")
+    assert bump == "oto" or (isinstance(bump, int) and bump >= 2), (
+        f"ref_bump={bump!r} — kanat çözülmez (bump=0'da kirişte 13 hücre)")
 
 
 def test_TE_cozunurluk_limiti_KAYITLI():

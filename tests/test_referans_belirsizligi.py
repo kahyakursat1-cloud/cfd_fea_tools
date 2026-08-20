@@ -217,3 +217,50 @@ def test_kup_kaynagi_ARANDI_bulundu_ve_GEREKCELI_reddedildi():
         assert "arama" in s, (
             "TEK-KAYNAK satırı arama kaydı taşımıyor — 'arandı ve reddedildi' "
             "ile 'hiç aranmadı' ayırt edilemiyor")
+
+
+def test_AR6_referansi_OLCULMUS_terime_dayaniyor():
+    """AR6 referansının baskın terimi artık analitik değil ÖLÇÜLMÜŞ olmalı.
+
+    ESKİ: Cd=0,020, tümüyle analitik (düz-plaka Cf + form + lifting-line),
+    u_D=%15. O kadar büyük bir u_D ile ağ ne kadar inceltilirse inceltilsin
+    u_val %15'in ALTINA İNEMEZ — çapa ilkece kapanamazdı.
+
+    YENİ: profil sürüklemesi Ladson TM-4074'ten (Langley LTPT, Re=6e6),
+    indüklenen sürükleme lifting-line'dan. Ladson noktaları depoda ZATEN
+    kayıtlıydı (naca0012_re_eslesme.json) — eksik olan onları kullanmaktı.
+    """
+    from validation_anchors import ANCHORS
+    a = ANCHORS["naca0012_wing_ar6"]
+    assert "Ladson" in a["ref"], "referans hâlâ yarı-analitik"
+    assert "ÖLÇÜLMÜŞ" in a["ref"] and "MODELLENMİŞ" in a["ref"], (
+        "iki terimin hangisinin ölçüm hangisinin model olduğu yazılmıyor")
+    assert a["u_ref_pct"] < 5.0, (
+        f"u_D hâlâ %{a['u_ref_pct']} — ağ inceltmesi anlamsız kalır")
+    assert "ALT SINIR" in a.get("u_ref_sinif", ""), (
+        "u_D yalnız e bandını kapsıyor; sınıf bunu söylemeli")
+
+
+def test_AR6_capasi_REFERANSIN_Re_sinde_kosuyor():
+    """Referans Re=6e6'da ölçüldü; çapa da orada koşmalı.
+
+    Ahmed'de öğrenilen ders: koştuğun koşulda ölçülmüş değer, başka bir
+    koşulda ölçülmüş değerden daha iyi bir referanstır. Burada ek bir fizik
+    gerekçesi de var — Re=3e5 NACA0012 için GEÇİŞ rejimidir ve tam-türbülanslı
+    RANS orada yanlıştır (deponun naca2412'de ölçtüğü ders).
+    """
+    import validate_pipeline as vpl
+    from validation_anchors import ANCHORS
+    gen, _, kw = vpl._GEOM["naca0012_wing_ar6"]
+    m = gen()
+    kiris = float(m.bounds[1][0] - m.bounds[0][0])
+    re = 30.0 * kiris / 1.5e-5
+    assert abs(re - 6e6) / 6e6 < 0.02, f"çapa Re={re:.3g}, referans 6e6"
+    assert "6e6" in ANCHORS["naca0012_wing_ar6"]["Re"]
+    # Ma sikisamaz zarf icinde kalmali.
+    assert 30.0 / 340.0 < 0.3
+    # Duvar-cozunur kurulum: onceki kosu katmansizdi ve y+ 134'te takildi.
+    from vehicle_pipeline import MESH_QUALITY
+    assert MESH_QUALITY[kw["quality"]]["n_layers"] > 0, (
+        "çapa hâlâ katmansız koşuyor — 2B kanatta ölçülen teşhis "
+        "'çözüm duvar-çözünür kurulum' diyordu")

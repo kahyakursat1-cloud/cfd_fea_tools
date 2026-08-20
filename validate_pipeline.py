@@ -166,9 +166,40 @@ _GEOM = {
     # grid gerekir (TMR/C-grid yolu %1.7 GCI verdi). ÇAPA YALNIZ Cd DOĞRULAR;
     # ANCHORS["naca0012_wing_ar6"] zaten yalnız Cd referansı taşıyor, yani yanlış
     # bir iddia YOK — burada kayda geçen, aramanın tekrarlanmaması için ölçümdür.
-    "naca0012_wing_ar6": (naca0012_wing, "ucak",
-                          {"alpha_deg": 4.0, "quality": "hassas_nl",
-                           "ref_bump": "oto"}),
+    # KIRIS 0,15 -> 3,0 m: referans (Ladson TM-4074) Re=6e6'da olculdu, capa
+    # ise 3e5'te kosuyordu. 30 m/s'de kiris 3,0 m -> Re = 6e6, Ma = 0,088
+    # (sikisamaz zarf icinde). Ag maliyeti DEGISMEZ: cozunurluk kirise
+    # GORELIdir, mutlak boyuta degil.
+    #
+    # KALITE hassas_nl -> hassas: onceki kosu KATMANSIZ idi ve y+ 134,5 ile
+    # duvar-fonksiyonu bandindaydi. Depo ayni kok nedeni 2B kanatta zaten
+    # olcmustu (naca0012_re_eslesme.json, alpha=8): "y+ 16,2-356,7 ... bandin
+    # DISINA tasiyor ... Cozum duvar-cozunur kurulum". Katman kalitesi
+    # duzeltmesi (minTetQuality/relaxed) artik uretimde ve Ahmed'de tepe y+'i
+    # 16,6 kat indirdi.
+    # ILK DENEME DUSTU VE GEREKCEM YANLISTI (olculdu 2026-08-19).
+    # "Ag maliyeti degismez, cozunurluk kirise GORELIdir" demistim. Dis ag icin
+    # dogru, SINIR TABAKA icin DEGIL: ayni y+ hedefi icin ilk hucrenin kirise
+    # orani Re=3e5'te 7,2e-5 iken Re=6e6'da 4,46e-6 — 16,1 KAT daha ince
+    # olmali. Re arttikca sinir tabaka kirise gore incelir; bu gercek bir
+    # maliyet artisidir.
+    # Olculen sonuc: 12 katman istendi, 0 oruldu; y+ 636 (tepe 1540);
+    # Cl 0,067 (beklenen 0,33); Cd hatasi %163. Aracin kendi uyarisi zaten
+    # "KATMAN YAPILAMAZ: en ince ozellik 11,34 mm, yuzey hucresi 125,0 mm"
+    # ve "ref_bump=4 ile hedefe ulasilir" diyordu.
+    #
+    # DUZELTME iki parcali:
+    #  (1) ref_bump=4 ACIKCA — "oto" bu vakada yetmedi; ince firar kenari
+    #      yuzey hucresinin 0,09 kati kaliyordu, yani kanat cozulmuyordu.
+    #  (2) y+ hedefi 1 -> 50 (DUVAR FONKSIYONU). Re=6e6'da y+=1 icin gereken
+    #      ilk hucre kirisin 4,5e-6'si; boyle bir katman bu butcede orulemez.
+    #      Duvar fonksiyonu burada TAVIZ DEGIL: Ladson seti TRIPPED ve NASA TMR
+    #      onu "fully turbulent CFD kuvvetleriyle kiyas icin en uygun" diyor,
+    #      yani tam-turbulansli duvar-fonksiyonu kurulumu referansla TUTARLI.
+    "naca0012_wing_ar6": (lambda: naca0012_wing(ar=6.0, chord=3.0), "ucak",
+                          {"alpha_deg": 4.0, "quality": "hassas",
+                           "n_layers": 8, "yplus_target": 50.0,
+                           "ref_bump": 4, "max_cells": 4_000_000}),
 }
 
 # Koşulamayan çapalar — gerekçesiyle (dürüst V&V: setup-uyumsuz koşu validasyon değildir).

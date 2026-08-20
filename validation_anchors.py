@@ -139,16 +139,44 @@ ANCHORS = {
                         "TN-253 tarafı blokaj-düzeltmesiyle TÜRETİLMİŞ)"),
     },
     "naca0012_wing_ar6": {
-        "Cd": 0.020, "regime": "lifting", "Re": "3e5 (c=0.15 m, 30 m/s), α=4°",
+        # REFERANS YARI-ANALITIKTEN OLCULMUSE TASINDI (2026-08-19).
+        #
+        # ESKI: Cd=0,020, tumuyle analitik (duz-plaka Cf + form + lifting-line),
+        # u_D = %15. O kadar buyuk bir u_D ile ag ne kadar inceltilirse
+        # inceltilsin u_val %15'in ALTINA INEMEZ; capa ilkece kapanamazdi.
+        #
+        # YENI: referans IKI TERIME ayrildi ve baskin olan OLCUME baglandi
+        #   Cd = cd_profil(cl)        <- LADSON TM-4074 (olculmus, 2B kesit)
+        #      + CDi = CL^2/(pi e AR) <- lifting-line (modellenmis)
+        # Ladson noktalari depoda ZATEN kayitliydi (naca0012_re_eslesme.json,
+        # Re=6e6): a=0 -> cd 0,0082 | a=4 -> cl 0,452, cd 0,0092 | a=8 ->
+        # cl 0,862, cd 0,0132. O dosya referansin hangi Re'ye ait oldugunu da
+        # OLCMUS ve "Re6e6" demis — varsayim degil.
+        #
+        # Kesit tasima egimi Ladson'in KENDI noktasindan turetildi (a0=6,474
+        # /rad), literaturden 2*pi varsayilmadi. Prandtl sonlu-kanat duzeltmesi
+        # ZORUNLU: Ladson 2B'dir, AR=6 kanat downwash yuzunden ayni geometrik
+        # alfa'da daha AZ tasir. CL(4 derece)=0,330, CDi=0,00623,
+        # cd_profil=0,00893 -> Cd = 0,01516.
+        #
+        # RE DEGISTI: referans Re=6e6'da, capa ise 3e5'te kosuyordu. Kosul
+        # eslesmesi icin geometri olceklendi (kiris 0,15 -> 3,0 m, 30 m/s,
+        # Ma=0,088). Ag maliyeti degismez — cozunurluk kirise GORELIdir.
+        # Ek fayda: Re=3e5 NACA0012 icin GECIS rejimidir ve tam-turbulansli
+        # RANS orada yanlistir (deponun naca2412'de olctugu ders); 6e6'da
+        # akis tam turbulanslidir ve NASA TMR bu Ladson setini tam bu amacla
+        # oneriyor. Ayrinti: ar6_referans_ladson.json
+        "Cd": 0.01516, "regime": "lifting", "Re": "6e6 (c=3.0 m, 30 m/s), α=4°",
         "aref": "planform",
-        "ref": ("YARI-ANALİTİK (±%15): türbülanslı profil Cd0≈0.014 (düz-plaka Cf "
-                "+ form) + lifting-line CDi=CL²/(πeAR), CL≈0.32, e≈0.9 — Anderson; "
-                "deneysel tekil referans yok, band ölçümü bu belirsizlikle etiketli"),
-        # BELIRSIZLIK METINDE YAZILIYDI AMA SAYI OLARAK TASINMIYORDU, dolayisiyla
-        # ayrilabilirlik hesabina HIC girmiyordu. ASME V&V 20'de karsilastirma
-        # belirsizligi u_val = sqrt(u_num^2 + u_input^2 + u_D^2); referans
-        # belirsizligi (u_D) o toplamin bileseni. Burada BASKIN bilesen odur.
-        "u_ref_pct": 15.0,
+        "ref": ("Ladson NASA TM-4074 (Langley LTPT, tripped, Re=6e6) profil "
+                "sürüklemesi ÖLÇÜLMÜŞ + Prandtl lifting-line indüklenen "
+                "sürükleme MODELLENMİŞ (e=0,90–0,952)"),
+        # ALT SINIR: yalniz induklenen terimin model belirsizligini (e bandi)
+        # kapsar. Ladson'in DENEYSEL belirsizligi bu depoda dogrulanmadi, o
+        # yuzden profil tarafina belirsizlik YAZILMADI.
+        "u_ref_pct": 1.0,
+        "u_ref_sinif": ("ALT SINIR (yalnız e bandı; Ladson'ın deneysel "
+                        "belirsizliği doğrulanmadı)"),
     },
 }
 

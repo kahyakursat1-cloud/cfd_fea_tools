@@ -3,17 +3,13 @@
   "_neden": "Deger LITERATUR-ONCULUYDU ve rejimden bagimsiz uygulaniyordu. Bagli akis, ayrilmis akis ve kunt cisim ayni model-form hatasini tasimaz.",
   "capalar": [
     {
-      "capa": "küp",
+      "_atlanan_arsiv": "gci_kup_arac.json",
+      "capa": "küp (arşiv)",
       "rejim": "bluff",
-      "sapma_pct": 64.36,
-      "ham_sapma_pct": 6.03,
-      "u_sayisal_pct": 58.33,
-      "ayrilabilir_mi": false,
-      "yplus_ort": 112.83,
-      "yplus_max": 338.17,
-      "yplus_kaynak": "hücre sayısı birebir eşleşti (888,377)",
-      "yplus_kosu": "dogrulama_kup",
-      "referans": "Hoerner 1965, Fluid-Dynamic Drag; Re>1e4 Re-bagimsiz"
+      "sapma_pct": null,
+      "_gecersiz": true,
+      "_gecersiz_neden": "ARŞİV BAYAT — hücre tavanı 2,5M→4M düzeltmesinden ÖNCEYE ait. Çapa yeniden koşuldu (_anchor_cube); taze ölçüm aynı listede 'küp (çapa koşusu)' olarak zaten var. İkisini birlikte raporlamak, düzeltilmiş bir kusuru hâlâ varmış gibi gösterirdi.",
+      "referans": "Hoerner 1965 (arşiv kaydı)"
     },
     {
       "capa": "NACA0012 α=0 (2B, bağlı akış)",
@@ -289,12 +285,12 @@
   },
   "atanamayan_capalar": [
     {
-      "capa": "küp",
+      "capa": "küp (arşiv)",
       "rejim": "bluff",
-      "sapma_pct": 64.36,
-      "u_sayisal_pct": 58.33,
-      "yplus_ort": 112.83,
-      "neden": "SAYISAL BAND ÇOK BÜYÜK (%58.3 > %15.0): bu koşunun ayrıklaştırma gürültüsü ölçmek istediği model hatasından büyük, model-form hakkında hiçbir şey söyleyemez"
+      "sapma_pct": null,
+      "yplus_ort": null,
+      "turbulence_model": null,
+      "neden": "KURULUM GEÇERSİZ — ARŞİV BAYAT — hücre tavanı 2,5M→4M düzeltmesinden ÖNCEYE ait. Çapa yeniden koşuldu (_anchor_cube); taze ölçüm aynı listede 'küp (çapa koşusu)' olarak zaten var. İkisini birlikte raporlamak, düzeltilmiş bir kusuru hâlâ varmış gibi gösterirdi."
     },
     {
       "capa": "küre",

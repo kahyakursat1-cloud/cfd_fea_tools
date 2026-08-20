@@ -223,7 +223,33 @@ def capalari_topla() -> list[dict]:
     """Her çapa: rejim, ölçülen sapma (%), duvar işlemi (varsa), referans."""
     c: list[dict] = []
 
-    kup = _j("gci_kup_arac.json")
+    # BAYAT ARSIV, KENDI YERINE GECEN OLCUMUN YANINDA DURMAMALI.
+    #
+    # `gci_kup_arac.json` bir yapilandirma duzeltmesinden (hucre tavani
+    # 2,5M -> 4M) ONCEYE ait. Kup capasi o duzeltmeden sonra YENIDEN KOSULDU
+    # ve `capa_yeniden_kosum.json` bunu acikca yaziyor: "ARSIV BAYATMIS —
+    # hata %6,03 -> %0,38, band %58,3 -> %2,67".
+    #
+    # Ama bu toplayici arsivi de topluyordu ve rapor iki "kup" satiri
+    # gosteriyordu: biri %58,3 bandla "atanamadi", digeri taze kosudan
+    # atanmis. Band KIRLENMIYORDU (sayisal tavan arsivi zaten eliyor) ama
+    # OKUYUCU yaniliyordu — arac, duzelttigi bir kusuru hala rapor ediyor
+    # gibi gorunuyordu.
+    #
+    # Taze capa kosusu varsa arsiv ATLANIR. Atlama SESSIZ DEGIL: gerekcesi
+    # asagida `_atlanan_arsivler` olarak kayda gecer.
+    _kup_taze = (KOK / "validation_anchors_runs" / "_anchor_cube" / "sonuc.json")
+    kup = None if _kup_taze.exists() else _j("gci_kup_arac.json")
+    if _kup_taze.exists():
+        c.append({"_atlanan_arsiv": "gci_kup_arac.json", "capa": "küp (arşiv)",
+                  "rejim": "bluff", "sapma_pct": None, "_gecersiz": True,
+                  "_gecersiz_neden": (
+                      "ARŞİV BAYAT — hücre tavanı 2,5M→4M düzeltmesinden ÖNCEYE "
+                      "ait. Çapa yeniden koşuldu (_anchor_cube); taze ölçüm "
+                      "aynı listede 'küp (çapa koşusu)' olarak zaten var. "
+                      "İkisini birlikte raporlamak, düzeltilmiş bir kusuru "
+                      "hâlâ varmış gibi gösterirdi."),
+                  "referans": "Hoerner 1965 (arşiv kaydı)"})
     if kup and kup.get("literatur_sapma_pct") is not None:
         _yp = ((kup.get("yplus") if isinstance(kup.get("yplus"), dict) else None)
                or _kosudan_yplus((kup.get("seviyeler") or [{}])[-1].get("cells")))
