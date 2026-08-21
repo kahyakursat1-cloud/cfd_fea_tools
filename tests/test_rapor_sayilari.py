@@ -274,3 +274,50 @@ def test_ACIK_hucrelerin_gerekcesi_kanittan_geliyor(tex):
             f"{h['rejim']}.{h['duvar']} gerekçesi kanıttan gelmiyor: "
             f"kanıttaki ölçülen sayılar {sorted(kanit)}, raporda bulunan "
             f"{sorted(ortak)}")
+
+
+def test_OLCER_sayilari_rapora_bagli(tex):
+    """KURAL: raporun ölçer tablosu CANLI ölçerlerle uyuşmalı.
+
+    ÖLÇÜLDÜ (2026-08-21, raporun baştan sona okunması): bayatlayan her sayı
+    BAĞLANMAMIŞ olandı. Hücre sayıları `test_ozet_kendi_icinde_TUTARLI` ile
+    bağlıydı ve temiz kaldı; bağlanmamış olanlar üç yerde birden şaştı:
+      * arka uç sayacı metinde 3, tabloda 9, canlı ölçerde 1 — rapor kendi
+        içinde de çelişiyordu;
+      * bellek kapısı "katsayı henüz ölçülmemiştir" diyordu, oysa ölçülmüştü;
+      * kapanış kutusu "üç hücre öncül" derken aynı paragraf "ikisi" diyordu.
+    """
+    import subprocess
+    import sys
+
+    r = subprocess.run([sys.executable, str(KOK / "arka_uc_sayaci.py")],
+                       capture_output=True, text=True, encoding="utf-8",
+                       errors="replace", cwd=str(KOK))
+    m = re.search(r"atlayan çağrı:\s*(\d+)\s*satır", r.stdout or "")
+    if not m:
+        pytest.skip("arka_uc_sayaci çıktısı okunamadı")
+    canli = int(m.group(1))
+
+    # Rapor AYNI sayiyi kac farkli deger olarak yaziyor?
+    yazilanlar = {int(x) for x in re.findall(r"atlayan çağrı 36'dan \textbf\{(\d+)\}", tex)}
+    yazilanlar |= {int(x) for x in re.findall(r"Sayaç 36'dan \textbf\{(\d+)\}", tex)}
+    yazilanlar |= {int(x) for x in
+                   re.findall(r"ortak katmanı atlayan çağrı & (\d+) \(36", tex)}
+    assert yazilanlar, "rapor arka uç sayacını hiç yazmıyor mu?"
+    assert len(yazilanlar) == 1, (
+        f"rapor AYNI sayacı farklı değerlerle yazıyor: {sorted(yazilanlar)}")
+    assert yazilanlar == {canli}, (
+        f"raporda {sorted(yazilanlar)}, canlı ölçerde {canli}")
+
+
+def test_rapor_OLCULMEDI_demeyen_seyi_olculmemis_saymiyor(tex):
+    """Bellek katsayısı ÖLÇÜLDÜ; rapor artık aksini söylememeli.
+
+    Eski metin "hücre başına bellek katsayısı henüz ölçülmemiştir" diyordu ve
+    hemen altındaki kutu ölçüldüğünü anlatıyordu — aynı sayfada birbirini
+    çürüten iki cümle.
+    """
+    assert "bellek katsayısı henüz ölçülmemiştir" not in tex
+    # ve olculen katsayilar rapora YAZILI olmali
+    assert "1{,}656" in tex, "meshleme katsayısı raporda yok"
+    assert "0{,}779" in tex, "çözüm katsayısı raporda yok"

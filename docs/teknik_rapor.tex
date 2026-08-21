@@ -157,8 +157,8 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-33.386 satır Python $\cdot$ 157 test dosyası $\cdot$ 1.588 geçen test\\[3mm]
-6 Ağustos 2026\par}
+36.489 satır Python $\cdot$ 165 test dosyası $\cdot$ 1.729 geçen test\\[3mm]
+21 Ağustos 2026\par}
 \end{titlepage}
 
 % ══════════════════════════════ ÖZET ══════════════════════════════
@@ -271,7 +271,8 @@ Malzeme & \texttt{materials.json}, kaynaklı ve sürümlü & 10 malzeme \\
 \multicolumn{3}{@{}l}{\textbf{Kuplaj ve optimizasyon}}\\
 1-yönlü FSI & CFD basıncı $\rightarrow$ FEA düğüm kuvveti &
   korunum makine hassasiyetinde test edilir \\
-2-yönlü FSI & Aitken ivmelendirmeli ilmek & aeroelastik ıraksama tespiti \\
+2-yönlü FSI & Aitken ilmek + hareketli ağ; uçtan uca koşuyor &
+  \textbf{fiziksel tahrik henüz gösterilmedi} (\S\ref{sec:fsi2}) \\
 Topoloji opt. & SIMP, CFD-yüklü, \emph{gerilme farkındalıklı} &
   adjoint FD-doğrulanmış (\S\ref{sec:topopt}) \\
 \midrule
@@ -412,10 +413,12 @@ $\pm\%0{,}1$ ile ``kesin'' göründü ve test tarafından yakalandı.
   \item \textbf{Bellek:} hücre bütçesi makinenin belleğiyle karşılaştırılır.
         Bütçe sabit bir sayıydı (hassas: 2{,}5 M hücre) ve makineden habersizdi;
         32\,GB'lık bir makinede rahat olan aynı ayar 8\,GB'lıkta takas-çilesi
-        demektir. Kapı \emph{engel değil uyarıdır} ve nedeni açıktır: hücre
-        başına bellek katsayısı henüz ölçülmemiştir, öncüle dayanan bir tahminle
-        saatlik bir koşuyu reddetmek ölçülmemiş bir sayıya karar verdirmek
-        olurdu. Sığmayan bütçede sığacak hücre sayısı söylenir.
+        demektir. Katsayı artık \emph{ölçülüdür} ve kapı \emph{reddeder}:
+        çözüm 0{,}779\,kB/hücre + 0{,}215\,GB ($R^2{=}0{,}96$), meshleme
+        (snappy katman adımı) 1{,}656\,kB/hücre + 0{,}055\,GB ($R^2{=}0{,}99996$).
+        Tepe ikisinin \emph{büyüğüdür} --- ardışık çalışırlar --- ve $\sim$0{,}25\,M
+        hücreden sonra bağlayıcı olan meshlemedir. Sığmayan bütçede sığacak
+        hücre sayısı, bağlayıcı aşamadan türetilerek söylenir.
 \end{itemize}
 
 \begin{anafikir}{Öncül nasıl ölçüme dönüşür --- bellek örneği}
@@ -429,6 +432,18 @@ kalacağı bir test tarafından bağlanmıştı, yani geçiş sessiz olamazdı.
 WSL2 sanal makinesi ayrı bir süreç olmadığı için tek
 koşunun kendi belleği görülemez; ölçülen sistem geneli artıştır, yani bir
 \emph{üst sınırdır} ve öyle yazılır.
+
+\smallskip
+\noindent\textbf{Kapsam beyanı bir sonraki kusuru buldu.} Bu katsayı
+\emph{çözüm} koşularından türetilmişti ve kapı bunu dürüstçe yazıyordu:
+``sığar'' hükmü ÇÖZÜM aşamasına aitti, meshleme tepesi kapsanmıyordu. Beyan
+doğru çıktı --- kapı ``6\,M hücre $\sim$6{,}07\,GB, boş 7{,}9\,GB, sığar''
+dedikten sonra \texttt{snappyHexMesh} 1319\,s'de \emph{SIGKILL} ile öldü
+(çıkış 137, \texttt{displacementMedialAxis}). Boşluk sonra ölçüldü: dört
+kademe (55\,k--568\,k hücre), \texttt{/usr/bin/time -v} tepe RSS $\rightarrow$
+1{,}656\,kB/hücre, $R^2{=}0{,}99996$. Katsayı 10$\times$ ötelenerek o
+başarısızlığı \emph{geri-tahmin} ediyor (9{,}99\,GB $>$ 7{,}9\,GB). Beyan
+edilmiş bir boşluk, sessiz bir boşluktan farklıdır: ölçülebilir.
 \end{anafikir}
 
 \subsection{Koşudan sonraki kapılar}
@@ -570,6 +585,32 @@ FEA suite işareti kanıt \emph{metninden} (\texttt{"GECTI" in sonuc}) &
 platformun en görünür yerindeydi --- yayımlanan raporun kendisinde. Bunları
 bulduran şey kapsam \emph{yüzdesi} değil, kapsamın \emph{nerede} düşük olduğunu
 sormaktı.
+
+\begin{anafikir}{Küp için RAPORLANAN band hangisi --- tek tablo}
+Dış inceleme haklı olarak sordu: ``\%3{,}15 mi \%58{,}3 mü?'' Cevap
+\emph{ikisi de değil}; ve bunun tek bakışta görünmemesi bir sunum kusuruydu.
+Kanıt dosyası (\texttt{gci\_kup\_arac.json}) üç ayrı büyüklük taşır:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Yöntem} & \textbf{Sonuç} & \textbf{Hüküm} & \textbf{Neden} \\
+\midrule
+GCI (en ince üçlü) & \%3{,}15 & geçerli & $p{=}2{,}386$, oran 0{,}96, monoton \\
+LSR (4 kademe) & \%58{,}33 & \textbf{güvenilir değil} & $p{=}0{,}06$, asimptotik-altı \\
+\textbf{Raporlanan} & \textbf{\%7{,}77} & \textbf{kanonik} & GCI $\oplus$ salınım genliği \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Ayrışmanın kök nedeni kayıtlı: en kaba kademe (23.968 hücre)
+asimptotik bölgenin dışındadır ve dört-kademeli regresyonu aşağı çeker. LSR
+kuralı bunu kendisi ilan eder (``asimptotik-altı ($p{<}0{,}5$): ekstrapolasyon
+yok'') ve kaydı \texttt{guvenilir: false} olarak işaretler --- yani \%58{,}33
+bir band \emph{iddiası} değil, o ailenin asimptotik \emph{olmadığının} ölçüsüdür.
+Raporlanan sayısal band GCI'yi salınım genliğiyle birleştirip \%7{,}77 verir;
+model-form ile birlikte toplam \%21{,}5'tir.
+\end{anafikir}
 
 \subsection*{Neden bu bir paradigma farkı}
 
@@ -1109,8 +1150,15 @@ kusur, hiç tespit edilmemiş bir kusurdan daha değerlidir.
 \clearpage
 
 % ══════════════════════════════ 4 ══════════════════════════════
-\section{Doğrulanmış Zarf}
+\section{Doğrulama--Geçerleme Kanıt Zarfı}
 \label{sec:zarf}
+
+\noindent\emph{Başlık bilerek ``Doğrulanmış Zarf'' değildir.} Türkçede
+\emph{verification} ile \emph{validation} aynı kelimeye (``doğrulama'')
+düşer ve tablo ikisini birden taşır --- üstelik her satır aynı olgunlukta
+değildir: bazıları ölçülmüş band, bazıları üst sınır, bazıları
+(stall/$C_{L\max}$) \emph{kanıt dosyası olmayan} kalemlerdir. ``Doğrulanmış''
+demek, kanıtı olmayan satırı da o iddianın altına sokardı.
 
 \begin{figure}[htbp]
 \centering
@@ -1667,6 +1715,26 @@ gerçek hücre sayısını yüzey iyileştirme kademesi belirler.
         sapması \%$+$37 çıktı. 2B kurulum span-yönü korelasyon kaybını
         temsil edemez; hücrenin kapanması için ÜÇ-BOYUTLU bir çapa gerekir
         (\S\ref{sec:urans}).
+  \item[2-yönlü FSI --- ilmek koşuyor, fizik henüz tahrik etmiyor.]
+        \label{sec:fsi2}
+        Zincirin her halkası ayrı ayrı ölçüldü: FEA deplasmanı CFD yamasına
+        rijit ötelemeyi $8{,}7\times10^{-19}$\,m hatayla taşıyor (gerçek ağ
+        geometrisinde; birim testi sentetik noktalarla yapıyordu), ağ
+        \emph{gerçekten} hareket ediyor (istenen 3{,}000\,mm uç deplasmanı,
+        ölçülen 3{,}0000\,mm; 36.502 noktanın 30.120'si kıpırdadı), CFD
+        deforme ağda \texttt{latestTime}'dan devam ediyor ve Aitken ilmeği
+        sabit-noktaya sürüyor. \textbf{Ama iki test vakası da iki-yönlü
+        kuplajı SINAMADI.} Artık dizisi her ikisinde de \emph{sabit-harita}
+        imzası verdi --- $r_1 = r_0/2$ tam, $\omega = 0{,}5 \rightarrow 1{,}0$,
+        $r_2/r_0 \approx 10^{-6}$ --- yani \texttt{map\_fn} girdiye yanıt
+        vermiyor. Fiziksel sebep meşru: 2{,}5\,mm alüminyum levha 10\textdegree{}'de
+        30\,m/s'de 0{,}186\,mm sehim yapıyor, kirişin \%0{,}06'sı; akış bunu
+        görmüyor. Bu bir başarısızlık değil \emph{doğru bir hüküm}: araç
+        ``senin vakan tek-yönlü yeter'' diyor ve yapmadığı bir şeyi yapmış
+        gibi göstermiyor. Gerçek tahrik için sehim/kiriş oranı \%1--3 gerekir.
+        Sahte yakınsamayı yakalayan kapı bu turda iki kez devreye girdi ve
+        ikisinde de gerçek bir kusura götürdü (biri: sürücü her turda
+        \emph{bayat} basınç alanını okuyordu).
   \item[Süpersonik mutlak $C_d$.] 3B-açık çözüm bu donanımda ulaşılamaz.
   \item[Panel yönteminin indüklenen direnci.] VSPAERO'nun iki $C_{Di}$ çıktısı
         da kuramdan sapar (yakın-alan $-\%21$, Trefftz $+\%62$); bu yüzden
@@ -1706,7 +1774,7 @@ gerçek hücre sayısını yüzey iyileştirme kademesi belirler.
         \texttt{wsl bash -c} çağrısını kendileri kuruyor ve arka uç seçimini
         atlıyordu: \texttt{CFD\_BACKEND=docker} ayarlandığında araç hattı
         konteynere giderken bu betikler WSL'de kalırdı --- aynı kampanyanın iki
-        yarısı farklı çözücülerde. Sayaç 36'dan \textbf{3}'e indi; bash
+        yarısı farklı çözücülerde. Sayaç 36'dan \textbf{1}'e indi; bash
         \emph{gövdesi} her taşımada aynen korundu, değişen yalnız taşıma
         katmanıdır. Son iki dosya bir sürüm boyunca ``davranış eşdeğerliği
         ölçülmeden taşınmaz'' gerekçesiyle bekledi; ölçüldüğünde engelin
@@ -1715,7 +1783,7 @@ gerçek hücre sayısını yüzey iyileştirme kademesi belirler.
         desteklemiyordu. İkisi eklendi ve eşdeğerlik ölçüldü: XFOIL poları iki
         yolla koşuldu, bağıl fark $0{,}0$; Construct2D ağı iki yolla üretildi,
         $150\times60$ düğüm ve koordinat toplamları \emph{birebir} aynı.
-        Kalan üç satır o ölçümün kendisine ait --- karşılaştırma tabanı olduğu
+        Kalan tek satır o ölçümün kendisine ait --- karşılaştırma tabanı olduğu
         için taşınamaz. Case iskelesini tekrarlayan betikler ayrı bir borç
         olarak duruyor.
 
@@ -2189,15 +2257,15 @@ olarak değil. Kanıt dosyası zincirin tamamını taşır: üretim komutu
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 33.386 & \texttt{rapor\_sayilari.py} \\
-Kök modül & 86 & \texttt{rapor\_sayilari.py} \\
-Deney / çapa betiği & 81 & \texttt{experiments/} \\
-Test dosyası & 157 & \texttt{tests/test\_*.py} \\
-Geçen test & 1.588 & \texttt{pytest -q}; raporun kendi sayısını denetleyen
+Kod satırı (kök + \texttt{analysis/}) & 36.489 & \texttt{rapor\_sayilari.py} \\
+Kök modül & 94 & \texttt{rapor\_sayilari.py} \\
+Deney / çapa betiği & 92 & \texttt{experiments/} \\
+Test dosyası & 165 & \texttt{tests/test\_*.py} \\
+Geçen test & 1.729 & \texttt{pytest -q}; raporun kendi sayısını denetleyen
   modül sayıma girmez (sonucu ölçülen niceliğe bağlı) \\
-Geçen test (coverage açık) & 1.588 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
-Satır kapsamı & \textbf{\%48} & 20.475 ifade, 10.578 kapsanmamış \\
-Süit süresi & $\sim$5 dk & 8 çekirdek \\
+Geçen test (coverage açık) & 1.729 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
+Satır kapsamı & \textbf{\%48} & 20.738 ifade, 10.596 kapsanmamış \\
+Süit süresi & $\sim$6,5 dk & 8 çekirdek \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -2361,7 +2429,7 @@ raporun kendi üretim zincirinde de çalışmaktadır.
 
 Bu geliştirmenin en sık çıkan kusuru tek bir sınıftandır: \emph{ölçüm yapılır,
 kararı veren yere ulaşmaz}. Bugüne kadar her örneği elle bulundu --- ve elle
-arama bir sonraki alan eklendiğinde tekrar tutmaz. Sınıf artık üç tarayıcıya
+arama bir sonraki alan eklendiğinde tekrar tutmaz. Sınıf artık altı tarayıcıya
 bölünmüş durumda ve her birinin izlediği sayı ayrı:
 
 \begin{center}\footnotesize
@@ -2370,12 +2438,32 @@ bölünmüş durumda ve her birinin izlediği sayı ayrı:
 \textbf{Tarayıcı} & \textbf{Yakaladığı} & \textbf{İzlenen} \\
 \midrule
 \texttt{oksuz\_alan} & üretilir, hiçbir yerde okunmaz & 0 \\
-\texttt{kanal\_ayrismasi} & yalnız bir sunum kanalında okunur & 0 \\
-\texttt{sessiz\_yutma} & gerekçesiz \texttt{except} & 0 incelenmemiş \\
-\texttt{arka\_uc\_sayaci} & ortak katmanı atlayan çağrı & 9 (36'dan indi) \\
+\texttt{kanal\_ayrismasi} & yalnız bir sunum kanalında okunur & 0 (15 gerekçeli) \\
+\texttt{sessiz\_yutma} & gerekçesiz \texttt{except} & 0 incelenmemiş (92 gerekçeli) \\
+\texttt{oksuz\_savunma} & hüküm üretir, hiç çağrılmaz & 0 (1 gerekçeli muaf) \\
+\texttt{arka\_uc\_sayaci} & ortak katmanı atlayan çağrı & 1 (36'dan indi) \\
+\texttt{kanit} & kanıt üretilebilir ve taze mi & 0 (105 kanıt) \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+\noindent Beşi tek komuttan okunur: \texttt{python saglik.py}. Toplayıcı
+\emph{kendi kapsamını da beyan eder} --- bir ölçer koşamazsa listeden sessizce
+düşmez, satırı ``ÖLÇÜLEMEDİ'' olarak kalır ve toplam hüküm ``eksik kapsamla
+verildi'' der. Aksi halde kapsamı daralmış bir ``temiz'' üretilirdi.
+
+\begin{olculdu}{Beşinci tarayıcı, dördünün ortak kör noktasını buldu}
+\texttt{oksuz\_savunma} yazılırken ona ``taranamayan dosyayı sessizce atlama,
+say ve beyan et'' kuralı konuldu. Beyan anında karşılığını verdi:
+\texttt{revise\_1001\_panel.py} UTF-8 BOM ile başlıyor ve
+\texttt{encoding="utf-8"} ile okununca BOM satır 1'e düşüp \texttt{ast.parse}'ı
+düşürüyordu --- dosya \textbf{dört tarayıcıda da} sessizce atlanıyordu.
+Yani \texttt{sessiz\_yutma}'nın ``incelenmemiş 0'' hükmü, taranmayan bir dosya
+varken veriliyordu; gerçek taban 87 değil 88'di ve fark ölçülmemiş kapsamdan
+geliyordu. Dördü \texttt{utf-8-sig}'e geçirildi, görünür olan yutma incelenip
+gerekçelendirildi. Kapsamını beyan eden bir ölçer, beyan etmeyen dördünün
+körlüğünü ortaya çıkardı.
+\end{olculdu}
 
 \noindent İkincisi bu turda yazıldı ve yazılır yazılmaz iki bulgu verdi: koşum
 hızı ile hücum açısı arayüzde \emph{formdan} okunuyordu, sonuçtan değil. Fark
@@ -2528,7 +2616,14 @@ denetimi, ağ, çözüm, polar, FEA, topoloji optimizasyonu, rapor.\\[2pt]
 \texttt{polar\_birlestirme}, \texttt{girdi\_belirsizligi}, \texttt{zarf}) ---
 kapılar, bantlar, geçerlilik sınıfı, kanıt bütünlüğü.\\[2pt]
 \textbf{Öğrenme ve arayüz} (\texttt{mentor}, \texttt{auto\_pilot},
-\texttt{app\_analyzer}) --- öneri, otomatik kurulum ve PySide6 stüdyosu.
+\texttt{app\_analyzer}) --- öneri, otomatik kurulum ve PySide6 stüdyosu.\\[2pt]
+\textbf{Kuplaj} (\texttt{coupling\_fsi}, \texttt{fsi\_twoway},
+\texttt{fsi\_surucu}) --- CFD$\leftrightarrow$FEA yük/deplasman aktarımı,
+Aitken sabit-nokta ve kuplaj turunu süren sürücü.\\[2pt]
+\textbf{Öz-denetim} (\texttt{sessiz\_yutma}, \texttt{oksuz\_alan},
+\texttt{oksuz\_savunma}, \texttt{kanal\_ayrismasi}, \texttt{kanit}) --- deponun
+kendi tekrarlayan kusur sınıflarını mekanikleştiren beş ölçer; \texttt{saglik}
+beşini tek komutta toplar ve kendi kapsamını da beyan eder.
 \end{anafikir}
 
 \begin{center}\footnotesize
@@ -2546,8 +2641,8 @@ hat, GPU \\
 \textbf{Türbülanslı URANS doğrulaması yok:} zaman-çözünür yol laminer girdap
 dökülmesinde doğrulandı, k--$\omega$ SST ile bağımsız bir çapa henüz yok.
 \textbf{Model-form:} sekiz hücrenin altısı çapalı (üç ölçüm, üç üst sınır),
-ikisi literatür öncülü. \textbf{Backend:} ortak katmanı atlayan çağrı 36'dan \textbf{3}'e
-düşürüldü; kalan üç satır eşdeğerlik ölçümünün karşılaştırma tabanıdır. Case
+ikisi literatür öncülü. \textbf{Backend:} ortak katmanı atlayan çağrı 36'dan \textbf{1}'e
+düşürüldü; kalan tek satır eşdeğerlik ölçümünün karşılaştırma tabanıdır. Case
 iskelesini yineleyen eski betikler borç olarak kaldı. \textbf{Yeniden üretilebilirlik:} çözücü sürümleri artık ölçülüyor ve
 kilit dosyasında kayıtlı (OpenFOAM \texttt{11-e1fc8c682ae6}, CalculiX 2.17);
 kanıt üreten altı betik ortam damgasını \emph{üretim anında} basıyor. Eski
@@ -2557,12 +2652,15 @@ yeniden üretim getirir. Docker taban imajı da digest'e sabitlendi
 (\texttt{sha256:fd10956e\dots}, \texttt{docker buildx imagetools inspect} ile
 ölçüldü): \texttt{:latest} değiştirilebilir bir etikettir ve aynı Dockerfile
 yarın başka bir OpenFOAM derlemesi çekebilirdi.
-\textbf{Ölçülmemişler:} model-form tablosunun üç hücresi hâlâ literatür
+\textbf{Ölçülmemişler:} model-form tablosunun iki hücresi hâlâ literatür
 öncülüyle çalışıyor ve her birinin \emph{neden} kapanmadığı kanıt dosyasına
-yazılı --- ikisinde engel ağ değil referans belirsizliğidir (\%15), yani
-inceltmekle kapanmaz; başarım \emph{tek makineyle} sınırlı --- geometri sınırı
-ikinci bir gövdeyle ölçülerek kapatıldı (\S\ref{sub:bellek}), ikinci donanım
-yok. Yol
+yazılı --- gerekçeler AYRIDIR: küt/duvar-çözümlü hücre yalnız yüksek-Re eğimli
+gövdede tanımlıdır ve Ahmed'in duvar-çözünür bütçesi (4{,}68\,M hücre,
+4{,}74\,GB) bu makinenin boş belleğini aşar; taşıma/duvar-fonksiyonu hücresinde
+koşu vardır ama sayısal bandı (\%17{,}4) referans belirsizliğini (\%15) aşar,
+yani model hatası sayısal hatadan ayrılamaz. Başarım \emph{tek makineyle}
+sınırlı --- geometri sınırı ikinci bir gövdeyle ölçülerek kapatıldı
+(\S\ref{sub:bellek}), ikinci donanım yok. Yol
 haritası bunları v1.1--v2.0 aralığına yerleştirir ve hiçbiri ``yakında'' diye
 geçiştirilmemiştir.
 \end{dikkat}
