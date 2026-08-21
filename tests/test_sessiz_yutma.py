@@ -81,7 +81,11 @@ import sessiz_yutma
 # Ikisi de yeni bir olcum yolunun parcasi: hizlanma artik ASAMA DUVAR SURESINDEN
 # degil ExecutionTime'dan hesaplaniyor (rapordaki 1,96x → 3,10x duzeltmesi).
 # Izlenen sayilar DEGISMEDI: incelenmemis 0, guven yolunda incelenmemis 0.
-TABAN_TOPLAM = 89
+TABAN_TOPLAM = 91
+# 89 -> 91 (2026-08-21): `_zamanlar` ve `_zaman_adi` — FSI kuplaj turunda
+# "ALANLARI OLAN son zaman"i bulmak icin eklendi (moveDynamicMesh AG-YALNIZ
+# zaman dizini yazar, foamRun oradan devam edemez). Ikisi de sayisal OLMAYAN
+# dizin adini eler; yutulan sey HATA degil, elemenin kriteri.
 # 88 -> 89 (2026-08-21): analysis/openfoam_runner._son_zaman — FSI kuplaj turu
 # icin eklenen `run_cfd_yeniden`'in yardimcisi. Vaka dizinindeki SAYISAL zaman
 # dizinlerini bulur; `system`, `constant`, `0.org` gibi sayisal OLMAYAN adlar
@@ -117,7 +121,9 @@ TABAN_TOPLAM = 89
 # blok bitince okunanlar döner, hiçbiri okunamazsa çağıran "dat frekans
 # taşımıyor" HATASI alır. Gerekçe kodda (kabul etiketi konuldu).
 # İzlenen sayılar DEĞİŞMEDİ: incelenmemiş 0, güven yolunda incelenmemiş 0.
-TABAN_GUVEN_YOLU = 65
+TABAN_GUVEN_YOLU = 67
+# 65 -> 67 (2026-08-21): ayni iki yardimci; `analysis/` guven yolu dizinidir.
+# INCELENMEMIS 0 kaliyor.
 # 64 -> 65 (2026-08-21): ayni kayit. `analysis/` guven yolu dizinidir, o yuzden
 # hem toplam hem guven-yolu sayaci artar; INCELENMEMIS sayisi ise 0 kalir.
 TABAN_INCELENMEMIS = 25

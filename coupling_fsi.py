@@ -322,6 +322,16 @@ def write_point_displacement(case_dir, patch_name, disp_by_point,
     Govde `fixedValue` + nonuniform liste; uzak alan sabit sifir (deformasyon
     disari tasmaz). `openfoam_runner._write_mesh_motion` iskeleti kurar, bu
     fonksiyon her kuplaj turunda GOVDE degerlerini gunceller.
+
+    TASIYICI VARSAYIM — SIRA (olculdu 2026-08-21, fsi_kiris vakasi): `disp_by_point`
+    YAMA NOKTA SIRASINDA olmalidir. Kuplaj zincirinde bu degerler `surfaces`
+    functionObject'inin ornekledigi yuzey VTK'sindan turuyor; o ornekleme
+    yamanin KENDI noktalarini KENDI sirasinda veriyor. Olcum: 38 yama noktasi,
+    38 VTK noktasi; indeks-indeks fark 5,0e-7 m ve kume-eslesme farki da
+    5,0e-7 m — IKISI BIREBIR AYNI, yani siralama ozdes (5e-7 VTK'nin ASCII
+    yazim hassasiyeti, hata degil). Ayni sayida ama FARKLI sirada bir liste
+    sessizce yanlis bir deplasman alani yazar ve hicbir sey uyarmaz; bu yuzden
+    varsayim burada YAZILI. `tests/test_coupling_fsi` bunu bagliyor.
     """
     d = np.asarray(disp_by_point, dtype=float)
     nl = chr(10)

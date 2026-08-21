@@ -175,3 +175,55 @@ def test_ag_hareketi_dosyalari_OpenFOAM_basligi_tasiyor(tmp_path):
               case_dir / "0" / "pointDisplacement"):
         t = p.read_text()
         assert "FoamFile" in t and "version" in t, f"{p.name} başlıksız"
+
+
+def test_controldict_yamasi_SUTUN_HIZALI_bicimde_de_uygulaniyor(tmp_path):
+    r"""KURAL: yama, OpenFOAM'ın KENDİ yazdığı biçimde uygulanmalı.
+
+    Eski desenler TEK boşluk varsayıyordu (r"startFrom \w+;") ama OpenFOAM
+    sözlükleri SÜTUN HİZALI yazılır ("startFrom       startTime;"). Sonuç:
+    yama deponun kendi ürettiği controlDict'lerde HİÇ TUTMUYOR, sessizce
+    hiçbir şey yapmıyor ve çağıran yamandığını sanıyordu.
+
+    ÖLÇÜLDÜ (2026-08-21, fsi_kiris): `start_from="latestTime"` istendi, dosya
+    `startTime` kaldı, foamRun hareketli ağı ATIP sıfırdan koştu (log: "Time =
+    1s") ve dönüş kodu 0 verdi. Kuplaj turunun tüm amacı sessizce boşa gitti.
+    """
+    import re
+
+    import pytest
+
+    from analysis.openfoam_runner import controldict_yamala
+
+    case = tmp_path / "vaka"
+    (case / "system").mkdir(parents=True)
+    cd = case / "system" / "controlDict"
+    # OpenFOAM'in gercek bicimi: sutun hizali
+    cd.write_text("application     foamRun;\n"
+                  "startFrom       startTime;\n"
+                  "startTime       0;\n"
+                  "stopAt          endTime;\n"
+                  "endTime         300;\n", encoding="utf-8")
+
+    controldict_yamala(case, start_from="latestTime", end_time=420)
+    t = cd.read_text(encoding="utf-8")
+    assert re.search(r"startFrom\s+latestTime;", t), "startFrom yamanmadı"
+    assert re.search(r"endTime\s+420;", t), "endTime yamanmadı"
+
+    # DOGRULAMA da baglanir: desen tutmazsa SESSIZCE gecmemeli
+    bozuk = tmp_path / "bozuk"
+    (bozuk / "system").mkdir(parents=True)
+    (bozuk / "system" / "controlDict").write_text("bosluk yok\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="YAZILAMADI"):
+        controldict_yamala(bozuk, start_from="latestTime")
+
+
+def test_yeniden_cozum_ILERLEMEYI_denetliyor():
+    # Donus kodu 0 yetmez: cozum ilerlemediyse "ok" DENMEZ. Ilk surum tam da
+    # bunu yapti ve hareketli ag atilmis bir kosuyu basarili raporladi.
+    import inspect
+
+    from analysis.openfoam_runner import run_cfd_yeniden
+    src = inspect.getsource(run_cfd_yeniden)
+    assert "COZUM ILERLEMEDI" in src
+    assert "sonra <= son" in src

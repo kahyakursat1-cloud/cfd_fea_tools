@@ -1775,16 +1775,35 @@ def controldict_yamala(case: Path, *, end_time: int | None = None,
     """
     cd = case / "system" / "controlDict"
     t = cd.read_text(encoding="utf-8")
+    # BOSLUK: OpenFOAM sozlukleri SUTUN HIZALI yazilir ("startFrom       startTime;").
+    # Eski desenler TEK bosluk varsayiyordu (r"startFrom \w+;") ve bu yuzden
+    # deponun KENDI urettigi controlDict'lerde HIC TUTMUYORDU: yama sessizce
+    # hicbir sey yapmiyor, cagiran da yamandigini saniyordu. Olculdu 2026-08-21
+    # (fsi_kiris): `start_from="latestTime"` istendi, dosya `startTime` kaldi ve
+    # foamRun hareketli agi ATIP sifirdan kostu — kuplaj turunun tum amaci
+    # sessizce bosa gitti.
+    def _yama(metin: str, anahtar: str, deger) -> str:
+        return re.sub(rf"{anahtar}\s+\S+;", f"{anahtar}    {deger};", metin, count=1)
+
     if start_from is not None:
-        t = re.sub(r"startFrom \w+;", f"startFrom {start_from};", t)
+        t = _yama(t, "startFrom", start_from)
         if start_from == "startTime":
-            t = re.sub(r"startTime \d+;", "startTime 0;", t)
+            t = _yama(t, "startTime", 0)
     if end_time is not None:
-        t = re.sub(r"endTime \d+;", f"endTime {end_time};", t)
+        t = _yama(t, "endTime", end_time)
     if yplus_ekle and "yPlus" not in t:
         t = t.replace("functions\n{", 'functions\n{\n    yPlus { type yPlus; '
                       'libs ("libfieldFunctionObjects.so"); writeControl writeTime; }')
     cd.write_text(t, encoding="utf-8")
+    # YAMA UYGULANDI MI — sessizce gecmez. Bir yamanin "yazdim" demesi
+    # yetmez; okunup DOGRULANIR, cunku bu fonksiyon tam da sessiz no-op
+    # yaptigi icin bir kuplaj turunu bosa harcadi.
+    _son = cd.read_text(encoding="utf-8")
+    for _a, _d in (("startFrom", start_from), ("endTime", end_time)):
+        if _d is not None and not re.search(rf"{_a}\s+{_d};", _son):
+            raise RuntimeError(
+                f"{cd}: `{_a} {_d};` YAZILAMADI — desen tutmadi. "
+                "controlDict bicimi beklenenden farkli olabilir.")
 
 
 def case_bul(kok: Path) -> Path | None:
@@ -1841,19 +1860,72 @@ def run_cfd_yeniden(case_dir: Path, ek_iter: int = 200,
 
     r = _wsl_run(wsl, "moveDynamicMesh -noFunctionObjects "
                       "> log.moveDynamicMesh 2>&1", timeout)
-    adimlar.append({"adim": "moveDynamicMesh", "donus": r.returncode})
+    # AG GERCEKTEN HAREKET ETTI Mi — DONUS KODU YETMEZ. Olculdu 2026-08-21
+    # (fsi_kiris): moveDynamicMesh donus kodu 0 verdi, 0,24 s'de bitti ve
+    # HICBIR zaman dizinine `polyMesh/points` YAZMADI; yani ag hic hareket
+    # etmedi ama zincir "ok" dedi. Bir kuplaj turunda bu, deformasyonu yok
+    # sayip eski geometride "yakinsadi" hukmu uretirdi.
+    _tasinan = [t for t in _zamanlar(case)
+                if (case / _zaman_adi(case, t) / "polyMesh" / "points").exists()]
+    adimlar.append({"adim": "moveDynamicMesh", "donus": r.returncode,
+                    "tasinan_ag_zamanlari": _tasinan})
     if r.returncode != 0:
         return {"durum": "AG HAREKETI DUSTU", "adimlar": adimlar,
                 "log": str(case / "log.moveDynamicMesh")}
+    if not _tasinan:
+        return {"durum": "AG HAREKET ETMEDI", "adimlar": adimlar,
+                "neden": ("moveDynamicMesh donus kodu 0 verdi ama hicbir zaman "
+                          "dizinine tasinmis polyMesh/points yazmadi. Olasi "
+                          "sebepler: controlDict `startFrom latestTime` oldugu "
+                          "icin 0/pointDisplacement okunmadi; ya da vaka "
+                          "AYRISTIRILMIS (processor*/) ve seri arac yeniden "
+                          "kurulmus agda calisti."),
+                "log": str(case / "log.moveDynamicMesh")}
 
+    # ALANLARI ILERI TASI. `moveDynamicMesh` yeni zaman dizinine yalnizca AGI
+    # yazar (polyMesh + uniform); U/p/k/omega'yi TASIMAZ. Olculdu 2026-08-21:
+    # foamRun `startFrom latestTime` ile 400'e bakti ve "cannot find file
+    # .../400/p" ile dustu. Alanlar bir onceki zamandan kopyalanir — ag
+    # hareketi topolojiyi degistirmez, yalniz noktalari tasir, bu yuzden ayni
+    # hucre-basina degerler gecerlidir ve cozum yakinsamis alandan devam eder.
     son = _son_zaman(case)
+    # KAYNAK "bir onceki zaman" DEGIL, "ALANLARI OLAN son zaman"dir. Olculdu
+    # 2026-08-21: ardisik `moveDynamicMesh` cagrilari 300/400/500'u AG-YALNIZ
+    # uretti; "bir onceki" (400) da alansizdi ve kopyalama BOS liste dondu.
+    # Alan tasiyan zamani aramak, kac kez ag hareket ettirilmis olursa olsun
+    # dogru kaynagi bulur.
+    _onceki = max((t for t in _zamanlar(case)
+                   if t < son and (case / _zaman_adi(case, t) / "p").exists()),
+                  default=None)
+    if _onceki is not None:
+        _kaynak, _hedef = case / _zaman_adi(case, _onceki), case / _zaman_adi(case, son)
+        for _f in _kaynak.iterdir():
+            if _f.is_file() and not (_hedef / _f.name).exists():
+                shutil.copy2(_f, _hedef / _f.name)
+        adimlar.append({"adim": "alan_kopyala", "kaynak": _kaynak.name,
+                        "hedef": _hedef.name,
+                        "dosya": sorted(x.name for x in _hedef.iterdir() if x.is_file())})
     controldict_yamala(case, start_from="latestTime",
                        end_time=int(son) + int(ek_iter))
     r = _wsl_run(wsl, "foamRun > log.foamRun_fsi 2>&1", timeout)
+    sonra = _son_zaman(case)
     adimlar.append({"adim": "foamRun", "donus": r.returncode,
-                    "baslangic": son, "bitis_hedefi": int(son) + int(ek_iter)})
+                    "baslangic": son, "bitis_hedefi": int(son) + int(ek_iter),
+                    "ulasilan": sonra})
     if r.returncode != 0:
         return {"durum": "COZUM DUSTU", "adimlar": adimlar,
+                "log": str(case / "log.foamRun_fsi")}
+    # ILERLEME DENETLENIR — DONUS KODU YETMEZ. Olculdu 2026-08-21 (fsi_kiris):
+    # `controldict_yamala` sessizce no-op yaptigi icin foamRun `startFrom
+    # startTime` ile SIFIRDAN kostu, hareketli agi atti, donus kodu 0 verdi ve
+    # bu fonksiyon "ok" dedi. Bir kuplaj turunda bu, eski alan uzerinde
+    # "yakinsadi" hukmu uretirdi — sahte kesinligin ta kendisi.
+    if sonra <= son:
+        return {"durum": "COZUM ILERLEMEDI", "adimlar": adimlar,
+                "neden": (f"foamRun donus kodu 0 verdi ama son zaman {son} -> "
+                          f"{sonra}: hicbir adim ilerlemedi. controlDict "
+                          f"`startFrom latestTime` uygulanmamis ya da cozum "
+                          f"ilk iterasyonda durmus olabilir."),
                 "log": str(case / "log.foamRun_fsi")}
 
     # YUZEY VTK'SI CAGIRANIN ISI. `export_surface_vtk` kok katmanda
@@ -1864,6 +1936,31 @@ def run_cfd_yeniden(case_dir: Path, ek_iter: int = 200,
             "govde_yamasi": _govde_yamasi(case), "case": str(case),
             "_sonraki": ("yüzey VTK'sı çağıran tarafından üretilir: "
                          "vehicle_pipeline.export_surface_vtk(case, govde_yamasi)")}
+
+
+def _zamanlar(case: Path) -> list[float]:
+    """Vakadaki tum sayisal zaman dizinleri."""
+    out = []
+    for p in case.iterdir():
+        try:
+            out.append(float(p.name))
+        # sessiz-yutma: kabul — sayisal OLMAYAN dizin (system, constant) zaman
+        # degildir; eleme kriterin ta kendisi, hata degil
+        except (ValueError, OSError):
+            continue
+    return sorted(out)
+
+
+def _zaman_adi(case: Path, t: float) -> str:
+    """Bir zamanin DISKTEKI dizin adi ("300" mi "300.0" mi)."""
+    for p in case.iterdir():
+        try:
+            if float(p.name) == t:
+                return p.name
+        # sessiz-yutma: kabul — sayisal olmayan dizin adi zaten aday degil
+        except (ValueError, OSError):
+            continue
+    return str(int(t)) if float(t).is_integer() else str(t)
 
 
 def _son_zaman(case: Path) -> float:
