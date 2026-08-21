@@ -145,6 +145,7 @@ def _ayirt_edilebilirlik(ka: dict, kb: dict, uyarilar: list[str]) -> dict | None
                 "hukum": "HÜKÜM VERİLEMEZ — bu band tipi için belirsizlik kayıtlı değil"}
     dcd = abs(cb - ca) / abs(ca) * 100
     band = (ua ** 2 + ub ** 2) ** 0.5
+    _rho = _rho_bilgisi(ka, kb) if esit else None
     if dcd > band:
         # UYARI VARSA "TASARIM FARKI" DENEMEZ. Kalite/hiz farkliysa olculen fark
         # mesh ya da Re etkisini de tasir; hangi payin tasarimdan geldigi bu
@@ -154,8 +155,72 @@ def _ayirt_edilebilirlik(ka: dict, kb: dict, uyarilar: list[str]) -> dict | None
                  if uyarilar else "Fark bandın DIŞINDA — gerçek tasarım farkı")
     else:
         hukum = "Fark bandın İÇİNDE — A/B ayırt edilemez"
-    return {"dCd_pct": round(dcd, 2), "band_rss_pct": round(band, 2),
-            "band_tipi": band_tipi, "gerekce": gerekce, "hukum": hukum}
+    out = {"dCd_pct": round(dcd, 2), "band_rss_pct": round(band, 2),
+           "band_tipi": band_tipi, "gerekce": gerekce, "hukum": hukum}
+    # VARSAYIM YUK TASIYORSA GORUNSUN. Eslesik dal model-form hatasini TAMAMEN
+    # goturur (rho=1). Olculdu (eslesik_korelasyon.json): bluff.wall_function
+    # hucresindeki uc capa da AYNI yone sapiyor (+3,4 / +1,8 / +9,3), yani
+    # ortak bias GERCEK ve eslestirme dayanakli. Ama vakaya ozgu sacilma
+    # (sigma=3,2%) capalarin kendi sayisal bandindan (~5%) KUCUK, yani
+    # sifirdan AYIRT EDILEMIYOR. Band bu yuzden genisletilmiyor --- ayirt
+    # edilemeyen bir sayiyla bandi sismek olcume dayanmaz.
+    #
+    # Genisletilmediginde tek risk su: fark bandin hemen disindaysa, hukum
+    # rho=1 varsayimina YASLANIR. O durum burada ADIYLA isaretlenir.
+    if _rho and _rho.get("artik_pct"):
+        genis = (band ** 2 + _rho["artik_pct"] ** 2) ** 0.5
+        if band < dcd <= genis:
+            out["varsayim_yuk_tasiyor"] = True
+            out["hukum"] += (
+                f" — ANCAK bu hüküm ρ=1 varsayımına yaslanıyor: ortak model-form "
+                f"hatasının farkta TAMAMEN götürüldüğü kabul ediliyor. Ölçülen "
+                f"korelasyon ρ={_rho['rho']:.2f} ile götürülemeyen artık "
+                f"%{_rho['artik_pct']:.1f} olurdu ve fark o bandın (%{genis:.1f}) "
+                f"İÇİNDE kalırdı")
+            out["artik_model_bandi_pct"] = round(_rho["artik_pct"], 2)
+            out["genisletilmis_band_pct"] = round(genis, 2)
+    return out
+
+
+def _rho_bilgisi(ka: dict, kb: dict) -> dict | None:
+    """Koşuların hücresi için ÖLÇÜLEN model-form korelasyonu.
+
+    Ölçüm yoksa None döner ve hiçbir şey iddia edilmez; hücre eşleşmiyorsa da
+    öyle. Bir hücrede ölçülen ρ'yu başka hücreye taşımak, tam olarak bu
+    dosyanın başka yerde reddettiği türden bir genellemedir.
+    """
+    p = HERE / "eslesik_korelasyon.json"
+    if not p.exists():
+        return None
+    try:
+        kayit = json.loads(p.read_text(encoding="utf-8"))
+    # sessiz-yutma: kabul — kanit dosyasi bozuksa korelasyon NOTU dusmeli,
+    # A/B kiyasi degil; sebep asagida hukme girmiyor cunku iddia da girmiyor
+    except (json.JSONDecodeError, OSError):
+        return None
+    return _hucre_esle(kayit, ka.get("u_model_pct"), kb.get("u_model_pct"))
+
+
+def _hucre_esle(kayit: dict, um_a: float | None, um_b: float | None) -> dict | None:
+    """Koşuların model-form HÜCRESİ — `u_model_pct` değeri üzerinden DOĞRULANIR.
+
+    Hücre adını araç tipinden yeniden türetmek cazip ama yanlış olurdu: koşu
+    kaydı rejim adını TAŞIMIYOR ve `vehicle_type` → rejim eşlemesi bu dosyada
+    ikinci bir kaynak olurdu. Koşunun taşıdığı `u_model_pct` ise hücrenin ta
+    kendisinden geliyor; birebir tutması bağı doğrular.
+
+    İki koşunun u_model'i farklıysa hücreleri de farklıdır --- o zaman zaten
+    eşleşik dal çalışmamalıydı ve burada hiçbir şey iddia edilmez. Tek bir
+    hücrede ölçülen ρ, başka hücreye TAŞINMAZ.
+    """
+    if um_a is None or um_b is None or abs(um_a - um_b) > 1e-6:
+        return None
+    aday = [{"rho": h["rho"], "artik_pct": h["artik_model_bandi_pct"], "hucre": ad}
+            for ad, h in (kayit.get("hucreler") or {}).items()
+            if h.get("artik_model_bandi_pct") is not None
+            and h.get("u_model_pct") is not None
+            and abs(float(h["u_model_pct"]) - um_a) <= 1e-6]
+    return aday[0] if len(aday) == 1 else None
 
 
 def metrik_bandi(metrik: str) -> str | None:

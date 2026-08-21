@@ -354,3 +354,20 @@ def test_rapor_YPLUS_KAPSAMI_kanit_dosyasindan_sapmiyor(tex):
         f"raporda yazılı değil")
     # ESIK DAYATILMIYOR beyani rapordan sessizce dusmemeli
     assert r"eşiği bir \emph{öneridir}" in tex
+
+
+def test_rapor_RHO_kanit_dosyasindan_sapmiyor(tex):
+    """ρ ve bileşenleri elle yazılamaz — kanıt dosyasıyla birebir tutmalı."""
+    import json
+    p = KOK / "eslesik_korelasyon.json"
+    if not p.exists():
+        pytest.skip("eslesik_korelasyon.json üretilmemiş")
+    h = json.loads(p.read_text(encoding="utf-8"))["hucreler"]
+    olculen = {k: v for k, v in h.items() if v.get("rho") is not None}
+    assert olculen, "kanıt dosyası hiç ρ taşımıyor"
+    for ad, v in olculen.items():
+        for sayi in (v["rho"], v["ortak_bias_pct"], v["sacilma_pct"]):
+            latex = f"{abs(sayi):.2f}".replace(".", "{,}")
+            assert latex in tex, f"{ad}: {latex} raporda yok — kanıt yenilendi, metin eskidi"
+    # BAND GENISLETILMEDI karari rapordan sessizce dusmemeli
+    assert "band genişletilmedi" in tex.lower()

@@ -81,7 +81,10 @@ import sessiz_yutma
 # Ikisi de yeni bir olcum yolunun parcasi: hizlanma artik ASAMA DUVAR SURESINDEN
 # degil ExecutionTime'dan hesaplaniyor (rapordaki 1,96x → 3,10x duzeltmesi).
 # Izlenen sayilar DEGISMEDI: incelenmemis 0, guven yolunda incelenmemis 0.
-TABAN_TOPLAM = 93
+TABAN_TOPLAM = 94
+# 93 -> 94 (2026-08-22): kosu_gecmisi._rho_bilgisi — olculen korelasyon kanit
+# dosyasi bozuksa rho NOTU dusmeli, A/B kiyasi degil. Iddia da dusuyor, yani
+# yutulan sey bir HUKUM degil bir EK ACIKLAMA; gerekcesi kodda yazili.
 # 92 -> 93 (2026-08-22): model_form_bandi._kanit_yplus_kapsami — kanit-JSON
 # kaynakli capalarda y+ kapsamini olcerken. Yutma DEGIL: sebep
 # `yplus_kapsam_hatasi` alanina YAZILIYOR ve kanit dosyasina giriyor. Kapsam

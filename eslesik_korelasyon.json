@@ -1,0 +1,31 @@
+{
+  "vaka": "Eşleşik karşılaştırmada model-form korelasyonu (ρ)",
+  "verdikt": "EŞLEŞTİRME DAYANAKLI (1/1 çok-çapalı hücrede tüm sapmalar AYNI yönde — ortak bias gerçek), ANCAK ρ=1 GÖSTERİLEMEDİ: saçılma hiçbir hücrede sayısal gürültüden ayrılamıyor, ölçülen σ bir ÜST SINIRDIR. Band GENİŞLETİLMEDİ; varsayımın hükmü çevirdiği aralık işaretleniyor (kosu_gecmisi._ayirt_edilebilirlik).",
+  "_neden": "kosu_gecmisi eslesik dalda rho=1 varsayiyor (model-form farkta TAMAMEN goturuluyor). Varsayim OLCULMEMISTI.",
+  "hucreler": {
+    "bluff.wall_function": {
+      "n": 3,
+      "isaretli_sapmalar_pct": [
+        3.38,
+        1.79,
+        9.31
+      ],
+      "ortak_bias_pct": 4.83,
+      "sacilma_pct": 3.23,
+      "rms_pct": 5.81,
+      "rho": 0.69,
+      "ayni_yonde_mi": true,
+      "u_model_pct": 9.31,
+      "u_sayisal_ort_pct": 5.03,
+      "sacilma_sayisaldan_ayrilabilir_mi": false,
+      "artik_model_bandi_pct": 7.33,
+      "isareti_okunamayan_capalar": [],
+      "_yorum": "σ, çapaların kendi sayısal bandından KÜÇÜK — vakaya özgü model saçılması sayısal gürültüden AYRILAMAZ; ölçülen σ bir ÜST SINIRDIR."
+    }
+  },
+  "olculebilen_hucre": [
+    "bluff.wall_function"
+  ],
+  "_kisit": "rho yalnizca COK CAPALI hucrede kestirilebilir; bugun bu kosulu saglayan hucre: bluff.wall_function. n=3 ile kestirim zayiftir ve tek hucreden TUM tabloya genellenmez. Ayrica sapmalar farkli GEOMETRILER arasindadir (disk / kup / Ahmed); kullanicinin tipik A/B kiyasi AYNI aracin iki varyantidir ve orada ortak olan daha COKTUR. Bu yuzden olculen sacilma, ayni-arac A/B icin bir UST SINIRDIR.",
+  "_uretim": "Üretim: python experiments/eslesik_korelasyon.py"
+}

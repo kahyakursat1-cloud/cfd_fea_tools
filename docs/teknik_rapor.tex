@@ -779,6 +779,54 @@ verilemez'' der. Eski sürüm bu koşularda da bir sayı basıyordu --- hem de h
 ile yeniden koşmaktır; araç bunu ekranda söylüyor.
 \end{dikkat}
 
+\subsection{Eşleştirme neyi götürüyor: $\rho$ ölçüldü}
+\label{sub:rho}
+
+Eşleşik dal ortak model-form hatasını farkta \emph{tamamen} götürüyor. Bu
+$\rho{=}1$ demektir ve varsayım ölçülmemişti. Genel biçim tektir:
+\[
+u_{\Delta}^2 = u_{n,A}^2 + u_{n,B}^2 + u_{m,A}^2 + u_{m,B}^2
+               - 2\rho\,u_{m,A}u_{m,B}
+\]
+$\rho{=}1$ ve $u_{m,A}{=}u_{m,B}$ iken model terimi tam sıfırlanır (bugünkü
+eşleşik dal), $\rho{=}0$ iken tam RSS'e döner (eşleşmemiş dal). Arada bir yer
+yoktu.
+
+Model hatası $e_i = \mu + \varepsilon_i$ biçimindeyse --- $\mu$ hücreye ortak
+sistematik bias, $\varepsilon_i$ vakaya özgü saçılma --- iki farklı vakanın
+hatası arasındaki korelasyon $\rho = \mu^2/(\mu^2+\sigma^2)$ olur ve ikisi de
+çapa sapmalarından kestirilir. Bugün bu koşulu sağlayan tek hücre
+\texttt{bluff.wall\_function}: işaretli sapmalar \%$+3{,}38$ (disk),
+\%$+1{,}79$ (küp), \%$+9{,}31$ (Ahmed). \textbf{Üçü de aynı yönde} --- ortak
+bias $+4{,}83\%$ gerçek ve eşleştirmenin dayanağı ölçülmüş oldu. Saçılma
+$\sigma = 3{,}23\%$, buradan $\hat\rho = 0{,}69$.
+
+İşaret şart: mutlak değerlerle çalışılsaydı zıt yöne sapan iki çapa aynı yönde
+görünür ve $\rho$ sistematik olarak şişerdi.
+
+\begin{dikkat}{Saçılma sayısal gürültüden ayrılamıyor --- band genişletilmedi}
+Ölçülen $\sigma{=}3{,}23\%$, çapaların \emph{kendi} ayrıklaştırma bandından
+($\approx\!5\%$) küçük. Vakaya özgü model saçılmasının ne kadarının modelden
+ne kadarının ağdan geldiği bu veriden çıkmaz; $\sigma$ bir kestirim değil
+\textbf{üst sınırdır}. Ayırt edilemeyen bir sayıyla bandı şişirmek ölçüme
+dayanmaz, o yüzden eşleşik band olduğu gibi bırakıldı.
+
+Karşılığında varsayımın \emph{yük taşıdığı} durum işaretleniyor: fark bandın
+hemen dışındaysa ($u_\Delta < \Delta C_d \le \sqrt{u_\Delta^2+u_{\text{artık}}^2}$,
+hücre için \%5{,}7--\%9{,}3), hüküm ``gerçek tasarım farkı'' der \emph{ve}
+bunun $\rho{=}1$ kabulüne yaslandığını, $\hat\rho{=}0{,}69$ ile farkın
+genişletilmiş bandın içinde kalacağını aynı cümlede söyler. Farkın rahatça
+içinde ya da rahatça dışında olduğu durumlarda uyarı yazılmaz --- her hükme
+basılan bir uyarı okunmaz hale gelirdi.
+\end{dikkat}
+
+\noindent İki kısıt açık: $n{=}3$ ile kestirim zayıftır ve tek hücreden tabloya
+genellenmez (ölçülen $\rho$ yalnız $u_m$'i birebir tutan koşulara uygulanır).
+Sapmalar ayrıca farklı \emph{geometriler} arasındadır --- disk, küp, Ahmed ---
+oysa tipik A/B kıyası aynı aracın iki varyantıdır ve orada ortak olan pay daha
+çoktur. Ölçülen saçılma bu yüzden aynı-araç karşılaştırması için de bir üst
+sınırdır.
+
 \subsection{Duvar işlemi duvarın ne kadarını temsil ediyor}
 \label{sub:yplus-kapsam}
 
