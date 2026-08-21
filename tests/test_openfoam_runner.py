@@ -153,7 +153,12 @@ def test_ag_hareketi_2YONLU_FSI_nin_EKSIK_HALKASI(tmp_path):
     """
     case_dir = build_case(_box_case(tmp_path, mesh_motion=True), tmp_path / "out")
     dm = (case_dir / "constant" / "dynamicMeshDict").read_text()
-    assert "dynamicMotionSolverFvMesh" in dm
+    # BU TEST ESKI SOZDIZIMINI PINLIYORDU ve gecerken OZELLIK CALISMIYORDU:
+    # `dynamicMotionSolverFvMesh` OF 9/.com bicimidir, OF 11 onu SESSIZCE yok
+    # sayar (hata yok, ag statik kurulur, arac donus kodu 0 verir). Test yesil,
+    # ag hareketsizdi. Olculdu 2026-08-21; artik OF 11 bicimi araniyor.
+    assert "mover" in dm and "motionSolver" in dm
+    assert "dynamicFvMesh" not in dm, "OF 9 bicimi geri geldi"
     assert "displacementLaplacian" in dm
     # Ters-mesafe yayilimi hareketi cisme yakin tutar; uzak alan ag kalitesi korunur.
     assert "inverseDistance" in dm
@@ -262,3 +267,42 @@ def test_hareket_adimi_KULLANIMDAN_KALKMIS_araci_kullanmiyor():
     src = inspect.getsource(run_cfd_yeniden)
     assert "foamRun -solver movingMesh" in src
     assert "-noFunctionObjects" in src, "forceCoeffs U/p isteyip dusuruyor"
+
+
+def test_ag_hareketi_OF11_sozdizimi_ve_COZUCU_girdileri(tmp_path):
+    """KURAL: ağ hareketi kurulumu OF 11 biçiminde olmalı ve gerekli lineer
+    çözücüleri de kurmalı.
+
+    ÖLÇÜLDÜ (2026-08-21, fsi_kiris — dokuz engel elendikten sonra):
+      * `dynamicFvMesh dynamicMotionSolverFvMesh;` OF 9/.com biçimidir ve OF 11
+        onu SESSİZCE YOK SAYAR: hata yok, uyarı yok, ağ statik kurulur, araç
+        dönüş kodu 0 verir. Log'da "Selecting solver movingMesh" görünür ama
+        hareket çözücüsünün seçildiğine dair TEK SATIR yoktur.
+      * `displacementLaplacian` fvSolution'da `cellDisplacement` ister
+        ("keyword cellDisplacement is undefined").
+      * Hareketli ağda çözüm ayrıca `pcorr` ister (süreklilikle tutarlı ağ
+        akısı için basınç düzeltmesi).
+    Üçü de aynı kurulumun parçası; birini yazıp ötekini unutmak bir sonraki
+    koşuda düşürür — bu yüzden hepsi TEK yerde kurulur ve burada bağlanır.
+    """
+    from analysis.openfoam_runner import _write_mesh_motion
+
+    case = tmp_path / "vaka"
+    (case / "constant").mkdir(parents=True)
+    (case / "0").mkdir()
+    (case / "system").mkdir()
+    (case / "system" / "fvSolution").write_text(
+        "solvers\n{\n    p\n    {\n        solver PCG;\n    }\n}\n",
+        encoding="utf-8")
+
+    _write_mesh_motion(case, "kiris")
+
+    dmd = (case / "constant" / "dynamicMeshDict").read_text(encoding="utf-8")
+    assert "mover" in dmd and "type            motionSolver;" in dmd
+    assert "dynamicFvMesh" not in dmd, "OF 9 biçimi geri geldi (OF 11 yok sayar)"
+    assert "libfvMeshMovers.so" in dmd
+    assert "1(kiris)" in dmd, "yama listesi OF 11'de sayı-önekli olmalı"
+
+    fv = (case / "system" / "fvSolution").read_text(encoding="utf-8")
+    assert "cellDisplacement" in fv
+    assert "pcorr" in fv

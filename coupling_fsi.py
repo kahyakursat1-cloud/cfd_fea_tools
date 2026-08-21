@@ -347,7 +347,10 @@ def write_point_displacement(case_dir, patch_name, disp_by_point,
     g += [f"    {patch_name}", "    {", "        type            fixedValue;",
           "        value           nonuniform List<vector>", str(len(d)), "("]
     g += [f"({v[0]:.9e} {v[1]:.9e} {v[2]:.9e})" for v in d]
-    g += [")", "    }", "}", ""]
+    # LISTE KAPANISI NOKTALI VIRGULLE BITER. ")" yeterli degil: OpenFOAM
+    # "ill defined primitiveEntry starting at keyword 'value'" ile duser.
+    # Olculdu 2026-08-21 (fsi_kiris, 702/pointDisplacement satir 93).
+    g += [");", "    }", "}", ""]
     # HEDEF ZAMAN PARAMETRELI. Sabit "0" yeterli degil: cozucu `startFrom
     # latestTime` ile kosarsa 0/ dizinini HIC OKUMAZ ve deplasman uygulanmaz.
     # Olculdu 2026-08-21 (fsi_kiris): controlDict latestTime=605 idi, alan

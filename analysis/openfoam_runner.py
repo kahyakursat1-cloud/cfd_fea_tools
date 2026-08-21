@@ -648,16 +648,55 @@ def _write_mesh_motion(case_dir: Path, surface_name: str,
     (kanat burulması gibi) bu yetmez ve yeniden-meshleme gerekir — o SINIR
     burada AÇIKÇA belirtilir, sessizce varsayılmaz.
     """
+    # OF 11 SOZDIZIMI. Onceki surum `dynamicFvMesh dynamicMotionSolverFvMesh;`
+    # yaziyordu — bu OF 9/.com bicimi ve OF 11 onu SESSIZCE YOK SAYIYOR: hata
+    # yok, uyari yok, ag statik kuruluyor ve arac donus kodu 0 veriyor.
+    # Olculdu 2026-08-21 (fsi_kiris): ALTI ayri engel elendikten sonra bile ag
+    # hareket etmedi; log'da "Selecting solver movingMesh" vardi ama hareket
+    # cozucusunun secildigine dair TEK SATIR yoktu — dict hic okunmuyordu.
+    # Referans: /opt/openfoam11/tutorials/movingMesh/SnakeRiverCanyon/
+    #           constant/dynamicMeshDict
     txt = _foam_header("dictionary", "dynamicMeshDict", "constant")
     txt += (
-        "dynamicFvMesh   dynamicMotionSolverFvMesh;\n\n"
-        "motionSolverLibs (\"libfvMotionSolvers.so\");\n\n"
-        "motionSolver    displacementLaplacian;\n\n"
-        "displacementLaplacianCoeffs\n{\n"
-        "    diffusivity     inverseDistance (%s);\n"
+        "mover\n{\n"
+        "    type            motionSolver;\n\n"
+        "    libs            (\"libfvMeshMovers.so\" \"libfvMotionSolvers.so\");\n\n"
+        "    motionSolver    displacementLaplacian;\n\n"
+        # Yama listesi OF 11'de SAYI-ONEKLI: `1(kiris)`, `(kiris)` degil.
+        "    diffusivity     inverseDistance 1(%s);\n"
         "}\n" % surface_name
     )
     (case_dir / "constant" / "dynamicMeshDict").write_text(txt)
+
+    # HAREKET COZUCUSUNUN KENDI LINEER COZUCUSU. `displacementLaplacian`
+    # `cellDisplacement` alanini cozer ve fvSolution'da bir girdi ISTER;
+    # yoksa "keyword cellDisplacement is undefined" ile duser. Ag hareketi
+    # dosyalarini yazan yer burasi oldugu icin bu girdi de BURADA kurulur —
+    # aksi halde kurulum iki dosyaya bolunur ve biri unutulur.
+    _fv = case_dir / "system" / "fvSolution"
+    if _fv.exists():
+        _t = _fv.read_text(encoding="utf-8")
+        if "cellDisplacement" not in _t:
+            # `pcorr` DE ZORUNLU: hareketli agda cozucu, ag akisinin
+            # sureklilikle tutarli olmasi icin bir BASINC DUZELTMESI cozer
+            # ("keyword pcorr is undefined"). Ikisi ayni yerde kurulur;
+            # birini yazip otekini unutmak bir sonraki kosuda duser.
+            _satir = ["    cellDisplacement", "    {",
+                      "        solver          PCG;",
+                      "        preconditioner  DIC;",
+                      "        tolerance       1e-08;",
+                      "        relTol          0;",
+                      "    }",
+                      "    pcorr", "    {",
+                      "        solver          PCG;",
+                      "        preconditioner  DIC;",
+                      "        tolerance       1e-06;",
+                      "        relTol          0;",
+                      "    }", ""]
+            _blok = chr(10).join(_satir)
+            _t = re.sub(r"(solvers\s*\n\s*\{\s*\n)", r"\1" + _blok,
+                        _t, count=1)
+            _fv.write_text(_t, encoding="utf-8")
 
     uzak = ("inlet", "outlet", "top", "front", "back")
     txt = _foam_header("volVectorField", "pointDisplacement", "0")
