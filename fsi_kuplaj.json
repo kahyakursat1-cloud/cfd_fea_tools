@@ -1,12 +1,13 @@
 {
   "vaka": "FSI kuplaj — iki yönlü (Aitken)",
-  "_uretim": "Üretim: python fsi_surucu.py vehicle_runs\\_fsi_sinama",
-  "verdikt": "✅ YAKINSADI — 3 dış iterasyon, son artık 0.000e+00 m (tol 1e-07)",
+  "_uretim": "Üretim: python fsi_surucu.py vehicle_runs\\_fsi_esnek",
+  "sabit_harita_suphesi": false,
+  "verdikt": "✅ YAKINSADI — 3 dış iterasyon, son artık 2.501e-09 m (tol 1e-07)",
   "tesisat": {
     "fea_dugum": 8,
-    "cfd_nokta": 38,
-    "fea_stl": "vehicle_runs\\_fsi_sinama\\kiris_prep.stl",
-    "vtk": "vehicle_runs\\_fsi_sinama\\fsi_kiris\\postProcessing\\yuzeyBasinc\\174\\yuzey.vtk",
+    "cfd_nokta": 46,
+    "fea_stl": "vehicle_runs\\_fsi_esnek\\kanatcik_prep.stl",
+    "vtk": "vehicle_runs\\_fsi_esnek\\fsi_esnek\\postProcessing\\yuzeyBasinc\\211\\yuzey.vtk",
     "rijit_oteleme_hatasi_m": 4.336808689942018e-19,
     "tesisat": "UYUMLU",
     "_kapsam": "YALNIZ TESİSAT — parçalar uyuşuyor ve taşıma operatörü bu geometride rijit ötelemeyi hatasız taşıyor. Fiziksel yakınsama İDDİA EDİLMİYOR; o GERÇEK kuplaj turundan gelir."
@@ -14,30 +15,30 @@
   "yakinsadi": true,
   "iterasyon": 3,
   "artik_gecmisi": [
-    5.760972388623925e-06,
-    2.8804861943119625e-06,
-    0.0
+    0.0003710978243208484,
+    0.0001855484116744775,
+    2.5005072972108066e-09
   ],
   "omega_gecmisi": [
     0.5,
-    1.0
+    0.9999973026483958
   ],
   "tur_gecmisi": [
     {
       "tur": 1,
-      "max_disp_mm": 0.0029265299999999997,
-      "cload": "vehicle_runs\\_fsi_sinama\\fsi.cload"
+      "max_disp_mm": 0.18573099999999998,
+      "cload": "vehicle_runs\\_fsi_esnek\\fsi.cload"
     },
     {
       "tur": 2,
-      "max_disp_mm": 0.0029265299999999997,
-      "cload": "vehicle_runs\\_fsi_sinama\\fsi.cload"
+      "max_disp_mm": 0.18573099999999998,
+      "cload": "vehicle_runs\\_fsi_esnek\\fsi.cload"
     },
     {
       "tur": 3,
-      "max_disp_mm": 0.0029265299999999997,
-      "cload": "vehicle_runs\\_fsi_sinama\\fsi.cload"
+      "max_disp_mm": 0.185732,
+      "cload": "vehicle_runs\\_fsi_esnek\\fsi.cload"
     }
   ],
-  "max_disp_mm": 0.0029265299999999997
+  "max_disp_mm": 0.1857307495090946
 }

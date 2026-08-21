@@ -71,7 +71,30 @@ def _cfd_yama_noktalari(vaka: KuplajVakasi):
 
 
 def _son_vtk(vaka: KuplajVakasi) -> str:
-    """En güncel yüzey-basınç VTK'sı. YOKSA HATA — sessizce sıfır dönmez."""
+    """EN GÜNCEL yüzey-basınç VTK'sı. YOKSA HATA — sessizce sıfır dönmez.
+
+    ZAMAN'A GÖRE SEÇİLİR, ÖNBELLEĞE GÖRE DEĞİL. `resolve_cp_vtk` sonuc.json'da
+    `cp_vtk` varsa ONU döndürür; kuplaj turunda bu, her iterasyonda TABAN
+    basınç alanını okumak demektir. Ölçüldü 2026-08-21 (fsi_esnek): CFD deforme
+    ağda gerçekten yeniden çözüyordu (postProcessing'de 205, 207, 209, 211
+    üretildi) ama sürücü hepsinde 205'i okudu — FEA deplasmanı üç turda da
+    0,1857 mm çıktı, dört ondalıkta birebir aynı, ve sabit-harita kapısı
+    "SAHTE YAKINSAMA" dedi. Kapı haklıydı; kusur buradaydı.
+    """
+    kok = vaka.run_dir
+    adaylar = []
+    for yb in kok.rglob("postProcessing/yuzeyBasinc"):
+        for t in yb.iterdir():
+            try:
+                adaylar.append((float(t.name), sorted(t.glob("*.vtk"))))
+            # sessiz-yutma: kabul — sayısal olmayan dizin adı zaman değildir;
+            # eleme kriterin ta kendisi, hata değil
+            except (ValueError, OSError):
+                continue
+    adaylar = [(z, v[0]) for z, v in adaylar if v]
+    if adaylar:
+        return str(max(adaylar, key=lambda x: x[0])[1])
+
     from vehicle_fea import resolve_cp_vtk
     sonuc = {}
     sj = vaka.run_dir / "sonuc.json"
@@ -236,8 +259,19 @@ def fsi_kos(vaka: KuplajVakasi) -> dict:
     _sabit_harita = (
         len(_r) >= 3 and _r[0] > 0
         and abs(_r[1] - 0.5 * _r[0]) < 1e-3 * _r[0]      # tam yarilanma
-        and _r[-1] == 0.0                                 # TAM sifir artik
-        and bilgi["omega_history"][:2] == [0.5, 1.0]      # zorunlu omega dizisi
+        # GORELI esik — `== 0.0` YANLIS NEGATIF veriyordu. Olculdu 2026-08-21
+        # (fsi_esnek, taze basinc alaniyla): r = 3.7110e-04, 1.8555e-04,
+        # 2.5005e-09. Yarilanma TAM, omega yine 0.5/1.0, sehim uc turda da
+        # 0,18573 mm — harita hala fiilen sabit. Tek fark son artigin sifir
+        # yerine baslangicin 7 MILYONDA BIRI olmasi. Mutlak sifir sarti bu
+        # imzayi kaciriyordu.
+        and _r[-1] < 1e-4 * _r[0]                         # yanit ~yok
+        # OMEGA'DA DA TOLERANS. `== [0.5, 1.0]` ikinci bir YANLIS NEGATIF
+        # kaynagiydi: Aitken sonlu-hassasiyette 0.9999973 uretiyor, tam 1.0
+        # degil. Iki tam-esitlik denetimi de gercek veride imzayi kacirdi —
+        # kirilgan karsilastirma, dedektorun kendisini korlestiriyordu.
+        and abs(bilgi["omega_history"][0] - 0.5) < 1e-9
+        and abs(bilgi["omega_history"][1] - 1.0) < 1e-3
     )
     return {
         "vaka": "FSI kuplaj — iki yönlü (Aitken)",

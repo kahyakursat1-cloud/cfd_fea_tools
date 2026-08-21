@@ -234,3 +234,43 @@ def test_SABIT_HARITA_yakinsamasi_yakalaniyor():
     assert "_sabit_harita" in src and "SAHTE YAKINSAMA" in src
     assert "yakinsadi and not _sabit_harita" in src, (
         "sahte yakinsama 'yakinsadi' alanini hala True birakiyor")
+
+
+def test_sabit_harita_dedektoru_TAM_ESITLIGE_dayanmiyor():
+    """KURAL: imza denetimi sonlu-hassasiyet gerçeğine dayanmalı.
+
+    İlk sürüm iki TAM EŞİTLİK kullanıyordu ve ikisi de GERÇEK veride yanlış
+    negatif verdi (ölçüldü 2026-08-21, fsi_esnek):
+      * `r[-1] == 0.0` — gerçek artık 2,5005e-09 çıktı (başlangıcın 6,7e-06
+        katı, yani yanıt fiilen yok) ama tam sıfır değildi.
+      * `omega[:2] == [0.5, 1.0]` — Aitken 0,9999973 üretti, tam 1,0 değil.
+    Kırılgan karşılaştırma dedektörün kendisini körleştiriyordu.
+    """
+    # AST ile denetlenir, METINLE degil: ilk surum kaynak metninde
+    # "== [0.5, 1.0]" ariyordu ve bunu DUZELTMEYI ACIKLAYAN YORUMDA buldu —
+    # yanlis pozitif. Yorum kod degildir; karsilastirma dugumlerine bakilir.
+    import ast
+    from pathlib import Path as _P
+
+    src = _P("fsi_surucu.py").read_text(encoding="utf-8")
+    agac = ast.parse(src)
+    _atama = next(n for n in ast.walk(agac)
+                  if isinstance(n, ast.Assign)
+                  and any(getattr(t, "id", "") == "_sabit_harita" for t in n.targets))
+    for c in ast.walk(_atama):
+        if isinstance(c, ast.Compare) and any(isinstance(o, ast.Eq) for o in c.ops):
+            raise AssertionError(
+                f"imza denetiminde TAM ESITLIK var: {ast.unparse(c)}")
+    # SAYI BICIMI PINLENMEZ: ast.unparse `1e-4`'u `0.0001` yazar; metinde
+    # "1e-4" aramak ucuncu kirilganlik olurdu. Aranan YAPI: son artigin
+    # BASLANGICA GORELI karsilastirilmasi ve omega'nin TOLERANSLA denetlenmesi.
+    _kod = ast.unparse(_atama)
+    assert "_r[-1] <" in _kod and "_r[0]" in _kod, "göreli artık eşiği yok"
+    assert "omega_history" in _kod and "abs(" in _kod, "omega toleransı yok"
+
+    # GERCEK olculen dizi imzayi TASIYOR olmali
+    r = [3.710978243208484e-04, 1.855484116744775e-04, 2.5005072972108066e-09]
+    om = [0.5, 0.9999973026483958]
+    assert abs(r[1] - 0.5 * r[0]) < 1e-3 * r[0]
+    assert r[-1] < 1e-4 * r[0]
+    assert abs(om[0] - 0.5) < 1e-9 and abs(om[1] - 1.0) < 1e-3
