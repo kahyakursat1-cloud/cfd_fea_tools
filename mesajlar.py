@@ -132,6 +132,22 @@ GEREKCE: dict[str, dict[str, str]] = {
         "tr": "FİZİK KAPISI: {gerekce}",
         "en": "PHYSICS GATE: {gerekce}",
     },
+    "INCE_OZELLIK_SIRKULASYON": {
+        "tr": ("İNCE ÖZELLİK ÇÖZÜLMEDİ ({hucre:.2f} hücre/özellik < {esik}): "
+               "firar kenarı ağda temsil edilmiyor, Kutta koşulu kurulamaz — "
+               "sirkülasyona bağlı büyüklük (taşıma/moment) YAYIMLANMAZ"),
+        "en": ("THIN FEATURE UNRESOLVED ({hucre:.2f} cells/feature < {esik}): "
+               "trailing edge not represented, Kutta condition cannot be set — "
+               "circulation-dependent quantity (lift/moment) NOT PUBLISHED"),
+    },
+    "INCE_OZELLIK_DIRENC": {
+        "tr": ("İnce özellik çözülmedi ({hucre:.2f} hücre/özellik < {esik}); "
+               "basınç direncinin ana bileşeni yakalanır ama özelliğin katkısı "
+               "banda GİRMEZ — sınıf EĞİLİM'e indirildi"),
+        "en": ("Thin feature unresolved ({hucre:.2f} cells/feature < {esik}); "
+               "bulk pressure drag is captured but the feature's contribution is "
+               "NOT in the band — class demoted to TREND"),
+    },
     "FIZIK_KAPISI_SUPHELI": {
         "tr": "FİZİK KAPISI (şüpheli): {gerekce}",
         "en": "PHYSICS GATE (suspect): {gerekce}",

@@ -345,6 +345,69 @@ def apply_physics_gate(verdicts: list[Verdict], fizik: dict | None) -> list[Verd
                     "FIZIK_KAPISI_SUPHELI", {"gerekce": gerekce}) for x in verdicts]
 
 
+# SIRKULASYONA BAGLI BUYUKLUKLER — firar kenari cozulmezse bunlar KURULMAZ.
+# Taşıma ve moment Kutta kosulundan dogar; keskin firar kenari agda temsil
+# edilmiyorsa sirkulasyon fiziksel olarak belirlenmemistir. Direnc farklidir:
+# basinc direncinin ana bileseni govdeden gelir ve yakalanir, yalniz ozelligin
+# kendi katkisi eksik kalir. Bu yuzden hukum BUYUKLUGE GORE ayrilir.
+_SIRKULASYON_QOI = ("C_L", "C_M", "L/D", "CL", "CM", "L_D")
+
+
+def _sirkulasyona_bagli(quantity: str) -> bool:
+    q = (quantity or "").upper().replace(" ", "")
+    return any(q.startswith(k.upper()) or k.upper() in q for k in _SIRKULASYON_QOI)
+
+
+def apply_ince_ozellik_gate(verdicts: list[Verdict],
+                            geometri_goreli: dict | None) -> list[Verdict]:
+    """İnce özellik çözülmediyse sınıfı BÜYÜKLÜĞE GÖRE ayrı indir.
+
+    Bu kapı, dış incelemenin (2026-08-21) en yerinde bulgusuydu: ölçüm zaten
+    yapılıyordu (`openfoam_runner` `ozellik_cozuldu` alanını hesaplıyor) ama
+    yalnız KAYIT olarak duruyordu --- tek tüketicisi bir deney betiğiydi,
+    geçerlilik sınıfına hiç girmiyordu. Bu deponun baskın kusuru: ölçülür,
+    kaydedilir, karara ulaşmaz.
+
+    Bir koşuya TEK ``geçerli'' etiketi vermek yanlıştır, çünkü geometri
+    çözünürlüğünün etkisi her çıktı için aynı değildir:
+      * C_L, C_M, L/D --> ZARF-DIŞI. Sirkülasyon Kutta koşulundan doğar;
+        firar kenarı yoksa taşıma ``belirsiz'' değil KURULMAMIŞTIR.
+      * C_D --> DOĞRULANMIŞ ise EĞİLİM'e iner. Basınç direncinin ana bileşeni
+        gövdeden gelir ve yakalanır; eksik olan özelliğin kendi katkısıdır ve
+        bu bandda YOKTUR. Reddetmek orantısız, ``doğrulanmış'' demek yanlış
+        olurdu.
+    Ölçüldü: MiniHawk 0,17 hücre/özellik, A320 gövdesi 0,94 --- arşivdeki 12
+    koşunun 3'ünde özellik yüzey hücresinden küçük.
+    """
+    g = geometri_goreli or {}
+    if g.get("ozellik_cozuldu") is not False:
+        return verdicts            # ölçülmedi ya da çözüldü -> dokunma
+    # ANAHTAR URETICININ SEMASINDAN: `openfoam_runner` bunu
+    # `ozellik_basina_hucre` olarak yazar. Kendi adimi uydurmak, alani hic
+    # okuyamayan sessiz bir kapi uretirdi.
+    hucre = g.get("ozellik_basina_hucre")
+    esik = OZELLIK_BASINA_HUCRE_ESIK
+    if hucre is None:
+        return verdicts            # sayı yoksa gerekçe yazılamaz; sessiz inme YOK
+    p = {"hucre": float(hucre), "esik": esik}
+    out = []
+    for x in verdicts:
+        if _sirkulasyona_bagli(x.quantity):
+            out.append(Verdict(x.quantity, OUT, False,
+                               _mesaj("INCE_OZELLIK_SIRKULASYON", **p),
+                               "INCE_OZELLIK_SIRKULASYON", dict(p)))
+        elif x.klass == VALIDATED:
+            out.append(Verdict(x.quantity, TREND, False,
+                               _mesaj("INCE_OZELLIK_DIRENC", **p),
+                               "INCE_OZELLIK_DIRENC", dict(p)))
+        else:
+            out.append(x)
+    return out
+
+
+OZELLIK_BASINA_HUCRE_ESIK = 4
+
+
 # QoI-duraganlik esigi: DRIFT_LIMIT_PCT (2.0) 'kabul edilebilir', bu ise 'oturmus'
 # demek icin DAHA SIKI. Olculen uc vaka %0.21-%0.80 araliginda kaldi.
 QOI_DURAGAN_DRIFT_PCT = 1.0

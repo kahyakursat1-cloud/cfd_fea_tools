@@ -170,6 +170,7 @@ def analiz_et(stl_path: str, *, duzeltici: bool = False,
     _dil = dil_dogrula(dil)
     from validity_envelope import (
         MACH_INCOMP,
+        apply_ince_ozellik_gate,
         apply_physics_gate,
         classify_cfd,
         overall_class,
@@ -212,6 +213,9 @@ def analiz_et(stl_path: str, *, duzeltici: bool = False,
                      band_pct=mds.get("fark_pct"), Cl=r.cl, Cd=r.cd,
                      referans_hata_pct=ref_hata, u_val_pct=u_val)
     v = apply_physics_gate(v, getattr(r, "fizik_kabul", None) or {})
+    v = apply_ince_ozellik_gate(
+        v, ((getattr(r, "sinir_tabaka", None) or {})
+            .get("yuzey_cozunurlugu") or {}).get("geometri_goreli"))
 
     return {
         "surum": SURUM,

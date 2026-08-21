@@ -1357,6 +1357,7 @@ class AnalyzerWindow(QMainWindow):
                 OUT,
                 TREND,
                 VALIDATED,
+                apply_ince_ozellik_gate,
                 apply_physics_gate,
                 classify_cfd,
             )
@@ -1375,6 +1376,9 @@ class AnalyzerWindow(QMainWindow):
                 u_val_pct=((r.belirsizlik or {}).get("u_toplam_pct")
                            if getattr(r, "belirsizlik", None) else None))
             v = apply_physics_gate(v, getattr(r, "fizik_kabul", None) or {})
+            v = apply_ince_ozellik_gate(
+                v, ((getattr(r, "sinir_tabaka", None) or {})
+                    .get("yuzey_cozunurlugu") or {}).get("geometri_goreli"))
             im = {VALIDATED: "\n✅ tasarım", TREND: "\n🟡 eğilim",
                   OUT: "\n🔴 zarf-dışı"}
             out = {}

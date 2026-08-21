@@ -62,8 +62,11 @@ KABUL = {
     "kesit_vtk": "yukarıdakiyle aynı",
     "pervane": "aktüatör disk parametreleri; arayüzde pervane girdisi YOK "
                "(yalnız CLI) — bkz. test_giris_noktasi_esdegerligi",
-    "sinir_tabaka": "y⁺ ve katman ölçümü; arayüz bunu uyarı metni olarak "
-                    "`uyarilar` üzerinden gösterir",
+    # `sinir_tabaka` KALDIRILDI (2026-08-22): ayrışma ARTIK YOK. İnce-özellik
+    # kapısı (`apply_ince_ozellik_gate`) iki sunum kanalına da bağlanınca
+    # (`hizmet` ve `app_analyzer`) alan ikisinde de okunur oldu. Muafiyet
+    # kaydını bırakmak, çözülmüş bir kusuru hâlâ varmış gibi gösterirdi ve
+    # sözlük zamanla anlamını yitirirdi — testi bunu bağlıyor.
     "validity": "zarf sınıfı; arayüz aynı bilgiyi `sonuc_kapisi` hükmüyle "
                 "rozette gösterir",
 }
