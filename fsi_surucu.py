@@ -163,13 +163,34 @@ def kuplaj_haritasi(vaka: KuplajVakasi):
                                            rho=vaka.rho)
         if yukler.get("status") == "FAILED":
             raise RuntimeError(f"yük aktarımı düştü: {yukler.get('error')}")
+        # YUK GERCEKTEN UYGULANIR. Ilk surum `fsi.cload`'u yaziyor ama .inp
+        # onu HIC DAHIL ETMIYORDU: her tur AYNI statik yukle koşar, sabit-nokta
+        # ilk adimda saglanir ve dongu "yakinsadi" der. Sahte kesinligin ders
+        # kitabi ornegi olurdu. Yeni *CLOAD blogu .inp'e DOGRUDAN yazilir.
         cload = write_cload(yukler["node_forces"], str(vaka.run_dir / "fsi.cload"))
-        inp = next(vaka.run_dir.glob("*.inp"))
+        # .inp kok dizinde DEGIL alt dizinde olabilir (vehicle_fea `fea/` altina
+        # yaziyor); rglob kullanilir.
+        inp = next(vaka.run_dir.rglob("*.inp"))
+        _t = inp.read_text(encoding="utf-8")
+        _i = _t.index("*CLOAD")
+        _j = _t.find("*", _i + 6)
+        inp.write_text(_t[:_i] + Path(cload).read_text(encoding="utf-8")
+                       + (_t[_j:] if _j > 0 else ""), encoding="utf-8")
         run_ccx(inp, timeout=1800)
 
         # 4) Yeni deplasman
         frd = parse_frd(inp.with_suffix(".frd"))
-        yeni = np.asarray(frd.displacements, float)[:K]
+        # DUGUM KIMLIGINE gore eslenir, SIRAYA gore degil. STL kosesi i,
+        # CalculiX dugumu i+1'dir (`cfd_pressure_to_fea_loads` yuku boyle
+        # anahtarliyor) — ayni anahtar uzayi kullanilarak yuk ve deplasman
+        # tutarli kalir. FRD tum tet-ag dugumlerini tasir (13.423), yalniz
+        # yuzeydekiler (K) alinir.
+        _disp = frd.fields.get("DISP")
+        if _disp is None:
+            raise RuntimeError("FRD'de DISP alani yok — CalculiX cozumu eksik")
+        _sira = {int(n): i for i, n in enumerate(frd.node_ids)}
+        yeni = np.array([_disp[_sira[i + 1]] if (i + 1) in _sira else (0.0, 0.0, 0.0)
+                         for i in range(K)], dtype=float)
         vaka.gecmis.append({"tur": len(vaka.gecmis) + 1,
                             "max_disp_mm": float(np.abs(yeni).max() * 1000),
                             "cload": cload})
@@ -199,13 +220,40 @@ def fsi_kos(vaka: KuplajVakasi) -> dict:
     x, bilgi = partitioned_fsi(map_fn, x0, tol=vaka.tol,
                                max_iter=vaka.max_dis_iter, aitken=True)
     yakinsadi = bool(bilgi["converged"])
+
+    # SABIT-HARITA IMZASI: "yakinsadi" tek basina KANIT DEGILDIR.
+    # map_fn girdiden BAGIMSIZ ayni degeri donduruyorsa (yani kuplaj aslinda
+    # TEK YONLU ise) artik dizisi cebirsel olarak ZORUNLU su sekli alir:
+    #   omega_0 = 0.5  ->  r_1 = 0.5*r_0   (tam yarisi)
+    #   Aitken sabit haritada omega_1 = 1.0 -> r_2 = 0 (TAM sifir)
+    # Olculdu 2026-08-21 (fsi_kiris): r = 5.761e-06, 2.880e-06, 0.000e+00 ve
+    # omega = 0.500, 1.000 — imzanin birebir kendisi. Fiziksel sebep mesru
+    # (6 mm aluminyum kiris 20 m/s'de 3 um sehim yapiyor, basinc alani
+    # olculebilir bicimde degismiyor) AMA o kosu iki-yonlu kuplaji SINAMAZ,
+    # yalnizca cokmedigini gosterir. Bunu "yakinsadi" diye raporlamak,
+    # tek-yonlu bir hesabi iki-yonlu gibi gostermek olurdu.
+    _r = bilgi["res_history"]
+    _sabit_harita = (
+        len(_r) >= 3 and _r[0] > 0
+        and abs(_r[1] - 0.5 * _r[0]) < 1e-3 * _r[0]      # tam yarilanma
+        and _r[-1] == 0.0                                 # TAM sifir artik
+        and bilgi["omega_history"][:2] == [0.5, 1.0]      # zorunlu omega dizisi
+    )
     return {
         "vaka": "FSI kuplaj — iki yönlü (Aitken)",
         "_uretim": f"Üretim: python fsi_surucu.py {vaka.run_dir}",
-        "verdikt": (f"{'✅ YAKINSADI' if yakinsadi else '⚠️ YAKINSAMADI'} — "
-                    f"{bilgi['iters']} dış iterasyon, son artık "
-                    f"{bilgi['res_history'][-1]:.3e} m (tol {vaka.tol:.0e})"),
-        "tesisat": tesisat, "yakinsadi": yakinsadi,
+        "sabit_harita_suphesi": _sabit_harita,
+        "verdikt": (
+            ("⚠️ SAHTE YAKINSAMA — artık dizisi SABİT-HARİTA imzası taşıyor "
+             f"(r={_r[0]:.3e}→{_r[1]:.3e}→{_r[-1]:.3e}, ω=0,5→1,0). map_fn "
+             "girdiye YANIT VERMİYOR: kuplaj fiilen TEK YÖNLÜ. Döngü çöküyor "
+             "değil ama iki-yönlü kuplajı SINAMIYOR; daha esnek yapı ya da "
+             "daha yüksek dinamik basınç gerekir.")
+            if _sabit_harita else
+            f"{'✅ YAKINSADI' if yakinsadi else '⚠️ YAKINSAMADI'} — "
+            f"{bilgi['iters']} dış iterasyon, son artık "
+            f"{bilgi['res_history'][-1]:.3e} m (tol {vaka.tol:.0e})"),
+        "tesisat": tesisat, "yakinsadi": yakinsadi and not _sabit_harita,
         "iterasyon": bilgi["iters"],
         "artik_gecmisi": bilgi["res_history"],
         "omega_gecmisi": bilgi["omega_history"],

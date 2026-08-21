@@ -194,3 +194,43 @@ def test_FSI_surucusu_eksik_parcayi_ADIYLA_soyluyor():
     src = __import__("pathlib").Path(fsi_surucu.__file__).read_text(encoding="utf-8")
     assert "NotImplementedError" in src
     assert "run_cfd_yeniden" in src
+
+
+def test_SABIT_HARITA_yakinsamasi_yakalaniyor():
+    """KURAL: "yakınsadı" tek başına iki-yönlü kuplajın KANITI DEĞİLDİR.
+
+    map_fn girdiden BAĞIMSIZ aynı değeri döndürüyorsa (kuplaj fiilen tek
+    yönlüyse) artık dizisi cebirsel olarak ZORUNLU şu şekli alır:
+        ω₀ = 0,5           → r₁ = 0,5·r₀   (tam yarılanma)
+        Aitken sabit haritada ω₁ = 1,0 → r₂ = 0 (TAM sıfır)
+
+    ÖLÇÜLDÜ (2026-08-21, fsi_kiris — ilk gerçek kuplaj turu):
+        r = 5,761e-06 → 2,880e-06 → 0,000e+00 ,  ω = 0,500 → 1,000
+    İmzanın birebir kendisi. Fiziksel sebep meşruydu (6 mm alüminyum kiriş
+    20 m/s'de 3 µm sehim yapıyor, basınç alanı ölçülebilir biçimde
+    değişmiyor) ama o koşu iki-yönlü kuplajı SINAMAZ — yalnızca çökmediğini
+    gösterir. "✅ YAKINSADI" demek tek-yönlü bir hesabı iki-yönlü gibi
+    göstermek olurdu.
+    """
+    import numpy as np
+
+    from fsi_twoway import partitioned_fsi
+
+    hedef = np.array([1e-3, -2e-3, 5e-4])
+
+    def sabit_map(_x):
+        return hedef            # girdiye YANIT VERMIYOR
+
+    _x, bilgi = partitioned_fsi(sabit_map, np.zeros(3), tol=1e-12,
+                                max_iter=10, aitken=True)
+    r = bilgi["res_history"]
+    # Imzanin gercekten olustugunu once DOGRULA, sonra dedektoru sina
+    assert abs(r[1] - 0.5 * r[0]) < 1e-9 * r[0], "yarilanma imzasi olusmadi"
+    assert r[-1] == 0.0
+    assert bilgi["omega_history"][:2] == [0.5, 1.0]
+
+    # Ve surucudeki dedektor bu imzayi taniyor olmali
+    src = __import__("pathlib").Path("fsi_surucu.py").read_text(encoding="utf-8")
+    assert "_sabit_harita" in src and "SAHTE YAKINSAMA" in src
+    assert "yakinsadi and not _sabit_harita" in src, (
+        "sahte yakinsama 'yakinsadi' alanini hala True birakiyor")

@@ -1,14 +1,43 @@
 {
-  "vaka": "FSI kuplaj — KURU KOŞU",
-  "_uretim": "Üretim: python fsi_surucu.py --kuru validation_anchors_runs\\_anchor_ahmed_25",
-  "verdikt": "⚠️ YALNIZ TESİSAT DENETLENDİ — CFD koşulmadı, fiziksel yakınsama İDDİA EDİLMİYOR",
+  "vaka": "FSI kuplaj — iki yönlü (Aitken)",
+  "_uretim": "Üretim: python fsi_surucu.py vehicle_runs\\_fsi_sinama",
+  "verdikt": "✅ YAKINSADI — 3 dış iterasyon, son artık 0.000e+00 m (tol 1e-07)",
   "tesisat": {
-    "fea_dugum": 1106,
-    "cfd_nokta": 17375,
-    "fea_stl": "validation_anchors_runs\\_anchor_ahmed_25\\_anchor_ahmed_25_prep.stl",
-    "vtk": "D:\\bilsem_beyin\\cfd_fea_tools\\validation_anchors_runs\\_anchor_ahmed_25\\_anchor_ahmed_25\\postProcessing\\yuzeyBasinc\\800\\yuzey.vtk",
-    "rijit_oteleme_hatasi_m": 8.673617379884035e-19,
+    "fea_dugum": 8,
+    "cfd_nokta": 38,
+    "fea_stl": "vehicle_runs\\_fsi_sinama\\kiris_prep.stl",
+    "vtk": "vehicle_runs\\_fsi_sinama\\fsi_kiris\\postProcessing\\yuzeyBasinc\\174\\yuzey.vtk",
+    "rijit_oteleme_hatasi_m": 4.336808689942018e-19,
     "tesisat": "UYUMLU",
     "_kapsam": "YALNIZ TESİSAT — parçalar uyuşuyor ve taşıma operatörü bu geometride rijit ötelemeyi hatasız taşıyor. Fiziksel yakınsama İDDİA EDİLMİYOR; o GERÇEK kuplaj turundan gelir."
-  }
+  },
+  "yakinsadi": true,
+  "iterasyon": 3,
+  "artik_gecmisi": [
+    5.760972388623925e-06,
+    2.8804861943119625e-06,
+    0.0
+  ],
+  "omega_gecmisi": [
+    0.5,
+    1.0
+  ],
+  "tur_gecmisi": [
+    {
+      "tur": 1,
+      "max_disp_mm": 0.0029265299999999997,
+      "cload": "vehicle_runs\\_fsi_sinama\\fsi.cload"
+    },
+    {
+      "tur": 2,
+      "max_disp_mm": 0.0029265299999999997,
+      "cload": "vehicle_runs\\_fsi_sinama\\fsi.cload"
+    },
+    {
+      "tur": 3,
+      "max_disp_mm": 0.0029265299999999997,
+      "cload": "vehicle_runs\\_fsi_sinama\\fsi.cload"
+    }
+  ],
+  "max_disp_mm": 0.0029265299999999997
 }
