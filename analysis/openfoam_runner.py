@@ -1763,6 +1763,7 @@ def parse_force_coeffs(case_dir: Path) -> tuple[float | None, float | None,
 
 def controldict_yamala(case: Path, *, end_time: int | None = None,
                        start_from: str | None = None,
+                       write_interval: int | None = None,
                        yplus_ekle: bool = False) -> None:
     """MEVCUT bir controlDict'i yamalar — yeni case iskelesi YAZMAZ.
 
@@ -1791,6 +1792,12 @@ def controldict_yamala(case: Path, *, end_time: int | None = None,
             t = _yama(t, "startTime", 0)
     if end_time is not None:
         t = _yama(t, "endTime", end_time)
+    # YAZMA ARALIGI: hareket adiminda ZORUNLU. Olculdu 2026-08-21 — movingMesh
+    # cozucusu bir adim kostu (Time = 701) ama `writeInterval 100` oldugu icin
+    # HICBIR SEY YAZMADI; ag hareket etti, sonuc diske dusmedi ve kapi hakli
+    # olarak "AG HAREKET ETMEDI" dedi.
+    if write_interval is not None:
+        t = _yama(t, "writeInterval", write_interval)
     if yplus_ekle and "yPlus" not in t:
         t = t.replace("functions\n{", 'functions\n{\n    yPlus { type yPlus; '
                       'libs ("libfieldFunctionObjects.so"); writeControl writeTime; }')
@@ -1799,7 +1806,8 @@ def controldict_yamala(case: Path, *, end_time: int | None = None,
     # yetmez; okunup DOGRULANIR, cunku bu fonksiyon tam da sessiz no-op
     # yaptigi icin bir kuplaj turunu bosa harcadi.
     _son = cd.read_text(encoding="utf-8")
-    for _a, _d in (("startFrom", start_from), ("endTime", end_time)):
+    for _a, _d in (("startFrom", start_from), ("endTime", end_time),
+                   ("writeInterval", write_interval)):
         if _d is not None and not re.search(rf"{_a}\s+{_d};", _son):
             raise RuntimeError(
                 f"{cd}: `{_a} {_d};` YAZILAMADI — desen tutmadi. "
@@ -1858,8 +1866,35 @@ def run_cfd_yeniden(case_dir: Path, ek_iter: int = 200,
     wsl = windows_to_wsl_path(case)
     adimlar = []
 
-    r = _wsl_run(wsl, "moveDynamicMesh -noFunctionObjects "
-                      "> log.moveDynamicMesh 2>&1", timeout)
+    # `moveDynamicMesh` KULLANIMDAN KALKTI. Log'un kendisi soyluyor:
+    # "moveDynamicMesh has been superseded and replaced by the more general
+    #  movingMesh solver module executed by the foamRun application".
+    # Eski cagri donus kodu 0 veriyor ve HICBIR SEY yapmiyordu.
+    #
+    # Ayrica deplasman, cozucunun OKUDUGU zamanda olmalidir: controlDict
+    # `startFrom latestTime` iken 0/pointDisplacement HIC OKUNMAZ. Bu yuzden
+    # alan, hareket adimindan once son zamana tasinir.
+    _son0 = _son_zaman(case)
+    _pd0 = case / "0" / "pointDisplacement"
+    _pdN = case / _zaman_adi(case, _son0) / "pointDisplacement"
+    if _son0 > 0 and _pd0.exists():
+        # BASLIK DA TASINIR. Duz kopyada `location "0";` kaliyor ve OpenFOAM
+        # bunu tutarlilik denetiminde kullaniyor — bayat basliklı alan
+        # okunmayabilir. Olculdu 2026-08-21: 700/pointDisplacement vardi ama
+        # basligi "0" diyordu ve ag hareket etmedi.
+        _pdN.parent.mkdir(parents=True, exist_ok=True)
+        _pdN.write_text(
+            _pd0.read_text(encoding="utf-8").replace(
+                'location    "0";', f'location    "{_zaman_adi(case, _son0)}";'),
+            encoding="utf-8")
+    controldict_yamala(case, start_from="latestTime",
+                       end_time=int(_son0) + 1, write_interval=1)
+    # -noFunctionObjects ZORUNLU: controlDict'teki forceCoeffs U ve p ister,
+    # movingMesh cozucusu o alanlari OLUSTURMAZ ("Could not find U, p" ile
+    # duser). Bayrak eski moveDynamicMesh cagrisinda vardi, gecişte dustu.
+    r = _wsl_run(wsl, "foamRun -solver movingMesh -noFunctionObjects "
+                      "> log.moveDynamicMesh 2>&1",
+                 timeout)
     # AG GERCEKTEN HAREKET ETTI Mi — DONUS KODU YETMEZ. Olculdu 2026-08-21
     # (fsi_kiris): moveDynamicMesh donus kodu 0 verdi, 0,24 s'de bitti ve
     # HICBIR zaman dizinine `polyMesh/points` YAZMADI; yani ag hic hareket

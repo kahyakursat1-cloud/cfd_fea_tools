@@ -227,3 +227,38 @@ def test_yeniden_cozum_ILERLEMEYI_denetliyor():
     src = inspect.getsource(run_cfd_yeniden)
     assert "COZUM ILERLEMEDI" in src
     assert "sonra <= son" in src
+
+
+def test_hareket_adimi_YAZMA_ARALIGINI_da_yamaliyor(tmp_path):
+    """KURAL: hareket adımı writeInterval'ı 1'e çekmeli.
+
+    ÖLÇÜLDÜ (2026-08-21): movingMesh çözücüsü bir adım koştu (Time = 701) ama
+    `writeInterval 100` olduğu için HİÇBİR ŞEY yazmadı — ağ hareket etse bile
+    sonuç diske düşmez ve kapı haklı olarak "AG HAREKET ETMEDI" der. Hareket
+    adımı tek adımdır; yazma aralığı 1 olmak zorunda.
+    """
+    import re
+
+    from analysis.openfoam_runner import controldict_yamala
+
+    case = tmp_path / "vaka"
+    (case / "system").mkdir(parents=True)
+    (case / "system" / "controlDict").write_text(
+        "startFrom       startTime;\nendTime         300;\n"
+        "writeInterval   100;\n", encoding="utf-8")
+    controldict_yamala(case, write_interval=1)
+    assert re.search(r"writeInterval\s+1;",
+                     (case / "system" / "controlDict").read_text(encoding="utf-8"))
+
+
+def test_hareket_adimi_KULLANIMDAN_KALKMIS_araci_kullanmiyor():
+    # moveDynamicMesh bu OpenFOAM surumunde superseded: log'un kendisi
+    # "replaced by the more general movingMesh solver module executed by the
+    # foamRun application" diyor. Eski cagri donus kodu 0 verip HICBIR SEY
+    # yapmiyordu — sessiz basarisizligin ders kitabi ornegi.
+    import inspect
+
+    from analysis.openfoam_runner import run_cfd_yeniden
+    src = inspect.getsource(run_cfd_yeniden)
+    assert "foamRun -solver movingMesh" in src
+    assert "-noFunctionObjects" in src, "forceCoeffs U/p isteyip dusuruyor"

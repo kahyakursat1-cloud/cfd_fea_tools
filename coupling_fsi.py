@@ -316,7 +316,8 @@ def fea_displacement_to_cfd_points(fea_nodes, fea_disp, cfd_points,
 
 def write_point_displacement(case_dir, patch_name, disp_by_point,
                              uzak_yamalar=("inlet", "outlet", "top", "bottom",
-                                           "front", "back")):
+                                           "front", "back"),
+                             zaman: str = "0"):
     """0/pointDisplacement'i GOVDE yamasinda olculen degerlerle yaz.
 
     Govde `fixedValue` + nonuniform liste; uzak alan sabit sifir (deformasyon
@@ -336,7 +337,7 @@ def write_point_displacement(case_dir, patch_name, disp_by_point,
     d = np.asarray(disp_by_point, dtype=float)
     nl = chr(10)
     g = ["FoamFile", "{", "    format      ascii;",
-         "    class       pointVectorField;", '    location    "0";',
+         "    class       pointVectorField;", f'    location    "{zaman}";',
          "    object      pointDisplacement;", "}", "",
          "dimensions      [0 1 0 0 0 0 0];", "",
          "internalField   uniform (0 0 0);", "", "boundaryField", "{"]
@@ -347,7 +348,11 @@ def write_point_displacement(case_dir, patch_name, disp_by_point,
           "        value           nonuniform List<vector>", str(len(d)), "("]
     g += [f"({v[0]:.9e} {v[1]:.9e} {v[2]:.9e})" for v in d]
     g += [")", "    }", "}", ""]
-    yol = Path(case_dir) / "0" / "pointDisplacement"
+    # HEDEF ZAMAN PARAMETRELI. Sabit "0" yeterli degil: cozucu `startFrom
+    # latestTime` ile kosarsa 0/ dizinini HIC OKUMAZ ve deplasman uygulanmaz.
+    # Olculdu 2026-08-21 (fsi_kiris): controlDict latestTime=605 idi, alan
+    # yalniz 0/'da vardi, ag hic hareket etmedi ve arac donus kodu 0 verdi.
+    yol = Path(case_dir) / str(zaman) / "pointDisplacement"
     yol.parent.mkdir(parents=True, exist_ok=True)
     yol.write_text(nl.join(g))
     return yol
