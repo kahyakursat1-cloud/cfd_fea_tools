@@ -779,6 +779,45 @@ verilemez'' der. Eski sürüm bu koşularda da bir sayı basıyordu --- hem de h
 ile yeniden koşmaktır; araç bunu ekranda söylüyor.
 \end{dikkat}
 
+\subsection{Duvar işlemi duvarın ne kadarını temsil ediyor}
+\label{sub:yplus-kapsam}
+
+Duvar işlemi etiketi ortalama ve tepe y$^+$'tan türetiliyordu. İki sayı da
+bandın içinde olabilir ve duvarın önemli bir bölümü yine bandın dışında
+kalabilir; ortalama lokal kötü bölgeleri gizler, tepe ise tek bir hücreye
+aşırı duyarlıdır. Doğru nicelik yüzdeliklerdir ve asıl soru şudur: duvar
+yasası duvarın \emph{yüzde kaçında} geçerli? Ölçüldü (alan ağırlıklı; yüz
+sayısı ağırlığı büyük bir hücreyi küçüğüyle eşit sayardı, oysa geçerlilik
+kapladığı alanla ölçülür):
+
+\begin{center}
+\begin{tabular}{lrrrr}
+\toprule
+Çapa & $p_{05}$ & $p_{50}$ & $p_{95}$ & Bantta alan \\
+\midrule
+Ahmed 25$^\circ$ & 12{,}7 & 30{,}6 & 48{,}4 & \%65{,}8 \\
+küp & 14{,}6 & 40{,}4 & 69{,}1 & \%69{,}4 \\
+disk & 3{,}0 & 36{,}5 & 81{,}3 & \%59{,}8 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Üçü de mevcut kapıdan geçiyor ama duvar yasası yüzeyin yaklaşık
+üçte birinde geçerli değil. Kapsam, çapanın \emph{kendi} duvar işlemine göre
+okunur: duvar-çözünür bir çapanın log-bandındaki alanının küçük olması kusur
+değil amacın kendisidir --- küre çapasında bu oran \%0{,}4'tür ve o sayıyı
+``yetersiz'' diye okumak tam tersini söylerdi.
+
+\%80 eşiği bir \emph{öneridir} ve banda girmez. Dayatılsaydı
+\texttt{bluff.wall\_function} hücresinin üç çapası da düşer, hücre bedeli
+ölçülmeden literatür öncülüne dönerdi; ölçülmemiş bir sıkılaştırma, ölçülmüş
+bir gevşeklikten iyi değildir. Sayı bunun yerine kanıt dosyasında durur
+(\texttt{model\_form\_bandi.json}, \texttt{yplus\_kapsam\_ozeti}), böylece
+bandın \emph{kalitesi} okunabilir. Ölçümün kendi kapsamı da beyanlı: 12
+çapanın 3'ünde ölçülebildi; geri kalanda ya duvar işlemi atanamıyor ya da
+kanıt korunurken vaka dizini diskten temizlenmiş durumda ve o çapalarda
+kapsam tahmin edilmiyor, ``ölçülmedi'' yazılıyor.
+
 % ══════════════════════════════ 3 ══════════════════════════════
 \section{Belirsizlik Nicelemesi}
 \label{sec:belirsizlik}

@@ -81,7 +81,11 @@ import sessiz_yutma
 # Ikisi de yeni bir olcum yolunun parcasi: hizlanma artik ASAMA DUVAR SURESINDEN
 # degil ExecutionTime'dan hesaplaniyor (rapordaki 1,96x → 3,10x duzeltmesi).
 # Izlenen sayilar DEGISMEDI: incelenmemis 0, guven yolunda incelenmemis 0.
-TABAN_TOPLAM = 92
+TABAN_TOPLAM = 93
+# 92 -> 93 (2026-08-22): model_form_bandi._kanit_yplus_kapsami — kanit-JSON
+# kaynakli capalarda y+ kapsamini olcerken. Yutma DEGIL: sebep
+# `yplus_kapsam_hatasi` alanina YAZILIYOR ve kanit dosyasina giriyor. Kapsam
+# olcumu duserse band uretimi durmamali, ama neden dustugu gorunmeli.
 # 91 -> 92 (2026-08-21): fsi_surucu._son_vtk — EN GUNCEL yuzey-basinc VTK'sini
 # ararken sayisal olmayan dizin adini eler. Yutulan sey HATA degil, elemenin
 # kriteri; gerekcesi kodda yazili.

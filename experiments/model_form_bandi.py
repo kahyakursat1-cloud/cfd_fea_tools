@@ -176,6 +176,137 @@ def _capa_modeli(anahtar: str) -> str:
     return kw.get("turbulence_model") or "kOmegaSST"
 
 
+
+def _vaka_eslestir(uclar: dict | None, yama: str) -> Path | None:
+    """Bir çapanın KAYITLI y⁺ ortalamasına karşılık gelen case dizini.
+
+    NEDEN GEREKLİ: basamak/levha çapaları kanıt JSON'larından geliyor ve o
+    kayıtlar case dizinini TAŞIMIYOR. Dizin adına bakıp "bu herhalde odur"
+    demek bir tahmindir; y⁺ dağılımı kademeye göre değişir ve yanlış kademeyi
+    çapaya iliştirmek ölçümü uydurmak olur.
+
+    Bağ DOĞRULANARAK kurulur: adayın y⁺ UÇLARI (min ve max) kayıtlı uçlarla
+    %0,1 içinde tutmalı VE tek aday kalmalı. Aynı ölçüt `_kosudan_yplus`'ta
+    hücre sayısı için kullanılıyor.
+
+    ORTALAMA İLE EŞLEŞTİRİLMEZ: kanıt kaydı foamPostProcess'in YÜZ-SAYISI
+    ağırlıklı ortalamasını taşıyor, bu modül ALAN ağırlıklı hesaplıyor. İkisi
+    aynı vaka için bile farklıdır (`_basamak/kOmegaSST`: kayıt 14,31 · alan
+    ağırlıklı 15,38) ve ortalamaya bakan bir ölçüt doğru vakayı REDDEDERDİ.
+    Uçlar ağırlıklandırmadan bağımsızdır.
+    """
+    if not uclar or uclar.get("max") is None:
+        return None
+    from yplus_dagilim import dagilim
+    bulunan = []
+    for aday in sorted(KOK.glob("_*/*/")):
+        if not (aday / "constant" / "polyMesh").exists():
+            continue
+        d = dagilim(aday, yama)
+        if all(d.get(k) is not None and uclar.get(k) is not None
+               and abs(d[k] - uclar[k]) <= 1e-3 * max(abs(uclar[k]), 1e-12)
+               for k in ("min", "max")):
+            bulunan.append(aday)
+    return bulunan[0] if len(bulunan) == 1 else None
+
+
+def _kanit_yplus_kapsami(uclar: dict | None, yama: str) -> dict:
+    """Kanıt-JSON kaynaklı çapalar için kapsam — vaka DOĞRULANARAK bağlanır."""
+    uclar = uclar or {}
+    duvar = _duvar_islemi(uclar.get("ort"), uclar.get("max"))
+    if not duvar:
+        return {}
+    try:
+        from yplus_dagilim import dagilim, duvar_islemi_kapsami
+        case = _vaka_eslestir(uclar, yama)
+        if case is None:
+            return {"yplus_kapsam_notu": "case dizini tek-anlamlı eşleşmedi — "
+                                         "kapsam ÖLÇÜLMEDİ (tahmin edilmedi)"}
+        k = duvar_islemi_kapsami(dagilim(case, yama), duvar)
+        if not k.get("kapsam_olculdu"):
+            return {}
+        return {"yplus_kapsam_pct": k["kapsam_pct"],
+                "yplus_kapsam_yeterli": k["yeterli"],
+                "yplus_kapsam_islemi": k["duvar_islemi"],
+                "yplus_bandda_alan_pct": k["bandda_alan_pct"],
+                "yplus_cozunur_alan_pct": k["cozunur_alan_pct"],
+                "yplus_p05": k["p05"], "yplus_p50": k["p50"], "yplus_p95": k["p95"],
+                "yplus_kapsam_vakasi": case.name,
+                "yplus_kapsam_hukmu": k["hukum"]}
+    except Exception as e:      # noqa: BLE001 — sebep KAYDEDILIYOR
+        return {"yplus_kapsam_hatasi": f"{type(e).__name__}: {e}"[:120]}
+
+
+def _kapsam_ozeti(capalar: list[dict]) -> dict:
+    """y⁺ kapsam ölçümünün KENDİ KAPSAMI — kaç çapada ölçüldü, kaçında değil.
+
+    Bir ölçerin kendi kapsamını beyan etmesi bu deponun kuralı: "hepsi iyi" ile
+    "yalnız üçüne bakabildim" arasındaki farkı okuyucu görmezse, ölçülmemiş
+    olan ölçülmüş sayılır.
+    """
+    olculen = [c for c in capalar if c.get("yplus_kapsam_pct") is not None]
+    yetersiz = [f"{c['capa']} (%{c['yplus_kapsam_pct']:.1f})"
+                for c in olculen if not c.get("yplus_kapsam_yeterli")]
+    olcusuz = [f"{c['capa']}: {c.get('yplus_kapsam_notu') or c.get('yplus_kapsam_hatasi')}"
+               for c in capalar
+               if c.get("yplus_kapsam_pct") is None
+               and (c.get("yplus_kapsam_notu") or c.get("yplus_kapsam_hatasi"))]
+    islemler = sorted({c["yplus_kapsam_islemi"] for c in olculen})
+    return {
+        "olculen_capa": len(olculen), "toplam_capa": len(capalar),
+        "esik_pct": 80.0, "esigin_altinda": yetersiz,
+        "olculemeyen": olcusuz,
+        "olculen_duvar_islemleri": islemler,
+        "_esik_dayatilmiyor": (
+            "Esik bir ONERIDIR ve bandi ETKILEMEZ. Dayatilsaydi bugun "
+            "bluff.wall_function hucresinin UC capasi da duserdi ve hucre, "
+            "bedeli olculmeden oncule donerdi. Sayi kanitta durur ki bandin "
+            "KALITESI okunabilsin."),
+        "_kapsamin_kapsami": (
+            "Kapsam yalnız case dizini ELDE OLAN capada olculebilir. Kanit-JSON "
+            "kaynakli capalarda vaka y+ UCLARIYLA dogrulanarak baglanir; "
+            "eslesmezse kapsam OLCULMEDI yazilir, tahmin edilmez. "
+            f"Bugun olculen duvar islemleri: {', '.join(islemler) or 'yok'} — "
+            "wall_resolved capalarin case dizinleri diskte YOK (kanit korundu, "
+            "vaka temizlendi), o yuzden o dal bugun URETIMDE calismiyor."),
+    }
+
+
+def _yplus_kapsami(kosu: str, sonuc: dict, duvar_islemi: str | None) -> dict:
+    """Capanin y+ DAGILIMI — ortalama/tepe ikilisinin gizledigi kapsam.
+
+    KAPSAM CAPANIN KENDI DUVAR ISLEMINE GORE OKUNUR. `duvar_islemi` yoksa
+    (y+ kayitli degil) capa zaten hicbir hucreye atanamaz ve kapsam sorusu
+    dogmaz --- bos donulur.
+
+    Bos donerse alan kanitta HIC gorunmez; "olcemedim" ile "iyi" ayrimini
+    korumak icin yalniz gercekten olculdugunde yazilir.
+    """
+    if not duvar_islemi:
+        return {}
+    try:
+        import sys
+        sys.path.insert(0, str(KOK))
+        from analysis.openfoam_runner import case_bul
+        from yplus_dagilim import dagilim, duvar_islemi_kapsami
+        case = case_bul(KOK / "validation_anchors_runs" / kosu)
+        yama = ((sonuc.get("sinir_tabaka") or {}).get("yplus") or {}).get("patch")
+        if case is None or not yama:
+            return {}
+        k = duvar_islemi_kapsami(dagilim(case, yama), duvar_islemi)
+        if not k.get("kapsam_olculdu"):
+            return {}
+        return {"yplus_kapsam_pct": k["kapsam_pct"],
+                "yplus_kapsam_yeterli": k["yeterli"],
+                "yplus_kapsam_islemi": k["duvar_islemi"],
+                "yplus_bandda_alan_pct": k["bandda_alan_pct"],
+                "yplus_cozunur_alan_pct": k["cozunur_alan_pct"],
+                "yplus_p05": k["p05"], "yplus_p50": k["p50"], "yplus_p95": k["p95"],
+                "yplus_kapsam_hukmu": k["hukum"]}
+    except Exception as e:      # noqa: BLE001 — sebep KAYDEDILIYOR
+        return {"yplus_kapsam_hatasi": f"{type(e).__name__}: {e}"[:120]}
+
+
 def _duvar_islemi(yplus_ort: float | None,
                   yplus_max: float | None = None) -> str | None:
     """y⁺ KAYITLIYSA hücre adı; değilse None (tahmin YOK).
@@ -455,6 +586,15 @@ def capalari_topla() -> list[dict]:
                   "ayrilabilirlik_notu": _ayr["gerekce"],
                   "yplus_ort": yp.get("ort"), "yplus_max": yp.get("max"),
                   "yplus_kaynak": f"çapa koşusu {kosu}",
+                  # DUVAR ISLEMI DUVARIN NE KADARINI TEMSIL EDIYOR.
+                  # Ortalama ve tepe IKISI DE bantta olabilir ve duvarin ucte
+                  # biri yine bandin disinda kalabilir; olculdu 2026-08-22:
+                  # Ahmed %65,8 · kup %69,4 · disk %59,8 alan bantta. Sayi
+                  # BANDA GIRMEZ (esik dayatilmiyor — ucunu birden dusurup
+                  # hucreyi olcmeden onucule dondururdu) ama KANITTA DURUR,
+                  # cunku bandin KALITESI bununla okunur.
+                  **_yplus_kapsami(kosu, d,
+                                   _duvar_islemi(yp.get("ort"), yp.get("max"))),
                   "referans": spec["ref"][:80]})
 
     bas = _j("basamak_ayrilma.json")
@@ -474,6 +614,7 @@ def capalari_topla() -> list[dict]:
                       "yplus_kaynak": ("foamPostProcess yPlus, 'alt' yaması "
                                        "(yeniden-yapışmanın olduğu duvar)"
                                        if _yp else None),
+                      **_kanit_yplus_kapsami(_yp, "alt"),
                       "referans": (bas.get("referans") or {}).get("kaynak", "")})
 
     # AYNI VAKA, IKI DUVAR ISLEMI. Ozgun capa alt duvarda tampon bolgedeydi
@@ -509,6 +650,7 @@ def capalari_topla() -> list[dict]:
                       "yplus_ort": _yp.get("ort"), "yplus_max": _yp.get("max"),
                       "yplus_kaynak": ("foamPostProcess yPlus, 'alt' yaması — "
                                        "3-seviye ailenin en ince ağı"),
+                      **_kanit_yplus_kapsami(_yp, "alt"),
                       "referans": (aile.get("referans") or {}).get("kaynak", "")})
     # AYNI DENEY, UCUNCU DUVAR ISLEMI. Ozgun kosu tampon bolgede (y+ 14.3),
     # duvar-cozunur aile y+ 0.048'de, bu aile y+ 43'te. Ucu de Driver &
@@ -538,6 +680,7 @@ def capalari_topla() -> list[dict]:
                       "yplus_ort": _yp.get("ort"), "yplus_max": _yp.get("max"),
                       "yplus_kaynak": ("foamPostProcess yPlus, 'alt' yaması — "
                                        "3-seviye YÖNLÜ ailenin en ince ağı"),
+                      **_kanit_yplus_kapsami(_yp, "alt"),
                       "referans": (dfn.get("referans") or {}).get("kaynak", "")})
 
     # DUZ LEVHA, DUVAR-FONKSIYONU AILESI -> attached_2d.wall_function.
@@ -796,6 +939,7 @@ def calistir() -> dict:
         "dis_kaynakli_hucreler": dis_kaynakli,
         "dusurulen_hucreler": dusurulen,
         "siralama_uyarilari": _siralama_uyarilari(birlesik, _MODEL_U_PCT),
+        "yplus_kapsam_ozeti": _kapsam_ozeti(capalar),
         "_kisit": ("Bir capanin sapmasi, o rejimdeki model-form hatasinin BIR "
                    "ORNEGIDIR. N=1 olan hucrede dagilim IDDIA EDILMEZ. Duvar "
                    "islemi kayitli olmayan capa hucreye ATANMAZ — tahmin "

@@ -321,3 +321,36 @@ def test_rapor_OLCULMEDI_demeyen_seyi_olculmemis_saymiyor(tex):
     # ve olculen katsayilar rapora YAZILI olmali
     assert "1{,}656" in tex, "meshleme katsayısı raporda yok"
     assert "0{,}779" in tex, "çözüm katsayısı raporda yok"
+
+
+def test_rapor_YPLUS_KAPSAMI_kanit_dosyasindan_sapmiyor(tex):
+    """Kapsam tablosu elle yazılamaz — kanıt dosyasıyla birebir tutmalı.
+
+    Bu deponun tekrar tekrar ürettiği kusur: sabit metin, değişen veri.
+    Kapsam yüzdeleri çapa koşuları yenilendiğinde değişir; tablo değişmezse
+    rapor sessizce eskir.
+    """
+    import json
+    p = KOK / "model_form_bandi.json"
+    if not p.exists():
+        pytest.skip("model_form_bandi.json üretilmemiş")
+    kayit = json.loads(p.read_text(encoding="utf-8"))
+    olculen = [c for c in kayit["capalar"] if c.get("yplus_kapsam_pct") is not None]
+    assert olculen, "kanıt dosyası hiç kapsam taşımıyor"
+
+    for c in olculen:
+        # LaTeX ondaligi virgulle yaziyor: \%65{,}8
+        beklenen = rf"\%{c['yplus_kapsam_pct']:.1f}".replace(".", "{,}")
+        assert beklenen in tex, (
+            f"{c['capa']} kapsamı ({beklenen}) raporda yok — kanıt yenilendi, "
+            f"tablo eskidi")
+
+    # OLCUMUN KENDI KAPSAMI: "3 / 12" ikilisi raporda GECMELI. Tek sayiyi
+    # aramak kacamak olurdu — 12 rapordaki baska bir sayiyla eslesirdi.
+    ozet = kayit["yplus_kapsam_ozeti"]
+    assert re.search(rf"{ozet['toplam_capa']}\s*\n?\s*çapanın "
+                     rf"{ozet['olculen_capa']}'ünde", tex), (
+        f"ölçümün kendi kapsamı ({ozet['olculen_capa']}/{ozet['toplam_capa']}) "
+        f"raporda yazılı değil")
+    # ESIK DAYATILMIYOR beyani rapordan sessizce dusmemeli
+    assert r"eşiği bir \emph{öneridir}" in tex

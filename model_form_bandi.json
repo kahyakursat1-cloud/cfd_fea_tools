@@ -53,6 +53,15 @@
       "yplus_ort": 31.32,
       "yplus_max": 146.21,
       "yplus_kaynak": "çapa koşusu _anchor_disk",
+      "yplus_kapsam_pct": 59.8,
+      "yplus_kapsam_yeterli": false,
+      "yplus_kapsam_islemi": "wall_function",
+      "yplus_bandda_alan_pct": 59.8,
+      "yplus_cozunur_alan_pct": 9.7,
+      "yplus_p05": 3.01,
+      "yplus_p50": 36.54,
+      "yplus_p95": 81.34,
+      "yplus_kapsam_hukmu": "duvar alanının %59.8'i 30<y+<300 (wall_function) — %80 önerisinin ALTINDA: kullanılan duvar modeli yüzeyin %40.2'inde geçerli değil",
       "referans": "Hoerner, Fluid-Dynamic Drag (1965); NACA TN-253 (Knight 1926) — blokaj-düzeltilm"
     },
     {
@@ -83,6 +92,15 @@
       "yplus_ort": 37.3,
       "yplus_max": 117.78,
       "yplus_kaynak": "çapa koşusu _anchor_cube",
+      "yplus_kapsam_pct": 69.4,
+      "yplus_kapsam_yeterli": false,
+      "yplus_kapsam_islemi": "wall_function",
+      "yplus_bandda_alan_pct": 69.4,
+      "yplus_cozunur_alan_pct": 0.0,
+      "yplus_p05": 14.62,
+      "yplus_p50": 40.41,
+      "yplus_p95": 69.05,
+      "yplus_kapsam_hukmu": "duvar alanının %69.4'i 30<y+<300 (wall_function) — %80 önerisinin ALTINDA: kullanılan duvar modeli yüzeyin %30.6'inde geçerli değil",
       "referans": "Hoerner, Fluid-Dynamic Drag (1965)"
     },
     {
@@ -98,6 +116,15 @@
       "yplus_ort": 30.41,
       "yplus_max": 74.62,
       "yplus_kaynak": "çapa koşusu _anchor_ahmed_25",
+      "yplus_kapsam_pct": 65.8,
+      "yplus_kapsam_yeterli": false,
+      "yplus_kapsam_islemi": "wall_function",
+      "yplus_bandda_alan_pct": 65.8,
+      "yplus_cozunur_alan_pct": 0.1,
+      "yplus_p05": 12.69,
+      "yplus_p50": 30.6,
+      "yplus_p95": 48.4,
+      "yplus_kapsam_hukmu": "duvar alanının %65.8'i 30<y+<300 (wall_function) — %80 önerisinin ALTINDA: kullanılan duvar modeli yüzeyin %34.2'inde geçerli değil",
       "referans": "Meile vd. 2011, CFD Letters 3(1) — cD=0,299 @ Re=2,784e6 (KOSULA ESLESIK); krs. "
     },
     {
@@ -115,7 +142,7 @@
       "yplus_ort": 14.3143,
       "yplus_max": 16.8448,
       "yplus_kaynak": "foamPostProcess yPlus, 'alt' yaması (yeniden-yapışmanın olduğu duvar)",
-      "referans": "Driver & Seegmiller, AIAA J. 23(2), 1985 â€” deneysel"
+      "referans": "Driver & Seegmiller, AIAA J. 23(2), 1985 — deneysel"
     },
     {
       "capa": "geriye-basamak (kOmegaSST, duvar-çözünür aile)",
@@ -130,6 +157,7 @@
       "yplus_ort": 0.0344597,
       "yplus_max": 0.0478726,
       "yplus_kaynak": "foamPostProcess yPlus, 'alt' yaması — 3-seviye ailenin en ince ağı",
+      "yplus_kapsam_notu": "case dizini tek-anlamlı eşleşmedi — kapsam ÖLÇÜLMEDİ (tahmin edilmedi)",
       "referans": "Driver & Seegmiller, AIAA J. 23(2), 1985 — deneysel"
     },
     {
@@ -145,6 +173,7 @@
       "yplus_ort": 42.7586,
       "yplus_max": 57.402,
       "yplus_kaynak": "foamPostProcess yPlus, 'alt' yaması — 3-seviye YÖNLÜ ailenin en ince ağı",
+      "yplus_kapsam_notu": "case dizini tek-anlamlı eşleşmedi — kapsam ÖLÇÜLMEDİ (tahmin edilmedi)",
       "referans": "Driver & Seegmiller, AIAA J. 23(2), 1985 — deneysel"
     },
     {
@@ -375,6 +404,25 @@
       "_not": "duvar-fonksiyonu bandı (9.31, ölçüm) duvar-çözünürden (10.0, öncül) DAR. Fizik beklentisi tersidir. Ölçümü öncüle uydurmak için ŞİŞİRİLMEDİ: ölçülmemiş bir sayı, ölçülmüş olanı bozamaz. Muhtemel açıklama — öncül bu hat için fazla muhafazakâr; o hücre de ölçülünce anlaşılacak."
     }
   ],
+  "yplus_kapsam_ozeti": {
+    "olculen_capa": 3,
+    "toplam_capa": 12,
+    "esik_pct": 80.0,
+    "esigin_altinda": [
+      "disk (%59.8)",
+      "küp (çapa koşusu) (%69.4)",
+      "Ahmed 25° (%65.8)"
+    ],
+    "olculemeyen": [
+      "geriye-basamak (kOmegaSST, duvar-çözünür aile): case dizini tek-anlamlı eşleşmedi — kapsam ÖLÇÜLMEDİ (tahmin edilmedi)",
+      "geriye-basamak (kOmegaSST, duvar-fonksiyonu aile): case dizini tek-anlamlı eşleşmedi — kapsam ÖLÇÜLMEDİ (tahmin edilmedi)"
+    ],
+    "olculen_duvar_islemleri": [
+      "wall_function"
+    ],
+    "_esik_dayatilmiyor": "Esik bir ONERIDIR ve bandi ETKILEMEZ. Dayatilsaydi bugun bluff.wall_function hucresinin UC capasi da duserdi ve hucre, bedeli olculmeden oncule donerdi. Sayi kanitta durur ki bandin KALITESI okunabilsin.",
+    "_kapsamin_kapsami": "Kapsam yalnız case dizini ELDE OLAN capada olculebilir. Kanit-JSON kaynakli capalarda vaka y+ UCLARIYLA dogrulanarak baglanir; eslesmezse kapsam OLCULMEDI yazilir, tahmin edilmez. Bugun olculen duvar islemleri: wall_function — wall_resolved capalarin case dizinleri diskte YOK (kanit korundu, vaka temizlendi), o yuzden o dal bugun URETIMDE calismiyor."
+  },
   "_kisit": "Bir capanin sapmasi, o rejimdeki model-form hatasinin BIR ORNEGIDIR. N=1 olan hucrede dagilim IDDIA EDILMEZ. Duvar islemi kayitli olmayan capa hucreye ATANMAZ — tahmin edilmez. Ayrica sapma, referansin KENDI deneysel belirsizligini de icerir ve o ayristirilmamistir.",
   "_uretim": "Üretim: python experiments/model_form_bandi.py",
   "_ayrilabilirlik_notu": "UST SINIR olan hucreler: lifting.wall_resolved, attached_2d.wall_function, bluff.wall_function. Bu hucrelerde HICBIR capa, olculen farki kendi ayriklastirma bandindan ayirt edemiyor — deger olculmus bir model hatasi DEGIL, ust sinirdir. Ornek: disk capasinin farki %3.4 ama sayisal bandi %4.8.",
