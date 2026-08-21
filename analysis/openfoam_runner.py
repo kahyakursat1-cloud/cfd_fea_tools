@@ -699,7 +699,14 @@ def _write_mesh_motion(case_dir: Path, surface_name: str,
             _fv.write_text(_t, encoding="utf-8")
 
     uzak = ("inlet", "outlet", "top", "front", "back")
-    txt = _foam_header("volVectorField", "pointDisplacement", "0")
+    # SINIF `pointVectorField` — `volVectorField` DEGIL. pointDisplacement
+    # hucre merkezlerinde degil AG NOKTALARINDA tanimlidir; yanlis sinifla
+    # cozucu "unexpected class name volVectorField expected pointVectorField"
+    # ile duser. Kusur uzun sure gorunmedi cunku `coupling_fsi.
+    # write_point_displacement` dosyayi DOGRU sinifla uzerine yaziyordu; ancak
+    # ag-hareketi kurulu bir vaka ILK KEZ iskelet dosyayla cozulunce ortaya
+    # cikti (olculdu 2026-08-21, fsi_esnek taban kosusu).
+    txt = _foam_header("pointVectorField", "pointDisplacement", "0")
     txt += (
         "dimensions      [0 1 0 0 0 0 0];\n\n"
         "internalField   uniform (0 0 0);\n\n"
@@ -1279,10 +1286,6 @@ def build_case(case: CFDCase, out_dir: Path) -> Path:
     _write_block_mesh(case_dir, dmin, dmax, cell_size, ground=ground)
     _write_snappy(case_dir, stl_name, surface_name, inside_pt, case)
     _write_surface_features(case_dir, stl_name)
-    # AG HAREKETI YALNIZ ISTENDIGINDE. Varsayilan kapali: mevcut kosularin
-    # hicbiri etkilenmez ve dosyalar bile yazilmaz.
-    if case.mesh_motion:
-        _write_mesh_motion(case_dir, surface_name, ground=ground)
     lref = L
     # İz-düzlemi: gövde arkası 2 boy (uzak-iz basınç toparlanması), domain içinde
     wake_x = float(gmax[0] + 2.0 * lref)
@@ -1290,6 +1293,18 @@ def build_case(case: CFDCase, out_dir: Path) -> Path:
     _write_fv_schemes(case_dir, case.transient)
     _write_fv_solution(case_dir, case.compressible, case.transient,
                        case.n_outer)
+    # AG HAREKETI YALNIZ ISTENDIGINDE. Varsayilan kapali: mevcut kosularin
+    # hicbiri etkilenmez ve dosyalar bile yazilmaz.
+    #
+    # SIRA KRITIK — `_write_fv_solution`'DAN SONRA. `_write_mesh_motion`
+    # fvSolution'a `cellDisplacement` ve `pcorr` cozuculerini EKLER; once
+    # cagrilirsa o ekleme hemen ardindan UZERINE YAZILIR ve cozucu "keyword
+    # cellDisplacement is undefined" ile duser. Olculdu 2026-08-21 (fsi_esnek
+    # taban kosusu): yama dogruydu, SIRASI yanlisti — ve kusur uzun sure
+    # gorunmedi cunku onceki denemede `_write_mesh_motion` vaka kurulduktan
+    # SONRA elle cagrilmisti.
+    if case.mesh_motion:
+        _write_mesh_motion(case_dir, surface_name, ground=ground)
     n_proc = case.n_processors if case.n_processors > 0 else _default_processors()
     case.n_processors = n_proc  # downstream run_cfd için sabitle
     _write_decompose_par(case_dir, n_proc)

@@ -306,3 +306,45 @@ def test_ag_hareketi_OF11_sozdizimi_ve_COZUCU_girdileri(tmp_path):
     fv = (case / "system" / "fvSolution").read_text(encoding="utf-8")
     assert "cellDisplacement" in fv
     assert "pcorr" in fv
+
+
+def test_build_case_ag_hareketini_TEK_SEFERDE_dogru_kuruyor(tmp_path):
+    """KURAL: `mesh_motion=True` ile kurulan vaka, EK MÜDAHALE OLMADAN çözülebilir
+    olmalı.
+
+    İki kusur bu özelliği bugüne kadar tümüyle çalışmaz halde tutmuştu ve ikisi
+    de ancak ağ-hareketli bir vaka GERÇEKTEN çözülünce göründü (2026-08-21):
+
+      * `pointDisplacement` `volVectorField` olarak yazılıyordu; alan ağ
+        NOKTALARINDA tanımlıdır, çözücü "unexpected class name volVectorField
+        expected pointVectorField" ile düşer. Kusur gizliydi çünkü kuplaj
+        yolunda `write_point_displacement` dosyayı doğru sınıfla üzerine
+        yazıyordu.
+      * `_write_mesh_motion` fvSolution'a `cellDisplacement`/`pcorr` ekliyor
+        ama `_write_fv_solution`'DAN ÖNCE çağrılıyordu; ekleme hemen ardından
+        ÜZERİNE YAZILIYORDU ("keyword cellDisplacement is undefined"). Yama
+        doğruydu, SIRASI yanlıştı.
+    """
+    import numpy as np
+
+    from analysis.openfoam_runner import CFDCase, build_case
+
+    stl = tmp_path / "levha.stl"
+    trimesh.creation.box(extents=[0.3, 0.04, 0.0025]).export(stl)
+    a = np.deg2rad(10.0)
+    case = CFDCase(name="hareketli", stl_path=stl, velocity=30.0,
+                   flow_direction=(float(np.cos(a)), 0.0, float(np.sin(a))),
+                   refinement_min=1, refinement_max=2,
+                   max_global_cells=50_000, n_layers=0, mesh_motion=True)
+    cd = build_case(case, tmp_path / "out")
+
+    pd = (cd / "0" / "pointDisplacement").read_text(encoding="utf-8")
+    assert "pointVectorField" in pd
+    assert "volVectorField" not in pd, "yanlış alan sınıfı geri geldi"
+
+    fv = (cd / "system" / "fvSolution").read_text(encoding="utf-8")
+    assert "cellDisplacement" in fv, "ağ hareketi çözücüsü fvSolution'da yok"
+    assert "pcorr" in fv, "hareketli ağ basınç düzeltmesi yok"
+
+    dmd = (cd / "constant" / "dynamicMeshDict").read_text(encoding="utf-8")
+    assert "mover" in dmd and "dynamicFvMesh" not in dmd
