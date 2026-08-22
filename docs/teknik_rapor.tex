@@ -19,6 +19,7 @@
 \usetikzlibrary{shapes.geometric,arrows.meta,positioning,fit,backgrounds,calc}
 \usepackage[hidelinks]{hyperref}
 \usepackage{titlesec}
+\usepackage{tocloft}   % icindekiler numara kutusu — EK-A/B/C sigmasi icin
 
 \titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{0.6em}{}
 \titlespacing*{\section}{0pt}{14pt}{6pt}
@@ -158,7 +159,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
 36.489 satır Python $\cdot$ 165 test dosyası $\cdot$ 1.729 geçen test\\[3mm]
-21 Ağustos 2026\par}
+22 Ağustos 2026\par}
 \end{titlepage}
 
 % ══════════════════════════════ ÖZET ══════════════════════════════
@@ -188,6 +189,21 @@ geçtiklerinde Türkçe karşılığıyla verilir ve sonra kısa biçim kullanı
 (\emph{sürükleme}, \emph{taşıma}, \emph{yakınsama}, \emph{ayrıklaştırma},
 \emph{belirsizlik}) her yerde Türkçe kullanılır.
 \end{anafikir}
+
+% ══════════════════════════════ İÇİNDEKİLER ══════════════════════════════
+% Rapor tek govde 38 sayfaydi ve gezinme yoktu; hakem V&V zincirini izlemek
+% icin dolasmak zorunda kaliyordu. Derinlik 1: alt basliklar listeyi ikiye
+% katlar ve okunurlugu geri goturur.
+{\setlength{\parskip}{0pt}
+\renewcommand{\contentsname}{\normalsize İçindekiler}
+\setcounter{tocdepth}{1}
+\tableofcontents}
+
+\vspace{2mm}
+\noindent{\footnotesize\emph{Okunuş.} Bölüm 1--13 yöntemi ve ölçülen sonuçları
+taşır; V\&V zinciri yalnız o bölümlerden eksiksiz izlenir. EK-A--C süreci
+anlatır (kullanım, tek sayının uçtan uca izi, kalite güvencesi makinesi) ve
+ana metnin hiçbir hükmü onlara dayanmaz.\par}
 
 % ══════════════════════════════ 1 ══════════════════════════════
 \section{Neden Bu Platform}
@@ -2260,6 +2276,130 @@ v2.0 & ileri  & Sıkıştırılabilir çözücü hattının V\&V'ye tam bağlanm
 \end{tabular}
 \end{center}
 
+% ══════════════════════════════ 10 ══════════════════════════════
+\section{Sonuç}
+
+Platformun değeri, ürettiği sayılardan çok \emph{üretmeyi reddettiği}
+sayılardadır. Bir CFD koşusu her zaman bir sayı verir; o sayının anlamlı olup
+olmadığını söylemek ayrı bir iştir ve burada otomatikleştirilmiştir. Ölçülmüş
+belirsizlik bandı, adı konmuş kapsam sınırı ve yeniden üretilebilir kanıt
+dosyası --- üçü bir arada olduğunda sonuç eğitimde güvenle, yarışmada hızla,
+akademide savunulabilir biçimde kullanılabilir.
+
+\begin{olculdu}{Temel katkılar --- beşi de ölçülmüş, hiçbiri iddia değil}
+\textbf{1. Karar zinciri.} Sayı ile hüküm birlikte üretilir; kapı geçilemezse
+sayı yayımlanmaz. Zincir kendi raporunu da denetler --- bu mekanizma yayımlanan
+raporda dört kusur buldu.\\[2pt]
+\textbf{2. Açıklanabilirlik doğrulaması.} Denetlenen yalnız mühendislik hükmü
+değil, \emph{hükmün gerekçesidir}: gerekçenin aynı kanıt zincirinden geldiği
+testle bağlıdır. Gerekçede, o koşunun kullanmadığı bir ağ ailesinin adı
+geçemez. Kusur ölçüldü --- sınıf (EĞİLİM) doğruyken gerekçe başka bir
+çalışmadan taşınmıştı ve iki çapa raporuna öyle basılmıştı.\\[2pt]
+\textbf{3. Ölçülen belirsizlik.} GCI/LSR ayrıklaştırma bandı, girdi
+belirsizliği yayılımı ve rejime ayrılmış model-form; ölçülmeyen bileşen
+\emph{sıfır sayılmaz}, sonuç ``alt sınır'' olarak etiketlenir. Referans
+belirsizliği ($u_D$) de ayrılabilirlik hükmüne girer --- girmediğinde ölçüt
+sistematik olarak gevşekti.\\[2pt]
+\textbf{4. Meta-doğrulama.} Karar zincirinde kullanılan \emph{ölçüm araçları}
+da bağımsız olarak doğrulanır. Frekans ölçümü sentetik sinyalde sınandı ve ilk
+sürümün \%11 şaştığı orada görüldü; zaman-çözünür yol gerçek çözücüde bir
+kanonik vakaya karşı koşuldu ve dört kusur ortaya çıkardı. Aracın kendisi
+doğrulanmadan onunla verilen hüküm savunulamaz.\\[2pt]
+\textbf{5. Adı konmuş sınırlar.} İnce firar kenarı, TO tepe gerilmesinin
+yakınsamaması, süpersonik mutlak $C_d$, türbülanslı URANS doğrulamasının
+yokluğu --- her biri sayıyla kayıtlı ve raporda kendi başlığı altında.
+\end{olculdu}
+
+\begin{anafikir}{Bir bakışta mimari}
+\textbf{\texttt{analysis/}} --- kanonik çözücü katmanı: OpenFOAM case kurulumu
+ve koşumu, CalculiX yazıcı/koşucu, \texttt{.frd} çözümleyici, tet ağ üretici,
+birim kapısı. Yeni CFD/FEA kodu buraya yazılır.\\[2pt]
+\textbf{Araç hattı} (\texttt{vehicle\_*}) --- STL'den rapora: geometri
+denetimi, ağ, çözüm, polar, FEA, topoloji optimizasyonu, rapor.\\[2pt]
+\textbf{Karar ve V\&V} (\texttt{validity\_envelope}, \texttt{report\_generator},
+\texttt{polar\_birlestirme}, \texttt{girdi\_belirsizligi}, \texttt{zarf}) ---
+kapılar, bantlar, geçerlilik sınıfı, kanıt bütünlüğü.\\[2pt]
+\textbf{Öğrenme ve arayüz} (\texttt{mentor}, \texttt{auto\_pilot},
+\texttt{app\_analyzer}) --- öneri, otomatik kurulum ve PySide6 stüdyosu.\\[2pt]
+\textbf{Kuplaj} (\texttt{coupling\_fsi}, \texttt{fsi\_twoway},
+\texttt{fsi\_surucu}) --- CFD$\leftrightarrow$FEA yük/deplasman aktarımı,
+Aitken sabit-nokta ve kuplaj turunu süren sürücü.\\[2pt]
+\textbf{Öz-denetim} (\texttt{sessiz\_yutma}, \texttt{oksuz\_alan},
+\texttt{oksuz\_savunma}, \texttt{kanal\_ayrismasi}, \texttt{kanit}) --- deponun
+kendi tekrarlayan kusur sınıflarını mekanikleştiren beş ölçer; \texttt{saglik}
+beşini tek komutta toplar ve kendi kapsamını da beyan eder.
+\end{anafikir}
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{v1.1} & \textbf{v1.2} & \textbf{v1.3--v1.5} & \textbf{v2.0} \\
+\midrule
+tek çözücü katmanı & URANS yolu & iş kuyruğu, model-form & sıkıştırılabilir
+hat, GPU \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{dikkat}{Bu sürümde kapanmamış olanlar}
+\textbf{Türbülanslı URANS doğrulaması yok:} zaman-çözünür yol laminer girdap
+dökülmesinde doğrulandı, k--$\omega$ SST ile bağımsız bir çapa henüz yok.
+\textbf{Model-form:} sekiz hücrenin altısı çapalı (üç ölçüm, üç üst sınır),
+ikisi literatür öncülü. \textbf{Backend:} ortak katmanı atlayan çağrı 36'dan \textbf{1}'e
+düşürüldü; kalan tek satır eşdeğerlik ölçümünün karşılaştırma tabanıdır. Case
+iskelesini yineleyen eski betikler borç olarak kaldı. \textbf{Yeniden üretilebilirlik:} çözücü sürümleri artık ölçülüyor ve
+kilit dosyasında kayıtlı (OpenFOAM \texttt{11-e1fc8c682ae6}, CalculiX 2.17);
+kanıt üreten altı betik ortam damgasını \emph{üretim anında} basıyor. Eski
+kanıtlar bilerek damgasız bırakıldı: bugünkü ortamla damgalamak, o sayının bu
+yığında üretildiğini söylemek olurdu ve bu doğru değildir --- damgayı ancak
+yeniden üretim getirir. Docker taban imajı da digest'e sabitlendi
+(\texttt{sha256:fd10956e\dots}, \texttt{docker buildx imagetools inspect} ile
+ölçüldü): \texttt{:latest} değiştirilebilir bir etikettir ve aynı Dockerfile
+yarın başka bir OpenFOAM derlemesi çekebilirdi.
+\textbf{Ölçülmemişler:} model-form tablosunun iki hücresi hâlâ literatür
+öncülüyle çalışıyor ve her birinin \emph{neden} kapanmadığı kanıt dosyasına
+yazılı --- gerekçeler AYRIDIR: küt/duvar-çözümlü hücre yalnız yüksek-Re eğimli
+gövdede tanımlıdır ve Ahmed'in duvar-çözünür bütçesi (4{,}68\,M hücre,
+4{,}74\,GB) bu makinenin boş belleğini aşar; taşıma/duvar-fonksiyonu hücresinde
+koşu vardır ama sayısal bandı (\%17{,}4) referans belirsizliğini (\%15) aşar,
+yani model hatası sayısal hatadan ayrılamaz. Başarım \emph{tek makineyle}
+sınırlı --- geometri sınırı ikinci bir gövdeyle ölçülerek kapatıldı
+(\S\ref{sub:bellek}), ikinci donanım yok. Yol
+haritası bunları v1.1--v2.0 aralığına yerleştirir ve hiçbiri ``yakında'' diye
+geçiştirilmemiştir.
+\end{dikkat}
+
+\vspace{4mm}
+\noindent\rule{\textwidth}{0.4pt}\\[1mm]
+\begin{sloppypar}
+{\footnotesize Bu rapordaki tüm sayılar ve figürler depodaki kanıt
+dosyalarından üretilmiştir. Figürler için
+\texttt{python experiments/rapor\_figurleri.py}; arayüz görüntüleri için
+\texttt{python experiments/gui\_ekran\_goruntusu.py}; zarf tablosu için
+\texttt{python zarf.py}.\par}
+\end{sloppypar}
+
+% ══════════════════════════════ EKLER ══════════════════════════════
+\appendix
+\renewcommand{\thesection}{EK-\Alph{section}}
+\setcounter{section}{0}
+% Icindekilerde numara kutusu 1,5em; "EK-A" sigmayip basliga tasiyordu
+% ("EKK-Aullanim Alanlari"). Kutu ekler baslayinca genisletilir.
+\addtocontents{toc}{\protect\setlength{\protect\cftsecnumwidth}{4.2em}}
+
+\noindent\rule{\linewidth}{0.4pt}
+\vspace{2pt}
+
+\noindent\textbf{Ekler.} Aşağıdaki üç bölüm yöntemi ya da sonucu değil,
+\emph{süreci} anlatır: aracın nerede kullanıldığı, tek bir sayının uçtan uca
+izi ve kusurları elle aramayı bırakıp ölçere bağlama işi. Ana metnin
+savunduğu hükümlerin hiçbiri buraya dayanmaz; buradaki her sayı ana metinde
+zaten geçen bir kanıt dosyasından gelir. Hakem yalnız ana metni okuyarak
+V\&V zincirini eksiksiz izleyebilir.
+
+\vspace{4pt}
+\noindent\rule{\linewidth}{0.4pt}
+
 % ══════════════════════════════ 8 ══════════════════════════════
 \section{Kullanım Alanları}
 
@@ -2658,108 +2798,5 @@ python kuyruk.py calis | listele | kilit          # worker / durum
 python kuyruk.py devam                            # yarim kalanlari geri al
 python experiments/rapor_figurleri.py        # bu raporun figurleri
 \end{lstlisting}
-
-% ══════════════════════════════ 10 ══════════════════════════════
-\section{Sonuç}
-
-Platformun değeri, ürettiği sayılardan çok \emph{üretmeyi reddettiği}
-sayılardadır. Bir CFD koşusu her zaman bir sayı verir; o sayının anlamlı olup
-olmadığını söylemek ayrı bir iştir ve burada otomatikleştirilmiştir. Ölçülmüş
-belirsizlik bandı, adı konmuş kapsam sınırı ve yeniden üretilebilir kanıt
-dosyası --- üçü bir arada olduğunda sonuç eğitimde güvenle, yarışmada hızla,
-akademide savunulabilir biçimde kullanılabilir.
-
-\begin{olculdu}{Temel katkılar --- beşi de ölçülmüş, hiçbiri iddia değil}
-\textbf{1. Karar zinciri.} Sayı ile hüküm birlikte üretilir; kapı geçilemezse
-sayı yayımlanmaz. Zincir kendi raporunu da denetler --- bu mekanizma yayımlanan
-raporda dört kusur buldu.\\[2pt]
-\textbf{2. Açıklanabilirlik doğrulaması.} Denetlenen yalnız mühendislik hükmü
-değil, \emph{hükmün gerekçesidir}: gerekçenin aynı kanıt zincirinden geldiği
-testle bağlıdır. Gerekçede, o koşunun kullanmadığı bir ağ ailesinin adı
-geçemez. Kusur ölçüldü --- sınıf (EĞİLİM) doğruyken gerekçe başka bir
-çalışmadan taşınmıştı ve iki çapa raporuna öyle basılmıştı.\\[2pt]
-\textbf{3. Ölçülen belirsizlik.} GCI/LSR ayrıklaştırma bandı, girdi
-belirsizliği yayılımı ve rejime ayrılmış model-form; ölçülmeyen bileşen
-\emph{sıfır sayılmaz}, sonuç ``alt sınır'' olarak etiketlenir. Referans
-belirsizliği ($u_D$) de ayrılabilirlik hükmüne girer --- girmediğinde ölçüt
-sistematik olarak gevşekti.\\[2pt]
-\textbf{4. Meta-doğrulama.} Karar zincirinde kullanılan \emph{ölçüm araçları}
-da bağımsız olarak doğrulanır. Frekans ölçümü sentetik sinyalde sınandı ve ilk
-sürümün \%11 şaştığı orada görüldü; zaman-çözünür yol gerçek çözücüde bir
-kanonik vakaya karşı koşuldu ve dört kusur ortaya çıkardı. Aracın kendisi
-doğrulanmadan onunla verilen hüküm savunulamaz.\\[2pt]
-\textbf{5. Adı konmuş sınırlar.} İnce firar kenarı, TO tepe gerilmesinin
-yakınsamaması, süpersonik mutlak $C_d$, türbülanslı URANS doğrulamasının
-yokluğu --- her biri sayıyla kayıtlı ve raporda kendi başlığı altında.
-\end{olculdu}
-
-\begin{anafikir}{Bir bakışta mimari}
-\textbf{\texttt{analysis/}} --- kanonik çözücü katmanı: OpenFOAM case kurulumu
-ve koşumu, CalculiX yazıcı/koşucu, \texttt{.frd} çözümleyici, tet ağ üretici,
-birim kapısı. Yeni CFD/FEA kodu buraya yazılır.\\[2pt]
-\textbf{Araç hattı} (\texttt{vehicle\_*}) --- STL'den rapora: geometri
-denetimi, ağ, çözüm, polar, FEA, topoloji optimizasyonu, rapor.\\[2pt]
-\textbf{Karar ve V\&V} (\texttt{validity\_envelope}, \texttt{report\_generator},
-\texttt{polar\_birlestirme}, \texttt{girdi\_belirsizligi}, \texttt{zarf}) ---
-kapılar, bantlar, geçerlilik sınıfı, kanıt bütünlüğü.\\[2pt]
-\textbf{Öğrenme ve arayüz} (\texttt{mentor}, \texttt{auto\_pilot},
-\texttt{app\_analyzer}) --- öneri, otomatik kurulum ve PySide6 stüdyosu.\\[2pt]
-\textbf{Kuplaj} (\texttt{coupling\_fsi}, \texttt{fsi\_twoway},
-\texttt{fsi\_surucu}) --- CFD$\leftrightarrow$FEA yük/deplasman aktarımı,
-Aitken sabit-nokta ve kuplaj turunu süren sürücü.\\[2pt]
-\textbf{Öz-denetim} (\texttt{sessiz\_yutma}, \texttt{oksuz\_alan},
-\texttt{oksuz\_savunma}, \texttt{kanal\_ayrismasi}, \texttt{kanit}) --- deponun
-kendi tekrarlayan kusur sınıflarını mekanikleştiren beş ölçer; \texttt{saglik}
-beşini tek komutta toplar ve kendi kapsamını da beyan eder.
-\end{anafikir}
-
-\begin{center}\footnotesize
-\begin{tabular}{@{}llll@{}}
-\toprule
-\textbf{v1.1} & \textbf{v1.2} & \textbf{v1.3--v1.5} & \textbf{v2.0} \\
-\midrule
-tek çözücü katmanı & URANS yolu & iş kuyruğu, model-form & sıkıştırılabilir
-hat, GPU \\
-\bottomrule
-\end{tabular}
-\end{center}
-
-\begin{dikkat}{Bu sürümde kapanmamış olanlar}
-\textbf{Türbülanslı URANS doğrulaması yok:} zaman-çözünür yol laminer girdap
-dökülmesinde doğrulandı, k--$\omega$ SST ile bağımsız bir çapa henüz yok.
-\textbf{Model-form:} sekiz hücrenin altısı çapalı (üç ölçüm, üç üst sınır),
-ikisi literatür öncülü. \textbf{Backend:} ortak katmanı atlayan çağrı 36'dan \textbf{1}'e
-düşürüldü; kalan tek satır eşdeğerlik ölçümünün karşılaştırma tabanıdır. Case
-iskelesini yineleyen eski betikler borç olarak kaldı. \textbf{Yeniden üretilebilirlik:} çözücü sürümleri artık ölçülüyor ve
-kilit dosyasında kayıtlı (OpenFOAM \texttt{11-e1fc8c682ae6}, CalculiX 2.17);
-kanıt üreten altı betik ortam damgasını \emph{üretim anında} basıyor. Eski
-kanıtlar bilerek damgasız bırakıldı: bugünkü ortamla damgalamak, o sayının bu
-yığında üretildiğini söylemek olurdu ve bu doğru değildir --- damgayı ancak
-yeniden üretim getirir. Docker taban imajı da digest'e sabitlendi
-(\texttt{sha256:fd10956e\dots}, \texttt{docker buildx imagetools inspect} ile
-ölçüldü): \texttt{:latest} değiştirilebilir bir etikettir ve aynı Dockerfile
-yarın başka bir OpenFOAM derlemesi çekebilirdi.
-\textbf{Ölçülmemişler:} model-form tablosunun iki hücresi hâlâ literatür
-öncülüyle çalışıyor ve her birinin \emph{neden} kapanmadığı kanıt dosyasına
-yazılı --- gerekçeler AYRIDIR: küt/duvar-çözümlü hücre yalnız yüksek-Re eğimli
-gövdede tanımlıdır ve Ahmed'in duvar-çözünür bütçesi (4{,}68\,M hücre,
-4{,}74\,GB) bu makinenin boş belleğini aşar; taşıma/duvar-fonksiyonu hücresinde
-koşu vardır ama sayısal bandı (\%17{,}4) referans belirsizliğini (\%15) aşar,
-yani model hatası sayısal hatadan ayrılamaz. Başarım \emph{tek makineyle}
-sınırlı --- geometri sınırı ikinci bir gövdeyle ölçülerek kapatıldı
-(\S\ref{sub:bellek}), ikinci donanım yok. Yol
-haritası bunları v1.1--v2.0 aralığına yerleştirir ve hiçbiri ``yakında'' diye
-geçiştirilmemiştir.
-\end{dikkat}
-
-\vspace{4mm}
-\noindent\rule{\textwidth}{0.4pt}\\[1mm]
-\begin{sloppypar}
-{\footnotesize Bu rapordaki tüm sayılar ve figürler depodaki kanıt
-dosyalarından üretilmiştir. Figürler için
-\texttt{python experiments/rapor\_figurleri.py}; arayüz görüntüleri için
-\texttt{python experiments/gui\_ekran\_goruntusu.py}; zarf tablosu için
-\texttt{python zarf.py}.\par}
-\end{sloppypar}
 
 \end{document}
