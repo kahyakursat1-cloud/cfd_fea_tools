@@ -586,6 +586,13 @@ def capalari_topla() -> list[dict]:
                   "ayrilabilirlik_notu": _ayr["gerekce"],
                   "yplus_ort": yp.get("ort"), "yplus_max": yp.get("max"),
                   "yplus_kaynak": f"çapa koşusu {kosu}",
+                  # CAPANIN KENDI COZUCU SURUMU, IZLENEN KANITA TASINIR.
+                  # Kosu arsivleri .gitignore'da: damga yalniz uretildigi
+                  # makinede yasiyor ve yalniz depoya sahip bir hakem capanin
+                  # hangi OpenFOAM ile uretildigini goremez. Dosyanin kendi
+                  # `_ortam` damgasi TOPLAYICI kosusunu anlatir, capayi degil.
+                  "cozucu": (((d.get("ortam") or {}).get("cozucu") or {})
+                             .get("openfoam")),
                   # DUVAR ISLEMI DUVARIN NE KADARINI TEMSIL EDIYOR.
                   # Ortalama ve tepe IKISI DE bantta olabilir ve duvarin ucte
                   # biri yine bandin disinda kalabilir; olculdu 2026-08-22:

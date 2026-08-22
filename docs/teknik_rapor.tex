@@ -2579,10 +2579,31 @@ kanıt artık ortam parmak izi de taşır: Python, sayısal kütüphaneler, işl
 sistemi, çekirdek sayısı. Paket listesinin tamamı değil --- gürültü, gerçek bir
 değişikliği görünmez yapar; kişisel veri de değil --- kanıt dosyaları paylaşılır.
 
-\texttt{python kanit.py -{}-ortam} bugün 68 kanıtın parmak izi \emph{taşımadığını}
+\texttt{python kanit.py -{}-ortam} bugün 88 kanıtın parmak izi \emph{taşımadığını}
 (damga eklenmeden önce üretilmiş) ve hiçbirinin başka bir ortamda üretilmediğini
 raporlar. Eksik alan ``farksızlık'' sayılmaz: parmak izi olmayan bir kanıt için
 cevap ``aynı'' değil, ``karşılaştırılamaz''dır.
+
+\begin{dikkat}{Damga vardı ama çözücü sürümü yoktu}
+Araç hattı sonucu damgalıyordu --- \emph{varsayılan} parmak iziyle: Python,
+paketler, işletim sistemi, çekirdek sayısı. Çözücü sürümü yoktu, yani bu
+bölümün ilk cümlesinde adı geçen risk (``aynı komut başka bir OpenFOAM ile
+başka bir sayı verir'') tam da CFD sonucunda kayıtsızdı. Savunma vardı,
+üretim yolu onu eksik çağırıyordu. Varsayılan ucuz çağıranlar için doğrudur;
+saatlerce WSL'de koşmuş bir vaka için değil --- sorgu ölçüldü, 8{,}1 s.
+
+Düşen koşu da artık damgalanıyor. Arızanın ortama bağlı olduğu durum tam
+olarak budur: AR6 çapası \texttt{snappyHexMesh}'te dönüş kodu 137 ile
+(bellek) düştüğünde kaydında ne çekirdek sayısı ne sürüm vardı ve teşhis
+elle yeniden kuruldu.
+
+Diskteki altın çapa seti düzeltmeden önce üretilmişti. Boşluğa \emph{bugünkü}
+sürümü yazmak yalan olurdu; onun yerine OpenFOAM'ın her log başına bastığı
+yapı özeti koşunun kendi kaydından \emph{alıntılanır} ve alıntının kaynağı
+damgaya yazılır. Dört başarılı çapanın dördü de çözücü sürümünü taşıyor
+(\texttt{11-e1fc8c682ae6}); beşincisinde damga hiç yok ve retroaktif
+kurulamaz --- Python ve paket sürümleri log'da yazmaz.
+\end{dikkat}
 
 \begin{dikkat}{Kilidin kapsamadığı}
 \texttt{ortam\_kilidi.txt} Python yığınının \emph{ölçülen} sürümlerini tutar ve

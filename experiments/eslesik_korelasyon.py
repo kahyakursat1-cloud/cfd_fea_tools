@@ -199,7 +199,12 @@ def main() -> int:
             print(f"   işareti okunamayan (ρ'ya GİRMEDİ): "
                   f"{', '.join(v['isareti_okunamayan_capalar'])}")
     print(f"\n{r['_kisit']}")
-    CIKTI.write_text(json.dumps(r, indent=2, ensure_ascii=False), encoding="utf-8")
+    # ORTAM DAMGASI URETIM ANINDA: sonradan eklenen damga, sayinin hangi
+    # yiginda DOGDUGUNU degil en son ne zaman bakildigini soyler.
+    import ortam
+    ortam.damgala(r)
+    CIKTI.write_text(json.dumps(r, indent=2, ensure_ascii=False) + "\n",
+                     encoding="utf-8")
     print(f"\n-> {CIKTI.name}")
     return 0
 

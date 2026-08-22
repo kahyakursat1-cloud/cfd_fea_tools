@@ -27,5 +27,22 @@
     "bluff.wall_function"
   ],
   "_kisit": "rho yalnizca COK CAPALI hucrede kestirilebilir; bugun bu kosulu saglayan hucre: bluff.wall_function. n=3 ile kestirim zayiftir ve tek hucreden TUM tabloya genellenmez. Ayrica sapmalar farkli GEOMETRILER arasindadir (disk / kup / Ahmed); kullanicinin tipik A/B kiyasi AYNI aracin iki varyantidir ve orada ortak olan daha COKTUR. Bu yuzden olculen sacilma, ayni-arac A/B icin bir UST SINIRDIR.",
-  "_uretim": "Üretim: python experiments/eslesik_korelasyon.py"
+  "_uretim": "Üretim: python experiments/eslesik_korelasyon.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
 }

@@ -371,3 +371,37 @@ def test_rapor_RHO_kanit_dosyasindan_sapmiyor(tex):
             assert latex in tex, f"{ad}: {latex} raporda yok — kanıt yenilendi, metin eskidi"
     # BAND GENISLETILMEDI karari rapordan sessizce dusmemeli
     assert "band genişletilmedi" in tex.lower()
+
+
+def test_rapor_ORTAM_damgasiz_kanit_sayisi_CANLI_olcumle_ayni(tex):
+    """Sayı elle yazılıydı ve 22 bayattı (68 ≠ 90) — hem de raporun kendi
+    yeniden-üretilebilirlik bölümünde. Tam olarak bu deponun avladığı kusur.
+    """
+    # SAYIM URETICININ KENDI OLCUTUYLE: kanit.py `_ortam` alanina bakar ve
+    # `ortam.fark(...)["ayni"] is None` olanlari damgasiz sayar. Burada baska
+    # bir olcut kurmak (ornegin manifest kaydinda "ortam" anahtari aramak)
+    # iki kaynak yaratir ve olculen sey ayrisir — ilk yazimda tam bu oldu
+    # (107 cikti, cunku manifest kaydinda oyle bir anahtar YOK).
+    import kanit
+    import ortam as _o
+    bugun = _o.parmak_izi()
+    damgasiz = sum(
+        1 for k in kanit.manifest() if k["sinif"] == "kanit"
+        and _o.fark(json.loads((KOK / k["dosya"]).read_text(encoding="utf-8-sig"))
+                    .get("_ortam"), bugun)["ayni"] is None)
+    m = re.search(r"kanit\.py -\{\}-ortam\} bugün (\d+) kanıtın", tex)
+    assert m, "rapor ortam kapsamını hiç yazmıyor mu?"
+    assert int(m.group(1)) == damgasiz, (
+        f"raporda {m.group(1)}, canlı ölçümde {damgasiz} damgasız kanıt")
+
+
+def test_rapor_CAPA_cozucu_surumunu_kanittan_yaziyor(tex):
+    import json
+    p = KOK / "kosu_ortam_kapsami.json"
+    if not p.exists():
+        pytest.skip("kosu_ortam_kapsami.json üretilmemiş")
+    d = json.loads(p.read_text(encoding="utf-8"))
+    _YAZI = {1: "bir", 2: "iki", 3: "üç", 4: "dört", 5: "beş"}
+    assert f"{_YAZI[d['capa_cozucu_tam']]} başarılı çapanın" in tex.lower() \
+        or f"{_YAZI[d['capa_cozucu_tam']]} başarılı çapanın" in tex, \
+        f"raporda çapa sayısı ({d['capa_cozucu_tam']}) kanıtla uyuşmuyor"

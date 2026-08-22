@@ -95,10 +95,27 @@ def test_damgalama_ortami_yaziyor():
 
 
 def test_arac_hatti_sonuca_ortam_koyuyor():
+    """Alan var ve hat onu dolduruyor mu.
+
+    ÇAĞRININ BİÇİMİNE PİNLENMİYOR: eski sürüm `base.ortam =
+    _ortam_mod.parmak_izi()` metnini birebir arıyordu ve çağrı
+    `parmak_izi(cozucu=True)` olunca --- yani DÜZELİNCE --- kırıldı. Metne
+    pinlenen test, iyileştirmeyi gerileme sanır. Çağrının ARGÜMANINI denetleyen
+    yapısal test ayrı durur: tests/test_capa_ortam.py.
+    """
+    import ast
+
     from vehicle_pipeline import VehicleAnalysisResult
     assert "ortam" in VehicleAnalysisResult.__dataclass_fields__
     src = (KOK / "vehicle_pipeline.py").read_text(encoding="utf-8")
-    assert "base.ortam = _ortam_mod.parmak_izi()" in src
+    atamalar = [d for d in ast.walk(ast.parse(src)) if isinstance(d, ast.Assign)
+                and any(isinstance(t, ast.Attribute) and t.attr == "ortam"
+                        for t in d.targets)
+                and isinstance(d.value, ast.Call)]
+    assert atamalar, "hat `…ortam = <çağrı>` ataması yapmıyor"
+    cagrilan = {(d.value.func.attr if isinstance(d.value.func, ast.Attribute)
+                 else getattr(d.value.func, "id", None)) for d in atamalar}
+    assert cagrilan == {"parmak_izi"}, cagrilan
 
 
 # ── kilit dosyası ──────────────────────────────────────────────────────────

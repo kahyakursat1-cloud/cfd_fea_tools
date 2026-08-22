@@ -1808,6 +1808,13 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                     + (f"\nLOG: {_log}" if _log else "")
                     + "\n\n" + _log_kuyrugu(_log))
         base.error = _bas + (res.stderr or res.stdout)[-2000:]
+        # DUSEN KOSU DA ORTAMINI TASIR. Damgalama basari yolunda duruyordu ve
+        # basarisiz kosu ortamsiz kaliyordu — oysa arizanin ortama BAGLI oldugu
+        # durum tam da budur: AR6 capasi snappyHexMesh'te rc 137 ile duserken
+        # (bellek), kayitta ne cekirdek sayisi ne surum vardi ve teshis elle
+        # yeniden kuruldu. Cozucu sorgusu duren bir kosuda da anlamli (8 s).
+        import ortam as _ortam_mod
+        base.ortam = _ortam_mod.parmak_izi(cozucu=True)
         (run_dir / "sonuc.json").write_text(json.dumps(asdict(base), indent=2, ensure_ascii=False), encoding="utf-8")
         return base
 
@@ -1851,8 +1858,15 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     base.bellek = getattr(res, "bellek", None) or None
     # Sonucun hangi surumlerle uretildigi kaydin parcasidir: cozucu ya da
     # sayisal kutuphane degistiginde eski sayi sessizce gecersizlesir.
+    #
+    # COZUCU SURUMU ALINIYOR (cozucu=True). Eskiden varsayilan kullaniliyordu
+    # ve damga yalniz python/paket/os/cekirdek tasiyordu — yani `ortam.py`'nin
+    # VAROLUS GEREKCESI olan sey (ayni komut farkli bir OpenFOAM ile farkli
+    # sayi verir) tam da CFD sonucunda kayitsizdi. Varsayilan ucuz cagiranlar
+    # icin dogru; saatlerce WSL'de kosmus bir vaka icin degil. Olculdu:
+    # sorgu 8,1 s ve `Build: 11-e1fc8c682ae6` gibi YAPI OZETI donduruyor.
     import ortam as _ortam_mod
-    base.ortam = _ortam_mod.parmak_izi()
+    base.ortam = _ortam_mod.parmak_izi(cozucu=True)
 
     # Far-field iz-momentum Cd (2.-mertebe). Tek mesh'te yüzey-Cd ile UYUŞMASI yakınsama
     # göstergesi (3-mesh GCI'nin ucuz vekili); AYRIŞMASI az-çözünürlük flag'i.

@@ -53,6 +53,7 @@
       "yplus_ort": 31.32,
       "yplus_max": 146.21,
       "yplus_kaynak": "çapa koşusu _anchor_disk",
+      "cozucu": "Build: 11-e1fc8c682ae6",
       "yplus_kapsam_pct": 59.8,
       "yplus_kapsam_yeterli": false,
       "yplus_kapsam_islemi": "wall_function",
@@ -77,6 +78,7 @@
       "yplus_ort": 5.54,
       "yplus_max": 211.01,
       "yplus_kaynak": "çapa koşusu _anchor_sphere",
+      "cozucu": "Build: 11-e1fc8c682ae6",
       "referans": "White, Fluid Mechanics; Schlichting BL Theory"
     },
     {
@@ -92,6 +94,7 @@
       "yplus_ort": 37.3,
       "yplus_max": 117.78,
       "yplus_kaynak": "çapa koşusu _anchor_cube",
+      "cozucu": "Build: 11-e1fc8c682ae6",
       "yplus_kapsam_pct": 69.4,
       "yplus_kapsam_yeterli": false,
       "yplus_kapsam_islemi": "wall_function",
@@ -116,6 +119,7 @@
       "yplus_ort": 30.41,
       "yplus_max": 74.62,
       "yplus_kaynak": "çapa koşusu _anchor_ahmed_25",
+      "cozucu": "Build: 11-e1fc8c682ae6",
       "yplus_kapsam_pct": 65.8,
       "yplus_kapsam_yeterli": false,
       "yplus_kapsam_islemi": "wall_function",

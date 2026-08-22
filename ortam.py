@@ -21,6 +21,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import platform
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -89,6 +90,27 @@ def cozucu_surumleri() -> dict[str, str | None]:
                 out[anahtar] = satir.strip()[:120]
                 break
     return out
+
+
+def logdan_cozucu(case_dir) -> dict | None:
+    """Bir koşunun ÇÖZÜCÜ sürümü — kendi log'undan okunur, bugünden DEĞİL.
+
+    NEDEN GEREKLİ: eski koşular çözücü sürümü olmadan damgalandı ve o boşluğa
+    BUGÜNKÜ sürümü yazmak uydurma olurdu --- koşuyu üreten sürüm o olmayabilir
+    ve kanıt tam da bu soruyu yanıtlamak için var. OpenFOAM her log'un başına
+    kendi yapı özetini basıyor; yani gerçek sürüm koşunun kendi kaydında zaten
+    duruyor ve okunması bir kestirim değil bir ALINTIDIR.
+
+    Log yoksa None döner. "Bilinmiyor" ile "bugünkü" birbirine karıştırılmaz.
+    """
+    case = Path(case_dir)
+    for log in sorted(case.glob("log.*")) + sorted(case.glob("*/log.*")):
+        bas = log.read_text(encoding="utf-8", errors="replace")[:2000]
+        m = re.search(r"^Build\s*:\s*(\S+)", bas, re.M)
+        if m:
+            return {"openfoam": f"Build: {m.group(1)}",
+                    "_kaynak": f"koşunun kendi log'undan okundu ({log.name})"}
+    return None
 
 
 def damgala(kanit: dict, cozucu: bool = True) -> dict:

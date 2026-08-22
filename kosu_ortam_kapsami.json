@@ -1,0 +1,52 @@
+{
+  "vaka": "Koşu ortam damgası kapsamı — çözücü sürümü taşıyan koşular",
+  "_neden": "vehicle_pipeline sonucu damgaliyordu ama parmak_izi() VARSAYILANIYLA: python/paket/os/cekirdek vardi, COZUCU SURUMU YOKTU. Oysa ortam.py'nin varolus gerekcesi tam da o.",
+  "toplam_kosu": 29,
+  "capa_kosusu": 5,
+  "capa_cozucu_tam": 4,
+  "tamamlanan": [],
+  "tamamlanamayan": [
+    "validation_anchors_runs/_anchor_naca0012_wing_ar6 — damga YOK, tamamlanamaz",
+    "vehicle_runs/_fsi_esnek — damga YOK, tamamlanamaz",
+    "vehicle_runs/_fsi_sinama — damga YOK, tamamlanamaz",
+    "vehicle_runs/a320_Body_A320 — damga YOK, tamamlanamaz",
+    "vehicle_runs/ciftkuyruk_kucuk — damga YOK, tamamlanamaz",
+    "vehicle_runs/clean_rocket — damga YOK, tamamlanamaz",
+    "vehicle_runs/clean_rocket_fixed — damga YOK, tamamlanamaz",
+    "vehicle_runs/clean_rocket_fixed_prep — damga YOK, tamamlanamaz",
+    "vehicle_runs/dogrulama_kup — damga YOK, tamamlanamaz",
+    "vehicle_runs/gci_kup — damga YOK, tamamlanamaz",
+    "vehicle_runs/genel_kapsul_uzun — damga YOK, tamamlanamaz",
+    "vehicle_runs/genel_kup800 — damga YOK, tamamlanamaz",
+    "vehicle_runs/gondol_dort — damga YOK, tamamlanamaz",
+    "vehicle_runs/gripen_AB_Right — damga YOK, tamamlanamaz",
+    "vehicle_runs/izgara_ld7 — damga YOK, tamamlanamaz",
+    "vehicle_runs/kaldirici_e_kapsulsu — damga YOK, tamamlanamaz",
+    "vehicle_runs/minihawk — damga YOK, tamamlanamaz",
+    "vehicle_runs/minihawk_v2 — damga YOK, tamamlanamaz",
+    "vehicle_runs/minihawk_vtol — damga YOK, tamamlanamaz",
+    "vehicle_runs/multikopter_kucuk — damga YOK, tamamlanamaz",
+    "vehicle_runs/su57 — damga YOK, tamamlanamaz",
+    "vehicle_runs/ucak_okkanat — damga YOK, tamamlanamaz"
+  ],
+  "verdikt": "ÇAPA SETİ TAM: 4/5 çapa koşusu çözücü sürümünü taşıyor. Kalan 1 çapada damga HİÇ yok ve retroaktif KURULAMAZ.",
+  "_kisit": "Tamamlama BUGUNKU surumu yazmaz — kosunun KENDI log'undaki yapi ozetini alintilar ve kaynagini (`_kaynak`) damgaya yazar. Damgasi HIC olmayan kosular tamamlanmaz: eksik olan yalniz cozucu degil damganin tamami ve python/paket surumleri logda YAZMAZ. Onlar damgalama hatta baglanmadan once uretildi ve adiyla listeleniyor. Bundan sonraki her kosu (basarili VE dusen) cozucu surumuyle damgalanir.",
+  "_uretim": "Üretim: python experiments/capa_ortam_tamamla.py --yaz",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}
