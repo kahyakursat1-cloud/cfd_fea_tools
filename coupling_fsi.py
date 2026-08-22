@@ -164,7 +164,7 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
         return {"status": "FAILED",
                 "error": f"p ({len(p_cell)}) ile poligon ({len(polys)})/nokta ({len(points)}) uyumsuz"}
 
-    cfd_centers, _, _ = _poly_geometry(points, polys)
+    cfd_centers, cfd_normals, cfd_areas = _poly_geometry(points, polys)
 
     # Statik basinci Pa'ya cevir (incompressible kinematic p)
     p_pa = p_poly * rho if p_is_kinematic else p_poly
@@ -219,6 +219,73 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
     m_throughput = float(np.linalg.norm(np.cross(f_centroids, dF_face), axis=1).sum())
     moment_err = float(np.linalg.norm(M_node - M_face) / (m_throughput + 1e-30))
 
+    # ═══ AKTARIM ARTIGI: KORUNMAYAN ADIM BURASI ═══
+    #
+    # Yukaridaki iki metrik FEA yuzeyinden FEA DUGUMLERINE dagitimi olcuyor ve
+    # esit-uctebir semasinda ikisi de YAPI GEREGI kesin. Yani olculen sey
+    # gercekten korunmayan adim DEGILDI: basinc CFD yuzlerinden FEA yuzlerine
+    # EN-YAKIN-KOMSU ile tasiniyor (tree.query) ve o adim korunumlu degildir.
+    # Iki agin yuz boyutlari farkliysa ayni basinc alani farkli toplam kuvvet
+    # verir; hicbir sey bunu soylemiyordu.
+    #
+    # CFD tarafinin isareti: VTK duvar normalinin yonu vaka kurulumuna bagli.
+    # Buyukluk karsilastirmasi icin yonden bagimsiz olan throughput ve BILESEN
+    # BAZINDA mutlak fark kullaniliyor; isaret ters cikarsa bu ayrica GORUNUR.
+    # ALAN FARKI AYRI OLCULUR. Aktarim artiginin iki ayri sebebi olabilir ve
+    # ikisi ayni sayiya karisirsa hukum verilemez: (i) basincin en-yakin-komsu
+    # ile ORNEKLENMESI, (ii) FEA STL'inin ozgun geometri, CFD yuzeyinin ise
+    # snap'lenmis ag yuzeyi olmasi — ikisinin ALANI farklidir. Olculdu:
+    # dogrulama_kup'ta alanlar BIREBIR ayni (1,5 = 1,5 m2) ve artik yine %3,9,
+    # yani orada artik saf ORNEKLEME hatasidir. _fsi_esnek'te alan %9,5 farkli
+    # ve artik %20,3 — orada iki sebep birlikte.
+    F_cfd = ((-p_pa[:, None]) * cfd_normals * cfd_areas[:, None])
+    total_F_cfd = F_cfd.sum(axis=0)
+    cfd_throughput = float(np.linalg.norm(F_cfd, axis=1).sum())
+    _bol = max(cfd_throughput, throughput) + 1e-30
+    aktarim_err = float(np.linalg.norm(total_F - total_F_cfd) / _bol)
+    aktarim_err_ters = float(np.linalg.norm(total_F + total_F_cfd) / _bol)
+    if aktarim_err_ters < aktarim_err:
+        # Normal yonleri ters: karsilastirilabilir olan BUYUKLUKTUR.
+        aktarim_err, _ters = aktarim_err_ters, True
+    else:
+        _ters = False
+
+    # ═══ ARAYUZ ISI: KUVVET+MOMENT'IN GORMEDIGI ═══
+    #
+    # Dogrusal bir sanal yer-degistirme alani u = A·x icin arayuz isi
+    # W = Σ F·(A x) = A : Σ F⊗x olur. Yani TUM dogrusal alanlar icin isin
+    # korunmasi, birinci moment TENSORU Σ F⊗x'in korunmasina denktir.
+    #
+    # Bu kuvvet+momentten DAHA GUCLUDUR: x×F, F⊗x'in yalniz ANTISIMETRIK
+    # kismidir. Simetrik kisim (uzama/kayma modlarinin yaptigi is) iki mevcut
+    # metrigin ikisinde de GORUNMEZ. Klasik arayuz yama-sinavi (patch test)
+    # tam olarak budur.
+    T_face = np.einsum("fi,fj->ij", dF_face, f_centroids)
+    T_node = np.einsum("ni,nj->ij", node_forces, fea_nodes)
+    t_throughput = float(np.abs(np.einsum("fi,fj->fij", dF_face, f_centroids)).sum())
+    is_err = float(np.linalg.norm(T_node - T_face) / (t_throughput + 1e-30))
+
+    # ═══ SIFIR YUK: KORUNUM METRIGI TANIMSIZDIR, "KUSURSUZ" DEGIL ═══
+    #
+    # Olculdu (minihawk_v2): yuzey-basinc VTK'si p=0 tasiyordu (bos cikarim) ve
+    # UC metrik de 0.0e+00, aktarim artigi %0.0 veriyordu — yani hicbir veri
+    # yokken "kusursuz korunum" raporlaniyordu. Payda +1e-30 ile korunuyordu
+    # ama pay da sifirdi. Yoklugu iyilik saymak bu deponun avladigi kusurdur ve
+    # bu kez YENI eklenen olcumde cikti.
+    #
+    # Kanit zaten kayittaydi (`n_loaded_nodes` 0) — eksik olan onu OKUYAN yoldu.
+    _yuk_var = throughput > 1e-12 and cfd_throughput > 1e-12
+    if not _yuk_var:
+        conservation_err = moment_err = is_err = None
+        aktarim_err = None
+        _yuk_notu = (f"YÜK YOK: yüzey basıncı p∈[{float(p_pa.min()):.3g}, "
+                     f"{float(p_pa.max()):.3g}] Pa ve toplam kuvvet büyüklüğü "
+                     f"≈0. Korunum metrikleri TANIMSIZ — sıfır artık, korunumun "
+                     f"sağlandığı anlamına GELMEZ. Yüzey-basınç çıkarımı boş "
+                     f"olabilir (foamPostProcess yüzey örneklemesi koşuldu mu?)")
+    else:
+        _yuk_notu = None
+
     forces = {int(i + 1): tuple(node_forces[i])
               for i in range(len(fea_nodes)) if np.linalg.norm(node_forces[i]) > 1e-9}
 
@@ -234,8 +301,27 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
         "drag_Fx_N": round(float(total_F[0]), 4),
         "side_Fy_N": round(float(total_F[1]), 4),
         "lift_Fz_N": round(float(total_F[2]), 4),
-        "conservation_error": float(conservation_err),
+        "conservation_error": (float(conservation_err)
+                               if conservation_err is not None else None),
         "moment_conservation_error": moment_err,
+        "arayuz_isi_hatasi": is_err,
+        "aktarim_hatasi": aktarim_err,
+        "yuk_var_mi": _yuk_var,
+        "yuk_notu": _yuk_notu,
+        "aktarim_normali_ters": _ters,
+        "total_force_cfd_N": [round(float(x), 4) for x in total_F_cfd],
+        "cfd_alan_m2": round(float(cfd_areas.sum()), 6),
+        "fea_alan_m2": round(float(f_areas.sum()), 6),
+        "alan_farki_pct": round(
+            100.0 * abs(float(f_areas.sum() - cfd_areas.sum()))
+            / (float(cfd_areas.sum()) + 1e-30), 2),
+        "_korunum_notu": (
+            "conservation_error ve moment_conservation_error FEA yüzü→düğüm "
+            "dağıtımını ölçer ve eşit-üçtebir şemasında YAPI GEREĞİ kesindir. "
+            "arayuz_isi_hatasi aynı adımı DAHA GÜÇLÜ sınar (birinci moment "
+            "tensörü; moment yalnız antisimetrik kısmı görür). aktarim_hatasi "
+            "ise gerçekten korunmayan adımı ölçer: basıncın CFD yüzlerinden "
+            "FEA yüzlerine en-yakın-komşu ile taşınması."),
         "total_moment_Nm": [round(float(x), 4) for x in M_face],
         "node_forces": forces,
     }

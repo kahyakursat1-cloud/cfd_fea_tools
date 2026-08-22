@@ -405,3 +405,26 @@ def test_rapor_CAPA_cozucu_surumunu_kanittan_yaziyor(tex):
     assert f"{_YAZI[d['capa_cozucu_tam']]} başarılı çapanın" in tex.lower() \
         or f"{_YAZI[d['capa_cozucu_tam']]} başarılı çapanın" in tex, \
         f"raporda çapa sayısı ({d['capa_cozucu_tam']}) kanıtla uyuşmuyor"
+
+
+def test_rapor_FSI_AKTARIM_tablosu_kanittan_sapmiyor(tex):
+    """Aktarım artıkları elle yazılamaz — koşular yenilenince değişir."""
+    import json
+    p = KOK / "fsi_korunum.json"
+    if not p.exists():
+        pytest.skip("fsi_korunum.json üretilmemiş")
+    d = json.loads(p.read_text(encoding="utf-8"))
+    tabloda = re.findall(
+        r"\\texttt\{([A-Za-z0-9_\\]+)\} & [\d.]+ & [\d.]+ & "
+        r"\\%(\d+)\{,\}(\d+) & \\%(\d+)\{,\}(\d+)", tex)
+    assert tabloda, "rapor FSI aktarım tablosunu taşımıyor"
+    kayit = {v["vaka"]: v for v in d["vakalar"]}
+    for ad, ai, af, bi, bf in tabloda:
+        vaka = ad.replace("\\_", "_")
+        assert vaka in kayit, f"{vaka} kanıtta yok"
+        assert float(f"{ai}.{af}") == pytest.approx(
+            kayit[vaka]["aktarim_hatasi_pct"], abs=0.06), vaka
+        assert float(f"{bi}.{bf}") == pytest.approx(
+            kayit[vaka]["alan_farki_pct"], abs=0.06), vaka
+    # SIFIR-YUK dersi rapordan sessizce dusmemeli
+    assert "kusursuz korunum" in tex

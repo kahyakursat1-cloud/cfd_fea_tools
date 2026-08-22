@@ -286,7 +286,7 @@ Malzeme & \texttt{materials.json}, kaynaklı ve sürümlü & 10 malzeme \\
 \midrule
 \multicolumn{3}{@{}l}{\textbf{Kuplaj ve optimizasyon}}\\
 1-yönlü FSI & CFD basıncı $\rightarrow$ FEA düğüm kuvveti &
-  korunum makine hassasiyetinde test edilir \\
+  üç korunum metriği; aktarım artığı ölçülür (\S\ref{sub:fsi-korunum}) \\
 2-yönlü FSI & Aitken ilmek + hareketli ağ; uçtan uca koşuyor &
   \textbf{fiziksel tahrik henüz gösterilmedi} (\S\ref{sec:fsi2}) \\
 Topoloji opt. & SIMP, CFD-yüklü, \emph{gerilme farkındalıklı} &
@@ -794,6 +794,69 @@ verilemez'' der. Eski sürüm bu koşularda da bir sayı basıyordu --- hem de h
 ölçülmemiş bir belirsizliğe dayanarak. Kapatmanın yolu \texttt{-{}-duyarlilik}
 ile yeniden koşmaktır; araç bunu ekranda söylüyor.
 \end{dikkat}
+
+\subsection{FSI yük aktarımı: korunan ne, korunmayan ne}
+\label{sub:fsi-korunum}
+
+Yük aktarımı iki korunum metriği taşıyordu --- kuvvet ve moment --- ve ikisi
+de $10^{-16}$ mertebesinde çıkıyordu. Bu bir başarı gibi okunuyordu. Oysa
+ikisi de \emph{FEA yüzü $\rightarrow$ FEA düğümü} dağıtımını ölçer ve
+eşit-üçtebir şemasında yapı gereği kesindir: üçgenin üç köşesinin ortalaması
+tam olarak ağırlık merkezidir. Ölçülen sayı bir doğruluk sınavı değil,
+uygulamanın teoriye uyduğunun kanıtıydı. Gerçekten korunmayan adım başkaydı
+ve hiç ölçülmüyordu: basınç, CFD yüzlerinden FEA yüzlerine
+\emph{en-yakın-komşu} ile taşınıyor.
+
+İki ölçüm eklendi. Birincisi arayüz işi: doğrusal bir sanal yer-değiştirme
+alanı $u = A\!\cdot\!x$ için arayüz işi $W = A : \sum F\otimes x$ olur, yani
+tüm doğrusal alanlar için işin korunması birinci moment \emph{tensörünün}
+korunmasına denktir. Bu kuvvet ve momentten güçlüdür, çünkü $x\times F$ o
+tensörün yalnız antisimetrik kısmıdır; simetrik kısmın yaptığı iş iki mevcut
+metrikte de görünmez. İkincisi aktarım artığı: CFD yüzeyindeki toplam kuvvet
+ile FEA yüzeyindekinin farkı.
+
+21 gerçek koşuda ölçüldü. Yapı gereği kesin olması gereken üç metrik 20
+vakanın hepsinde $\le\!10^{-12}$; aktarım artığı ise \%0{,}1--\%56{,}3.
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Vaka & CFD yüz & FEA yüz & Aktarım & Alan farkı \\
+\midrule
+\texttt{genel\_kapsul\_uzun} & 5.288 & 30.900 & \%0{,}2 & \%0{,}1 \\
+\texttt{minihawk} & 24.477 & 1.838 & \%2{,}8 & \%0{,}2 \\
+\texttt{dogrulama\_kup} & 2.904 & 12 & \%3{,}9 & \%0{,}0 \\
+\texttt{gripen\_AB\_Right} & 29.431 & 1.189 & \%56{,}3 & \%49{,}8 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Alan farkı ayrı sütunda durur çünkü artığın iki sebebi olabilir ve
+tek sayıya karışırlarsa hüküm verilemez: basıncın örneklenmesi, ve FEA
+STL'inin özgün geometri iken CFD yüzeyinin snap'lenmiş ağ yüzeyi olması.
+Ayrım işe yarıyor --- \texttt{dogrulama\_kup}'ta iki alan birebir aynı
+(1{,}5 = 1{,}5\,m\textsuperscript{2}) ve artık yine \%3{,}9, yani orada artık
+\emph{saf örnekleme} hatasıdır; 2.904 CFD yüzünden 12 FEA yüzüne inmenin
+bedelidir. \texttt{gripen\_AB\_Right}'ta ise alan \%49{,}8 farklı ve iki sebep
+ayrılamaz.
+
+\begin{dikkat}{Sıfır yük ``kusursuz korunum'' okunuyordu}
+İlk sürüm bir vakada üç metriği de tam $0{,}0$ ve aktarım artığını \%0{,}0
+verdi. Sebep: o koşunun yüzey-basınç VTK'sı $p\equiv 0$ taşıyordu (boş
+çıkarım). Hiçbir veri yokken ``kusursuz korunum'' raporlanıyordu --- payda
+sıfıra karşı korunmuştu ama pay da sıfırdı. Yokluğu iyilik saymak bu raporun
+baştan sona anlattığı kusur sınıfıdır ve bu kez \emph{yeni eklenen ölçümde}
+çıktı. Kanıt zaten kayıttaydı (\texttt{n\_loaded\_nodes} = 0); eksik olan onu
+okuyan yoldu. Yük yoksa metrikler artık \texttt{null} döner ve gerekçe
+yazılır; kanıt üreticisi o vakayı ölçülen saymaz.
+\end{dikkat}
+
+\noindent Eşik \emph{dayatılmıyor}: bugün hiçbir üretim yolu bu sayıya bakıp
+koşuyu reddetmiyor. Sayı önce görünür olmalı --- ne kadarının kabul edilebilir
+olduğu, aktarımın hangi yapısal büyüklüğü ne kadar etkilediğine bağlıdır ve o
+ölçülmedi. Artık ayrıca bir \emph{doğruluk} hükmü değil bir \emph{aktarım}
+hükmüdür: FEA'ya giden yükün CFD'nin hesapladığından ne kadar saptığını
+söyler, CFD'nin doğru olup olmadığını değil.
 
 \subsection{Eşleştirme neyi götürüyor: $\rho$ ölçüldü}
 \label{sub:rho}
