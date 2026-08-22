@@ -51,6 +51,13 @@ BILINEN_BOSLUK = {
     "pervane_cap_m": "aktüatör-disk çapı; yukarıdakiyle birlikte gelir. "
                      "Arayüze eklemek ayrı iş: itki kapısının (thrust cap) ve "
                      "bu modelin doğrulama durumunun ayrıca ele alınması gerekir.",
+    "mesh_motion": "ağ hareketi iskelesi (2026-08-22 eklendi) yalnız CLI'de "
+                   "(`--hareketli-ag`). Arayüzde YOK çünkü arayüzde kuplaj "
+                   "SÜRÜCÜSÜ de yok: hareketli ağ tek başına bir sonuç "
+                   "üretmez, `fsi_surucu` ile birlikte anlamlıdır ve o CLI "
+                   "iş akışıdır. Arayüze eklemek, kuplaj turunun ilerlemesini "
+                   "ve sabit-harita/aktarım-sürülü uyarılarını gösteren bir "
+                   "panel gerektirir — ayrı iş.",
 }
 
 

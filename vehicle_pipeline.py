@@ -1592,7 +1592,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                          pervane_itki_n=0.0, pervane_cap_m=0.0,
                          ground_clearance=None, mesh_levels=3, refinement_regions=None,
                          max_cells=None, ref_bump=0, turbulence_model="kOmegaSST",
-                         progress_cb=None,
+                         progress_cb=None, mesh_motion=False,
                          referans_cd=None) -> VehicleAnalysisResult:
     stl_path = Path(stl_path)
     stem = stl_path.stem
@@ -1762,6 +1762,14 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         n_processors=n_processors,
         ground_clearance=ground_clearance,
         refinement_regions=refinement_regions,
+        # IKI-YONLU FSI'NIN URETIM GIRISI YOKTU. `fsi_surucu` bir vakayi
+        # `CFDCase(mesh_motion=True)` ile kurulmus olmaya ZORLUYOR (hareketsiz
+        # cozmek kuplaj turunu sessizce TEK-YONLU yapardi — dogru bir kapi).
+        # Ama depo tarandiginda `mesh_motion=True` diyen tek yer TESTLERDI:
+        # arac hatti bu bayragi hic gecirmiyordu ve elde duran iki FSI vakasi
+        # da hattan degil, artik var olmayan bir betikten gelmisti. Yani
+        # savunma dogruydu, kendisine yem verecek uretim yolu YOKTU.
+        mesh_motion=mesh_motion,
     )
     # KATMAN YAPILABİLİRLİĞİ — ÇÖZÜCÜDEN ÖNCE (case kuruldu, henüz koşmadı). En ince
     # özellik (firar kenarı) yüzey hücresinden küçükse snappy o bölgeyi çözemez ve
@@ -2501,6 +2509,13 @@ if __name__ == "__main__":
                     help="bu geometri için YERLEŞİK referans Cd (varsa). "
                          "Beyan edilirse sapma hükme girer: koşunun kendi "
                          "u_val'ini aşarsa C_D tasarım kararında kullanılmaz")
+    # IKI-YONLU FSI'NIN URETIM GIRISI. Bayrak olmadan `fsi_surucu` bir vaka
+    # BULAMIYORDU: surucu `CFDCase(mesh_motion=True)` ile kurulmus vaka istiyor
+    # ve depoda oyle bir vaka kuran tek yer TESTLERDI.
+    ap.add_argument("--hareketli-ag", action="store_true", dest="mesh_motion",
+                    help="ağ hareketi iskelesini kur (dynamicMeshDict + "
+                         "pointDisplacement) — iki-yönlü FSI kuplaj turu için "
+                         "ZORUNLU; hareketsiz vakada kuplaj sessizce tek-yönlü olur")
     args = ap.parse_args()
     if str(args.ref_bump).lower() != "oto":
         try:
@@ -2518,6 +2533,7 @@ if __name__ == "__main__":
                              mesh_levels=args.seviyeler, yplus_target=args.yplus,
                              pervane_itki_n=args.itki, pervane_cap_m=args.cap,
                              ref_bump=args.ref_bump, progress_cb=_cb,
+                             mesh_motion=args.mesh_motion,
                              referans_cd=args.referans_cd)
     if r.status == "ok":
         print(f"\nCd={r.cd}  CdA={r.cda_m2} m²  Drag={r.drag_N} N"

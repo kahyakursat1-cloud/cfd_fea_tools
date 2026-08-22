@@ -88,10 +88,54 @@ def test_kanonik_yazici_esikten_okur():
     assert not re.search(r"p\s+1e-0?[0-9];", src), "eşik literal olarak yazılmış"
 
 
+def _controldict_YAZANLAR() -> list[str]:
+    """controlDict'i YAZAN dosyalar — adını ANAN değil.
+
+    Eski ölçüt `"controlDict" in src` idi ve iddiasından genişti: vaka dizinini
+    TANIMAK için `system/controlDict` varlığına bakan bir dosya (fsi_surucu,
+    2026-08-22) sayıya giriyor ve "yeni case iskelesi yazdın" diye suçlanıyordu.
+    Yanlış pozitif üreten denetim kullanılmaz hale gelir ve gerçek kusuru da
+    gizler; ölçüt yazma eylemine bağlandı.
+    """
+    yazma = re.compile(r"controlDict[\"']?\s*\)?\s*\.write_text|"
+                       r"write_text\([^)]*controlDict|"
+                       r"open\([^)]*controlDict[^)]*[\"']w|"
+                       r"object\s+controlDict")
+    out = []
+    for f in _kaynaklar():
+        yol = f.relative_to(ROOT).as_posix()
+        if yol.startswith(("analysis/", "tests/")):
+            continue
+        s = f.read_text(encoding="utf-8", errors="replace")
+        if "controlDict" in s and yazma.search(s):
+            out.append(yol)
+    return out
+
+
 def test_controldict_yazan_dosya_sayisi_bilinir():
     """ADR kararı: mass-refactor iptal. Ama sayı sessizce artmasın."""
-    n = sum(1 for f in _kaynaklar()
-            if "controlDict" in f.read_text(encoding="utf-8", errors="replace")
-            and not f.relative_to(ROOT).as_posix().startswith(("analysis/", "tests/")))
-    assert n <= 26, (f"{n} dosya kendi controlDict'ini yazıyor (ölçülen taban 26). "
-                     "Yeni case iskelesi yazmadan analysis/openfoam_runner'a bak")
+    yazanlar = _controldict_YAZANLAR()
+    assert len(yazanlar) <= 21, (
+        f"{len(yazanlar)} dosya kendi controlDict'ini YAZIYOR (ölçülen taban "
+        f"21): {yazanlar}. Yeni case iskelesi yazmadan "
+        f"analysis/openfoam_runner'a bak")
+
+
+def test_olcut_gercekten_YAZMAYI_ariyor():
+    """Denetimin kendisi denetleniyor: adı anan ama yazmayan dosya SAYILMAZ.
+
+    Bu ölçüt bir kez gevşetildiğinde (hepsini saymak) yanlış pozitif üretti;
+    bir kez fazla daraltılırsa hiçbir şey saymaz ve kapı sessizce ölür.
+    """
+    yazanlar = _controldict_YAZANLAR()
+    assert yazanlar, "hiçbir dosya saymıyor — ölçüt fazla dar, kapı ölü"
+    assert "fsi_surucu.py" not in yazanlar, (
+        "fsi_surucu controlDict YAZMIYOR, vaka dizinini tanımak için okuyor")
+    # ARAC HATTI BURADA DEGIL ve olmasi da GEREKMIYOR: `vehicle_pipeline`
+    # controlDict'i hic anmiyor, kanonik katmana (`analysis/openfoam_runner`)
+    # devrediyor — CLAUDE.md'nin istedigi tam olarak bu. Olcutu ona baglamak
+    # ilk yazimda YANLISTI. Kapinin canli oldugunu, iskeleyi GERCEKTEN tekrar
+    # yazan eski motor uzerinden dogruluyoruz.
+    assert "simulation_runner.py" in yazanlar, (
+        "eski motor kendi case iskelesini yazıyor (iki-hızlı uyarısı) — "
+        "ölçüt onu görmüyorsa fazla dar")

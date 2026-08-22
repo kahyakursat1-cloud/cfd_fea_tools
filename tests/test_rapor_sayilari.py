@@ -428,3 +428,26 @@ def test_rapor_FSI_AKTARIM_tablosu_kanittan_sapmiyor(tex):
             kayit[vaka]["alan_farki_pct"], abs=0.06), vaka
     # SIFIR-YUK dersi rapordan sessizce dusmemeli
     assert "kusursuz korunum" in tex
+
+
+def test_rapor_FSI_TAHRIK_bandi_kanittan_sapmiyor(tex):
+    """Tahrik tablosu koşular yenilenince değişir; elle yazılamaz."""
+    import json
+    p = KOK / "fsi_tahrik_bandi.json"
+    if not p.exists():
+        pytest.skip("fsi_tahrik_bandi.json üretilmemiş")
+    d = json.loads(p.read_text(encoding="utf-8"))
+    kayit = {k["kosu"]: k for k in d["kosular"]}
+    satir = re.findall(
+        r"\\texttt\{([A-Za-z0-9_\\]+)\}\s*& (\d+) & (\d+)\{,\}(\d+)\\,mm\s*& "
+        r"(?:\\textbf\{)?\\%(\d+)\{,\}(\d+)", tex)
+    assert satir, "rapor FSI tahrik tablosunu taşımıyor"
+    for ad, v, si, sf, oi, of in satir:
+        k = kayit[ad.replace("\\_", "_")]
+        assert int(v) == round(k["hiz_m_s"])
+        assert float(f"{si}.{sf}") == pytest.approx(k["sehim_mm"], abs=0.02)
+        assert float(f"{oi}.{of}") == pytest.approx(k["sehim_aciklik_pct"], abs=0.02)
+    # BANDIN IKI UCU da yazili olmali
+    assert str(int(d["tahrik_tabani_pct"])) in tex and r"\%5" in tex
+    # HUKUM: yakinsadi ama sebebi fizik degil
+    assert "sebebi fizik değil" in tex

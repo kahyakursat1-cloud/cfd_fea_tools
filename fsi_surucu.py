@@ -27,6 +27,7 @@ GERÇEK kuplaj turundan gelir ve artık geçmişiyle birlikte kanıta yazılır.
 from __future__ import annotations
 
 import json
+import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -68,6 +69,50 @@ def _cfd_yama_noktalari(vaka: KuplajVakasi):
     vtk = _son_vtk(vaka)
     points, _polys, _p, _loc = _parse_legacy_vtk(Path(vtk))
     return np.asarray(points, float), vtk
+
+
+def _vaka_dizini(vaka: KuplajVakasi) -> Path:
+    """OpenFOAM VAKA dizini — koşu dizini DEĞİL.
+
+    ÖLÇÜLDÜ 2026-08-22 (fsi_tahrikH): `map_fn`, `write_point_displacement`'a
+    `vaka.run_dir` veriyordu. O fonksiyon `<dizin>/<zaman>/pointDisplacement`
+    yazar, yani alan `vehicle_runs/X/0/`'a düştü --- vaka
+    `vehicle_runs/X/X/` iken. Çözücü onu HİÇ OKUMADI: yedi zaman dizininin
+    yedisinde de gövde yaması `uniform (0 0 0)` kaldı, ağ hiç kıpırdamadı ve
+    kuplaj "sabit-harita" imzası verdi. İmza doğruydu, TEŞHİS yanlış olurdu:
+    "fizik sürmüyor" değil "yer değiştirme ağa ulaşmıyor".
+
+    Ağ hareketinin kendisi daha önce doğrulanmıştı (3,000 mm istendi, 3,0000 mm
+    ölçüldü) ama o doğrulama `write_point_displacement`'ı DOĞRUDAN çağırmıştı;
+    sürücünün çağrı yeri hiç koşulmamıştı.
+    """
+    adaylar = [d for d in vaka.run_dir.iterdir()
+               if d.is_dir() and (d / "system" / "controlDict").exists()]
+    if len(adaylar) != 1:
+        raise FileNotFoundError(
+            f"{vaka.run_dir}: tek-anlamlı OpenFOAM vaka dizini yok "
+            f"({len(adaylar)} aday) — yer değiştirme nereye yazılacağı "
+            f"BELİRSİZ; tahminle yazmak ağı sessizce hareketsiz bırakır")
+    return adaylar[0]
+
+
+def _govde_yamasi(vaka: KuplajVakasi) -> str:
+    """Ağdaki GERÇEK gövde yaması adı — çağıranın verdiği ad DOĞRULANIR.
+
+    Aynı koşuda ikinci kusur buydu: çağıran `yama='fsi_tahrikH'` verdi, ağdaki
+    yama ise `fsi_tahrikH_prep`. Yanlış ada yazılan bir sınır koşulu sessizce
+    hiçbir şey yapmaz.
+    """
+    b = (_vaka_dizini(vaka) / "constant" / "polyMesh" / "boundary")
+    adlar = re.findall(r"^\s{4}(\w+)\s*$", b.read_text(encoding="utf-8"), re.M)
+    uzak = {"inlet", "outlet", "top", "bottom", "front", "back", "ground"}
+    govde = [a for a in adlar if a not in uzak]
+    if vaka.yama in govde:
+        return vaka.yama
+    if len(govde) == 1:
+        return govde[0]
+    raise ValueError(
+        f"gövde yaması belirsiz: istenen '{vaka.yama}', ağdakiler {govde}")
 
 
 def _son_vtk(vaka: KuplajVakasi) -> str:
@@ -156,7 +201,16 @@ def kuplaj_haritasi(vaka: KuplajVakasi):
 
         # 1) Yapi -> akiskan: deplasmani CFD noktalarina tasi ve aga yaz
         d_cfd = fea_displacement_to_cfd_points(fea_nodes, d_fea, cfd_points)
-        write_point_displacement(vaka.run_dir, vaka.yama, d_cfd)
+        # VAKA dizini ve GERCEK yama adi — ikisi de cozuluyor, varsayilmiyor.
+        # Ikisi de sessizce yanlis olabiliyordu (bkz. `_vaka_dizini`).
+        _case, _yama = _vaka_dizini(vaka), _govde_yamasi(vaka)
+        _yol = write_point_displacement(_case, _yama, d_cfd)
+        # YAZILAN ALAN GERCEKTEN VAKANIN ICINDE MI. Yoklugun hukmu yok:
+        # dosya vakanin disina duserse cozucu onu okumaz ve ilmek "sabit
+        # harita" der — kusur fizige atfedilir.
+        if _case not in _yol.parents:
+            raise RuntimeError(
+                f"yer değiştirme vaka dizininin DIŞINA yazıldı: {_yol}")
 
         # 2) CFD'yi HAREKETLI AGDA yeniden coz.
         #
@@ -214,8 +268,24 @@ def kuplaj_haritasi(vaka: KuplajVakasi):
         _sira = {int(n): i for i, n in enumerate(frd.node_ids)}
         yeni = np.array([_disp[_sira[i + 1]] if (i + 1) in _sira else (0.0, 0.0, 0.0)
                          for i in range(K)], dtype=float)
+        # HER TURDA IKI TARAFIN YUKU DE KAYDEDILIR.
+        #
+        # NEDEN: `sabit_harita` kapisi "harita YANIT VERMIYOR"u yakaliyor ama
+        # "harita YANLIS SEBEPLE yanit veriyor"u yakalamiyordu. Olculdu
+        # 2026-08-22 (fsi_tahrikH): ag hareket edince FEA tarafina tasinan
+        # normal kuvvet 0,662 -> 0,441 N dustu (%33) ve ilmek yakinsadi; ama
+        # CFD YUZEYINDEKI kuvvet 0,6058 -> 0,6070 N, yani %0,2 degisti.
+        # Aerodinamik yuk degismemisti; degisen AKTARIMDI — aktarim artigi
+        # %8,4'ten %27,4'e firladi, cunku CFD yuzeyi deforme olurken yuk
+        # haritasinin dayandigi FEA STL'i REFERANS KONUMDA kaldi.
+        #
+        # Ikisi ayni yerde durmadikca bu ayrim gorulemez.
         vaka.gecmis.append({"tur": len(vaka.gecmis) + 1,
                             "max_disp_mm": float(np.abs(yeni).max() * 1000),
+                            "Fz_fea_N": round(float(yukler["total_force_N"][2]), 5),
+                            "Fz_cfd_N": round(float(yukler["total_force_cfd_N"][2]), 5),
+                            "aktarim_hatasi_pct": round(
+                                100 * float(yukler["aktarim_hatasi"]), 2),
                             "cload": cload})
         return yeni.ravel()
 
@@ -293,6 +363,60 @@ def fsi_kos(vaka: KuplajVakasi) -> dict:
         "omega_gecmisi": bilgi["omega_history"],
         "tur_gecmisi": vaka.gecmis,
         "max_disp_mm": float(np.abs(x).max() * 1000),
+        **aktarim_surulu_mu(vaka.gecmis),
+    }
+
+
+# Aktarim artigi bu kadar puan artarsa yanit AKTARIMDAN geliyor olabilir.
+AKTARIM_SICRAMA_PUAN = 5.0
+# CFD tarafindaki yuk bu orandan az degisiyorsa "aerodinamik yuk degismedi".
+AERO_DEGISMEDI_PCT = 1.0
+
+
+def aktarim_surulu_mu(gecmis: list[dict]) -> dict:
+    """Kuplajın yanıtı FİZİKTEN mi AKTARIMDAN mı geliyor.
+
+    `sabit_harita` kapısı haritanın yanıt VERMEDİĞİ durumu yakalar. Bu kapı
+    ters durumu yakalar: harita yanıt veriyor ama sebep aerodinamik yükün
+    değişmesi değil, yük aktarımının BOZULMASI.
+
+    Ölçüldü 2026-08-22 (fsi_tahrikH): ağ hareket edince FEA'ya taşınan normal
+    kuvvet %33 düştü ve ilmek yakınsadı; CFD yüzeyindeki kuvvet ise %0,2
+    değişti. Aerodinamik yük değişmemişti. Sebep: CFD yüzeyi deforme olurken
+    yük haritasının dayandığı FEA STL'i referans konumda kalıyor ve
+    en-yakın-komşu eşlemesi bozuluyor (aktarım artığı %8,4 → %27,4).
+
+    Bu bir HÜKÜM değil bir UYARIDIR: küçük deformasyonda yükü referans
+    konfigürasyonda değerlendirmek meşru bir formülasyondur. Meşru olmayan,
+    yükü DEFORME yüzeyden örnekleyip REFERANS yüzeye taşımaktır --- iki
+    konfigürasyon karışır ve fark fizik sanılır.
+    """
+    if len(gecmis) < 2 or "Fz_cfd_N" not in gecmis[0]:
+        return {}
+    fc = [abs(g["Fz_cfd_N"]) for g in gecmis]
+    ff = [abs(g["Fz_fea_N"]) for g in gecmis]
+    ak = [g["aktarim_hatasi_pct"] for g in gecmis]
+    d_cfd = 100 * (max(fc) - min(fc)) / (max(fc) + 1e-30)
+    d_fea = 100 * (max(ff) - min(ff)) / (max(ff) + 1e-30)
+    sicrama = max(ak) - min(ak)
+    surulu = (d_cfd < AERO_DEGISMEDI_PCT and d_fea > 5 * AERO_DEGISMEDI_PCT
+              and sicrama > AKTARIM_SICRAMA_PUAN)
+    return {
+        "aero_yuk_degisimi_pct": round(d_cfd, 2),
+        "fea_yuk_degisimi_pct": round(d_fea, 2),
+        "aktarim_hatasi_sicramasi_puan": round(sicrama, 2),
+        "aktarim_surulu_mu": surulu,
+        "aktarim_notu": (
+            f"UYARI — YANIT AKTARIMDAN GELİYOR OLABİLİR: CFD yüzeyindeki yük "
+            f"%{d_cfd:.2f} değişti (aerodinamik yük neredeyse sabit) ama FEA'ya "
+            f"taşınan yük %{d_fea:.1f} değişti ve aktarım artığı {sicrama:.1f} "
+            f"puan sıçradı. Yakınsama gerçek olabilir ama SEBEBİ fizik değil "
+            f"yük-aktarım eşlemesinin bozulması olabilir: CFD yüzeyi deforme "
+            f"olurken yük haritasının dayandığı FEA yüzeyi referans konumda "
+            f"kalıyor. İki konfigürasyon karışıyor."
+            if surulu else
+            f"aerodinamik yük %{d_cfd:.2f}, FEA yüküne taşınan %{d_fea:.2f} "
+            f"değişti; aktarım artığı sıçraması {sicrama:.1f} puan"),
     }
 
 

@@ -1,0 +1,108 @@
+{
+  "vaka": "FSI tahrik bandı — sehim/açıklık kuplajı sürüyor mu",
+  "_neden": "Iki-yonlu ilmek kosuyordu ama iki test vakasi da SABIT-HARITA imzasi verdi: sehim/aciklik %0,06 idi ve akis yapiyi gormedi.",
+  "dogrusal_tavan_pct": 5.0,
+  "tahrik_tabani_pct": 1.0,
+  "kosular": [
+    {
+      "kosu": "_fsi_esnek",
+      "hiz_m_s": 30.0,
+      "alpha_deg": 10.0,
+      "aciklik_m": 0.3,
+      "sehim_mm": 0.042,
+      "sehim_aciklik_pct": 0.01,
+      "normal_kuvvet_N": 0.108,
+      "max_von_mises_MPa": 0.272,
+      "dugum": 13490,
+      "eleman_tipi": "C3D10",
+      "arac_gecersiz_dedi": null,
+      "bandda_mi": false
+    },
+    {
+      "kosu": "_fsi_sinama",
+      "hiz_m_s": 20.0,
+      "alpha_deg": 0.0,
+      "aciklik_m": 0.3,
+      "sehim_mm": 0.003,
+      "sehim_aciklik_pct": 0.0,
+      "normal_kuvvet_N": 0.024,
+      "max_von_mises_MPa": 0.027,
+      "dugum": 13423,
+      "eleman_tipi": "C3D10",
+      "arac_gecersiz_dedi": null,
+      "bandda_mi": false
+    },
+    {
+      "kosu": "fsi_tahrik2",
+      "hiz_m_s": 40.0,
+      "alpha_deg": 10.0,
+      "aciklik_m": 0.3,
+      "sehim_mm": 24.481,
+      "sehim_aciklik_pct": 8.16,
+      "normal_kuvvet_N": 1.962,
+      "max_von_mises_MPa": 41.295,
+      "dugum": 12367,
+      "eleman_tipi": "C3D10",
+      "arac_gecersiz_dedi": "Sehim (24 mm) model boyutunun %5'ini aşıyor — mesnet muhtemelen yetersiz/mekanizma (329/12367 düğüm sabit). Sonuç GEÇERSİZ; farklı mesnet preseti veya oryantasyon seçin.",
+      "bandda_mi": false
+    },
+    {
+      "kosu": "fsi_tahrik22",
+      "hiz_m_s": 22.0,
+      "alpha_deg": 10.0,
+      "aciklik_m": 0.3,
+      "sehim_mm": 7.405,
+      "sehim_aciklik_pct": 2.47,
+      "normal_kuvvet_N": 0.593,
+      "max_von_mises_MPa": 12.49,
+      "dugum": 12367,
+      "eleman_tipi": "C3D10",
+      "arac_gecersiz_dedi": null,
+      "bandda_mi": true
+    },
+    {
+      "kosu": "fsi_tahrikH",
+      "hiz_m_s": 22.0,
+      "alpha_deg": 10.0,
+      "aciklik_m": 0.3,
+      "sehim_mm": 7.403,
+      "sehim_aciklik_pct": 2.47,
+      "normal_kuvvet_N": 0.593,
+      "max_von_mises_MPa": 12.486,
+      "dugum": 12367,
+      "eleman_tipi": "C3D10",
+      "arac_gecersiz_dedi": null,
+      "bandda_mi": true
+    }
+  ],
+  "bandda": [
+    "fsi_tahrik22",
+    "fsi_tahrikH"
+  ],
+  "tavani_asan": [
+    "fsi_tahrik2 (%8.16)"
+  ],
+  "tabanin_altinda": [
+    "_fsi_esnek (%0.01)"
+  ],
+  "verdikt": "TAHRIK BANDI BULUNDU: fsi_tahrik22, fsi_tahrikH — sehim/açıklık %2.47, hem fiziksel tabanın (%1.0) üstünde hem doğrusal tavanın (%5.0) altında.",
+  "_kisit": "Sehim/aciklik kuplajin surulmesi icin GEREK sarttir, YETER sart degildir: asil kanit Aitken artik dizisinin sabit-harita imzasini VERMEMESIDIR. Bu dosya yalnizca aday vakayi secer; hukum kuplaj kosusundan gelir. Ayrica sehim DOGRUSAL statik cozumden okundu — tavana yakin degerlerde gercek sehim bundan kucuktur (gerilme sertlesmesi), yani oran bir UST kestirimdir.",
+  "_uretim": "Üretim: python experiments/fsi_tahrik_bandi.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

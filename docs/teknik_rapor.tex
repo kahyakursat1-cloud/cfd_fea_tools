@@ -795,6 +795,89 @@ verilemez'' der. Eski sürüm bu koşularda da bir sayı basıyordu --- hem de h
 ile yeniden koşmaktır; araç bunu ekranda söylüyor.
 \end{dikkat}
 
+\subsection{Tahrik bandı arandı: harita yanıt verdi, ama yanlış sebeple}
+\label{sub:fsi-tahrik}
+
+İki-yönlü kuplajın fiziksel olarak sürülmesi için sehim/açıklık oranı yeterince
+büyük olmalı. Bunun bir bandı var ve iki ucu \emph{zıt} yönlerden geliyor:
+oran \%1'in altındaysa akış yapıyı görmez ve kuplaj sabit-haritaya döner; \%5'i
+aşarsa doğrusal statik FEA'nın küçük-deformasyon varsayımı düşer ve aracın
+kendi kapısı sonucu geçersiz ilan eder. Band bu ikisinin arasındaki dar
+aralıktır. Arandı:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrrl@{}}
+\toprule
+Koşu & $V$ [m/s] & Sehim & Sehim/açıklık & Hüküm \\
+\midrule
+\texttt{\_fsi\_esnek}   & 30 & 0{,}04\,mm  & \%0{,}01 & tabanın altında \\
+\texttt{fsi\_tahrik2}   & 40 & 24{,}48\,mm & \%8{,}16 & tavanı aşıyor \\
+\texttt{fsi\_tahrikH}   & 22 & 7{,}40\,mm  & \textbf{\%2{,}47} & \textbf{bandda} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent 40\,m/s koşusunda aracın kendi kapısı doğru yerde tetiklendi:
+``sehim model boyutunun \%5'ini aşıyor --- sonuç geçersiz''. 22\,m/s koşusu
+bandın içine düştü ve $\delta \propto V^2$ ölçeklemesi birebir tuttu
+(öngörü 7{,}40\,mm, ölçüm 7{,}41\,mm).
+
+\begin{dikkat}{Ağ hiç kıpırdamamıştı --- imza doğru, teşhis yanlış olurdu}
+Bandın içindeki vakada kuplaj yine \emph{sabit-harita} imzası verdi. Sebebi
+fizik değildi: sürücü yer değiştirmeyi \textbf{koşu} dizinine yazıyordu, oysa
+yazıcı \texttt{<dizin>/<zaman>/pointDisplacement} üretir ve OpenFOAM vakası bir
+alt seviyededir. Alan vakanın dışına düştü; yedi zaman dizininin yedisinde de
+gövde yaması \texttt{uniform (0 0 0)} kaldı. İkinci kusur aynı koşuda: gövde
+yaması adı doğrulanmıyordu (istenen \texttt{fsi\_tahrikH}, ağdaki
+\texttt{fsi\_tahrikH\_prep}) ve yanlış ada yazılan sınır koşulu da sessizce
+hiçbir şey yapar.
+
+İmza doğruydu; \emph{teşhis} yanlış olurdu --- ``fizik kuplajı sürmüyor''
+değil, ``yer değiştirme ağa ulaşmıyor''. İkisi aynı belirtiyi verir ve biri
+donanım/vaka seçimini, öbürü bir satırlık düzeltmeyi gerektirir. Ağ hareketi
+daha önce doğrulanmıştı (3{,}000\,mm istendi, 3{,}0000\,mm ölçüldü) ama o
+doğrulama yazıcıyı \emph{doğrudan} çağırmıştı; sürücünün çağrı yeri hiç
+koşulmamıştı.
+\end{dikkat}
+
+\noindent Onarımdan sonra ağ gerçekten hareket etti, ilmek beş dış iterasyonda
+yakınsadı (son artık $4{,}46\times10^{-7}$\,m) ve sabit-harita şüphesi düştü.
+Sehim turlar arasında değişti: 11{,}84 $\rightarrow$ 6{,}53\,mm. Teknik olarak
+harita girdiye yanıt veriyordu. Ama \emph{neden} yanıt verdiği ölçüldü:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}rrrr@{}}
+\toprule
+Tur & FEA'ya taşınan $F_z$ & CFD yüzeyindeki $F_z$ & Aktarım artığı \\
+\midrule
+1 & 0{,}6615\,N & 0{,}6058\,N & \%8{,}4 \\
+2 & 0{,}4405\,N & 0{,}6065\,N & \%27{,}4 \\
+3 & 0{,}4405\,N & 0{,}6070\,N & \%27{,}4 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Aerodinamik yük \%0{,}2 değişti. Akış, 11\,mm'lik sehimi neredeyse
+görmedi. FEA tarafındaki \%33'lük düşüş yük \emph{aktarımından} geliyor: CFD
+yüzeyi deforme olurken yük haritasının dayandığı FEA yüzeyi referans konumda
+kalıyor ve en-yakın-komşu eşlemesi bozuluyor. Yakınsama sahte değil, ama
+sebebi fizik değil.
+
+Bu ayrımı yakalayan bir kapı eklendi. Mevcut \texttt{sabit\_harita} kapısı
+haritanın yanıt \emph{vermediği} durumu görür; yeni kapı tersini görür ---
+CFD yüzeyindeki yük sabitken FEA'ya taşınan yük büyük değişiyor ve aktarım
+artığı sıçrıyorsa uyarı yazılır. Ölçülen vakada yanıyor, aerodinamik yükün
+gerçekten değiştiği vakada susuyor.
+
+Fizik de tutarlı: bu levha \emph{saf eğilme} yapıyor. Kesit yukarı çıkıyor ama
+yerel hücum açısı değişmiyor, o yüzden yük değişmiyor. Aracın eski öğüdü
+(``daha esnek yapı ya da daha yüksek dinamik basınç gerekir'') bu
+konfigürasyonda \textbf{yanlıştır}: daha çok eğilme yine burulma üretmez.
+Statik aeroelastik kuplajı süren burulmadır ve bunun için elastik ekseni
+aerodinamik merkezden ayıran bir geometri gerekir --- ok açısı ya da
+kaydırılmış eksen. Hücre bu yüzden \emph{hâlâ açık} ve artık nedeni adıyla
+yazılı.
+
 \subsection{FSI yük aktarımı: korunan ne, korunmayan ne}
 \label{sub:fsi-korunum}
 
@@ -1901,6 +1984,18 @@ gerçek hücre sayısını yüzey iyileştirme kademesi belirler.
         Sahte yakınsamayı yakalayan kapı bu turda iki kez devreye girdi ve
         ikisinde de gerçek bir kusura götürdü (biri: sürücü her turda
         \emph{bayat} basınç alanını okuyordu).
+
+        \textbf{2026-08-22 --- band bulundu, üç kusur çıktı, hüküm hâlâ
+        ``sürülmüyor''.} Sehim/açıklık \%2{,}47 olan bir vaka kuruldu
+        (\S\ref{sub:fsi-tahrik}) ve ilmek yakınsadı, ama yol boyunca üç ayrı
+        kusur ortaya çıktı: (i) iki-yönlü FSI'nin \emph{üretim girişi yoktu} ---
+        sürücü \texttt{mesh\_motion=True} ile kurulmuş vaka istiyor, depoda
+        öyle vaka kuran tek yer testlerdi; (ii) yer değiştirme koşu dizinine
+        yazılıyordu, vakanın \emph{dışına}, ve yedi zaman dizininin yedisinde
+        de ağ hiç kıpırdamamıştı; (iii) gövde yaması adı doğrulanmıyordu.
+        Üçü de kapatıldı. Onarımdan sonra ağ gerçekten hareket etti ve ilmek
+        beş dış iterasyonda yakınsadı --- ama \emph{sebebi fizik değildi};
+        bkz. \S\ref{sub:fsi-tahrik}.
   \item[Süpersonik mutlak $C_d$.] 3B-açık çözüm bu donanımda ulaşılamaz.
   \item[Panel yönteminin indüklenen direnci.] VSPAERO'nun iki $C_{Di}$ çıktısı
         da kuramdan sapar (yakın-alan $-\%21$, Trefftz $+\%62$); bu yüzden
