@@ -11,6 +11,12 @@ Sapmanın ÇÖZÜNÜRLÜK ya da DUVAR İŞLEMİ olmadığı da ölçüldü: ayn�
 duvar-fonksiyonuyla (y⁺=0,009) sonra düşük-Re ile (y⁺=0,78) koşuldu ve cevap
 %1'den az değişti. Geriye KAPANIŞ kalıyor.
 
+    O ölçüm kOmegaSST İÇİNDİR ve bu koşuya taşınamaz. Tam-türbülanslı bir
+    kapanış için duvar işlemi cevabı %1 oynatır; GEÇİŞ modeli için ise
+    modelin çalışıp çalışmamasını belirler --- `nutkWallFunction` log-yasası
+    dayattığı sürece laminer bölge kurulamaz. Aynı ayarın iki kapanışta iki
+    farklı ağırlığı vardır ve birinin ölçümü öbürüne delil değildir.
+
 BU KOŞU O AÇIKLAMANIN SINANMASIDIR. Açıklama doğruysa geçiş modeli
 (Langtry-Menter) bağlı tabakayı laminer başlatır ve İKİ sapma birden
 düzelmelidir --- Cd yukarı, St aşağı. Yalnız biri düzelirse açıklama eksiktir
@@ -21,12 +27,22 @@ NEDEN BU, LES'TEN ÖNCE: fiziksel doğru kurulum duvar-çözümlü LES'tir ve
 84,7 M hücre / 62,9 GB ile bu makinede sığmaz. Geçiş modeli AYNI ağda koşar
 (403.200 hücre) ve hipotezi doğrudan sınar --- iş istasyonu beklemeden.
 
-DEĞİŞEN TEK ŞEY KAPANIŞTIR: mesh, alanlar, zaman adımı, span, çözücü ayarları
-3B URANS koşusundan AYNEN gelir. Başka bir fark olsaydı sapma değişiminin
-nereden geldiği söylenemezdi.
+DEĞİŞEN ŞEY KAPANIŞTIR --- VE DUVAR İŞLEMİ ONA DAHİLDİR. İlk iki sürüm
+yalnız model ADINI çevirdi ve "değişen tek şey kapanış" dedi. Yanlıştı:
+3B kurulum `nutkWallFunction` miras alıyordu, o da log-yasasını dayatıyor
+ve laminer bölgede nut'ın sıfıra inmesini imkânsız kılıyor. İki koşu
+(Tu %1 ve %0,1) gammaInt minimumunu 0,9869 ve 0,9867 verdi --- on kat girdi
+farkı, sonuçta fark YOK. Sebep Tu değil, duvar işlemiydi. Mesh, zaman adımı,
+span ve span çözücü ayarları hâlâ 3B URANS koşusundan AYNEN gelir.
+
+KIYASIN GEÇERLİLİK KOŞULU: LM'yi duvar-çözünür ağda koşup onu
+DUVAR-FONKSİYONLU kOmegaSST ile kıyaslamak iki şeyi birden değiştirirdi.
+Bu yüzden kontrol koşusu da vardır --- `--model kOmegaSST` aynı duvar
+işlemiyle koşar ve fark yalnız kapanışa kalır.
 
     python experiments/silindir_gecis_3b.py [--oku]
-Çıktı: silindir_gecis_3b.json
+    python experiments/silindir_gecis_3b.py --model kOmegaSST   # kontrol
+Çıktı: silindir_gecis_3b_dr.json (ve kontrol için _dr_kOmegaSST)
 """
 from __future__ import annotations
 
@@ -42,13 +58,19 @@ sys.path.insert(0, str(HERE))
 
 CIKTI = KOK / "silindir_gecis_3b.json"
 MODEL = "kOmegaSSTLM"
-# SERBEST-AKIS TURBULANS SIDDETI — GECISI TETIKLEYEN SEY.
-# Olculdu 2026-08-23: TI=%1 ile gammaInt her yerde ~1 kaldi
-# (min 0,9869, ortalama 1,0000), yani gecis modeli HIC DEVREYE
-# GIRMEDI ve tam-turbulansli kOmegaSST'ye dejenere oldu. Sinav
-# SONUCSUZDU. Subkritik silindir deneyleri ~%0,1 Tu'da yapilir;
-# yuksek Tu gecisi hemen tetikler.
-TI_VARSAYILAN = 0.001
+# TURBULANS SIDDETI ARTIK BURADA AYARLANMIYOR — VE BU BIR DUZELTMEDIR.
+#
+# Once "Tu gecisi hemen tetikliyor" diye bir `--ti` anahtari eklendi ve %0,1
+# ile kosuldu. Sonuc: gammaInt min 0,9867 --- %1'deki 0,9869 ile AYNI. On kat
+# girdi farki sonuca yansimadi, aciklama CURUDU.
+#
+# Dahasi anahtarin kendisi kusurluydu: yalniz ReThetat korelasyonunu
+# besliyordu, `k`/`omega` alanlari ise `silindir_urans.TI`den geliyordu. Yani
+# vakada IKI FARKLI turbulans siddeti vardi (ReThetat %0,1'e gore, k %1'e
+# gore) --- hangi sayinin sonucu surukledigi soylenemezdi. Anahtar kaldirildi:
+# Tu TEK KAYNAKTAN, `silindir_urans.TI`den gelir.
+#
+# Gercek sebep `nut` duvar islemi cikti (`gecis_kurulum_denetimi`).
 
 
 def _rethetat(Tu_pct: float) -> float:
@@ -56,7 +78,10 @@ def _rethetat(Tu_pct: float) -> float:
 
     Tu ≤ %1,3 için Re_θt = 1173,51 − 589,428·Tu + 0,2196/Tu²
     Bu sayı UYDURULMAZ: türbülans şiddetinden türer ve şiddet zaten koşunun
-    girdisidir (TI = 0,01 → Tu = %1).
+    girdisidir. ŞİDDET TEK KAYNAKTAN GELİR (`silindir_urans.TI`); bir ara
+    sürümde yalnız bu korelasyonu besleyen ayrı bir anahtar vardı ve vakada
+    iki farklı Tu oluştu (ReThetat %0,1'e, k %1'e göre) --- hangi sayının
+    sonucu sürüklediği söylenemezdi. Anahtar kaldırıldı.
     """
     Tu = max(Tu_pct, 0.027)
     if Tu <= 1.3:
@@ -104,30 +129,23 @@ def aralik_denetimi(case: Path) -> dict:
     hücre oranı %0,0. Sınav SONUÇSUZDU ve "hipotez çürüdü" diye yazılsaydı YANLIŞ
     olurdu. Bu denetim o hatayı elle değil KODLA engeller.
     """
-    zamanlar = sorted((d for d in case.iterdir()
-                       if d.is_dir() and d.name.replace(".", "").isdigit()),
-                      key=lambda d: float(d.name))
-    if len(zamanlar) < 2 or not (zamanlar[-1] / "gammaInt").exists():
-        return {"okunabildi": False, "_neden": "gammaInt alanı yok"}
-    ham = (zamanlar[-1] / "gammaInt").read_text(errors="replace")
-    i = ham.find("internalField")
-    j = ham.find("(", i)
-    k = ham.find(")", j)
-    if j < 0 or k < 0:
-        return {"okunabildi": False, "_neden": "internalField ayrıştırılamadı"}
-    g = [float(s) for s in ham[j + 1:k].split()]
-    laminer = sum(1 for x in g if x < 0.5) / len(g)
-    return {"okunabildi": True, "zaman_s": float(zamanlar[-1].name),
-            "n": len(g), "min": round(min(g), 4),
-            "ortalama": round(sum(g) / len(g), 4), "max": round(max(g), 4),
-            "laminer_hucre_orani_pct": round(100.0 * laminer, 2),
-            "devreye_girdi": min(g) < 0.5,
-            "_olcut": ("gammaInt < 0,5 olan hücre VARSA model devrededir; "
-                       "yoksa tam-türbülanslı kOmegaSST'ye dejenere olmuştur "
-                       "ve koşu KAPANIŞ hakkında delil DEĞİLDİR.")}
+    # OLCUM KANONIK KATMANDAN. Ilk surum ayni hesabi BURADA da yaziyordu ve
+    # bu, deponun avladigi kusurun ta kendisiydi: ayni nicelik iki yerde
+    # olculurse esik degistiginde biri sessizce eskir. Burada kalan tek sey
+    # KAYIT BICIMI --- kanit dosyasinin alan adlari.
+    from analysis.openfoam_runner import GECIS_ARALIKLILIK_ESIGI, gecis_devrede_mi
+    a = gecis_devrede_mi(case)
+    if not a.get("okunabildi"):
+        return {"okunabildi": False, "_neden": a.get("_neden")}
+    return {**{k: v for k, v in a.items() if k != "devrede"},
+            "devreye_girdi": a["devrede"],
+            "_olcut": (f"gammaInt < {GECIS_ARALIKLILIK_ESIGI} olan hücre VARSA "
+                       "model devrededir; yoksa tam-türbülanslı kOmegaSST'ye "
+                       "dejenere olmuştur ve koşu KAPANIŞ hakkında delil "
+                       "DEĞİLDİR.")}
 
 
-def kur(case: Path, ti: float = TI_VARSAYILAN, model: str = MODEL) -> float:
+def kur(case: Path, model: str = MODEL) -> float:
     """3B URANS kurulumunu al, KAPANIŞI --- duvar işlemi DAHİL --- değiştir.
 
     İLK SÜRÜM YALNIZ MODEL ADINI ÇEVİRİYORDU ve ``değişen tek şey KAPANIŞ''
@@ -160,7 +178,7 @@ def kur(case: Path, ti: float = TI_VARSAYILAN, model: str = MODEL) -> float:
         "    turbulence      on;\n    printCoeffs     on;\n}\n")
     if model not in ("kOmegaSSTLM",):
         return None                       # kontrol kosusu: gecis alani yok
-    return _gecis_alanlari(case, ti)
+    return _gecis_alanlari(case, s2.TI)
 
 
 def _verdikt(gecerli: bool, aralik: dict, olcum: dict, etiket: str) -> str:
@@ -200,16 +218,12 @@ def main(argv: list[str]) -> int:
             akis.reconfigure(encoding="utf-8", errors="replace")
     import silindir_urans_3b as s3
 
-    ti = TI_VARSAYILAN
-    if "--ti" in argv:
-        ti = float(argv[argv.index("--ti") + 1])
     model = MODEL
     if "--model" in argv:
         model = argv[argv.index("--model") + 1]
     # AD, KOSUYU AYIRT EDEN HER SEYI TASIR. Sabit ad kullanildiginda farkli
     # ayarli iki calisma birbirini EZER — bu depoda olculdu (girdi_uq_kos).
-    etiket = ("_dr" + ("" if model == MODEL else f"_{model}")
-              + (f"_ti{ti:g}" if ti != TI_VARSAYILAN else ""))
+    etiket = "_dr" + ("" if model == MODEL else f"_{model}")
     case = KOK / f"_silindir_gecis_3b{etiket}"
     t0 = time.time()
     ti_ad = etiket
@@ -219,10 +233,12 @@ def main(argv: list[str]) -> int:
     else:
         print(f"Kurulum: 3B URANS ağı + KAPANIŞ = {model} (duvar-çözünür)",
               flush=True)
-        ret0 = kur(case, ti, model)
-        print(f"  Tu = %{100*ti:g}", flush=True)
+        ret0 = kur(case, model)
         if ret0 is not None:
-            print(f"  ReThetat(Tu=%{100*ti:g}) = {ret0:.1f}", flush=True)
+            import silindir_urans as _s2
+            print(f"  Tu = %{100*_s2.TI:g} (TEK KAYNAK: silindir_urans.TI)",
+                  flush=True)
+            print(f"  ReThetat = {ret0:.1f}", flush=True)
         # KURULUM DENETIMI KOSUDAN ONCE. 85 dakikayi, dosyadan okunabilen bir
         # uyumsuzluga harcamanin anlami yok --- ilk iki kosu tam bunu yapti.
         from analysis.openfoam_runner import gecis_kurulum_denetimi
