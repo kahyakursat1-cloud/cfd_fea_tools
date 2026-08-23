@@ -159,6 +159,20 @@ class CFDCase:
     end_time: int = 300            # SIMPLE iterasyonu
     write_interval: int = 100
     n_processors: int = 0          # 0 = otomatik (WSL nproc, max 8)
+    # ERKEN-DURDURMA TOLERANSI — V&V ACISINDAN BELIRLEYICI, o yuzden ACIK.
+    #
+    # OLCULDU 2026-08-23 (girdi UQ taramasi): bu deger GOMULUYDU (0,003) ve
+    # hicbir yere KAYDEDILMIYORDU. Cd-drifti %0,3'un ve pencere genligi
+    # %0,6'nin altina inince cozucu duruyor; yani her kosu, girdiye BAGLI
+    # olarak yakinsama egrisinin biraz farkli bir noktasinda kesiliyor.
+    #
+    # Sonuc: girdileri degistiren HER calisma bu toleransin kadar sacilma
+    # miras alir. Girdi-UQ taramasi %0,95 (2sigma) verdi — tam da bu
+    # toleransin izin verdigi buyukluk — ve o sacilma GIRDI DUYARLILIGI degil
+    # ITERATIF YAKINSAMA hatasidir. Ayni girdiyle tekrar bunu GOREMEZ: kosu
+    # deterministik oldugu icin ayni yerde durur ve hata sadelesir (olculdu:
+    # tekrar tabani %0,069, tarama sacilmasinin 1/14'u).
+    cd_tol: float = 0.003
     max_global_cells: int = 1_500_000  # snappyHexMesh hücre tavanı (RAM koruması)
     ground_clearance: float | None = None  # m; verilirse taban = sabit noSlip zemin
                                            # (Ahmed-tipi zemin-etkili validasyon; incompressible)
@@ -1549,10 +1563,17 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
         return r
 
     def _foam_run_early_stop(command: str, tmo: int, msg: str,
-                             window: int = 50, tol: float = 0.003) -> int:
+                             window: int = 50, tol: float | None = None) -> int:
         """foamRun'ı (seri ya da `mpirun ... -parallel`) arka planda koş; coefficient.dat'tan
         Cd'yi canlı izle; son `window` iterasyonda Cd-drifti `tol`un altına inince solver'ı
-        orphan-güvenli öldür (erken yakınsama). Döner: returncode (0=ok, !=0=hata/timeout)."""
+        orphan-güvenli öldür (erken yakınsama). Döner: returncode (0=ok, !=0=hata/timeout).
+
+        `tol` VERILMEZSE vakadan alinir (`CFDCase.cd_tol`). Eskiden burada
+        gomuluydu ve cagiran onu ne gorebiliyor ne degistirebiliyordu; oysa
+        bu tolerans, girdileri degistiren her calismaya sacilma olarak
+        GECIYOR (bkz. alan aciklamasi)."""
+        if tol is None:
+            tol = case.cd_tol
         if progress_callback:
             progress_callback(70, msg)
         wrapped, bins = _wrap_timeout(command, tmo)

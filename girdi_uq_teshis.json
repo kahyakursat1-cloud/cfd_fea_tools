@@ -1,0 +1,133 @@
+{
+  "vaka": "Girdi-UQ taraması ne ölçtü — hipotez eleme",
+  "_neden": "LHS taramasi %0,95 (2sigma) band verdi ve ikinci tarama %0,89 — sayi yinelenebilir. Ama bandin GIRDILERDEN geldigi gosterilemedi ve 'u_girdi' diye yayimlamak YANLIS olurdu.",
+  "null_degisken_yontemi": {
+    "_ne": "Taramaya, etkisi OLAMAYACAGI ONCEDEN BILINEN girdiler konur; calisma kendi kontrolune doner. Null bir degisken gercek degiskenle ayni mertebede korelasyon gosteriyorsa, olculen sey girdi yaniti DEGILDIR.",
+    "degiskenler": {
+      "rho": "Cd boyutsuz ve çözücü SABİT kinematik viskoziteyle koşuyor (nu=1,5e-5). Re = V·L/nu, rho'ya bağlı değil; Cd = F/(0,5 rho V^2 A) ifadesinde rho pay ve paydada birlikte gider.",
+      "alpha_deg": "Taban vaka bir KÜRE — eksenel simetrik. Hücum açısı bir simetri işlemidir; Cd değişemez."
+    },
+    "taramalar": [
+      {
+        "tarama": "gevşek (cd_tol 0,003)",
+        "n": 30,
+        "cd_tol": 0.003,
+        "u_girdi_pct": 0.95,
+        "duyarlilik_pearson": {
+          "velocity": -0.315,
+          "alpha_deg": -0.207,
+          "rho": -0.31
+        },
+        "kritik_r": 0.36,
+        "anlamli_olan": []
+      },
+      {
+        "tarama": "sıkı (cd_tol 0,0003)",
+        "n": 12,
+        "cd_tol": 0.0003,
+        "u_girdi_pct": 0.89,
+        "duyarlilik_pearson": {
+          "velocity": 0.451,
+          "alpha_deg": -0.278,
+          "rho": -0.55
+        },
+        "kritik_r": 0.571,
+        "anlamli_olan": []
+      }
+    ],
+    "_esik_notu": "Kritik |r| ORNEKLEM BUYUKLUGUNE baglidir. Ilk surum n=30'un esigini (0,361) n=12'lik taramaya da uyguladi ve r=-0,55'i 'anlamli' saydi; n=12 icin esik 0,576 ve o korelasyon da anlamli DEGIL."
+  },
+  "hipotezler": [
+    {
+      "hipotez": "Erken-durdurma toleransı bandı üretiyor",
+      "sinav": "cd_tol 0,003 → 0,0003 (10 kat sıkı), 12 koşu",
+      "sonuc": "ÇÜRÜDÜ",
+      "olcum": "band %0,95 → %0,89 (değişmedi)"
+    },
+    {
+      "hipotez": "Ağ girdiye bağlı değişiyor",
+      "sinav": "kalite preset'i n_layers ve ilk-katman yüksekliği",
+      "sonuc": "ÇÜRÜDÜ",
+      "olcum": "n_layers=0 → ilk katman yok; 30/30 koşu 316.514 hücre"
+    },
+    {
+      "hipotez": "Koşu tekrarsızlığı (deterministik olmama)",
+      "sinav": "aynı girdiyle 6 tekrar",
+      "sonuc": "ÇÜRÜDÜ",
+      "olcum": "%0.069 — bandın ~1/13'i"
+    },
+    {
+      "hipotez": "Eşik altı salınım u_sayısal'a girmiyor",
+      "sinav": "arşivdeki 22 koşuda eşik altı genlikler",
+      "sonuc": "ÇÜRÜDÜ",
+      "olcum": "eşik altı genlikler %0,00–0,09; eşik üstü olanlar ZATEN sayılıyor (10/22 eşik altı, u_toplam değişimi +%0)"
+    },
+    {
+      "hipotez": "Koşular yakınsamadan duruyor",
+      "sinav": "düzgün V taraması, koşu başına drift ve salınım",
+      "sonuc": "DESTEKLENDİ",
+      "olcum": "drift %0,07–0,54, genlik %0,06–0,55; gözlenen yayılım %0.96 AYNI mertebede"
+    }
+  ],
+  "duzgun_v_taramasi": [
+    {
+      "V": 19.5,
+      "cd": 0.14253,
+      "iter": 374,
+      "drift_pct": 0.539,
+      "genlik_pct": 0.55
+    },
+    {
+      "V": 19.75,
+      "cd": 0.1413,
+      "iter": 376,
+      "drift_pct": 0.068,
+      "genlik_pct": 0.06
+    },
+    {
+      "V": 20.0,
+      "cd": 0.14266,
+      "iter": 361,
+      "drift_pct": 0.127,
+      "genlik_pct": 0.4
+    },
+    {
+      "V": 20.25,
+      "cd": 0.1426,
+      "iter": 357,
+      "drift_pct": 0.118,
+      "genlik_pct": 0.35
+    },
+    {
+      "V": 20.5,
+      "cd": 0.14255,
+      "iter": 374,
+      "drift_pct": 0.119,
+      "genlik_pct": 0.33
+    }
+  ],
+  "band_pct": 0.89,
+  "tekrar_tabani_pct": 0.069,
+  "yakinsamamislik_pct": 0.55,
+  "verdikt": "u_girdi ÖLÇÜLEMEDİ. Tarama %0.89 (2σ) band verdi ama dört hipotezden üçü çürüdü ve desteklenen tek açıklama, koşuların yakınsamadan durması: koşu başına drift/salınım %0.55'e kadar çıkıyor ve gözlenen yayılım (%0.96) tam bu mertebede. İki NULL değişkenin korelasyonu gerçek değişkeninkiyle aynı olduğu için band, girdi duyarlılığı olarak OKUNAMAZ. %0.89 bir ÜST SINIRDIR.",
+  "ne_gerekir": "Girdi duyarliligini ayirmak icin kosu-basina yakinsama hatasi girdi-kaynakli farktan KUCUK olmali. Bugun ikisi ayni mertebede. Gereken: iterasyon tavani ve rezidual denetimi siki tutulmus bir tarama; sonrasinda NULL degiskenlerin korelasyonu SIFIRA inmeli — bu, calismanin kendi ic denetimidir ve gecmeden band yayimlanmaz.",
+  "_kisit": "Null-degisken akil yurutmesi VAKAYA OZGUDUR: alpha ancak eksenel simetrik govdede nulldur, rho ise sabit-nu kabulune baglidir. Baska bir vakada bu iki degisken GERCEK olabilir ve o zaman kontrol islevini yitirirler. Ayrica 'yakinsamadan durma' aciklamasi DESTEKLENDI, KANITLANMADI: kesin sinav, tavani yukseltip bandin cokmesini gostermektir ve o kosulmadi.",
+  "_uretim": "Üretim: python experiments/girdi_uq_teshis.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

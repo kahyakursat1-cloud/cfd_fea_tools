@@ -1574,6 +1574,11 @@ class VehicleAnalysisResult:
     # dolayısıyla aşağı akıştaki hiçbir tüketici "bu ağ bu modele uygun mu"
     # sorusunu SORAMIYORDU. `duvar_hukmu` modeli alıyor ama kimse veremiyordu.
     turbulence_model: str = ""
+    # ERKEN-DURDURMA TOLERANSI KAYITTA. Bu ayar sonuca SACILMA olarak geciyor
+    # ve gomulu oldugu surece kayittan okunamiyordu: girdi-UQ taramasi %0,95
+    # (2sigma) sacilma olctu ve o sacilmanin kaynagi girdiler degil, bu
+    # toleransin izin verdigi yakinsama noktasi farkiydi.
+    cd_tol: float = 0.003
     aref_m2: float | None = None
     aref_mode: str = ""
     cd: float | None = None
@@ -1646,7 +1651,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                          pervane_itki_n=0.0, pervane_cap_m=0.0,
                          ground_clearance=None, mesh_levels=3, refinement_regions=None,
                          max_cells=None, ref_bump=0, turbulence_model="kOmegaSST",
-                         progress_cb=None, mesh_motion=False,
+                         progress_cb=None, mesh_motion=False, cd_tol=0.003,
                          referans_cd=None) -> VehicleAnalysisResult:
     stl_path = Path(stl_path)
     stem = stl_path.stem
@@ -1831,6 +1836,9 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         # da hattan degil, artik var olmayan bir betikten gelmisti. Yani
         # savunma dogruydu, kendisine yem verecek uretim yolu YOKTU.
         mesh_motion=mesh_motion,
+        # ERKEN-DURDURMA TOLERANSI cagirana ACIK: girdileri degistiren
+        # her calisma bu toleransin kadar sacilma miras alir.
+        cd_tol=cd_tol,
     )
     # KATMAN YAPILABİLİRLİĞİ — ÇÖZÜCÜDEN ÖNCE (case kuruldu, henüz koşmadı). En ince
     # özellik (firar kenarı) yüzey hücresinden küçükse snappy o bölgeyi çözemez ve
@@ -1856,6 +1864,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         status="failed", vehicle_type=vehicle_type, stl=str(stl_path),
         velocity=velocity, alpha_deg=alpha_deg, geometry=geo,
         kalite=quality, case_dir=str(case_dir), referans_cd=referans_cd,
+        cd_tol=cd_tol,
         turbulence_model=turbulence_model,
     )
     if not res.success or res.cd is None:
@@ -2577,6 +2586,10 @@ if __name__ == "__main__":
                     help="ağ hareketi iskelesini kur (dynamicMeshDict + "
                          "pointDisplacement) — iki-yönlü FSI kuplaj turu için "
                          "ZORUNLU; hareketsiz vakada kuplaj sessizce tek-yönlü olur")
+    ap.add_argument("--cd-tol", type=float, default=0.003, dest="cd_tol",
+                    help="Cd erken-durdurma drift toleransi (varsayilan 0,003 "
+                         "= %%0,3). Girdi-tarama calismalarinda BU TOLERANS "
+                         "sacilma olarak sonuca gecer; sikilastirin.")
     args = ap.parse_args()
     if str(args.ref_bump).lower() != "oto":
         try:
@@ -2595,6 +2608,7 @@ if __name__ == "__main__":
                              pervane_itki_n=args.itki, pervane_cap_m=args.cap,
                              ref_bump=args.ref_bump, progress_cb=_cb,
                              mesh_motion=args.mesh_motion,
+                             cd_tol=args.cd_tol,
                              referans_cd=args.referans_cd)
     if r.status == "ok":
         print(f"\nCd={r.cd}  CdA={r.cda_m2} m²  Drag={r.drag_N} N"

@@ -487,3 +487,20 @@ def test_rapor_KOSULLAMA_butcesi_kanittan_sapmiyor(tex):
         assert int(bd.replace(".", "")) == k["toplam_BIR_DEGISKEN_DAHA"], fark
     # VERI-GUDUMLU orani rapordan sessizce dusmemeli
     assert f"{d['veri_gudumlu_hucre']}/{d['mevcut_hucre']}" in tex
+
+
+def test_rapor_ORTOTROPIK_capa_kanittan_sapmiyor(tex):
+    """Altıncı FEA çapasının sayıları elle yazılamaz."""
+    import json
+    p = KOK / "fea_validation_ortotropik.json"
+    if not p.exists():
+        pytest.skip("fea_validation_ortotropik.json üretilmemiş")
+    d = json.loads(p.read_text(encoding="utf-8"))
+    hata = f"{d['fem']['delta_hata_pct']:.1f}".replace(".", "{,}")
+    assert rf"\%{hata}" in tex or rf"\textbf{{\%{hata}}}" in tex, \
+        f"ortotropik hata (%{hata}) raporda yok"
+    kat = f"{d['ayirt_edicilik']['kat']:.1f}".replace(".", "{,}")
+    assert kat in tex, f"ayırt edicilik katı ({kat}) raporda yok"
+    # KAPSAM DISI kalanlar rapordan sessizce dusmemeli
+    for terim in ("temas", "plastisite", "NLGEOM", "delaminasyon"):
+        assert terim in tex, f"kapsam-dışı terim raporda yok: {terim}"

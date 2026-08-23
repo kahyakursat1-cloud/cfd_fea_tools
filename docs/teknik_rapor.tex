@@ -279,6 +279,8 @@ Pervane & aktüatör disk (itki kaynak terimi) & \\
 Çözücü & CalculiX, C3D10 (kuadratik tetrahedron) & \\
 Yük mekanizmaları & kuvvet, basınç, $n\!\cdot\!g$, termal, burkulma &
   \textbf{beşi de kapalı-forma doğrulanmış} \\
+Malzeme modeli & izotropik \emph{ve} ortotropik (CLT eşdeğer laminat) &
+  ikisi de kapalı-forma doğrulanmış (\S\ref{sub:fea-kapsam}) \\
 Basınç yükü & T6 yüzeyinde tutarlı-yük (kenar-orta $A/3$) & Lamé ile \%1{,}3 \\
 Tekillik bekçisi & sayısal tekilliği gerçek $K_t$'den ayırır &
   ayrılmadan tepe gerilme verilmez \\
@@ -793,6 +795,108 @@ model götürülünce geriye \emph{ölçülmüş} hiçbir band kalmaz ve araç `
 verilemez'' der. Eski sürüm bu koşularda da bir sayı basıyordu --- hem de hiç
 ölçülmemiş bir belirsizliğe dayanarak. Kapatmanın yolu \texttt{-{}-duyarlilik}
 ile yeniden koşmaktır; araç bunu ekranda söylüyor.
+\end{dikkat}
+
+\subsection{Girdi belirsizliği: ölçüldü, ama ölçülen şey girdi değildi}
+\label{sub:girdi-uq}
+
+$u_{\text{toplam}}$ bugün iki bileşenden kuruluyor: sayısal (GCI/LSR) ve
+model-form. Üçüncü terim --- girdi belirsizliği --- sıfır sayılıyordu;
+ölçülmediği için değil, hiç sorulmadığı için. Sıfır saymak, girdiyi kesin
+bilindiği varsaymaktır.
+
+Bütçe önce ölçüldü: koşu arşivinden koşu başına 2{,}7 dk (medyan, 310 bin
+hücre), üç girdi için LHS 30 koşu $\approx$ 1{,}4 saat --- yani ulaşılabilir.
+Tarama koşuldu: $C_d = 0{,}14229 \pm 0{,}00067$ (1$\sigma$), band \%0{,}95
+(2$\sigma$). İkinci bağımsız tarama \%0{,}89. Sayı yinelenebilir.
+
+\textbf{Ama bu sayı ``girdi belirsizliği'' olarak yayımlanamaz.} Taramaya,
+etkisi olamayacağı \emph{önceden bilinen} iki girdi konmuştu ve çalışma böylece
+kendi kontrolüne dönüştü:
+
+\begin{itemize}\setlength\itemsep{1pt}
+  \item $\rho$ --- $C_d$ boyutsuzdur ve çözücü sabit kinematik viskoziteyle
+        koşar ($\nu = 1{,}5\times10^{-5}$). $Re = VL/\nu$, $\rho$'ya bağlı
+        değil; $C_d = F/(\tfrac12\rho V^2 A)$ ifadesinde $\rho$ pay ve paydada
+        birlikte gider.
+  \item $\alpha$ --- taban vaka bir küredir, eksenel simetrik. Hücum açısı bir
+        simetri işlemidir.
+\end{itemize}
+
+\noindent Ölçülen korelasyonlar: $V$ $-0{,}315$, $\alpha$ $-0{,}207$,
+$\rho$ $-0{,}310$ ($n{=}30$). İki null, gerçek değişkenle aynı mertebede.
+İkinci taramada $r(V)$ \emph{işaret değiştirdi} ($+0{,}451$). Her iki taramada
+da hiçbir korelasyon kendi örneklem büyüklüğünün eşiğini geçmiyor
+($|r|_{\text{kritik}}$ = 0{,}360 ve 0{,}571).
+
+\begin{dikkat}{Dört hipotez sınandı, üçü çürüdü}
+\begin{center}\footnotesize
+\begin{tabular}{@{}llp{5.1cm}@{}}
+\toprule
+Hipotez & Sonuç & Ölçüm \\
+\midrule
+Erken-durdurma toleransı & çürüdü & \texttt{cd\_tol} 10 kat sıkıldı; band
+  \%0{,}95 $\rightarrow$ \%0{,}89 \\
+Ağ girdiye bağlı değişiyor & çürüdü & \texttt{n\_layers}=0; 30/30 koşu
+  316.514 hücre \\
+Koşu tekrarsızlığı & çürüdü & aynı girdiyle 6 tekrar: \%0{,}069 \\
+Eşik altı salınım atılıyor & çürüdü & arşivde eşik altı genlikler
+  \%0{,}00--0{,}09 \\
+\textbf{Yakınsamadan durma} & \textbf{desteklendi} & koşu başına drift
+  \%0{,}07--0{,}54, salınım \%0{,}06--0{,}55 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Gözlenen band (\%0{,}96) koşu başına yakınsamamışlıkla aynı mertebede.
+Desteklenen açıklama \emph{kanıtlanmış değildir}: kesin sınav, iterasyon
+tavanını yükseltip bandın çökmesini göstermektir ve o koşulmadı.
+\end{dikkat}
+
+\noindent Sonuç: \%0{,}89 bir \textbf{üst sınırdır}, girdi duyarlılığı
+değildir. Girdi etkisini ayırmak için koşu-başına yakınsama hatası
+girdi-kaynaklı farktan küçük olmalı; bugün ikisi aynı mertebede. Ölçüt hazır:
+sıkı bir taramada null değişkenlerin korelasyonu sıfıra inmeli --- çalışmanın
+kendi iç denetimi budur ve geçmeden band yayımlanmaz.
+
+Yan bulgu: erken-durdurma toleransı gömülüydü ve hiçbir yere kaydedilmiyordu.
+V\&V açısından belirleyici bir ayar ne görülebiliyor ne değiştirilebiliyordu;
+artık \texttt{CFDCase.cd\_tol} olarak açık, CLI'de \texttt{-{}-cd-tol} ile
+verilir ve koşu kaydına yazılır.
+
+\subsection{FEA kapsamı: doğrulanan ne, doğrulanmayan ne}
+\label{sub:fea-kapsam}
+
+Yapısal çözüm beş yük mekanizmasında kapalı-forma karşı ölçüldü ve hepsi
+\%0{,}0--4{,}8 bandında. Bu doğru ama eksik bir cümledir: neyin
+\emph{doğrulanmadığı} raporda hiç yazmıyordu, ve bir okuyucu bunu genel bir
+FEA yetkinliği olarak alabilirdi.
+
+Denetim bir boşluk buldu. \texttt{calculix\_writer} ortotropik malzemeyi
+yazabiliyor (\texttt{*ELASTIC, TYPE=ENGINEERING CONSTANTS}) ve
+\texttt{laminat.py} kompozit deriyi CLT eşdeğeriyle bu yola besliyor; bir
+birim testi de bloğun \emph{yazıldığını} doğruluyordu. Ama beş kapalı-form
+çapasının hepsi izotropikti --- yani ortotropik yol yazılıyor, sözdizimi
+sınanıyor, sonucu hiçbir yerde sınanmıyordu. Doğru kartı \texttt{.inp}'e
+yazmak, doğru cevabı almakla aynı şey değildir.
+
+Boşluk kapatıldı. Altıncı çapa: uç yüklü ortotropik konsol kiriş, lif yönü
+kiriş ekseninde, $\delta = PL^3/(3E_1I)$. Ölçüm \textbf{\%1{,}2}. Çapa
+ayırt edici olacak biçimde kuruldu: $E_1$ ve $E_2$ 13{,}5 kat farklı seçildi,
+dolayısıyla izotropik bir okuma ya da eksenlerin karışması sehimi o kadar
+kaydırır ve sınav düşer --- ölçülen sonuç $E_2$ okumasından \%93 uzakta.
+
+\begin{dikkat}{Kapsam dışı kalanlar --- adıyla}
+Yapısal çözücü şunlar için \emph{doğrulanmamıştır} ve bunlar üretim yolunda
+da yoktur: temas, plastisite/malzeme doğrusalsızlığı, geometrik
+doğrusalsızlık (\texttt{NLGEOM}), yorulma, sürünme, birleşim/bağlantı
+elemanı modelleri, çatlak/kırılma. Analiz tipleri \texttt{STATIC},
+\texttt{FREQUENCY} ve \texttt{BUCKLE} ile sınırlıdır.
+
+Ortotropik çapanın kendi sınırları da yazılı: malzeme eksenleri global
+çerçevededir (yazıcı \texttt{*ORIENTATION} üretmiyor), yani \emph{eğik lif
+yönü doğrulanmadı}; ve sınav düzlem-içi rijitliktir --- katmanlar arası
+kayma ve delaminasyon kapsam dışıdır.
 \end{dikkat}
 
 \subsection{Tablo daha çok değişkene koşullanabilir mi --- bütçe}

@@ -1,0 +1,61 @@
+{
+  "vaka": "Ortotropik konsol kiriş — kapalı-form (P L³ / 3 E1 I)",
+  "yontem": "ÜRETİM ORTOTROPİK yolu: FEAMaterial(engineering_constants) → *ELASTIC, TYPE=ENGINEERING CONSTANTS (calculix_writer) → ccx → frd. Kök ankastre, uç yükü -z.",
+  "geometri": {
+    "L_m": 0.5,
+    "b_m": 0.02,
+    "h_m": 0.02,
+    "L_bolu_h": 25.0,
+    "P_N": 200.0
+  },
+  "malzeme": {
+    "E1_Pa": 135000000000.0,
+    "E2_Pa": 10000000000.0,
+    "E3_Pa": 10000000000.0,
+    "nu12": 0.28,
+    "nu13": 0.28,
+    "nu23": 0.4,
+    "G12_Pa": 5000000000.0,
+    "G13_Pa": 5000000000.0,
+    "G23_Pa": 3500000000.0,
+    "rho_kg_m3": 1600.0,
+    "_not": "tek yönlü karbon/epoksi mertebesinde; 1=lif/kiriş ekseni (x)"
+  },
+  "analitik": {
+    "delta_mm": 4.6296,
+    "formul": "delta = P L^3 / (3 E1 I), I = b h^3 / 12"
+  },
+  "fem": {
+    "delta_mm": 4.6833,
+    "delta_hata_pct": 1.16,
+    "dugum": 1111,
+    "eleman_C3D10": 494
+  },
+  "ayirt_edicilik": {
+    "E2_okunsaydi_delta_mm": 62.5,
+    "kat": 13.5,
+    "fem_E2_okumasindan_uzaklik_pct": 92.5,
+    "_neden": "E1 ve E2 kasitli olarak 13,5 kat farkli secildi. Izotropik bir okuma ya da eksenlerin karismasi sehimi o kadar kaydirir ve sinav DUSER — yani bu capa gercekten ortotropiyi siniyor, yalniz 'kostu mu' demiyor."
+  },
+  "sonuc": "GECTI — %1.2. Doğrular: ÜRETİMin ORTOTROPİK malzeme yolu (engineering_constants → *ELASTIC, TYPE=ENGINEERING CONSTANTS). Beş izotropik çapaya ek 6. mekanizma; laminat.py'nin CLT eşdeğer-kompozit yolu artık kapalı-formla bağlı.",
+  "_kisit": "Eksenler GLOBAL cercevede (yazici *ORIENTATION yazmiyor); lif yonu kiriş eksenine hizali secildi. Egik lif yonu DOGRULANMADI. Ayrica bu bir DUZLEM-ICI rijitlik sinavi; katmanlar arasi (interlaminar) kayma ve delaminasyon KAPSAM DISI.",
+  "_uretim": "Üretim: python experiments/fea_validation_ortotropik.py",
+  "_not": "Üretim: python experiments/fea_validation_ortotropik.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

@@ -36,6 +36,12 @@ KASITLI_VARSAYILAN = {
     "rho": "hava yoğunluğu; deniz seviyesi 1.225 dışına çıkmak uzman işi",
     "turbulence_model": "kOmegaSST varsayılan; model değişimi V&V bandını "
                         "geçersizleştirir, uzman yolundan yapılmalı",
+    "cd_tol": "Cd erken-durdurma toleransı (2026-08-23 açıldı). Arayüzde YOK "
+              "çünkü tek bir koşuda anlamı sınırlı: değeri asıl GİRDİ-TARAMA "
+              "çalışmalarında önem kazanır (tolerans, sonuca saçılma olarak "
+              "geçer — ölçüldü: %0,3 tolerans, taramada %0,95 2σ saçılma) ve "
+              "o çalışmalar CLI'den sürülür. Arayüz kullanıcısı değeri "
+              "DEĞİŞTİREMEZ ama GÖREBİLİR: koşu kaydına yazılıyor.",
     "max_cells": "kalite preset'i belirler; elle ezmek bütçe kapısını atlar",
     "ground_clearance": "yalnız zemin-etkili araçlar (araba preset'i kendi verir)",
     "refinement_regions": "elle iyileştirme bölgesi — uzman/deneysel yol",

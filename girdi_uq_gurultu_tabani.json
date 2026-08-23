@@ -1,0 +1,44 @@
+{
+  "vaka": "Koşu-tekrar gürültü tabanı — aynı girdi, N koşu",
+  "_neden": "LHS taramasinda iki NULL degiskenin (kure icin alpha, boyut analizi geregi rho) korelasyonu gercek degiskeninkiyle AYNI mertebede cikti. Olculen sacilmanin ne kadari girdiden, ne kadari kosu tekrarsizligindan?",
+  "n_istenen": 6,
+  "n_tamamlanan": 6,
+  "dusen": [],
+  "sure_dk": 21.6,
+  "cd": [
+    0.14261,
+    0.14261,
+    0.14271,
+    0.14271,
+    0.1427,
+    0.1427
+  ],
+  "cd_ort": 0.142673,
+  "cd_sd": 4.93e-05,
+  "hucre_benzersiz": [
+    316514
+  ],
+  "gurultu_tabani_pct": 0.069,
+  "u_girdi_pct": 0.95,
+  "tabanin_u_girdideki_payi_pct": 7.3,
+  "verdikt": "GÜRÜLTÜ TABANI = %0.069 (2σ/ortalama, 6 tekrar, AYNI girdi). LHS taramasının verdiği u_girdi = %0.95 ile kıyaslandığında taban, ölçülen bandın ~%7'ini açıklıyor. Yani bandın baskın kısmı gerçekten girdiden geliyor.",
+  "_kisit": "Taban AYNI vakada olculdu; baska geometri/agda farkli olabilir. Ayrica tekrarsizligin KAYNAGI burada ayristirilmadi (paralel indirgeme sirasi mi, Cd-yakinsama erken-durdurmasi mi) — olculen sey yalnizca BUYUKLUGU. Null-degisken akil yurutmesi kureye OZGUDUR: alpha ancak eksenel simetrik govdede nulldur.",
+  "_uretim": "Üretim: python experiments/girdi_uq_gurultu_tabani.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

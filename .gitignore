@@ -42,6 +42,7 @@ test_fea_run/
 _fea_val/
 _fea_val_hole/
 _fea_val_cyl/
+_fea_val_ort/
 _fea_val_grav/
 _fea_val_buckling/
 rocket_cfd_case/
@@ -163,6 +164,10 @@ _doe_runs/
 # Girdi-UQ tarama arsivi: 30 kosu x ~0,3 GB. Kanit
 # `girdi_uq_sonuc.json`'da ve O izleniyor.
 _uq_runs/
+# Girdi-UQ yan calismalari: gurultu tabani (ayni girdi N tekrar) ve
+# iterasyon izleme. Kanit `girdi_uq_*.json`'da ve O izleniyor.
+_uq_gurultu/
+_uq_iter/
 _doe_tmp/
 design_explore_*.json
 kuyruk.jsonl

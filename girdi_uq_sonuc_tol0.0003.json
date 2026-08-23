@@ -1,0 +1,174 @@
+{
+  "vaka": "Girdi belirsizliği yayılımı — LHS taraması",
+  "_neden": "u_toplam bugun sayisal ve model-form bilesenlerinden kuruluyor; ucuncu terim (girdi) SIFIR sayiliyordu.",
+  "taban_vaka": {
+    "stl": "D:\\bilsem_beyin\\cfd_fea_tools\\vehicle_runs\\test_sphere\\test_sphere_prep.stl",
+    "vehicle_type": "roket",
+    "quality": "standart",
+    "velocity": 20.0,
+    "alpha_deg": 0.0,
+    "rho": 1.225
+  },
+  "girdi_bandi": {
+    "velocity": {
+      "tip": "bagil",
+      "yari_genislik": 0.05,
+      "gerekce": "rüzgâr tüneli/uçuş hız ölçümü ±%5 (pitot kalibrasyonu, blokaj düzeltmesi)"
+    },
+    "alpha_deg": {
+      "tip": "mutlak",
+      "yari_genislik": 0.5,
+      "gerekce": "montaj/trim açı belirsizliği ±0,5° (model tutucu, akış yönü)"
+    },
+    "rho": {
+      "tip": "bagil",
+      "yari_genislik": 0.03,
+      "gerekce": "hava yoğunluğu ±%3 (irtifa 0–250 m, sıcaklık 10–30 °C)"
+    }
+  },
+  "n_istenen": 12,
+  "n_tamamlanan": 12,
+  "dusen": [],
+  "sure_dk": 45.5,
+  "cd_ort": 0.14226,
+  "cd_sd": 0.000633,
+  "cd_min": 0.14128,
+  "cd_max": 0.14291,
+  "u_girdi_pct": 0.89,
+  "duyarlilik_pearson": {
+    "velocity": 0.451,
+    "alpha_deg": -0.278,
+    "rho": -0.55
+  },
+  "kosular": [
+    {
+      "i": 1,
+      "velocity": 19.56453134601161,
+      "alpha_deg": -0.1579176663440343,
+      "rho": 1.2564981020988228,
+      "cd": 0.14141,
+      "cl": 0.00956,
+      "hucre": 316514
+    },
+    {
+      "i": 2,
+      "velocity": 20.946039902655947,
+      "alpha_deg": 0.17818656846263403,
+      "rho": 1.2005353334814373,
+      "cd": 0.14237,
+      "cl": -0.02538,
+      "hucre": 316514
+    },
+    {
+      "i": 3,
+      "velocity": 19.30493281411194,
+      "alpha_deg": -0.06039374741791104,
+      "rho": 1.2167260155218882,
+      "cd": 0.14144,
+      "cl": 0.01194,
+      "hucre": 316514
+    },
+    {
+      "i": 4,
+      "velocity": 20.09930701884163,
+      "alpha_deg": -0.30430415128411614,
+      "rho": 1.1993845227851474,
+      "cd": 0.14286,
+      "cl": -0.00782,
+      "hucre": 316514
+    },
+    {
+      "i": 5,
+      "velocity": 19.907349428353495,
+      "alpha_deg": 0.13395303449204,
+      "rho": 1.2517709309729863,
+      "cd": 0.14128,
+      "cl": 0.01026,
+      "hucre": 316514
+    },
+    {
+      "i": 6,
+      "velocity": 20.385730413107773,
+      "alpha_deg": 0.06832999637705517,
+      "rho": 1.2082762001164398,
+      "cd": 0.14244,
+      "cl": -0.00889,
+      "hucre": 316514
+    },
+    {
+      "i": 7,
+      "velocity": 20.641390475839682,
+      "alpha_deg": 0.4845860454665858,
+      "rho": 1.2439229632401718,
+      "cd": 0.14249,
+      "cl": -0.00943,
+      "hucre": 316514
+    },
+    {
+      "i": 8,
+      "velocity": 19.031029293179397,
+      "alpha_deg": 0.39299876907836573,
+      "rho": 1.2427870748472776,
+      "cd": 0.14163,
+      "cl": 0.01203,
+      "hucre": 316514
+    },
+    {
+      "i": 9,
+      "velocity": 19.749862184301634,
+      "alpha_deg": -0.20680317910573148,
+      "rho": 1.2282340194977859,
+      "cd": 0.14291,
+      "cl": -0.00829,
+      "hucre": 316514
+    },
+    {
+      "i": 10,
+      "velocity": 19.413915922906757,
+      "alpha_deg": 0.2521166090825596,
+      "rho": 1.2195848271564698,
+      "cd": 0.14286,
+      "cl": -0.00853,
+      "hucre": 316514
+    },
+    {
+      "i": 11,
+      "velocity": 20.199691817781357,
+      "alpha_deg": -0.36188005110995924,
+      "rho": 1.2359635626922625,
+      "cd": 0.14276,
+      "cl": -0.02454,
+      "hucre": 316514
+    },
+    {
+      "i": 12,
+      "velocity": 20.743322079900793,
+      "alpha_deg": -0.4708605224718918,
+      "rho": 1.193547622194631,
+      "cd": 0.14267,
+      "cl": -0.00776,
+      "hucre": 316514
+    }
+  ],
+  "verdikt": "u_girdi = %0.89 (2σ/ortalama). Verilen girdi bantlarında (velocity ±0.05, alpha_deg ±0.5, rho ±0.03) Cd = 0.14226 ± 0.00063 (1σ), aralık [0.14128, 0.14291], 12/12 koşu, 46 dk.",
+  "_kisit": "GIRDI DAGILIMLARI VARSAYIMDIR, olcum degil — degistirilirse sonuc degisir ve bu girdi UQ'nun TANIMIDIR. Duzgun dagilim secildi cunku sekli gosterecek veri yok; duzgun, verilen aralikta EN GENIS bandi verir (muhafazakar yon). Pearson r birinci-mertebe bir gostergedir, SOBOL INDEKSI DEGILDIR ve etkilesimleri gormez. u_girdi mevcut u_sayisal ve u_model'in YERINE GECMEZ, yanina RSS ile girer. Ag sabit tutuldu ki sayisal hata ortak-kip olsun.",
+  "_uretim": "Üretim: python experiments/girdi_uq_kos.py",
+  "cd_tol": 0.0003,
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}
