@@ -795,6 +795,55 @@ verilemez'' der. Eski sürüm bu koşularda da bir sayı basıyordu --- hem de h
 ile yeniden koşmaktır; araç bunu ekranda söylüyor.
 \end{dikkat}
 
+\subsection{Tablo daha çok değişkene koşullanabilir mi --- bütçe}
+\label{sub:kosullama}
+
+Model-form belirsizliği bugün \texttt{rejim $\times$ duvar işlemi}
+tablosundan geliyor. Bunu türbülans modeline, Reynolds sayısına ya da ağ
+kalitesine de koşullamak makul bir istektir; ama koşullamak hücreleri
+\emph{bölmek} demektir ve bugün altı hücrenin \textbf{beşinde tek çapa}
+oturuyor. Tek örnekli bir hücrede hücre-içi saçılma ölçülemez, dolayısıyla
+tablonun kendisi ``koşullama işe yarıyor mu'' sorusunu yanıtlayamaz.
+
+Ölçülebilen ne varsa ölçüldü. Hücre-içi saçılma yalnız üç çapalı tek hücrede
+tanımlı: $\sigma_{\text{iç}} = \%3{,}96$. Hücreler arası saçılma
+$\sigma_{\text{dış}} = \%7{,}27$. $\sigma_{\text{iç}} < \sigma_{\text{dış}}$
+olması mevcut koşullamayla \emph{çelişmiyor} ama onu doğrulamıyor da ---
+$n{=}3$'lük tek bir hücreden tablo yapısı sınanmaz.
+
+Bütçe tek bir sayı değil, görmek istediğiniz farkın fonksiyonudur
+($n \propto \sigma^2/\Delta^2$):
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}rrrr@{}}
+\toprule
+Ayırt edilecek fark & Hücre başına & Mevcut tablo & +1 değişken \\
+\midrule
+10 puan & 3 & 18 & 36 \\
+5 puan & 10 & 60 & 120 \\
+2 puan & 62 & 372 & 744 \\
+1 puan & 247 & 1.482 & 2.964 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Elde sekiz çapa var. On puanlık kaba bir ayrım bugünkü tablo için
+ulaşılabilir mesafede (18); beş puan zorlayıcı (60); bir değişken daha eklemek
+her satırı ikiye katlar.
+
+\begin{dikkat}{Tablonun yarısı veri-güdümlü değil}
+Altı ``ölçülen'' hücrenin \textbf{üçü tam olarak literatür öncülünü} taşıyor:
+\texttt{attached\_2d.wall\_function} (\%12), \texttt{separated.wall\_resolved}
+(\%12), \texttt{separated.wall\_function} (\%25). Çapa ölçüldü ama sapma
+öncülden \emph{küçük} çıktı ve muhafazakâr davranılıp öncül korundu. Karar
+doğru --- ölçülemeyen bir iyileşmeyi yayımlamak yerine literatür üst sınırı
+tutuluyor. Ama sonuç şu: tablonun veri-güdümlü kısmı \textbf{3/6}, ve
+``altı hücre ölçüldü'' cümlesi bunu olduğundan güçlü gösterir.
+
+Buna bağlı ikinci gözlem: iki hücre \emph{özdeş} değer taşıyor (ikisi de
+\%12). Tablo onları ayırıyor, veri ayırmıyor.
+\end{dikkat}
+
 \subsection{Kayıtlı hüküm bayatlıyor --- ve bayatlık gevşek yönde}
 \label{sub:hukum-tazeligi}
 

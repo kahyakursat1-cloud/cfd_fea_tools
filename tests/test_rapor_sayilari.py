@@ -468,3 +468,22 @@ def test_rapor_HUKUM_TAZELIGI_kanittan_sapmiyor(tex):
         f"raporda {m.group(2)} bayat, kanıtta {d['bayat']}"
     # YON rapordan sessizce dusmemeli — gevseyen bayatlik tehlikeli olandir
     assert "daha gevşek" in tex
+
+
+def test_rapor_KOSULLAMA_butcesi_kanittan_sapmiyor(tex):
+    """Bütçe tablosu σ_iç'e karesel bağlı; çapa eklendikçe değişir."""
+    import json
+    p = KOK / "model_form_kosullama.json"
+    if not p.exists():
+        pytest.skip("model_form_kosullama.json üretilmemiş")
+    d = json.loads(p.read_text(encoding="utf-8"))
+    satir = re.findall(r"(\d+) puan & ([\d.]+) & ([\d.]+) & ([\d.]+) ", tex)
+    assert satir, "rapor koşullama bütçe tablosunu taşımıyor"
+    kayit = {int(x["ayirt_edilecek_fark_puan"]): x for x in d["butce"]["fark_basina"]}
+    for fark, hb, mt, bd in satir:
+        k = kayit[int(fark)]
+        assert int(hb) == k["hucre_basina_capa"], fark
+        assert int(mt.replace(".", "")) == k["toplam_MEVCUT_TABLO"], fark
+        assert int(bd.replace(".", "")) == k["toplam_BIR_DEGISKEN_DAHA"], fark
+    # VERI-GUDUMLU orani rapordan sessizce dusmemeli
+    assert f"{d['veri_gudumlu_hucre']}/{d['mevcut_hucre']}" in tex

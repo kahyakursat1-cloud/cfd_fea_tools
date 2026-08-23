@@ -1,0 +1,148 @@
+{
+  "vaka": "Model-form tablosunun koşullanabilirliği — güç hesabı",
+  "_neden": "Hakem model-formun turbulans modeli / Re / ag kalitesi gibi degiskenlere de kosullanmasini istedi. Kosullamak hucreleri BOLMEK demektir ve bugun bes hucrede TEK capa var.",
+  "mevcut_hucre": 6,
+  "mevcut_capa": 8,
+  "tek_capali_hucreler": [
+    "lifting.wall_resolved",
+    "attached_2d.wall_resolved",
+    "attached_2d.wall_function",
+    "separated.wall_resolved",
+    "separated.wall_function"
+  ],
+  "degeri_onculden_gelen_hucreler": [
+    "attached_2d.wall_function",
+    "separated.wall_resolved",
+    "separated.wall_function"
+  ],
+  "veri_gudumlu_hucre": 3,
+  "hucreler": [
+    {
+      "hucre": "lifting.wall_resolved",
+      "n": 1,
+      "u_pct": 5.41,
+      "oncul_pct": 5.0,
+      "deger_onculden_mi": false,
+      "sapmalar": [
+        1.48
+      ]
+    },
+    {
+      "hucre": "attached_2d.wall_resolved",
+      "n": 1,
+      "u_pct": 5.23,
+      "oncul_pct": 5.0,
+      "deger_onculden_mi": false,
+      "sapmalar": [
+        3.52
+      ]
+    },
+    {
+      "hucre": "attached_2d.wall_function",
+      "n": 1,
+      "u_pct": 12.0,
+      "oncul_pct": 12.0,
+      "deger_onculden_mi": true,
+      "sapmalar": [
+        2.79
+      ]
+    },
+    {
+      "hucre": "bluff.wall_function",
+      "n": 3,
+      "u_pct": 9.31,
+      "oncul_pct": 20.0,
+      "deger_onculden_mi": false,
+      "sapmalar": [
+        3.38,
+        1.79,
+        9.31
+      ]
+    },
+    {
+      "hucre": "separated.wall_resolved",
+      "n": 1,
+      "u_pct": 12.0,
+      "oncul_pct": 12.0,
+      "deger_onculden_mi": true,
+      "sapmalar": [
+        10.464
+      ]
+    },
+    {
+      "hucre": "separated.wall_function",
+      "n": 1,
+      "u_pct": 25.0,
+      "oncul_pct": 25.0,
+      "deger_onculden_mi": true,
+      "sapmalar": [
+        8.747
+      ]
+    }
+  ],
+  "sigma_ic_pct": 3.96,
+  "sigma_ic_kaynak": "bluff.wall_function",
+  "sigma_dis_pct": 7.27,
+  "kosullama_celismiyor_mu": true,
+  "butce": {
+    "mevcut_tablo_hucre": 6,
+    "ozdes_degerli_cift": [
+      [
+        12.0,
+        12.0
+      ]
+    ],
+    "fark_basina": [
+      {
+        "ayirt_edilecek_fark_puan": 1.0,
+        "hucre_basina_capa": 247,
+        "toplam_MEVCUT_TABLO": 1482,
+        "toplam_BIR_DEGISKEN_DAHA": 2964
+      },
+      {
+        "ayirt_edilecek_fark_puan": 2.0,
+        "hucre_basina_capa": 62,
+        "toplam_MEVCUT_TABLO": 372,
+        "toplam_BIR_DEGISKEN_DAHA": 744
+      },
+      {
+        "ayirt_edilecek_fark_puan": 5.0,
+        "hucre_basina_capa": 10,
+        "toplam_MEVCUT_TABLO": 60,
+        "toplam_BIR_DEGISKEN_DAHA": 120
+      },
+      {
+        "ayirt_edilecek_fark_puan": 10.0,
+        "hucre_basina_capa": 3,
+        "toplam_MEVCUT_TABLO": 18,
+        "toplam_BIR_DEGISKEN_DAHA": 36
+      }
+    ],
+    "en_yakin_farkli_cift_pct": [
+      5.23,
+      5.41
+    ],
+    "en_yakin_delta_puan": 0.18,
+    "_en_yakin_notu": "Bu cift ayirt edilebilir bir hedef DEGILDIR: aralarindaki fark hucre-ici sacilmanin cok altinda, yani iki hucre pratikte AYNI degeri tasiyor. Butce bu ciftten hesaplanirsa sonsuza yaklasir ve 'kosullama imkansiz' diye yanlis okunur."
+  },
+  "verdikt": "BUGÜN KOŞULLANAMAZ: 6 hücrenin 5'inde TEK çapa var (8 çapa toplam). Hücre-içi saçılma yalnız bluff.wall_function hücresinde ölçülebiliyor (σ_iç=%3.96); hücreler arası σ_dış=%7.27. σ_iç < σ_dış olması mevcut koşullamayla ÇELİŞMİYOR ama onu DOĞRULAMIYOR da. BÜTÇE: 5 puanlık bir farkı ayırt etmek için hücre başına ~10 çapa (mevcut tabloda ~60); 2 puan için hücre başına ~62 (~372). Bir değişken daha eklemek bunları İKİYE KATLAR. Elde 8 çapa var. AYRICA: 6 'ölçülen' hücrenin 3'ü TAM OLARAK literatür öncülünü taşıyor — çapa ölçüldü ama sapma öncülden küçük çıktı ve muhafazakâr davranılıp öncül korundu; tablonun veri-güdümlü kısmı 3/6. İki hücre ÖZDEŞ değer taşıyor ([[12.0, 12.0]]): tablo onları ayırıyor, veri ayırmıyor.",
+  "_kisit": "sigma_ic TEK hucreden ve n=3'ten geliyor; kendisi belirsizdir ve guc hesabi ona dogrusal degil KARESEL baglidir, yani butce sayisi bir HEDEF DEGIL BUYUKLUK MERTEBESIDIR. Ayrica sigma_ic, capalarin KENDI sayisal bandiyla ayni mertebede (bkz. eslesik_korelasyon) — yani olculen sacilmanin ne kadari model ne kadari ag, bu veriden cikmaz ve sigma_ic bir UST SINIRDIR. Ust sinir kullanmak butceyi BUYUK tarafta tutar; muhafazakar yon.",
+  "_uretim": "Üretim: python experiments/model_form_kosullama.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}
