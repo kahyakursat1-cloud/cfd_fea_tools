@@ -797,6 +797,64 @@ verilemez'' der. Eski sürüm bu koşularda da bir sayı basıyordu --- hem de h
 ile yeniden koşmaktır; araç bunu ekranda söylüyor.
 \end{dikkat}
 
+\subsection{Optimizasyon güncellemesi: OC daha düşük sayı verir, MMA savunulabilir sayı}
+\label{sub:mma}
+
+Topoloji optimizasyonu OC (optimality criteria) ile güncelleniyordu ve kodun
+kendi yorumu şunu söylüyordu: ``OC stress'te tek-başına kararsız/salınımlı, iyi
+topoloji başlangıcı şart''. Warm-start bir \emph{çareydi}; sebebi ölçülmemişti.
+
+Sebep OC adımının tek bir satırında: $b_e = \max(-\partial f/\partial x, 0)$.
+Bu, duyarlılığı \emph{pozitif} olan elemanları sıfırlar --- ``bu elemanın
+yoğunluğunu artırmak amacı kötüleştirir'' bilgisini atar. Kompliyans
+minimizasyonunda duyarlılık her zaman negatiftir ve kayıp yoktur; P-norm
+gerilme minimizasyonunda değildir. Ölçüldü (L-braket 3B): aktif elemanların
+\%12{,}8--65{,}7'si her adımda pozitif duyarlılık taşıyor ve gradyan
+\emph{büyüklüğünün} atılan payı üçüncü iterasyonda \textbf{\%96{,}9}'a çıkıyor.
+Amaç tam o adımda $12{,}95 \rightarrow 97{,}54$ sıçrıyor.
+
+MMA (Svanberg 1987) pozitif duyarlılığı atmaz: her değişken için iki asimptot
+tutar ve pozitif gradyanı alt asimptota doğru bir itki olarak temsil eder.
+Kararlılığı bellekten gelir --- salınım görülürse asimptotlar yaklaştırılır ve
+adım kendiliğinden küçülür. OC belleksizdir.
+
+Uygulama iki sınavdan geçti: kapalı-form çözümü bilinen bir problemde makine
+hassasiyetinde eşleşti ($8{,}3\times10^{-17}$), ve pozitif-gradyanlı
+elemanları doğru yöne sürdü.
+
+\begin{dikkat}{Son değer tek başına yanıltır}
+Aynı problem, soğuk başlangıç (warm-start yok --- sınanan şey tam olarak ona
+duyulan ihtiyaç), 150 iterasyon:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+ & Son amaç & Boşa giden hareket & Durma noktası duyarlılığı & İşaret değişimi \\
+\midrule
+OC  & \textbf{0{,}8565} & \%47{,}5 & \%2{,}83 & 131 \\
+MMA & 0{,}9018 & \textbf{\%5{,}1} & --- (tekdüze) & 24 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+OC daha düşük bir sayıya ulaşıyor. Ama o sayı yakınsamış bir cevap değil: OC
+bir \emph{limit çevriminde} dönüyor, son yirmi iterasyondaki hareketinin
+\%47{,}5'i ileri-geri boşa gidiyor ve raporlanan değer hangi iterasyonda
+durulduğuna \%2{,}83 duyarlı. MMA'da boşa giden hareket \%5{,}1 ve net
+ilerleme daha büyük (\%3{,}01 vs \%2{,}38) --- yani 150. iterasyonda hâlâ
+verimli iniyor.
+
+Yani MMA daha düşük sayı vermiyor, \emph{savunulabilir} sayı veriyor: sonucu
+durma noktasına bağlı değil. Bu, raporun her yerinde savunulan ayrımın
+optimizasyon tarafındaki karşılığıdır.
+\end{dikkat}
+
+\noindent Kısıt açık: tek problem, tek çözünürlük. Optimizasyon
+algoritmalarının kıyası probleme bağlıdır ve bu sonuç genel bir üstünlük
+iddiası değildir. MMA'nın asimptot katsayıları Svanberg'in önerdiği
+değerlerdedir ve bu probleme göre \emph{ayarlanmadı} --- ayarlansaydı kıyas
+adaletsiz olurdu.
+
 \subsection{Girdi belirsizliği: ölçüldü, ama ölçülen şey girdi değildi}
 \label{sub:girdi-uq}
 

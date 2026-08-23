@@ -504,3 +504,20 @@ def test_rapor_ORTOTROPIK_capa_kanittan_sapmiyor(tex):
     # KAPSAM DISI kalanlar rapordan sessizce dusmemeli
     for terim in ("temas", "plastisite", "NLGEOM", "delaminasyon"):
         assert terim in tex, f"kapsam-dışı terim raporda yok: {terim}"
+
+
+def test_rapor_MMA_kiyasi_kanittan_sapmiyor(tex):
+    """OC/MMA sayıları koşu yenilendiğinde değişir; elle yazılamaz."""
+    import json
+    p = KOK / "mma_vs_oc.json"
+    if not p.exists():
+        pytest.skip("mma_vs_oc.json üretilmemiş")
+    d = json.loads(p.read_text(encoding="utf-8"))
+    for kural in ("oc", "mma"):
+        son = f"{d[kural]['son_obj']:.4f}".replace(".", "{,}")
+        assert son in tex, f"{kural} son amacı ({son}) raporda yok"
+        bosa = f"{d[kural]['bosa_giden_hareket_pct']:.1f}".replace(".", "{,}")
+        assert bosa in tex, f"{kural} boşa giden hareket (%{bosa}) raporda yok"
+    # ASIL AYRIM rapordan sessizce dusmemeli
+    assert "savunulabilir" in tex.lower()
+    assert "limit çevrimi" in tex.lower() or r"limit \emph{çevriminde}" in tex
