@@ -1,0 +1,241 @@
+{
+  "vaka": "Kayıtlı hüküm tazeliği — sonuc.json bugünkü kodla aynı mı",
+  "_neden": "Kod sikistiginda eski kayit eski hukmu tasimaya devam eder ve onu okuyan biri bugunku aracin VERMEYECEGI bir hukumle karar verir. Genel sinif degismedigi icin mevcut denetimler bunu goremiyordu — fark yalniz `kalemler` icinde.",
+  "toplam_kosu": 23,
+  "taze": 8,
+  "bayat": 15,
+  "gevseyen_kosu": 15,
+  "olculemeyen": [],
+  "bayat_kosular": [
+    {
+      "kosu": "a320_Body_A320",
+      "farklar": [
+        {
+          "nicelik": "C_L (taşıma)",
+          "kayitli": "VALIDATED",
+          "bugun": "TREND",
+          "yon": "gevşek",
+          "kayitli_tasarim_guvenli": true,
+          "bugun_tasarim_guvenli": false
+        }
+      ],
+      "gevseyen": 1
+    },
+    {
+      "kosu": "ciftkuyruk_kucuk",
+      "farklar": [
+        {
+          "nicelik": "C_L (taşıma)",
+          "kayitli": "VALIDATED",
+          "bugun": "TREND",
+          "yon": "gevşek",
+          "kayitli_tasarim_guvenli": true,
+          "bugun_tasarim_guvenli": false
+        }
+      ],
+      "gevseyen": 1
+    },
+    {
+      "kosu": "clean_rocket_fixed_prep",
+      "farklar": [
+        {
+          "nicelik": "C_L (taşıma)",
+          "kayitli": "VALIDATED",
+          "bugun": "TREND",
+          "yon": "gevşek",
+          "kayitli_tasarim_guvenli": true,
+          "bugun_tasarim_guvenli": false
+        }
+      ],
+      "gevseyen": 1
+    },
+    {
+      "kosu": "dogrulama_kup",
+      "farklar": [
+        {
+          "nicelik": "C_L (taşıma)",
+          "kayitli": "VALIDATED",
+          "bugun": "TREND",
+          "yon": "gevşek",
+          "kayitli_tasarim_guvenli": true,
+          "bugun_tasarim_guvenli": false
+        }
+      ],
+      "gevseyen": 1
+    },
+    {
+      "kosu": "genel_kapsul_uzun",
+      "farklar": [
+        {
+          "nicelik": "C_L (taşıma)",
+          "kayitli": "VALIDATED",
+          "bugun": "TREND",
+          "yon": "gevşek",
+          "kayitli_tasarim_guvenli": true,
+          "bugun_tasarim_guvenli": false
+        }
+      ],
+      "gevseyen": 1
+    },
+    {
+      "kosu": "genel_kup800",
+      "farklar": [
+        {
+          "nicelik": "C_L (taşıma)",
+          "kayitli": "VALIDATED",
+          "bugun": "TREND",
+          "yon": "gevşek",
+          "kayitli_tasarim_guvenli": true,
+          "bugun_tasarim_guvenli": false
+        }
+      ],
+      "gevseyen": 1
+    },
+    {
+      "kosu": "gondol_dort",
+      "farklar": [
+        {
+          "nicelik": "C_L (taşıma)",
+          "kayitli": "VALIDATED",
+          "bugun": "TREND",
+          "yon": "gevşek",
+          "kayitli_tasarim_guvenli": true,
+          "bugun_tasarim_guvenli": false
+        }
+      ],
+      "gevseyen": 1
+    },
+    {
+      "kosu": "gripen_AB_Right",
+      "farklar": [
+        {
+          "nicelik": "C_L (taşıma)",
+          "kayitli": "VALIDATED",
+          "bugun": "TREND",
+          "yon": "gevşek",
+          "kayitli_tasarim_guvenli": true,
+          "bugun_tasarim_guvenli": false
+        }
+      ],
+      "gevseyen": 1
+    },
+    {
+      "kosu": "izgara_ld7",
+      "farklar": [
+        {
+          "nicelik": "C_L (taşıma)",
+          "kayitli": "VALIDATED",
+          "bugun": "TREND",
+          "yon": "gevşek",
+          "kayitli_tasarim_guvenli": true,
+          "bugun_tasarim_guvenli": false
+        }
+      ],
+      "gevseyen": 1
+    },
+    {
+      "kosu": "kaldirici_e_kapsulsu",
+      "farklar": [
+        {
+          "nicelik": "C_L (taşıma)",
+          "kayitli": "VALIDATED",
+          "bugun": "TREND",
+          "yon": "gevşek",
+          "kayitli_tasarim_guvenli": true,
+          "bugun_tasarim_guvenli": false
+        }
+      ],
+      "gevseyen": 1
+    },
+    {
+      "kosu": "minihawk",
+      "farklar": [
+        {
+          "nicelik": "C_L (taşıma)",
+          "kayitli": "VALIDATED",
+          "bugun": "TREND",
+          "yon": "gevşek",
+          "kayitli_tasarim_guvenli": true,
+          "bugun_tasarim_guvenli": false
+        }
+      ],
+      "gevseyen": 1
+    },
+    {
+      "kosu": "minihawk_v2",
+      "farklar": [
+        {
+          "nicelik": "C_L (taşıma)",
+          "kayitli": "VALIDATED",
+          "bugun": "TREND",
+          "yon": "gevşek",
+          "kayitli_tasarim_guvenli": true,
+          "bugun_tasarim_guvenli": false
+        }
+      ],
+      "gevseyen": 1
+    },
+    {
+      "kosu": "minihawk_vtol",
+      "farklar": [
+        {
+          "nicelik": "C_L (taşıma)",
+          "kayitli": "VALIDATED",
+          "bugun": "TREND",
+          "yon": "gevşek",
+          "kayitli_tasarim_guvenli": true,
+          "bugun_tasarim_guvenli": false
+        }
+      ],
+      "gevseyen": 1
+    },
+    {
+      "kosu": "multikopter_kucuk",
+      "farklar": [
+        {
+          "nicelik": "C_L (taşıma)",
+          "kayitli": "VALIDATED",
+          "bugun": "TREND",
+          "yon": "gevşek",
+          "kayitli_tasarim_guvenli": true,
+          "bugun_tasarim_guvenli": false
+        }
+      ],
+      "gevseyen": 1
+    },
+    {
+      "kosu": "ucak_okkanat",
+      "farklar": [
+        {
+          "nicelik": "C_L (taşıma)",
+          "kayitli": "VALIDATED",
+          "bugun": "TREND",
+          "yon": "gevşek",
+          "kayitli_tasarim_guvenli": true,
+          "bugun_tasarim_guvenli": false
+        }
+      ],
+      "gevseyen": 1
+    }
+  ],
+  "verdikt": "15/23 koşuda kalem-düzeyi hüküm BAYAT; 15'inde bayat hüküm bugünküden DAHA GEVŞEK (kayıt vaat ediyor, bugünkü kod vermiyor). Genel sınıf değişmediği için hiçbir mevcut kapı bunu görmüyordu.",
+  "_kisit": "Eski kayitlar YENIDEN YAZILMIYOR: hukum, kosunun uretildigi andaki kodun ifadesidir; ustune bugunku hukmu yazmak tarihi siler ve kosunun girdileri tam geri kurulamiyorsa YANLIS da olabilir. Olculen sey farkin KENDISI ve YONUDUR. Ayrica yeniden-hukum, rapor ureticisinin KENDI yolundan gecer; ayri bir olcut kurmak ikinci kaynak yaratirdi.",
+  "_uretim": "Üretim: python hukum_tazeligi.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

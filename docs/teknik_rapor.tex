@@ -795,6 +795,37 @@ verilemez'' der. Eski sürüm bu koşularda da bir sayı basıyordu --- hem de h
 ile yeniden koşmaktır; araç bunu ekranda söylüyor.
 \end{dikkat}
 
+\subsection{Kayıtlı hüküm bayatlıyor --- ve bayatlık gevşek yönde}
+\label{sub:hukum-tazeligi}
+
+Uçtan uca bir gerileme testi eklendi: kayıtlı bir koşu rapora sokuluyor ve
+koşunun ürettiği her hükmün rapora \emph{ulaştığı} toplu olarak denetleniyor.
+Bu, yolun kendisini sınayan ilk test --- mevcut uçtan-uca testler sentetik
+sonuçla çalışıyor ve tek tek hükümleri çapalıyordu.
+
+Test yazılırken beklenmedik bir şey çıktı. \texttt{sonuc.json} her koşunun
+geçerlilik hükmünü saklar; kod sıkılaştığında eski kayıt eski hükmü taşımaya
+devam eder. Ölçüldü: \textbf{23 kayıtlı koşunun 15'inde} kalem düzeyinde
+hüküm bayat ve on beşi de aynı yönde --- kayıt
+\texttt{C\_L: VALIDATED, tasarım-güvenli EVET} diyor, bugünkü kod
+\texttt{TREND, HAYIR}. Yani bayat hüküm \emph{daha gevşek}: kayıt, aracın
+bugün vermeyeceği bir güvence vaat ediyor.
+
+\begin{dikkat}{Genel sınıf bayatlığı gizliyordu}
+İlk taramam genel sınıfa (\texttt{validity.sinif}) baktı ve 23/23 ``aynı''
+dedi. Fark yalnız \texttt{kalemler} içindeydi: genel sınıf ikisinde de
+\emph{yalnız-eğilim}, ama $C_L$ satırı birinde doğrulanmış öbüründe eğilim.
+Toplama bakan bir denetim, tek tek kalemlerdeki gevşemeyi hiç göremez.
+\end{dikkat}
+
+\noindent Eski kayıtlar \emph{yeniden yazılmıyor}. Hüküm, koşunun üretildiği
+andaki kodun ifadesidir; üstüne bugünkününü yazmak tarihi siler ve koşunun
+girdileri tam geri kurulamıyorsa yanlış da olabilir. Ölçülen şey farkın
+kendisi ve \emph{yönü}: gevşeyen bayatlık tehlikeli, sıkılaşan yalnız
+muhafazakârdır. Yeniden-hüküm rapor üreticisinin kendi yolundan geçiyor ---
+ayrı bir sınıflandırma kurmak ikinci kaynak yaratır ve ölçer, kodla kayıt
+arasındaki farkı değil kendi yorumuyla kod arasındaki farkı ölçerdi.
+
 \subsection{Tahrik bandı arandı: harita yanıt verdi, ama yanlış sebeple}
 \label{sub:fsi-tahrik}
 

@@ -451,3 +451,20 @@ def test_rapor_FSI_TAHRIK_bandi_kanittan_sapmiyor(tex):
     assert str(int(d["tahrik_tabani_pct"])) in tex and r"\%5" in tex
     # HUKUM: yakinsadi ama sebebi fizik degil
     assert "sebebi fizik değil" in tex
+
+
+def test_rapor_HUKUM_TAZELIGI_kanittan_sapmiyor(tex):
+    """Bayat/toplam oranı koşular yenilendikçe değişir; elle yazılamaz."""
+    import json
+    p = KOK / "hukum_tazeligi.json"
+    if not p.exists():
+        pytest.skip("hukum_tazeligi.json üretilmemiş")
+    d = json.loads(p.read_text(encoding="utf-8"))
+    m = re.search(r"(\d+) kayıtlı koşunun (\d+)'inde", tex)
+    assert m, "rapor hüküm-tazeliği oranını yazmıyor"
+    assert int(m.group(1)) == d["toplam_kosu"], \
+        f"raporda {m.group(1)} koşu, kanıtta {d['toplam_kosu']}"
+    assert int(m.group(2)) == d["bayat"], \
+        f"raporda {m.group(2)} bayat, kanıtta {d['bayat']}"
+    # YON rapordan sessizce dusmemeli — gevseyen bayatlik tehlikeli olandir
+    assert "daha gevşek" in tex
