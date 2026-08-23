@@ -1,0 +1,71 @@
+{
+  "vaka": "Girdi belirsizliği yayılımı — koşu bütçesi",
+  "_neden": "u_toplam bugun sayisal ve model-form bilesenlerinden kuruluyor; GIRDI belirsizligi hic yayilmiyor ve ucuncu terim SIFIR sayiliyor — olculmedigi icin degil, hic sorulmadigi icin.",
+  "girdiler": {
+    "velocity": "serbest akım hızı — rüzgâr tüneli/uçuş koşulu belirsizliği",
+    "alpha_deg": "hücum açısı — montaj/trim belirsizliği",
+    "rho": "hava yoğunluğu — irtifa ve sıcaklık"
+  },
+  "boyut": 3,
+  "kosu_maliyeti": {
+    "n_kosu": 7,
+    "medyan_s": 164.4,
+    "min_s": 146.3,
+    "max_s": 257.5,
+    "medyan_hucre": 310118,
+    "_kaynak": "koşu arşivi, aşama telemetrisi (asama_sureleri)"
+  },
+  "yontemler": [
+    {
+      "yontem": "LHS (tarama)",
+      "n": 30,
+      "ne_verir": "birinci-mertebe duyarlılık ve kaba band",
+      "_not": "10×boyut yaygın pratiktir, kanıt değil",
+      "toplam_saat": 1.37,
+      "bir_gecede_mi": true,
+      "bir_saatte_mi": false
+    },
+    {
+      "yontem": "Polinom kaos (mertebe 2)",
+      "n": 20,
+      "ne_verir": "band + Sobol duyarlılık indeksleri",
+      "_not": "taban 10, en-küçük-kareler için ×2",
+      "toplam_saat": 0.91,
+      "bir_gecede_mi": true,
+      "bir_saatte_mi": true
+    },
+    {
+      "yontem": "Monte Carlo (n=500)",
+      "n": 500,
+      "ne_verir": "dağılımın kendisi, kuyruk dahil",
+      "_not": "std kestiriminde ~%5 bağıl hata; kuyruk için daha fazlası",
+      "toplam_saat": 22.83,
+      "bir_gecede_mi": false,
+      "bir_saatte_mi": false
+    }
+  ],
+  "bir_gecede_ulasilabilir": [
+    "LHS (tarama)",
+    "Polinom kaos (mertebe 2)"
+  ],
+  "verdikt": "ULAŞILABİLİR: 3 girdi için 2/3 yöntem bir gecede biter. En ucuzu Polinom kaos (mertebe 2) — 20 koşu × 2.7 dk = 0.9 saat. Koşu maliyeti ARŞİVDEN ölçüldü (7 koşu. medyan 310.118 hücre).",
+  "_kisit": "Butce KOSU SAYISI verir, GIRDI DAGILIMI vermez. Hizin +-%2 mi +-%10 mu belirsiz oldugu kullanicinin vakasina baglidir ve bu dosya bir dagilim UYDURMAZ. Ayrica: maliyet 310 bin hucrelik `standart` kosulardan olculdu; UQ calismasinin AYNI agda kosmasi gerekir ki sayisal hata ORTAK-KIP olsun ve girdi etkisinden ayrilabilsin. Daha ince agda maliyet hucre sayisiyla yaklasik dogrusal buyur. Son olarak LHS'in 10xboyut kurali bir PRATIKTIR, kanit degil; yakinsama kosu sayisi artirilarak SINANMALIDIR.",
+  "_uretim": "Üretim: python experiments/girdi_uq_butcesi.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

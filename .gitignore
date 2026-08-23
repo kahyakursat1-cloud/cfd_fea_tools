@@ -160,6 +160,9 @@ supersonic_slender_result.json
 .claude/launch.json
 validation_anchors_runs/
 _doe_runs/
+# Girdi-UQ tarama arsivi: 30 kosu x ~0,3 GB. Kanit
+# `girdi_uq_sonuc.json`'da ve O izleniyor.
+_uq_runs/
 _doe_tmp/
 design_explore_*.json
 kuyruk.jsonl
