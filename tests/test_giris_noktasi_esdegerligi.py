@@ -36,6 +36,12 @@ KASITLI_VARSAYILAN = {
     "rho": "hava yoğunluğu; deniz seviyesi 1.225 dışına çıkmak uzman işi",
     "turbulence_model": "kOmegaSST varsayılan; model değişimi V&V bandını "
                         "geçersizleştirir, uzman yolundan yapılmalı",
+    "iterasyon_tavani": "SIMPLE iterasyon tavanı (2026-08-23 açıldı). Arayüzde "
+                        "YOK çünkü arayüz kaliteyi ön ayarla seçtiriyor ve "
+                        "tavan o ön ayarın parçası; ezmek YAKINSAMA "
+                        "çalışmalarının işi ve onlar CLI'den sürülür "
+                        "(`--iterasyon-tavani`). Kullanıcı değeri "
+                        "DEĞİŞTİREMEZ ama GÖREBİLİR: koşu kaydına yazılıyor.",
     "cd_tol": "Cd erken-durdurma toleransı (2026-08-23 açıldı). Arayüzde YOK "
               "çünkü tek bir koşuda anlamı sınırlı: değeri asıl GİRDİ-TARAMA "
               "çalışmalarında önem kazanır (tolerans, sonuca saçılma olarak "

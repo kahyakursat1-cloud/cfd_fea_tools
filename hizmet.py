@@ -216,8 +216,9 @@ def analiz_et(stl_path: str, *, duzeltici: bool = False,
     v = apply_ince_ozellik_gate(
         v, ((getattr(r, "sinir_tabaka", None) or {})
             .get("yuzey_cozunurlugu") or {}).get("geometri_goreli"))
-    # SUBKRITIK KAPANIS UYARISI — ayni yardimci IKI kanalda da cagrilir.
-    from validity_envelope import _subkritik_uyari
+    # GECIS ve SUBKRITIK kapilari — ayni yardimcilar IKI kanalda da cagrilir.
+    from validity_envelope import _gecis_kapisi, _subkritik_uyari
+    v = _gecis_kapisi(v, r)
     _subk = _subkritik_uyari(r)
 
     return {

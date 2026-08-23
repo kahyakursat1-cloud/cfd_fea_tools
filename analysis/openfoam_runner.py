@@ -999,6 +999,86 @@ def _write_transport(case_dir: Path, nu: float) -> None:
 GECIS_MODELLERI = ("kOmegaSSTLM",)
 
 
+GECIS_ARALIKLILIK_ESIGI = 0.5   # gammaInt; altindaki hucre LAMINER sayilir
+_SAYI = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
+_UNIFORM = re.compile(r"internalField\s+uniform\s+"
+                      r"([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)\s*;")
+
+
+def gecis_devrede_mi(case_dir: Path) -> dict:
+    """Geçiş modeli GERÇEKTEN devreye girdi mi? — koşudan SONRA, alandan.
+
+    `kOmegaSSTLM` bir kapanış SEÇİMİ değil bir kapanış İMKÂNIDIR. Aralıklılık
+    (gammaInt) her yerde 1 kalırsa laminer bölge hiç oluşmaz ve model
+    tam-türbülanslı kOmegaSST'ye DEJENERE olur; o koşudan çıkan sonuç seçilen
+    kapanış hakkında değil, seçilmeyeni hakkındadır.
+
+    NEDEN ÖN KOŞUL DEĞİL DE SONRAKİ DENETİM: iki çapa aynı serbest-akış
+    şiddetinde (TI=%1) koşuldu ve ZITTINI verdi --- küre devreye girdi
+    (gammaInt min 0,0206, laminer hücre %1,05), silindir girmedi (min 0,9869,
+    %0,0). Yani girdi ayarına bakarak hüküm verilemez; ayırt eden şey koşunun
+    kendi alanıdır. Tu bir risk faktörüdür, ön koşul değil.
+
+    DEVREDE = GEÇERLİ DEĞİLDİR. Bu denetim yalnız modelin ÇALIŞTIĞINI söyler,
+    sonucun anlamlı olduğunu değil. Küre çapası tam da bu ayrımın örneğidir:
+    aralıklılık devrede AMA ölçülen y⁺ 59 ve `duvar_hukmu(..., "kOmegaSSTLM")`
+    o koşuyu ZATEN reddediyor --- laminer altkatman ayrıklaştırılmadan geçiş
+    noktası çözülemez. İki kapı BİRLİKTE gerekir: duvar kapısı ağın modeli
+    taşıyıp taşımadığını, bu kapı modelin gerçekten yürüyüp yürümediğini
+    sorar. Biri öbürünün yerine okunursa ikisi de boşa çıkar.
+    """
+    from pathlib import Path as _P
+    case_dir = _P(case_dir)
+    zamanlar = sorted((d for d in case_dir.iterdir()
+                       if d.is_dir() and d.name.replace(".", "").isdigit()
+                       and float(d.name) > 0),
+                      key=lambda d: float(d.name))
+    # SEBEPLER YUTULMAZ, TASINIR. Her zaman dizini icin niye okunamadigi
+    # biriktirilir; hicbiri okunamazsa cagiran "okuyamadim"i degil NEDEN
+    # okuyamadigini gorur. Bir `continue` sessizce gecerse, alani hic yazmayan
+    # bir kosu ile bozuk yazan bir kosu AYNI gorunurdu.
+    sebepler: list[str] = []
+    for d in reversed(zamanlar):
+        f = d / "gammaInt"
+        if not f.exists():
+            sebepler.append(f"{d.name}: gammaInt yok")
+            continue
+        ham = f.read_text(errors="replace")
+        i = ham.find("internalField")
+        j, k = ham.find("(", i), ham.find(")", ham.find("(", i))
+        if i < 0 or j < 0 or k < 0:
+            # DUZGUN (uniform) alan da mesru: tek deger, liste degil. Bir
+            # kosunun aralikligi gercekten HER YERDE 1 ise OpenFOAM alani
+            # `uniform 1` yazar --- ve bu tam da yakalamak istedigimiz durum.
+            # Liste bekleyip pas gecmek, aranan kusuru gormezden gelirdi.
+            m = _UNIFORM.search(ham) if i >= 0 else None
+            if m is None:
+                sebepler.append(f"{d.name}: internalField ayrıştırılamadı")
+                continue
+            g = [float(m.group(1))]
+        else:
+            # AYRISTIRMA ISTISNASIZ: sayi olmayan belirteci saymak, `except`
+            # ile yutmaktan farkli olarak SEBEBI de tasir.
+            belirtec = ham[j + 1:k].split()
+            g = [float(s) for s in belirtec if _SAYI.fullmatch(s)]
+            bozuk = len(belirtec) - len(g)
+            if bozuk:
+                sebepler.append(f"{d.name}: {bozuk} sayı ayrıştırılamadı")
+            if not g:
+                continue
+        lam = sum(1 for x in g if x < GECIS_ARALIKLILIK_ESIGI) / len(g)
+        return {"okunabildi": True, "zaman_s": float(d.name), "n": len(g),
+                "min": round(min(g), 4),
+                "ortalama": round(sum(g) / len(g), 4),
+                "laminer_hucre_orani_pct": round(100.0 * lam, 2),
+                "devrede": min(g) < GECIS_ARALIKLILIK_ESIGI,
+                "_ayristirma_sorunlari": sebepler or None}
+    return {"okunabildi": False, "devrede": None,
+            "_neden": ("gammaInt alani okunamadi — YOKLUK 'devrede' SAYILMAZ"
+                       + (f" ({'; '.join(sebepler[:4])})" if sebepler else
+                          " (koşuda hiç zaman dizini yok)"))}
+
+
 def gecis_modeli_onkosulu(model: str, n_layers: int, yplus_target: float | None) -> str:
     """Geçiş modeli DUVAR-ÇÖZÜNÜR mesh ister — değilse SEBEBİ döndür ('' = uygun).
 
@@ -1021,6 +1101,22 @@ def gecis_modeli_onkosulu(model: str, n_layers: int, yplus_target: float | None)
     if yplus_target is not None and yplus_target > 5.0:
         return (f"{model} icin y+ hedefi {yplus_target:g} fazla yuksek (<=1 gerekir) — "
                 f"gecis noktasi cozulemez.")
+    # UCUNCU ON-KOSUL DENENDI VE OLCUMLE GERI CEKILDI (2026-08-23).
+    #
+    # Once su olculdu: silindirde TI=%1 ile gammaInt her yerde ~1 kaldi
+    # (min 0,9869, laminer hucre %0,0) --- model devreye hic girmeden
+    # tam-turbulansli kOmegaSST'ye DEJENERE oldu. Buradan "Tu>%0,5 ise
+    # gecis modelini REDDET" kurali cikarildi.
+    #
+    # SONRA AYNI OLCUT KURE CAPASINA UYGULANDI VE KURALI CURUTTU: kure de
+    # TI=%1 kosuyor ama gammaInt min 0,0206, laminer hucre %1,05 --- model
+    # DEVREDE. Sert red, calisan bir capayi oldururdu.
+    #
+    # Dogru sonuc: Tu bir RISK FAKTORUDUR, ON KOSUL DEGIL. Iki vakayi
+    # ayiran sey Tu degil, kosunun KENDI aralikligi. O yuzden ayirt eden
+    # denetim KOSUDAN SONRA yapilir --- `gecis_devrede_mi` --- ve sert
+    # kapi burada TUTULMAZ. Bir kurali, onu yanlislayabilecek ikinci
+    # vakada denemeden yazmak, hipotezi olcum gibi gostermektir.
     return ""
 
 

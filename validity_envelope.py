@@ -376,6 +376,25 @@ SUBKRITIK_OLCUM = {
 }
 
 
+# GECIS MODELI BIR COZUM DEGIL, BIR IMKANDIR — VE KOSULLUDUR.
+# Bu metin ONERI olarak yazilmisti ("gecis modeli ya da LES gerekir").
+# 2026-08-23'te SINANDI ve oneri o haliyle EKSIK cikti: kOmegaSSTLM ayni agda
+# kosuldu, sapma degismedi (Cd %-27,55) AMA sebep modelin yetersizligi degildi
+# --- gammaInt her yerde ~1 kaldi (min 0,9869, laminer hucre %0,0), yani model
+# hic devreye girmedi ve tam-turbulansli kOmegaSST'ye DEJENERE oldu. Sebep
+# serbest-akis turbulans siddeti: TI=%1 gecisi hemen tetikliyor, oysa subkritik
+# silindir deneyleri ~%0,1'de yapilir. Bir oneriyi sinamadan yazmak, onu
+# olculmus gibi gostermektir; kayit duzeltildi.
+GECIS_MODELI_KAYDI = (
+    "Geçiş modeli (kOmegaSSTLM) ya da duvar-çözümlü LES gerekir; ikincisi bu "
+    "donanımda sığmaz (84,7 M hücre / 62,9 GB). BİRİNCİSİ KOŞULLUDUR: modeli "
+    "seçmek yetmez, serbest-akış türbülans şiddeti de düşürülmelidir. ÖLÇÜLDÜ "
+    "(silindir_gecis_3b.json): TI=%1 ile gammaInt her yerde ~1 kaldı, model "
+    "devreye girmedi ve tam-türbülanslı kapanışa dejenere oldu — sapma "
+    "değişmedi. Aralıklılık (gammaInt<0,5 hücre oranı) DENETLENMEDEN geçiş "
+    "modeli koşusu delil sayılmaz.")
+
+
 def subkritik_kapanis_hukmu(rejim: str | None, Re: float | None,
                             turbulence_model: str | None) -> dict:
     """Subkritik Re'de künt cisim + TAM-TÜRBÜLANSLI kapanış = ölçülmüş büyük hata.
@@ -422,9 +441,20 @@ def subkritik_kapanis_hukmu(rejim: str | None, Re: float | None,
             f"kapanış onu türbülans sayar — ayrılma gecikir, iz daralır, Cd "
             f"düşük çıkar. Silindir çapalarında ÖLÇÜLDÜ: Cd %{-en_kotu:.0f}'a "
             f"kadar düşük (3B DES), St %38 yüksek. Model-form bandı (%9-25) bu "
-            f"hatayı KAPSAMAZ. Geçiş modeli (kOmegaSSTLM) ya da duvar-çözümlü "
-            f"LES gerekir; ikincisi bu donanımda sığmaz."),
+            f"hatayı KAPSAMAZ. {GECIS_MODELI_KAYDI}"),
     }
+
+
+
+
+def _gecis_kapisi(verdicts: list, r) -> list:
+    """Geçiş kapısını KOŞU KAYDINDAN besle — tek yerde, iki kanal için.
+
+    `_subkritik_uyari` ile aynı desen: kapının bir kanalda görünüp öbüründe
+    susması bu deponun tekrar tekrar ürettiği kusurdur.
+    """
+    return apply_gecis_gate(verdicts, getattr(r, "gecis_aralikligi", None),
+                            getattr(r, "turbulence_model", None))
 
 
 def _subkritik_uyari(r) -> dict:
@@ -495,6 +525,46 @@ def apply_ince_ozellik_gate(verdicts: list[Verdict],
 
 
 OZELLIK_BASINA_HUCRE_ESIK = 4
+
+
+def apply_gecis_gate(verdicts: list[Verdict], gecis_aralikligi: dict | None,
+                     turbulence_model: str | None) -> list[Verdict]:
+    """Geçiş modeli devreye GİRMEDİYSE, sonuç o modelin sonucu değildir.
+
+    Kullanıcı `kOmegaSSTLM` seçer, koşu tamamlanır, bir Cd çıkar --- ve
+    aralıklılık her yerde 1 kalmışsa o Cd tam-türbülanslı kOmegaSST'nin
+    Cd'sidir. Sayı yanlış değil, ETİKETİ yanlıştır; ve kullanıcı geçiş
+    modelinin laminer bölgeyi çözdüğünü VARSAYARAK karar verir.
+
+    ÖLÇÜLDÜ (2026-08-23): aynı serbest-akış şiddetinde (TI=%1) silindir
+    devreye girmedi (gammaInt min 0,9869, laminer hücre %0,0), küre girdi
+    (min 0,0206, %1,05). Yani bu ayrım girdi ayarından okunamaz, yalnız
+    koşunun kendi alanından okunur --- bu yüzden kapı koşudan SONRA çalışır.
+
+    İNDİRME SEVİYESİ: sınıf ZARF-DIŞI'na değil EĞİLİM'e iner. Sonuç geçersiz
+    değil, YANLIŞ ADLA gelmiştir; tam-türbülanslı kapanışın kendi geçerlilik
+    alanı ayrıca değerlendirilir (subkritik künt cisimde `_subkritik_uyari`
+    zaten devreye girer). Reddetmek, ölçülmemiş bir kusuru varsaymak olurdu.
+    """
+    # MODEL LISTESI TEK KAYNAKTAN. Burada ikinci bir demet yazmak, listeyi
+    # genisleten kisinin bu kapiyi sessizce atlamasina yol acardi.
+    from analysis.openfoam_runner import GECIS_MODELLERI
+    if turbulence_model not in GECIS_MODELLERI:
+        return verdicts
+    a = gecis_aralikligi or {}
+    if a.get("devrede") is not False:
+        return verdicts        # devrede ya da ÖLÇÜLEMEDİ -> sessiz inme YOK
+    p = {"model": turbulence_model, "min": a.get("min"),
+         "laminer_pct": a.get("laminer_hucre_orani_pct")}
+    mesaj = (f"{turbulence_model} SEÇİLDİ AMA DEVREYE GİRMEDİ: aralıklılık "
+             f"(gammaInt) minimumu {p['min']}, laminer hücre oranı "
+             f"%{p['laminer_pct']} — laminer bölge hiç oluşmadı ve çözüm "
+             f"tam-türbülanslı kOmegaSST'ye dejenere oldu. Bu sayı geçiş "
+             f"modeli sonucu DEĞİLDİR.")
+    return [x if x.klass != VALIDATED
+            else Verdict(x.quantity, TREND, False, mesaj, "GECIS_DEVREDE_DEGIL",
+                         dict(p))
+            for x in verdicts]
 
 
 # QoI-duraganlik esigi: DRIFT_LIMIT_PCT (2.0) 'kabul edilebilir', bu ise 'oturmus'

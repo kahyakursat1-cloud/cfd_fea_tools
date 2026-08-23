@@ -1579,6 +1579,10 @@ class VehicleAnalysisResult:
     # (2sigma) sacilma olctu ve o sacilmanin kaynagi girdiler degil, bu
     # toleransin izin verdigi yakinsama noktasi farkiydi.
     cd_tol: float = 0.003
+    # ITERASYON TAVANI KAYITTA. cd_tol ile ayni kusur sinifi: yakinsamayi
+    # belirleyen ayar gomuluyken kayittan okunamiyordu (olculdu: kosu 335
+    # iterasyonda durmus ama tavanin 400 oldugu hicbir yerde yazmiyordu).
+    iterasyon_tavani: int = 0
     aref_m2: float | None = None
     aref_mode: str = ""
     cd: float | None = None
@@ -1596,6 +1600,8 @@ class VehicleAnalysisResult:
     convergence: dict | None = None
     uyarilar: list = None
     sinir_tabaka: dict | None = None
+    # GECIS MODELI ARALIKILIGI: model SECMEK onu CALISTIRMAZ.
+    gecis_aralikligi: dict | None = None
     pervane: dict | None = None
     cp_vtk: str = ""
     kesit_vtk: str = ""
@@ -1652,6 +1658,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                          ground_clearance=None, mesh_levels=3, refinement_regions=None,
                          max_cells=None, ref_bump=0, turbulence_model="kOmegaSST",
                          progress_cb=None, mesh_motion=False, cd_tol=0.003,
+                         iterasyon_tavani=None,
                          referans_cd=None) -> VehicleAnalysisResult:
     stl_path = Path(stl_path)
     stem = stl_path.stem
@@ -1698,7 +1705,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     # hiç ayrıklaştırılmaz. Model yine bir sayı üretir ama fiziksel karşılığı YOKTUR
     # — "makul görünen ama anlamsız sonuç" sınıfı. Saatlerce koşup sonra fark etmek
     # yerine baştan reddedilir.
-    from analysis.openfoam_runner import gecis_modeli_onkosulu
+    from analysis.openfoam_runner import GECIS_MODELLERI, gecis_modeli_onkosulu
     _gm = gecis_modeli_onkosulu(turbulence_model, n_layers, yplus_target)
     if _gm:
         # Bu bir CAGIRAN HATASI (katmansiz mesh'te gecis modeli istemek), calisma-zamani
@@ -1816,7 +1823,11 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         domain_lateral=_dom[2],
         refinement_min=max(1, rmin + bump),
         refinement_max=max(1, rmax + bump),
-        end_time=q["end_time"],
+        # ITERASYON TAVANI CAGIRANA ACIK. Kalite on ayarindan gelir ama
+        # ezilebilir: yakinsama calismalarinda tavani yukseltmek AGI
+        # degistirmeden gerekir; `hassas`a gecmek max_cells ve bg_div'i
+        # de degistirir ve kiyasi bozardi.
+        end_time=(iterasyon_tavani or q["end_time"]),
         max_global_cells=q_max,
         bg_cell_size=geo["lmax_m"] / q["bg_div"],
         n_layers=n_layers,
@@ -1864,7 +1875,7 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         status="failed", vehicle_type=vehicle_type, stl=str(stl_path),
         velocity=velocity, alpha_deg=alpha_deg, geometry=geo,
         kalite=quality, case_dir=str(case_dir), referans_cd=referans_cd,
-        cd_tol=cd_tol,
+        cd_tol=cd_tol, iterasyon_tavani=(iterasyon_tavani or q["end_time"]),
         turbulence_model=turbulence_model,
     )
     if not res.success or res.cd is None:
@@ -2146,6 +2157,28 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         uyarilar.append("y⁺ ÖLÇÜLEMEDİ — sınır tabaka çözünürlüğü doğrulanamadı; "
                         "sürtünme sürüklemesinin duvar-fonksiyonu geçerliliği bilinmiyor"
                         + (f" (sebep: {_ned})" if _ned else ""))
+    # GECIS MODELI DEVREYE GIRDI MI — KOSUDAN SONRA, ALANDAN. Model SECMEK
+    # onu CALISTIRMAZ: aralikilik her yerde 1 kalirsa laminer bolge olusmaz ve
+    # kOmegaSSTLM tam-turbulansli kOmegaSST'ye dejenere olur; sonuc SECILEN
+    # kapanis hakkinda degil, secilmeyeni hakkindadir. Girdi ayarindan
+    # cikarilamaz: ayni TI=%1'de kure devreye girdi (laminer hucre %1,05),
+    # silindir girmedi (%0,0) --- ayirt eden sey kosunun KENDI alani.
+    if turbulence_model in GECIS_MODELLERI:
+        from analysis.openfoam_runner import gecis_devrede_mi
+        _ar = gecis_devrede_mi(case_dir)
+        base.gecis_aralikligi = _ar
+        if _ar.get("devrede") is False:
+            uyarilar.insert(0, (
+                f"GEÇİŞ MODELİ DEVREYE GİRMEDİ (ÖLÇÜLDÜ): gammaInt min "
+                f"{_ar['min']}, laminer hücre %{_ar['laminer_hucre_orani_pct']}. "
+                f"{turbulence_model} seçildi ama aralıklılık her yerde ~1 kaldı "
+                f"— çözüm tam-türbülanslı kOmegaSST'ye DEJENERE oldu ve bu sayı "
+                f"geçiş modeli sonucu SAYILMAZ."))
+        elif not _ar.get("okunabildi"):
+            uyarilar.append(
+                f"Geçiş modeli aralıklılığı ÖLÇÜLEMEDİ ({_ar.get('_neden')}) — "
+                f"{turbulence_model}'in devreye girip girmediği BİLİNMİYOR; "
+                "yokluk 'devrede' sayılmaz.")
     base.uyarilar = uyarilar
     base.kurulum = kurulum_uyarilari     # raporun EN ÜSTÜ: kurulum hatası her şeyi geçersizler
 
@@ -2590,6 +2623,11 @@ if __name__ == "__main__":
                     help="Cd erken-durdurma drift toleransi (varsayilan 0,003 "
                          "= %%0,3). Girdi-tarama calismalarinda BU TOLERANS "
                          "sacilma olarak sonuca gecer; sikilastirin.")
+    ap.add_argument("--iterasyon-tavani", type=int, default=None,
+                    dest="iterasyon_tavani",
+                    help="SIMPLE iterasyon tavani (varsayilan: kalite on "
+                         "ayarindan). Yakinsama calismalarinda AGI "
+                         "degistirmeden yukseltmek icin.")
     args = ap.parse_args()
     if str(args.ref_bump).lower() != "oto":
         try:
@@ -2609,6 +2647,7 @@ if __name__ == "__main__":
                              ref_bump=args.ref_bump, progress_cb=_cb,
                              mesh_motion=args.mesh_motion,
                              cd_tol=args.cd_tol,
+                             iterasyon_tavani=args.iterasyon_tavani,
                              referans_cd=args.referans_cd)
     if r.status == "ok":
         print(f"\nCd={r.cd}  CdA={r.cda_m2} m²  Drag={r.drag_N} N"

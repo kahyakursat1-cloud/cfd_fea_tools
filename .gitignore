@@ -185,7 +185,8 @@ experiments/nx_geo/
 experiments/nx_geo_egitim/
 experiments/nx_geo_kor/
 _basamak/
-_basarim/          # basarim matrisi calisma dizini (310 MB, kanit JSON'da)
+# basarim matrisi calisma dizini (310 MB, kanit JSON'da)
+_basarim/
 sessiz_yutma.json
 _naca2412/
 _smtest/
@@ -209,6 +210,8 @@ _duz_levha_aile/
 _silindir_urans/
 _silindir_3b/
 _silindir_3b_kalibre/
+# gecis modeli kosulari (Tu taramasi); kanit JSON'da
+_silindir_gecis_3b*/
 _c2d_*/
 
 # ─── 2026-08-13 oturumu: hakem-raporu koşularının case dizinleri ──────────

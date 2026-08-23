@@ -191,6 +191,27 @@ def _verdikt(o: dict, iki_b: dict | None) -> str:
             "span-yönü korelasyonu açıklaması YANLIŞ. Neden başka yerdedir.")
 
 
+def olc_ham(t, cd, cl) -> dict:
+    """Kuvvet tarihçesinden St, Cd ve salınım ölçümü — TEK KAYNAK.
+
+    NEDEN AYRI FONKSIYON: geçiş-modeli koşusu (`silindir_gecis_3b`) AYNI
+    ölçümü yapmak zorunda; ikinci bir uygulama yazmak iki koşuyu kıyaslanamaz
+    yapardı --- sapma farkının ölçütten mi kapanıştan mı geldiği söylenemezdi.
+    `main` de bu fonksiyonu çağırır, yani tek bir uygulama vardır.
+    """
+    olcum = salinim_olc(t, cl,
+                        gecis_orani=PERIYOT_GECIS / (PERIYOT_GECIS + PERIYOT_ISTAT))
+    st = (olcum["frekans_hz"] * D / U) if olcum.get("olculdu") else None
+    # A_REF: kanonik yazici Aref=lref^2 verir; silindirde dogru referans D x Lz.
+    olcek = (D * D) / (D * SPAN)
+    cd_ort = sum(cd[len(cd) // 3:]) / len(cd[len(cd) // 3:]) * olcek
+    return {"olcum": olcum, "St": st, "olcek": olcek, "Cd": cd_ort,
+            "Cl_genlik": olcum.get("genlik", 0.0) * olcek,
+            "St_sapma_pct": (round((st - ST_DENEY) / ST_DENEY * 100, 2)
+                             if st else None),
+            "Cd_sapma_pct": round((cd_ort - CD_DENEY) / CD_DENEY * 100, 2)}
+
+
 def main(argv: list[str]) -> int:
     for _akis in (sys.stdout, sys.stderr):
         if hasattr(_akis, "reconfigure"):
@@ -231,12 +252,8 @@ def main(argv: list[str]) -> int:
     if not t:
         print("forceCoeffs okunamadı", flush=True)
         return 1
-    olcum = salinim_olc(t, cl,
-                        gecis_orani=PERIYOT_GECIS / (PERIYOT_GECIS + PERIYOT_ISTAT))
-    st = (olcum["frekans_hz"] * D / U) if olcum.get("olculdu") else None
-    # A_REF: kanonik yazici Aref=lref^2 verir; silindirde dogru referans D x Lz.
-    olcek = (D * D) / (D * SPAN)
-    cd_ort = sum(cd[len(cd) // 3:]) / len(cd[len(cd) // 3:]) * olcek
+    _o = olc_ham(t, cd, cl)
+    olcum, st, olcek, cd_ort = _o["olcum"], _o["St"], _o["olcek"], _o["Cd"]
     iki_b_dosya = HERE.parent / "silindir_urans.json"
     iki_b = (json.loads(iki_b_dosya.read_text(encoding="utf-8"))
              if iki_b_dosya.exists() else None)

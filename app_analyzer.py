@@ -1379,7 +1379,9 @@ class AnalyzerWindow(QMainWindow):
             v = apply_ince_ozellik_gate(
                 v, ((getattr(r, "sinir_tabaka", None) or {})
                     .get("yuzey_cozunurlugu") or {}).get("geometri_goreli"))
-            from validity_envelope import _subkritik_uyari
+            # GECIS ve SUBKRITIK kapilari — ayni yardimcilar IKI kanalda da.
+            from validity_envelope import _gecis_kapisi, _subkritik_uyari
+            v = _gecis_kapisi(v, r)
             _subk = _subkritik_uyari(r)
             if _subk.get("tetiklendi"):
                 self._log("\n🔴 " + _subk["hukum"])

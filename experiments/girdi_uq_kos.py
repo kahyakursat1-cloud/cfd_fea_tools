@@ -32,8 +32,11 @@ sys.path.insert(0, str(KOK))
 # toleransla kosulan iki calisma birbirini EZDI (olculdu 2026-08-23:
 # gevsek taramanin ham verisi kayboldu ve teshis dosyasina elle
 # tasinmak zorunda kaldi).
-def _cikti(cd_tol: float) -> Path:
-    return KOK / f"girdi_uq_sonuc_tol{cd_tol:g}.json"
+def _cikti(cd_tol: float, tavan: int | None = None) -> Path:
+    # AD HER IKI AYARI DA TASIR: ayni toleransla farkli TAVANDA kosulan
+    # iki calisma da birbirini ezerdi.
+    ek = f"_it{tavan}" if tavan else ""
+    return KOK / f"girdi_uq_sonuc_tol{cd_tol:g}{ek}.json"
 
 # TABAN VAKA: kure — Cd'si literaturde bilinen, ucuz ve iyi huylu.
 TABAN = {"stl": KOK / "vehicle_runs" / "test_sphere" / "test_sphere_prep.stl",
@@ -82,7 +85,8 @@ def _deger(taban: float, band: dict, u: float) -> float:
     return taban + (2 * u - 1) * genlik
 
 
-def olc(n: int = 30, kuru: bool = False, cd_tol: float = 0.003) -> dict:
+def olc(n: int = 30, kuru: bool = False, cd_tol: float = 0.003,
+        iterasyon_tavani: int | None = None) -> dict:
     from vehicle_pipeline import run_vehicle_analysis
 
     adlar = list(GIRDI_BANDI)
@@ -104,6 +108,7 @@ def olc(n: int = 30, kuru: bool = False, cd_tol: float = 0.003) -> dict:
                 str(TABAN["stl"]), vehicle_type=TABAN["vehicle_type"],
                 velocity=p["velocity"], alpha_deg=p["alpha_deg"],
                 quality=TABAN["quality"], rho=p["rho"], cd_tol=cd_tol,
+                iterasyon_tavani=iterasyon_tavani,
                 out_root=str(KOK / "_uq_runs"), n_processors=4)
         except Exception as e:      # noqa: BLE001 — sebep KAYDEDILIYOR
             dusen.append({"i": i, **p, "hata": f"{type(e).__name__}: {e}"[:120]})
@@ -193,7 +198,12 @@ def main() -> int:
     tol = 0.003
     if "--cd-tol" in sys.argv:
         tol = float(sys.argv[sys.argv.index("--cd-tol") + 1])
-    r = olc(n, kuru="--kuru" in sys.argv, cd_tol=tol)
+    tavan = None
+    if "--iterasyon-tavani" in sys.argv:
+        tavan = int(sys.argv[sys.argv.index("--iterasyon-tavani") + 1])
+    r = olc(n, kuru="--kuru" in sys.argv, cd_tol=tol,
+            iterasyon_tavani=tavan)
+    r["iterasyon_tavani"] = tavan
     r["cd_tol"] = tol
     if "--kuru" in sys.argv:
         for p in r["plan"][:5]:
@@ -205,7 +215,7 @@ def main() -> int:
         print("duyarlılık (Pearson r):", r["duyarlilik_pearson"])
     import ortam
     ortam.damgala(r)
-    yol = _cikti(tol)
+    yol = _cikti(tol, tavan)
     yol.write_text(json.dumps(r, indent=2, ensure_ascii=False) + "\n",
                    encoding="utf-8")
     print(f"-> {yol.name}")
