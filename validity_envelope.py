@@ -358,6 +358,95 @@ def _sirkulasyona_bagli(quantity: str) -> bool:
     return any(q.startswith(k.upper()) or k.upper() in q for k in _SIRKULASYON_QOI)
 
 
+# SUBKRITIK Re BANDI — bu aralikta kunt cisimde BAGLI sinir tabaka LAMINERDIR.
+# Ust ucta (~3e5) surukleme krizi baslar ve tabaka kendiliginden turbulanslasir;
+# orada tam-turbulansli kapanis savunulabilir hale gelir.
+SUBKRITIK_RE = (1.0e4, 2.0e5)
+
+# TAM-TURBULANSLI kapanislar: bagli tabakayi bastan turbulansli sayarlar.
+# `kOmegaSSTLM` (Langtry-Menter) gecis modelidir ve bu listede DEGILDIR.
+_TAM_TURBULANSLI = ("komegasst", "kepsilon", "komegassstdes", "komegasstdes",
+                    "spalartallmaras", "kkl", "realizablke")
+
+# OLCULEN SAPMALAR — silindir capalari, Re=1,4e5, ayni kurulum ailesi.
+# Kaynak: silindir_urans_3b.json, silindir_des_3b.json
+SUBKRITIK_OLCUM = {
+    "3B URANS (kOmegaSST)": {"Cd_pct": -26.88, "St_pct": 29.74},
+    "3B DES (kOmegaSSTDES)": {"Cd_pct": -39.16, "St_pct": 38.16},
+}
+
+
+def subkritik_kapanis_hukmu(rejim: str | None, Re: float | None,
+                            turbulence_model: str | None) -> dict:
+    """Subkritik Re'de künt cisim + TAM-TÜRBÜLANSLI kapanış = ölçülmüş büyük hata.
+
+    NEDEN: model-form tablosu bu koşuya `bluff`/`separated` diyor ve
+    %9,31--25 band veriyor. Ama TAM BU konfigürasyonun ölçülen hatası
+    Cd %--27 (3B URANS) ve %--39 (3B DES) --- band hatayı 1,6--4 kat EKSİK
+    gösteriyor.
+
+    Sapmanın kaynağı ölçüldü, çıkarsanmadı: aynı ağ önce duvar-fonksiyonuyla
+    (y⁺=0,009, geçersiz) sonra düşük-Re ile (y⁺=0,78, geçerli) koşuldu ve
+    cevap %1'den az değişti. Yani sorun çözünürlük ya da duvar işlemi DEĞİL,
+    KAPANIŞ. Subkritik Re'de bağlı sınır tabaka LAMİNERDİR; tam-türbülanslı
+    kapanış onu türbülans sayar, ayrılmayı geciktirir, izi daraltır.
+
+    Fiziksel doğru kurulum duvar-çözümlü LES'tir ve bu makinede sığmaz
+    (84,7 M hücre / 62,9 GB --- silindir_les_fizibilite.json).
+
+    Bu bir BAND GENİŞLETME değil UYARIDIR: %39'luk bir hatayı banda gömmek,
+    ölçülmüş bir kusuru belirsizlik gibi göstermek olurdu.
+    """
+    if not rejim or Re is None or not turbulence_model:
+        return {"tetiklendi": False,
+                "neden": "rejim, Re ya da türbülans modeli bilinmiyor — "
+                         "DEĞERLENDİRİLMEDİ (yokluk 'sorun yok' sayılmaz)"}
+    kunt = rejim in ("bluff", "separated")
+    lo, hi = SUBKRITIK_RE
+    bandda = lo <= float(Re) <= hi
+    tam_turb = turbulence_model.lower().replace("_", "") in _TAM_TURBULANSLI
+    if not (kunt and bandda and tam_turb):
+        return {"tetiklendi": False,
+                "neden": (f"rejim={rejim}, Re={float(Re):.3g}, "
+                          f"model={turbulence_model} — üç koşul birlikte "
+                          f"sağlanmıyor")}
+    en_kotu = min(v["Cd_pct"] for v in SUBKRITIK_OLCUM.values())
+    return {
+        "tetiklendi": True,
+        "Re": float(Re), "rejim": rejim, "model": turbulence_model,
+        "olculen_sapmalar": SUBKRITIK_OLCUM,
+        "en_kotu_Cd_pct": en_kotu,
+        "hukum": (
+            f"SUBKRİTİK Re'DE TAM-TÜRBÜLANSLI KAPANIŞ (Re={float(Re):.2g}, "
+            f"{turbulence_model}): bağlı sınır tabaka bu rejimde LAMİNERDİR ve "
+            f"kapanış onu türbülans sayar — ayrılma gecikir, iz daralır, Cd "
+            f"düşük çıkar. Silindir çapalarında ÖLÇÜLDÜ: Cd %{-en_kotu:.0f}'a "
+            f"kadar düşük (3B DES), St %38 yüksek. Model-form bandı (%9-25) bu "
+            f"hatayı KAPSAMAZ. Geçiş modeli (kOmegaSSTLM) ya da duvar-çözümlü "
+            f"LES gerekir; ikincisi bu donanımda sığmaz."),
+    }
+
+
+def _subkritik_uyari(r) -> dict:
+    """Subkritik-kapanış kapısını KOŞU KAYDINDAN besle — tek yerde.
+
+    İki sunum kanalı da (hizmet, app_analyzer) aynı yardımcıyı çağırır;
+    kapının bir kanalda görünüp öbüründe susması bu deponun tekrar tekrar
+    ürettiği kusurdur.
+    """
+    from validity_envelope import rejim_arac_tipinden, subkritik_kapanis_hukmu
+    geo = getattr(r, "geometry", None) or {}
+    L = geo.get("lmax_m")
+    V = getattr(r, "velocity", None)
+    Re = (V * L / 1.5e-5) if (V and L) else None
+    # `rejim_arac_tipinden` TASIMA-siniri rejimini verir ("kunt"/"3b_duz_kanat");
+    # model-form rejimine cevrilir.
+    _r = rejim_arac_tipinden(getattr(r, "vehicle_type", None))
+    rejim = "bluff" if _r == "kunt" else ("lifting" if _r else None)
+    return subkritik_kapanis_hukmu(rejim, Re,
+                                   getattr(r, "turbulence_model", None))
+
+
 def apply_ince_ozellik_gate(verdicts: list[Verdict],
                             geometri_goreli: dict | None) -> list[Verdict]:
     """İnce özellik çözülmediyse sınıfı BÜYÜKLÜĞE GÖRE ayrı indir.

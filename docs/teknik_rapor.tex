@@ -797,6 +797,58 @@ verilemez'' der. Eski sürüm bu koşularda da bir sayı basıyordu --- hem de h
 ile yeniden koşmaktır; araç bunu ekranda söylüyor.
 \end{dikkat}
 
+\subsection{Ölçülmüş bir hata bandın dışındaydı ve kimse okumuyordu}
+\label{sub:subkritik}
+
+Zaman-çözünür yol iki ayrı rejimde sınandı ve sonuç ikisinde çok farklı:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}llrr@{}}
+\toprule
+Çapa & Rejim & $C_d$ sapması & $St$ sapması \\
+\midrule
+2B girdap dökülmesi & laminer ($Re\!\sim\!10^2$) & $-0{,}38\%$ & $+2{,}15\%$ \\
+3B URANS (kOmegaSST) & subkritik ($Re\!=\!1{,}4\!\times\!10^5$) & $-26{,}88\%$ & $+29{,}74\%$ \\
+3B DES (kOmegaSSTDES) & subkritik & $\mathbf{-39{,}16\%}$ & $+38{,}16\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Laminer rejimde zaman-çözünür yol \emph{doğrulanmış} durumda
+(Williamson'a karşı \%2{,}15). Subkritik türbülanslı rejimde ise iki bağımsız
+kurulum da aynı yönde ve büyük sapıyor.
+
+Sapmanın kaynağı \emph{ölçüldü}, çıkarsanmadı: aynı ağ önce duvar-fonksiyonuyla
+($y^+ = 0{,}009$, geçersiz) sonra düşük-Re ile ($y^+ = 0{,}78$, geçerli)
+koşuldu ve cevap \%1'den az değişti. Sorun çözünürlük ya da duvar işlemi değil,
+\textbf{kapanış}: subkritik $Re$'de bağlı sınır tabaka laminerdir,
+tam-türbülanslı kapanış onu türbülans sayar, ayrılma gecikir, iz daralır.
+Fiziksel doğru kurulum duvar-çözümlü LES'tir ve 84{,}7 M hücre / 62{,}9 GB ile
+bu donanımda sığmaz.
+
+\begin{dikkat}{Band bu hatayı kapsamıyordu --- ve kanıt okunmuyordu}
+Model-form tablosu böyle bir koşuya \texttt{bluff} ya da \texttt{separated}
+diyor ve \%9{,}31--25 band veriyor. Ölçülen hata \%27--39. Band, hatayı
+\textbf{1{,}6--4 kat eksik} gösteriyordu --- ve bunu söyleyen ölçüm aylardır
+kanıt dosyasında duruyor, hiçbir tüketiciye bağlı değildi.
+
+Kapı kuruldu ve band \emph{genişletilmedi}: \%39'luk ölçülmüş bir hatayı
+belirsizliğe gömmek, kusuru belirsizlik gibi göstermek olurdu. Bunun yerine
+üç koşul birlikte sağlandığında (künt cisim + subkritik $Re$ +
+tam-türbülanslı kapanış) uyarı adıyla verilir, ölçülen sayıları taşır ve
+somut alternatifi söyler: geçiş modeli \texttt{kOmegaSSTLM}. Geçiş
+modelinde, süperkritik $Re$'de ve taşıyıcı yüzeyde kapı susar.
+
+Kapı \emph{iki} sunum kanalına da bağlandı ve testi bunu AST ile doğruluyor
+--- bir kanalda görünüp öbüründe susmak bu raporun baştan beri anlattığı
+kusur sınıfıdır.
+\end{dikkat}
+
+\noindent Hakemin istediği türbülanslı zaman-çözünür çapa bu yüzden
+\emph{açık kalıyor}: elde olan doğrulanmış çapa laminer rejimdedir ve
+türbülanslı vakayı doğrulamaz. Kapanması ağ değil \emph{kapanış} değişikliği
+ya da duvar-çözümlü LES ister; ikincisinin bütçesi ölçülü ve ulaşılamaz.
+
 \subsection{Optimizasyon güncellemesi: OC daha düşük sayı verir, MMA savunulabilir sayı}
 \label{sub:mma}
 

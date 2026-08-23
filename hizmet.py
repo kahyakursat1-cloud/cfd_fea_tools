@@ -216,11 +216,15 @@ def analiz_et(stl_path: str, *, duzeltici: bool = False,
     v = apply_ince_ozellik_gate(
         v, ((getattr(r, "sinir_tabaka", None) or {})
             .get("yuzey_cozunurlugu") or {}).get("geometri_goreli"))
+    # SUBKRITIK KAPANIS UYARISI — ayni yardimci IKI kanalda da cagrilir.
+    from validity_envelope import _subkritik_uyari
+    _subk = _subkritik_uyari(r)
 
     return {
         "surum": SURUM,
         "durum": "ok",
         "cozucu": "cfd",
+        "subkritik_kapanis": _subk,
         "girdi": {"stl": str(stl_path), "tip": r.vehicle_type,
                   "hiz_ms": r.velocity, "alpha_deg": r.alpha_deg,
                   "mach": round(ma, 4), "sikisabilir": ma >= MACH_INCOMP},

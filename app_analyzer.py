@@ -1379,6 +1379,10 @@ class AnalyzerWindow(QMainWindow):
             v = apply_ince_ozellik_gate(
                 v, ((getattr(r, "sinir_tabaka", None) or {})
                     .get("yuzey_cozunurlugu") or {}).get("geometri_goreli"))
+            from validity_envelope import _subkritik_uyari
+            _subk = _subkritik_uyari(r)
+            if _subk.get("tetiklendi"):
+                self._log("\n🔴 " + _subk["hukum"])
             im = {VALIDATED: "\n✅ tasarım", TREND: "\n🟡 eğilim",
                   OUT: "\n🔴 zarf-dışı"}
             out = {}

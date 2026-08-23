@@ -521,3 +521,15 @@ def test_rapor_MMA_kiyasi_kanittan_sapmiyor(tex):
     # ASIL AYRIM rapordan sessizce dusmemeli
     assert "savunulabilir" in tex.lower()
     assert "limit çevrimi" in tex.lower() or r"limit \emph{çevriminde}" in tex
+
+
+def test_rapor_SUBKRITIK_sapmalari_kanittan(tex):
+    """Silindir sapmaları koda ve rapora ayrı ayrı yazılı; ayrışmamalı."""
+    import sys
+    sys.path.insert(0, str(KOK))
+    from validity_envelope import SUBKRITIK_OLCUM
+    for v in SUBKRITIK_OLCUM.values():
+        cd = f"{abs(v['Cd_pct']):.2f}".replace(".", "{,}")
+        assert cd in tex, f"Cd sapması ({cd}) raporda yok"
+    # BAND GENISLETILMEDI karari rapordan sessizce dusmemeli
+    assert "genişletilmedi" in tex
