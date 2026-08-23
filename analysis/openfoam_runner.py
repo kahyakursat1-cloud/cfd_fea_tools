@@ -1005,6 +1005,58 @@ _UNIFORM = re.compile(r"internalField\s+uniform\s+"
                       r"([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)\s*;")
 
 
+# LM ile UYUMSUZ nut duvar islemleri: log-yasasini DAYATIRLAR, yani laminer
+# bolgede nut -> 0 olamaz ve gecis modelinin uretebilecegi tek sey
+# tam-turbulansli cozumdur. Uyumlu olanlar viskoz alt-katmana kadar surekli
+# (Spalding) ya da duvarda sifir (LowRe).
+_NUT_LM_UYUMSUZ = ("nutkWallFunction", "nutkRoughWallFunction",
+                   "nutUWallFunction", "nutURoughWallFunction")
+_NUT_LM_UYUMLU = ("nutLowReWallFunction", "nutUSpaldingWallFunction")
+
+
+def gecis_kurulum_denetimi(case_dir: Path) -> dict:
+    """Vaka, geçiş modelini TAŞIYABİLİR mi? — koşudan ÖNCE, dosyadan.
+
+    `gecis_devrede_mi` koşudan SONRA sorar ve kesin cevap verir; bu denetim
+    aynı kusuru 85 dakika harcamadan yakalar. İkisi de gerekli: bu kapı
+    BİLİNEN bir uyumsuzluğu önceden reddeder, öbürü bilinmeyeni sonradan
+    ölçer.
+
+    ÖLÇÜLDÜ (2026-08-23) --- üç yol üç ayrı `nut` duvar işlemi kullanıyordu
+    ve aralıklılık tam da bunu izledi:
+        küre çapası   nutUSpaldingWallFunction   -> DEVREDE  (laminer %1,05)
+        kanat yolu    nutLowReWallFunction       -> kazanç gerçek
+        silindir      nutkWallFunction           -> DEVREDE DEĞİL (%0,0)
+
+    Silindir koşusu ``değişen tek şey KAPANIŞ'' diyerek yalnız model adını
+    çevirmişti. DUVAR İŞLEMİ DE KAPANIŞIN PARÇASIDIR: `nutkWallFunction`
+    log-yasasını dayatır ve laminer bölgede nut'ın sıfıra inmesini imkânsız
+    kılar. Önce serbest-akış şiddeti suçlanmıştı; iki koşu (Tu %1 ve %0,1)
+    gammaInt minimumunu 0,9869 ve 0,9867 verdi --- on kat girdi farkı,
+    sonuçta fark YOK. Sebep Tu değildi.
+    """
+    f = Path(case_dir) / "0" / "nut"
+    if not f.exists():
+        return {"uygun": None, "nut_duvar": [],
+                "_neden": "0/nut yok — DENETLENEMEDİ (yokluk 'uygun' sayılmaz)"}
+    ham = f.read_text(errors="replace")
+    bulunan = [t for t in _NUT_LM_UYUMSUZ + _NUT_LM_UYUMLU if t in ham]
+    uyumsuz = [t for t in bulunan if t in _NUT_LM_UYUMSUZ]
+    if uyumsuz:
+        return {"uygun": False, "nut_duvar": bulunan,
+                "_neden": (f"nut duvar işlemi {uyumsuz[0]} — log-yasasını "
+                           f"DAYATIR. Geçiş modeli laminer bölgede nut→0 "
+                           f"ister; bu koşulla üretebileceği tek şey "
+                           f"tam-türbülanslı çözümdür. Uyumlu olanlar: "
+                           f"{', '.join(_NUT_LM_UYUMLU)}. ÖLÇÜLDÜ: bu "
+                           f"kurulumla laminer hücre oranı %0,0 "
+                           f"(silindir_gecis_3b.json).")}
+    if not bulunan:
+        return {"uygun": None, "nut_duvar": [],
+                "_neden": "0/nut'ta tanınan duvar işlemi yok — DENETLENEMEDİ"}
+    return {"uygun": True, "nut_duvar": bulunan}
+
+
 def gecis_devrede_mi(case_dir: Path) -> dict:
     """Geçiş modeli GERÇEKTEN devreye girdi mi? — koşudan SONRA, alandan.
 
@@ -1448,6 +1500,17 @@ def build_case(case: CFDCase, out_dir: Path) -> Path:
             _foam_header("dictionary", "fvConstraints", "constant") +
             "limitT\n{\n    type      limitTemperature;\n"
             "    selectionMode all;\n    min       100;\n    max       1000;\n}\n")
+
+    # GECIS MODELI KURULUM DENETIMI — VAKA YAZILDIKTAN SONRA, COZUCUDEN ONCE.
+    # `gecis_modeli_onkosulu` ISTEGI denetler (katman sayisi, y+ hedefi); bu
+    # denetim YAZILANI okur. Ikisi ayri sey: silindir kosusu istekte kusursuz
+    # gorunuyordu ama yazilan `nut` duvar islemi log-yasasini dayatiyordu ve
+    # model 85 dakika bosuna kostu. Dosyadan okunabilen bir uyumsuzluk,
+    # cozucuye girmeden once soylenmelidir.
+    if case.turbulence_model in GECIS_MODELLERI:
+        _kd = gecis_kurulum_denetimi(case_dir)
+        if _kd["uygun"] is False:
+            raise ValueError(f"GECIS MODELI KURULUMU: {_kd['_neden']}")
 
     return case_dir
 

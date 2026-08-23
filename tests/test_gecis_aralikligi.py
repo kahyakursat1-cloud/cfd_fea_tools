@@ -61,8 +61,13 @@ def test_devreye_girmeyen_kosu_HIPOTEZI_CURUTMUS_SAYILMAZ():
               "devreye_girdi": False}
     v = g._verdikt(False, aralik, {"sapma_pct": {"Cd": -27.55, "St": 30.22}}, "")
     assert "SONUÇSUZ" in v
-    assert "ÇÜRÜMEDİ" in v
-    assert "ÇÜRÜDÜ" not in v.replace("ÇÜRÜMEDİ", "")
+    assert "hipotez ÇÜRÜMEDİ" in v
+    # ÖLÇÜT İDDİAYA BAĞLI, KELİMEYE DEĞİL. İlk sürüm çıplak "ÇÜRÜDÜ" arıyordu
+    # ve metne "Tu açıklaması SINANDI ve ÇÜRÜDÜ" cümlesi girince düştü ---
+    # oysa çürüyen şey hipotez değil, sebebe dair İLK AÇIKLAMAYDI. Yasak olan
+    # HİPOTEZİ çürümüş ilan etmek.
+    assert "HİPOTEZ ÇÜRÜDÜ" not in v
+    assert "delil değildir" in v
 
 
 def test_devredeyken_iki_sapma_da_duzelmezse_CURUDU():
@@ -153,6 +158,60 @@ def test_DEVREDE_ile_GECERLI_ayri_kapilar():
     from analysis.openfoam_runner import gecis_devrede_mi
     assert gecis_devrede_mi(yol)["devrede"] is True, (
         "aynı koşu hem devre-dışı hem duvar-reddi olsaydı ayrım örneklenemezdi")
+
+
+def _nut_yaz(case, tip: str) -> None:
+    (case / "0").mkdir(parents=True, exist_ok=True)
+    (case / "0" / "nut").write_text(
+        "boundaryField\n{\n  duvar { type %s; value uniform 0; }\n}\n" % tip)
+
+
+def test_kurulum_denetimi_LOG_YASASI_dayatanini_reddediyor(tmp_path):
+    """Ölçülen kök sebep: `nutkWallFunction` laminer bölgede nut→0'ı imkânsız
+    kılar; geçiş modelinin üretebileceği tek şey tam-türbülanslı çözümdür."""
+    from analysis.openfoam_runner import gecis_kurulum_denetimi
+    _nut_yaz(tmp_path, "nutkWallFunction")
+    r = gecis_kurulum_denetimi(tmp_path)
+    assert r["uygun"] is False
+    assert "nutkWallFunction" in r["_neden"]
+    assert "nutLowReWallFunction" in r["_neden"], "uyumlu seçenek söylenmiyor"
+
+
+def test_kurulum_denetimi_UYUMLULARI_geciriyor(tmp_path):
+    from analysis.openfoam_runner import gecis_kurulum_denetimi
+    for tip in ("nutLowReWallFunction", "nutUSpaldingWallFunction"):
+        _nut_yaz(tmp_path, tip)
+        assert gecis_kurulum_denetimi(tmp_path)["uygun"] is True, tip
+
+
+def test_kurulum_denetimi_YOKLUGU_uygun_saymiyor(tmp_path):
+    from analysis.openfoam_runner import gecis_kurulum_denetimi
+    assert gecis_kurulum_denetimi(tmp_path)["uygun"] is None
+    _nut_yaz(tmp_path, "bilinmeyenBirSey")
+    assert gecis_kurulum_denetimi(tmp_path)["uygun"] is None
+
+
+def test_kurulum_denetimi_KANONIK_YAZICIDAN_sonra_cagriliyor():
+    """Kapı VAR ama üretim yolu çağırmıyorsa kapı yoktur."""
+    src = (KOK / "analysis" / "openfoam_runner.py").read_text(encoding="utf-8")
+    assert "raise ValueError(f\"GECIS MODELI KURULUMU:" in src, (
+        "kurulum denetimi build_case sonunda çağrılmıyor")
+    i = src.index("_kd = gecis_kurulum_denetimi(case_dir)")
+    assert "GECIS_MODELLERI" in src[max(0, i - 300):i], (
+        "denetim geçiş-modeli koşuluna bağlı değil")
+
+
+def test_TU_ACIKLAMASI_curudugu_KAYITLI():
+    """İlk sebep açıklaması (Tu) sınandı ve çürüdü — kayda geçmeli.
+
+    Tu %1 ve %0,1: gammaInt minimumu 0,9869 ve 0,9867. On kat girdi farkı,
+    sonuçta fark yok. Çürüyen açıklamayı silmek, onu üçüncü kez yazdırır.
+    """
+    src = (KOK / "analysis" / "openfoam_runner.py").read_text(encoding="utf-8")
+    i = src.index("def gecis_kurulum_denetimi(")
+    govde = src[i:src.index("\ndef ", i + 10)]
+    assert "0,9869" in govde and "0,9867" in govde, "iki ölçüm de yazılı değil"
+    assert "Tu değildi" in govde or "Sebep Tu değildi" in govde
 
 
 def test_DUZGUN_alan_da_okunuyor(tmp_path):

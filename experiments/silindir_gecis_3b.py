@@ -127,8 +127,17 @@ def aralik_denetimi(case: Path) -> dict:
                        "ve koşu KAPANIŞ hakkında delil DEĞİLDİR.")}
 
 
-def kur(case: Path, ti: float = TI_VARSAYILAN) -> float:
-    """3B URANS kurulumunu AYNEN al, yalnız KAPANIŞI değiştir."""
+def kur(case: Path, ti: float = TI_VARSAYILAN, model: str = MODEL) -> float:
+    """3B URANS kurulumunu al, KAPANIŞI --- duvar işlemi DAHİL --- değiştir.
+
+    İLK SÜRÜM YALNIZ MODEL ADINI ÇEVİRİYORDU ve ``değişen tek şey KAPANIŞ''
+    diyordu. Yanlıştı: `nut`un duvar işlemi de kapanışın parçasıdır. 3B
+    kurulum `nutkWallFunction` miras alıyor, o da log-yasasını dayatıyor ve
+    laminer bölgede nut'ın sıfıra inmesini imkânsız kılıyor. İki koşu
+    (Tu %1 ve %0,1) bu yüzden gammaInt minimumunu 0,9869 ve 0,9867 verdi ---
+    on kat girdi farkı, sonuçta fark yok. `silindir_urans` bunun anahtarını
+    (`duvar_cozunur`) ZATEN taşıyordu; 3B çağrısı onu geçirmiyordu.
+    """
     import silindir_urans as s2
     import silindir_urans_3b as s3
 
@@ -137,11 +146,20 @@ def kur(case: Path, ti: float = TI_VARSAYILAN) -> float:
     periyot = s3.D / (s3.ST_DENEY * s3.U)
     s3.kur(case, dt=periyot / 150.0,
            son_s=(s3.PERIYOT_GECIS + s3.PERIYOT_ISTAT) * periyot)
-    # KAPANIS DEGISTIRILIYOR — tek fark bu.
+    # DUVAR-COZUNUR ALANLARI YENIDEN YAZ (k, omega, nut). 3B'nin `yanlar`
+    # ikamesini de tekrarlamak sart, yoksa foamRun yama bulamayip duser.
+    s2._alanlar(case, duvar_cozunur=True)
+    for f in (case / "0").iterdir():
+        t = f.read_text(encoding="utf-8")
+        for eski in ("  yanlar   { type empty; }\n", "  yanlar { type empty; }\n"):
+            t = t.replace(eski, "  on   { type cyclic; }\n  arka { type cyclic; }\n")
+        f.write_text(t, encoding="utf-8")
     (case / "constant" / "momentumTransport").write_text(
         s2._foam_header("dictionary", "momentumTransport", "constant") +
-        f"simulationType RAS;\nRAS\n{{\n    model           {MODEL};\n"
+        f"simulationType RAS;\nRAS\n{{\n    model           {model};\n"
         "    turbulence      on;\n    printCoeffs     on;\n}\n")
+    if model not in ("kOmegaSSTLM",):
+        return None                       # kontrol kosusu: gecis alani yok
     return _gecis_alanlari(case, ti)
 
 
@@ -154,9 +172,11 @@ def _verdikt(gecerli: bool, aralik: dict, olcum: dict, etiket: str) -> str:
                 f"%{aralik.get('laminer_hucre_orani_pct')}), yani kapanış "
                 "tam-türbülanslı kOmegaSST'ye dejenere oldu ve ölçülen "
                 f"sapma (Cd %{s['Cd']}, St %{s['St']}) KAPANIŞ hakkında "
-                "delil değildir. Sebep: serbest-akış türbülans şiddeti "
-                "geçişi hemen tetikliyor; subkritik silindir deneyleri "
-                "~%0,1 Tu'da yapılır.")
+                "delil değildir. SEBEP BURADA İDDİA EDİLMEZ: ilk açıklama "
+                "(serbest-akış şiddeti) SINANDI ve ÇÜRÜDÜ — Tu %1 ve %0,1 "
+                "koşuları gammaInt minimumunu 0,9869 ve 0,9867 verdi, on kat "
+                "girdi farkı sonuca yansımadı. Ölçülen sebep `nut` duvar "
+                "işlemidir; `gecis_kurulum_denetimi` onu koşudan ÖNCE söyler.")
     iyi_cd = abs(s["Cd"]) < 26.88
     iyi_st = abs(s["St"]) < 29.74
     if iyi_cd and iyi_st:
@@ -180,22 +200,38 @@ def main(argv: list[str]) -> int:
             akis.reconfigure(encoding="utf-8", errors="replace")
     import silindir_urans_3b as s3
 
-    ti_ad = ""
+    ti = TI_VARSAYILAN
     if "--ti" in argv:
-        ti_ad = f"_ti{float(argv[argv.index(chr(45)*2+chr(116)+chr(105)) + 1]):g}"
-    case = KOK / f"_silindir_gecis_3b{ti_ad}"
+        ti = float(argv[argv.index("--ti") + 1])
+    model = MODEL
+    if "--model" in argv:
+        model = argv[argv.index("--model") + 1]
+    # AD, KOSUYU AYIRT EDEN HER SEYI TASIR. Sabit ad kullanildiginda farkli
+    # ayarli iki calisma birbirini EZER — bu depoda olculdu (girdi_uq_kos).
+    etiket = ("_dr" + ("" if model == MODEL else f"_{model}")
+              + (f"_ti{ti:g}" if ti != TI_VARSAYILAN else ""))
+    case = KOK / f"_silindir_gecis_3b{etiket}"
     t0 = time.time()
+    ti_ad = etiket
     if "--oku" in argv and (case / "log.foamRun").exists():
         print("mevcut koşu okunuyor (--oku)", flush=True)
         ret0 = None
     else:
-        print(f"Kurulum: 3B URANS ağı + KAPANIŞ = {MODEL}", flush=True)
-        ti = TI_VARSAYILAN
-        if "--ti" in argv:
-            ti = float(argv[argv.index("--ti") + 1])
-        ret0 = kur(case, ti)
+        print(f"Kurulum: 3B URANS ağı + KAPANIŞ = {model} (duvar-çözünür)",
+              flush=True)
+        ret0 = kur(case, ti, model)
         print(f"  Tu = %{100*ti:g}", flush=True)
-        print(f"  ReThetat(Tu=%{100*ti:g}) = {ret0:.1f}", flush=True)
+        if ret0 is not None:
+            print(f"  ReThetat(Tu=%{100*ti:g}) = {ret0:.1f}", flush=True)
+        # KURULUM DENETIMI KOSUDAN ONCE. 85 dakikayi, dosyadan okunabilen bir
+        # uyumsuzluga harcamanin anlami yok --- ilk iki kosu tam bunu yapti.
+        from analysis.openfoam_runner import gecis_kurulum_denetimi
+        kd = gecis_kurulum_denetimi(case)
+        print(f"  kurulum denetimi: uygun={kd['uygun']} {kd.get('nut_duvar')}",
+              flush=True)
+        if model == MODEL and kd["uygun"] is False:
+            print("KURULUM REDDEDİLDİ:", kd["_neden"])
+            return 2
         ok, mesaj = s3.kos(case)
         if not ok:
             print("KOŞU DÜŞTÜ:", mesaj[-400:])

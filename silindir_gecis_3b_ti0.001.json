@@ -1,0 +1,82 @@
+{
+  "vaka": "Silindir 3B, geçiş modeli (kOmegaSSTLM) — kapanış hipotezinin sınavı",
+  "_neden": "Subkritik Re'de bagli sinir tabaka LAMINERDIR; tam-turbulansli kapanis onu turbulans sayar ve Cd'yi dusuk verir. Bu kosu o aciklamayi SINAR: dogruysa IKI sapma birden duzelmeli.",
+  "kurulum": {
+    "model": "kOmegaSSTLM",
+    "ReThetat_serbest": 1136.5272,
+    "ag": "3B URANS ile AYNI (403.200 hücre)",
+    "_degisen_tek_sey": "KAPANIŞ"
+  },
+  "olculen": {
+    "St": 0.25999,
+    "Cd_ortalama": 0.8686,
+    "Cl_genlik": 1.26465,
+    "sapma_pct": {
+      "St": 30.0,
+      "Cd": -27.61
+    },
+    "salinim": {
+      "olculdu": true,
+      "frekans_hz": 0.259991,
+      "periyot_s": 3.84628704,
+      "ortalama": 0.0182885526177676,
+      "genlik": 3.97302433,
+      "genlik_pct": 21724.105,
+      "periyot_sayisi": 20,
+      "pencere_s": 79.99992,
+      "periyot_sacilmasi_pct": 20.51,
+      "_yontem": "yukarı-geçiş zamanlarının MEDYAN farkı (doğrusal enterpolasyonlu); düzensiz örneklemede yeniden-örnekleme gerektirmez ama çok-frekanslı sinyalde baskın modu AYIRAMAZ",
+      "_uyari": null
+    }
+  },
+  "referans": {
+    "St": 0.2,
+    "St_bandi": [
+      0.19,
+      0.21
+    ],
+    "Cd": 1.2
+  },
+  "kiyas": {
+    "3B URANS (kOmegaSST)": {
+      "Cd_pct": -26.88,
+      "St_pct": 29.74
+    },
+    "3B DES (kOmegaSSTDES)": {
+      "Cd_pct": -39.16,
+      "St_pct": 38.16
+    }
+  },
+  "aralik_denetimi": {
+    "okunabildi": true,
+    "zaman_s": 109.99989,
+    "n": 403200,
+    "min": 0.9867,
+    "ortalama": 1.0,
+    "max": 1.0,
+    "laminer_hucre_orani_pct": 0.0,
+    "devreye_girdi": false,
+    "_olcut": "gammaInt < 0,5 olan hücre VARSA model devrededir; yoksa tam-türbülanslı kOmegaSST'ye dejenere olmuştur ve koşu KAPANIŞ hakkında delil DEĞİLDİR."
+  },
+  "sinav_gecerli": false,
+  "verdikt": "SINAV SONUÇSUZ — hipotez ÇÜRÜMEDİ. Geçiş modeli devreye girmedi (gammaInt min 0.9867, laminer hücre %0.0), yani kapanış tam-türbülanslı kOmegaSST'ye dejenere oldu ve ölçülen sapma (Cd %-27.61, St %30.0) KAPANIŞ hakkında delil değildir. Sebep: serbest-akış türbülans şiddeti geçişi hemen tetikliyor; subkritik silindir deneyleri ~%0,1 Tu'da yapılır.",
+  "sure_dk": 91.4,
+  "_uretim": "Üretim: python experiments/silindir_gecis_3b.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}
