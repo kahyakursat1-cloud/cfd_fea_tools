@@ -2729,6 +2729,56 @@ banddan (\%10) dardır --- fizik beklentisinin tersi. Ölçümü öncüle uydurm
 dosyasında \texttt{siralama\_uyarilari} altında durur.
 \end{anafikir}
 
+\subsection{Donanım bekleyen işler --- ölçülen bütçeleriyle}
+\label{sub:kuyruk}
+
+Kapanamayan her madde için bir fizibilite bütçesi \emph{ölçüldü}; hiçbiri
+kestirim olarak bırakılmadı. Liste bu bütçeleri üreten kanıt dosyalarından
+türetilir (\texttt{python experiments/is\_istasyonu\_kuyrugu.py}) --- elle
+derlense koşular yenilendiğinde sessizce eskirdi.
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}llrrl@{}}
+\toprule
+Hakem & İş & Bellek & Hücre & Neyi açar \\
+\midrule
+--- & Ahmed duvar-çözünür ($y^+\!\approx\!1$) & 4{,}7\,GB & 4{,}7\,M &
+  \texttt{bluff.wall\_resolved} hücresi \\
+\#5 & Silindir duvar-çözümlü LES & 62{,}9\,GB & 84{,}7\,M &
+  türbülanslı zaman-çözünür çapa \\
+\#12 & Sürülen 2-yönlü FSI (balsa, 70\,m/s) & 73\,GB & 94{,}1\,M &
+  fiziksel olarak sürülen ilk kuplaj \\
+\#13 & Model-form tablosu & --- & \multicolumn{2}{l}{$\sim$10 yeni çapa koşusu} \\
+\#9 & Sıkı-yakınsama girdi-UQ & --- & \multicolumn{2}{l}{$\sim$30 koşu, yüksek iterasyon} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Bellek gerektiren üç kalemin üçü de 192\,GB'lık bir iş
+istasyonunda sığar; bu makinede \emph{hiçbiri} sığmıyor (boş bellek
+4{,}62\,GB). Son iki kalem bellek değil \textbf{koşu zamanı} ve \textbf{çapa
+sayısı} kısıtlıdır --- donanım onları tek başına açmaz. Ayrım önemli: iş
+istasyonu alındığında ilk üç kalem hemen koşulabilir, son ikisi yine zaman
+ister.
+
+\begin{dikkat}{İki uyarı ve bir ucuz ara adım}
+\textbf{FSI bütçesi bir banddır}, tek sayı değil: 73\,GB (yüzey-yakın
+ölçekleme) ile 1.278\,GB (hacim ölçekleme) arasında. Hangi ucun geçerli
+olduğu ölçülmedi; iyimser uç tutmazsa iş istasyonunda da sığmaz.
+
+\textbf{\#5 için ucuz bir ara adım var:} sapmanın kaynağı kapanış olarak
+ölçüldüğüne göre (\S\ref{sub:subkritik}), aynı silindir vakasını geçiş
+modeliyle (\texttt{kOmegaSSTLM}) koşmak LES'ten çok daha ucuzdur ve
+hipotezi doğrudan sınar. LES'e geçmeden önce yapılacak iş budur.
+
+\textbf{\#9'un iç denetimi hazır:} sıkı taramada null değişkenlerin
+(küre için $\alpha$, sabit-$\nu$ ile $\rho$) korelasyonu sıfıra inmeli.
+Geçmeden band yayımlanmaz.
+\end{dikkat}
+
+\noindent Bu liste \emph{sıra vermez}. Öncelik mühendislik kararıdır ---
+hangi hücrenin hangi projeye lazım olduğu buradan çıkmaz.
+
 \subsection{Yol haritası}
 
 \begin{center}\footnotesize

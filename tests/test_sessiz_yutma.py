@@ -81,7 +81,10 @@ import sessiz_yutma
 # Ikisi de yeni bir olcum yolunun parcasi: hizlanma artik ASAMA DUVAR SURESINDEN
 # degil ExecutionTime'dan hesaplaniyor (rapordaki 1,96x → 3,10x duzeltmesi).
 # Izlenen sayilar DEGISMEDI: incelenmemis 0, guven yolunda incelenmemis 0.
-TABAN_TOPLAM = 96
+TABAN_TOPLAM = 97
+# 96 -> 97 (2026-08-23): is_istasyonu_kuyrugu._j — bozuk kanit dosyasi None
+# doner AMA cagiran onu `kanit_eksik` listesine ADIYLA yazar, yani kalem
+# SESSIZCE dusmez. Yutulan sey ayristirma hatasi; hukum kayitta gorunur.
 # 95 -> 96 (2026-08-23): vehicle_pipeline._planform_ok_acisi — cozulen
 # geometrinin ok acisi bir TESHIS alanidir, hicbir hukme girmez. Okunamazsa
 # None doner ve kayitta "olculmedi" olarak gorunur, SIFIR sayilmaz. Gerekce
@@ -138,7 +141,9 @@ TABAN_TOPLAM = 96
 # blok bitince okunanlar döner, hiçbiri okunamazsa çağıran "dat frekans
 # taşımıyor" HATASI alır. Gerekçe kodda (kabul etiketi konuldu).
 # İzlenen sayılar DEĞİŞMEDİ: incelenmemiş 0, güven yolunda incelenmemiş 0.
-TABAN_GUVEN_YOLU = 68
+TABAN_GUVEN_YOLU = 69
+# 68 -> 69 (2026-08-23): yukaridaki _j guven yolunda (experiments) ama
+# urettigi sey bir HUKUM degil bir LISTE; eksik kanit adiyla raporlaniyor
 # 67 -> 68 (2026-08-23): yukaridaki _planform_ok_acisi guven yolunda
 # (vehicle_pipeline) ama URETTIGI alan hukme GIRMIYOR; bu ayrim onemli ve
 # gerekcesi kodda yazili

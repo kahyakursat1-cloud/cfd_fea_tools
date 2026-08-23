@@ -1,0 +1,89 @@
+{
+  "vaka": "İş istasyonu kuyruğu — kapanamayan maddelerin ÖLÇÜLEN bütçeleri",
+  "_neden": "Bu oturumda kapanamayan her madde icin fizibilite butcesi OLCULDU ve ayri kanit dosyalarina yazildi. Liste elle derlenirse kosular yenilendiginde sessizce eskir.",
+  "hedef_donanim_GB": 192.0,
+  "bu_makine_bos_GB": 4.62,
+  "kalemler": [
+    {
+      "hakem_maddesi": "—",
+      "is": "Ahmed gövdesi duvar-çözünür (y⁺≈1)",
+      "kanit": "bluff_duvar_cozunur_fizibilite.json",
+      "bellek_GB": 4.74,
+      "hucre": 4680000,
+      "tahmini_sure": null,
+      "bu_makinede": false,
+      "is_istasyonunda": true,
+      "neyi_acar": "model-form tablosunda bluff.wall_resolved hücresi (bugün literatür öncülü, ölçüm yok)",
+      "_not": "Bellek katsayısı ÖLÇÜLEN (3 koşu, bellek_katsayisi.json)."
+    },
+    {
+      "hakem_maddesi": "#5",
+      "is": "Silindir duvar-çözümlü LES (türbülanslı zaman-çözünür çapa)",
+      "kanit": "silindir_les_fizibilite.json",
+      "bellek_GB": 62.92,
+      "hucre": 84688254,
+      "tahmini_sure": null,
+      "bu_makinede": false,
+      "is_istasyonunda": true,
+      "neyi_acar": "türbülanslı zaman-çözünür ÇAPA; bugün elde olan doğrulanmış çapa LAMİNER rejimde ve türbülanslı vakayı doğrulamıyor",
+      "_not": "Subkritik Re'de tam-türbülanslı kapanış Cd'yi %39'a kadar düşük veriyor (ölçüldü). Ucuz ara adım: geçiş modeli kOmegaSSTLM ile aynı vakayı koşmak — LES'ten ÇOK ucuz."
+    },
+    {
+      "hakem_maddesi": "#12",
+      "is": "Fizikle sürülen 2-yönlü FSI (Balsa Wood, 70 m/s)",
+      "kanit": "fsi_tahrik_fizibilite.json",
+      "bellek_GB": 73.3,
+      "hucre": 94100000,
+      "tahmini_sure": null,
+      "bu_makinede": false,
+      "is_istasyonunda": true,
+      "neyi_acar": "iki-yönlü FSI'nin FİZİKSEL olarak sürüldüğü ilk vaka",
+      "_not": "BÜTÇE BİR BAND: 73 GB (yüzey-yakın ölçekleme) – 1.278 GB (hacim ölçekleme). Hangi ucun geçerli olduğu ÖLÇÜLMEDİ; iyimser uç tutmazsa iş istasyonunda da SIĞMAZ."
+    },
+    {
+      "hakem_maddesi": "#13",
+      "is": "Model-form tablosunu ölçülebilir kılmak (10 yeni çapa)",
+      "kanit": "model_form_kosullama.json",
+      "bellek_GB": null,
+      "hucre": null,
+      "tahmini_sure": "~10 çapa koşusu",
+      "bu_makinede": false,
+      "is_istasyonunda": false,
+      "neyi_acar": "10 puanlık hücre farkını AYIRT EDEBİLME; bugün 6 hücrenin 5'inde tek çapa var ve tablonun veri-güdümlü kısmı 3/6",
+      "_not": "Bellek değil ÇAPA SAYISI kısıtı; iş istasyonu tek başına açmaz, koşu zamanı açar."
+    },
+    {
+      "hakem_maddesi": "#9",
+      "is": "Sıkı-yakınsama girdi-UQ taraması",
+      "kanit": "girdi_uq_teshis.json",
+      "bellek_GB": null,
+      "hucre": null,
+      "tahmini_sure": "~30 koşu (iterasyon tavanı yükseltilmiş)",
+      "bu_makinede": false,
+      "is_istasyonunda": false,
+      "neyi_acar": "u_girdi'nin GERÇEK değeri; bugünkü %0,89 bir ÜST SINIR ve içindeki payın ne kadarının girdi olduğu ayrılamıyor",
+      "_not": "İÇ DENETİM HAZIR: sıkı taramada NULL değişkenlerin (küre için α, sabit-ν ile ρ) korelasyonu SIFIRA inmeli. Geçmeden band yayımlanmaz."
+    }
+  ],
+  "kanit_eksik": [],
+  "verdikt": "5 açık kalem. Bellek gerektiren 3 kalemin 3'i 192 GB iş istasyonunda sığıyor; bu makinede 0'i sığıyor. Kalan kalemler bellek değil KOŞU ZAMANI ya da ÇAPA SAYISI kısıtlı — donanım tek başına açmaz.",
+  "_kisit": "SIRA VERILMEZ: oncelik muhendislik kararidir (hangi hucre hangi projeye lazim). Bu dosya yalniz MALIYETI ve NEYIN ACILACAGINI verir. Ayrica butceler kestirimdir ve kendi kisitlarini kendi kanit dosyalarinda tasir — ozellikle FSI butcesi bir BAND ve iyimser ucu tutmazsa is istasyonunda da sigmaz.",
+  "_uretim": "Üretim: python experiments/is_istasyonu_kuyrugu.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

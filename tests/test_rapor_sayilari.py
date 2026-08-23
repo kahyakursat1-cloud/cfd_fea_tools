@@ -533,3 +533,21 @@ def test_rapor_SUBKRITIK_sapmalari_kanittan(tex):
         assert cd in tex, f"Cd sapması ({cd}) raporda yok"
     # BAND GENISLETILMEDI karari rapordan sessizce dusmemeli
     assert "genişletilmedi" in tex
+
+
+def test_rapor_KUYRUK_butceleri_kanittan_sapmiyor(tex):
+    """İş istasyonu kuyruğu tablosu kanıttan üretilen sayılarla tutmalı."""
+    import json
+    p = KOK / "is_istasyonu_kuyrugu.json"
+    if not p.exists():
+        pytest.skip("is_istasyonu_kuyrugu.json üretilmemiş")
+    d = json.loads(p.read_text(encoding="utf-8"))
+    for k in d["kalemler"]:
+        if not k["bellek_GB"]:
+            continue
+        gb = f"{k['bellek_GB']:.1f}".replace(".", "{,}")
+        gb_tam = f"{k['bellek_GB']:.0f}"
+        assert gb in tex or gb_tam in tex, \
+            f"{k['is']}: bellek ({gb}) raporda yok"
+    # SIRA VERILMEZ kurali rapordan sessizce dusmemeli
+    assert "sıra vermez" in tex.lower()
