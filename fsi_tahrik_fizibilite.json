@@ -1,0 +1,287 @@
+{
+  "vaka": "Sürülen iki-yönlü FSI kıyası — fizibilite bütçesi",
+  "_neden": "Tahrik bandi bulundu ve ilmek yakinsadi ama kuplaj FIZIKSEL olarak surulmedi: duz levha SAF EGILME yapiyor ve aracin kendi kapisi firar kenarinin cozulemedigini soyluyor.",
+  "kalibrasyon": {
+    "kosu": "fsi_tahrikH",
+    "V_m_s": 22.0,
+    "q_Pa": 296.5,
+    "sehim_aciklik_pct": 2.47,
+    "L_bolu_t": 300,
+    "E_Pa": 69000000000.0,
+    "k": 0.2129,
+    "_not": "k KIRIS KURAMINDAN turetilmedi, OLCULEN kosuya oturtuldu; yuk dagiliminin sekli ve mesnet etkisi burada toplanir. Tek noktadan kalibre edilen katsayi ancak AYNI ailede kullanilabilir."
+  },
+  "mevcut": {
+    "hucre": 310118,
+    "lmax_m": 0.3,
+    "yuzey_hucresi_mm": 16.7,
+    "D": 18.0,
+    "_kaynak": "aracın kurulum kapısı: ince özellik 0,06 hücre"
+  },
+  "senaryolar": [
+    {
+      "malzeme": "Aluminum 6061",
+      "E_GPa": 69.0,
+      "hiz_m_s": 22.0,
+      "gereken_D": 1678,
+      "D_kat": 93.2,
+      "olcek": "yüzey-yakın",
+      "hucre_M": 2694.1,
+      "bellek_GB": 2098.7,
+      "bu_makinede": false,
+      "is_istasyonunda": false
+    },
+    {
+      "malzeme": "Aluminum 6061",
+      "E_GPa": 69.0,
+      "hiz_m_s": 22.0,
+      "gereken_D": 1678,
+      "D_kat": 93.2,
+      "olcek": "hacim",
+      "hucre_M": 251107.7,
+      "bellek_GB": 195612.9,
+      "bu_makinede": false,
+      "is_istasyonunda": false
+    },
+    {
+      "malzeme": "Aluminum 6061",
+      "E_GPa": 69.0,
+      "hiz_m_s": 44.0,
+      "gereken_D": 1057,
+      "D_kat": 58.7,
+      "olcek": "yüzey-yakın",
+      "hucre_M": 1069.2,
+      "bellek_GB": 832.9,
+      "bu_makinede": false,
+      "is_istasyonunda": false
+    },
+    {
+      "malzeme": "Aluminum 6061",
+      "E_GPa": 69.0,
+      "hiz_m_s": 44.0,
+      "gereken_D": 1057,
+      "D_kat": 58.7,
+      "olcek": "hacim",
+      "hucre_M": 62776.9,
+      "bellek_GB": 48903.2,
+      "bu_makinede": false,
+      "is_istasyonunda": false
+    },
+    {
+      "malzeme": "Aluminum 6061",
+      "E_GPa": 69.0,
+      "hiz_m_s": 69.5,
+      "gereken_D": 779,
+      "D_kat": 43.3,
+      "olcek": "yüzey-yakın",
+      "hucre_M": 581.0,
+      "bellek_GB": 452.6,
+      "bu_makinede": false,
+      "is_istasyonunda": false
+    },
+    {
+      "malzeme": "Aluminum 6061",
+      "E_GPa": 69.0,
+      "hiz_m_s": 69.5,
+      "gereken_D": 779,
+      "D_kat": 43.3,
+      "olcek": "hacim",
+      "hucre_M": 25147.0,
+      "bellek_GB": 19589.5,
+      "bu_makinede": false,
+      "is_istasyonunda": false
+    },
+    {
+      "malzeme": "Balsa Wood",
+      "E_GPa": 4.5,
+      "hiz_m_s": 22.0,
+      "gereken_D": 675,
+      "D_kat": 37.5,
+      "olcek": "yüzey-yakın",
+      "hucre_M": 436.5,
+      "bellek_GB": 340.0,
+      "bu_makinede": false,
+      "is_istasyonunda": false
+    },
+    {
+      "malzeme": "Balsa Wood",
+      "E_GPa": 4.5,
+      "hiz_m_s": 22.0,
+      "gereken_D": 675,
+      "D_kat": 37.5,
+      "olcek": "hacim",
+      "hucre_M": 16376.6,
+      "bellek_GB": 12757.4,
+      "bu_makinede": false,
+      "is_istasyonunda": false
+    },
+    {
+      "malzeme": "Balsa Wood",
+      "E_GPa": 4.5,
+      "hiz_m_s": 44.0,
+      "gereken_D": 425,
+      "D_kat": 23.6,
+      "olcek": "yüzey-yakın",
+      "hucre_M": 173.2,
+      "bellek_GB": 134.9,
+      "bu_makinede": false,
+      "is_istasyonunda": true
+    },
+    {
+      "malzeme": "Balsa Wood",
+      "E_GPa": 4.5,
+      "hiz_m_s": 44.0,
+      "gereken_D": 425,
+      "D_kat": 23.6,
+      "olcek": "hacim",
+      "hucre_M": 4094.1,
+      "bellek_GB": 3189.3,
+      "bu_makinede": false,
+      "is_istasyonunda": false
+    },
+    {
+      "malzeme": "Balsa Wood",
+      "E_GPa": 4.5,
+      "hiz_m_s": 69.5,
+      "gereken_D": 314,
+      "D_kat": 17.4,
+      "olcek": "yüzey-yakın",
+      "hucre_M": 94.1,
+      "bellek_GB": 73.3,
+      "bu_makinede": false,
+      "is_istasyonunda": true
+    },
+    {
+      "malzeme": "Balsa Wood",
+      "E_GPa": 4.5,
+      "hiz_m_s": 69.5,
+      "gereken_D": 314,
+      "D_kat": 17.4,
+      "olcek": "hacim",
+      "hucre_M": 1640.0,
+      "bellek_GB": 1277.6,
+      "bu_makinede": false,
+      "is_istasyonunda": false
+    },
+    {
+      "malzeme": "Glass Fiber (Epoxy)",
+      "E_GPa": 45.0,
+      "hiz_m_s": 22.0,
+      "gereken_D": 1455,
+      "D_kat": 80.8,
+      "olcek": "yüzey-yakın",
+      "hucre_M": 2026.1,
+      "bellek_GB": 1578.3,
+      "bu_makinede": false,
+      "is_istasyonunda": false
+    },
+    {
+      "malzeme": "Glass Fiber (Epoxy)",
+      "E_GPa": 45.0,
+      "hiz_m_s": 22.0,
+      "gereken_D": 1455,
+      "D_kat": 80.8,
+      "olcek": "hacim",
+      "hucre_M": 163765.9,
+      "bellek_GB": 127573.6,
+      "bu_makinede": false,
+      "is_istasyonunda": false
+    },
+    {
+      "malzeme": "Glass Fiber (Epoxy)",
+      "E_GPa": 45.0,
+      "hiz_m_s": 44.0,
+      "gereken_D": 917,
+      "D_kat": 50.9,
+      "olcek": "yüzey-yakın",
+      "hucre_M": 804.1,
+      "bellek_GB": 626.4,
+      "bu_makinede": false,
+      "is_istasyonunda": false
+    },
+    {
+      "malzeme": "Glass Fiber (Epoxy)",
+      "E_GPa": 45.0,
+      "hiz_m_s": 44.0,
+      "gereken_D": 917,
+      "D_kat": 50.9,
+      "olcek": "hacim",
+      "hucre_M": 40941.5,
+      "bellek_GB": 31893.4,
+      "bu_makinede": false,
+      "is_istasyonunda": false
+    },
+    {
+      "malzeme": "Glass Fiber (Epoxy)",
+      "E_GPa": 45.0,
+      "hiz_m_s": 69.5,
+      "gereken_D": 676,
+      "D_kat": 37.5,
+      "olcek": "yüzey-yakın",
+      "hucre_M": 436.9,
+      "bellek_GB": 340.4,
+      "bu_makinede": false,
+      "is_istasyonunda": false
+    },
+    {
+      "malzeme": "Glass Fiber (Epoxy)",
+      "E_GPa": 45.0,
+      "hiz_m_s": 69.5,
+      "gereken_D": 676,
+      "D_kat": 37.5,
+      "olcek": "hacim",
+      "hucre_M": 16400.2,
+      "bellek_GB": 12775.8,
+      "bu_makinede": false,
+      "is_istasyonunda": false
+    }
+  ],
+  "bu_makinede_uygun": 0,
+  "is_istasyonunda_uygun": 2,
+  "en_ucuz_ulasilabilir": {
+    "malzeme": "Balsa Wood",
+    "E_GPa": 4.5,
+    "hiz_m_s": 69.5,
+    "gereken_D": 314,
+    "D_kat": 17.4,
+    "olcek": "yüzey-yakın",
+    "hucre_M": 94.1,
+    "bellek_GB": 73.3,
+    "bu_makinede": false,
+    "is_istasyonunda": true
+  },
+  "en_ucuzun_kotumser_ucu": {
+    "malzeme": "Balsa Wood",
+    "E_GPa": 4.5,
+    "hiz_m_s": 69.5,
+    "gereken_D": 314,
+    "D_kat": 17.4,
+    "olcek": "hacim",
+    "hucre_M": 1640.0,
+    "bellek_GB": 1277.6,
+    "bu_makinede": false,
+    "is_istasyonunda": false
+  },
+  "verdikt": "BU MAKINEDE ULASILAMAZ (0/18 senaryo). 192 GB iş istasyonunda en ucuz aday Balsa Wood + 70 m/s, AMA bütçe bir BAND: 73 GB (yüzey-yakın ölçekleme) ile 1,278 GB (hacim ölçekleme) arasında. Yalnız iyimser uç tutarsa sığar; hangi ucun geçerli olduğu ÖLÇÜLMEDİ, o yüzden bu bir PLAN değil bir ÜST/ALT SINIRDIR.",
+  "_kisit": [
+    "D ~ E^(1/3) ve D ~ q^(-1/3): malzemeyi 100 kat yumusatmak agi yalniz 4,6 kat ucuzlatir, dinamik basinci 10 katlamak 2,15 kat. Yani bu bir DONANIM sorunundan cok bir GEOMETRI-AILESI sorunudur; esneklik t/L'yi kucultur, cozunurluk buyutur ve ikisi ayni buyukluge zit yonde basar. Hucre sayisi kestirimi D^2 (yuzey-yakin) ile D^3 (hacim) arasinda bir BANDDIR, tek sayi degil."
+  ],
+  "_uretim": "Üretim: python experiments/fsi_tahrik_fizibilite.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

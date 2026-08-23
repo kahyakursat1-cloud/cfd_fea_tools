@@ -81,7 +81,14 @@ import sessiz_yutma
 # Ikisi de yeni bir olcum yolunun parcasi: hizlanma artik ASAMA DUVAR SURESINDEN
 # degil ExecutionTime'dan hesaplaniyor (rapordaki 1,96x → 3,10x duzeltmesi).
 # Izlenen sayilar DEGISMEDI: incelenmemis 0, guven yolunda incelenmemis 0.
-TABAN_TOPLAM = 94
+TABAN_TOPLAM = 96
+# 95 -> 96 (2026-08-23): vehicle_pipeline._planform_ok_acisi — cozulen
+# geometrinin ok acisi bir TESHIS alanidir, hicbir hukme girmez. Okunamazsa
+# None doner ve kayitta "olculmedi" olarak gorunur, SIFIR sayilmaz. Gerekce
+# kodda yazili.
+# 94 -> 95 (2026-08-23): fsi_burulma._sayisal — zaman dizinlerini secerken
+# sayisal OLMAYAN adi eler (system, constant, 0.org). Yutulan sey HATA degil,
+# elemenin kriterinin ta kendisi; gerekcesi kodda yazili.
 # 93 -> 94 (2026-08-22): kosu_gecmisi._rho_bilgisi — olculen korelasyon kanit
 # dosyasi bozuksa rho NOTU dusmeli, A/B kiyasi degil. Iddia da dusuyor, yani
 # yutulan sey bir HUKUM degil bir EK ACIKLAMA; gerekcesi kodda yazili.
@@ -131,7 +138,10 @@ TABAN_TOPLAM = 94
 # blok bitince okunanlar döner, hiçbiri okunamazsa çağıran "dat frekans
 # taşımıyor" HATASI alır. Gerekçe kodda (kabul etiketi konuldu).
 # İzlenen sayılar DEĞİŞMEDİ: incelenmemiş 0, güven yolunda incelenmemiş 0.
-TABAN_GUVEN_YOLU = 67
+TABAN_GUVEN_YOLU = 68
+# 67 -> 68 (2026-08-23): yukaridaki _planform_ok_acisi guven yolunda
+# (vehicle_pipeline) ama URETTIGI alan hukme GIRMIYOR; bu ayrim onemli ve
+# gerekcesi kodda yazili
 # 65 -> 67 (2026-08-21): ayni iki yardimci; `analysis/` guven yolu dizinidir.
 # INCELENMEMIS 0 kaliyor.
 # 64 -> 65 (2026-08-21): ayni kayit. `analysis/` guven yolu dizinidir, o yuzden

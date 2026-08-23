@@ -869,14 +869,52 @@ CFD yüzeyindeki yük sabitken FEA'ya taşınan yük büyük değişiyor ve akta
 artığı sıçrıyorsa uyarı yazılır. Ölçülen vakada yanıyor, aerodinamik yükün
 gerçekten değiştiği vakada susuyor.
 
-Fizik de tutarlı: bu levha \emph{saf eğilme} yapıyor. Kesit yukarı çıkıyor ama
-yerel hücum açısı değişmiyor, o yüzden yük değişmiyor. Aracın eski öğüdü
-(``daha esnek yapı ya da daha yüksek dinamik basınç gerekir'') bu
-konfigürasyonda \textbf{yanlıştır}: daha çok eğilme yine burulma üretmez.
-Statik aeroelastik kuplajı süren burulmadır ve bunun için elastik ekseni
-aerodinamik merkezden ayıran bir geometri gerekir --- ok açısı ya da
-kaydırılmış eksen. Hücre bu yüzden \emph{hâlâ açık} ve artık nedeni adıyla
-yazılı.
+Fizik de tutarlı ve bu \emph{ölçüldü}, akıl yürütülmedi. Ağa uygulanan yer
+değiştirme alanı uç kesitte veter boyunca doğruya oturtulunca eğilme ile
+burulma ayrışıyor: eğilme 6{,}51\,mm, burulma $-0{,}041^\circ$. Düz konsol
+levha \emph{saf eğilme} yapıyor --- kesit yukarı çıkıyor ama yerel hücum açısı
+değişmiyor, o yüzden basınç dağılımı da değişmiyor. Ayrımın bütün değeri
+şurada: aynı 7{,}4\,mm sehim, biri $0^\circ$ biri $-0{,}94^\circ$ burulmayla,
+zıt hüküm verir; sehim/açıklık oranına bakan bir ölçüt ikisini ayırt edemez.
+
+Bu, aracın eski öğüdünü (``daha esnek yapı ya da daha yüksek dinamik basınç
+gerekir'') bu konfigürasyonda \textbf{yanlış} kılar: daha çok eğilme yine
+burulma üretmez. Statik aeroelastik kuplajı süren burulmadır.
+
+\begin{dikkat}{Çözünürlük ile esneklik zıt yönde basıyor --- bütçe türetildi}
+Ok açılı bir levha denendi ve iki şey ortaya çıktı. Birincisi:
+kanonikleştirme ana ekseni hizalarken hücum kenarı ok açısını $30{,}0^\circ$'den
+$5{,}6^\circ$'ye düşürdü ve bu kayıtta yazılı \emph{değildi} --- oryantasyon
+alanı yalnız ``burun=+x üst=+z'' diyor, hazırlık kaydı dönmeyi niteliksel
+beyan ediyordu (``asal eksenler$\rightarrow$xyz'') ama ne kadar döndüğünü
+değil. Ok açısı artık ölçülüp kayda yazılıyor
+(\texttt{planform\_ok\_acisi\_deg}); kullanıcı kendi CAD'iyle
+karşılaştırabilir. İkincisi ve belirleyicisi: aracın kendi
+kurulum kapısı zaten şunu söylüyordu --- ``ince özellik yalnız 0{,}06 hücre
+(hedef $\ge$6) \dots\ Kutta koşulu kurulamaz, sirkülasyon ve taşıma doğmaz;
+$C_l$/$L/D$ güvenilir değildir''. Yani bu ailedeki her koşunun taşıması
+zaten güvenilmez.
+
+Çelişki nicelleştirildi. Çözünürlük $t/L \ge 6/D$ ister, esneklik
+$t/L \le (k q / (\text{hedef}\,E))^{1/3}$ ister; ikisi birleşince
+$D \ge 6\,(\text{hedef}\,E/(k q))^{1/3}$. $k$ ölçülen koşudan kalibre edildi
+($k = 0{,}213$, \texttt{fsi\_tahrikH}). $D$'nin $E$ ve $q$'ya \emph{küp-kök}
+bağlı olması sonucu belirliyor: malzemeyi 100 kat yumuşatmak ağı yalnız
+4{,}6 kat ucuzlatır, dinamik basıncı 10 katlamak 2{,}15 kat.
+
+On sekiz senaryonun \textbf{hiçbiri} bu makinede sığmıyor. 192\,GB iş
+istasyonunda en ucuz aday balsa + 70\,m/s, ama bütçe bir \emph{band}:
+73\,GB (yüzey-yakın ölçekleme) ile 1.278\,GB (hacim ölçekleme) arasında.
+Hangi ucun geçerli olduğu ölçülmedi, dolayısıyla bu bir plan değil bir
+alt/üst sınırdır. Sonuç: bu bir donanım sorunundan çok bir
+\emph{geometri-ailesi} sorunudur --- esneklik $t/L$'yi küçültür,
+çözünürlük büyütür.
+\end{dikkat}
+
+\noindent Hücre bu yüzden \emph{hâlâ açık}, ama artık nedeni adıyla ve
+sayısıyla yazılı: gereken şey daha esnek bir levha değil, esnekliğiyle
+çözünürlüğü aynı anda taşıyabilen bir geometri --- ve o, bu ağ
+çözünürlüğünde bu ölçekte yok.
 
 \subsection{FSI yük aktarımı: korunan ne, korunmayan ne}
 \label{sub:fsi-korunum}

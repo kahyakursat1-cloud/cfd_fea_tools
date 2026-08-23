@@ -407,6 +407,60 @@ def weld_axial_segments(m: trimesh.Trimesh):
                     "kaynatıldı (konveks-zarf köprüleme; exploded/kopuk-ihraç onarımı)" + ek)
 
 
+def _planform_ok_acisi(stl_path) -> float | None:
+    """ÇÖZÜLEN geometrinin planform ok açısı [°] — kullanıcının verdiği değil.
+
+    NEDEN: hazırlık kaydı dönmeyi NİTELİKSEL beyan ediyor ("asal eksenler→xyz")
+    ama NE KADAR döndüğünü yazmıyor. Ölçüldü 2026-08-23: 30° ok açılı bir levha
+    hatta verildi, kanonikleştirme ana ekseni hizalarken açıyı 11°'ye DÜŞÜRDÜ
+    ve kayıtta bunun izi yoktu.
+
+    Ok açısı aerodinamik olarak anlamlı bir büyüklüktür --- eğilme-burulma
+    kuplajını (dolayısıyla statik aeroelastik davranışı) o belirler. Sessizce
+    değiştirmek, kullanıcının verdiği geometriden BAŞKA bir şey çözmek olur.
+
+    Girdinin açısı burada bilinmiyor (ham dosya koşu dizininde tutulmuyor);
+    yazılan sayı ÇÖZÜLEN cismindir ve kullanıcı kendi CAD'iyle kıyaslayabilir.
+    Kanat benzeri olmayan gövdede anlamsızdır, o yüzden yalnız yassı ve
+    uzun cisimlerde hesaplanır.
+    """
+    try:
+        m = trimesh.load(str(stl_path), force="mesh")
+        v = np.asarray(m.vertices, float)
+        yay = v.max(axis=0) - v.min(axis=0)
+        # EKSEN TAHMIN EDILMIYOR. Bu alan YALNIZ kanoniklestirilmis geometride
+        # hesaplanir; orada aciklik y, veter x, kalinlik z'dir. Ekseni geri
+        # cikarmaya calisan UC ayri olcut denendi ve ucu de kirildi: sinirlayici
+        # kutu ok kaymasiyla sisiyor (45 derecede eksenler yer degistirdi),
+        # aciklik/veter orani yanlis adayi seciyor (11 yerine 79 verdi), alan
+        # tutarliligi gercek kanatlari reddediyor (MiniHawk None dondu).
+        # Cerceve ZATEN BILINIYORKEN onu yeniden kesfetmeye calismak, kirilgan
+        # bir teshis ureten kusurun ta kendisiydi.
+        ACIKLIK, VETER, KALINLIK = 1, 0, 2
+        if yay[KALINLIK] <= 0 or yay[ACIKLIK] <= 0:
+            return None
+        if yay[ACIKLIK] / yay[KALINLIK] < 3:
+            return None                       # yassi/uzun degil: tanimsiz
+        # OK ACISI HUCUM KENARINDAN: x_min(y) dogrusunun egimi. Ok kaymasi
+        # veterle karismaz cunku her istasyonun KENDI x_min'i alinir.
+        y = v[:, ACIKLIK]
+        kenar = []
+        for a0, a1 in ((0.0, 0.1), (0.9, 1.0)):
+            dilim = v[(y >= y.min() + a0 * yay[ACIKLIK])
+                      & (y <= y.min() + a1 * yay[ACIKLIK])]
+            if len(dilim) < 2:
+                return None
+            kenar.append((dilim[:, ACIKLIK].mean(), dilim[:, VETER].min()))
+        (y0, x0), (y1, x1) = kenar
+        if y1 - y0 <= 0:
+            return None
+        return round(float(np.degrees(np.arctan2(x1 - x0, y1 - y0))), 1)
+    # sessiz-yutma: kabul — bu bir TEŞHİS alanıdır, hükme girmez; okunamazsa
+    # None döner ve "ölçülmedi" olarak görünür, sıfır sayılmaz
+    except Exception:
+        return None
+
+
 def prepare_geometry(path, out_dir: Path, progress_cb=None,
                      auto_orient: bool = True) -> tuple[Path, dict]:
     """Her formatı analiz-hazır tek STL'e indirger: CAD dönüşümü, çok-gövde
@@ -1611,6 +1665,13 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     geo = inspect_geometry(stl_path)
     geo["hazirlik"] = prep
     geo["oryantasyon"] = f"burun={nose_axis} üst={up_axis} → akış çerçevesi (+x, +z)"
+    # UYGULANAN DONME KAYITTA DURMALI. Olculdu 2026-08-23: 30 derece ok acili
+    # bir levha hatta verildi, kanoniklestirme ana ekseni hizalarken ok acisini
+    # 11 dereceye DUSURDU ve kayitta bunun izi YOKTU — oryantasyon alani yalniz
+    # "burun=+x ust=+z" diyordu. Ok acisi aerodinamik olarak ANLAMLI bir
+    # buyukluktur (bend-twist kuplajini o belirler); sessizce degistirmek,
+    # kullanicinin verdigi geometriden baska bir sey cozmek demektir.
+    geo["planform_ok_acisi_deg"] = _planform_ok_acisi(stl_path)
     if progress_cb:
         progress_cb(2, f"Geometri: {geo['lmax_m']} m, {geo['ucgen_sayisi']} üçgen")
 
