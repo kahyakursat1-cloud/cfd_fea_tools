@@ -844,6 +844,78 @@ Kapı \emph{iki} sunum kanalına da bağlandı ve testi bunu AST ile doğruluyor
 kusur sınıfıdır.
 \end{dikkat}
 
+\subsection{Modeli seçmek onu çalıştırmaz: dört koşu, üç geri çekilmiş açıklama}
+\label{sub:gecis}
+
+Yukarıdaki kutu somut bir alternatif söylüyordu --- geçiş modeli
+\texttt{kOmegaSSTLM}. O öneri \emph{sınanmamıştı}. Sınandığında, öneriyi
+değil ama ``ucuz'' sıfatını kaybetti.
+
+İlk koşu (84,7 dk) $C_d$ sapmasını \%$-27{,}55$ verdi; tam-türbülanslı
+\texttt{kOmegaSST}'nin \%$-26{,}88$'iyle neredeyse aynı. ``Hipotez çürüdü''
+yazmak buradan çok kolaydı. Yazılmadı, çünkü önce şu soruldu: \emph{model
+gerçekten devreye girdi mi?} Aralıklılık alanı (\texttt{gammaInt}) her yerde
+$\approx 1$ çıktı --- laminer hücre oranı \%0{,}0. Model hiç çalışmamış,
+tam-türbülanslı kapanışa dejenere olmuştu. Koşu hipotezi \emph{sınamamıştı}.
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}llrr@{}}
+\toprule
+Koşu & Değişen & \texttt{gammaInt} min & $C_d$ sapması \\
+\midrule
+Tu \%1, duvar fonk.        & ---                    & 0{,}9869 & $-27{,}55\%$ \\
+Tu \%0{,}1, duvar fonk.    & şiddet $10\times$      & 0{,}9867 & $-27{,}61\%$ \\
+Tu \%1, düşük-Re (LM)      & \texttt{nut} duvar KŞ  & 0{,}9872 & $\mathbf{-62{,}63\%}$ \\
+Tu \%1, düşük-Re (kontrol) & kapanış (LM yok)       & ---      & $-60{,}39\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Sırayla üç açıklama denendi ve üçü de \emph{ölçümle} düştü:
+
+\begin{enumerate}\itemsep2pt
+\item \textbf{Serbest-akış türbülans şiddeti.} ``Yüksek Tu geçişi hemen
+tetikliyor'' dendi ve $10\times$ düşürülerek koşuldu. \texttt{gammaInt}
+minimumu 0{,}9869'dan 0{,}9867'ye gitti. On kat girdi farkı sonuca
+yansımadı.
+\item \textbf{\texttt{nut} duvar işlemi.} Üç yol karşılaştırıldı ve gerçek
+bir uyumsuzluk bulundu: küre çapası \texttt{nutUSpalding} ile
+\emph{devrede} (laminer hücre \%1{,}05), kanat yolu \texttt{nutLowRe} ile
+çalışıyor, silindir ise \texttt{nutkWallFunction} miras almış --- log-yasası
+dayatan, laminer bölgede $\nu_t \!\to\! 0$'ı imkânsız kılan bir koşul.
+Düzeltildi. Model \emph{yine} girmedi, üstelik $C_d$ \%$-62{,}63$'e düştü.
+\item \textbf{Ağ.} Ölçülen $y^+ = 24{,}9$. Bu O-grid duvar
+\emph{fonksiyonu} için tasarlanmış ve bunu kendisi beyan ediyor
+(\texttt{YPLUS\_BANDI} $=30$--$300$). Düşük-Re alanlarını böyle bir ağa
+koymak ilk hücreyi \emph{tampon tabakada} bırakır: ne duvar fonksiyonu
+geçerlidir ($y^+\!<\!30$) ne düşük-Re ($y^+\!>\!1$). $C_d$ çöküşünün sebebi
+budur ve iki koşu da bu yüzden geçersizdir.
+\end{enumerate}
+
+\begin{dikkat}{Kapı vardı, üretim yolu ona uğramıyordu}
+Bu deponun aynı eşikli kapısı \emph{zaten} kuruluydu:
+\texttt{gecis\_modeli\_onkosulu}, $y^+$ hedefi 5'i aşarsa geçiş modelini
+reddeder. Silindir betiği \texttt{CFDCase}/\texttt{build\_case} yolundan
+geçmediği için ona hiç uğramadı --- \texttt{CLAUDE.md}'nin ``iki-hızlı''
+uyarısı tam bu: kendi case iskelesini yazan kök betikler, kanonik
+katmandaki kapılardan da muaf kalıyor. İki koşu ($2\times 85$ dk) bu yüzden
+yapıldı ve ikisi de geçersiz çıktı.
+
+Üç kapı eklendi ve üçü de ölçümden doğdu:
+\texttt{gecis\_kurulum\_denetimi} vaka dosyasından \texttt{nut} duvar
+işlemini okur (koşudan \emph{önce}), \texttt{ag\_onkosulu} ağın kendi beyan
+ettiği $y^+$ bandını okur (koşudan \emph{önce}), \texttt{gecis\_devrede\_mi}
+aralıklılığı ölçer (koşudan \emph{sonra}) ve devreye girmeyen bir koşuyu
+\texttt{apply\_gecis\_gate} TASARIM sınıfından EĞİLİM'e indirir. Sayı yanlış
+değildir; \emph{etiketi} yanlıştır.
+
+Bir kural da yazılıp \emph{geri çekildi}: ``Tu \%0{,}5'i aşarsa reddet''
+kapısı kuruldu, sonra aynı ölçüt küre çapasına uygulandı --- küre de Tu \%1'de
+koşuyor ve devreye \emph{girmiş}. Kural çalışan bir çapayı öldürecekti. Geri
+çekiliş koda yazıldı, silinmedi: aynı kuralın üçüncü kez yazılmasını
+engelleyen şey, ikinci kez neden yanlış olduğunun kayıtta durmasıdır.
+\end{dikkat}
+
 \noindent Hakemin istediği türbülanslı zaman-çözünür çapa bu yüzden
 \emph{açık kalıyor}: elde olan doğrulanmış çapa laminer rejimdedir ve
 türbülanslı vakayı doğrulamaz. Kapanması ağ değil \emph{kapanış} değişikliği
@@ -2766,10 +2838,15 @@ ister.
 ölçekleme) ile 1.278\,GB (hacim ölçekleme) arasında. Hangi ucun geçerli
 olduğu ölçülmedi; iyimser uç tutmazsa iş istasyonunda da sığmaz.
 
-\textbf{\#5 için ucuz bir ara adım var:} sapmanın kaynağı kapanış olarak
-ölçüldüğüne göre (\S\ref{sub:subkritik}), aynı silindir vakasını geçiş
-modeliyle (\texttt{kOmegaSSTLM}) koşmak LES'ten çok daha ucuzdur ve
-hipotezi doğrudan sınar. LES'e geçmeden önce yapılacak iş budur.
+\textbf{\#5'in ``ucuz ara adımı'' SINANDI ve GERİ ÇEKİLDİ.} Bu kutu daha
+önce şunu söylüyordu: aynı silindir vakasını geçiş modeliyle
+(\texttt{kOmegaSSTLM}) koşmak LES'ten çok daha ucuzdur ve hipotezi doğrudan
+sınar. Dört koşu bunun yanlış olduğunu gösterdi (\S\ref{sub:gecis}). Model
+hiçbirinde devreye girmedi ve engel kapanış değil \emph{ağ} çıktı: ölçülen
+$y^+ = 24{,}9$, oysa geçiş modeli $y^+ \!\lesssim\! 1$ ister. Duvar-çözünür
+silindir ağı elde var (\texttt{silindir\_des\_3b}: $y^+ = 0{,}78$,
+2{,}43 M hücre) ama URANS ağının $\sim$6 katıdır --- ucuz değil, yalnız
+LES'ten ulaşılabilir.
 
 \textbf{\#9'un iç denetimi hazır:} sıkı taramada null değişkenlerin
 (küre için $\alpha$, sabit-$\nu$ ile $\rho$) korelasyonu sıfıra inmeli.

@@ -23,22 +23,34 @@ düzelmelidir --- Cd yukarı, St aşağı. Yalnız biri düzelirse açıklama ek
 ve geri çekilmelidir. Bir hipotezi doğrulayacak deney, onu yanlışlayabilecek
 deneydir.
 
-NEDEN BU, LES'TEN ÖNCE: fiziksel doğru kurulum duvar-çözümlü LES'tir ve
-84,7 M hücre / 62,9 GB ile bu makinede sığmaz. Geçiş modeli AYNI ağda koşar
-(403.200 hücre) ve hipotezi doğrudan sınar --- iş istasyonu beklemeden.
+"UCUZ ARA ADIM" İDDİASI ÖLÇÜLDÜ VE GERİ ÇEKİLDİ. Betiğin ilk sürümü şöyle
+diyordu: "geçiş modeli AYNI ağda koşar (403.200 hücre) ve hipotezi doğrudan
+sınar --- iş istasyonu beklemeden." DÖRT KOŞU bunun yanlış olduğunu gösterdi.
+Sırayla sınanan ve düşen açıklamalar:
 
-DEĞİŞEN ŞEY KAPANIŞTIR --- VE DUVAR İŞLEMİ ONA DAHİLDİR. İlk iki sürüm
-yalnız model ADINI çevirdi ve "değişen tek şey kapanış" dedi. Yanlıştı:
-3B kurulum `nutkWallFunction` miras alıyordu, o da log-yasasını dayatıyor
-ve laminer bölgede nut'ın sıfıra inmesini imkânsız kılıyor. İki koşu
-(Tu %1 ve %0,1) gammaInt minimumunu 0,9869 ve 0,9867 verdi --- on kat girdi
-farkı, sonuçta fark YOK. Sebep Tu değil, duvar işlemiydi. Mesh, zaman adımı,
-span ve span çözücü ayarları hâlâ 3B URANS koşusundan AYNEN gelir.
+  1. Serbest-akış şiddeti (Tu). ÇÜRÜDÜ --- Tu %1 ve %0,1 koşuları gammaInt
+     minimumunu 0,9869 ve 0,9867 verdi. On kat girdi farkı, sonuçta fark yok.
+  2. `nut` duvar işlemi (`nutkWallFunction` log-yasası dayatıyor). TEK BAŞINA
+     YETMEDİ --- `nutLowReWallFunction`'a çevrildi, model YİNE girmedi
+     (0,9872) ve dahası Cd %−26,88'den %−62,63'e düştü.
+  3. AĞ. ÖLÇÜLDÜ ve sebep bu çıktı: y⁺ = 24,9. Bu O-grid duvar FONKSİYONU
+     için tasarlanmış ve bunu kendisi beyan ediyor (`YPLUS_BANDI` = 30--300).
+     Düşük-Re alanlarını böyle bir ağa koymak ilk hücreyi TAMPON TABAKAYA
+     bırakır: ne duvar fonksiyonu geçerlidir (y⁺<30) ne düşük-Re (y⁺>1).
 
-KIYASIN GEÇERLİLİK KOŞULU: LM'yi duvar-çözünür ağda koşup onu
-DUVAR-FONKSİYONLU kOmegaSST ile kıyaslamak iki şeyi birden değiştirirdi.
-Bu yüzden kontrol koşusu da vardır --- `--model kOmegaSST` aynı duvar
-işlemiyle koşar ve fark yalnız kapanışa kalır.
+Yani bu, bir KAPANIŞ değil AĞ meselesidir ve bu ağda kapatılamaz. Kapı
+(`ag_onkosulu`) artık koşudan önce reddediyor. Depoda aynı eşikli kapı ZATEN
+vardı (`gecis_modeli_onkosulu`); bu betik `CFDCase`/`build_case` yolundan
+geçmediği için ona hiç uğramadı --- CLAUDE.md'nin "iki-hızlı" uyarısı tam bu.
+
+Sınav duvar-çözünür bir silindir ağı ister ve o ağ da elde VAR: `silindir_des_3b`
+bütçesi aynı O-grid üreteciyle y⁺=0,78'i 2,43 M hücrede kuruyor. Ucuz değil
+(URANS ağının ~6 katı) ama 84,7 M hücrelik LES'in yanında ulaşılabilir.
+
+KIYASIN GEÇERLİLİK KOŞULU: LM'yi bir ağda koşup onu BAŞKA duvar işlemli bir
+koşuyla kıyaslamak iki şeyi birden değiştirir. Bu yüzden kontrol koşusu
+vardır --- `--model kOmegaSST` aynı ağ ve aynı duvar işlemiyle koşar, fark
+yalnız kapanışa kalır.
 
     python experiments/silindir_gecis_3b.py [--oku]
     python experiments/silindir_gecis_3b.py --model kOmegaSST   # kontrol
@@ -145,6 +157,47 @@ def aralik_denetimi(case: Path) -> dict:
                        "DEĞİLDİR.")}
 
 
+def kur_des_agi(case: Path, model: str = MODEL,
+                periyot_sayisi: int | None = None) -> tuple[float, dict]:
+    """DUVAR-ÇÖZÜNÜR ağda kur — geçiş modelinin gerçekten koşabileceği tek ağ.
+
+    URANS O-grid'i duvar fonksiyonu için tasarlanmış (y⁺ 24,9 ölçüldü) ve
+    geçiş modelini taşıyamıyor. DES çapası aynı O-grid üreteciyle y⁺=0,78'i
+    2,43 M hücrede kuruyor; ağ ELDE VAR, yalnız 6 kat pahalı.
+
+    `periyot_sayisi` verilirse koşu KISALTILIR. Bu bir SONUÇ koşusu değil
+    ARALIKLILIK SONDASIDIR: üç açıklama arka arkaya düştükten sonra 8,5
+    saatlik bir koşuya girmeden önce modelin devreye girip girmediğine
+    bakmak, aynı hatayı dördüncü kez pahalıya yapmamaktır. Sonda geçerse
+    tam koşu ayrıca sürülür; istatistik penceresi kısaltılmış bir koşudan
+    St/Cd okumak zaten meşru değildir.
+    """
+    import silindir_des_3b as sd
+
+    # dt DES BUTCESINDEN gelir, burada TURETILMEZ. Kendi formulumu yazsaydim
+    # iki kosu farkli zaman adimiyla kosar ve fark KAPANISTAN mi ADIMDAN mi
+    # geldigi soylenemezdi --- bu betigin daha once tam da bu sekilde
+    # ayrisan bir surumu oldu (Tu iki kaynaktan geliyordu).
+    from des_fizibilite import butce
+    periyot = sd.D / (sd.ST_DENEY * sd.U)
+    n_per = periyot_sayisi or (sd.PERIYOT_GECIS + sd.PERIYOT_ISTAT)
+    dt = butce(sd.DZ_D, bos_gb=1e9)["dt_s"]
+    kurulum = sd.kur(case, dt=dt, son_s=n_per * periyot, dz_D=sd.DZ_D)
+    # KAPANIS DEGISTIRILIYOR. `sd.kur` zaten duvar-cozunur alan yaziyor
+    # (`duvar_cozunur=True`), o yuzden burada nut'a DOKUNULMAZ --- ikinci kez
+    # yazmak iki kurulumun sessizce ayrismasi demek olurdu.
+    (case / "constant" / "momentumTransport").write_text(
+        sd._foam_header("dictionary", "momentumTransport", "constant") +
+        f"simulationType RAS;\nRAS\n{{\n    model           {model};\n"
+        "    turbulence      on;\n    printCoeffs     on;\n}\n")
+    kurulum["periyot_sayisi"] = n_per
+    kurulum["sonda_mu"] = periyot_sayisi is not None
+    if model != MODEL:
+        return None, kurulum
+    import silindir_urans as s2
+    return _gecis_alanlari(case, s2.TI), kurulum
+
+
 def kur(case: Path, model: str = MODEL) -> float:
     """3B URANS kurulumunu al, KAPANIŞI --- duvar işlemi DAHİL --- değiştir.
 
@@ -181,20 +234,81 @@ def kur(case: Path, model: str = MODEL) -> float:
     return _gecis_alanlari(case, s2.TI)
 
 
-def _verdikt(gecerli: bool, aralik: dict, olcum: dict, etiket: str) -> str:
-    """Hükmü aralıklılık denetimine BAĞLA — sapmadan hüküm çıkarmadan önce."""
+def ag_onkosulu(model: str, ag: str = "urans") -> str:
+    """Bu AĞ geçiş modelini taşıyabilir mi? — mesh'in KENDİ beyanından.
+
+    ÖLÇÜLDÜ, ve pahalıya: `nut` duvar işlemi düzeltildikten sonra model YİNE
+    devreye girmedi (gammaInt min 0,9872) ve dahası Cd %−26,88'den %−62,63'e
+    düştü. Sebep ağdı --- ölçülen y⁺ 24,9. Bu O-grid duvar FONKSİYONU için
+    tasarlanmış ve bunu kendisi beyan ediyor: `silindir_urans.YPLUS_BANDI`
+    = (30, 300). Düşük-Re alanlarını böyle bir ağa koymak ilk hücreyi TAMPON
+    TABAKAYA bırakır --- ne duvar fonksiyonu geçerlidir (y⁺<30) ne düşük-Re
+    (y⁺>1). İki koşu bu yüzden geçersizdi.
+
+    Depoda bu kapı ZATEN vardı (`gecis_modeli_onkosulu`, y⁺ hedefi > 5 ise
+    reddeder) ama bu betik `CFDCase`/`build_case` yolundan geçmediği için ona
+    hiç uğramadı. CLAUDE.md'nin ``iki-hızlı'' uyarısı tam buydu: kendi case
+    iskelesini yazan kök betikler, `analysis/` katmanındaki kapılardan da
+    muaf kalıyor. Kapı burada AYNI EŞİKLE tekrar kuruluyor, eşik kanonik
+    katmandan okunuyor.
+    """
+    if model != MODEL:
+        return ""
+    from analysis.openfoam_runner import GECIS_YPLUS_TAVANI
+    if ag == "des":
+        # DES modulu duvar-COZUNUR oldugunu KENDI beyan ediyor ve olculen
+        # y+ 0,78 bunu dogruluyor (silindir_des_3b.json). Kapinin bu agda
+        # susmasinin sebebi bir SAYIDIR, varsayim degil.
+        import silindir_des_3b as sd
+        if max(sd.YPLUS_BANDI_COZUNUR) <= GECIS_YPLUS_TAVANI:
+            return ""
+        return (f"{model} için DES ağının beyan ettiği bant "
+                f"{sd.YPLUS_BANDI_COZUNUR}, tavanı "
+                f"({GECIS_YPLUS_TAVANI:g}) aşıyor.")
+    import silindir_urans as s2
+    alt = min(s2.YPLUS_BANDI)
+    if alt > GECIS_YPLUS_TAVANI:
+        return (f"{model} y⁺≲{GECIS_YPLUS_TAVANI:g} ister; bu ağ duvar "
+                f"FONKSİYONU için tasarlandı ve bunu kendisi beyan ediyor "
+                f"(YPLUS_BANDI={s2.YPLUS_BANDI}). ÖLÇÜLDÜ: düşük-Re alanları "
+                f"bu ağa konunca y⁺ 24,9 çıktı (tampon tabaka --- iki "
+                f"işlemin de dışı) ve Cd %−26,88'den %−62,63'e düştü. "
+                f"Bu bir KAPANIŞ değil AĞ meselesidir: duvar-çözünür silindir "
+                f"ağı `silindir_des_3b` bütçesinden kurulur (y⁺=0,78, "
+                f"2,43 M hücre) --- aynı O-grid üreteci n_radyal/grading ile "
+                f"onu zaten üretebiliyor.")
+    return ""
+
+
+def _verdikt(gecerli: bool, aralik: dict, olcum: dict, etiket: str,
+             model: str = MODEL, yplus: dict | None = None) -> str:
+    """Hükmü aralıklılık denetimine BAĞLA — sapmadan hüküm çıkarmadan önce.
+
+    MODEL DE ARGÜMANDIR. İlk sürüm bunu almıyordu ve kontrol koşusuna
+    (kOmegaSST, geçiş alanı YOK) ``geçiş modeli devreye girmedi'' diyordu ---
+    hiç istenmemiş bir modelin devreye girmemesi bir bulgu değildir.
+    """
     s = olcum["sapma_pct"]
+    yp = (yplus or {}).get("ort")
+    yp_s = f"y⁺ ort={yp:.1f}" if yp else "y⁺ ölçülemedi"
+    if model != MODEL:
+        return (f"KONTROL KOŞUSU ({model}, geçiş modeli YOK): Cd %{s['Cd']}, "
+                f"St %{s['St']}, {yp_s}. Bu koşu bir hipotez sınamaz; LM "
+                f"koşusunun duvar işlemini EŞİTLER, böylece iki koşu "
+                f"arasındaki fark yalnız kapanışa kalır.")
     if not gecerli:
         return ("SINAV SONUÇSUZ — hipotez ÇÜRÜMEDİ. Geçiş modeli devreye "
                 f"girmedi (gammaInt min {aralik.get('min')}, laminer hücre "
                 f"%{aralik.get('laminer_hucre_orani_pct')}), yani kapanış "
                 "tam-türbülanslı kOmegaSST'ye dejenere oldu ve ölçülen "
                 f"sapma (Cd %{s['Cd']}, St %{s['St']}) KAPANIŞ hakkında "
-                "delil değildir. SEBEP BURADA İDDİA EDİLMEZ: ilk açıklama "
-                "(serbest-akış şiddeti) SINANDI ve ÇÜRÜDÜ — Tu %1 ve %0,1 "
-                "koşuları gammaInt minimumunu 0,9869 ve 0,9867 verdi, on kat "
-                "girdi farkı sonuca yansımadı. Ölçülen sebep `nut` duvar "
-                "işlemidir; `gecis_kurulum_denetimi` onu koşudan ÖNCE söyler.")
+                f"delil değildir. ÜÇ AÇIKLAMA SINANDI: (1) serbest-akış "
+                f"şiddeti — ÇÜRÜDÜ, Tu %1 ve %0,1 gammaInt minimumunu 0,9869 "
+                f"ve 0,9867 verdi; (2) `nut` duvar işlemi — TEK BAŞINA "
+                f"YETMEDİ, nutLowRe'ye çevrildi ve model yine girmedi "
+                f"(0,9872); (3) AĞ — ölçülen {yp_s}, oysa geçiş modeli "
+                f"y⁺≲1 ister. Üçüncüsü bu ağda kapatılamaz: bu bir KAPANIŞ "
+                "değil AĞ meselesidir.")
     iyi_cd = abs(s["Cd"]) < 26.88
     iyi_st = abs(s["St"]) < 29.74
     if iyi_cd and iyi_st:
@@ -212,6 +326,29 @@ def _verdikt(gecerli: bool, aralik: dict, olcum: dict, etiket: str) -> str:
     return f"{hkm} Cd %{s['Cd']}, St %{s['St']}{' [' + etiket.strip('_') + ']' if etiket else ''}"
 
 
+def _sonda_verdikti(gecerli: bool, aralik: dict, kurulum: dict | None) -> str:
+    """Sonda TEK soruyu yanıtlar: model devreye girdi mi?
+
+    St/Cd'ye BAKMAZ ve bakmamalıdır --- kısaltılmış bir istatistik
+    penceresinden okunan sapma, sapmanın kendisi hakkında değil pencerenin
+    kısalığı hakkında bilgi verir.
+    """
+    n = (kurulum or {}).get("periyot_sayisi")
+    if gecerli:
+        return (f"SONDA GEÇTİ — geçiş modeli devreye girdi (gammaInt min "
+                f"{aralik.get('min')}, laminer hücre "
+                f"%{aralik.get('laminer_hucre_orani_pct')}) ve bu, dört "
+                f"koşudur olmayan şeydi. Duvar-çözünür ağ engeli kaldırdı. "
+                f"TAM KOŞU ARTIK MEŞRU: sonda {n} periyottur ve St/Cd "
+                f"veremez.")
+    return (f"SONDA GEÇMEDİ — geçiş modeli {n} periyotta da devreye girmedi "
+            f"(gammaInt min {aralik.get('min')}, laminer hücre "
+            f"%{aralik.get('laminer_hucre_orani_pct')}). Duvar-çözünür ağ "
+            f"TEK BAŞINA yetmedi; tam koşuya girmek için bir sebep YOK. "
+            f"Bu, sondanın var oluş sebebidir: dördüncü açıklama da 8,5 "
+            f"saate değil 1 saate mal oldu.")
+
+
 def main(argv: list[str]) -> int:
     for akis in (sys.stdout, sys.stderr):
         if hasattr(akis, "reconfigure"):
@@ -221,19 +358,41 @@ def main(argv: list[str]) -> int:
     model = MODEL
     if "--model" in argv:
         model = argv[argv.index("--model") + 1]
+    ag = "urans"
+    if "--ag" in argv:
+        ag = argv[argv.index("--ag") + 1]
+    sonda = None
+    if "--sonda" in argv:
+        sonda = int(argv[argv.index("--sonda") + 1])
     # AD, KOSUYU AYIRT EDEN HER SEYI TASIR. Sabit ad kullanildiginda farkli
     # ayarli iki calisma birbirini EZER — bu depoda olculdu (girdi_uq_kos).
-    etiket = "_dr" + ("" if model == MODEL else f"_{model}")
+    etiket = ("_dr" + ("" if ag == "urans" else f"_{ag}")
+              + ("" if model == MODEL else f"_{model}")
+              + ("" if sonda is None else f"_sonda{sonda}"))
     case = KOK / f"_silindir_gecis_3b{etiket}"
     t0 = time.time()
     ti_ad = etiket
+    kurulum_des = None
     if "--oku" in argv and (case / "log.foamRun").exists():
         print("mevcut koşu okunuyor (--oku)", flush=True)
         ret0 = None
     else:
-        print(f"Kurulum: 3B URANS ağı + KAPANIŞ = {model} (duvar-çözünür)",
+        print(f"Kurulum: {ag} ağı + KAPANIŞ = {model} (duvar-çözünür)",
               flush=True)
-        ret0 = kur(case, model)
+        # AG ON KOSULU KURULUMDAN DA ONCE: reddedilecek bir agi once kurup
+        # sonra reddetmek, 2,4 M hucrelik blockMesh'i bosuna calistirmak olur.
+        _ag = ag_onkosulu(model, ag)
+        if _ag:
+            print("AĞ ÖN KOŞULU REDDETTİ:", _ag)
+            return 3
+        if ag == "des":
+            ret0, kurulum_des = kur_des_agi(case, model, sonda)
+            print(f"  ağ: {kurulum_des['hucre_kestirim']:,} hücre (kestirim), "
+                  f"{kurulum_des['periyot_sayisi']} periyot"
+                  + ("  [ARALIKLILIK SONDASI]" if kurulum_des["sonda_mu"] else ""),
+                  flush=True)
+        else:
+            ret0 = kur(case, model)
         if ret0 is not None:
             import silindir_urans as _s2
             print(f"  Tu = %{100*_s2.TI:g} (TEK KAYNAK: silindir_urans.TI)",
@@ -248,7 +407,11 @@ def main(argv: list[str]) -> int:
         if model == MODEL and kd["uygun"] is False:
             print("KURULUM REDDEDİLDİ:", kd["_neden"])
             return 2
-        ok, mesaj = s3.kos(case)
+        if ag == "des":
+            import silindir_des_3b as _sd
+            ok, mesaj = _sd.kos(case)
+        else:
+            ok, mesaj = s3.kos(case)
         if not ok:
             print("KOŞU DÜŞTÜ:", mesaj[-400:])
             return 1
@@ -272,23 +435,44 @@ def main(argv: list[str]) -> int:
              "salinim": o["olcum"]}
     ref = {"St": s3.ST_DENEY, "St_bandi": list(s3.ST_BANDI), "Cd": s3.CD_DENEY}
     print(json.dumps(olcum, ensure_ascii=False, indent=1)[:600], flush=True)
+    yp = None
+    try_yp = getattr(s3, "yplus_olc", None) or getattr(
+        __import__("silindir_urans"), "yplus_olc", None)
+    if try_yp:
+        yp = try_yp(case)
+        olcum["yplus"] = yp
+    sonda_mu = bool((kurulum_des or {}).get("sonda_mu"))
     kayit = {
-        "vaka": f"Silindir 3B, geçiş modeli ({MODEL}) — kapanış hipotezinin sınavı",
+        "vaka": (f"Silindir 3B ({ag} ağı), {model}"
+                 + (" — ARALIKLILIK SONDASI" if sonda_mu
+                    else " — kapanış hipotezinin sınavı")),
         "_neden": ("Subkritik Re'de bagli sinir tabaka LAMINERDIR; tam-turbulansli "
                    "kapanis onu turbulans sayar ve Cd'yi dusuk verir. Bu kosu o "
                    "aciklamayi SINAR: dogruysa IKI sapma birden duzelmeli."),
-        "kurulum": {"model": MODEL, "ReThetat_serbest": ret0,
-                    "ag": "3B URANS ile AYNI (403.200 hücre)",
+        "kurulum": {"model": model, "ReThetat_serbest": ret0, "ag_tipi": ag,
+                    "ag": (kurulum_des or
+                           {"aciklama": "3B URANS ile AYNI (403.200 hücre)"}),
                     "_degisen_tek_sey": "KAPANIŞ"},
         "olculen": olcum, "referans": ref,
         "kiyas": {"3B URANS (kOmegaSST)": {"Cd_pct": -26.88, "St_pct": 29.74},
                   "3B DES (kOmegaSSTDES)": {"Cd_pct": -39.16, "St_pct": 38.16}},
         "aralik_denetimi": aralik,
-        "sinav_gecerli": gecerli,
-        "verdikt": _verdikt(gecerli, aralik, olcum, ti_ad),
+        "sinav_gecerli": gecerli and not sonda_mu,
+        "sonda": sonda_mu,
+        "verdikt": (_sonda_verdikti(gecerli, aralik, kurulum_des) if sonda_mu
+                    else _verdikt(gecerli, aralik, olcum, ti_ad, model, yp)),
         "sure_dk": round((time.time() - t0) / 60, 1),
         "_uretim": "Üretim: python experiments/silindir_gecis_3b.py",
     }
+    if sonda_mu:
+        # SONDA BIR SONUC KOSUSU DEGILDIR. Istatistik penceresi kisaltilmis
+        # bir kosudan St/Cd okumak mesru degil; sayilar kayitta DURUR ama
+        # "olculen sapma" olarak SUNULMAZ.
+        kayit["_kisit"] = (
+            "ARALIKLILIK SONDASI: koşu KISALTILMIŞTIR "
+            f"({kurulum_des['periyot_sayisi']} periyot). Tek yanıtladığı soru "
+            "geçiş modelinin devreye girip girmediğidir. St/Cd sayıları "
+            "kayıtta durur ama SONUÇ DEĞİLDİR — istatistik penceresi yetersiz.")
     import ortam
     ortam.damgala(kayit)
     # AD Tu'YU TASIR. Sabit ad kullanilsaydi %0,1 kosusu, sonucsuz kalan

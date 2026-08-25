@@ -91,8 +91,13 @@ def test_kapanis_hukmu_gecis_modelini_KOSULSUZ_ONERMIYOR():
     r = v.subkritik_kapanis_hukmu("bluff", 5.0e4, "kOmegaSST")
     assert r["tetiklendi"]
     h = r["hukum"]
-    assert "KOŞULLUDUR" in h, "geçiş modeli koşulsuz öneriliyor"
+    # OLCUT IDDIAYA BAGLI: onerinin KOSULSUZ olmamasi gerekiyor. Ilk surum
+    # tek bir kelime ariyordu ("KOŞULLUDUR") ve kosul yeniden yazilinca
+    # ("AĞ İSTER, KAPANIŞ DEĞİL") dustu — oysa kosul hala oradaydi.
+    assert "y⁺" in h, "geçiş modelinin AĞ ön koşulu hükümde yazılı değil"
+    assert "24,9" in h, "ölçülen y⁺ hükümde yok — koşul dayanaksız"
     assert "gammaInt" in h, "aralıklılık denetimi hükümde yazılı değil"
+    assert "devreye girmedi" in h, "dört koşunun sonucu hükümde yok"
 
 
 def test_kanonik_denetim_URETIM_YOLUNDAN_cagriliyor():
@@ -158,6 +163,85 @@ def test_DEVREDE_ile_GECERLI_ayri_kapilar():
     from analysis.openfoam_runner import gecis_devrede_mi
     assert gecis_devrede_mi(yol)["devrede"] is True, (
         "aynı koşu hem devre-dışı hem duvar-reddi olsaydı ayrım örneklenemezdi")
+
+
+def test_ag_onkosulu_DUVAR_FONKSIYONU_agini_reddediyor():
+    """Ölçülen üçüncü sebep: ağ. Kapı koşudan ÖNCE reddetmeli.
+
+    İki koşu (2×85 dk) bu kapı olmadığı için yapıldı ve ikisi de geçersizdi.
+    """
+    r = g.ag_onkosulu("kOmegaSSTLM")
+    assert r, "duvar-fonksiyonu ağı geçiş modeline geçiriliyor"
+    assert "24,9" in r, "ölçülen y⁺ gerekçede yok"
+    assert "AĞ meselesidir" in r
+    # Kontrol kosusu gecis modeli kullanmaz — kapi ona karismaz
+    assert g.ag_onkosulu("kOmegaSST") == ""
+
+
+def test_DES_agi_gecis_modelini_TASIYOR():
+    """Kapı reddetmekle kalmamalı, geçerli ağı da GEÇİRMELİ.
+
+    Yalnız reddeden bir kapı, her ağı reddeden bir kapıdan ayırt edilemez.
+    """
+    assert g.ag_onkosulu("kOmegaSSTLM", "des") == "", (
+        "duvar-çözünür DES ağı da reddediliyor — kapı ölçütünden geniş")
+    assert g.ag_onkosulu("kOmegaSSTLM", "urans"), "URANS ağı geçiriliyor"
+
+
+def test_DES_agi_beyanini_KENDI_modulunden_okuyor():
+    """Kapının sustuğu sebep bir SAYI olmalı, varsayım değil."""
+    src = (KOK / "experiments" / "silindir_gecis_3b.py").read_text(encoding="utf-8")
+    i = src.index("def ag_onkosulu(")
+    govde = src[i:src.index("\ndef ", i + 10)]
+    assert "sd.YPLUS_BANDI_COZUNUR" in govde
+    import silindir_des_3b as sd
+
+    from analysis.openfoam_runner import GECIS_YPLUS_TAVANI
+    assert max(sd.YPLUS_BANDI_COZUNUR) <= GECIS_YPLUS_TAVANI
+
+
+def test_SONDA_bir_SONUC_kosusu_sayilmiyor():
+    """Kısaltılmış istatistik penceresinden St/Cd okunamaz."""
+    v = g._sonda_verdikti(True, {"min": 0.02, "laminer_hucre_orani_pct": 3.1},
+                          {"periyot_sayisi": 3})
+    assert "SONDA GEÇTİ" in v and "St/Cd veremez" in v
+    v2 = g._sonda_verdikti(False, {"min": 0.99, "laminer_hucre_orani_pct": 0.0},
+                           {"periyot_sayisi": 3})
+    assert "SONDA GEÇMEDİ" in v2
+    assert "sebep YOK" in v2, "geçmeyen sonda tam koşuya davet ediyor"
+
+
+def test_ag_esigi_KANONIK_katmandan():
+    """Betik kendi eşiğini yazarsa, eşik değişince sessizce ayrışır."""
+    src = (KOK / "experiments" / "silindir_gecis_3b.py").read_text(encoding="utf-8")
+    i = src.index("def ag_onkosulu(")
+    govde = src[i:src.index("\ndef ", i + 10)]
+    assert "from analysis.openfoam_runner import GECIS_YPLUS_TAVANI" in govde
+    assert "5.0" not in govde, "eşik gövdede sabit yazılı"
+
+
+def test_kontrol_kosusuna_GECIS_hukmu_verilmiyor():
+    """kOmegaSST koşusunda geçiş alanı YOKTUR; 'devreye girmedi' bir bulgu
+    değil, hiç istenmemiş bir şeyin yokluğudur."""
+    v = g._verdikt(False, {"min": None, "laminer_hucre_orani_pct": None},
+                   {"sapma_pct": {"Cd": -60.39, "St": 58.73}}, "",
+                   model="kOmegaSST", yplus={"ort": 24.8})
+    assert "KONTROL KOŞUSU" in v
+    assert "devreye girmedi" not in v
+    assert "24.8" in v
+
+
+def test_gecersiz_kosu_kayitlari_GECERSIZ_isaretli():
+    """Geçersiz koşu silinmez ama GEÇERLİ de sayılmaz."""
+    for ad in ("silindir_gecis_3b_dr.json", "silindir_gecis_3b_dr_kOmegaSST.json"):
+        y = KOK / ad
+        if not y.exists():
+            import pytest
+            pytest.skip(f"{ad} yok")
+        d = json.loads(y.read_text(encoding="utf-8"))
+        assert d["gecerli"] is False, ad
+        assert "y+ 24,9" in d["_gecersizlik"]
+        assert d["olculen"]["yplus"]["ort"] > 5.0, "geçersizlik sebebi kayıtta yok"
 
 
 def _nut_yaz(case, tip: str) -> None:

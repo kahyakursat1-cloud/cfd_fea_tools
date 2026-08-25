@@ -551,3 +551,47 @@ def test_rapor_KUYRUK_butceleri_kanittan_sapmiyor(tex):
             f"{k['is']}: bellek ({gb}) raporda yok"
     # SIRA VERILMEZ kurali rapordan sessizce dusmemeli
     assert "sıra vermez" in tex.lower()
+
+
+def test_rapor_GECIS_kosulari_kanittan_sapmiyor(tex):
+    """Dört geçiş koşusunun sayıları kanıt dosyalarından gelmeli.
+
+    Bu bölüm üç GERİ ÇEKİLMİŞ açıklama anlatıyor ve geri çekilişin dayanağı
+    sayılar. Sayı kayarsa anlatı, olmayan bir ölçüme dayanır.
+    """
+    import json
+    import sys
+    sys.path.insert(0, str(KOK))
+    kanit = {
+        "silindir_gecis_3b.json": None,          # Tu %1, duvar fonksiyonu
+        "silindir_gecis_3b_ti0.001.json": None,  # Tu %0,1
+        "silindir_gecis_3b_dr.json": None,       # dusuk-Re LM (GECERSIZ)
+        "silindir_gecis_3b_dr_kOmegaSST.json": None,   # kontrol (GECERSIZ)
+    }
+    for ad in kanit:
+        p = KOK / ad
+        if not p.exists():
+            pytest.skip(f"{ad} üretilmemiş")
+        kanit[ad] = json.loads(p.read_text(encoding="utf-8"))
+
+    for ad, d in kanit.items():
+        cd = abs(d["olculen"]["sapma_pct"]["Cd"])
+        s = f"{cd:.2f}".replace(".", "{,}")
+        assert s in tex, f"{ad}: Cd sapması ({s}) raporda yok"
+        a = d.get("aralik_denetimi") or {}
+        if a.get("min") is not None:
+            m = f"{a['min']:.4f}".replace(".", "{,}")
+            assert m in tex, f"{ad}: gammaInt min ({m}) raporda yok"
+
+    # GECERSIZ kosular rapor da GECERSIZ demeli — sessizce delil olamazlar
+    for ad in ("silindir_gecis_3b_dr.json", "silindir_gecis_3b_dr_kOmegaSST.json"):
+        assert kanit[ad]["gecerli"] is False, f"{ad} kanıtta geçersiz değil"
+    assert "geçersizdir" in tex
+
+    # OLCULEN y+ ve KURE karsit-ornegi anlatinin tasiyici sayilari
+    yp = kanit["silindir_gecis_3b_dr.json"]["olculen"]["yplus"]["ort"]
+    assert f"{yp:.1f}".replace(".", "{,}") in tex, "ölçülen y⁺ raporda yok"
+    assert "1{,}05" in tex, "küre çapasının laminer hücre oranı raporda yok"
+
+    # GERI CEKILEN kural rapordan sessizce dusmemeli
+    assert "geri çekildi" in tex.lower() or "geri\nçekildi" in tex.lower()

@@ -1000,6 +1000,11 @@ GECIS_MODELLERI = ("kOmegaSSTLM",)
 
 
 GECIS_ARALIKLILIK_ESIGI = 0.5   # gammaInt; altindaki hucre LAMINER sayilir
+# LM laminer altkatmani COZMEK zorunda; bunun ustunde ilk hucre log ya da
+# tampon tabakadadir ve gecis noktasi cozulemez. TEK KAYNAK: deneysel
+# betikler de bu esigi buradan okur (kendi sayisini yazan betik, esik
+# degistiginde sessizce ayrisir).
+GECIS_YPLUS_TAVANI = 5.0
 _SAYI = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
 _UNIFORM = re.compile(r"internalField\s+uniform\s+"
                       r"([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)\s*;")
@@ -1150,9 +1155,9 @@ def gecis_modeli_onkosulu(model: str, n_layers: int, yplus_target: float | None)
         return (f"{model} DUVAR-COZUNUR mesh ister ama prizma katmani istenmemis "
                 f"(n_layers=0). Laminer altkatman ayriklastirilmadan gecis modeli "
                 f"fiziksel olmayan bir sayi uretir. --kalite hassas kullanin.")
-    if yplus_target is not None and yplus_target > 5.0:
-        return (f"{model} icin y+ hedefi {yplus_target:g} fazla yuksek (<=1 gerekir) — "
-                f"gecis noktasi cozulemez.")
+    if yplus_target is not None and yplus_target > GECIS_YPLUS_TAVANI:
+        return (f"{model} icin y+ hedefi {yplus_target:g} fazla yuksek "
+                f"(<=1 gerekir, tavan {GECIS_YPLUS_TAVANI:g}) — gecis noktasi cozulemez.")
     # UCUNCU ON-KOSUL DENENDI VE OLCUMLE GERI CEKILDI (2026-08-23).
     #
     # Once su olculdu: silindirde TI=%1 ile gammaInt her yerde ~1 kaldi

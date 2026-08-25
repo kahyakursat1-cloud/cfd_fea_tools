@@ -387,12 +387,15 @@ SUBKRITIK_OLCUM = {
 # olculmus gibi gostermektir; kayit duzeltildi.
 GECIS_MODELI_KAYDI = (
     "Geçiş modeli (kOmegaSSTLM) ya da duvar-çözümlü LES gerekir; ikincisi bu "
-    "donanımda sığmaz (84,7 M hücre / 62,9 GB). BİRİNCİSİ KOŞULLUDUR: modeli "
-    "seçmek yetmez, serbest-akış türbülans şiddeti de düşürülmelidir. ÖLÇÜLDÜ "
-    "(silindir_gecis_3b.json): TI=%1 ile gammaInt her yerde ~1 kaldı, model "
-    "devreye girmedi ve tam-türbülanslı kapanışa dejenere oldu — sapma "
-    "değişmedi. Aralıklılık (gammaInt<0,5 hücre oranı) DENETLENMEDEN geçiş "
-    "modeli koşusu delil sayılmaz.")
+    "donanımda sığmaz (84,7 M hücre / 62,9 GB). BİRİNCİSİ AĞ İSTER, KAPANIŞ "
+    "DEĞİL: modeli seçmek onu ÇALIŞTIRMAZ. DÖRT KOŞU ölçüldü — Tu %1 ve %0,1 "
+    "(gammaInt min 0,9869 / 0,9867), sonra nut duvar işlemi düzeltilerek "
+    "(0,9872) — model hiçbirinde devreye girmedi. Sebep ağdı: ölçülen y⁺ 24,9, "
+    "oysa LM y⁺≲1 ister; duvar-fonksiyonu ağına düşük-Re alanı koymak ilk "
+    "hücreyi tampon tabakada bırakır ve Cd %−26,88'den %−62,63'e düşer. "
+    "Duvar-çözünür silindir ağı ELDE VAR (silindir_des_3b: y⁺=0,78, 2,43 M "
+    "hücre) ama URANS ağının ~6 katıdır. Aralıklılık (gammaInt<0,5 hücre "
+    "oranı) DENETLENMEDEN geçiş modeli koşusu delil sayılmaz.")
 
 
 def subkritik_kapanis_hukmu(rejim: str | None, Re: float | None,
