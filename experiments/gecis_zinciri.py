@@ -61,10 +61,32 @@ def sonda_hukmu() -> dict | None:
             "verdikt": d.get("verdikt", "")[:400]}
 
 
+_HUKUM = {
+    "sonda_zaman_asimi": "SONDA BİTMEDİ (zaman aşımı) — tam koşu BAŞLATILMADI. "
+                         "Karar verilemedi; yokluk 'geçti' sayılmaz.",
+    "sonda_gecmedi_tam_kosu_YOK": "SONDA GEÇMEDİ — duvar-çözünür ağ da tek "
+                                  "başına yetmedi. 16,9 saatlik koşuya girmek "
+                                  "için sebep YOK ve girilmedi.",
+    "bellek_dolu": "SONDA GEÇTİ ama BELLEK BOŞALMADI — tam koşu BAŞLATILMADI. "
+                   "Koşuyu belleği yetmeyen bir makinede başlatmak, ikisini de "
+                   "riske atmaktır.",
+    "tam_kosu_basladi": "SONDA GEÇTİ ve TAM KOŞU BAŞLADI (~16,9 saat, 22 "
+                        "periyot). Kararı ölçüm verdi: aralıklılık eşiği aşıldı.",
+    "tam_kosu_bitti": "TAM KOŞU BİTTİ — hüküm koşunun kendi kanıt dosyasında "
+                      "(silindir_gecis_3b_dr_des.json).",
+    "tam_kosu_dustu": "TAM KOŞU DÜŞTÜ — sebep kayıtta; sonuç ÜRETİLMEDİ ve "
+                      "yarım koşudan sayı okunmaz.",
+}
+
+
 def _karar_yaz(durum: str, s: dict | None, ek: dict | None = None) -> None:
     kayit = {
         "vaka": "Geçiş sınavı zinciri — sonda sonrası karar",
         "durum": durum,
+        # HER KANIT DOSYASI KENDI HUKMUNU TASIR. Ilk surum yalniz `durum`
+        # kodunu yaziyordu ve kanit-manifest kapisi bunu yakaladi: bir durum
+        # KODU, dosyayi okuyan icin hüküm degildir.
+        "verdikt": _HUKUM.get(durum, f"durum: {durum}"),
         "sonda": s,
         "_neden": ("Tam kosu ~16 saat (olculen 13,0 s/adim x 4400 adim). "
                    "Sonda o sureyi HARCAMADAN tek soruyu yanitlar: gecis "

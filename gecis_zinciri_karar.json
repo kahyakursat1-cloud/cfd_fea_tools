@@ -27,5 +27,6 @@
       "openfoam": "Build: 11-e1fc8c682ae6",
       "calculix": "This is Version 2.17"
     }
-  }
+  },
+  "verdikt": "SONDA GEÇTİ ve TAM KOŞU BAŞLADI (~16,9 saat, 22 periyot). Kararı ölçüm verdi: aralıklılık eşiği aşıldı."
 }
