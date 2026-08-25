@@ -186,7 +186,7 @@ class CFDCase:
     delta_t: float | None = None      # s; None ve transient ise reçete zorunlu
     end_time_s: float | None = None   # s; toplam fiziksel süre
     n_outer: int = 2                  # PIMPLE dış döngüsü (>1 = gevşetilmiş PISO)
-    max_courant: float = 5.0          # adjustableTimeStep ile üst sınır
+    max_courant: float = 5.0   # BEYAN; yalnız adjustTimeStep yes iken KAPI
     refinement_regions: list | None = None # hedefli bölge-refinement kutuları:
                                            # [{"ad", "min":(x,y,z), "max":(x,y,z), "level"}]
                                            # (gövde-altı/iz gibi yüzeyden-uzak kritik bölgeler;
@@ -758,7 +758,7 @@ def _write_control_dict(case_dir: Path, case: CFDCase, surface_name: str,
     solver = "fluid" if case.compressible else "incompressibleFluid"
     if case.transient:
         # ZAMAN-COZUNUR: endTime SANIYE, deltaT gercek zaman adimi. writeControl
-        # adjustableRunTime cunku adjustableTimeStep ile dt degisir ve timeStep
+        # adjustableRunTime cunku uyarlamali dt'de yazma anlari timeStep
         # tabanli yazim duzensiz araliklar uretir — sonradan frekans olcumu
         # duzgun ornekleme ister.
         dt = case.delta_t or 1e-3
@@ -774,8 +774,23 @@ def _write_control_dict(case_dir: Path, case: CFDCase, surface_name: str,
             f"deltaT          {dt:g};\n\n"
             "writeControl    adjustableRunTime;\n"
             f"writeInterval   {yaz:g};\n"
-            "adjustableTimeStep yes;\n"
-            f"maxCo           {case.max_courant:g};\n"
+            # ZAMAN ADIMI SABITTIR — VE DOSYA ARTIK BUNU SOYLUYOR.
+            #
+            # Burada `adjustableTimeStep yes;` yaziyordu. OpenFOAM'in anahtari
+            # `adjustTimeStep`; yazilan ad TANINMIYOR, sessizce gecistiriliyor
+            # ve varsayilan (`no`) yururlukte kaliyordu. Sonuc: `maxCo` ATIL.
+            # OLCULDU (silindir 3B, 2536 adim): beyan maxCo=2, olculen Courant
+            # maksimumu 5,0; log'da TEK BIR `deltaT = ` satiri yok, yani adim
+            # hic uyarlanmadi ve 63,4/0,025 tam olarak adim sayisini veriyor.
+            #
+            # NIYET UYARLAMALIYDI, DAVRANIS SABITTI. Yazim duzeltilip `yes`
+            # birakilsaydi her gecici kosunun zaman adimi degisirdi ve MEVCUT
+            # CAPALAR (DES, URANS, gecis modeli) birbiriyle kiyaslanamaz hale
+            # gelirdi --- hepsi dt=0,025'te olculdu. Bu yuzden dosya BUGUNKU
+            # DAVRANISI beyan ediyor; uyarlamaya gecmek AYRI ve BILINCLI bir
+            # karardir ve capa ailesinin yeniden kosulmasini gerektirir.
+            "adjustTimeStep  no;\n"
+            f"maxCo           {case.max_courant:g};   // ATIL: adjustTimeStep no\n"
             "purgeWrite      5;\n")
     else:
         txt += (
@@ -1017,6 +1032,63 @@ _UNIFORM = re.compile(r"internalField\s+uniform\s+"
 _NUT_LM_UYUMSUZ = ("nutkWallFunction", "nutkRoughWallFunction",
                    "nutUWallFunction", "nutURoughWallFunction")
 _NUT_LM_UYUMLU = ("nutLowReWallFunction", "nutUSpaldingWallFunction")
+
+
+def courant_olc(case_dir: Path) -> dict:
+    """Koşu HANGİ Courant'ta çalıştı? — log'dan, beyandan değil.
+
+    Bu sayı hiçbir kanıt dosyasına yazılmıyordu. DES çapasının kaydında
+    `dt_s` var ama Courant YOK; yani bir tüketici o koşunun zaman-adımı
+    çözünürlüğünü göremiyordu. Zaman-doğru bir simülasyonda bu, y⁺'ın uzayda
+    olduğu şeyin zamandaki karşılığıdır.
+
+    BEYAN İLE GERÇEKLEŞEN AYRI SORULUR. `controlDict` `maxCo` yazabilir ve o
+    sayı ATIL olabilir: OpenFOAM zaman adımını yalnız `adjustTimeStep yes`
+    ise uyarlar. Ölçüldü (silindir 3B): beyan maxCo=2, gerçekleşen maksimum
+    5,0 --- çünkü anahtar `adjustableTimeStep` diye yanlış yazılmıştı ve
+    tanınmıyordu. Bu fonksiyon ikisini yan yana koyar.
+    """
+    log = Path(case_dir) / "log.foamRun"
+    if not log.exists():
+        return {"olculdu": False, "_neden": "log.foamRun yok"}
+    ham = log.read_text(errors="replace")
+    d = [float(x) for x in re.findall(r"Courant Number mean: \S+ max: (\S+)", ham)]
+    if not d:
+        return {"olculdu": False, "_neden": "log'da Courant satırı yok"}
+    ort = [float(x) for x in
+           re.findall(r"Courant Number mean: (\S+) max:", ham)]
+    ctrl = Path(case_dir) / "system" / "controlDict"
+    beyan, uyarlaniyor = None, None
+    if ctrl.exists():
+        t = ctrl.read_text(errors="replace")
+        m = re.search(r"^maxCo\s+(\S+?);", t, re.M)
+        beyan = float(m.group(1)) if m else None
+        u = re.search(r"^adjustTimeStep\s+(\w+);", t, re.M)
+        uyarlaniyor = (u.group(1) == "yes") if u else False
+    # BASLANGIC SICRAMASI KOSUNUN COURANT'I DEGILDIR. Ilk adimda alan
+    # duzgun-baslangictan cozume gecerken Courant firliyor: olculdu, DES
+    # aginda 90,7 --- ama son adimda 4,95 ve ortalama 0,23. "Bu kosu Co=90'da
+    # calisti" demek, olcume degil gecis anina bakmak olurdu. Kararli deger
+    # ilk ucte-birlik dilim ATILARAK okunur; sicrama ayrica yazilir.
+    kes = max(1, len(d) // 3)
+    kararli = d[kes:] or d
+    k_max = max(kararli)
+    return {
+        "olculdu": True, "n_adim": len(d),
+        "kararli_max": round(k_max, 4),
+        "baslangic_sicramasi": round(max(d[:kes]), 4) if kes else None,
+        "son_max": round(d[-1], 4),
+        "ortalama_ort": round(sum(ort[kes:] or ort) / len(ort[kes:] or ort), 4)
+        if ort else None,
+        "beyan_maxCo": beyan, "adjustTimeStep": uyarlaniyor,
+        "beyan_uygulaniyor_mu": bool(uyarlaniyor),
+        "asim_katı": (round(k_max / beyan, 2)
+                      if beyan and not uyarlaniyor else None),
+        "_olcut": ("kararli_max: ilk üçte-birlik dilim (başlangıç geçişi) "
+                   "atılarak okunan Courant maksimumu"),
+        "_not": ("`maxCo` yalnız `adjustTimeStep yes` iken uygulanır; "
+                 "aksi halde beyandır, kapı DEĞİLDİR."),
+    }
 
 
 def gecis_kurulum_denetimi(case_dir: Path) -> dict:
