@@ -46,6 +46,9 @@
 
 \newcommand{\yuksek}{\textcolor{iyi}{\textbf{Yüksek}}}
 \newcommand{\bantli}{\textcolor{orta}{\textbf{Bantlı}}}
+% DÖRDÜNCÜ SINIF: kanıt dosyası OLMAYAN satır. "Bantlı" ölçülmüş bir
+% belirsizlik izlenimi veriyordu; beyan ile ölçüm aynı etikette duramaz.
+\newcommand{\oncul}{\textcolor{orta}{\textbf{Öncül --- kanıt bekliyor}}}
 \newcommand{\disi}{\textcolor{kotu}{\textbf{Kapsam dışı}}}
 \newcommand{\ev}{\textcolor{iyi}{\textbf{\checkmark}}}
 \newcommand{\hy}{\textcolor{kotu}{\textbf{--}}}
@@ -1014,6 +1017,25 @@ iddiası değildir. MMA'nın asimptot katsayıları Svanberg'in önerdiği
 değerlerdedir ve bu probleme göre \emph{ayarlanmadı} --- ayarlansaydı kıyas
 adaletsiz olurdu.
 
+\begin{dikkat}{Üretim hattı hâlâ OC --- MMA deneysel adaydır}
+Bu ölçüm bir \emph{bulgudur}, bir sürüm notu değil. Üretim yolu
+(\texttt{vehicle\_topopt.run\_topopt}) hâlâ \texttt{\_oc\_update} çağırır;
+\texttt{mma.py} yalnız kıyas deneyinden (\texttt{experiments/mma\_vs\_oc.py})
+sürülür ve hiçbir üretim çağrısı yoktur. Dolayısıyla \S\ref{sec:topopt}'deki
+kıyaslar ve \S\ref{sec:topopt} sonucundaki ``OC'nin gerilme-TO'da zayıflığı''
+ifadesi \emph{OC ile üretilmiş sonuçları} anlatır ve bu tutarlıdır.
+
+Değiştirmemenin sebebi ölçülmüş bir eksikliktir: MMA 150.\ iterasyonda hâlâ
+verimli iniyor, yani \emph{kendisinin} yakınsadığı gösterilmiş değil. Bir
+optimizasyon çekirdeğini, yakınsaması tek problemde bile kapatılmamışken
+üretim hattına almak, raporun her yerinde eleştirdiği davranışın kendisi
+olurdu. MMA'yı üretime almanın koşulu \S\ref{sec:topopt} kıyaslarının MMA ile
+yeniden koşulması ve MMA'nın kendi durma ölçütünün gösterilmesidir.
+
+Bu ayrım testle bağlıdır: rapor ``üretim OC'dir'' dediği sürece kodda MMA'nın
+üretim çağrısı bulunmamalıdır ve tersi de geçerlidir.
+\end{dikkat}
+
 \subsection{Girdi belirsizliği: ölçüldü, ama ölçülen şey girdi değildi}
 \label{sub:girdi-uq}
 
@@ -1936,9 +1958,9 @@ Yapısal --- öz-ağırlık & \yuksek & $\rho g L$: sehim \%0{,}2, gerilme \%4{,
 Araç tipi sınıflandırma & \yuksek &
 Tam kör NX ailesi (27 geometri): preset \%96, kural tek başına \%70 \\
 \rowcolor{ortabg}
-Stall / $C_{L,\max}$ & \bantli & Beyan: $\pm2$--$3^\circ$, $\pm\%15$ --- kanıt dosyası YOK \\
+Stall / $C_{L,\max}$ & \oncul & Beyan: $\pm2$--$3^\circ$, $\pm\%15$ --- kanıt dosyası YOK; band ÖLÇÜLMEDİ \\
 \rowcolor{kotubg}
-y$^+<1$ duvar-çözünür geçiş & \disi & C-grid / DES gerekir \\
+y$^+<1$ duvar-çözünür geçiş (SST-LM) & \disi & \emph{Uygulandı, doğrulanmadı}: model çalışıyor ($y^+=0{,}7309$, $\gamma_{\min}=0{,}0201$) ama üretim ağı taşımıyor --- C-grid / DES gerekir \\
 \bottomrule
 \end{longtable}
 \endgroup

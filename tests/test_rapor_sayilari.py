@@ -73,8 +73,16 @@ def test_raporda_ESKI_taban_sayisi_gecmiyor(tex, ozet):
 
 def test_raporda_capali_orani_KANITLA_uyusuyor(tex, ozet):
     """`N/M hücre çapalı` biçimindeki her ifade özetle aynı sayıları vermeli."""
+    # OLCUT SAYIYA BAGLI, IFADEYE DEGIL. Ilk surum "N/M hücre çapalı"
+    # KALIBININ VARLIGINI sart kosuyordu; hakem elestirisi uzerine cumle
+    # dort parcaya ayrilinca (8 hucre / 6 capa / 3 olcum / 2 oncul) kalip
+    # kayboldu ve test dustu --- oysa sayilar hala oradaydi ve DAHA
+    # ayrintiliydi. Test ifadeyi degil, DORT SAYIYI denetler.
+    for anahtar in ("toplam_hucre", "capali", "olcum", "oncul"):
+        s = str(ozet[anahtar])
+        assert re.search(rf"\b{s}\b|\\textbf{{{s}}}", tex), (
+            f"model-form ayrışımının '{anahtar}' sayısı ({s}) raporda yok")
     bulunan = re.findall(r"(\d+)\s*/\s*(\d+)\s*hücre çapalı", tex)
-    assert bulunan, "rapor çapalı-oran ifadesi taşımıyor (bölüm kaldırıldı mı?)"
     for capali, toplam in bulunan:
         assert int(toplam) == ozet["toplam_hucre"], \
             f"raporda /{toplam} yazıyor, kanıtta {ozet['toplam_hucre']}"
@@ -634,3 +642,41 @@ def test_rapor_MALIYET_kestirim_degil_OLCUM(tex):
     # sey belirli bir CUMLEYDI: maliyeti hucre oranindan turetmek.
     assert "URANS ağının" not in tex or "katıdır" not in tex, (
         "maliyet hâlâ hücre oranından türetiliyor")
+
+
+def test_rapor_URETIM_OPTIMIZATORU_kodla_tutarli(tex):
+    """Rapor 'üretim OC' diyorsa kodda MMA'nın üretim çağrısı OLMAMALI.
+
+    Hakem (2026-08-24) bunu P0 olarak isaretledi: §4.9 basligi MMA'yi one
+    cikariyor, Bolum 10 ise "optimizasyon kriteri OC'dir" diyordu ve okuyucu
+    hangisinin uretimde oldugunu bilemiyordu. Iddia artik koda BAGLI.
+    """
+    import ast
+
+    src = (KOK / "vehicle_topopt.py").read_text(encoding="utf-8")
+    agac = ast.parse(src)
+    cagrilar = {n.func.id for n in ast.walk(agac)
+                if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)}
+    mma_ithal = any(
+        (isinstance(n, ast.ImportFrom) and n.module == "mma")
+        or (isinstance(n, ast.Import) and any(a.name == "mma" for a in n.names))
+        for n in ast.walk(agac))
+
+    oc_uretimde = "_oc_update" in cagrilar
+    mma_uretimde = mma_ithal or "mma_adim" in cagrilar
+
+    if "Üretim hattı hâlâ OC" in tex:
+        assert oc_uretimde, "rapor 'üretim OC' diyor ama kod OC çağırmıyor"
+        assert not mma_uretimde, (
+            "rapor 'üretim OC, MMA deneysel' diyor ama vehicle_topopt MMA "
+            "kullanıyor — iddia ile kod ayrışmış")
+    else:
+        assert mma_uretimde, (
+            "rapordaki 'üretim OC' beyanı kaldırılmış ama kod hâlâ OC'de")
+
+
+def test_rapor_MMA_KOSULUNU_yaziyor(tex):
+    """MMA'yı üretime almanın koşulu yazılı olmalı; yoksa 'deneysel' etiketi
+    kapanmayan bir borç olur."""
+    assert "yeniden koşulması" in tex or "yeniden koşulmas" in tex
+    assert "kendi durma ölçütünün" in tex
