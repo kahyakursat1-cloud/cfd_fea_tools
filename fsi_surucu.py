@@ -286,6 +286,11 @@ def kuplaj_haritasi(vaka: KuplajVakasi):
                             "Fz_cfd_N": round(float(yukler["total_force_cfd_N"][2]), 5),
                             "aktarim_hatasi_pct": round(
                                 100 * float(yukler["aktarim_hatasi"]), 2),
+                            # TESHIS ICIN: aktarim hatasini ACIKLAYAN nicelik.
+                            # Kapiyi surmez (olculdu: %7,46 alan farkiyla
+                            # %0,90 aktarim hatasi mumkun) ama yuksek hatanin
+                            # sebebini soyler.
+                            "alan_farki_pct": yukler.get("alan_farki_pct"),
                             "cload": cload})
         return yeni.ravel()
 
@@ -363,8 +368,24 @@ def fsi_kos(vaka: KuplajVakasi) -> dict:
         "omega_gecmisi": bilgi["omega_history"],
         "tur_gecmisi": vaka.gecmis,
         "max_disp_mm": float(np.abs(x).max() * 1000),
+        # AKTARIM HUKMU — OLCUM VARDI, TUKETICI YOKTU. `aktarim_hatasi` her
+        # turda yaziliyordu ve 20 vakalik arsivde %0,07--%56,30 arasi cikmisti;
+        # hicbir kapi okumuyordu. Kuvvet korunumu 1e-18 oldugu icin kosu
+        # "korunumlu" gorunuyordu, oysa o metrik FEA yuzu->dugum dagitimini
+        # olcer ve YAPI GEREGI kesindir. Son turun hatasi hukme baglaniyor.
+        **_aktarim_hukmu_ozeti(vaka.gecmis),
         **aktarim_surulu_mu(vaka.gecmis),
     }
+
+
+def _aktarim_hukmu_ozeti(gecmis: list[dict]) -> dict:
+    """Son turun aktarım hatasını hükme bağla — yokluk 'güvenilir' sayılmaz."""
+    from fsi_aktarim_kapisi import aktarim_hukmu
+
+    son = gecmis[-1] if gecmis else {}
+    h = aktarim_hukmu(son.get("aktarim_hatasi_pct"), son.get("alan_farki_pct"))
+    return {"aktarim_hukmu": h,
+            "yuk_aktarimi_kullanilabilir": h["kullanilabilir"]}
 
 
 # Aktarim artigi bu kadar puan artarsa yanit AKTARIMDAN geliyor olabilir.

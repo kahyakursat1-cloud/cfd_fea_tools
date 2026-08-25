@@ -407,6 +407,28 @@ def weld_axial_segments(m: trimesh.Trimesh):
                     "kaynatıldı (konveks-zarf köprüleme; exploded/kopuk-ihraç onarımı)" + ek)
 
 
+def _yplus_kapsami(case_dir, patch: str, n_layers: int) -> dict | None:
+    """Duvar işlemi duvarın NE KADARINI temsil ediyor — alan-ağırlıklı.
+
+    KAPSAM ÇAPANIN KENDİ DUVAR İŞLEMİNE GÖRE OKUNUR. Katman istenmişse koşu
+    duvar-çözünür amaçlıdır ve ölçüt y⁺≤5 alanıdır; istenmemişse duvar
+    fonksiyonudur ve ölçüt 30--300 bandındaki alandır. Tek bir yüzdeyi duvar
+    işleminden bağımsız okumak, bu ölçerin engellemek için yazıldığı kusurun
+    kendisidir (küre çapası log-bandında %0,4'tür ve bu bir kusur DEĞİLDİR).
+    """
+    try:
+        from yplus_dagilim import dagilim, duvar_islemi_kapsami
+    except ImportError:
+        return None
+    d = dagilim(case_dir, patch)
+    if not isinstance(d, dict) or "bandda_alan_pct" not in d:
+        # OLCULEMEDI, 'yeterli' DEGIL — sebep tasinir.
+        return {"kapsam_olculdu": False,
+                "neden": (d or {}).get("durum", "y⁺ dağılımı okunamadı")}
+    return duvar_islemi_kapsami(
+        d, "wall_resolved" if n_layers > 0 else "wall_function")
+
+
 def _planform_ok_acisi(stl_path) -> float | None:
     """ÇÖZÜLEN geometrinin planform ok açısı [°] — kullanıcının verdiği değil.
 
@@ -2050,8 +2072,15 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
     # yalnız y⁺'tan ÇIKARSANIYORDU; şimdi "12 istendi, 0 örüldü" diye ölçülüyor.
     kat = katman_hukmu(parse_layer_report(case_dir / "log.snappyHexMesh"),
                        n_layers, _patch)
+    # y+ ALAN KAPSAMI — ORTALAMA BANTTA OLSA BILE DUVARIN UCTE BIRI DISARIDA
+    # OLABILIR. Olculdu: Ahmed ort 30,5 / bantta ALAN %65,8; kup ort 40,9 /
+    # %69,4. Ikisi de ortalama-kapisindan geciyordu. Olcum vardi
+    # (`duvar_islemi_kapsami`) ama yalniz bir deney betigi okuyordu; karar
+    # yoluna hic girmiyordu. Bugun ETIKETE giriyor: RED DEGIL, NITELEYICI ---
+    # esigi bugun sikilastirmak bandi olcmeden genisletirdi.
+    _kapsam = _yplus_kapsami(case_dir, _patch, n_layers)
     base.sinir_tabaka = {"katman_sayisi": n_layers, "yplus": yp,
-                         "katman_olcumu": kat,
+                         "katman_olcumu": kat, "alan_kapsami": _kapsam,
                          "yplus_hedef": yplus_target if n_layers > 0 else None,
                          "ilk_katman_m": (round(case.first_layer_thickness, 8)
                                           if case.first_layer_thickness else None)}
@@ -2151,7 +2180,22 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         else:
             uyarilar.append(f"Ölçülen y⁺ ort={_yp} (log bölgesi üstü) — sürtünme "
                             "sürüklemesi duvar fonksiyonu sınırında; katman sayısını artırın")
-    elif _ypo is None:
+    # ALAN KAPSAMI UYARISI — ortalama bandda olsa bile duvarin ucte biri
+    # disarida olabilir. RED DEGIL: sayi gorunur olsun ki "wall_function"
+    # etiketi tek basina okunmasin.
+    if isinstance(_kapsam, dict) and _kapsam.get("kapsam_olculdu"):
+        if not _kapsam.get("yeterli"):
+            uyarilar.append(
+                f"y⁺ ALAN KAPSAMI: duvar yüzeyinin yalnız "
+                f"%{_kapsam['kapsam_pct']:.1f}'i seçilen duvar işleminin "
+                f"geçerlilik bandında ({_kapsam.get('olcut')}). Ortalama y⁺ "
+                f"bandda olsa bile duvar yasası yüzeyin geri kalanında "
+                f"geçerli DEĞİL; sürtünme bileşeni o bölgede modelin dışında.")
+    elif isinstance(_kapsam, dict):
+        uyarilar.append(
+            f"y⁺ alan kapsamı ÖLÇÜLEMEDİ ({_kapsam.get('neden')}) — duvar "
+            "işleminin yüzeyin ne kadarında geçerli olduğu BİLİNMİYOR.")
+    if _ypo is None:
         # "Ölçemedim" ile "iyi" AYNI ŞEY DEĞİL — sebep de yazılır.
         _ned = (yp or {}).get("neden") if isinstance(yp, dict) else None
         uyarilar.append("y⁺ ÖLÇÜLEMEDİ — sınır tabaka çözünürlüğü doğrulanamadı; "

@@ -956,7 +956,7 @@ kaynağı kapanışın türbülanslılığı \emph{değildir}. Hangisi çıkarsa
 kez sonuç anlamlıdır, çünkü modelin gerçekten çalıştığı ölçüldü --- önceki
 dört koşunun hiçbirinde bu doğru değildi.
 
-\subsection{Optimizasyon güncellemesi: OC daha düşük sayı verir, MMA savunulabilir sayı}
+\subsection{Optimizasyon güncellemesi: OC daha düşük sayı verir, MMA daha kararlı yakınsar}
 \label{sub:mma}
 
 Topoloji optimizasyonu OC (optimality criteria) ile güncelleniyordu ve kodun
@@ -1075,6 +1075,33 @@ değildir. Girdi etkisini ayırmak için koşu-başına yakınsama hatası
 girdi-kaynaklı farktan küçük olmalı; bugün ikisi aynı mertebede. Ölçüt hazır:
 sıkı bir taramada null değişkenlerin korelasyonu sıfıra inmeli --- çalışmanın
 kendi iç denetimi budur ve geçmeden band yayımlanmaz.
+
+\begin{dikkat}{İki ayrı girdi-UQ hattı --- karıştırılmamalı}
+Bu bölümdeki \%0{,}89 ile \S\ref{sec:vv20}'deki $\pm\%11{,}22$ aynı büyüklüğün
+iki ölçümü \emph{değildir}; farklı yöntem, farklı vaka sınıfı, farklı
+olgunluk. Yan yana okunduğunda çelişkili görünüyorlardı ve hakem haklı olarak
+``girdi UQ otomatik mi, yoksa geçersiz mi?'' diye sordu. Ayrım şudur:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & \textbf{Ucuz model hattı} & \textbf{RANS hattı} \\
+\midrule
+Yöntem   & merkezî sonlu fark & LHS örneklemi \\
+Vaka     & taşıyıcı-çizgi, düz-levha, kapalı-form FEA & 3B RANS koşusu \\
+Maliyet  & saniyeler; türev doğrudan ölçülür & girdi başına 2 koşu; saatler \\
+Sonuç    & $\pm\%11{,}22$ & \%0{,}89 \\
+Durum    & \textbf{üretim} --- yayımlanır & \textbf{deneysel} --- yayımlanmaz \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Ayrımı kod da yapıyor ve rapordan önce yapıyordu:
+\texttt{girdi\_belirsizligi} modülü ``RANS'ta girdi belirsizliği YAYILMAZ ve
+bu açıkça söylenir --- kestirim uydurulmaz'' diye yazar. Eksik olan tek şey
+\S\ref{sec:vv20} tablosunun hangi hattı kastettiğini söylememesiydi; o satır
+artık ikiye ayrıldı.
+\end{dikkat}
 
 Yan bulgu: erken-durdurma toleransı gömülüydü ve hiçbir yere kaydedilmiyordu.
 V\&V açısından belirleyici bir ayar ne görülebiliyor ne değiştirilebiliyordu;
@@ -1918,6 +1945,7 @@ y$^+<1$ duvar-çözünür geçiş & \disi & C-grid / DES gerekir \\
 
 % ══════════════════════════════ 5 ══════════════════════════════
 \section{ASME V\&V 20 İş Akışıyla Fonksiyonel Eşleştirme}
+\label{sec:vv20}
 
 Rakip ticari yazılımlarla özellik matrisi \emph{bilerek konmadı}: bu platform
 doğrulanabilir iddia ilkesi üzerine kuruludur ve üçüncü taraf ürünlerin özellik
@@ -1942,10 +1970,11 @@ edilebilir.
 Kod doğrulama (kapalı-form karşılaştırma) & \ev & \ev & 6 FEA çapası \\
 Çözüm doğrulama --- ayrıklaştırma (GCI) & \ev & \ev & \texttt{band\_from\_levels} \\
 Çözüm doğrulama --- iterasyon yakınsaması & \ev & \ev & plato/drift ayrımı \\
-Girdi belirsizliği yayılımı & \ev & \ev & \texttt{girdi\_belirsizligi} (4 girdi) \\
+Girdi UQ --- ucuz model (merkezî FD) & \ev & \ev & \texttt{girdi\_belirsizligi} (4 girdi) \\
+Girdi UQ --- RANS (LHS) & \ks & \ks & \emph{deneysel}: yayımlanmaz, \S\ref{sub:girdi-uq} \\
 Deneysel referansla geçerleme & \ks & \ev & \texttt{zarf} (14 koşul) \\
 Geçerlilik alanı (validation domain) beyanı & \ev & \ev & \texttt{validity\_envelope} \\
-Model-form belirsizliği & \ks & \ev & 6/8 hücre çapalı: 3 ölçüm + 3 üst sınır \\
+Model-form belirsizliği & \ks & \ev & \textbf{3}/8 hücre ölçümle; 3 çapalı-öncül, 2 öncül \\
 Sonucun izlenebilirliği (komut + ortam) & \ev & \ev & \texttt{kanit}, \texttt{ortam} \\
 \bottomrule
 \end{tabular}
@@ -1953,8 +1982,14 @@ Sonucun izlenebilirliği (komut + ortam) & \ev & \ev & \texttt{kanit}, \texttt{o
 
 \noindent Sekiz adımın altısı tam, ikisi kısmî otomatiktir. Kısmî olan ikisi
 şunlardır: deneysel referansla geçerleme (çapa sayısı sınırlı) ve model-form
-belirsizliği (rejim$\times$duvar tablosunun sekiz hücresinden altısı çapa taşır;
-üçü ölçüm, üçü üst sınır).\footnote{Bu sayı tek kaynaktan üretilir
+belirsizliği. İkincisi için sayı, okunuş biçimine göre çok farklı görünür ve
+bu yüzden dört parçaya ayrılarak yazılır: rejim$\times$duvar tablosu \textbf{8}
+hücredir, \textbf{6}'sında çapa koşusu vardır, ama bandı \emph{veriyle}
+belirlenmiş hücre sayısı yalnız \textbf{3}'tür --- kalan 3 çapada ölçülen sapma
+kendi $u_{\text{val}}$'inin altında kaldığı için model hatası görülememiş ve
+literatür öncülü muhafazakâr yönde korunmuştur; 2 hücrede çapa hiç yoktur.
+``6/8 çapalı'' ifadesi tablonun dörtte üçünün veriye dayandığı izlenimini
+verebilir; dayanmıyor.\footnote{Bu sayı tek kaynaktan üretilir
 (\texttt{model\_form\_ozeti}) ve rapordaki her tekrarı testle bağlıdır. Önceki
 sürümde dört ayrı yerde elle yazılıydı ve birbirini tutmuyordu; dahası taban da
 yanlıştı --- \texttt{attached\_2d} rejimi eklendiğinde toplam yediden sekize
