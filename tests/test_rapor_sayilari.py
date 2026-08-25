@@ -680,3 +680,34 @@ def test_rapor_MMA_KOSULUNU_yaziyor(tex):
     kapanmayan bir borç olur."""
     assert "yeniden koşulması" in tex or "yeniden koşulmas" in tex
     assert "kendi durma ölçütünün" in tex
+
+
+def test_KAPSAM_iki_tabloda_AYNI_sayiyi_soyluyor(tex):
+    """Kalite tablosu ile katman tablosu aynı coverage koşusundan gelir;
+    farklı yuvarlanırsa rapor kendi içinde çelişir.
+
+    Olculdu (2026-08-24): biri int() ile %50, oteki round() ile %51 yaziyordu.
+    Ayni olcum, iki sayi. Kesirli deger yazilarak celiski kaldirildi.
+    """
+    import json
+    p = KOK / "kapsam_katmanlari.json"
+    if not p.exists():
+        pytest.skip("kapsam_katmanlari.json üretilmemiş")
+    t = json.loads(p.read_text(encoding="utf-8"))["katmanlar"]["TOPLAM"]
+    s = rf"\%{t['pct']:.1f}".replace(".", "{,}")
+    assert tex.count(s) >= 2, (
+        f"toplam kapsam ({s}) raporda iki tabloda da aynı yazılmıyor")
+    # IFADE SAYISI DA AYNI KAYNAKTAN
+    ifade = f"{t['ifade']:,}".replace(",", ".")
+    assert tex.count(ifade) >= 2, f"ifade sayısı ({ifade}) iki yerde tutmuyor"
+
+
+def test_KATMAN_tablosu_kanittan_sapmiyor(tex):
+    """Her katman satırı üreticinin ölçtüğü değeri taşımalı."""
+    import json
+    p = KOK / "kapsam_katmanlari.json"
+    if not p.exists():
+        pytest.skip("kapsam_katmanlari.json üretilmemiş")
+    for ad, d in json.loads(p.read_text(encoding="utf-8"))["katmanlar"].items():
+        s = rf"\%{d['pct']:.1f}".replace(".", "{,}")
+        assert s in tex, f"{ad}: kapsam ({s}) raporda yok"

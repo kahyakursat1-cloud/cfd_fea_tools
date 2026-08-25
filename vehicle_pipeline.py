@@ -416,10 +416,15 @@ def _yplus_kapsami(case_dir, patch: str, n_layers: int) -> dict | None:
     işleminden bağımsız okumak, bu ölçerin engellemek için yazıldığı kusurun
     kendisidir (küre çapası log-bandında %0,4'tür ve bu bir kusur DEĞİLDİR).
     """
-    try:
-        from yplus_dagilim import dagilim, duvar_islemi_kapsami
-    except ImportError:
-        return None
+    # ITHAL YUTULMAZ, SEBEP TASINIR. Ilk surum `except ImportError: return None`
+    # yaziyordu ve sessiz-yutma olceri bunu HAKLI olarak yakaladi: modul yoksa
+    # kapsam "olculmedi" degil GORUNMEZ oluyordu, yani ayni sonuc iki farkli
+    # sebepten (modul yok / alan okunamadi) ayirt edilemiyordu.
+    import importlib.util
+    if importlib.util.find_spec("yplus_dagilim") is None:
+        return {"kapsam_olculdu": False,
+                "neden": "yplus_dagilim modülü bulunamadı"}
+    from yplus_dagilim import dagilim, duvar_islemi_kapsami
     d = dagilim(case_dir, patch)
     if not isinstance(d, dict) or "bandda_alan_pct" not in d:
         # OLCULEMEDI, 'yeterli' DEGIL — sebep tasinir.

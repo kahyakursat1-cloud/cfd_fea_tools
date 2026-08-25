@@ -161,7 +161,7 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-36.489 satır Python $\cdot$ 165 test dosyası $\cdot$ 1.729 geçen test\\[3mm]
+38.224 satır Python $\cdot$ 188 test dosyası $\cdot$ 1.917 geçen test\\[3mm]
 22 Ağustos 2026\par}
 \end{titlepage}
 
@@ -3195,14 +3195,14 @@ olarak değil. Kanıt dosyası zincirin tamamını taşır: üretim komutu
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 36.489 & \texttt{rapor\_sayilari.py} \\
-Kök modül & 94 & \texttt{rapor\_sayilari.py} \\
-Deney / çapa betiği & 92 & \texttt{experiments/} \\
-Test dosyası & 165 & \texttt{tests/test\_*.py} \\
-Geçen test & 1.729 & \texttt{pytest -q}; raporun kendi sayısını denetleyen
+Kod satırı (kök + \texttt{analysis/}) & 38.224 & \texttt{rapor\_sayilari.py} \\
+Kök modül & 99 & \texttt{rapor\_sayilari.py} \\
+Deney / çapa betiği & 107 & \texttt{experiments/} \\
+Test dosyası & 188 & \texttt{tests/test\_*.py} \\
+Geçen test & 1.917 & \texttt{pytest -q}; raporun kendi sayısını denetleyen
   modül sayıma girmez (sonucu ölçülen niceliğe bağlı) \\
-Geçen test (coverage açık) & 1.729 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
-Satır kapsamı & \textbf{\%48} & 20.738 ifade, 10.596 kapsanmamış \\
+Geçen test (coverage açık) & 1.917 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\
+Satır kapsamı & \textbf{\%50{,}7} & 23.144 ifade, 11.419 kapsanmamış \\
 Süit süresi & $\sim$6,5 dk & 8 çekirdek \\
 \bottomrule
 \end{tabular}
@@ -3217,14 +3217,14 @@ dış-süreç sarmalayıcıları aynı kaba girer. Katman ayrımı
 \toprule
 \textbf{Katman} & \textbf{Kapsam} & \textbf{İfade} \\
 \midrule
-\rowcolor{iyibg} Otomasyon \& öğrenme & \%78 & 628 \\
-\rowcolor{iyibg} Analiz çekirdeği (\texttt{analysis/}) & \%75 & 1.382 \\
-\rowcolor{iyibg} Karar \& V\&V motoru & \%81 & 2.049 \\
-\rowcolor{ortabg} Araç hattı & \%54 & 2.494 \\
-\rowcolor{ortabg} Dış-süreç köprüleri & \%40 & 1.201 \\
-\rowcolor{ortabg} Arayüz (GUI) & \%37 & 1.595 \\
+\rowcolor{iyibg} Otomasyon \& öğrenme & \%85{,}9 & 709 \\
+\rowcolor{iyibg} Analiz çekirdeği (\texttt{analysis/}) & \%74{,}4 & 1.583 \\
+\rowcolor{iyibg} Karar \& V\&V motoru & \%82{,}4 & 2.225 \\
+\rowcolor{ortabg} Araç hattı & \%59{,}6 & 2.766 \\
+\rowcolor{ortabg} Dış-süreç köprüleri & \%41{,}4 & 1.221 \\
+\rowcolor{ortabg} Arayüz (GUI) & \%40{,}2 & 1.817 \\
 \midrule
-TOPLAM & \%47 & 18.928 \\
+TOPLAM & \%50{,}7 & 23.144 \\
 \bottomrule
 \end{tabular}
 \end{center}

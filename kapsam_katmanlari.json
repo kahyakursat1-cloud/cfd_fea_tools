@@ -1,39 +1,39 @@
 {
   "katmanlar": {
     "Karar & V&V motoru": {
-      "ifade": 2049,
-      "kapsanan": 1665,
-      "pct": 81.3
+      "ifade": 2225,
+      "kapsanan": 1834,
+      "pct": 82.4
     },
     "Otomasyon & öğrenme": {
-      "ifade": 628,
-      "kapsanan": 493,
-      "pct": 78.5
+      "ifade": 709,
+      "kapsanan": 609,
+      "pct": 85.9
     },
     "Analiz çekirdeği": {
-      "ifade": 1382,
-      "kapsanan": 1042,
-      "pct": 75.4
+      "ifade": 1583,
+      "kapsanan": 1177,
+      "pct": 74.4
     },
     "Araç hattı": {
-      "ifade": 2494,
-      "kapsanan": 1343,
-      "pct": 53.8
+      "ifade": 2766,
+      "kapsanan": 1649,
+      "pct": 59.6
     },
     "Dış-süreç köprüleri": {
-      "ifade": 1201,
-      "kapsanan": 487,
-      "pct": 40.5
+      "ifade": 1221,
+      "kapsanan": 506,
+      "pct": 41.4
     },
     "Arayüz (GUI)": {
-      "ifade": 1595,
-      "kapsanan": 584,
-      "pct": 36.6
+      "ifade": 1817,
+      "kapsanan": 730,
+      "pct": 40.2
     },
     "TOPLAM": {
-      "ifade": 18928,
-      "kapsanan": 8949,
-      "pct": 47.3
+      "ifade": 23144,
+      "kapsanan": 11725,
+      "pct": 50.7
     }
   },
   "_uretim": "Üretim: python -m pytest tests/ -q --cov=. --cov-report=json:cov.json && python experiments/kapsam_katmanlari.py"
