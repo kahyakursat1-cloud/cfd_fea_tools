@@ -1,0 +1,31 @@
+{
+  "vaka": "Geçiş sınavı zinciri — sonda sonrası karar",
+  "durum": "tam_kosu_basladi",
+  "sonda": {
+    "gecti": true,
+    "min": 0.0201,
+    "laminer_pct": 4.97,
+    "verdikt": "SONDA GEÇTİ — geçiş modeli devreye girdi (gammaInt min 0.0201, laminer hücre %4.97) ve bu, dört koşudur olmayan şeydi. Duvar-çözünür ağ engeli kaldırdı. TAM KOŞU ARTIK MEŞRU: sonda 3 periyottur ve St/Cd veremez."
+  },
+  "_neden": "Tam kosu ~16 saat (olculen 13,0 s/adim x 4400 adim). Sonda o sureyi HARCAMADAN tek soruyu yanitlar: gecis modeli devreye giriyor mu? Karar gammaInt'in olculen minimumuna baglidir, yorum degil.",
+  "zaman": "2026-08-25 13:40",
+  "_uretim": "Üretim: python experiments/gecis_zinciri.py",
+  "bellek_pct": 55.7,
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

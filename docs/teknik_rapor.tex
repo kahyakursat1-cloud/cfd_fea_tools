@@ -859,17 +859,23 @@ $\approx 1$ çıktı --- laminer hücre oranı \%0{,}0. Model hiç çalışmamı
 tam-türbülanslı kapanışa dejenere olmuştu. Koşu hipotezi \emph{sınamamıştı}.
 
 \begin{center}\footnotesize
-\begin{tabular}{@{}llrr@{}}
+\begin{tabular}{@{}llrrrr@{}}
 \toprule
-Koşu & Değişen & \texttt{gammaInt} min & $C_d$ sapması \\
+Koşu & Değişen & $y^+$ & \texttt{gammaInt} & laminer & $C_d$ sapması \\
 \midrule
-Tu \%1, duvar fonk.        & ---                    & 0{,}9869 & $-27{,}55\%$ \\
-Tu \%0{,}1, duvar fonk.    & şiddet $10\times$      & 0{,}9867 & $-27{,}61\%$ \\
-Tu \%1, düşük-Re (LM)      & \texttt{nut} duvar KŞ  & 0{,}9872 & $\mathbf{-62{,}63\%}$ \\
-Tu \%1, düşük-Re (kontrol) & kapanış (LM yok)       & ---      & $-60{,}39\%$ \\
+Tu \%1, duvar fonk.        & ---                   & 47{,}7 & 0{,}9869 & \%0{,}0 & $-27{,}55\%$ \\
+Tu \%0{,}1, duvar fonk.    & şiddet $10\times$     & 47{,}7 & 0{,}9867 & \%0{,}0 & $-27{,}61\%$ \\
+Tu \%1, düşük-Re (LM)      & \texttt{nut} duvar KŞ & 24{,}9 & 0{,}9872 & \%0{,}0 & $\mathbf{-62{,}63\%}$ \\
+Tu \%1, düşük-Re (kontrol) & kapanış (LM yok)      & 24{,}8 & ---      & ---     & $-60{,}39\%$ \\
+\textbf{duvar-çözünür ağ}  & \textbf{AĞ}           & \textbf{0{,}7309} & \textbf{0{,}0201} & \textbf{\%4{,}97} & (sonda) \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+\noindent Son satır bir \emph{tek değişkenli} doğrulamadır: model aynı,
+$Tu$ aynı, \texttt{nut} duvar işlemi aynı; değişen tek şey $y^+$'ı 24{,}9'dan
+0{,}73'e indiren ağ. Model dört koşudur ilk kez devreye girdi. Üçüncü açıklama
+böylece \emph{çıkarsanmış} olmaktan çıkıp \emph{ölçülmüş} oldu.
 
 \noindent Sırayla üç açıklama denendi ve üçü de \emph{ölçümle} düştü:
 
@@ -891,6 +897,27 @@ koymak ilk hücreyi \emph{tampon tabakada} bırakır: ne duvar fonksiyonu
 geçerlidir ($y^+\!<\!30$) ne düşük-Re ($y^+\!>\!1$). $C_d$ çöküşünün sebebi
 budur ve iki koşu da bu yüzden geçersizdir.
 \end{enumerate}
+
+\noindent İlk ikisi düştüğü için üçüncüsü de \emph{sınandı}, kabul edilmedi.
+Duvar-çözünür ağda (\texttt{silindir\_des\_3b} bütçesi, ölçülen $y^+ = 0{,}73$)
+aralıklılık minimumu 0{,}0201'e indi ve hücrelerin \%4{,}97'si laminer oldu.
+Model dört koşudur ilk kez çalıştı.
+
+\begin{dikkat}{Sonda: kararı pahalı koşudan önce vermek}
+Tam koşu ölçülen hızla \textbf{16{,}9 saat} (13{,}8 s/adım $\times$ 4400 adım,
+2{,}43 M hücre, 4 çekirdek). Üç açıklama arka arkaya düştükten sonra dördüncüyü
+o bedelle denemek savunulamazdı.
+
+Bunun yerine 22 periyot yerine \emph{3} periyotluk bir aralıklılık sondası
+koşuldu (2 sa 41 dk) ve tek soruyu yanıtladı: model devreye giriyor mu?
+Girdi. Girmeseydi dördüncü açıklama da 17 saate değil 2{,}7 saate mal olacaktı.
+
+Sonda bir \emph{sonuç} koşusu değildir ve öyle kaydedilmez: 3 periyotta girdap
+dökülmesi kurulmaz, ölçüm ``salınım görünmüyor'' der. $St$ ve $C_d$ sayıları
+kayıtta durur ama \texttt{\_kisit} alanı bunların sonuç olmadığını yazar.
+Kararı da bir insan vermez --- zincir, kanıt dosyasındaki \texttt{gammaInt}
+minimumuna bakar ve tam koşuyu yalnız o sayı eşiği geçerse başlatır.
+\end{dikkat}
 
 \begin{dikkat}{Kapı vardı, üretim yolu ona uğramıyordu}
 Bu deponun aynı eşikli kapısı \emph{zaten} kuruluydu:
@@ -918,8 +945,16 @@ engelleyen şey, ikinci kez neden yanlış olduğunun kayıtta durmasıdır.
 
 \noindent Hakemin istediği türbülanslı zaman-çözünür çapa bu yüzden
 \emph{açık kalıyor}: elde olan doğrulanmış çapa laminer rejimdedir ve
-türbülanslı vakayı doğrulamaz. Kapanması ağ değil \emph{kapanış} değişikliği
-ya da duvar-çözümlü LES ister; ikincisinin bütçesi ölçülü ve ulaşılamaz.
+türbülanslı vakayı doğrulamaz. Kapanmasının önündeki engel artık ölçülmüş
+durumda ve sanıldığı yerde değil: kapanış değişikliği \emph{tek başına}
+yetmiyor, duvar-çözünür ağ gerekiyor. O ağ elde var ve model orada çalışıyor;
+tam koşu bu raporun yazıldığı sırada sürüyor (16{,}9 saat). Sonucu üç daldan
+biri olacak ve üçü de yazılabilir: iki sapma birlikte düzelirse mekanizma
+gösterilmiş olur, yalnız biri düzelirse laminer-bağlı-tabaka açıklaması
+\emph{eksiktir} ve o hâliyle geri çekilmelidir, hiçbiri düzelmezse sapmanın
+kaynağı kapanışın türbülanslılığı \emph{değildir}. Hangisi çıkarsa çıksın bu
+kez sonuç anlamlıdır, çünkü modelin gerçekten çalıştığı ölçüldü --- önceki
+dört koşunun hiçbirinde bu doğru değildi.
 
 \subsection{Optimizasyon güncellemesi: OC daha düşük sayı verir, MMA savunulabilir sayı}
 \label{sub:mma}
@@ -2844,9 +2879,11 @@ olduğu ölçülmedi; iyimser uç tutmazsa iş istasyonunda da sığmaz.
 sınar. Dört koşu bunun yanlış olduğunu gösterdi (\S\ref{sub:gecis}). Model
 hiçbirinde devreye girmedi ve engel kapanış değil \emph{ağ} çıktı: ölçülen
 $y^+ = 24{,}9$, oysa geçiş modeli $y^+ \!\lesssim\! 1$ ister. Duvar-çözünür
-silindir ağı elde var (\texttt{silindir\_des\_3b}: $y^+ = 0{,}78$,
-2{,}43 M hücre) ama URANS ağının $\sim$6 katıdır --- ucuz değil, yalnız
-LES'ten ulaşılabilir.
+silindir ağı elde var (\texttt{silindir\_des\_3b}: 2{,}43 M hücre, ölçülen
+$y^+ = 0{,}7309$) ve model orada \emph{çalışıyor}. Maliyeti de artık
+kestirim değil ölçüm: \textbf{16{,}9 saat} (13{,}8 s/adım $\times$ 4400 adım,
+4 çekirdek). Yani ``ucuz ara adım'' 85 dakikadan 17 saate çıktı; LES'in
+84{,}7 M hücre / 62{,}9 GB'ının yanında hâlâ ulaşılabilir, ama ucuz değil.
 
 \textbf{\#9'un iç denetimi hazır:} sıkı taramada null değişkenlerin
 (küre için $\alpha$, sabit-$\nu$ ile $\rho$) korelasyonu sıfıra inmeli.

@@ -40,6 +40,31 @@ def _j(ad: str) -> dict | None:
         return None
 
 
+def _gecis_notu() -> str:
+    """#5'in ALTERNATİF yolu — kanıt dosyalarından, ezberden değil.
+
+    Kuyruk bu kalemi ``iş istasyonu gerekir'' diye listeliyordu ve ``ucuz ara
+    adım: geçiş modeli'' diye ekliyordu. İkisi de artık ölçümle düzeltildi:
+    geçiş modeli ucuz DEĞİL (16,9 saat) ama bu makinede KOŞUYOR --- yani #5
+    donanım beklemek zorunda olan bir kalem olmaktan çıktı. Bunu ezberden
+    yazmak, kuyruğun kanıttan üretilme kuralını bozardı.
+    """
+    s = _j("silindir_gecis_3b_dr_des_sonda3.json")
+    if not s:
+        return ("Subkritik Re'de tam-türbülanslı kapanış Cd'yi %39'a kadar "
+                "düşük veriyor (ölçüldü). Geçiş modeli yolu SINANMADI.")
+    a = s.get("aralik_denetimi") or {}
+    yp = ((s.get("olculen") or {}).get("yplus") or {}).get("ort")
+    return (
+        "Subkritik Re'de tam-türbülanslı kapanış Cd'yi %39'a kadar düşük "
+        "veriyor (ölçüldü). ALTERNATİF YOL VAR ve BU MAKİNEDE KOŞUYOR: geçiş "
+        f"modeli (kOmegaSSTLM) duvar-çözünür ağda (y⁺={yp:.4g}, 2,43 M hücre) "
+        f"devreye giriyor — aralıklılık minimumu {a.get('min')}, laminer hücre "
+        f"%{a.get('laminer_hucre_orani_pct')}. Ama UCUZ DEĞİL: ölçülen 16,9 "
+        "saat (13,8 s/adım × 4400 adım). 'Ucuz ara adım' iddiası geri "
+        "çekildi; 62,9 GB'lik LES yalnız BU yol da yetmezse gerekir.")
+
+
 def _kalem(hakem, ad, kanit, gb, hucre=None, sure=None, not_=None, acar=None):
     return {"hakem_maddesi": hakem, "is": ad, "kanit": kanit,
             "bellek_GB": gb, "hucre": hucre, "tahmini_sure": sure,
@@ -73,9 +98,7 @@ def topla() -> list[dict]:
             lb.get("bellek_GB"), lb.get("hucre"), None,
             acar="türbülanslı zaman-çözünür ÇAPA; bugün elde olan doğrulanmış "
                  "çapa LAMİNER rejimde ve türbülanslı vakayı doğrulamıyor",
-            not_="Subkritik Re'de tam-türbülanslı kapanış Cd'yi %39'a kadar "
-                 "düşük veriyor (ölçüldü). Ucuz ara adım: geçiş modeli "
-                 "kOmegaSSTLM ile aynı vakayı koşmak — LES'ten ÇOK ucuz."))
+            not_=_gecis_notu()))
     else:
         eksik.append("silindir_les_fizibilite.json")
 

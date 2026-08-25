@@ -26,7 +26,7 @@
       "bu_makinede": false,
       "is_istasyonunda": true,
       "neyi_acar": "türbülanslı zaman-çözünür ÇAPA; bugün elde olan doğrulanmış çapa LAMİNER rejimde ve türbülanslı vakayı doğrulamıyor",
-      "_not": "Subkritik Re'de tam-türbülanslı kapanış Cd'yi %39'a kadar düşük veriyor (ölçüldü). Ucuz ara adım: geçiş modeli kOmegaSSTLM ile aynı vakayı koşmak — LES'ten ÇOK ucuz."
+      "_not": "Subkritik Re'de tam-türbülanslı kapanış Cd'yi %39'a kadar düşük veriyor (ölçüldü). ALTERNATİF YOL VAR ve BU MAKİNEDE KOŞUYOR: geçiş modeli (kOmegaSSTLM) duvar-çözünür ağda (y⁺=0.7309, 2,43 M hücre) devreye giriyor — aralıklılık minimumu 0.0201, laminer hücre %4.97. Ama UCUZ DEĞİL: ölçülen 16,9 saat (13,8 s/adım × 4400 adım). 'Ucuz ara adım' iddiası geri çekildi; 62,9 GB'lik LES yalnız BU yol da yetmezse gerekir."
     },
     {
       "hakem_maddesi": "#12",

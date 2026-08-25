@@ -595,3 +595,42 @@ def test_rapor_GECIS_kosulari_kanittan_sapmiyor(tex):
 
     # GERI CEKILEN kural rapordan sessizce dusmemeli
     assert "geri çekildi" in tex.lower() or "geri\nçekildi" in tex.lower()
+
+
+def test_rapor_SONDA_sayilari_kanittan_sapmiyor(tex):
+    """Sondanın sayıları kanıt dosyasından gelmeli.
+
+    Sonda, uc aciklama dustukten sonra 16,9 saatlik kosuya girmeden once
+    tek soruyu yanitladi. Rapordaki "model dort kosudur ilk kez calisti"
+    cumlesinin dayanagi bu dosyadaki sayilardir.
+    """
+    import json
+    y = KOK / "silindir_gecis_3b_dr_des_sonda3.json"
+    if not y.exists():
+        pytest.skip("sonda kanıtı üretilmemiş")
+    d = json.loads(y.read_text(encoding="utf-8"))
+    a = d["aralik_denetimi"]
+    for deger in (a["min"], a["laminer_hucre_orani_pct"],
+                  d["olculen"]["yplus"]["ort"]):
+        s = f"{deger:.4f}".rstrip("0").rstrip(".").replace(".", "{,}")
+        assert s in tex, f"sonda sayısı ({s}) raporda yok"
+    # SONDA BIR SONUC KOSUSU DEGIL — rapor da oyle demeli
+    assert d["sonda"] is True and d["sinav_gecerli"] is False
+    assert "sonuç" in tex.lower() and "sonda" in tex.lower()
+    assert a["devreye_girdi"] is True, "sonda geçmediyse rapor metni yanlış"
+
+
+def test_rapor_MALIYET_kestirim_degil_OLCUM(tex):
+    """'~6 kat' gibi hücre oranından türetilmiş kestirimler kalmamalı.
+
+    Maliyet iddiasi olculdu: 13,8 s/adim x 4400 adim = 16,9 saat. Kestirim
+    ile olcumun ayni cumlede yer degistirmesi, okuyucunun hangisine
+    baktigini bilememesi demek.
+    """
+    assert "13{,}8 s/adım" in tex, "ölçülen adım süresi raporda yok"
+    assert "16{,}9 saat" in tex, "ölçülen toplam süre raporda yok"
+    # OLCUT IDDIAYA BAGLI: ciplak "6 kat" araması ilgisiz bir listedeki
+    # "hucre 20.6 kat" ifadesine takildi (yanlis pozitif). Geri cekilen
+    # sey belirli bir CUMLEYDI: maliyeti hucre oranindan turetmek.
+    assert "URANS ağının" not in tex or "katıdır" not in tex, (
+        "maliyet hâlâ hücre oranından türetiliyor")

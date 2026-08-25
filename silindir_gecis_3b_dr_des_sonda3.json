@@ -1,0 +1,94 @@
+{
+  "vaka": "Silindir 3B (des ağı), kOmegaSSTLM — ARALIKLILIK SONDASI",
+  "_neden": "Subkritik Re'de bagli sinir tabaka LAMINERDIR; tam-turbulansli kapanis onu turbulans sayar ve Cd'yi dusuk verir. Bu kosu o aciklamayi SINAR: dogruysa IKI sapma birden duzelmeli.",
+  "kurulum": {
+    "model": "kOmegaSSTLM",
+    "ReThetat_serbest": 584.3016,
+    "ag_tipi": "des",
+    "ag": {
+      "dz_D": 0.05,
+      "n_radyal": 161,
+      "n_span": 63,
+      "n_cevre": 240,
+      "hucre_kestirim": 2434320,
+      "ilk_hucre_m": 0.00026798,
+      "grading": "((0.053053 0.341615 186.581088) (0.420632 0.496894 1.000000) (0.526316 0.161491 10.834706))",
+      "periyot_sayisi": 3,
+      "sonda_mu": true
+    },
+    "_degisen_tek_sey": "KAPANIŞ"
+  },
+  "olculen": {
+    "St": null,
+    "Cd_ortalama": 0.51,
+    "Cl_genlik": 0.07906,
+    "sapma_pct": {
+      "St": null,
+      "Cd": -57.5
+    },
+    "salinim": {
+      "olculdu": false,
+      "neden": "pencerede 2 tam salınım geçişi — salınım görünmüyor (çözüm oturmuş olabilir)",
+      "ortalama": 0.01814103214743607,
+      "genlik": 0.2483685725,
+      "pencere_s": 10.925
+    },
+    "yplus": {
+      "min": 0.067873897,
+      "max": 1.3872706,
+      "ort": 0.73093658
+    }
+  },
+  "referans": {
+    "St": 0.2,
+    "St_bandi": [
+      0.19,
+      0.21
+    ],
+    "Cd": 1.2
+  },
+  "kiyas": {
+    "3B URANS (kOmegaSST)": {
+      "Cd_pct": -26.88,
+      "St_pct": 29.74
+    },
+    "3B DES (kOmegaSSTDES)": {
+      "Cd_pct": -39.16,
+      "St_pct": 38.16
+    }
+  },
+  "aralik_denetimi": {
+    "okunabildi": true,
+    "zaman_s": 15.0,
+    "n": 2434320,
+    "min": 0.0201,
+    "ortalama": 0.9524,
+    "laminer_hucre_orani_pct": 4.97,
+    "_ayristirma_sorunlari": null,
+    "devreye_girdi": true,
+    "_olcut": "gammaInt < 0.5 olan hücre VARSA model devrededir; yoksa tam-türbülanslı kOmegaSST'ye dejenere olmuştur ve koşu KAPANIŞ hakkında delil DEĞİLDİR."
+  },
+  "sinav_gecerli": false,
+  "sonda": true,
+  "verdikt": "SONDA GEÇTİ — geçiş modeli devreye girdi (gammaInt min 0.0201, laminer hücre %4.97) ve bu, dört koşudur olmayan şeydi. Duvar-çözünür ağ engeli kaldırdı. TAM KOŞU ARTIK MEŞRU: sonda 3 periyottur ve St/Cd veremez.",
+  "sure_dk": 161.4,
+  "_uretim": "Üretim: python experiments/silindir_gecis_3b.py",
+  "_kisit": "ARALIKLILIK SONDASI: koşu KISALTILMIŞTIR (3 periyot). Tek yanıtladığı soru geçiş modelinin devreye girip girmediğidir. St/Cd sayıları kayıtta durur ama SONUÇ DEĞİLDİR — istatistik penceresi yetersiz.",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}
