@@ -2311,9 +2311,18 @@ Sonucun izlenebilirliği (komut + ortam) & \ev & \ev & \texttt{kanit}, \texttt{o
 \end{tabular}
 \end{center}
 
-\noindent Sekiz adımın altısı tam, ikisi kısmî otomatiktir. Kısmî olan ikisi
-şunlardır: deneysel referansla geçerleme (çapa sayısı sınırlı) ve model-form
-belirsizliği. İkincisi için sayı, okunuş biçimine göre çok farklı görünür ve
+\noindent \textbf{Tabloda dokuz satır var, kavramsal adım sekizdir}:
+girdi UQ tek bir faaliyettir ama iki ayrı uygulama hattında gösterilir (ucuz
+model ve RANS), çünkü otomatiklik dereceleri farklıdır. Sekiz adımın
+\textbf{beşi} tam, \textbf{üçü} kısmî otomatiktir. Kısmî olan üçü şunlardır:
+girdi UQ (RANS hattı deneyseldir, yayımlanmaz), deneysel referansla geçerleme
+(çapa sayısı sınırlı) ve model-form belirsizliği.
+
+\noindent Bu sayı bir sürüm boyunca \emph{yanlıştı} --- ``sekiz adımın altısı
+tam, ikisi kısmî'' yazıyordu. Dış inceleme 9 satır/8 adım uyuşmazlığını
+yakaladı; sayılınca kısmî adımın da ikiden üçe çıktığı görüldü (girdi UQ'nun
+RANS hattı sayılmamıştı). İki sayı da artık tablodan \emph{sayılarak}
+denetleniyor. İkincisi için sayı, okunuş biçimine göre çok farklı görünür ve
 bu yüzden dört parçaya ayrılarak yazılır: rejim$\times$duvar tablosu \textbf{8}
 hücredir, \textbf{6}'sında çapa koşusu vardır, ama bandı \emph{veriyle}
 belirlenmiş hücre sayısı yalnız \textbf{3}'tür --- kalan 3 çapada ölçülen sapma

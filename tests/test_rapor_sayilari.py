@@ -977,3 +977,59 @@ def test_rapor_HICBIR_YERINDE_eski_guncelleyiciyi_uretim_saymiyor(tex):
             "rapor sıcak başlatmayı zorunlu gibi yazıyor; ölçüm gerekçenin "
             "OC'ye özgü olduğunu gösterdi "
             f"(~{tex[:m.start()].count(chr(10)) + 1}. satır)")
+
+
+_SAYI_KELIME = {5: "beş", 6: "altı", 7: "yedi", 8: "sekiz", 9: "dokuz",
+                2: "iki", 3: "üç", 4: "dört"}
+
+
+def test_ASME_tablosu_SAYIMI_tablonun_KENDISINDEN(tex):
+    r"""DIŞ HAKEM (2026-08-26) tabloda 9 satır olup metnin 'sekiz adım'
+    demesini yakaladı. Sayınca ikinci bir hata çıktı: kısmî adım sayısı da
+    yanlıştı (metin 'ikisi' diyordu, tabloda üç `\ks` var --- girdi UQ'nun
+    RANS hattı sayılmamış).
+
+    Sayı artık TABLODAN sayılır. Elle yazılan bir sayım, tabloya bir satır
+    eklendiğinde sessizce eskir --- bu raporun avladığı kusur, bu kez kendi
+    özet cümlesinde.
+    """
+    bas = tex.index(r"\textbf{V\&V 20 adımı}")
+    son = tex.index(r"\end{tabular}", bas)
+    # SATIR AYIRIMI: LaTeX satir sonu. Olcut SUTUN ISARETIDIR, bicimleme
+    # degil. Ilk surum "textbf gecen satiri at" diyordu ve Model-form
+    # satirini da atiyordu (o satir `\textbf{3}/8` tasiyor) --- 9 satirin
+    # 6'sini sayip yanlis hukum veriyordu.
+    satirlar = [x for x in tex[bas:son].split("\\\\")
+                if (r"\ev" in x or r"\ks" in x)]
+    assert satirlar, "ASME tablosu okunamadı"
+    n_satir = len(satirlar)
+    # KAVRAMSAL ADIM: "Girdi UQ ---" ile baslayan satirlar TEK faaliyettir.
+    girdi_uq = [s for s in satirlar if "Girdi UQ" in s]
+    n_adim = n_satir - max(len(girdi_uq) - 1, 0)
+    # KISMI = icinde en az bir \ks olan KAVRAMSAL adim
+    kismi = sum(1 for s in satirlar
+                if r"\ks" in s and "Girdi UQ" not in s)
+    kismi += 1 if any(r"\ks" in s for s in girdi_uq) else 0
+    tam = n_adim - kismi
+
+    assert "dokuz satır" in tex or f"{_SAYI_KELIME[n_satir]} satır" in tex, \
+        f"tabloda {n_satir} satır var, rapor bunu yazmıyor"
+    assert f"adım {_SAYI_KELIME[n_adim]}dir" in tex, \
+        f"kavramsal adım {n_adim}, rapor başka sayı yazıyor"
+    # ALINTI BIR IDDIA DEGILDIR. Rapor eski YANLIS cumleyi (``altısı tam,
+    # ikisi kısmî'') curutmek icin ALINTILIYOR; olcut alintiyi da okuyunca
+    # HEM dogru HEM yanlis sayiyi "bulunuyor" sayiyordu, yani hicbir seyi
+    # ayirt etmiyordu. LaTeX tirnaklari (``…'') once ayiklanir.
+    _canli = re.sub(r"``.*?''", " ", tex, flags=re.S)
+
+    # TURKCE EK SERBEST: rapor "beşi tam" yazar, "beş tam" degil. Olcut
+    # SAYIYA baglanmali, ekin bicimine degil --- ilk surum eki sart kosup
+    # dogru sayida dustu.
+    def _yazili(n: int, sonek: str) -> bool:
+        k = _SAYI_KELIME[n]
+        return bool(re.search(rf"(?:\\textbf\{{)?{k}\w*\}}?\s+{sonek}", _canli))
+
+    assert _yazili(tam, "tam"), \
+        f"tabloda {tam} tam adım var, rapor başka sayı yazıyor"
+    assert _yazili(kismi, "kısmî"), \
+        f"tabloda {kismi} kısmî adım var, rapor başka sayı yazıyor"

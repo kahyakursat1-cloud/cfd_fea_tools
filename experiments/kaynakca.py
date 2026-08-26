@@ -154,6 +154,36 @@ def _anahtar(s: str) -> str:
     return f"{(m.group(1).lower() if m else s[:12].lower())}|{y.group(1) if y else ''}"
 
 
+METODOLOJI = KOK / "docs" / "metodoloji_kaynaklari.json"
+
+
+def _metodoloji() -> list[dict]:
+    """Metodoloji künyeleri --- BEYAN dosyasından, üretilmez.
+
+    NEDEN AYRI VE NEDEN ELLE. Capa kaynaklari kosu kayitlarindan URETILIR
+    cunku orada yapisal olarak dururlar. Metodoloji kaynagi oyle degil: bir
+    GCI formulunun ya da MMA'nin kaynagi hicbir kosunun ciktisinda yazmaz,
+    yani uretilecek bir yer yoktur. O yuzden BEYAN edilir.
+
+    ``Elle liste yazma'' kurali burada TERSINE calisir: liste elle yazilir
+    ama KAPSAMI denetlenir --- bir test raporun metnini tarar ve atifi gecen
+    her kaynagin bu dosyada olmasini sart kosar. Liste eksilirse ya da
+    rapora yeni bir metodoloji atifi girerse suit duser.
+    """
+    if not METODOLOJI.exists():
+        return []
+    try:
+        d = json.loads(METODOLOJI.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        # SESSIZ YUTMA DEGIL: okunamayan dosya KAYITTA gorunur, yoksa
+        # kaynakca eksik olur ve tam gorunur.
+        return [{"anahtar": "_OKUNAMADI", "doi": None,
+                 "kunye": (f"metodoloji_kaynaklari.json OKUNAMADI: "
+                           f"{type(e).__name__}: {e}"),
+                 "nerede": "üretim hatası"}]
+    return d.get("kaynaklar", [])
+
+
 def uret() -> dict:
     atlanan: list[str] = []
     ham = topla(atlanan)
@@ -179,6 +209,15 @@ def uret() -> dict:
         nerede = ", ".join(sorted(b[k])[:3])
         satirlar.append(f"\\bibitem{{kaynak{i}}} {_kacir(k)}"
                         f"\\quad{{\\scriptsize[{_kacir(nerede)}]}}")
+    _met = _metodoloji()
+    for j, m in enumerate(_met, len(kayitlar) + 1):
+        _doi = ""
+        if m.get("doi"):
+            _damga = "" if m.get("doi_dogrulandi") else " (doğrulanmadı)"
+            _doi = f" \\texttt{{doi:{_kacir(m['doi'])}}}{_kacir(_damga)}"
+        satirlar.append(
+            f"\\bibitem{{metod{j}}} {_kacir(m['kunye'])}{_doi}"
+            f"\\quad{{\\scriptsize[{_kacir(m.get('nerede', 'metodoloji'))}]}}")
     satirlar.append("\\end{thebibliography}")
     TEX.write_text("\n".join(satirlar) + "\n", encoding="utf-8")
 
@@ -188,10 +227,14 @@ def uret() -> dict:
                    "kaynakca bolumu YOKTU (dis inceleme yakaladi). Elle liste "
                    "yazmak, raporun kendi avladigi kusuru islemek olurdu: "
                    "sabit metin, degisen veri."),
-        "kaynak_sayisi": len(kayitlar),
+        "kaynak_sayisi": len(kayitlar) + len(_met),
+        "capa_kaynagi": len(kayitlar),
+        "metodoloji_kaynagi": len(_met),
+        "metodoloji": _met,
         "atlanan_dosya": atlanan or None,
         "verdikt": (
-            f"{len(kayitlar)} kaynak üretildi ve rapora bağlandı. Künyeler "
+            f"{len(kayitlar)} çapa kaynağı ÜRETİLDİ + {len(_met)} metodoloji "
+            f"kaynağı BEYAN edildi, ikisi de rapora bağlandı. Çapa künyeleri "
             f"çapa kayıtlarının `kaynak` alanlarından ve kod sabitlerinden "
             f"gelir; elle yazılmış bir liste, bir çapa yeni referansa "
             f"taşındığında sessizce eskirdi. DOI TAMAMLANMAMIŞTIR ve bu "

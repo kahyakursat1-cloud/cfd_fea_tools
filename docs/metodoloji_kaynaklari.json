@@ -1,0 +1,49 @@
+{
+  "_vaka": "Metodoloji kaynakları — BEYAN edilir, ölçümden türetilemez",
+  "_neden": "Çapa kaynakları koşu kayıtlarından ÜRETİLİR çünkü orada yapısal olarak dururlar. Metodoloji kaynakları öyle değil: bir GCI formülünün ya da MMA'nın kaynağı hiçbir koşunun çıktısında yazmaz. O yüzden burada BEYAN edilirler --- ama liste sessizce eskimesin diye bir test raporun metnini tarar ve atıfı geçen her kaynağın burada olmasını şart koşar. Yön ters: üretmiyoruz, KAPSAMI denetliyoruz.",
+  "_kisit": "DOI'ler burada YAZILDIĞI gibidir ve bu depoda BİRİNCİL KAYNAKTAN doğrulanmadı. Yayına giderken her künye kaynağın kendisinden teyit edilmelidir. Doğrulanmamış bir DOI, eksik DOI'den tehlikelidir çünkü tamamlanmış görünür.",
+  "kaynaklar": [
+    {
+      "anahtar": "Svanberg 1987",
+      "kunye": "Svanberg, K. (1987). The method of moving asymptotes — a new method for structural optimization. International Journal for Numerical Methods in Engineering 24(2), 359–373.",
+      "doi": "10.1002/nme.1620240207",
+      "doi_dogrulandi": false,
+      "nerede": "Gerilme-farkında TO'nun üretim güncelleyicisi (MMA)"
+    },
+    {
+      "anahtar": "Le ve ark. 2010",
+      "kunye": "Le, C., Norato, J., Bruns, T., Ha, C., Tortorelli, D. (2010). Stress-based topology optimization for continua. Structural and Multidisciplinary Optimization 41(4), 605–620.",
+      "doi": "10.1007/s00158-009-0440-y",
+      "doi_dogrulandi": false,
+      "nerede": "P-norm gerilme toplayıcısı, qp-relaksasyonu ve kompliyans-tasarımından sıcak başlatma protokolü"
+    },
+    {
+      "anahtar": "Celik ve ark. 2008",
+      "kunye": "Celik, I. B., Ghia, U., Roache, P. J., Freitas, C. J., Coleman, H., Raad, P. E. (2008). Procedure for estimation and reporting of uncertainty due to discretization in CFD applications. Journal of Fluids Engineering 130(7), 078001.",
+      "doi": "10.1115/1.2960953",
+      "doi_dogrulandi": false,
+      "nerede": "GCI hesabı ve asimptotik-aralık ölçütü"
+    },
+    {
+      "anahtar": "Eça & Hoekstra 2014",
+      "kunye": "Eça, L., Hoekstra, M. (2014). A procedure for the estimation of the numerical uncertainty of CFD calculations based on grid refinement studies. Journal of Computational Physics 262, 104–130.",
+      "doi": "10.1016/j.jcp.2014.01.006",
+      "doi_dogrulandi": false,
+      "nerede": "En-küçük-kareler belirsizlik kestirimi (LSR) — asimptotik olmayan/salınımlı dizilerde dürüst band"
+    },
+    {
+      "anahtar": "ASME V&V 20",
+      "kunye": "ASME (2009). V&V 20-2009: Standard for Verification and Validation in Computational Fluid Dynamics and Heat Transfer. ASME, New York.",
+      "doi": null,
+      "doi_dogrulandi": false,
+      "nerede": "Validasyon çerçevesi: E = S − D ve u_val bileşenleri (u_num, u_input, u_D)"
+    },
+    {
+      "anahtar": "Richardson",
+      "kunye": "Roache, P. J. (1994). Perspective: A method for uniform reporting of grid refinement studies. Journal of Fluids Engineering 116(3), 405–413.",
+      "doi": "10.1115/1.2910291",
+      "doi_dogrulandi": false,
+      "nerede": "Richardson ekstrapolasyonu ve GCI'nin tekdüze raporlanması"
+    }
+  ]
+}
