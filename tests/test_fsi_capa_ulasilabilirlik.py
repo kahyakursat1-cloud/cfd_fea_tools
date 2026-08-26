@@ -8,8 +8,11 @@ başka aile hiç değerlendirilmemişti.
 
 ÖLÇÜLDÜ: kanonik Turek--Hron benchmark'ında üç varyantın da bütçesi
 164.000 hücre / 0,425 GB --- yani DONANIM ENGEL DEĞİL. FSI2/FSI3'ü kapatan
-şey YAPISAL YETENEKTİR: büyük yer-değiştirme (NLGEOM) ve zaman-çözünür
-yapısal analiz yok. Bu farklı bir engel ve farklı bir çare.
+şey YAPISAL YETENEKTİR ve bu farklı bir engel, farklı bir çare: ölçüm
+yapıldığında iki yetenek eksikti (büyük yer-değiştirme ve zaman-çözünür
+yapısal analiz). NLGEOM 2026-08-27'de eklendi ve doğrulandı
+(`nlgeom_dogrulama.json`); geriye zaman-çözünür yapısal analiz kaldı.
+Testler tek bir günün durumunu değil KAYNAĞIN kendisini okur.
 
 Bu testler bulguyu ve dayanaklarını bağlar --- özellikle YETENEK denetiminin
 kaynaktan okunduğunu: bir belgeye ya da hatıraya dayanan yetenek iddiası,
@@ -100,4 +103,8 @@ def test_KAYIT_dosyasi_olcumle_TUTARLI():
         pytest.skip("fsi_capa_ulasilabilirlik.json üretilmemiş")
     d = json.loads(KANIT.read_text(encoding="utf-8"))
     assert d["ulasilabilir_capalar"] == ["FSI1"]
-    assert d["yapisal_yetenek"]["nlgeom"] is False
+    # NLGEOM 2026-08-27'de EKLENDI ve dogrulandi. Ilk surum "is False"
+    # diyordu --- test bir KUSURU degil O GUNKU DURUMU pinliyordu ve
+    # yetenek eklenince duserdi. Olcut artik KAYNAGA baglanir.
+    src = (KOK / "analysis" / "calculix_writer.py").read_text(encoding="utf-8")
+    assert d["yapisal_yetenek"]["nlgeom"] == ("NLGEOM" in src.upper())

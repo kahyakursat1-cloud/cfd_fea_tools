@@ -2916,6 +2916,53 @@ gerçek hücre sayısını yüzey iyileştirme kademesi belirler.
         altyapı doğrulanmıştır, fiziksel kuplaj doğrulaması beklemededir ve
         onu bekleten şey bir makine değil \emph{eksik bir çözücü
         yeteneğidir}.
+
+        \textbf{2026-08-27 --- iki eksik yetenekten biri kapatıldı.}
+        Büyük yer-değiştirme (\texttt{*STEP, NLGEOM} + artımlı yük)
+        yapısal yazıcıya eklendi. Varsayılan \emph{kapalıdır}: açmak yalnız
+        ``daha genel'' olmaz, çözümü değiştirir ve yayımlanmış her yapısal
+        sonucu yeniden üretilemez kılardı.
+
+        Yetenek \emph{doğrulandı}, eklenmekle yetinilmedi ---
+        \texttt{nlgeom\_dogrulama.json}. Çapa ankastre kirişin elastikasıdır
+        ve üç ölçüt birden sınandı, çünkü biri eksikse doğrulama değildir:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrrl@{}}
+\toprule
+$\alpha = PL^2/EI$ & lineer & NLGEOM & elastika & hüküm \\
+\midrule
+0{,}05 & 0{,}01657 & 0{,}01657 & 0{,}016662 & lineere indirgeniyor (\%0{,}028) \\
+3{,}0 & 0{,}9944 & \textbf{0{,}6016} & 0{,}603253 & lineer \%64{,}8 sapıyor \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+        \noindent Küçük yükte NLGEOM lineere iniyor (\%0{,}028 fark);
+        büyük yükte ayrışıyor \emph{ve} referansa yaklaşıyor: lineer
+        elastikadan \%64{,}8 sapıyor, NLGEOM \%0{,}3. Yalnız
+        ``farklı çıktı'' demek, yanlış bir farkı doğrulama saymak olurdu.
+
+        \textbf{Ölçüm bir kusur da buldu ve doğrulamayı geçersiz kılacaktı.}
+        İlk sürüm C3D4 (lineer tet) ağı kullandı ve $\alpha{=}1$'de sehimi
+        $0{,}041$ verdi --- beklenen $0{,}30$. Sekiz kat sapma NLGEOM'dan
+        değil, \emph{lineer tetin eğilmede kilitlenmesinden} geliyordu:
+        sabit-gerinim eleman eğilmeyi temsil edemez. O ağla ``NLGEOM neredeyse
+        hiçbir şey değiştirmiyor'' diye yanlış bir doğrulama üretilirdi. Ağ
+        C3D10'a yükseltildi (deponun üretim elemanı zaten bu).
+
+        \noindent Elastika referansı \emph{sayısaldır} (ODE, RK2) ve önce
+        kendisi sınandı: küçük-$\alpha$ limitinde lineer çözüme iniyor
+        ($\%0{,}0000$) ve adım sayısından bağımsız (sekiz hane).
+        Bisshopp \& Drucker'ın kapalı formu elde \emph{doğrulanmadı};
+        $\alpha{=}3$ için bulunan $\delta/L = 0{,}6033$ literatürle
+        \emph{tutarlıdır} ama bu depoda birincil kaynaktan teyit edilmedi.
+
+        \noindent Geriye \textbf{zaman-çözünür yapısal analiz} kaldı
+        (\texttt{*DYNAMIC}); FSI2/FSI3 onsuz koşulamaz. Engel yine bütçe
+        değil, ve engelin adı artık kayıttan \emph{türetiliyor} --- ilk
+        sürüm ``(NLGEOM)'' diye sabit yazıyordu ve yetenek eklenince cümle
+        bayatladı.
   \item[Süpersonik mutlak $C_d$.] 3B-açık çözüm bu donanımda ulaşılamaz.
   \item[Panel yönteminin indüklenen direnci.] VSPAERO'nun iki $C_{Di}$ çıktısı
         da kuramdan sapar (yakın-alan $-\%21$, Trefftz $+\%62$); bu yüzden

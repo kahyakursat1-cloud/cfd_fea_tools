@@ -3,13 +3,13 @@
   "_neden": "Hakem P3 'uygun vaka ~94,1 M hucre' diyor. O sayi gercek ama BIR TEK GEOMETRI AILESINE ait (deponun kendi araci). Kaydin kendi kisiti 'bu bir GEOMETRI-AILESI sorunudur' diyordu ama baska aile hic degerlendirilmedi.",
   "yapisal_yetenek": {
     "okunabildi": true,
-    "nlgeom": false,
+    "nlgeom": true,
     "analiz_tipleri": [
       "BUCKLE",
       "FREQUENCY",
       "STATIC"
     ],
-    "buyuk_yer_degistirme": false,
+    "buyuk_yer_degistirme": true,
     "zaman_cozunur_yapisal": false
   },
   "capalar": {
@@ -28,7 +28,7 @@
         "hucre_boyu_mm": 2.5,
         "hucre_tekduze_ust_sinir": 164000,
         "bellek_gb": 0.425,
-        "bos_bellek_gb": 4.14,
+        "bos_bellek_gb": 3.48,
         "bellege_sigar_mi": true
       },
       "engeller": [],
@@ -49,11 +49,10 @@
         "hucre_boyu_mm": 2.5,
         "hucre_tekduze_ust_sinir": 164000,
         "bellek_gb": 0.425,
-        "bos_bellek_gb": 4.14,
+        "bos_bellek_gb": 3.48,
         "bellege_sigar_mi": true
       },
       "engeller": [
-        "YETENEK: büyük yer-değiştirme (NLGEOM) yok",
         "YETENEK: zaman-çözünür yapısal analiz yok"
       ],
       "ulasilabilir": false
@@ -73,11 +72,10 @@
         "hucre_boyu_mm": 2.5,
         "hucre_tekduze_ust_sinir": 164000,
         "bellek_gb": 0.425,
-        "bos_bellek_gb": 4.14,
+        "bos_bellek_gb": 3.48,
         "bellege_sigar_mi": true
       },
       "engeller": [
-        "YETENEK: büyük yer-değiştirme (NLGEOM) yok",
         "YETENEK: zaman-çözünür yapısal analiz yok"
       ],
       "ulasilabilir": false
@@ -86,7 +84,7 @@
   "ulasilabilir_capalar": [
     "FSI1"
   ],
-  "verdikt": "YAPISAL YETENEK: büyük yer-değiştirme (NLGEOM) YOK, zaman-çözünür yapısal YOK (desteklenen: BUCKLE, FREQUENCY, STATIC). FSI1: ULAŞILABİLİR (164,000 hücre üst sınır, 0.425 GB). FSI2: engel — YETENEK: büyük yer-değiştirme (NLGEOM) yok; YETENEK: zaman-çözünür yapısal analiz yok (164,000 hücre üst sınır, 0.425 GB). FSI3: engel — YETENEK: büyük yer-değiştirme (NLGEOM) yok; YETENEK: zaman-çözünür yapısal analiz yok (164,000 hücre üst sınır, 0.425 GB). BULGU: FSI1 bu makinede ULAŞILABİLİR ve engel DONANIM DEĞİL --- 94,1 M'lik tahmin deponun kendi araç ailesine aitti. Ama FSI1 hakemin sorduğu şeyi KAPATMAZ: küçük sehim rejiminde akış kayda değer ölçüde değişmez, yani 'fizik tahrik ediyor' iddiası sınanmaz. Kapattığı şey ayrı ve bugün EKSİK: aktarılan yükün ve yapısal yanıtın YAYIMLANMIŞ bir referansa karşı doğrulanması. Güçlü geri besleme için gereken FSI2/FSI3'ün engeli bütçe değil YETENEKTİR (NLGEOM).",
+  "verdikt": "YAPISAL YETENEK: büyük yer-değiştirme (NLGEOM) VAR, zaman-çözünür yapısal YOK (desteklenen: BUCKLE, FREQUENCY, STATIC). FSI1: ULAŞILABİLİR (164,000 hücre üst sınır, 0.425 GB). FSI2: engel — YETENEK: zaman-çözünür yapısal analiz yok (164,000 hücre üst sınır, 0.425 GB). FSI3: engel — YETENEK: zaman-çözünür yapısal analiz yok (164,000 hücre üst sınır, 0.425 GB). BULGU: FSI1 bu makinede ULAŞILABİLİR ve engel DONANIM DEĞİL --- 94,1 M'lik tahmin deponun kendi araç ailesine aitti. Ama FSI1 hakemin sorduğu şeyi KAPATMAZ: küçük sehim rejiminde akış kayda değer ölçüde değişmez, yani 'fizik tahrik ediyor' iddiası sınanmaz. Kapattığı şey ayrı ve bugün EKSİK: aktarılan yükün ve yapısal yanıtın YAYIMLANMIŞ bir referansa karşı doğrulanması. Güçlü geri besleme için gereken FSI2/FSI3'ü bekleten şey bütçe değil: YETENEK: zaman-çözünür yapısal analiz yok.",
   "_kisit": "BUTCE TEKDUZE AG VARSAYIYOR ve bu bir UST SINIRDIR: gercek kosuda uzak alan kabalasir, hucre sayisi belirgin duser. 'Sigar' hukmu bu yuzden GUVENLI yondedir ama 'sigmaz' hukmu kesin degildir. Ayrica ULASILABILIR demek KOSULDU demek DEGILDIR: hicbir Turek-Hron vakasi bu depoda kosulmadi ve referans degerler burada YALNIZ ulasilabilirlik icin kullanildi, sonuc uretmek icin degil.",
   "_uretim": "Üretim: python experiments/fsi_capa_ulasilabilirlik.py",
   "_ortam": {

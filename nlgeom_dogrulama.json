@@ -1,0 +1,139 @@
+{
+  "vaka": "NLGEOM doğrulaması — ankastre kiriş, elastika çapası",
+  "_neden": "Bir bayragi yazmak kolaydir ve sessizce hicbir sey yapmayabilir: CalculiX karti kabul eder, kosu dusmez, sonuc lineer kalir. 'Eklendi' ile 'calisiyor' ayni sey degildir.",
+  "kiris": {
+    "L_m": 1.0,
+    "b_m": 0.02,
+    "h_m": 0.01,
+    "E_Pa": 70000000000.0,
+    "_ince_mi": "L/h = 100 --- Euler-Bernoulli gecerli"
+  },
+  "seviyeler": [
+    {
+      "alfa": 0.05,
+      "lineer_teori": 0.016667,
+      "elastika_ref": 0.016662,
+      "lineer_fea": {
+        "kosdu": true,
+        "P_N": 5.8333,
+        "delta_z_bolu_L": 0.016574100000000005,
+        "uc_x_kisalmasi_bolu_L": -6.032836790123983e-09
+      },
+      "nlgeom_fea": {
+        "kosdu": true,
+        "P_N": 5.8333,
+        "delta_z_bolu_L": 0.01656944938271605,
+        "uc_x_kisalmasi_bolu_L": 0.00016503455185185186
+      },
+      "nl_vs_lin_fark_pct": 0.028,
+      "nl_vs_elastika_pct": -0.555,
+      "lin_vs_elastika_pct": -0.527
+    },
+    {
+      "alfa": 0.5,
+      "lineer_teori": 0.166667,
+      "elastika_ref": 0.162144,
+      "lineer_fea": {
+        "kosdu": true,
+        "P_N": 58.3333,
+        "delta_z_bolu_L": 0.165741,
+        "uc_x_kisalmasi_bolu_L": -6.032836790122912e-08
+      },
+      "nlgeom_fea": {
+        "kosdu": true,
+        "P_N": 58.3333,
+        "delta_z_bolu_L": 0.16127437037037037,
+        "uc_x_kisalmasi_bolu_L": 0.015776049382716054
+      },
+      "nl_vs_lin_fark_pct": 2.695,
+      "nl_vs_elastika_pct": -0.536,
+      "lin_vs_elastika_pct": 2.219
+    },
+    {
+      "alfa": 1.0,
+      "lineer_teori": 0.333333,
+      "elastika_ref": 0.301721,
+      "lineer_fea": {
+        "kosdu": true,
+        "P_N": 116.6667,
+        "delta_z_bolu_L": 0.33148299999999997,
+        "uc_x_kisalmasi_bolu_L": -1.2073081111111317e-07
+      },
+      "nlgeom_fea": {
+        "kosdu": true,
+        "P_N": 116.6667,
+        "delta_z_bolu_L": 0.3002590740740741,
+        "uc_x_kisalmasi_bolu_L": 0.05597708271604939
+      },
+      "nl_vs_lin_fark_pct": 9.419,
+      "nl_vs_elastika_pct": -0.484,
+      "lin_vs_elastika_pct": 9.864
+    },
+    {
+      "alfa": 2.0,
+      "lineer_teori": 0.666667,
+      "elastika_ref": 0.493457,
+      "lineer_fea": {
+        "kosdu": true,
+        "P_N": 233.3333,
+        "delta_z_bolu_L": 0.6629657283950617,
+        "uc_x_kisalmasi_bolu_L": -2.411406172839642e-07
+      },
+      "nlgeom_fea": {
+        "kosdu": true,
+        "P_N": 233.3333,
+        "delta_z_bolu_L": 0.49146567901234567,
+        "uc_x_kisalmasi_bolu_L": 0.15955685185185187
+      },
+      "nl_vs_lin_fark_pct": 25.869,
+      "nl_vs_elastika_pct": -0.404,
+      "lin_vs_elastika_pct": 34.351
+    },
+    {
+      "alfa": 3.0,
+      "lineer_teori": 1.0,
+      "elastika_ref": 0.603253,
+      "lineer_fea": {
+        "kosdu": true,
+        "P_N": 350.0,
+        "delta_z_bolu_L": 0.9944487160493828,
+        "uc_x_kisalmasi_bolu_L": -3.617726666666759e-07
+      },
+      "nlgeom_fea": {
+        "kosdu": true,
+        "P_N": 350.0,
+        "delta_z_bolu_L": 0.6016466296296296,
+        "uc_x_kisalmasi_bolu_L": 0.2534717901234568
+      },
+      "nl_vs_lin_fark_pct": 39.499,
+      "nl_vs_elastika_pct": -0.266,
+      "lin_vs_elastika_pct": 64.848
+    }
+  ],
+  "kosan_seviye": 5,
+  "kucuk_yukte_lineere_INDIRGENIYOR": true,
+  "buyuk_yukte_AYRISIYOR": true,
+  "ayrisma_REFERANSA_yaklasiyor": true,
+  "dogrulandi": true,
+  "verdikt": "5/5 seviye koştu. KÜÇÜK YÜK (α=0.05): NLGEOM ile lineer arasında %0.028 fark --- indirgeme SAĞLANDI. BÜYÜK YÜK (α=3.0): lineer 0.9944, NLGEOM 0.6016, elastika 0.6033 (δ/L). Lineer referanstan %64.8 sapıyor, NLGEOM %-0.3. Üç ölçüt de sağlandı: küçük yükte lineere indirgeniyor, büyük yükte ayrışıyor ve ayrışma REFERANSA yaklaşıyor. NLGEOM DOĞRULANDI.",
+  "_kisit": "Elastika referansi ANALITIK degil SAYISALDIR (elastika ODE'si RK2 ile, n=4000) --- Bisshopp & Drucker'in kapali formu elde dogrulanmadi. Ayrica referans Euler-Bernoulli'dir: kayma deformasyonu ve kesit carpilmasi YOK, FEA'da VAR. L/h=100 secildi ki bu fark kucuk kalsin ama SIFIR degildir. Ag bagimsizligi SINANMADI; tek ag.",
+  "_uretim": "Üretim: python experiments/nlgeom_dogrulama.py",
+  "_calisma_dizini": "C:\\Users\\Victus\\AppData\\Local\\Temp\\nlgeom_fm2sdd5s",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

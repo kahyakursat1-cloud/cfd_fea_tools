@@ -108,6 +108,20 @@ class FEACase:
     analysis_type: str = "STATIC"   # STATIC, FREQUENCY, BUCKLE
     num_modes: int = 10              # FREQUENCY/BUCKLE için
     delta_t: float = 0.0             # üniform sıcaklık değişimi (K); termal gerilme için
+    # BÜYÜK YER-DEĞİŞTİRME. Varsayılan KAPALI --- açmak yalnız daha "genel"
+    # olmaz, ÇÖZÜMÜ DEĞİŞTİRİR ve yayımlanmış sonuçları yeniden üretilemez
+    # kılardı. Lineer statik, sehim/boy oranı küçükken doğrudur ve bu deponun
+    # bütün yapısal çapaları o rejimde ölçüldü.
+    #
+    # NEDEN EKLENDİ: iki-yönlü FSI'nin kanonik çapası (Turek-Hron FSI2/FSI3)
+    # uç sehimi bayrak boyunun %10--%23'ü olan bir rejimde tanımlı; orada
+    # lineer statik GEÇERSİZDİR. Ölçüldü (fsi_capa_ulasilabilirlik.json):
+    # o vakaları bekleten şey donanım değil TAM OLARAK bu yetenekti.
+    nlgeom: bool = False
+    # Yük artımı: NLGEOM'da denge iteratif çözülür ve tek adımda yakınsamak
+    # zorunda değildir. CalculiX ilk artımı `ilk_artim`, toplamı 1,0 alır.
+    ilk_artim: float = 0.1
+    max_artim_sayisi: int = 100
 
 
 def write_inp(case: FEACase, output_dir: Path) -> Path:
@@ -238,13 +252,37 @@ def write_inp(case: FEACase, output_dir: Path) -> Path:
                 )
 
     # ─── ANALİZ ADIMI ───
-    lines.append("*STEP")
+    #
+    # NLGEOM YALNIZ STATIC'TE ANLAMLIDIR ve bu SESSİZCE geçilmez.
+    # FREQUENCY/BUCKLE kendi doğrusallaştırılmış problemlerini çözer; oraya
+    # NLGEOM koymak CalculiX'i düşürmez ama okuyucuya yapılmayan bir şey
+    # yapılmış gibi görünür. İstenmişse ve uygulanamıyorsa DOSYAYA yazılır.
+    _nlgeom = bool(getattr(case, "nlgeom", False))
+    _statik = case.analysis_type.upper() not in ("FREQUENCY", "BUCKLE")
+    if _nlgeom and not _statik:
+        lines.append(f"** NLGEOM İSTENDİ ama {case.analysis_type.upper()} "
+                     f"adımında UYGULANMAZ — bu adım doğrusallaştırılmış "
+                     f"problemi çözer.")
+    lines.append("*STEP, NLGEOM" if (_nlgeom and _statik) else "*STEP")
     if case.analysis_type.upper() == "FREQUENCY":
         lines.append("*FREQUENCY")
         lines.append(f"{case.num_modes}")
     elif case.analysis_type.upper() == "BUCKLE":
         lines.append("*BUCKLE")
         lines.append(f"{case.num_modes}")
+    elif _nlgeom:
+        # YUK ARTIMLI UYGULANIR. Buyuk yer-degistirmede denge Newton ile
+        # cozulur ve tek adimda yakinsamak zorunda degildir; CalculiX'e ilk
+        # artim ve toplam "sure" verilir (statikte sure yalnizca yuk
+        # olceginin parametresidir).
+        #
+        # `*CONTROLS` YAZILMIYOR ve bu bir tercih: o karti dogru yazmak
+        # TIME INCREMENTATION parametrelerinin sirasini bilmeyi gerektirir
+        # ve bu depoda dogrulanmadi. Dogrulanmamis bir kontrol karti,
+        # varsayilanlardan daha kotu davranabilir ve sebebi gorunmez olur.
+        # Varsayilanlar birakildi; yakinsamama log'da gorunur.
+        lines.append("*STATIC")
+        lines.append(f"{case.ilk_artim:g}, 1.0")
     else:
         lines.append("*STATIC")
 

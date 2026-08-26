@@ -19,9 +19,10 @@ BİRBİRİNDEN ÇOK FARKLI şeyler ister:
   FSI2  zamana bağlı, Re=100, uç sehimi ~80 mm         -> BÜYÜK, NLGEOM
   FSI3  zamana bağlı, Re=200, uç sehimi ~35 mm         -> BÜYÜK, NLGEOM
 
-ENGEL TEK DEĞİL VE BÜTÇE DEĞİL. Betik önce YETENEĞİ denetler: yapısal
-yazıcı `*STEP`i `NLGEOM` olmadan basıyor mu (yani büyük yer-değiştirme
-çözülebiliyor mu), zaman-çözünür kuplaj var mı. Bütçe ancak yetenek varsa
+ENGEL TEK DEĞİL VE BÜTÇE DEĞİL. Betik önce YETENEĞİ denetler --- yapısal
+yazıcının KAYNAĞINDAN, bir belgeden ya da bu betiğin hatırasından değil:
+`*STEP` NLGEOM taşıyor mu (büyük yer-değiştirme), hangi analiz tipleri
+destekleniyor (zaman-çözünür var mı). Bütçe ancak yetenek varsa
 anlamlıdır --- sığan ama koşulamayan bir vaka için hücre sayısı yazmak,
 engeli yanlış yere koymaktır.
 
@@ -190,8 +191,19 @@ def _hukum(yetenek: dict, sonuc: dict, ulasilabilir: list) -> str:
               f"değişmez, yani 'fizik tahrik ediyor' iddiası sınanmaz. "
               f"Kapattığı şey ayrı ve bugün EKSİK: aktarılan yükün ve "
               f"yapısal yanıtın YAYIMLANMIŞ bir referansa karşı "
-              f"doğrulanması. Güçlü geri besleme için gereken FSI2/FSI3'ün "
-              f"engeli bütçe değil YETENEKTİR (NLGEOM).")
+              f"doğrulanması. ")
+        # KALAN ENGEL SABIT YAZILMAZ, OLCUMDEN TURETILIR. Ilk surum
+        # "(NLGEOM)" diye yaziyordu; NLGEOM eklenince cumle BAYATLADI ---
+        # yetenek degisti, gerekce degismedi. Bu deponun avladigi kusur,
+        # bu kez kendi verdiktinde.
+        _kalan = sorted({e for a in ("FSI2", "FSI3")
+                         for e in sonuc[a]["engeller"]})
+        if _kalan:
+            s += ("Güçlü geri besleme için gereken FSI2/FSI3'ü bekleten şey "
+                  "bütçe değil: " + "; ".join(_kalan) + ".")
+        else:
+            s += ("FSI2/FSI3'ün önünde artık ölçülen bir engel YOK --- "
+                  "koşulmadıkları için doğrulanmış da DEĞİLLER.")
     return s
 
 
