@@ -17,9 +17,23 @@ from vehicle_topopt import _stress_gate
 EO = {"eleman_mertebesi": {"dogrulandi": True}}
 
 
+def _guvenli_sf() -> float:
+    """"Guvenli" hukmunu KESIN alan bir SF --- SABIT YAZILMAZ.
+
+    Bu testler 2,3 yaziyordu ve esik 1,5x(1+buyume) formuluyle 2,205'ti;
+    buyume olcumu %47'den %58'e cikinca esik 2,37 oldu ve 2,3 aniden
+    'ag_marjinda' dustu. Testler kusuru degil ESKI OLCUMU pinliyordu.
+    Deger artik KURALDAN turetilir: esik degisince test degil, esik
+    degisir.
+    """
+    from vehicle_topopt import _ag_buyumesi
+    return round(1.5 * (1 + _ag_buyumesi()[0]) * 1.05, 4)
+
+
 def test_guvenli_tasarim():
-    r = _stress_gate({"emniyet_faktoru_temsili": 2.3, **EO})
-    assert r["durum"] == "güvenli" and r["SF"] == 2.3
+    sf = _guvenli_sf()
+    r = _stress_gate({"emniyet_faktoru_temsili": sf, **EO})
+    assert r["durum"] == "güvenli" and r["SF"] == sf
     assert r["mesaj"].startswith("✅")
 
 
@@ -38,8 +52,9 @@ def test_akma_asildi_kompliyans_korlugu_adlandirilir():
 
 
 # EŞİK ARTIK 1.5 DEĞİL: TO gridinde okunan tepe gerilme yakınsamamıştır
-# (topopt_bagimsiz_dogrulama.json — aynı tasarım 3× ince ağda %47 daha yüksek
-# tepe von Mises verdi). 1.5 ile ölçülen büyümenin şişirdiği eşik arasındaki
+# (topopt_bagimsiz_dogrulama.json — aynı tasarım 3× ince ağda %58 daha yüksek
+# tepe von Mises verdi; motor MMA'ya alınınca %47'den çıktı). 1.5 ile ölçülen
+# büyümenin şişirdiği eşik arasındaki
 # aralık artık ayrı bir hâldir: "ag_marjinda".
 # (None, None) parametresi KALDIRILDI: hicbir sey sinamiyordu ve govdedeki
 # `if carpan is None: return` ile atlaniyordu — yani test listesinde gorunup
@@ -104,10 +119,11 @@ def test_yuk_aktarilmamissa_guvenli_denmez():
 
 
 def test_fizik_kapisi_okse_normal_hukum():
-    sa = {"emniyet_faktoru_temsili": 2.3, "fizik_kabul": {"verdict": "ok", "reasons": []}, **EO}
+    sa = {"emniyet_faktoru_temsili": _guvenli_sf(), "fizik_kabul": {"verdict": "ok", "reasons": []}, **EO}
     assert _stress_gate(sa)["durum"] == "güvenli"
 
 
 def test_fizik_kapisi_yoksa_geriye_uyumlu():
     """Eski sonuç sözlüklerinde fizik_kabul yok — kapı düşmemeli."""
-    assert _stress_gate({"emniyet_faktoru_temsili": 2.3, **EO})["durum"] == "güvenli"
+    assert _stress_gate({"emniyet_faktoru_temsili": _guvenli_sf(),
+                         **EO})["durum"] == "güvenli"

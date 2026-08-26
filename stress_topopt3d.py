@@ -195,12 +195,32 @@ class StressTopo3D:
         return self.H.T @ (dobj_drho / self.Hs)
 
     def optimize(self, volfrac, objective="stress", max_iter=60, move=0.2,
-                 tol=0.01, x0=None, guncelleyici="oc"):
-        # `guncelleyici`: 'oc' (VARSAYILAN, uretim) ya da 'mma' (aday).
-        # Warm-start'in sebebi OC'nin gerilmede salinmasi; MMA'nin
-        # warm-start OLMADAN kosabilmesi o gerekcenin sinavidir.
-        # x0: warm-start (Le 2010 — stress-min kompliyans-tasarımdan başlar; OC stress'te
-        # tek-başına kararsız/salınımlı, iyi topoloji başlangıcı şart).
+                 tol=0.01, x0=None, guncelleyici="mma"):
+        # `guncelleyici`: 'mma' (VARSAYILAN, uretim) ya da 'oc' (eski).
+        #
+        # VARSAYILAN 2026-08-26'DA MMA'YA ALINDI. Raporun kendi koydugu iki
+        # kosul olculdu (experiments/mma_bolum10.py): Bolum 10 kiyaslari MMA
+        # ile yeniden kosuldu ve MMA KENDI toleransiyla durdu (3B'de 416
+        # iterasyon). OC ikisinde de durmadi --- son adimi tam `move`
+        # sinirinda kaldi, yani LIMIT CEVRIMI: hareketin %94,7'si bosa
+        # gidiyor ve 80'den 100 iterasyona cikmak sonucu HIC degistirmedi
+        # (0,7681 -> 0,7681).
+        #
+        # MALIYET YANLILIGI OLCULDU VE GIDERILDI (experiments/mma_maliyet.py).
+        # MMA iterasyonu 3B'de 1,26x pahali, yani SABIT-ITERASYON kiyasi ona
+        # daha buyuk hesap butcesi veriyordu. OC'ye esit-maliyet karsiligi
+        # 100 iterasyon verilince: OC 0,7681, MMA 0,7579 --- ustunluk
+        # butceden gelmiyor. 2B'de maliyet ayni (1,01x) ve sonuc BERABERE
+        # (2,4819 / 2,4820), yani kazanc kalite degil KARARLILIK.
+        #
+        # x0 ARTIK ZORUNLU DEGIL. Warm-start'in gerekcesi ``OC stress'te
+        # tek-basina kararsiz/salinimli'' idi (Le 2010) ve o gerekce OC'ye
+        # OZGU cikti: MMA warm-start OLMADAN (0,7579) OC'nin warm-start'li
+        # sonucundan (0,762) daha iyi. x0 destegi korunuyor.
+        #
+        # KISIT: tek problem ailesi (L-braket), tek cozunurluk; asimptot
+        # katsayilari Svanberg'in onerdigi degerlerde ve bu probleme gore
+        # AYARLANMADI. Genel bir ustunluk iddiasi DEGIL.
         x = np.full(self.ne, volfrac) if x0 is None else np.clip(x0.copy(), 1e-3, 1.0)
         x[self.passive] = self.emin
         self._mma_durum = None

@@ -41,97 +41,97 @@
   "1_esikleme_hatasi": {
     "16x16x2": {
       "gri": {
-        "c_fiz": 1032.9460934613342,
-        "sigma_tepe_fiz": 420.9057187871089,
-        "hacim_fraksiyonu": 0.4375,
+        "c_fiz": 896.9658140896382,
+        "sigma_tepe_fiz": 246.0232679042352,
+        "hacim_fraksiyonu": 0.4296875,
         "ndof": 2601,
         "ne": 512
       },
       "ikili": {
-        "c_fiz": 720.6138728854519,
-        "sigma_tepe_fiz": 188.49802964939542,
-        "hacim_fraksiyonu": 0.39453125,
+        "c_fiz": 656.0389825007662,
+        "sigma_tepe_fiz": 180.54227966336606,
+        "hacim_fraksiyonu": 0.392578125,
         "ndof": 2601,
         "ne": 512
       },
-      "sigma_degisim_pct": -55.22,
-      "c_degisim_pct": -30.24
+      "sigma_degisim_pct": -26.62,
+      "c_degisim_pct": -26.86
     },
     "24x24x3": {
       "gri": {
-        "c_fiz": 1355.1458003432972,
-        "sigma_tepe_fiz": 605.8705295927255,
-        "hacim_fraksiyonu": 0.4375,
+        "c_fiz": 910.6108051858905,
+        "sigma_tepe_fiz": 295.5855963312036,
+        "hacim_fraksiyonu": 0.42824074074074076,
         "ndof": 7500,
         "ne": 1728
       },
       "ikili": {
-        "c_fiz": 951.7929408419927,
-        "sigma_tepe_fiz": 302.23534476804616,
-        "hacim_fraksiyonu": 0.4039351851851852,
+        "c_fiz": 637.1220926083593,
+        "sigma_tepe_fiz": 194.67229763394823,
+        "hacim_fraksiyonu": 0.39814814814814814,
         "ndof": 7500,
         "ne": 1728
       },
-      "sigma_degisim_pct": -50.12,
-      "c_degisim_pct": -29.76
+      "sigma_degisim_pct": -34.14,
+      "c_degisim_pct": -30.03
     }
   },
   "2_ayriklastirma": {
     "tasarim": "24x24x3 gerilme-min, ikili",
     "seviyeler": [
       {
-        "c_fiz": 951.7929408419927,
-        "sigma_tepe_fiz": 302.23534476804616,
-        "hacim_fraksiyonu": 0.4039351851851852,
+        "c_fiz": 637.1220926083593,
+        "sigma_tepe_fiz": 194.67229763394823,
+        "hacim_fraksiyonu": 0.39814814814814814,
         "ndof": 7500,
         "ne": 1728,
         "r": 1,
         "grid": "24x24x3"
       },
       {
-        "c_fiz": 999.5329001399072,
-        "sigma_tepe_fiz": 383.1437552427931,
-        "hacim_fraksiyonu": 0.4039351851851852,
+        "c_fiz": 669.4658514606654,
+        "sigma_tepe_fiz": 264.38221147869706,
+        "hacim_fraksiyonu": 0.39814814814814814,
         "ndof": 50421,
         "ne": 13824,
         "r": 2,
         "grid": "48x48x6"
       },
       {
-        "c_fiz": 1014.3689218772149,
-        "sigma_tepe_fiz": 443.17293358896666,
-        "hacim_fraksiyonu": 0.4039351851851852,
+        "c_fiz": 679.9138279536372,
+        "sigma_tepe_fiz": 306.819893851321,
+        "hacim_fraksiyonu": 0.39814814814814814,
         "ndof": 159870,
         "ne": 46656,
         "r": 3,
         "grid": "72x72x9"
       }
     ],
-    "kompliyans_son_iki_sapma_pct": 1.48,
-    "sigma_son_iki_sapma_pct": 15.67,
-    "sigma_r1_r3_degisim_pct": 46.6
+    "kompliyans_son_iki_sapma_pct": 1.56,
+    "sigma_son_iki_sapma_pct": 16.05,
+    "sigma_r1_r3_degisim_pct": 57.6
   },
   "3_optimum_ag_bagimliligi": {
     "ortak_gridde": {
       "16x16x2": {
-        "c_fiz": 818.3655091854332,
-        "sigma_tepe_fiz": 354.4692740013048,
-        "hacim_fraksiyonu": 0.39453125,
+        "c_fiz": 731.8417854212148,
+        "sigma_tepe_fiz": 327.268062578864,
+        "hacim_fraksiyonu": 0.392578125,
         "ndof": 50421,
         "ne": 13824
       },
       "24x24x3": {
-        "c_fiz": 999.5329001399072,
-        "sigma_tepe_fiz": 383.1437552427931,
-        "hacim_fraksiyonu": 0.4039351851851852,
+        "c_fiz": 669.4658514606654,
+        "sigma_tepe_fiz": 264.38221147869706,
+        "hacim_fraksiyonu": 0.39814814814814814,
         "ndof": 50421,
         "ne": 13824
       }
     },
-    "kompliyans_farki_pct": 22.14,
-    "sigma_tepe_farki_pct": 8.09
+    "kompliyans_farki_pct": -8.52,
+    "sigma_tepe_farki_pct": -19.22
   },
   "_uretim": "Üretim: python experiments/topopt_bagimsiz_dogrulama.py",
-  "verdikt": "Eşikleme (gri→ikili, 24 grid): σ_tepe %-50.1, c %-29.8. Bağımsız yeniden-analiz (r=1→3): kompliyans son-iki sapma %1.5 (YAKINSIYOR), tepe gerilme %+47 ve son-iki sapma %15.7 — YAKINSAMIYOR (reentrant köşe gerilme tekilliği; tepe σ ağ-bağımlıdır ve mutlak bir kabul ölçütü olarak KULLANILAMAZ). Optimumun ağ-bağımlılığı: 16x16x2 vs 24x24x3 tasarımları ortak 48 gridinde kompliyansta %+22.1 ayrışıyor.",
+  "verdikt": "Eşikleme (gri→ikili, 24 grid): σ_tepe %-34.1, c %-30.0. Bağımsız yeniden-analiz (r=1→3): kompliyans son-iki sapma %1.6 (YAKINSIYOR), tepe gerilme %+58 ve son-iki sapma %16.1 — YAKINSAMIYOR (reentrant köşe gerilme tekilliği; tepe σ ağ-bağımlıdır ve mutlak bir kabul ölçütü olarak KULLANILAMAZ). Optimumun ağ-bağımlılığı: 16x16x2 vs 24x24x3 tasarımları ortak 48 gridinde kompliyansta %-8.5 ayrışıyor.",
   "_kisit": "Bu bir DOGRULAMA (verification) olcumudur, validasyon degil: deneysel referans yok. Ikili tasarim eleman-bolunmesiyle tasindigi icin geometri KAYIPSIZ korunur; yani olculen fark yalnizca ayriklastirmadandir (yeniden-mesh'in geometri yaklasimi karismaz). Merdiven-basamakli sinir gercek imalattaki yuvarlatmayi temsil etmez — gercek parcada tepe gerilme filet yaricapina baglidir ve bu betik onu OLCMEZ."
 }

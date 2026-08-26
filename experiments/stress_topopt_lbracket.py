@@ -50,6 +50,15 @@ def peak_and_field(t, rho):
     return float(eta.max()), eta
 
 
+def _varsayilan_guncelleyici() -> str:
+    """Motorun VARSAYILAN guncelleyicisi — sabit yazilmaz, imzadan okunur."""
+    import inspect
+
+    from stress_topopt2d import StressTopo2D
+    return inspect.signature(StressTopo2D.optimize).parameters[
+        "guncelleyici"].default
+
+
 def main():
     t, passive = build_lbracket()
     print(f"L-bracket {N}x{N}, hacim={VF}, P={t.P}, pasif boşluk={passive.sum()} eleman",
@@ -82,7 +91,10 @@ def main():
     rec = {
         "vaka": "L-bracket stress-temelli TO (kompliyans-min vs gerilme-min, aynı hacim)",
         "yontem": f"2D plane-stress Q4 SIMP, P-norm(P={t.P}) von Mises, qp-relaks(q={t.q}), "
-                  "adjoint duyarlılık (FD-kontrollü), OC. ccx/CFD YOK — kendi-içinde.",
+                  "adjoint duyarlılık (FD-kontrollü). ccx/CFD YOK — kendi-içinde.",
+        # Bu sonucun hangi algoritmayla uretildigi kaydin kendisinden
+        # bilinmeli; varsayilan degisince sessizce eskimemesi icin KODDAN.
+        "guncelleyici": _varsayilan_guncelleyici(),
         "grid": N, "volfrac": VF,
         "peak_eta_vm_compliance": round(peak_c, 4),
         "peak_eta_vm_stress": round(peak_s, 4),
@@ -94,7 +106,7 @@ def main():
                  "stress_topopt_lbracket.png"),
     }
     (HERE.parent / "stress_topopt_lbracket.json").write_text(
-        json.dumps(rec, indent=2, ensure_ascii=False), encoding="utf-8")
+        json.dumps(rec, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print("SONUC:", rec["sonuc"], flush=True)
     return 0 if redux > 5 else 2
 

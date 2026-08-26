@@ -691,21 +691,80 @@ def test_rapor_URETIM_OPTIMIZATORU_kodla_tutarli(tex):
     oc_uretimde = "_oc_update" in cagrilar
     mma_uretimde = mma_ithal or "mma_adim" in cagrilar
 
-    if "Üretim hattı hâlâ OC" in tex:
-        assert oc_uretimde, "rapor 'üretim OC' diyor ama kod OC çağırmıyor"
-        assert not mma_uretimde, (
-            "rapor 'üretim OC, MMA deneysel' diyor ama vehicle_topopt MMA "
-            "kullanıyor — iddia ile kod ayrışmış")
-    else:
-        assert mma_uretimde, (
-            "rapordaki 'üretim OC' beyanı kaldırılmış ama kod hâlâ OC'de")
+    # ARAC HATTI (kompliyans) --- DEGISMEDI ve rapor bunu boyle yaziyor.
+    # Ilk surum tek bir "uretim" kavrami taniyordu ve gerilme-TO MMA'ya
+    # alininca bu test YANLIS yerde duser/gecerdi: iki hat ayri.
+    assert "kompliyans-min & OC & değişmedi" in tex, \
+        "rapor araç hattının güncelleyicisini artık yazmıyor"
+    assert oc_uretimde, "rapor araç hattı OC diyor ama kod OC çağırmıyor"
+    assert not mma_uretimde, (
+        "rapor araç hattı için OC diyor ama vehicle_topopt MMA kullanıyor")
+
+
+def test_rapor_GERILME_TO_guncelleyicisi_kodla_tutarli(tex):
+    """Gerilme-TO'nun güncelleyicisi raporda ne yazıyorsa MOTORUN VARSAYILANI
+    o olmalı --- ve kanıt dosyaları da o güncelleyiciyle üretilmiş olmalı.
+
+    Uc yer birbirinden ayrisabilir: raporun cumlesi, motorun imzasi, ve
+    kanit JSON'unun icindeki sayilar. Ucunu ayri ayri denetlemek yetmez;
+    ayrisma tam da ARALARINDA olur.
+    """
+    import inspect
+    import json
+
+    from stress_topopt2d import StressTopo2D
+    from stress_topopt3d import StressTopo3D
+
+    v2 = inspect.signature(StressTopo2D.optimize).parameters["guncelleyici"].default
+    v3 = inspect.signature(StressTopo3D.optimize).parameters["guncelleyici"].default
+    assert v2 == v3, f"2B ve 3B motorlar ayrışmış: {v2} vs {v3}"
+
+    raporda = re.search(r"texttt\{stress\\_topopt2d/3d\}[^\n]*?&\s*"
+                        r"(?:\\textbf\{)?(MMA|OC)", tex)
+    assert raporda, "rapor gerilme-TO'nun güncelleyicisini yazmıyor"
+    assert raporda.group(1).lower() == v2, \
+        f"rapor {raporda.group(1)} diyor, motor varsayılanı {v2}"
+
+    # KANIT DOSYALARI DA AYNI GUNCELLEYICIYLE URETILMIS OLMALI
+    for ad in ("stress_topopt_lbracket.json", "stress_topopt3d_bench.json"):
+        p = KOK / ad
+        if not p.exists():
+            continue
+        k = json.loads(p.read_text(encoding="utf-8")).get("guncelleyici")
+        assert k == v2, f"{ad} '{k}' ile üretilmiş, motor varsayılanı '{v2}'"
 
 
 def test_rapor_MMA_KOSULUNU_yaziyor(tex):
     """MMA'yı üretime almanın koşulu yazılı olmalı; yoksa 'deneysel' etiketi
-    kapanmayan bir borç olur."""
+    kapanmayan bir borç olur. Koşullar sağlandıktan sonra da yazılı kalmalı:
+    kararın neye dayandığı, karar verildikten SONRA daha çok önemlidir."""
     assert "yeniden koşulması" in tex or "yeniden koşulmas" in tex
     assert "kendi durma ölçütünün" in tex
+
+
+def test_rapor_MMA_MALIYET_YANLILIGI_kanittan_sapmiyor(tex):
+    """Sabit-iterasyon kıyası MMA'ya daha büyük bütçe veriyordu; yanlılığın
+    ölçüsü ve giderilmiş hâli raporda kanıtla aynı olmalı."""
+    import json
+    p = KOK / "mma_maliyet.json"
+    if not p.exists():
+        pytest.skip("mma_maliyet.json üretilmemiş")
+    d = json.loads(p.read_text(encoding="utf-8"))
+    for b in ("2B", "3B"):
+        assert _raporda_sayi(tex, d["maliyet_orani_MMA_bolu_OC"][b], 2), \
+            f"{b} maliyet oranı raporda yok"
+    e = d["esit_maliyet_3B"]
+    if e is None:
+        assert d["sabit_iterasyon_kiyasi_adil_mi"], "yanlı ama düzeltilmemiş"
+        return
+    # ESIT-MALIYET KOSUSU RAPORDA OLMALI: yanliligi olcup gidermeden
+    # yazmamak, olcumu gizlemekten farksiz.
+    assert str(e["OC_esit_maliyet"]["iterasyon"]) in tex
+    for anahtar in ("OC_esit_maliyet", "MMA"):
+        assert _raporda_sayi(tex, e[anahtar]["peak_gerilme"], 3), \
+            f"eşit-maliyet {anahtar} tepesi raporda yok"
+    assert e["MMA_hala_iyi_mi"], (
+        "eşit maliyette MMA öne geçmiyor — üretim kararının dayanağı düştü")
 
 
 def test_KAPSAM_iki_tabloda_AYNI_sayiyi_soyluyor(tex):
@@ -821,8 +880,15 @@ def test_rapor_MMA_BOLUM10_kanittan_sapmiyor(tex):
     # TABAN BIREBIR URETILDI MI — kiyasin gecerlilik kosulu
     assert k["3B_OC_warm"]["peak_gerilme"] == d["taban_kayit"]["3B"]["gerilme"], (
         "3B tabanı kayıtlı değeri vermiyor; kıyas MMA'yı değil ayar farkını ölçer")
-    # URETIM HALA OC — karar ayri
-    assert "ayrı bir karardır" in tex
+    # KARAR VERILDI — ama KISIT rapordan dusmemeli. Bu test onceden
+    # "ayrı bir karardır" ibaresini ariyordu; karar verilince o ibare
+    # dogal olarak kalkti ve test dustu. Olcut YANLIS SEYE bagliydi:
+    # onemli olan kararin ERTELENDIGI degil, hangi KISIT altinda
+    # verildigidir --- ve o kisit karardan sonra daha cok onemlidir.
+    assert "tek problem ailesi" in tex and "ayarlanmadı" in tex, \
+        "MMA kararının kısıtı (tek aile, ayarsız asimptot) rapordan düşmüş"
+    assert "genel bir üstünlük iddiası" in tex.lower() or \
+        "GENEL bir üstünlük" in tex
 
 
 def _raporda_sayi(tex: str, deger: float, en_az_basamak: int = 2) -> bool:

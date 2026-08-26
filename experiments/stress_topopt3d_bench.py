@@ -5,6 +5,7 @@ peak_vm(compliance). Üretim vehicle_topopt'un kompliyans-körlüğünün 3D'de 
 gösterir (motor: stress_topopt3d, adjoint FD-doğrulanmış).
 Kullanım: python experiments/stress_topopt3d_bench.py
 """
+import inspect
 import json
 import sys
 from pathlib import Path
@@ -64,6 +65,13 @@ def peak_eta(t, rho):
     return float((rho ** t.q * vm).max())
 
 
+def _varsayilan_guncelleyici() -> str:
+    """Motorun VARSAYILAN guncelleyicisi — sabit yazilmaz, imzadan okunur."""
+    from stress_topopt3d import StressTopo3D
+    return inspect.signature(StressTopo3D.optimize).parameters[
+        "guncelleyici"].default
+
+
 def main():
     t, passive = build_lbracket()
     print(f"3D L-bracket {N}x{N}x{NZ}, hacim={VF}, P={t.P}, "
@@ -73,7 +81,11 @@ def main():
     peak_c = peak_eta(t, rho_c)
     print(f"Kompliyans-min: peak η_vm={peak_c:.4f}, iter={len(hist_c)}", flush=True)
 
-    # Stress-min KOMPLİYANS-tasarımdan warm-start (Le 2010; OC stress'te tek-başına salınır)
+    # Stress-min KOMPLIYANS-tasarimdan warm-start (Le 2010). Gerekcesi ``OC
+    # stress'te tek-basina salinir'' idi ve o gerekce OC'YE OZGU olculdu
+    # (mma_bolum10): MMA warm-start OLMADAN 0,7579 veriyor, OC warm-start'la
+    # 0,762. Warm-start korunuyor cunku Le 2010 protokolu bu; artik bir
+    # ZORUNLULUK degil bir TERCIH.
     rho_s, hist_s = t.optimize(VF, "stress", max_iter=80, move=0.15, x0=rho_c)
     peak_s = peak_eta(t, rho_s)
     print(f"Gerilme-min:    peak η_vm={peak_s:.4f}, iter={len(hist_s)}", flush=True)
@@ -97,24 +109,33 @@ def main():
     rec = {
         "vaka": "3D L-bracket stress-temelli TO (kompliyans-min vs gerilme-min, aynı hacim)",
         "yontem": f"3D H8 SIMP, P-norm(P={t.P}) von Mises (6 bileşen), qp-relaks(q={t.q}), "
-                  "adjoint duyarlılık (FD-kontrollü), OC. ccx/CFD YOK — kendi-içinde Python.",
+                  "adjoint duyarlılık (FD-kontrollü). ccx/CFD YOK — kendi-içinde Python.",
+        # GUNCELLEYICI KAYDA GECER VE KODDAN OKUNUR: bu sonucun hangi
+        # algoritmayla uretildigi kaydin kendisinden bilinmeli, ve o bilgi
+        # varsayilan degisince sessizce eskimemeli.
+        "guncelleyici": _varsayilan_guncelleyici(),
         "grid": f"{N}x{N}x{NZ}", "volfrac": VF, "ndof": t.ndof,
         "peak_eta_vm_compliance": round(peak_c, 4),
         "peak_eta_vm_stress": round(peak_s, 4),
         "tepe_azalma_pct": round(redux, 1),
-        "warm_start": "kompliyans-tasarımından (Le 2010; OC stress'te tek-başına salınır)",
+        "warm_start": ("kompliyans-tasarımından (Le 2010). Gerekçesi OC'ye ÖZGÜ "
+                       "ölçüldü: MMA warm-start olmadan da koşuyor."),
         "sonuc": ("GECTI — 3D gerilme-min tepe von Mises'i düşürdü (kompliyans-körlüğü 3D'de "
                   "de gerilme-farkındalıkla giderilebilir)." if redux > 2 else
                   "BEKLENMEDIK — gerilme-min azaltmadı (incele)"),
         "_not": ("Motor: stress_topopt3d (adjoint gradyanı FD-doğrulanmış <1e-4, "
-                 "test_stress_topopt3d — gerilme-TO'nun KRİTİK verification'ı). 2D eşi %7.3; "
-                 "3D azalma daha ölçülü (kaba köşe + extrude seyreltme + OC'nin MMA'ya göre "
-                 "stress-TO zayıflığı) ama YÖN doğru ve adjoint kesin. Üretim notu: vehicle_topopt "
-                 "SADECE kompliyans → yüksek-gerilme tasarım; bu motor gerilme-farkındalığı 3D'ye "
-                 "taşır. Tam üretim-kalitesi için MMA + penal/P-continuation + ince grid önerilir."),
+                 "test_stress_topopt3d — gerilme-TO'nun KRİTİK verification'ı). "
+                 "3D azalma 2D eşinden ölçülü: kaba köşe + extrude seyreltme. "
+                 "Üretim notu: vehicle_topopt SADECE kompliyans → yüksek-gerilme "
+                 "tasarım; bu motor gerilme-farkındalığı 3D'ye taşır. Kalan "
+                 "iyileştirmeler: penal/P-continuation + ince grid."),
+        # URETIM KOMUTU KAYITTA DURMALI: onceki metni yeniden yazarken bu
+        # satir dustu ve kanit-manifesto olceri yakaladi --- kayit yeniden
+        # uretilebilir olmadan hukum tasiyamaz.
+        "_uretim": "Üretim: python experiments/stress_topopt3d_bench.py",
     }
     (HERE.parent / "stress_topopt3d_bench.json").write_text(
-        json.dumps(rec, indent=2, ensure_ascii=False), encoding="utf-8")
+        json.dumps(rec, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print("SONUC:", rec["sonuc"], flush=True)
     return 0 if redux > 5 else 2
 

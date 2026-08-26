@@ -1,0 +1,67 @@
+{
+  "vaka": "MMA iterasyon maliyeti — sabit-iterasyon kıyası adil mi",
+  "esit_maliyet_3B": {
+    "MMA": {
+      "iterasyon": 80,
+      "sure_s": 27.2,
+      "peak_gerilme": 0.7579
+    },
+    "OC_esit_maliyet": {
+      "iterasyon": 100,
+      "sure_s": 28.4,
+      "peak_gerilme": 0.7681
+    },
+    "MMA_hala_iyi_mi": true,
+    "fark_pct": 1.33,
+    "_not": "OC'ye 100 iterasyon verildi (MMA'nin 80 iterasyonuyla esit maliyet, oran 1.256x)."
+  },
+  "_neden": "Bolum 10 kiyaslari SABIT ITERASYON butcesinde kosuyor. MMA iterasyonu OC'den belirgin pahaliysa ayni SUREDE OC daha cok adim atar ve kiyas MMA lehine yanlidir.",
+  "iterasyon_butcesi": 30,
+  "kosular": {
+    "2B_OC": {
+      "toplam_s": 1.5,
+      "iterasyon": 30,
+      "iter_basi_ms": 50.1
+    },
+    "2B_MMA": {
+      "toplam_s": 1.52,
+      "iterasyon": 30,
+      "iter_basi_ms": 50.8
+    },
+    "3B_OC": {
+      "toplam_s": 8.45,
+      "iterasyon": 30,
+      "iter_basi_ms": 281.6
+    },
+    "3B_MMA": {
+      "toplam_s": 10.61,
+      "iterasyon": 30,
+      "iter_basi_ms": 353.7
+    }
+  },
+  "maliyet_orani_MMA_bolu_OC": {
+    "2B": 1.014,
+    "3B": 1.256
+  },
+  "sabit_iterasyon_kiyasi_adil_mi": false,
+  "verdikt": "MMA iterasyonu OC'ye göre 2B'de 1.014×, 3B'de 1.256× maliyetli. Fark %20'yi aşıyor (1.256×): sabit-iterasyon kıyası MMA lehine YANLI ve tek başına üretim kararına dayanak OLAMAZ. YANLILIK GİDERİLDİ --- OC'ye 100 iterasyon verildi (MMA'nın 80'iyle eşit maliyet): OC tepe 0.7681, MMA 0.7579. MMA EŞİT MALİYETTE DE ÖNDE (%1.33); üstünlük bütçeden gelmiyor.",
+  "_kisit": "Tek makine, tek kosu, isinma yok. Oran ~1 civarindaysa olcum gurultusu bu kadar bir farki tasiyabilir; hukum yalniz BUYUK bir fark olup olmadigini soyler.",
+  "_uretim": "Üretim: python experiments/mma_maliyet.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

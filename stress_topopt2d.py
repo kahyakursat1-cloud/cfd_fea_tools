@@ -186,15 +186,20 @@ class StressTopo2D:
         # ρ = H x / Hs  →  dobj/dx = H^T (dobj/dρ / Hs)
         return self.H.T @ (dobj_drho / self.Hs)
 
-    # ── OC döngüsü ────────────────────────────────────────────────────────────
+    # ── güncelleme döngüsü ────────────────────────────────────────────────────
     def optimize(self, volfrac, objective="stress", max_iter=80, move=0.2,
-                 tol=0.01, guncelleyici="oc"):
-        """`guncelleyici`: 'oc' (VARSAYILAN, uretim) ya da 'mma' (aday).
+                 tol=0.01, guncelleyici="mma"):
+        """`guncelleyici`: 'mma' (VARSAYILAN, uretim) ya da 'oc' (eski).
 
-        VARSAYILAN DEGISMEDI. Raporun kendi kosulu su: MMA'yi uretime almak
-        icin Bolum 10 kiyaslarinin MMA ile YENIDEN kosulmasi ve MMA'nin KENDI
-        durma olcutunun gosterilmesi gerekir. Bu parametre o kosulu
-        olculebilir kilar; secimi degistirmez.
+        VARSAYILAN 2026-08-26'DA MMA'YA ALINDI; gerekce ve olcumler
+        `stress_topopt3d.optimize` govdesinde yazili (tek kaynak).
+
+        2B'YE OZGU OKUMA: burada MMA'nin kazanci KALITE DEGIL. Tepe gerilme
+        berabere (OC 2,4819 / MMA 2,4820) ve iterasyon maliyeti ayni (1,01x).
+        Fark durmadadir: MMA 458 iterasyonda KENDI toleransiyla durdu, OC
+        2000 iterasyonda durmadi ve son adimi tam `move` sinirinda kaldi
+        (hareketin %94,8'i bosa gidiyor). Uretim tavanini kaldiran biri
+        OC ile SONSUZA kadar koşar; MMA ile sonuc alir.
         """
         x = np.full(self.ne, volfrac)
         x[self.passive] = self.emin
