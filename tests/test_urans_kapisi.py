@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import sys
 from pathlib import Path
 
@@ -259,7 +260,21 @@ def test_kararli_hal_DAVRANISI_degismedi(tmp_path):
     assert "fields { p 0.3; }" in sol
 
 
-def test_controlDict_transient_ADJUSTABLE_yaziyor(tmp_path, monkeypatch):
+def test_controlDict_transient_ZAMAN_ADIMINI_DOGRU_beyan_ediyor(tmp_path,
+                                                                monkeypatch):
+    """BEYAN İLE DAVRANIŞ AYNI ŞEYİ SÖYLEMELİ.
+
+    Bu test onceden `adjustableTimeStep yes` dizgisini sart kosuyordu ve
+    yesildi --- ama o ad OpenFOAM'da YOK (dogrusu `adjustTimeStep`), yani
+    test yazilan kusuru pinliyordu. Dosya "uyarlamali" diyor, cozucu sabit
+    adimla kosuyordu; iki capa ailesi bu celiskinin ustunde olculdu.
+
+    Yazim duzeltildi ama DAVRANIS BILEREK degistirilmedi (`no`): `yes`
+    yapmak mevcut capalari kiyaslanamaz kilardi. Test artik iki seyi birden
+    bagliyor: (i) anahtar OpenFOAM'in tanidigi ad olmali, (ii) `maxCo`
+    yazilacaksa ATIL oldugu dosyada gorunmeli --- okurun beyani gercek
+    sanmasi tam da bu vakada 2 kosuyu gecersiz kildi.
+    """
     from analysis.openfoam_runner import CFDCase, _write_control_dict
     (tmp_path / "system").mkdir(exist_ok=True)
     c = CFDCase(name="t", stl_path="x.stl", transient=True,
@@ -269,8 +284,17 @@ def test_controlDict_transient_ADJUSTABLE_yaziyor(tmp_path, monkeypatch):
     txt = (tmp_path / "system" / "controlDict").read_text(encoding="utf-8")
     assert "deltaT          0.00125" in txt
     assert "endTime         2.5" in txt
-    assert "adjustableRunTime" in txt and "adjustableTimeStep yes" in txt
-    assert "maxCo" in txt
+    assert "adjustableRunTime" in txt
+    # TANINMAYAN AD GERI GELMEMELI (yorum satirlari haric)
+    kod = "\n".join(s for s in txt.splitlines() if not s.lstrip().startswith("//"))
+    assert "adjustableTimeStep" not in kod, \
+        "OpenFOAM'in tanimadigi anahtar geri geldi — sessizce gecistirilir"
+    m = re.search(r"^adjustTimeStep\s+(\w+);", kod, re.M)
+    assert m, "zaman adimi uyarlamasi hic beyan edilmiyor"
+    # maxCo YAZILIYORSA ATIL OLDUGU YAZMALI
+    if re.search(r"^maxCo\s", kod, re.M):
+        assert m.group(1) == "yes" or "ATIL" in txt, \
+            "maxCo yaziyor ama uygulanmadigi soylenmiyor"
 
 
 def test_transient_PIMPLE_FINAL_girdilerini_yaziyor(tmp_path):

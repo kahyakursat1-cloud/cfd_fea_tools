@@ -140,12 +140,34 @@ def _poly_geometry(points, polys):
 
 
 def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
-                               rho: float = 1.225, p_is_kinematic: bool = True):
+                               rho: float = 1.225, p_is_kinematic: bool = True,
+                               sema: str = "korunumlu", esleme: dict | None = None):
     """CFD duvar basincini FEA STL dugum kuvvetlerine donustur.
 
     vtk_patch     : foamToVTK aircraft patch .vtk yolu
     fea_stl       : FEA yuzey STL (dugumler kuvvet alacak)
     p_is_kinematic: OpenFOAM incompressible p = P/rho (m2/s2). True ise rho ile carp.
+    sema          : "korunumlu" (VARSAYILAN) ya da "tutarli" (eski)
+    esleme        : `fsi_korunumlu_esleme.esleme_kur` ciktisi. Verilirse
+                    YENIDEN KURULMAZ --- 2-yonlu kuplajda esleme REFERANS
+                    konfigurasyonda bir kez kurulup tasinir.
+
+    VARSAYILAN SEMA DEGISTI (2026-08-26) ve bu UC BAGIMSIZ OLCUME dayanir:
+
+      KUVVET (24 vaka)     tutarli en kotu %72,04  ->  korunumlu %0,0000
+      MOMENT (24 vaka)     tutarli ortalama %11,06 ->  korunumlu %1,66
+                           korunumlu 24/24 vakada daha iyi
+      DEFORME (25 vaka)    her tur yeniden arama dugum yukunun %123,8'ini
+                           yalnizca deformasyondan dolayi yeniden dagitiyor;
+                           sabit eslemede kayma %0,0000
+
+    Eski sema NEDEN korunumsuzdu: basinci tasiyip kuvveti FEA aginda YENIDEN
+    INTEGRE ediyordu (F = -p_interp * n_FEA * A_FEA). Iki yuzeyin alani
+    farkliysa toplam kuvvet de farkli cikar. `_fsi_sinama`da (alan farki
+    %41,3) net kuvvetin ISARETI bile ters cikiyordu.
+
+    ESKI SEMA SILINMEDI: `sema="tutarli"` ile hala kosulur. Yayimlanmis bir
+    sonucu yeniden uretmek ya da iki semayi kiyaslamak icin gerekir.
 
     Donduru: {node_id: (Fx,Fy,Fz)} + ozet (korunum kontrolu dahil)
     """
@@ -188,19 +210,47 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
     dF_face = (-p_on_face[:, None]) * f_normals * f_areas[:, None]   # (F,3)
     total_F = dF_face.sum(axis=0)
 
-    # Yuzey kuvvetini 3 dugume esit dagit (korunumlu)
-    node_forces = np.zeros_like(fea_nodes)
-    for fi in range(len(faces)):
-        share = dF_face[fi] / 3.0
-        for nid in faces[fi]:
-            node_forces[nid] += share
+    _esleme = esleme
+    if sema == "korunumlu":
+        from fsi_korunumlu_esleme import (
+            disa_yonlendir,
+            esleme_kur,
+            esleme_uygula,
+        )
+        # NORMAL YONU FEA'NIN DIS-NORMALIYLE ESITLENIR. VTK poligon normali
+        # sarim yonunden gelir; OLCULDU ki butun vakalarda ICERI bakiyor.
+        # Esitlenmezse kuvvetin ISARETI ters cikar ve sonuc MAKUL GORUNUR.
+        _n_cfd, _ = disa_yonlendir(cfd_centers, cfd_normals,
+                                   f_centers, f_normals)
+        dF_cfd_yuz = (-p_pa[:, None]) * _n_cfd * cfd_areas[:, None]
+        if _esleme is None:
+            _esleme = esleme_kur(cfd_centers, fea_nodes, faces, f_centers)
+        node_forces = esleme_uygula(_esleme, dF_cfd_yuz, fea_nodes)
+    else:
+        # ESKI SEMA — yuzey kuvvetini 3 dugume esit dagit. Bu adim korunumlu
+        # ama ONCESI degil: kuvvet FEA aginda YENIDEN INTEGRE edilmisti.
+        node_forces = np.zeros_like(fea_nodes)
+        for fi in range(len(faces)):
+            share = dF_face[fi] / 3.0
+            for nid in faces[fi]:
+                node_forces[nid] += share
 
     total_F_node = node_forces.sum(axis=0)
     # Korunum: yeniden-dağıtım sum(F_dugum)==sum(F_yuzey). Normalleştirme NET kuvvete
     # DEGIL throughput'a (yuzey-kuvvet buyukluk toplami) — simetrik yukte net≈0 olsa da
     # metrik anlamli kalir (aksi halde 0'a bolup sahte-buyuk verir).
     throughput = float(np.linalg.norm(dF_face, axis=1).sum())
-    conservation_err = np.linalg.norm(total_F_node - total_F) / (throughput + 1e-30)
+    # KORUNUM METRIGI KENDI KAYNAGIYLA KIYASLANIR. "Yeniden dagitim bir sey
+    # kaybetti mi" sorusu, dagitilan seye baglidir: tutarli semada FEA yuz
+    # kuvveti, korunumlu semada CFD yuz kuvveti. Sema degistigi halde olcut
+    # eski kaynagi okumaya devam etseydi, %16,7 gibi anlamsiz bir "korunum
+    # hatasi" cikardi --- olculen sey korunum degil IKI SEMA ARASINDAKI FARK
+    # olurdu.
+    _kaynak = (dF_cfd_yuz.sum(axis=0) if sema == "korunumlu" else total_F)
+    _kaynak_tp = (float(np.linalg.norm(dF_cfd_yuz, axis=1).sum())
+                  if sema == "korunumlu" else throughput)
+    conservation_err = (np.linalg.norm(total_F_node - _kaynak)
+                        / (_kaynak_tp + 1e-30))
 
     # MOMENT korunumu. Kuvvet korunumu tek basina YETMEZ: ayni toplam kuvvet
     # tumuyle yanlis bir uzamsal dagilimla da elde edilebilir, ve yapiya giden
@@ -213,10 +263,20 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
     # uygulamanin teoriye uydugunun ve kayan-nokta birikiminin zararsiz
     # kaldiginin kanitidir. Farkli bir dagitim semasi (ornegin alan-agirlikli
     # veya en-yakin-dugum) momenti korumaz; metrik asil orada ayirt eder.
+    # MOMENT DE KENDI KAYNAGIYLA KIYASLANIR --- kuvvet gibi. Tutarli semada
+    # kaynak FEA yuz kuvvetinin agirlik merkezindeki momenti; korunumlu semada
+    # CFD yuz kuvvetinin CFD merkezindeki momenti.
     f_centroids = fea_nodes[faces].mean(axis=1)                      # (F,3)
-    M_face = np.cross(f_centroids, dF_face).sum(axis=0)
+    if sema == "korunumlu":
+        _M_kaynak = np.cross(cfd_centers, dF_cfd_yuz).sum(axis=0)
+        m_throughput = float(
+            np.linalg.norm(np.cross(cfd_centers, dF_cfd_yuz), axis=1).sum())
+    else:
+        _M_kaynak = np.cross(f_centroids, dF_face).sum(axis=0)
+        m_throughput = float(
+            np.linalg.norm(np.cross(f_centroids, dF_face), axis=1).sum())
+    M_face = _M_kaynak
     M_node = np.cross(fea_nodes, node_forces).sum(axis=0)
-    m_throughput = float(np.linalg.norm(np.cross(f_centroids, dF_face), axis=1).sum())
     moment_err = float(np.linalg.norm(M_node - M_face) / (m_throughput + 1e-30))
 
     # ═══ AKTARIM ARTIGI: KORUNMAYAN ADIM BURASI ═══
@@ -238,12 +298,23 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
     # dogrulama_kup'ta alanlar BIREBIR ayni (1,5 = 1,5 m2) ve artik yine %3,9,
     # yani orada artik saf ORNEKLEME hatasidir. _fsi_esnek'te alan %9,5 farkli
     # ve artik %20,3 — orada iki sebep birlikte.
-    F_cfd = ((-p_pa[:, None]) * cfd_normals * cfd_areas[:, None])
+    # KORUNUMLU SEMADA CFD NORMALI YONLENDIRILIR ve karsilastirilan nicelik
+    # DUGUMLERE GERCEKTEN GIDEN yuktur. Ilk surumde bu yapilmamisti ve iki
+    # sema AYNI aktarim hatasini veriyordu (%13,4455) — cunku olcut hala eski
+    # semanin YUZ kuvvetini okuyordu. Semayi degistirip olcutu degistirmemek,
+    # degisikligi GORUNMEZ kilar.
+    _n_olcut = cfd_normals
+    if sema == "korunumlu":
+        from fsi_korunumlu_esleme import disa_yonlendir
+        _n_olcut, _ = disa_yonlendir(cfd_centers, cfd_normals,
+                                     f_centers, f_normals)
+    F_cfd = ((-p_pa[:, None]) * _n_olcut * cfd_areas[:, None])
     total_F_cfd = F_cfd.sum(axis=0)
     cfd_throughput = float(np.linalg.norm(F_cfd, axis=1).sum())
     _bol = max(cfd_throughput, throughput) + 1e-30
-    aktarim_err = float(np.linalg.norm(total_F - total_F_cfd) / _bol)
-    aktarim_err_ters = float(np.linalg.norm(total_F + total_F_cfd) / _bol)
+    _teslim = total_F_node if sema == "korunumlu" else total_F
+    aktarim_err = float(np.linalg.norm(_teslim - total_F_cfd) / _bol)
+    aktarim_err_ters = float(np.linalg.norm(_teslim + total_F_cfd) / _bol)
     if aktarim_err_ters < aktarim_err:
         # Normal yonleri ters: karsilastirilabilir olan BUYUKLUKTUR.
         aktarim_err, _ters = aktarim_err_ters, True
@@ -294,13 +365,20 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
         "n_cfd_faces": len(polys),
         "n_fea_faces": len(faces),
         "n_fea_nodes": len(fea_nodes),
+        # ESLEME CAGIRANA DONER: 2-yonlu kuplajda REFERANS
+        # konfigurasyonda kurulup turlar boyunca TASINMALI.
+        "esleme": _esleme,
+        "sema": sema,
         # DUGUM KONUMLARI CAGIRANA GEREKLI: CalculiX dugum numarasi
         # KONUMA gore baglanir, STL indisine gore degil.
         "fea_nodes": fea_nodes,
         "n_loaded_nodes": len(forces),
         "p_min_Pa": float(p_pa.min()),
         "p_max_Pa": float(p_pa.max()),
-        "total_force_N": [round(float(x), 4) for x in total_F],
+        # TESLIM EDILEN YUK. Tutarli semada yuz-integrali ile ayni;
+        # korunumlu semada dugum toplami ASILDIR.
+        "total_force_N": [round(float(x), 4) for x in
+                          (total_F_node if sema == "korunumlu" else total_F)],
         "drag_Fx_N": round(float(total_F[0]), 4),
         "side_Fy_N": round(float(total_F[1]), 4),
         "lift_Fz_N": round(float(total_F[2]), 4),

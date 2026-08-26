@@ -50,6 +50,8 @@ class KuplajVakasi:
     tol: float = 1e-6                    # [m] arayüz yer değiştirme artığı
     kuru: bool = False
     gecmis: list = field(default_factory=list)
+    # REFERANS eslemesi — ilk turda kurulur, sonra TASINIR.
+    esleme: dict | None = None
 
 
 def _fea_yuzey(vaka: KuplajVakasi):
@@ -237,8 +239,18 @@ def kuplaj_haritasi(vaka: KuplajVakasi):
         export_surface_vtk(_r["case"], _r["govde_yamasi"])
 
         # 3) Akiskan -> yapi: yuzey basinci -> dugum kuvvetleri -> CalculiX
+        #
+        # ESLEME REFERANS KONFIGURASYONDA BIR KEZ KURULUR ve turlar boyunca
+        # TASINIR. Her turda deforme geometride yeniden aramak, dugum yukunun
+        # %123,8'ini YALNIZCA deformasyondan dolayi yeniden dagitiyordu
+        # (25 vakada olculdu). Ucgen atamasi hic degismese bile kayma olusur:
+        # baryentrik agirliklar deforme ucgene gore yeniden hesaplanir.
+        # Malzeme koordinati sabittir; degisen yalniz dugumlerin konumudur.
         yukler = cfd_pressure_to_fea_loads(_son_vtk(vaka), str(fea_stl),
-                                           rho=vaka.rho)
+                                           rho=vaka.rho,
+                                           esleme=vaka.esleme)
+        if vaka.esleme is None:
+            vaka.esleme = yukler.get("esleme")
         if yukler.get("status") == "FAILED":
             raise RuntimeError(f"yük aktarımı düştü: {yukler.get('error')}")
         # YUK GERCEKTEN UYGULANIR. Ilk surum `fsi.cload`'u yaziyor ama .inp

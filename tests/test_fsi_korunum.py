@@ -128,12 +128,27 @@ def test_KANIT_yapi_geregi_kesin_olani_KESIN_olarak_olcuyor():
         pytest.skip("fsi_korunum.json üretilmemiş")
     d = json.loads(p.read_text(encoding="utf-8"))
     assert d["olculen_vaka"] >= 10, "kanıt çok az vakadan üretilmiş"
+    # SEMA DEGISTI (2026-08-26) VE BU TESTIN IDDIASI DA DEGISTI.
+    # Eski (tutarli) semada UC metrik de esit-uctebir dagitimi olcuyordu ve
+    # ucu de YAPI GEREGI kesindi. Korunumlu semada kaynak CFD yuzudur:
+    #   KUVVET  hala kesin — agirliklar 1'e toplanir, bu bir KIMLIK
+    #   MOMENT  kesin DEGIL — kuvvet FEA ucgenine izdusurulur ve izdusum
+    #           kaymasi kadar artik kalir. Bu bir KUSUR degil, semanin
+    #           BILINEN BEDELI; gizlenmiyor, olculuyor.
+    # Bu testi "moment de kesin" diye birakmak, sema degisikligini
+    # gizlemek olurdu; kaldirmak ise kuvvet guvencesini korumasiz birakirdi.
     for v in d["vakalar"]:
-        for k in ("kuvvet_hatasi", "moment_hatasi", "arayuz_isi_hatasi"):
-            assert v[k] <= 1e-12, (
-                f"{v['vaka']}: {k}={v[k]:.2e} — bu metrik eşit-üçtebir "
-                f"şemasında YAPI GEREĞİ kesin olmalıydı; uygulama teoriden "
-                f"sapmış ya da kayan-nokta birikimi zararsız değil")
+        assert v["kuvvet_hatasi"] <= 1e-12, (
+            f"{v['vaka']}: kuvvet_hatasi={v['kuvvet_hatasi']:.2e} — korunumlu "
+            f"şemada bu bir KİMLİKTİR (ağırlıklar 1'e toplanır); sapıyorsa "
+            f"uygulama teoriden ayrılmış")
+    # MOMENT ARTIGI VAR AMA SINIRLI OLMALI. Ustu acik birakilirsa metrik
+    # hicbir seyi denetlemez; olculen en kotu %13,54 ve bir mertebe daha
+    # buyurse bu bir GERILEMEDIR.
+    mom = max(v["moment_hatasi"] for v in d["vakalar"])
+    assert mom <= 0.30, f"moment artığı {mom:.3f} — izdüşüm kayması büyümüş"
+    assert d["moment_artigi_en_kotu"] == round(mom, 5), (
+        "kanıt dosyası moment artığını yanlış özetliyor")
 
 
 def test_KANIT_aktarim_artigini_ALAN_farkindan_AYIRIYOR():
@@ -143,12 +158,21 @@ def test_KANIT_aktarim_artigini_ALAN_farkindan_AYIRIYOR():
         pytest.skip("fsi_korunum.json üretilmemiş")
     d = json.loads(p.read_text(encoding="utf-8"))
     temiz = [v for v in d["vakalar"] if v["alan_farki_pct"] <= 0.5]
-    assert temiz, "alanı tutan hiç vaka yok — artık saf örneklemeye izole edilemez"
-    # Alani tutan vakalarda bile artik SIFIR DEGIL: olculen sey gercek.
-    assert max(v["aktarim_hatasi_pct"] for v in temiz) > 0.5, (
-        "alanı tutan vakalarda aktarım artığı ölçülemeyecek kadar küçük — "
-        "metrik bir şey söylüyor mu?")
-    assert "SAF ÖRNEKLEME" in d["verdikt"]
+    assert temiz, "alanı tutan hiç vaka yok"
+    # ESKI IDDIA: "alani tutan vakalarda bile artik SIFIR DEGIL, olculen sey
+    # SAF ORNEKLEME hatasi". O, TUTARLI semanin ozelligiydi --- basinc
+    # en-yakin-komsu ile orneklendigi icin alanlar tutsa bile artik kaliyordu.
+    # KORUNUMLU semada ornekleme hatasi TOPLAM KUVVETE gecmez: kuvvet
+    # tasinir, basinc yeniden integre EDILMEZ. Artik her vakada sifirdir ve
+    # bu bir KIMLIKTIR.
+    assert max(v["aktarim_hatasi_pct"] for v in d["vakalar"]) < 1e-3, (
+        "korunumlu şemada aktarım artığı sıfır olmalı — ağırlıklar 1'e "
+        "toplanıyorsa bu bir kimliktir; sıfır değilse uygulama bozuk")
+    assert "KİMLİKTİR" in d["verdikt"], (
+        "kanıt sıfır artığı BULGU gibi sunuyor — o bir kimliktir")
+    # ORNEKLEME HATASI KAYBOLMADI, YER DEGISTIRDI: artik momentte gorunuyor.
+    assert d["moment_artigi_en_kotu"] > 0.0, (
+        "moment artığı da sıfır — izdüşüm kayması ölçülmüyor olabilir")
 
 
 def test_KANIT_sifir_yuklu_vakayi_OLCULEN_saymiyor():
@@ -158,5 +182,13 @@ def test_KANIT_sifir_yuklu_vakayi_OLCULEN_saymiyor():
     d = json.loads(p.read_text(encoding="utf-8"))
     assert any("YÜK YOK" in x for x in d["olculemeyen"]), (
         "sıfır-yüklü vaka ölçülemeyenler arasında gerekçesiyle durmalı")
+    # OLCUT SIFIR-YUKU GERCEKTEN AYIRAN SEYE BAGLI. Ilk surum "aktarim
+    # artigi ya da alan farki sifirdan buyuk olmali" diyordu; o, TUTARLI
+    # semada ise yariyordu cunku orada artik hep sifirdan buyuktu. Korunumlu
+    # semada IKISI DE sifir olabilir ve bu MESRUDUR --- artik bir kimlik,
+    # alan farki da bazi vakalarda gercekten sifir. Sifir-yuku ayiran sey
+    # YUZEYIN VARLIGIDIR.
     for v in d["vakalar"]:
-        assert v["aktarim_hatasi_pct"] > 0.0 or v["alan_farki_pct"] > 0.0
+        assert v["cfd_alan_m2"] > 0.0 and v["fea_alan_m2"] > 0.0, (
+            f"{v['vaka']}: yüzey alanı sıfır — yük yok sayılmalıydı")
+        assert v["n_cfd_yuz"] > 0 and v["n_fea_yuz"] > 0

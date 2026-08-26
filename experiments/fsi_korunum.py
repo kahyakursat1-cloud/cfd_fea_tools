@@ -87,9 +87,14 @@ def olc() -> dict:
             "cozunurluk_orani": round(r["n_fea_faces"] / max(r["n_cfd_faces"], 1), 3),
         })
 
-    kesin = [k for k in kayit
-             if max(k["kuvvet_hatasi"], k["moment_hatasi"],
-                    k["arayuz_isi_hatasi"]) <= KESIN_ESIK]
+    # SEMA DEGISTI (2026-08-26) VE BU HUKMU DE DEGISTIRDI. Eski (tutarli)
+    # semada kuvvet ve moment FEA yuzu->dugum dagitimini olcuyordu ve
+    # esit-uctebir semasinda UCU DE yapi geregi kesindi. Korunumlu semada
+    # kaynak CFD yuzudur: KUVVET hala kesin (agirliklar 1'e toplanir) ama
+    # MOMENT degil --- kuvvet FEA ucgenine IZDUSURULUR ve izdusum kaymasi
+    # kadar bir artik kalir. O artik gizlenmez, AYRICA olculur.
+    kesin = [k for k in kayit if k["kuvvet_hatasi"] <= KESIN_ESIK]
+    mom_kesin = [k for k in kayit if k["moment_hatasi"] <= KESIN_ESIK]
     # ALANI TUTAN vakalar artigi SAF ORNEKLEME olarak okutur; hukum oradan
     # kurulur, cunku ote vakalarda iki sebep ayrilamaz.
     temiz = [k for k in kayit if k["alan_farki_pct"] <= 0.5]
@@ -97,22 +102,30 @@ def olc() -> dict:
 
     return {
         "vaka": "FSI yük aktarımında korunum — üç metrik",
-        "_neden": ("Mevcut iki metrik (kuvvet, moment) FEA yuzu -> dugum "
-                   "dagitimini olcer ve esit-uctebir semasinda YAPI GEREGI "
-                   "kesindir. Gercekten korunmayan adim CFD -> FEA basinc "
-                   "aktarimidir ve HIC olculmuyordu."),
+        "_neden": ("Eski (tutarli) semada kuvvet ve moment FEA yuzu -> dugum "
+                   "dagitimini olcuyordu ve YAPI GEREGI kesindi; gercekten "
+                   "korunmayan adim CFD -> FEA basinc aktarimiydi ve HIC "
+                   "olculmuyordu. Olculunce %0,07-%72,04 cikti ve sema "
+                   "degistirildi. Bu kayit YENI semanin olcumudur."),
         "olculen_vaka": len(kayit),
         "vakalar": kayit,
         "olculemeyen": dusen,
-        "yapi_geregi_kesin_olan": f"{len(kesin)}/{len(kayit)}",
+        "kuvvet_kesin_olan": f"{len(kesin)}/{len(kayit)}",
+        "moment_kesin_olan": f"{len(mom_kesin)}/{len(kayit)}",
+        "moment_artigi_en_kotu": round(max(
+            (k["moment_hatasi"] for k in kayit), default=0.0), 5),
         "verdikt": (
-            (f"YAPI GEREĞİ KESİN OLANLAR DOĞRULANDI ({len(kesin)}/{len(kayit)} "
-             f"vakada kuvvet, moment ve arayüz işi ≤ {KESIN_ESIK:g}). AMA "
-             f"KORUNMAYAN ADIM ÖLÇÜLDÜ: CFD→FEA basınç aktarımı "
-             f"%{min(k['aktarim_hatasi_pct'] for k in kayit):.1f}–"
-             f"%{en_kotu['aktarim_hatasi_pct']:.1f} arasında artık bırakıyor "
-             f"(en kötü: {en_kotu['vaka']}). Alanı tutan "
-             f"{len(temiz)} vakada artık SAF ÖRNEKLEME hatasıdır.")
+            (f"KORUNUMLU ŞEMA ÜRETİMDE. CFD→FEA aktarım artığı "
+             f"%{max(k['aktarim_hatasi_pct'] for k in kayit):.4f} --- "
+             f"{len(kayit)}/{len(kayit)} vakada SIFIR. Bu bir KİMLİKTİR "
+             f"(ağırlıklar 1'e toplanır), bulgu değil: eski şemada aynı "
+             f"vakalarda %72,04'e kadar çıkıyordu. Kuvvet korunumu "
+             f"{len(kesin)}/{len(kayit)} vakada makine hassasiyetinde. "
+             f"MOMENT KORUNMAZ ve bu GİZLENMİYOR: kuvvet FEA üçgenine "
+             f"izdüşürülür, izdüşüm kayması kadar artık kalır --- en kötü "
+             f"%{100 * max((k['moment_hatasi'] for k in kayit), default=0):.2f}. "
+             f"Alanı tutan {len(temiz)} vakada aktarım zaten sorunsuzdu; "
+             f"şema değişikliğinin kazancı alanı TUTMAYAN vakalardadır.")
             if kayit else "ÖLÇÜLEMEDİ — yüzey-basınç VTK'sı olan vaka yok"),
         "_kisit": (
             "Artik bir DOGRULUK hukmu degil bir AKTARIM hukmudur: FEA'ya giden "

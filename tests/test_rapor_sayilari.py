@@ -416,11 +416,20 @@ def test_rapor_CAPA_cozucu_surumunu_kanittan_yaziyor(tex):
 
 
 def test_rapor_FSI_AKTARIM_tablosu_kanittan_sapmiyor(tex):
-    """Aktarım artıkları elle yazılamaz — koşular yenilenince değişir."""
+    """Aktarım artıkları elle yazılamaz — koşular yenilenince değişir.
+
+    TABLO TARIHSELDIR ve ESKI (tutarli) semanin olcumudur; uretim semasi
+    degistirildi (bkz. sub:fsi-korunumlu). Ilk surum onu YENI semanin
+    kaydiyla kiyasliyordu ve dustu --- olcut yanlisti: eski semanin sayisi
+    eski semanin olcumunden gelmelidir. O olcum silinmedi, kiyas kaydinda
+    `mevcut_aktarim_pct` olarak duruyor; tablo ORAYA baglanir. Boylece
+    tarihsel tablo da canli kalir: eski sema yeniden kosulursa ve sayilar
+    degisirse bu test duser.
+    """
     import json
-    p = KOK / "fsi_korunum.json"
+    p = KOK / "fsi_esleme_kiyasi.json"
     if not p.exists():
-        pytest.skip("fsi_korunum.json üretilmemiş")
+        pytest.skip("fsi_esleme_kiyasi.json üretilmemiş")
     d = json.loads(p.read_text(encoding="utf-8"))
     tabloda = re.findall(
         r"\\texttt\{([A-Za-z0-9_\\]+)\} & [\d.]+ & [\d.]+ & "
@@ -431,11 +440,28 @@ def test_rapor_FSI_AKTARIM_tablosu_kanittan_sapmiyor(tex):
         vaka = ad.replace("\\_", "_")
         assert vaka in kayit, f"{vaka} kanıtta yok"
         assert float(f"{ai}.{af}") == pytest.approx(
-            kayit[vaka]["aktarim_hatasi_pct"], abs=0.06), vaka
+            kayit[vaka]["mevcut_aktarim_pct"], abs=0.06), vaka
         assert float(f"{bi}.{bf}") == pytest.approx(
             kayit[vaka]["alan_farki_pct"], abs=0.06), vaka
+    # TABLONUN TARIHSEL OLDUGU YAZIYOR MU. Yazmiyorsa okur bu sayilari
+    # bugunku uretim davranisi sanir --- kusurun ta kendisi.
+    assert "tarihseldir" in tex
     # SIFIR-YUK dersi rapordan sessizce dusmemeli
     assert "kusursuz korunum" in tex
+
+
+def test_rapor_FSI_VAKA_SAYISI_kanittan_sapmiyor(tex):
+    """Ölçülen/ölçülemeyen ayrımı raporda kanıttaki sayıyla aynı olmalı."""
+    import json
+    p = KOK / "fsi_korunum.json"
+    if not p.exists():
+        pytest.skip("fsi_korunum.json üretilmemiş")
+    d = json.loads(p.read_text(encoding="utf-8"))
+    toplam = d["olculen_vaka"] + len(d["olculemeyen"])
+    m = re.search(r"(\d+) gerçek koşuda ölçüldü, (\d+)'ü ölçülebilir", tex)
+    assert m, "rapor FSI koşu sayısını yazmıyor"
+    assert int(m.group(1)) == toplam, f"raporda {m.group(1)}, kanıtta {toplam}"
+    assert int(m.group(2)) == d["olculen_vaka"]
 
 
 def test_rapor_FSI_TAHRIK_bandi_kanittan_sapmiyor(tex):
@@ -797,3 +823,54 @@ def test_rapor_MMA_BOLUM10_kanittan_sapmiyor(tex):
         "3B tabanı kayıtlı değeri vermiyor; kıyas MMA'yı değil ayar farkını ölçer")
     # URETIM HALA OC — karar ayri
     assert "ayrı bir karardır" in tex
+
+
+def _raporda_sayi(tex: str, deger: float, en_az_basamak: int = 2) -> bool:
+    """Kanıttaki sayı raporda MAKUL BİR YUVARLAMAYLA geçiyor mu.
+
+    Ilk surum tam ondalik esitlik ariyordu (kanit 72.041, rapor \\%72{,}04) ve
+    dustu. Olcut iddiadan DARDI: rapor bir sayiyi yuvarlayarak yazabilir,
+    yanlis yazamaz. Bu yuzden yuvarlanmis bicimler kabul edilir --- ama
+    keyfi degil: en az `en_az_basamak` anlamli ondalik korunmali, yoksa
+    "%72" gibi bir kirpma her seye uyar ve denetim islevsizlesir.
+    """
+    tam = f"{deger}".rstrip("0").rstrip(".")
+    n = len(tam.split(".")[1]) if "." in tam else 0
+    for b in range(max(n, en_az_basamak), en_az_basamak - 1, -1):
+        s = f"{round(deger, b):.{b}f}".rstrip("0").rstrip(".")
+        if s.replace(".", "{,}") in tex:
+            return True
+    return n <= en_az_basamak and tam.replace(".", "{,}") in tex
+
+
+def test_rapor_FSI_SEMA_DEGISIKLIGI_kanittan_sapmiyor(tex):
+    """Şema değişikliğinin üç dayanağı da raporda ve kanıtta aynı olmalı."""
+    import json
+    kiyas = KOK / "fsi_esleme_kiyasi.json"
+    duy = KOK / "fsi_yapisal_duyarlilik.json"
+    defo = KOK / "fsi_deforme_esleme.json"
+    if not (kiyas.exists() and duy.exists() and defo.exists()):
+        pytest.skip("FSI şema kanıtları üretilmemiş")
+    k = json.loads(kiyas.read_text(encoding="utf-8"))["ozet"]
+    d = json.loads(duy.read_text(encoding="utf-8"))["ozet"]
+    f = json.loads(defo.read_text(encoding="utf-8"))["ozet"]
+    for deger in (k["mevcut_en_kotu_pct"], k["mevcut_moment_ortalama_pct"],
+                  k["korunumlu_moment_ortalama_pct"],
+                  k["korunumlu_moment_en_kotu_pct"],
+                  f["yeniden_kayma_en_kotu_pct"]):
+        assert _raporda_sayi(tex, deger), \
+            f"şema kararının dayanağı ({deger}) raporda yok"
+    # BUYUTME CARPANI ARALIGI
+    a, b = d["buyutme_carpani_araligi"]
+    assert _raporda_sayi(tex, a) and _raporda_sayi(tex, b)
+    # ILISKININ 1:1 OLMADIGI SOYLENIYOR MU
+    assert "alt sınırıdır" in tex or "ALT SINIRIDIR" in tex
+    # ESKI TABLO TARIHSEL ISARETLI
+    assert "tarihseldir" in tex, "eski şemanın tablosu güncel gibi duruyor"
+    # ESKI SEMA GERI ALINABILIR
+    assert 'sema="tutarli"' in tex
+
+    # KANIT DOSYASI ILE URETIM AYNI SEMADA MI
+    kor = json.loads((KOK / "fsi_korunum.json").read_text(encoding="utf-8"))
+    assert "KİMLİKTİR" in kor["verdikt"], "korunum kanıtı eski şemadan"
+    assert max(v["aktarim_hatasi_pct"] for v in kor["vakalar"]) < 1e-3

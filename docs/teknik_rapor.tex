@@ -1503,8 +1503,13 @@ tensörün yalnız antisimetrik kısmıdır; simetrik kısmın yaptığı iş ik
 metrikte de görünmez. İkincisi aktarım artığı: CFD yüzeyindeki toplam kuvvet
 ile FEA yüzeyindekinin farkı.
 
-21 gerçek koşuda ölçüldü. Yapı gereği kesin olması gereken üç metrik 20
-vakanın hepsinde $\le\!10^{-12}$; aktarım artığı ise \%0{,}1--\%56{,}3.
+25 gerçek koşuda ölçüldü, 24'ü ölçülebilir çıktı. Yapı gereği kesin
+olması gereken üç metrik hepsinde $\le\!10^{-12}$; aktarım artığı
+ise \%0{,}2--\%56{,}3.
+\emph{Aşağıdaki tablo ESKİ (tutarlı) şemanın ölçümüdür ve tarihseldir:}
+şema bu bulgu yüzünden değiştirildi (\S
+ef{sub:fsi-korunumlu}) ve aynı
+vakalarda aktarım artığı bugün \%0{,}0000'dır.
 
 \begin{center}\footnotesize
 \begin{tabular}{@{}lrrrr@{}}
@@ -1539,12 +1544,91 @@ okuyan yoldu. Yük yoksa metrikler artık \texttt{null} döner ve gerekçe
 yazılır; kanıt üreticisi o vakayı ölçülen saymaz.
 \end{dikkat}
 
-\noindent Eşik \emph{dayatılmıyor}: bugün hiçbir üretim yolu bu sayıya bakıp
-koşuyu reddetmiyor. Sayı önce görünür olmalı --- ne kadarının kabul edilebilir
-olduğu, aktarımın hangi yapısal büyüklüğü ne kadar etkilediğine bağlıdır ve o
-ölçülmedi. Artık ayrıca bir \emph{doğruluk} hükmü değil bir \emph{aktarım}
-hükmüdür: FEA'ya giden yükün CFD'nin hesapladığından ne kadar saptığını
-söyler, CFD'nin doğru olup olmadığını değil.
+\noindent Artık bir \emph{doğruluk} hükmü değil bir \emph{aktarım} hükmüdür:
+FEA'ya giden yükün CFD'nin hesapladığından ne kadar saptığını söyler, CFD'nin
+doğru olup olmadığını değil.
+
+\subsection{Şema değiştirildi: kuvvet taşınıyor, basınç yeniden integre edilmiyor}
+\label{sub:fsi-korunumlu}
+
+Yukarıdaki bölüm ``eşik dayatılmıyor, çünkü aktarımın hangi yapısal büyüklüğü
+ne kadar etkilediği ölçülmedi'' diyordu. O ölçüldü, ve ölçüldüğünde eşik değil
+\emph{şema} değişti.
+
+\textbf{Kusur şemadaydı.} Eski şema (``tutarlı'') basıncı taşıyıp kuvveti FEA
+ağında \emph{yeniden integre} ediyordu: $F_{\text{FEA}} = \sum(-p_{\text{interp}}
+\cdot n_{\text{FEA}} \cdot A_{\text{FEA}})$. İki yüzeyin alanı farklıysa toplam
+kuvvet de farklı çıkar. Yeni şema (``korunumlu'') CFD yüzünün \emph{kuvvetini}
+toplamı 1 olan baryentrik ağırlıklarla FEA düğümlerine dağıtır; toplam kuvvet
+yapı gereği korunur. Bu bir yaklaşım değil kimliktir.
+
+\textbf{Karar üç bağımsız ölçüme dayanır}, hiçbiri tek başına yeterli değildi:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}llrr@{}}
+\toprule
+Ölçüm & Vaka & tutarlı & korunumlu \\
+\midrule
+Kuvvet aktarım artığı (en kötü) & 24 & \%72{,}04 & \textbf{\%0{,}0000} \\
+Moment artığı (ortalama, aynı ölçüt) & 24 & \%11{,}06 & \textbf{\%1{,}66} \\
+Deforme yüzeyde düğüm kayması (en kötü) & 25 & \%123{,}83 & \textbf{\%0{,}0000} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Moment karşılaştırması \emph{aynı ölçütle} yapıldı. Eski şemanın
+raporladığı $10^{-17}$'lik moment hatası FEA yüzü$\rightarrow$düğüm adımını
+ölçer ve eşit-üçtebir dağıtımında yapı gereği kesindir --- bu rapor onu zaten
+``yanıltıcı'' diye işaretlemişti. İki şemayı o sayıyla kıyaslamak yeni şemayı
+haksız yere kötü gösterirdi; kıyaslanabilir nicelik CFD$\rightarrow$FEA moment
+farkıdır.
+
+\textbf{Ret eşiği artık fiziksel bir temele oturuyor.} Aynı ağ, aynı sınır
+koşulları, yalnız yük seti değiştirilerek CalculiX iki kez koşuldu:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Vaka & aktarım & sehim farkı & büyütme \\
+\midrule
+\texttt{\_fsi\_esnek}  & \%20{,}25 & \%72{,}24 & \textbf{3{,}57$\times$} \\
+\texttt{\_fsi\_sinama} & \%13{,}45 & \%14{,}92 & 1{,}11$\times$ \\
+\texttt{fsi\_tahrik*}  & \phantom{0}\%8{,}4 & \phantom{0}\%7{,}4 & 0{,}88$\times$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent İlişki 1:1 \emph{değil}: büyütme çarpanı 0{,}88--3{,}57. Yani
+``aktarım hatası \%$X$ ise sehim hatası da $\sim$\%$X$'' varsayımı yanlıştır ve
+aktarım hatası tasarım niceliği hatasının \textbf{alt sınırıdır}. En kötü
+vakada yükün büyüklüğü \%30 değişirken dağılımı moment kolunu da değiştirdi.
+
+\textbf{Bedel gizlenmiyor.} Korunumlu şemada kuvvet kesin ama \emph{moment
+değil}: kuvvet FEA üçgenine izdüşürülür ve izdüşüm kayması kadar artık kalır
+(en kötü \%13{,}54). Eski şema silinmedi --- \texttt{sema="tutarli"} ile hâlâ
+koşulur, çünkü yayımlanmış bir sonucu yeniden üretebilmek şema değişikliğinin
+geri-alınabilir olmasının koşuludur.
+
+\begin{dikkat}{İki kusur yolda bulundu ve ikisi de bu çalışmanındı}
+\textbf{İşaret.} İlk ölçüm ``\%20,25 aktarım $\rightarrow$ \%72 sehim'' verdi ve
+bu bir bulgu sanıldı. Değildi: korunumlu şema CFD poligon normalini, eski şema
+FEA dış-normalini kullanıyordu ve ölçüldü ki \emph{bütün} vakalarda CFD normali
+içeri bakıyor. Kuvvetin işareti tersti ($F_z = -0{,}106$ vs $+0{,}151$\,N).
+İşaret hatası büyüklük hatasından sinsidir: sonuç makul görünür.
+
+İlk düzeltme ölçütü de yanlıştı. ``Yüzey merkezinden gövde merkezine iç
+çarpım'' kapalı ve şişkin bir cisimde çalışır, \emph{düz levhada dejenere olur}
+--- iki yüz de merkeze aynı uzaklıkta, normalleri zıt. Elde FEA girdisi olan
+vakaların hepsi düz levha, yani ölçüt tam da işe yaramayacağı yerde seçilmişti.
+Referans artık FEA'nın doğrulanmış dış-normali.
+
+\textbf{Düğüm numarası.} \texttt{write\_cload}, STL köşe \emph{indisini}
+doğrudan CalculiX düğüm numarası sayıyordu --- iki ağın düğümleri aynı sırada
+yazdığı varsayımı. Ölçüldü: beş FSI vakasının hepsinde ilk 8 düğüm STL'in 8
+köşesinin ta kendisi ama sıraları farklı; köşe 4 ile 7 yer değişmiş. Etkisi bu
+vakalarda küçüktü (moment hatası \%0{,}010) ama bu bir tesadüftür: köşe sayısı
+arttıkça permütasyon keyfîleşir. Bağlama artık konuma göre.
+\end{dikkat}
 
 \subsection{Eşleştirme neyi götürüyor: $\rho$ ölçüldü}
 \label{sub:rho}

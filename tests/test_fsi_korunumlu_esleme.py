@@ -92,14 +92,46 @@ def test_kiyas_kaniti_IKI_SEMAYI_AYNI_olcutle_kiyasliyor():
     assert "DEĞİŞTİRİLMEDİ" in d["verdikt"]
 
 
-def test_uretim_yolu_HENUZ_degismedi():
-    """Ölçmeden değiştirmek bu çalışmanın reddettiği şey. Üretim yolu
-    (`coupling_fsi`) hâlâ mevcut şemayı kullanmalı; değişirse bu test
-    kasıtlı olarak düşer ve karar kayda geçmiş olur."""
+def test_uretim_yolu_KORUNUMLU_semada():
+    """Üretim şeması DEĞİŞTİ (2026-08-26) ve karar ÜÇ ÖLÇÜME dayanır.
+
+    Bu test önce ``üretim HENÜZ değişmedi'' diye yazılmıştı ve değişince
+    KASITLI olarak düşsün diye kurulmuştu --- ölçmeden değiştirmeyi
+    engellemek için. Üç ölçüm tamamlandı:
+
+        KUVVET  (24 vaka)  tutarlı en kötü %72,04  ->  korunumlu %0,0000
+        MOMENT  (24 vaka)  tutarlı ortalama %11,06 ->  korunumlu %1,66
+                           korunumlu 24/24 vakada daha iyi
+        DEFORME (25 vaka)  her tur yeniden arama düğüm yükünün %123,8'ini
+                           yalnızca deformasyondan dolayı yeniden dağıtıyor
+
+    ESKİ ŞEMA SİLİNMEDİ: `sema="tutarli"` ile hâlâ koşulur --- yayımlanmış
+    bir sonucu yeniden üretmek için gerekir.
+    """
     src = (KOK / "coupling_fsi.py").read_text(encoding="utf-8")
-    assert "korunumlu_dagit" not in src, (
-        "üretim yolu korunumlu şemaya geçmiş — yapısal yanıt kıyası yapıldı mı? "
-        "Yapıldıysa bu testi gerekçesiyle güncelleyin.")
+    assert 'sema: str = "korunumlu"' in src, "varsayılan şema korunumlu değil"
+    assert "esleme_uygula" in src, "üretim yolu korunumlu şemayı çağırmıyor"
+    assert '"tutarli"' in src, "eski şema kaldırılmış — yeniden üretilemez"
+
+
+def test_ESKI_sema_hala_kosulabiliyor():
+    """Yayımlanmış bir sonucu yeniden üretebilmek, şema değişikliğinin
+    geri-alınabilir olmasının koşulu."""
+    import inspect
+
+    from coupling_fsi import cfd_pressure_to_fea_loads
+    p = inspect.signature(cfd_pressure_to_fea_loads).parameters
+    assert p["sema"].default == "korunumlu"
+    assert "esleme" in p, "referans eşlemesi taşınamıyor — deforme kayma geri gelir"
+
+
+def test_KORUNUM_metrigi_KENDI_kaynagiyla_kiyasliyor():
+    """Şema değişip ölçüt eski kaynağı okumaya devam etseydi, korunum hatası
+    %16,7 gibi anlamsız çıkardı --- ölçülen şey korunum değil İKİ ŞEMA
+    ARASINDAKİ FARK olurdu."""
+    src = (KOK / "coupling_fsi.py").read_text(encoding="utf-8")
+    for anahtar in ("_kaynak", "dF_cfd_yuz.sum"):
+        assert anahtar in src, f"korunum ölçütü kaynağına bağlı değil: {anahtar}"
 
 
 def test_NORMAL_YONU_FEA_ile_esitleniyor():
