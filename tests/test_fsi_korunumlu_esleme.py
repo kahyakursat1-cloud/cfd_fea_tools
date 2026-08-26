@@ -100,3 +100,56 @@ def test_uretim_yolu_HENUZ_degismedi():
     assert "korunumlu_dagit" not in src, (
         "üretim yolu korunumlu şemaya geçmiş — yapısal yanıt kıyası yapıldı mı? "
         "Yapıldıysa bu testi gerekçesiyle güncelleyin.")
+
+
+def test_NORMAL_YONU_FEA_ile_esitleniyor():
+    """İşaret hatası büyüklük hatasından sinsidir: sonuç makul görünür.
+
+    ÖLÇÜLDÜ: yönlendirme olmadan korunumlu şemanın Fz'si −0,106 N, mevcut
+    şemanın +0,151 N çıktı ve yapısal duyarlılık bunu ``%72 sehim farkı''
+    diye raporladı. O sayı bulgu değil kusurdu.
+    """
+    from fsi_korunumlu_esleme import disa_yonlendir
+    fea_m = np.array([[0.0, 0, 0.5], [0.0, 0, -0.5]])
+    fea_n = np.array([[0.0, 0, 1.0], [0.0, 0, -1.0]])
+    # CFD normali TERS
+    n, ters = disa_yonlendir(fea_m.copy(), -fea_n, fea_m, fea_n)
+    assert ters is True and np.allclose(n, fea_n)
+    # CFD normali AYNI
+    n2, ters2 = disa_yonlendir(fea_m.copy(), fea_n, fea_m, fea_n)
+    assert ters2 is False and np.allclose(n2, fea_n)
+
+
+def test_ILK_YONLENDIRME_OLCUTU_geri_cekildigi_KAYITLI():
+    """Geometrik ölçüt (gövde merkezine iç çarpım) DÜZ LEVHADA dejenere olur
+    ve elde FEA girdisi olan vakaların hepsi düz levha --- yani ölçüt tam da
+    işe yaramayacağı yerde seçilmişti. Geri çekiliş kodda yazılı olmalı."""
+    src = (KOK / "fsi_korunumlu_esleme.py").read_text(encoding="utf-8")
+    i = src.index("def disa_yonlendir(")
+    govde = src[i:src.index("\ndef ", i + 10)]
+    assert "DEJENERE" in govde and "levha" in govde.lower()
+    assert "_fsi_sinama" in govde, "hangi vakanın çürüttüğü yazılmamış"
+
+
+def test_BUYUTME_CARPANI_kapiya_baglandi():
+    """Aktarım hatası tasarım niceliği DEĞİLDİR; kapı çarpanı bildirmeli."""
+    from fsi_aktarim_kapisi import BUYUTME_CARPANI_ARALIGI, aktarim_hukmu
+    h = aktarim_hukmu(3.88, 0.0, 12.0)
+    assert h["tasarim_niceligi_alt_sinir_pct"] == round(3.88 * BUYUTME_CARPANI_ARALIGI[0], 2)
+    assert h["tasarim_niceligi_ust_sinir_pct"] == round(3.88 * BUYUTME_CARPANI_ARALIGI[1], 2)
+    assert "ALT SINIRIDIR" in h["neden"], "aktarım hatası kestirim gibi sunuluyor"
+    assert BUYUTME_CARPANI_ARALIGI[1] > 1.0, "büyütme ölçülmemiş gibi duruyor"
+
+
+def test_duyarlilik_kaniti_ILISKININ_1e1_OLMADIGINI_soyluyor():
+    import json
+    y = KOK / "fsi_yapisal_duyarlilik.json"
+    if not y.exists():
+        pytest.skip("duyarlılık ölçülmemiş")
+    d = json.loads(y.read_text(encoding="utf-8"))
+    assert "1:1 OLMAMASI" in d["verdikt"]
+    a, b = d["ozet"]["buyutme_carpani_araligi"]
+    assert a < 1.0 < b, f"çarpan aralığı 1'i kapsamıyor: {a}--{b}"
+    # BETIK KENDI CIKTISINI GIRDI SAYMAMALI
+    adlar = [k["vaka"] for k in d["vakalar"]]
+    assert len(adlar) == len(set(adlar)), f"vaka tekrarlanmış: {adlar}"

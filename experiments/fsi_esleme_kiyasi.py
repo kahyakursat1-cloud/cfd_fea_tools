@@ -43,7 +43,7 @@ def _tek_vaka(vtk: str, stl: str) -> dict | None:
     import trimesh
 
     from coupling_fsi import _parse_legacy_vtk, _poly_geometry
-    from fsi_korunumlu_esleme import korunumlu_dagit
+    from fsi_korunumlu_esleme import disa_yonlendir, korunumlu_dagit
 
     # BASINCI AYNI YOLDAN OKU. Ikinci bir ayristirma yazmak, iki semayi
     # kiyaslanamaz yapardi --- fark SEMADAN mi OKUMADAN mi gelirdi
@@ -58,10 +58,19 @@ def _tek_vaka(vtk: str, stl: str) -> dict | None:
     else:
         return None
     cfd_merkez, cfd_normal, cfd_alan = _poly_geometry(points, polys)
+    # NORMAL YONU ESITLENIR. VTK poligon normali sarim yonunden gelir
+    # ve OLCULDU: butun vakalarda ICERI bakiyor; FEA tarafi
+    # `fix_normals` ile DISARI. Esitlenmezse iki semanin kuvveti
+    # TERS ISARETLI cikar ve moment kiyasi anlamsizlasir.
+    _m = trimesh.load(stl, force="mesh")
+    trimesh.repair.fix_normals(_m)
+    cfd_normal, _cfd_ters = disa_yonlendir(
+        cfd_merkez, cfd_normal,
+        np.asarray(_m.triangles_center, float),
+        np.asarray(_m.face_normals, float))
     p_pa = np.asarray(p_poly, float) * 1.225      # kinematik -> Pa (hava)
 
-    mesh = trimesh.load(stl, force="mesh")
-    trimesh.repair.fix_normals(mesh)
+    mesh = _m
     dugum, faces = np.asarray(mesh.vertices, float), np.asarray(mesh.faces)
     f_merkez = np.asarray(mesh.triangles_center, float)
 

@@ -52,6 +52,26 @@ ALAN_KIMLIK_ESIGI_PCT = 5.0
 # hangi vakalarin sinifinin degistigi testte yazilidir.
 MUTLAK_RED_PCT = 25.0
 
+# BUYUTME CARPANI — OLCULDU (5 vaka, fsi_yapisal_duyarlilik.json).
+#
+# Aktarim hatasi TASARIM NICELIGI DEGILDIR; karar sehim ve gerilmeyle verilir.
+# "Aktarim hatasi %X ise sehim hatasi da ~%X" varsaymak, olculmemis bir oranti
+# kabul etmektir. Ayni ag, ayni sinir kosullari, yalniz yuk seti degistirilerek
+# olculdu:
+#
+#     _fsi_esnek    aktarim %20,25  ->  sehim %72,24   carpan 3,57
+#     _fsi_sinama   aktarim %13,45  ->  sehim %14,92   carpan 1,11
+#     fsi_tahrik*   aktarim  %8,4   ->  sehim  %7,4    carpan 0,88
+#
+# Yani aktarim hatasi tasarim-niceligi hatasinin ALT SINIRIDIR. En kotu vakada
+# yukun BUYUKLUGU %30 degisirken DAGILIMI moment kolunu da degistirdi ve sehim
+# farki 3,6 kat buyudu.
+#
+# KISIT: bes vakanin hepsi basit levha. Ince yuzeyli gercek geometride carpan
+# OLCULMEMISTIR ve daha buyuk olabilir; bu yuzden carpan bir DUZELTME olarak
+# kullanilmaz, kullaniciya BILDIRILIR.
+BUYUTME_CARPANI_ARALIGI = (0.88, 3.57)
+
 
 def aktarim_hukmu(aktarim_hatasi_pct: float | None,
                   alan_farki_pct: float | None = None,
@@ -118,5 +138,14 @@ def aktarim_hukmu(aktarim_hatasi_pct: float | None,
     return {"kullanilabilir": True, "kod": "BAND_ICINDE",
             "aktarim_pct": a, "u_toplam_pct": u,
             "alan_farki_pct": _alan,
+            "tasarim_niceligi_alt_sinir_pct": round(a * BUYUTME_CARPANI_ARALIGI[0], 2),
+            "tasarim_niceligi_ust_sinir_pct": round(a * BUYUTME_CARPANI_ARALIGI[1], 2),
             "neden": (f"Aktarım hatası %{a:.2f}, yayımlanan bandın (%{u:.2f}) "
-                      f"içinde ve mutlak eşiğin altında." + _teshis)}
+                      f"içinde ve mutlak eşiğin altında. TASARIM NİCELİĞİNE "
+                      f"KARŞILIĞI: ölçülen büyütme çarpanı "
+                      f"{BUYUTME_CARPANI_ARALIGI[0]:g}--"
+                      f"{BUYUTME_CARPANI_ARALIGI[1]:g} ile sehim/gerilme farkı "
+                      f"%{a * BUYUTME_CARPANI_ARALIGI[0]:.2f}--"
+                      f"%{a * BUYUTME_CARPANI_ARALIGI[1]:.2f} bandına düşer; "
+                      f"aktarım hatası bu bandın ALT SINIRIDIR, kestirimi "
+                      f"değildir." + _teshis)}

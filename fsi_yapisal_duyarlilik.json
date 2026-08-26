@@ -1,0 +1,138 @@
+{
+  "vaka": "FSI yük eşlemesi — yapısal yanıt duyarlılığı",
+  "_neden": "Aktarim hatasi olculuyor ama tasarim kararindaki nicelik SEHIM ve GERILME. Bir ret esigi ancak ikisi arasindaki iliski olculunce fiziksel temele oturur.",
+  "olculen_vaka": 5,
+  "dusen": [],
+  "vakalar": [
+    {
+      "vaka": "_fsi_esnek",
+      "aktarim_hatasi_pct": 20.25,
+      "alan_farki_pct": 9.48,
+      "kayan_dugum": 2,
+      "izdusum_kaymasi_govde_orani": 0.032945,
+      "mevcut": {
+        "kostu": true,
+        "max_sehim_m": 0.00018573582907958734,
+        "max_vonmises_pa": 779598.7724800566
+      },
+      "korunumlu": {
+        "kostu": true,
+        "max_sehim_m": 5.1565860573275515e-05,
+        "max_vonmises_pa": 216367.81640632232
+      },
+      "sehim_fark_pct": 72.237,
+      "gerilme_fark_pct": 72.2463,
+      "buyutme_carpani": 3.567
+    },
+    {
+      "vaka": "_fsi_sinama",
+      "aktarim_hatasi_pct": 13.446,
+      "alan_farki_pct": 41.3,
+      "kayan_dugum": 2,
+      "izdusum_kaymasi_govde_orani": 0.035525,
+      "mevcut": {
+        "kostu": true,
+        "max_sehim_m": 2.9280249776208693e-06,
+        "max_vonmises_pa": 31010.739100828665
+      },
+      "korunumlu": {
+        "kostu": true,
+        "max_sehim_m": 3.364831691209391e-06,
+        "max_vonmises_pa": 25303.874417826693
+      },
+      "sehim_fark_pct": 14.9181,
+      "gerilme_fark_pct": 18.4029,
+      "buyutme_carpani": 1.109
+    },
+    {
+      "vaka": "fsi_tahrik2",
+      "aktarim_hatasi_pct": 8.406,
+      "alan_farki_pct": 7.65,
+      "kayan_dugum": 2,
+      "izdusum_kaymasi_govde_orani": 0.039305,
+      "mevcut": {
+        "kostu": true,
+        "max_sehim_m": 0.039132329277710834,
+        "max_vonmises_pa": 48276202.819030724
+      },
+      "korunumlu": {
+        "kostu": true,
+        "max_sehim_m": 0.0362553197072192,
+        "max_vonmises_pa": 44720627.52009733
+      },
+      "sehim_fark_pct": 7.352,
+      "gerilme_fark_pct": 7.3651,
+      "buyutme_carpani": 0.875
+    },
+    {
+      "vaka": "fsi_tahrik22",
+      "aktarim_hatasi_pct": 8.413,
+      "alan_farki_pct": 7.65,
+      "kayan_dugum": 2,
+      "izdusum_kaymasi_govde_orani": 0.039305,
+      "mevcut": {
+        "kostu": true,
+        "max_sehim_m": 0.011842139121525872,
+        "max_vonmises_pa": 14609199.720014239
+      },
+      "korunumlu": {
+        "kostu": true,
+        "max_sehim_m": 0.010965336205225351,
+        "max_vonmises_pa": 13525651.618792705
+      },
+      "sehim_fark_pct": 7.4041,
+      "gerilme_fark_pct": 7.4169,
+      "buyutme_carpani": 0.88
+    },
+    {
+      "vaka": "fsi_tahrikH",
+      "aktarim_hatasi_pct": 8.375,
+      "alan_farki_pct": 7.65,
+      "kayan_dugum": 2,
+      "izdusum_kaymasi_govde_orani": 0.039305,
+      "mevcut": {
+        "kostu": true,
+        "max_sehim_m": 0.011835539099937073,
+        "max_vonmises_pa": 14601022.108322622
+      },
+      "korunumlu": {
+        "kostu": true,
+        "max_sehim_m": 0.01096243619555236,
+        "max_vonmises_pa": 13522087.03869104
+      },
+      "sehim_fark_pct": 7.377,
+      "gerilme_fark_pct": 7.3894,
+      "buyutme_carpani": 0.881
+    }
+  ],
+  "ozet": {
+    "buyutme_carpani_araligi": [
+      0.875,
+      3.567
+    ],
+    "aktarim_en_kotu_pct": 20.25,
+    "sehim_farki_en_kotu_pct": 72.237,
+    "gerilme_farki_en_kotu_pct": 72.2463
+  },
+  "verdikt": "5 vakada ölçüldü. En kötü aktarım hatası %20.25, buna karşılık sehimde %72.24, gerilmede %72.25 fark. ASIL BULGU İLİŞKİNİN 1:1 OLMAMASI: büyütme çarpanı 0.88--3.57 arasında. Yani ``aktarım hatası %X ise sehim hatası da ~%X'' varsayımı YANLIŞ; aktarım hatası tasarım niceliği hatasının ALT SINIRIDIR, kestirimi değil. En kötü vakada %20,25'lik aktarım hatası sehimde %72,24 fark üretti --- yükün BÜYÜKLÜĞÜ %30 değişirken DAĞILIMI moment kolunu da değiştirdiği için. Bir ret eşiği bu çarpan olmadan konamaz. KISIT: elde FEA girdisi olan vakaların hepsi basit levha; ince yüzeyli gerçek geometride çarpan ölçülmemiştir.",
+  "sure_dk": 0.4,
+  "_kisit": "HANGI SEMANIN DOGRU OLDUGU SOYLENMEZ — ikisinin de referansi yok. Olculen sey iki semanin yapisal yaniti ne kadar AYIRDIGI. Ayrica elde FEA girdisi olan vakalarin hepsi 8-koseli basit levhadir; ince yuzeyli gercek geometride ayrim BUYUK olabilir ve bu OLCULMEMISTIR.",
+  "_uretim": "Üretim: python experiments/fsi_yapisal_duyarlilik.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

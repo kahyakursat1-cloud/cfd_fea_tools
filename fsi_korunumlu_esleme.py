@@ -37,6 +37,41 @@ from __future__ import annotations
 import numpy as np
 
 
+def disa_yonlendir(merkez: np.ndarray, normal: np.ndarray,
+                   fea_merkez: np.ndarray,
+                   fea_normal: np.ndarray) -> tuple[np.ndarray, bool]:
+    """CFD poligon normallerini FEA dış-normaliyle AYNI yöne çevir.
+
+    VTK poligon normali sarım yönünden gelir ve içe ya da dışa bakabilir; FEA
+    tarafı `trimesh.repair.fix_normals` ile dışa yönlendirilmiştir. İkisi ters
+    olduğunda kuvvetin İŞARETİ ters çıkar --- ve işaret hatası büyüklük
+    hatasından sinsidir, çünkü sonuç makul görünür.
+
+    ÖLÇÜLDÜ: bu düzeltme olmadan korunumlu şemanın $F_z$'si $-0{,}106$ N,
+    mevcut şemanın $+0{,}151$ N çıktı. Yapısal duyarlılık çalışması bunu
+    ``%72 sehim farkı'' diye raporladı; o sayı bulgu değil kusurdu.
+
+    İLK ÖLÇÜT GEOMETRİKTİ VE DÜZ LEVHADA DEJENERE OLDU. ``Yüzey merkezinden
+    gövde merkezine olan vektörle iç çarpım'' kapalı ve şişkin bir cisimde
+    çalışır; bir LEVHADA iki yüz de merkeze aynı uzaklıktadır ve normalleri
+    zıttır, dolayısıyla toplam iç çarpımın işareti gürültüdür. Ölçüldü:
+    `_fsi_sinama` bu ölçütle ters kaldı. Elde FEA girdisi olan vakaların
+    HEPSİ düz levha --- yani ölçüt tam da işe yaramayacağı yerde seçilmişti.
+
+    REFERANS FEA'NIN DIŞ-NORMALİDİR ve bu bir varsayım değil: `fix_normals`
+    su-geçirmez ağda yönü DÜZELTİR, üretim yolu da onu zaten güvenilir sayar
+    (``STL dışa-normali güvenilir''). Her CFD yüzü en yakın FEA yüzüyle
+    eşleştirilir; çoğunluk ters bakıyorsa CFD normalleri çevrilir.
+    """
+    from scipy.spatial import cKDTree
+
+    _, es = cKDTree(fea_merkez).query(merkez, k=1)
+    ic = np.einsum("ij,ij->i", normal, fea_normal[es])
+    # ALANA DEGIL SAYIYA bakilir: burada sorulan sey "hangi yon", "ne kadar"
+    # degil. Buyuk bir yuzun isareti kucuk yuzlerin cogunlugunu ezmemeli.
+    return (-normal, True) if float(np.sign(ic).sum()) < 0 else (normal, False)
+
+
 def baryentrik(p: np.ndarray, a: np.ndarray, b: np.ndarray,
                c: np.ndarray) -> np.ndarray:
     """`p`nin `abc` üçgenindeki baryentrik ağırlıkları --- kırpılmış.
