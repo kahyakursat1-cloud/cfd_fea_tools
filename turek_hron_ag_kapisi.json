@@ -1,0 +1,57 @@
+{
+  "vaka": "Turek-Hron ağ kapısı — snappy 2B'liği koruyor mu?",
+  "_neden": "snappy 3B bir aractir ve hucreleri IZOTROPIK boler. Ince bir alanda z'de de bolerse on/arka yuzler `empty` olmaktan cikar ve vaka 2B DEGILDIR. Bu sorulmadan ag kurulmaz.",
+  "taban_ag": {
+    "nx": 250,
+    "ny": 41,
+    "nz": 1,
+    "seviye": [
+      2,
+      2
+    ]
+  },
+  "kosu": {
+    "adimlar": [
+      {
+        "komut": "blockMesh > log.blockMesh 2>&1",
+        "rc": 0,
+        "kuyruk": "f defined boundary faces : 6\n\t\tNumber of undefined boundary faces : 0\n\tChecking patch -> block consistency\n\nCreating block offsets\nCreating merge list .\n\nCreating polyMesh from blockMesh\nCreating patches\nCreating cells\nCreating points with scale 1\n    Block 0 cell size :\n        i : 0.01 .. 0.01\n        j : 0.01 .. 0.01\n        k : 0.01\n\nWriting polyMesh\n----------------\nMesh Information\n----------------\n  boundingBox: (0 0 0) (2.5 0.41 0.01)\n  nPoints: 21084\n  nCells: 10250\n  nFaces: 41291\n  nInternalFaces: 20209\n----------------\nPatches\n----------------\n  patch 0 (start: 20209 size: 41) name: giris\n  patch 1 (start: 20250 size: 41) name: cikis\n  patch 2 (start: 20291 size: 250) name: ust\n  patch 3 (start: 20541 size: 250) name: alt\n  patch 4 (start: 20791 size: 20500) name: yanlar\n\nEnd"
+      },
+      {
+        "komut": "snappyHexMesh -overwrite > log.snappy 2>&1",
+        "rc": 1,
+        "kuyruk": "--> FOAM FATAL ERROR: \nMesh provided is not fully 3D as required for mesh relaxation after snapping\nConvert all empty patches to appropriate types for a 3D mesh, current patch types are\n\n5\n(\npatch\npatch\nwall\nwall\nempty\n)\n\n\n    From function snappyHexMesh\n    in file snappyHexMesh.C at line 706.\n\nFOAM exiting"
+      }
+    ]
+  },
+  "sinir": {
+    "okunabildi": false,
+    "neden": "ağ kurulmadı"
+  },
+  "checkMesh": null,
+  "yanlar_empty_kaldi": false,
+  "govde_yamasi_var": false,
+  "empty_yuz_bolu_hucre": null,
+  "z_yonunde_tek_hucre": false,
+  "kapi_gecildi": false,
+  "verdikt": "KAPI GEÇİLMEDİ --- ve engel ayar değil ARACIN KENDİSİ: snappyHexMesh, `empty` yamalı bir ağı REDDEDİYOR (\"Mesh provided is not fully 3D as required for mesh relaxation after snapping\"). Yani bu depoda gövde-etrafı ağ kuran TEK yol 2B vakada KULLANILAMAZ. Sonuç bir ayar denemesiyle değişmez; Turek-Hron için ağ elle `blockMeshDict` ile (silindir çevresinde O-grid) kurulmalı ve bu AYRI, büyük bir iştir. Bilinen üçüncü yol --- snappy'yi 3B koşup sonra `createPatch` ile yüzleri `empty` yapmak --- z yönünde bölünmeyi ENGELLEMEZ (snappy izotropik böler), yani 2B'lik yine kaybolur. Kapının erken sorulmasının kazandırdığı şey budur: ağ kurma denemelerine saatler harcanmadan yol kapandı.",
+  "_kisit": "BU KAPI AKIS COZMEZ. Yalniz agin 2B kalip kalmadigini ve govde yuzeyinin yakalanip yakalanmadigini olcer. Ag KALITESI (non-ortho, skewness) checkMesh ciktisinda gorunur ama burada HUKME sokulmaz --- kapiyi gecen bir ag, iyi bir ag demek degildir. Seviye ve taban ag SECILDI, optimize EDILMEDI.",
+  "_uretim": "Üretim: python experiments/turek_hron_ag_kapisi.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

@@ -2997,9 +2997,41 @@ Analitik (Euler--Bernoulli) & 8{,}2252 & yardımcı, asıl ölçüt değil \\
         koşu ``max.\ \# of increments reached'' ile düştü; tavan artık
         istenen adım sayısından türetiliyor.
 
-        \noindent \textbf{Üç varyantın da önünde ölçülen bir engel kalmadı} ---
-        ama \emph{ulaşılabilir}, \emph{koşuldu} demek değildir: hiçbir
-        Turek--Hron vakası bu depoda koşulmadı ve doğrulanmış da değiller.
+        \noindent \textbf{Üç varyantın da önünde ölçülen bir yetenek engeli
+        kalmadı} --- ama \emph{ulaşılabilir}, \emph{koşuldu} demek değildir.
+        Nitekim koşulmaya girişildiğinde \emph{başka} bir engel çıktı.
+
+        \textbf{Geometri kuruldu ve doğrulandı} (\texttt{turek\_hron\_ag.json}):
+        804 üçgen, su-geçirmez, hacim analitikten \%0{,}007
+        sapıyor. Bayrağın silindire tutturulduğu $x$ çemberden \emph{türetilir}
+        ($0{,}2 + \sqrt{0{,}05^2 - 0{,}01^2}$); sabit yazılsaydı bayrak teğet
+        değil kesik dururdu ve aradaki yarık ağda hücreyle dolardı. Doğrulama
+        sırasında bir kusur çıktı ve \emph{referanstaydı}: analitik alan
+        formülü ``örtüşme çıkarılarak'' diyordu ama kod çıkarmıyordu --- çemberin
+        kiriş sağındaki dilim iki kez sayılıyordu. Sapma \%0{,}098'den
+        \%0{,}007'ye indi. Yanlış bir referans, doğru bir geometriyi suçlar.
+
+        \textbf{Ağ kapısı ise KAPANDI, ve engel ayar değil aracın kendisi.}
+        Bu depoda gövde-etrafı ağ kuran tek yol \texttt{snappyHexMesh}'tir ve o
+        \texttt{empty} yamalı bir ağı \emph{reddediyor}: ``Mesh provided is not
+        fully 3D as required for mesh relaxation after snapping.'' Yani 2B vaka
+        bu yoldan kurulamaz. Bilinen üçüncü yol --- snappy'yi 3B koşup sonra
+        \texttt{createPatch} ile yüzleri \texttt{empty} yapmak --- z yönünde
+        bölünmeyi engellemez (snappy izotropik böler), yani 2B'lik yine
+        kaybolur. Turek--Hron için ağ elle \texttt{blockMeshDict} ile (silindir
+        çevresinde O-grid) kurulmalıdır ve bu ayrı, büyük bir iştir.
+
+        \noindent Kapının \emph{önce} sorulmasının kazandırdığı şey budur: ağ
+        kurma denemelerine saatler harcanmadan yol kapandı ve engelin \emph{yeri}
+        öğrenildi. Sondanın kendisinde de bir kusur çıktı --- ilk koşuda gerekçe
+        boş göründü, çünkü çıktı \texttt{log.snappy}'ye yönlendiriliyor ama
+        \texttt{stdout} okunuyordu; OpenFOAM'ın \textsc{fatal error}'u dosyadaydı
+        ve kimse okumuyordu. Bu raporun avladığı kusur, bu kez ölçümün
+        \emph{kendisinde}.
+
+        \noindent Hüküm değişmedi ama gerekçesi bir kez daha yer değiştirdi:
+        altyapı ve çözücü yetenekleri hazır, \emph{ağ} hazır değil.
+        Hiçbir Turek--Hron vakası koşulmadı ve doğrulanmış da değiller.
         Engelin adı kayıttan \emph{türetiliyor}; ilk sürüm ``(NLGEOM)'' diye
         sabit yazıyordu ve yetenek eklenince cümle bayatladı.
   \item[Süpersonik mutlak $C_d$.] 3B-açık çözüm bu donanımda ulaşılamaz.
