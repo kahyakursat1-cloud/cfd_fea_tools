@@ -52,15 +52,45 @@ _NE_GEREKIYOR = {
         "bellegi (4,62 GB) ASIYOR. Yani hucre hem dar hem de bu donanimda "
         "ulasilmaz."),
     "lifting.wall_resolved": (
-        "Deneysel referansli 3B tasima capasi. Mevcut tek capa (NACA0012 kanat "
-        "AR6) YARI-ANALITIK referansa (Prandtl tasima-cizgisi) dayaniyor ve "
-        "u_D=%15; ag ne kadar inceltilirse inceltilsin u_val %15'in altina "
-        "INEMEZ, yani model hatasi ayrilamaz. Ag degil REFERANS degismeli."),
+        "Deneysel referansli 3B tasima capasi. Mevcut tek aday NACA0012 kanat "
+        "AR6; referansi 2026-08-19'da Ladson TM-4074 OLCUMUNE tasindi "
+        "(u_D asagida OKUNUR, sabit yazilmaz) ama kosu snappyHexMesh'te "
+        "bellekten dustu. Engel artik referans DEGIL, hesap."),
     "lifting.wall_function": (
-        "Ayni kisit: referans belirsizligi (%15) baskin. Ek olarak bu hucrenin "
-        "eski %35.43 degeri bu betigin olcutleriyle REDDEDILDI (sayisal band "
-        "%17.4 > %15) ve hucre oncule dondu."),
+        "OLCULDU (lifting_wf_fizibilite.json): eski gerekce 'referans "
+        "belirsizligi %15 baskin' CURUDU --- u_D bugun %1,0 ve o cumle elle "
+        "yazilip veriyle guncellenmemisti. Yeni olcum ag butcesini tariyor: "
+        "duvar-fonksiyonu agi duvar-cozunurden ~2 kat ucuz ama bos bellege "
+        "ancak kiris basina ~50 hucrede siginiyor. GCI UC seviye ister ve o "
+        "EN INCE seviyedir; savunulabilir bir tasima capasi icin yetersiz."),
 }
+
+
+def _engel_metni(anahtar: str) -> str:
+    """Hücrenin kapanma engeli --- ÖLÇÜM VARSA ONDAN, yoksa sabit metinden.
+
+    NEDEN. Bu tablo elle yazilmisti ve tam da bu yuzden CURUDU:
+    `lifting.wall_function` satiri ``referans belirsizligi %15 baskin''
+    diyordu, oysa AR6 referansi 2026-08-19'da Ladson olcumune tasinip u_D
+    %1,0'a inmisti. Cumle veriyle birlikte guncellenmedi ve yol haritasi
+    aylarca cürümüs bir engeli tasidi. Gerekce artik KANITTAN yazilir;
+    kanit yenilendiginde metin de yenilenir.
+    """
+    olcum = {
+        "lifting.wall_function": KOK / "lifting_wf_fizibilite.json",
+        "bluff.wall_resolved": KOK / "bluff_duvar_cozunur_fizibilite.json",
+    }.get(anahtar)
+    if olcum is not None and olcum.exists():
+        try:
+            d = json.loads(olcum.read_text(encoding="utf-8"))
+            v = d.get("verdikt")
+            if v:
+                return f"OLCULDU ({olcum.name}): {v}"
+        except (OSError, ValueError) as e:
+            # SESSIZ YUTMA DEGIL: okunamayan kanit gerekcede GORUNUR.
+            return (f"OLCUM OKUNAMADI ({olcum.name}: {type(e).__name__}) — "
+                    + _NE_GEREKIYOR.get(anahtar, "gerekçe yok"))
+    return _NE_GEREKIYOR.get(anahtar, "deneysel referanslı, ayrılabilir bir çapa")
 
 
 def _u_ref_turet(ref: dict) -> float | None:
@@ -934,9 +964,8 @@ def calistir() -> dict:
             if not birlesik.get(rejim, {}).get(islem):
                 oncul_kalan.append({"rejim": rejim, "duvar": islem,
                                     "oncul_pct": v,
-                                    "kapanmasi_icin": _NE_GEREKIYOR.get(
-                                        f"{rejim}.{islem}",
-                                        "deneysel referanslı, ayrılabilir bir çapa")})
+                                    "kapanmasi_icin": _engel_metni(
+                                        f"{rejim}.{islem}")})
 
     # BU BETIGIN HESAPLAMADIGI HUCRELER. Band dosyasinda duruyorlar ama baska
     # bir kampanyadan geldiler; kac capadan turedikleri ve tek-capa kuralinin

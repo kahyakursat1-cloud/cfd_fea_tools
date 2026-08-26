@@ -1,0 +1,181 @@
+{
+  "vaka": "lifting.wall_function — engel donanım mı, ağ hedefi mi?",
+  "_neden": "Hucrenin kayitli engeli 'referans belirsizligi %15' idi ve BAYAT: AR6 referansi Ladson olcumune tasindi, u_ref %1,0. Olculen tek engel kosunun BELLEKTEN dusmesi --- ama o kosu duvar-COZUNUR ag oruyordu; bu hucre duvar-FONKSIYONU.",
+  "capa_gecmisi": {
+    "_kaynak": "validation_anchors_runs\\_anchor_naca0012_wing_ar6\\sonuc.json",
+    "kord_m": 3.0,
+    "aciklik_m": 18.0,
+    "u_ms": 30.0,
+    "islak_alan_m2": 111.60199,
+    "dusme_gerekcesi": [
+      "DÜŞEN AŞAMA: snappyHexMesh — hata (dönüş kodu 137), 1319 s sonra"
+    ]
+  },
+  "referans_belirsizligi_pct": 1.0,
+  "referans_belirsizligi_sinifi": "ALT SINIR (yalnız e bandı; Ladson'ın deneysel belirsizliği doğrulanmadı)",
+  "eski_gerekce_gecerli_mi": false,
+  "cozunurluk_egrisi": [
+    {
+      "yplus_hedef": 30.0,
+      "ilk_hucre_um": 830.41,
+      "u_tau_ms": 1.0838,
+      "katman_sayisi": 16,
+      "yuzey_hucre_mm": 15.0,
+      "hucre_kestirimi": 23808424,
+      "bellek_gb": 51.33,
+      "bellek_kaynagi": "ölçülen (3 koşu, bellek_katsayisi.json)",
+      "bos_bellek_gb": 5.17,
+      "bellege_sigar_mi": false,
+      "sure_saat_kestirim": 71.6,
+      "h_bolu_kiris": 0.005,
+      "kiris_basina_hucre": 200
+    },
+    {
+      "yplus_hedef": 30.0,
+      "ilk_hucre_um": 830.41,
+      "u_tau_ms": 1.0838,
+      "katman_sayisi": 19,
+      "yuzey_hucre_mm": 22.5,
+      "hucre_kestirimi": 12565557,
+      "bellek_gb": 27.12,
+      "bellek_kaynagi": "ölçülen (3 koşu, bellek_katsayisi.json)",
+      "bos_bellek_gb": 5.17,
+      "bellege_sigar_mi": false,
+      "sure_saat_kestirim": 37.8,
+      "h_bolu_kiris": 0.0075,
+      "kiris_basina_hucre": 133
+    },
+    {
+      "yplus_hedef": 30.0,
+      "ilk_hucre_um": 830.41,
+      "u_tau_ms": 1.0838,
+      "katman_sayisi": 20,
+      "yuzey_hucre_mm": 30.0,
+      "hucre_kestirimi": 7440132,
+      "bellek_gb": 16.09,
+      "bellek_kaynagi": "ölçülen (3 koşu, bellek_katsayisi.json)",
+      "bos_bellek_gb": 5.17,
+      "bellege_sigar_mi": false,
+      "sure_saat_kestirim": 22.4,
+      "h_bolu_kiris": 0.01,
+      "kiris_basina_hucre": 100
+    },
+    {
+      "yplus_hedef": 30.0,
+      "ilk_hucre_um": 830.41,
+      "u_tau_ms": 1.0838,
+      "katman_sayisi": 22,
+      "yuzey_hucre_mm": 45.0,
+      "hucre_kestirimi": 3637398,
+      "bellek_gb": 7.9,
+      "bellek_kaynagi": "ölçülen (3 koşu, bellek_katsayisi.json)",
+      "bos_bellek_gb": 5.17,
+      "bellege_sigar_mi": false,
+      "sure_saat_kestirim": 10.9,
+      "h_bolu_kiris": 0.015,
+      "kiris_basina_hucre": 67
+    },
+    {
+      "yplus_hedef": 30.0,
+      "ilk_hucre_um": 830.41,
+      "u_tau_ms": 1.0838,
+      "katman_sayisi": 24,
+      "yuzey_hucre_mm": 60.0,
+      "hucre_kestirimi": 2232039,
+      "bellek_gb": 4.88,
+      "bellek_kaynagi": "ölçülen (3 koşu, bellek_katsayisi.json)",
+      "bos_bellek_gb": 5.17,
+      "bellege_sigar_mi": true,
+      "sure_saat_kestirim": 6.7,
+      "h_bolu_kiris": 0.02,
+      "kiris_basina_hucre": 50
+    },
+    {
+      "yplus_hedef": 30.0,
+      "ilk_hucre_um": 830.41,
+      "u_tau_ms": 1.0838,
+      "katman_sayisi": 26,
+      "yuzey_hucre_mm": 90.0,
+      "hucre_kestirimi": 1074685,
+      "bellek_gb": 2.39,
+      "bellek_kaynagi": "ölçülen (3 koşu, bellek_katsayisi.json)",
+      "bos_bellek_gb": 5.17,
+      "bellege_sigar_mi": true,
+      "sure_saat_kestirim": 3.2,
+      "h_bolu_kiris": 0.03,
+      "kiris_basina_hucre": 33
+    }
+  ],
+  "_capalarin_kullandigi_bant": {
+    "disk": 0.0158,
+    "kup": 0.0234,
+    "ahmed": 0.0114,
+    "kure": 0.0204,
+    "_not": "h/L olculdu (L = en buyuk boyut). Kanatta ilgili uzunluk KIRIS'tir, kunt gövdede en buyuk boyut --- yani bu bant birebir tasinamaz, yalniz MERTEBE verir."
+  },
+  "bellege_sigan_en_ince": {
+    "yplus_hedef": 30.0,
+    "ilk_hucre_um": 830.41,
+    "u_tau_ms": 1.0838,
+    "katman_sayisi": 24,
+    "yuzey_hucre_mm": 60.0,
+    "hucre_kestirimi": 2232039,
+    "bellek_gb": 4.88,
+    "bellek_kaynagi": "ölçülen (3 koşu, bellek_katsayisi.json)",
+    "bos_bellek_gb": 5.17,
+    "bellege_sigar_mi": true,
+    "sure_saat_kestirim": 6.7,
+    "h_bolu_kiris": 0.02,
+    "kiris_basina_hucre": 50
+  },
+  "duvar_fonksiyonu_butcesi": {
+    "yplus_hedef": 30.0,
+    "ilk_hucre_um": 830.41,
+    "u_tau_ms": 1.0838,
+    "katman_sayisi": 20,
+    "yuzey_hucre_mm": 30.0,
+    "hucre_kestirimi": 7440132,
+    "bellek_gb": 16.09,
+    "bellek_kaynagi": "ölçülen (3 koşu, bellek_katsayisi.json)",
+    "bos_bellek_gb": 5.17,
+    "bellege_sigar_mi": false,
+    "sure_saat_kestirim": 22.4,
+    "h_bolu_kiris": 0.01,
+    "kiris_basina_hucre": 100
+  },
+  "duvar_cozunur_butcesi": {
+    "yplus_hedef": 1.0,
+    "ilk_hucre_um": 27.68,
+    "u_tau_ms": 1.0838,
+    "katman_sayisi": 39,
+    "yuzey_hucre_mm": 30.0,
+    "hucre_kestirimi": 14508258,
+    "bellek_gb": 31.3,
+    "bellek_kaynagi": "ölçülen (3 koşu, bellek_katsayisi.json)",
+    "bos_bellek_gb": 5.17,
+    "bellege_sigar_mi": false,
+    "sure_saat_kestirim": 43.6,
+    "h_bolu_kiris": 0.01
+  },
+  "ucuzlama_carpani": 2.0,
+  "verdikt": "ESKI GEREKCE CURUDU: kayitli engel 'referans belirsizligi %15' diyordu, bugunku deger %1.0 --- o cumle elle yazilmis ve veriyle guncellenmemis. Kiris basina 100 hucrede (h/c=0,01): duvar-fonksiyonu 7,440,132 hucre / 16.09 GB, duvar-cozunur 14,508,258 hucre / 31.3 GB --- 2.0 kat fark. Bos bellege (5.17 GB) sigan EN INCE cozunurluk h/c=0.02 yani kiris basina 50 hucre (2,232,039 hucre, 4.88 GB, ~6.7 saat). HUKUM BU SAYIYA BAKAN KISININDIR: kiris basina 50 hucre bir tasima capasi icin yeterli mi? Ustelik GCI UC seviye ister ve en ince seviye budur --- yani gercek butce daha buyuk.",
+  "_kisit": "KESTIRIM: hucre sayisi 1/7-kuvvet yasasi + geometrik katman modeliyle bulunur; snappy'nin gercek ciktisi bundan SAPAR. Sonuc bir MERTEBE hukmudur, taahhut degil. Ayrica bellege sigmak KOSMAK demek degildir: snappy'nin tepe kullanimi cozucununkinden yuksek olabilir ve dusen kosu tam orada dustu. y+ bandinin ALT ucu (30) secildi, yani en pahali hal. GCI icin UC seviye gerekir; asagidaki butce TEK seviyenindir ve en ince seviye butceyi belirler.",
+  "_uretim": "Üretim: python experiments/lifting_wf_fizibilite.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

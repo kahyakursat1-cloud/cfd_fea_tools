@@ -387,13 +387,13 @@
       "rejim": "lifting",
       "duvar": "wall_function",
       "oncul_pct": 12.0,
-      "kapanmasi_icin": "Ayni kisit: referans belirsizligi (%15) baskin. Ek olarak bu hucrenin eski %35.43 degeri bu betigin olcutleriyle REDDEDILDI (sayisal band %17.4 > %15) ve hucre oncule dondu."
+      "kapanmasi_icin": "OLCULDU (lifting_wf_fizibilite.json): ESKI GEREKCE CURUDU: kayitli engel 'referans belirsizligi %15' diyordu, bugunku deger %1.0 --- o cumle elle yazilmis ve veriyle guncellenmemis. Kiris basina 100 hucrede (h/c=0,01): duvar-fonksiyonu 7,440,132 hucre / 16.09 GB, duvar-cozunur 14,508,258 hucre / 31.3 GB --- 2.0 kat fark. Bos bellege (5.17 GB) sigan EN INCE cozunurluk h/c=0.02 yani kiris basina 50 hucre (2,232,039 hucre, 4.88 GB, ~6.7 saat). HUKUM BU SAYIYA BAKAN KISININDIR: kiris basina 50 hucre bir tasima capasi icin yeterli mi? Ustelik GCI UC seviye ister ve en ince seviye budur --- yani gercek butce daha buyuk."
     },
     {
       "rejim": "bluff",
       "duvar": "wall_resolved",
       "oncul_pct": 10.0,
-      "kapanmasi_icin": "OLCULDU (bluff_duvar_cozunur_fizibilite.json): engel maliyet DEGIL, FIZIK. Elde olan dort kunt capanin UCU bu hucreye ilkece uygun degil — kup ve diskte ayrilma noktasi GEOMETRIKTIR (keskin kenar, capa tanimi 'Re-duyarsiz' diyor), dolayisiyla duvar islemi Cd'yi belirlemez; kurede capa araligi subkritiktir (1e3-2e5) ve orada yuzey sinir tabakasi LAMINERDIR, yani y+<5 ag turbulansli degil LAMINER tabaka cozer. Hucre ancak yuksek-Re, egimli-yuzeyli govdelerde (Ahmed) tanimlidir. Ahmed duvar-cozunur butcesi olculdu: ~4,68 M hucre, 4,74 GB (olculen 0,779 kB/hucre ile), ~14 saat — bu makinede bos bellegi (4,62 GB) ASIYOR. Yani hucre hem dar hem de bu donanimda ulasilmaz."
+      "kapanmasi_icin": "OLCULDU (bluff_duvar_cozunur_fizibilite.json): Künt çapaların 3/4'i bu hücreye FİZİKSEL olarak uygun değil: keskin kenarlı cisimlerde ayrılma geometriktir, subkritik kürede sınır tabaka laminerdir. Tek uygun aday Ahmed gövdesi ve duvar-çözünür bütçesi ≈4,680,000 hücre, 4.74 GB, ~14 saat — bu makinede belleğe SIĞMIYOR. Hücre bu yüzden öncülle kalıyor; gerekçe artık 'pahalı' değil, ÖLÇÜLMÜŞ."
     }
   ],
   "dis_kaynakli_hucreler": [],

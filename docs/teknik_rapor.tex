@@ -3218,13 +3218,21 @@ v1.2 & orta   & URANS (2B ve 3B), DES ve geçiş modeli KOŞULDU; üçü de fizi
                 düzeldi, $C_d$ 5{,}87 puan kötüleşti). Kalan doğrulama hedefi
                 \emph{duvar-çözümlü LES}; bütçesi ÖLÇÜLDÜ ve bu donanımda
                 SIĞMIYOR: 84{,}7\,M hücre, 62{,}9\,GB \\
-v1.3 & yüksek & Model-form tablosunun kalan İKİ hücresi --- deneysel referanslı
-                çapalarla. Engeller AYRI ve ikisi de ölçülü: küt/duvar-çözümlü
-                hücre yalnız yüksek-Re eğimli gövdede tanımlı ve Ahmed'in
-                duvar-çözünür bütçesi (4,68\,M hücre, 4,74\,GB) bu makinenin
-                boş belleğini aşıyor; taşıma/duvar-fonksiyonu hücresinde koşu
-                var ama sayısal bandı (\%17,4) referans belirsizliğini (\%15)
-                aşıyor --- gereken daha ince ağ ailesi ya da daha dar referans \\
+v1.3 & \emph{engel} & Model-form tablosunun kalan İKİ hücresi. İkisinin de engeli
+                artık ÖLÇÜLÜ ve ikisi de bu donanımda kapanmıyor.
+                \textbf{Küt/duvar-çözünür:} hücre yalnız yüksek-Re eğimli gövdede
+                tanımlı (küp ve diskte ayrılma geometrik, kürede tabaka laminer) ve
+                tek uygun aday Ahmed'in bütçesi 4,68\,M hücre / 4,74\,GB --- boş
+                belleği aşıyor. \textbf{Taşıma/duvar-fonksiyonu:} kayıtlı gerekçe
+                (``referans belirsizliği \%15 baskın'') \emph{çürüdü} --- AR6
+                referansı Ladson ölçümüne taşınalı beri $u_D$ \%1{,}0 ve o cümle
+                elle yazılıp veriyle güncellenmemişti. Yeni ölçüm
+                (\texttt{lifting\_wf\_fizibilite.json}) ağ bütçesini tarıyor:
+                duvar-fonksiyonu ağı duvar-çözünürden 2{,}0 kat ucuz
+                (7.440.132 vs 14.508.258 hücre, kiriş başına 100
+                hücrede) ama boş belleğe ancak kiriş başına
+                \textbf{50} hücrede sığıyor --- ve GCI ÜÇ seviye ister,
+                o da en ince seviyedir \\
 v1.4 & orta   & Docker/Conda kilidi ile yeniden-üretilebilir ortam; çözücü
                 sürüm kilidi \\
 v1.5 & orta   & Arayüz v2 --- kipler, kanıt gezgini, bandlı sonuç kartları ve
