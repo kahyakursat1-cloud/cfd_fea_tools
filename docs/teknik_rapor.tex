@@ -2774,10 +2774,19 @@ gerçek hücre sayısını yüzey iyileştirme kademesi belirler.
         türbülanslı tabakayı değil laminer tabakayı çözer. Hücre ancak
         yüksek-Re, eğimli yüzeyli gövdelerde (Ahmed) tanımlıdır ve Ahmed'in
         duvar-çözünür bütçesi ölçüldü: 4,68\,M hücre, 4,74\,GB --- bu makinenin
-        boş belleğini (4,62\,GB) aşıyor. Taşıma/duvar-fonksiyonu hücresinde ise
-        koşu \emph{vardır} (sapma \%35,43) ama sayısal bandı (\%17,4) referans
-        belirsizliğinden (\%15) büyüktür: model hatası sayısal hatadan
-        ayrılamadığı için hücre öncüle döndürüldü.
+        boş belleğini (4,62\,GB) aşıyor. Taşıma/duvar-fonksiyonu hücresinde
+        engel \emph{başkadır ve kayıtlı gerekçe çürüktü}: metin ``sayısal band
+        (\%17,4) referans belirsizliğini (\%15) aşıyor'' diyordu, oysa o çapanın
+        referansı Ladson ölçümüne taşınalı beri $u_D$ \%1{,}0'dır. Cümle elle
+        yazılmış ve veriyle güncellenmemişti --- bu raporun avladığı kusurun
+        kendisi, bu kez \emph{engel tablosunda}. Ölçüldü
+        (\texttt{lifting\_wf\_fizibilite.json}): gerçek engel hesaptır ve
+        düşen koşunun bütçesi bile bu hücrenin bütçesi değildi --- o koşu katman
+        örüyordu, yani duvar-\emph{çözünür} bir ağ hedefliyordu. Duvar-fonksiyonu
+        ağı 2{,}0 kat ucuz ama boş belleğe ancak kiriş başına
+        \textbf{50} hücrede sığıyor ve GCI üç seviye ister --- o da en ince
+        seviyedir. Engel tablosu artık elle yazılmıyor, kanıt dosyasından
+        üretiliyor.
   \item[Teknik borç --- iki hızlı katman.] Bağımsız V\&V betikleri
         \texttt{wsl bash -c} çağrısını kendileri kuruyor ve arka uç seçimini
         atlıyordu: \texttt{CFD\_BACKEND=docker} ayarlandığında araç hattı
@@ -3019,6 +3028,22 @@ bir hüküm için pay istenirse ($|E| \ge 1{,}2\,u_{\mathrm{val}}$; 1{,}2 keyfî
 ama beyan edilmiş bir seçimdir) eşik \%10{,}04'ten \%1{,}12'ye iner: bandın
 \textbf{15{,}5 kat} düşmesi gerekir. Yukarıdaki ``daha ince ağ değil'' hükmü
 böylece niteliksel bir kanaat olmaktan çıkıp bir sayıya bağlanmış oldu.
+
+\textbf{Bu kutunun reçetesi uygulandı --- ve yukarıdaki sayılar artık
+\emph{tarihseldir}.} Kutu ``çözüm daha ince ağ değil, deneysel referanslı bir
+çapadır'' diyordu. Referans gerçekten taşındı: AR6'nın yarı-analitik $C_d$'si
+Ladson TM-4074 ölçümüyle değiştirildi ve $u_D$ \%15'ten \%1{,}0'a indi. Yani
+``$u_{\mathrm{val}}$ hiçbir zaman \%15'in altına inemez'' cümlesi bugün
+geçerli değildir ve bu bölümün tablosu \emph{o günkü} durumu anlatır.
+
+\noindent Reçete işledi ama hücreyi kapatmadı, çünkü engel yer değiştirdi:
+referanstan \emph{hesaba}. Kayıtlı gerekçe bunu takip etmedi ve raporda üç
+ayrı yerde çürümüş hâliyle durdu --- metin kopyalanır, veri kopyalanmaz.
+Şimdi ölçüldü (\texttt{lifting\_wf\_fizibilite.json}): duvar-fonksiyonu
+ağı boş belleğe ancak kiriş başına 50 hücrede sığıyor ve GCI üç
+seviye ister. Engel tablosu artık elle yazılmıyor, kanıttan üretiliyor; bir
+test de raporun tamamını tarayıp çürüyen gerekçenin hiçbir yerde \emph{iddia}
+olarak durmadığını denetliyor.
 
 Ölçüt düzeltmesi ayrıca bir kazayı önledi: bandı \%14'e indirmek çapayı
 sayısal tavanın içine sokar ve eski ölçütle ``ayrılabilir'' damgasıyla hücreye
@@ -3333,8 +3358,12 @@ yarın başka bir OpenFOAM derlemesi çekebilirdi.
 yazılı --- gerekçeler AYRIDIR: küt/duvar-çözümlü hücre yalnız yüksek-Re eğimli
 gövdede tanımlıdır ve Ahmed'in duvar-çözünür bütçesi (4{,}68\,M hücre,
 4{,}74\,GB) bu makinenin boş belleğini aşar; taşıma/duvar-fonksiyonu hücresinde
-koşu vardır ama sayısal bandı (\%17{,}4) referans belirsizliğini (\%15) aşar,
-yani model hatası sayısal hatadan ayrılamaz. Başarım \emph{tek makineyle}
+engel \emph{hesaptır} --- duvar-fonksiyonu ağı boş belleğe ancak kiriş başına
+50 hücrede sığıyor ve GCI üç seviye ister. (Bu hücrenin eski gerekçesi
+``sayısal band \%17{,}4 > referans \%15'' idi ve \emph{çürüdü}: referans Ladson
+ölçümüne taşınalı beri $u_D$ \%1{,}0'dır. Cümle raporun dört ayrı yerinde
+güncellenmeden durmuştu; artık kanıttan üretiliyor ve bir test tümünü
+tarıyor.) Başarım \emph{tek makineyle}
 sınırlı --- geometri sınırı ikinci bir gövdeyle ölçülerek kapatıldı
 (\S\ref{sub:bellek}), ikinci donanım yok. Yol
 haritası bunları v1.1--v2.0 aralığına yerleştirir ve hiçbiri ``yakında'' diye

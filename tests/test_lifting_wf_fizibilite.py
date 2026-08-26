@@ -155,3 +155,58 @@ def test_RAPOR_YOL_HARITASI_kanittan_sapmiyor():
     if not d["eski_gerekce_gecerli_mi"]:
         assert "çürüdü" in t, "rapor eski gerekçeyi hâlâ geçerli sayıyor"
     assert str(d["ucuzlama_carpani"]).replace(".", "{,}") in t
+
+
+def test_CURUYEN_gerekce_raporun_HICBIR_yerinde_iddia_edilmiyor():
+    """Aynı çürük cümle raporda İKİ yerde duruyordu ve ilk düzeltmede biri
+    kaçtı (yol haritası düzeldi, teknik-borç listesi kalmıştı).
+
+    Bir gerekçe çürüdüğünde onu tek yerde düzeltmek yetmez --- metin
+    kopyalanır, veri kopyalanmaz. Bu test raporun TAMAMINI tarar: eski
+    iddianın imzası (``%17,4 … %15 … belirsizlik'') geçtiği HER yerde,
+    yakınında çürütüldüğü de yazmalı.
+    """
+    tex = KOK / "docs" / "teknik_rapor.tex"
+    kanit = KOK / "lifting_wf_fizibilite.json"
+    if not (tex.exists() and kanit.exists()):
+        pytest.skip("rapor ya da kanıt yok")
+    if json.loads(kanit.read_text(encoding="utf-8"))["eski_gerekce_gecerli_mi"]:
+        pytest.skip("eski gerekçe hâlâ geçerli — bu test uygulanmaz")
+    t = tex.read_text(encoding="utf-8")
+    import re
+    # ESKI IDDIANIN IMZASI: iki sayi YAKIN gecerse iddia oradadir.
+    imza = re.compile(r"\%17\{,\}4.{0,200}?\%15", re.S)
+    curutme = ("çürük", "çürüdü", "güncellenmemiş", "artık geçerli değil",
+               "başkadır", "tarihsel")
+    bulundu = 0
+    for m in imza.finditer(t):
+        bulundu += 1
+        assert any(c in _blok(t, m.start()) for c in curutme), (
+            "çürümüş gerekçe raporda İDDİA olarak duruyor "
+            f"(~{t[:m.start()].count(chr(10)) + 1}. satır): "
+            f"{t[m.start():m.end()][:80]}")
+    # TEST GERCEKTEN BIR SEY SINIYOR MU. Imza hic eslesmezse test sessizce
+    # gecer ve bir daha hicbir sey yakalamaz --- desen degisirse fark
+    # edilmez. Rapor bu iddiayi (curutulmus haliyle) TASIYOR olmali.
+    assert bulundu >= 2, f"eski iddianın imzası raporda {bulundu} yerde — desen bozulmuş olabilir"
+
+
+def _blok(t: str, konum: int) -> str:
+    r"""İddianın bulunduğu LaTeX ortam bloğu (``\begin{X}``…``\end{X}``).
+
+    ÖLÇÜT MESAFE DEĞİL BLOK. Ilk surum konumun cevresinde 700 karakterlik
+    bir pencereye bakiyordu ve dustu: rapor iddiayi bir kutunun BASINDA
+    alintilayip SONUNDA curutuyor, arada ~30 satir var. Sabit pencere ya bu
+    mesru vakayi reddeder ya da genisletilince komsu metne tasip yanlis
+    akler. Ortam blogu dogru siniridir --- bir kutunun icindeki curutme o
+    kutudaki iddiayi kapsar, disindaki kapsamaz.
+    """
+    import re
+    bas = t.rfind("\\begin{", 0, konum)
+    if bas == -1:
+        return t[max(0, konum - 500):konum + 1500]
+    ad = re.match(r"\\begin\{(\w+)\}", t[bas:])
+    if ad is None:
+        return t[max(0, konum - 500):konum + 1500]
+    son = t.find("\\end{" + ad.group(1) + "}", konum)
+    return t[bas:son + 20] if son != -1 else t[bas:konum + 1500]
