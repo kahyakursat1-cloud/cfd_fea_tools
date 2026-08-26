@@ -1187,11 +1187,61 @@ Bölüm 10'un yayımlanmış sayıları bu yüzden değişti: 2B $2{,}482$ (ayn�
 silinmedi (\texttt{guncelleyici="oc"}); yayımlanmış bir sayıyı yeniden
 üretebilmek, değişikliğin geri alınabilir olmasının koşuludur.
 
-Kısıt duruyor: tek problem ailesi (L-braket), tek çözünürlük, ve MMA'nın
+Kısıt \emph{duruyordu}: tek problem ailesi (L-braket), tek çözünürlük, ve MMA'nın
 asimptot katsayıları Svanberg'in önerdiği değerlerde, bu probleme göre
-\emph{ayarlanmadı}. Karar bu ailede ölçülmüştür; genel bir üstünlük iddiası
-değildir. Araç hattı (kompliyans) \emph{değişmedi} --- o amaçta kıyas yok.
+\emph{ayarlanmadı}. Karar bu ailede ölçülmüştür ve --- ikinci aile
+eklendikten sonra da --- \emph{genel bir üstünlük iddiası} değildir. Araç
+hattı (kompliyans) \emph{değişmedi}: o amaçta kıyas yok.
 \end{dikkat}
+
+\begin{olculdu}{İkinci aile sınandı --- ve bulgu bir derece farkı değil}
+\label{sub:mma-ikinci-aile}
+Dış hakem (2026-08-26) yukarıdaki kısıtı işaret etti: karar tek problem
+ailesinde ölçülmüştü. Soru \emph{fizikseldir}, ``bir vaka daha koşalım''
+değil: L-braketin gerilme tasarımını girintili köşedeki \textbf{tekillik}
+yönetir --- optimizasyon malzemeyi o köşeyi yuvarlamak için taşır. MMA'nın
+kazancı bu yeniden-dağıtım davranışına mı özgü?
+
+\noindent İkinci aile MBB kirişidir (90x30, yarım model, simetri):
+kanonik ve L-braketten yapısal olarak farklı --- girintili köşe yok, pasif
+bölge yok, tasarımı tekillik değil \emph{yük yolu} sürükler.
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrrl@{}}
+\toprule
+ & kompliyans-min & gerilme-min & değişim & durum \\
+\midrule
+OC & 1{,}8015 & 2{,}6535 & \textbf{$+$47{,}29\%} & amacı TERSİNE çevirdi \\
+OC, eşit maliyet & 1{,}8015 & 2{,}556 & $+$41{,}88\% & aynı \\
+MMA & 1{,}7339 & \textbf{1{,}3537} & $-$21{,}93\% & beklenen yön \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent \textbf{OC bu ailede gerilme-min'i koştuğunda tepe gerilmeyi
+düşürmüyor, \textsc{artırdı}} --- 1{,}8015'ten 2{,}6535'e.
+Yani bölümün kendi başarı ölçütünü ($\eta_{vM}^{\text{stress}} <
+\eta_{vM}^{\text{compliance}}$) geçemiyor. Bu bir \emph{derece} farkı
+değildir: bir güncelleyici amacı tersine çeviriyor. Kıyas eşit hesap
+maliyetinde yinelendi (MMA iterasyonu 1{,}021$\times$; OC'ye
+82 iterasyon) ve hüküm değişmedi.
+
+\noindent Durma davranışı da L-braketteki imzanın aynısı: MMA 638
+iterasyonda kendi toleransıyla durdu, OC 2000 iterasyonda durmadı ve
+son adımı tam \texttt{move} sınırında kaldı (0{,}2). Boşa giden
+hareket \%94{,}1 (OC) ve \%0{,}0 (MMA).
+
+\noindent \textbf{Kıyas geçerli mi diye ayrıca soruldu.} Düşük tepe gerilme,
+hacim kısıtı ihlaliyle bedava elde edilebilir; \%47'lik bir farka inanmadan
+önce iki tasarımın da hacmi denetlendi (OC $0{,}4001$, MMA $0{,}4002$; hedef
+$0{,}40$) ve gri-eleman oranları da yakın çıktı ($0{,}21$ ve $0{,}22$).
+
+\noindent Kısıt \emph{daralmıştır ama kalkmamıştır}: iki aile de 2B ve aynı
+motordur; üçüncü bir aile ya da 3B MBB sınanmadı. Asimptot katsayıları hâlâ
+Svanberg'in önerdiği değerlerde ve hiçbir probleme göre ayarlanmadı --- bu,
+iki ailede de aynı koşullarda kıyas demektir, MMA'nın ayarlanmış hâlini
+\emph{temsil etmez}.
+\end{olculdu}
 
 \subsection{Girdi belirsizliği: ölçüldü, ama ölçülen şey girdi değildi}
 \label{sub:girdi-uq}

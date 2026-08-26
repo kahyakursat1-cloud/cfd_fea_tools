@@ -1,0 +1,104 @@
+{
+  "vaka": "MMA ikinci problem ailesinde — MBB kiriş",
+  "_neden": "MMA karari YALNIZ L-braket ailesinde olculmustu (dis hakem P2). L-braketin gerilme tasarimini GIRINTILI KOSE tekilligi yonetir; MBB'de oyle bir kose YOK. MMA'nin kazanci algoritmanin mi, o problemin mi?",
+  "problem": {
+    "ad": "MBB kiriş (yarım model, simetri)",
+    "grid": "90x30",
+    "volfrac": 0.4,
+    "pasif_bolge": false,
+    "girintili_kose": false,
+    "_fark": "L-braket: girintili kose + pasif bolge, tasarimi gerilme tekilligi surukler. MBB: tekillik yok, tasarimi yuk yolu surukler."
+  },
+  "kosular": {
+    "OC": {
+      "peak_komp": 1.8015,
+      "peak_gerilme": 2.6535,
+      "azalma_pct": -47.29,
+      "iterasyon": 80,
+      "tavan": 80,
+      "durdu_mu": false,
+      "son_ch": 0.2,
+      "bosa_giden_hareket_pct": 94.1,
+      "toplam_sure_s": 7.19,
+      "gerilme_iter_basi_ms": 56.7
+    },
+    "MMA": {
+      "peak_komp": 1.7339,
+      "peak_gerilme": 1.3537,
+      "azalma_pct": 21.93,
+      "iterasyon": 80,
+      "tavan": 80,
+      "durdu_mu": false,
+      "son_ch": 0.1998,
+      "bosa_giden_hareket_pct": 0.0,
+      "toplam_sure_s": 7.41,
+      "gerilme_iter_basi_ms": 57.9
+    },
+    "OC_esit_maliyet": {
+      "peak_komp": 1.8015,
+      "peak_gerilme": 2.556,
+      "azalma_pct": -41.88,
+      "iterasyon": 82,
+      "tavan": 82,
+      "durdu_mu": false,
+      "son_ch": 0.2,
+      "bosa_giden_hareket_pct": 83.7,
+      "toplam_sure_s": 7.35
+    },
+    "MMA_yakinsama": {
+      "peak_komp": 1.7339,
+      "peak_gerilme": 1.3256,
+      "azalma_pct": 23.55,
+      "iterasyon": 638,
+      "tavan": 2000,
+      "durdu_mu": true,
+      "son_ch": 0.00938,
+      "bosa_giden_hareket_pct": 79.8,
+      "toplam_sure_s": 40.2
+    },
+    "OC_yakinsama": {
+      "peak_komp": 1.8015,
+      "peak_gerilme": 2.1443,
+      "azalma_pct": -19.03,
+      "iterasyon": 2000,
+      "tavan": 2000,
+      "durdu_mu": false,
+      "son_ch": 0.2,
+      "bosa_giden_hareket_pct": 94.7,
+      "toplam_sure_s": 116.21
+    }
+  },
+  "maliyet_orani_MMA_bolu_OC": 1.021,
+  "esit_maliyet_iterasyonu": 82,
+  "amaci_GERCEKTEN_dusurdu_mu": {
+    "OC": false,
+    "MMA": true,
+    "OC_esit_maliyet": false,
+    "MMA_yakinsama": true,
+    "OC_yakinsama": false
+  },
+  "esit_maliyette_MMA_onde_mi": true,
+  "esit_maliyette_fark_pct": 47.04,
+  "MMA_kendi_olcutuyle_durdu": true,
+  "OC_kendi_olcutuyle_durdu": false,
+  "verdikt": "OC BU AİLEDE BAŞARISIZ: gerilme-min tepe gerilmeyi DÜŞÜRMEK yerine ARTIRDI (1.8015 -> 2.6535, %47.29 KÖTÜLEŞME) --- benchmark'ın kendi ölçütü peak(stress) < peak(compliance) ve OC onu geçemiyor. MMA aynı problemde 1.7339 -> 1.3537 (%21.93 iyileşme). Yani bulgu bir DERECE farkı değil: bir güncelleyici amacı tersine çeviriyor. MBB kirişte tepe gerilme: OC 2.6535, MMA 1.3537. Boşa giden hareket %94.1 vs %0.0. MMA iterasyonu 1.021x maliyetli; eşit maliyet için OC'ye 82 iterasyon verildi ve tepe 2.556 oldu --- MMA %47.04 ÖNDE. DURMA: MMA 638 iterasyonda kendi toleransıyla DURDU; OC 2000 iterasyonda DURMADI (son adım 0.2). Bölüm 10'un bulgusu İKİNCİ AİLEDE DE geçerli: MMA'nın üstünlüğü L-braketin girintili köşesine özgü değil.",
+  "_kisit": "Iki aile de 2B ve ayni motordur; ucuncu bir aile ya da 3B MBB SINANMADI. MMA'nin asimptot katsayilari Svanberg'in onerdigi degerlerde ve HICBIR probleme gore ayarlanmadi --- bu, iki ailede de ayni kosullarda kiyas demektir ama MMA'nin ayarlanmis halini temsil etmez.",
+  "_uretim": "Üretim: python experiments/mma_ikinci_aile.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}
