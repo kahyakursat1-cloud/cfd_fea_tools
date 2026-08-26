@@ -538,8 +538,26 @@ def capalari_topla() -> list[dict]:
             # bırakıyordu.
             _hata = (d.get("error") or "").strip()
             _ilk = next((s for s in _hata.splitlines() if s.strip()), "")
+            # ARIZA SINIFI PROZADAN DEGIL YAPISAL ALANDAN OKUNUR.
+            #
+            # Bu satirlar `error` dizgisinin ILK SATIRINI aliyordu ve o satir
+            # ``hata (donus kodu 137)'' diyor. 137 = SIGKILL; sureyi timeout
+            # mu bitirdi yoksa bellek oldurucusu mu, dizgide YOK --- ve
+            # careleri ZIT. Ayrim iki kez elle kuruldu. Kosu artik asama
+            # telemetrisini duserken de sakliyor; buradan OKUNUR.
+            _tel = d.get("asama_sureleri")
+            _asama = next((a for a in reversed(_tel or [])
+                           if a.get("durum") != "ok"), None)
+            # BOS ALAN IKI FARKLI SEY DEMEK OLURDU: "siniflandirilamadi" ve
+            # "kayit telemetriden ESKI". Ikisi ayni null'a dusmesin --- okur
+            # ilkini bir kusur, ikincisini bir tarih sanabilmeli.
+            _sinif = (_asama.get("durum") if _asama
+                      else None if _tel is not None
+                      else "KAYIT TELEMETRI ONCESINE AIT")
             c.append({"capa": ad, "rejim": spec["regime"], "_dustu": True,
                       "_dustu_neden": _ilk or "koşu düştü; gerekçe kayıtlı değil",
+                      "_ariza_sinifi": _sinif,
+                      "_ariza_ayrimi": (_asama or {}).get("_ayrim"),
                       "kosu_dizini": str(sj.parent)})
             continue
         # DUVAR İŞLEMİ KOŞAN MODELE UYGUN MU. Ölçüldü (2026-08-19): küre çapası
@@ -763,6 +781,12 @@ def calistir() -> dict:
             atanamayan.append({
                 "capa": x["capa"], "rejim": x["rejim"], "sapma_pct": None,
                 "neden": "KOŞU DÜŞTÜ — " + x["_dustu_neden"],
+                # ARIZA SINIFI AYRI ALANDA: bu hucrenin ULASILABILIR olup
+                # olmadigini soyleyen sey budur. "Sure yetmedi" ile "bellek
+                # yetmedi" ayni cumleye sikistirilirsa, yol haritasi hangi
+                # engeli asmasi gerektigini bilemez.
+                "ariza_sinifi": x.get("_ariza_sinifi"),
+                "ariza_ayrimi": x.get("_ariza_ayrimi"),
                 "kosu_dizini": x.get("kosu_dizini")})
             continue
         if x.get("_gecersiz"):

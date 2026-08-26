@@ -136,6 +136,8 @@
       "rejim": "lifting",
       "_dustu": true,
       "_dustu_neden": "DÜŞEN AŞAMA: snappyHexMesh — hata (dönüş kodu 137), 1319 s sonra",
+      "_ariza_sinifi": "KAYIT TELEMETRI ONCESINE AIT",
+      "_ariza_ayrimi": null,
       "kosu_dizini": "D:\\bilsem_beyin\\cfd_fea_tools\\validation_anchors_runs\\_anchor_naca0012_wing_ar6",
       "sapma_pct": null
     },
@@ -368,6 +370,8 @@
       "rejim": "lifting",
       "sapma_pct": null,
       "neden": "KOŞU DÜŞTÜ — DÜŞEN AŞAMA: snappyHexMesh — hata (dönüş kodu 137), 1319 s sonra",
+      "ariza_sinifi": "KAYIT TELEMETRI ONCESINE AIT",
+      "ariza_ayrimi": null,
       "kosu_dizini": "D:\\bilsem_beyin\\cfd_fea_tools\\validation_anchors_runs\\_anchor_naca0012_wing_ar6"
     },
     {

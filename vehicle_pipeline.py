@@ -1921,6 +1921,10 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
                     + (f" (dönüş kodu {_dusen['donus_kodu']})"
                        if _dusen.get("donus_kodu") is not None else "")
                     + f", {_dusen['sure_s']:.0f} s sonra"
+                    # AYRIMIN DAYANAGI MESAJDA DA DURSUN: "rc 137" gorup
+                    # bellek mi sure mi diye tahmin yurutmek zorunda kalan
+                    # okur, bu satiri okumak zorunda kalmasin.
+                    + (f"\nAYRIM: {_dusen['_ayrim']}" if _dusen.get("_ayrim") else "")
                     + (f"\nLOG: {_log}" if _log else "")
                     + "\n\n" + _log_kuyrugu(_log))
         base.error = _bas + (res.stderr or res.stdout)[-2000:]
@@ -1931,6 +1935,16 @@ def run_vehicle_analysis(stl_path, vehicle_type="ucak", velocity=30.0, alpha_deg
         # yeniden kuruldu. Cozucu sorgusu duren bir kosuda da anlamli (8 s).
         import ortam as _ortam_mod
         base.ortam = _ortam_mod.parmak_izi(cozucu=True)
+        # ASAMA TELEMETRISI DUSEN KOSUDA DA SAKLANIR.
+        #
+        # Bu iki satir SUCCESS yolundaydi (asagida) ve bu blok ondan ONCE
+        # donuyordu: yani telemetri en cok gerektigi yerde --- arizada ---
+        # null kaliyordu. Daha kotusu, ayni bilgi yukarida bir PROZA dizgisine
+        # (`_bas`) yazilmisti; yani uretiliyor, bir kez kullaniliyor ve
+        # atiliyordu. AR6 capasinin neden dustugunu ogrenmek icin kaydin
+        # yapisal alanlari degil Turkce cumlesi ayristirilmak zorunda kaldi.
+        base.asama_sureleri = getattr(res, "asama_sureleri", None) or None
+        base.bellek = getattr(res, "bellek", None) or None
         (run_dir / "sonuc.json").write_text(json.dumps(asdict(base), indent=2, ensure_ascii=False), encoding="utf-8")
         return base
 

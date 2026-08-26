@@ -3588,6 +3588,37 @@ olarak budur: AR6 çapası \texttt{snappyHexMesh}'te dönüş kodu 137 ile
 (bellek) düştüğünde kaydında ne çekirdek sayısı ne sürüm vardı ve teşhis
 elle yeniden kuruldu.
 
+\textbf{Aynı teşhis bir kez daha elle kuruldu ve bu sefer kurala bağlandı.}
+137 = 128+9, yani SIGKILL --- ama \emph{kim} öldürdü? İki aday var ve
+çareleri zıttır: GNU \texttt{timeout}'un \texttt{-k} yükseltmesi (süre
+yetmedi $\to$ daha çok süre ya da daha ucuz ağ) ya da çekirdeğin bellek
+öldürücüsü (bellek yetmedi $\to$ daha küçük ağ). Kayıt ikisini de aynı
+cümleyle anlatıyordu.
+
+\noindent Ayırt etmesi beklenen işaret \emph{ayırt etmiyor}: kabuk her iki
+durumda da stderr'a ``\texttt{Killed timeout -k …}'' basıyor. Bu ölçüldü
+(WSL): TERM'e uyan süreç 124, uymayıp KILL'e zorlayan 137 veriyor ve ikinci
+durumda o satır beliriyor --- yani satırın varlığı bir zaman aşımı kanıtı
+değil. İlk okumada tam olarak öyle okundu ve yanlıştı.
+
+\noindent Ayıran tek şey \emph{süredir}: aşama zaman aşımı 1800 s, iç eşik
+1780 s, ve AR6 \textbf{1319 s}'de düşmüştü --- eşiğin altında, yani süre
+bitmemişti. Kayıttaki ``bellek'' teşhisi böylece ölçülü hâle geldi. Kural
+artık kodda: \texttt{rc 124} ya da (\texttt{rc 137} \emph{ve} süre
+\texttt{>=} eşik) zaman aşımıdır, \texttt{rc 137} \emph{ve} süre eşiğin
+altındaysa süreci başkası öldürmüştür. Dayanak (süre ve eşik) kayda yazılır,
+hüküm tahminle kapatılmaz.
+
+\noindent İkinci kusur aynı yerde çıktı: \texttt{asama\_sureleri} ve
+\texttt{bellek} yalnız \emph{başarı} yolunda kaydediliyordu ve düşen koşu
+o satırlardan önce dönüyordu. Yani telemetri en çok gerektiği yerde
+\texttt{null} kalıyor, aynı bilgi ise bir Türkçe cümlenin içinde
+saklanıyordu; kanıtı okuyan betik hükmü prozadan ayrıştırmak zorundaydı.
+Artık düşen koşu da yapısal alanları taşıyor. Diskteki AR6 kaydı bu
+düzeltmeden eskidir ve alan \texttt{null} yerine ``kayıt telemetri
+öncesine ait'' der --- sınıflandırılamamış olmakla eski olmak aynı boşluğa
+düşmemelidir.
+
 Diskteki altın çapa seti düzeltmeden önce üretilmişti. Boşluğa \emph{bugünkü}
 sürümü yazmak yalan olurdu; onun yerine OpenFOAM'ın her log başına bastığı
 yapı özeti koşunun kendi kaydından \emph{alıntılanır} ve alıntının kaynağı

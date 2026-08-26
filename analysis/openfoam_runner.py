@@ -1788,10 +1788,35 @@ def run_cfd(case: CFDCase, out_dir: Path, timeout: int = 3600,
                                    "sure_s": round(time.time() - _t0, 2),
                                    "durum": "ZAMAN ASIMI", "tmo_s": tmo})
             return None
-        asama_sureleri.append({"asama": log_name.replace("log.", ""),
-                               "sure_s": round(time.time() - _t0, 2),
-                               "durum": "ok" if r.returncode == 0 else "hata",
-                               "donus_kodu": r.returncode})
+        # RC 137 TEK BASINA IKI FARKLI ARIZAYI ANLATIR ve care ayridir:
+        # GNU timeout'un `-k` SIGKILL'i (sure yetmedi -> daha cok sure ya da
+        # daha ucuz ag) ile disaridan gelen SIGKILL (cekirdegin OOM
+        # oldurucusu -> daha az bellek). Ayrimi elle kurmak zorunda kalindi:
+        # once AR6 capasinin kaydinda, sonra bu satirlar yazilirken yeniden.
+        #
+        # OLCUT ZAMANDIR, KOD DEGIL. Ic timeout `tmo - 20`de TERM, 10 s sonra
+        # KILL gonderir; sure o esige ULASMISSA ariza timeout'undur, ANLAMLI
+        # OLCUDE ALTINDAYSA sureci baskasi oldurmustur. Tahmin yazilmaz:
+        # ayrimin dayanagi (sure ve esik) kayitta durur.
+        _sure = round(time.time() - _t0, 2)
+        _ic_tmo = max(tmo - 20, 30) if bins else None
+        _kayit = {"asama": log_name.replace("log.", ""), "sure_s": _sure,
+                  "durum": "ok" if r.returncode == 0 else "hata",
+                  "donus_kodu": r.returncode}
+        if r.returncode != 0 and _ic_tmo is not None:
+            _kayit["ic_tmo_s"] = _ic_tmo
+            if r.returncode == 124 or (r.returncode == 137
+                                       and _sure >= _ic_tmo):
+                _kayit["durum"] = "ZAMAN ASIMI"
+                _kayit["_ayrim"] = (f"rc {r.returncode}, {_sure:.0f} s >= ic "
+                                    f"timeout {_ic_tmo} s")
+            elif r.returncode == 137:
+                _kayit["durum"] = "DISARIDAN OLDURULDU"
+                _kayit["_ayrim"] = (
+                    f"rc 137 (SIGKILL) ama {_sure:.0f} s < ic timeout "
+                    f"{_ic_tmo} s — sureyi timeout bitirmedi; en olasi sebep "
+                    "cekirdegin bellek oldurucusu")
+        asama_sureleri.append(_kayit)
         log_files.append(case_dir / log_name)
         all_stdout.append(f"--- {log_name} ---\n{r.stdout}")
         if r.stderr:
