@@ -1111,6 +1111,48 @@ Bu ayrım testle bağlıdır: rapor ``üretim OC'dir'' dediği sürece kodda MMA
 üretim çağrısı bulunmamalıdır ve tersi de geçerlidir.
 \end{dikkat}
 
+\begin{dikkat}{Koşullar sınandı: ikisi de sağlandı}
+Yukarıdaki iki koşul ölçüldü (\texttt{experiments/mma\_bolum10.py}).
+
+\textbf{Birinci koşul --- kıyaslar MMA ile yeniden koşuldu.} Taban önce
+birebir üretildi (3B: 0{,}788 / 0{,}762 / \%3{,}3), çünkü kıyas düzeneği
+kayıtlı sayıyı vermiyorsa MMA sonucunun neye göre okunacağı belirsizdir.\footnote%
+{İlk denemede 3B tabanı 0{,}8895 çıktı. Sebep ayar farkıydı: kıyas gerilme
+adımını \texttt{max\_iter=80, move=0{,}15} ile koşuyor, ilk koşumda 60/0{,}2
+kullanılmıştı. Düzenek düzeltilmeden yapılan bir kıyas, MMA'yı değil ayar
+farkını ölçerdi.}
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrl@{}}
+\toprule
+ & tepe $\eta_{vM}$ & son adım & durum \\
+\midrule
+2B \quad OC              & 2{,}4819 & 0{,}20000 & \%83{,}3 boşa giden hareket \\
+2B \quad MMA             & 2{,}4820 & 0{,}07973 & \%0{,}0 boşa giden hareket \\
+3B \quad OC, warm-start  & 0{,}7620 & 0{,}15000 & = \texttt{move} sınırı \\
+3B \quad MMA, \textbf{soğuk} & \textbf{0{,}7579} & 0{,}14985 & warm-start YOK \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent 3B'de MMA, \emph{warm-start'a ihtiyaç duymadan}, OC'nin
+warm-start'lı sonucundan daha iyi bir tepe gerilme veriyor. Warm-start'ın
+gerekçesi (``OC stress'te tek-başına salınır'') böylece OC'ye \emph{özgü}
+olarak ölçülmüş oldu.
+
+\textbf{İkinci koşul --- MMA kendi durma ölçütüyle durdu.} Tavan
+yükseltildiğinde MMA 2B'de 458, 3B'de 416 iterasyonda $\Delta x < 0{,}01$
+toleransını sağladı. OC ikisinde de durmadı: son adımı 200.\ iterasyondan
+itibaren \emph{tam olarak} \texttt{move} sınırında kaldı (2B'de 0{,}20000,
+3B'de 0{,}15000, 1200 iterasyon boyunca değişmeden) --- limit çevriminin
+sayısal imzası budur.
+
+Kısıt duruyor: tek problem ailesi (L-braket), tek çözünürlük, ve MMA'nın
+asimptot katsayıları Svanberg'in önerdiği değerlerde, bu probleme göre
+\emph{ayarlanmadı}. Üretim hattını değiştirmek ayrı bir karardır ve Bölüm
+10'un yayımlanmış sayılarını değiştirir.
+\end{dikkat}
+
 \subsection{Girdi belirsizliği: ölçüldü, ama ölçülen şey girdi değildi}
 \label{sub:girdi-uq}
 

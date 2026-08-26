@@ -769,3 +769,31 @@ def test_rapor_DT_SONDASI_kanittan_sapmiyor(tex):
     c = d["courant"]["sonda"]
     assert c["kararli_max"] < 3.0, "sonda Courant'ı düşmemiş — çözünürlük artmamış"
     assert f"{c['kararli_max']:.2f}".replace(".", "{,}") in tex
+
+
+def test_rapor_MMA_BOLUM10_kanittan_sapmiyor(tex):
+    """MMA'yı üretime almanın koşulları ölçüldü; sayılar kanıta pinli olmalı."""
+    import json
+    y = KOK / "mma_bolum10.json"
+    if not y.exists():
+        pytest.skip("mma_bolum10.json üretilmemiş")
+    d = json.loads(y.read_text(encoding="utf-8"))
+    k = d["kosular"]
+    for ad in ("2B_OC", "2B_MMA", "3B_OC_warm", "3B_MMA_soguk"):
+        s = f"{k[ad]['peak_gerilme']}".replace(".", "{,}")
+        assert s in tex, f"{ad} tepe gerilmesi ({s}) raporda yok"
+        c = f"{k[ad]['son_ch']:.5f}".replace(".", "{,}")
+        assert c in tex, f"{ad} son adımı ({c}) raporda yok"
+    # DURMA OLCUTU: MMA'nin yakinsadigi iterasyon sayilari
+    for ad in ("2B_MMA_yakinsama", "3B_MMA_yakinsama"):
+        assert k[ad]["durdu_mu"] is True, f"{ad}: MMA kendi ölçütüyle durmamış"
+        assert str(k[ad]["iterasyon"]) in tex
+    # OC HICBIRINDE DURMADI
+    for ad in ("2B_OC_yakinsama", "3B_OC_yakinsama"):
+        assert k[ad]["durdu_mu"] is False, f"{ad}: OC durdu — anlatı değişmeli"
+    assert d["kosul_1_kiyaslar_yeniden_kosuldu"] and d["kosul_2_MMA_kendi_olcutuyle_durdu"]
+    # TABAN BIREBIR URETILDI MI — kiyasin gecerlilik kosulu
+    assert k["3B_OC_warm"]["peak_gerilme"] == d["taban_kayit"]["3B"]["gerilme"], (
+        "3B tabanı kayıtlı değeri vermiyor; kıyas MMA'yı değil ayar farkını ölçer")
+    # URETIM HALA OC — karar ayri
+    assert "ayrı bir karardır" in tex

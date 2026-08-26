@@ -1,0 +1,141 @@
+{
+  "vaka": "Bölüm 10 kıyasları — MMA ile yeniden koşuldu",
+  "_neden": "Rapor MMA'yi deneysel aday sayiyor ve uretime almanin kosulunu yaziyor: Bolum 10 kiyaslarinin MMA ile yeniden kosulmasi + MMA'nin KENDI durma olcutunun gosterilmesi.",
+  "taban_kayit": {
+    "2B": {
+      "komp": 2.6778,
+      "gerilme": 2.482,
+      "azalma_pct": 7.3
+    },
+    "3B": {
+      "komp": 0.788,
+      "gerilme": 0.762,
+      "azalma_pct": 3.3
+    }
+  },
+  "kosular": {
+    "2B_OC": {
+      "peak_komp": 2.6778,
+      "peak_gerilme": 2.4819,
+      "azalma_pct": 7.32,
+      "iterasyon": 80,
+      "tavan": 80,
+      "durdu_mu": false,
+      "son_ch": 0.2,
+      "bosa_giden_hareket_pct": 83.3
+    },
+    "2B_MMA": {
+      "peak_komp": 2.6752,
+      "peak_gerilme": 2.482,
+      "azalma_pct": 7.22,
+      "iterasyon": 80,
+      "tavan": 80,
+      "durdu_mu": false,
+      "son_ch": 0.07973,
+      "bosa_giden_hareket_pct": 0.0
+    },
+    "3B_OC_warm": {
+      "peak_komp": 0.788,
+      "peak_gerilme": 0.762,
+      "azalma_pct": 3.31,
+      "iterasyon": 80,
+      "tavan": 80,
+      "durdu_mu": false,
+      "son_ch": 0.15,
+      "bosa_giden_hareket_pct": 94.7
+    },
+    "3B_MMA_warm": {
+      "peak_komp": 0.7918,
+      "peak_gerilme": 0.7593,
+      "azalma_pct": 4.11,
+      "iterasyon": 80,
+      "tavan": 80,
+      "durdu_mu": false,
+      "son_ch": 0.09223,
+      "bosa_giden_hareket_pct": 5.7
+    },
+    "3B_OC_soguk": {
+      "peak_komp": null,
+      "peak_gerilme": 0.7681,
+      "azalma_pct": null,
+      "iterasyon": 80,
+      "tavan": 80,
+      "durdu_mu": false,
+      "son_ch": 0.15,
+      "bosa_giden_hareket_pct": 94.5
+    },
+    "3B_MMA_soguk": {
+      "peak_komp": null,
+      "peak_gerilme": 0.7579,
+      "azalma_pct": null,
+      "iterasyon": 80,
+      "tavan": 80,
+      "durdu_mu": false,
+      "son_ch": 0.14985,
+      "bosa_giden_hareket_pct": 0.0
+    },
+    "2B_MMA_yakinsama": {
+      "peak_komp": 2.6752,
+      "peak_gerilme": 2.482,
+      "azalma_pct": 7.22,
+      "iterasyon": 458,
+      "tavan": 2000,
+      "durdu_mu": true,
+      "son_ch": 0.00983,
+      "bosa_giden_hareket_pct": 0.0
+    },
+    "2B_OC_yakinsama": {
+      "peak_komp": 2.6778,
+      "peak_gerilme": 2.482,
+      "azalma_pct": 7.32,
+      "iterasyon": 2000,
+      "tavan": 2000,
+      "durdu_mu": false,
+      "son_ch": 0.2,
+      "bosa_giden_hareket_pct": 94.8
+    },
+    "3B_MMA_yakinsama": {
+      "peak_komp": null,
+      "peak_gerilme": 0.7579,
+      "azalma_pct": null,
+      "iterasyon": 416,
+      "tavan": 1200,
+      "durdu_mu": true,
+      "son_ch": 0.00812,
+      "bosa_giden_hareket_pct": 0.0
+    },
+    "3B_OC_yakinsama": {
+      "peak_komp": null,
+      "peak_gerilme": 0.7681,
+      "azalma_pct": null,
+      "iterasyon": 1200,
+      "tavan": 1200,
+      "durdu_mu": false,
+      "son_ch": 0.15,
+      "bosa_giden_hareket_pct": 94.7
+    }
+  },
+  "kosul_1_kiyaslar_yeniden_kosuldu": true,
+  "kosul_2_MMA_kendi_olcutuyle_durdu": true,
+  "verdikt": "2B: OC tepe 2.4819, MMA 2.482 (boşa giden hareket %83.3 vs %0.0). 3B: OC warm-start'lı 0.762, MMA SOĞUK başlangıçla 0.7579 --- yani MMA warm-start'a İHTİYAÇ DUYMADAN OC'nin warm-start'lı sonucundan daha iyi. Warm-start'ın gerekçesi (``OC stress'te tek-başına salınır'') OC'ye ÖZGÜ çıktı. DURMA ÖLÇÜTÜ: MMA 2B'de 458 iterasyonda, 3B'de 416 iterasyonda KENDİ toleransıyla durdu. OC ikisinde de durmadı (2000 ve 1200 iterasyon tavanı) ve son adımı tam olarak `move` sınırında kaldı (0.2 / 0.15) --- limit çevrimi. RAPORUN İKİ KOŞULU DA SAĞLANDI. Üretim hattını değiştirmek AYRI bir karardır: Bölüm 10'un yayımlanmış sayıları değişir.",
+  "sure_dk": 14.5,
+  "_kisit": "TEK PROBLEM AILESI (L-braket, 2B ve 3B) ve tek cozunurluk. Optimizasyon algoritmalarinin kiyasi probleme baglidir; bu sonuc GENEL bir ustunluk iddiasi DEGILDIR. MMA'nin asimptot katsayilari Svanberg'in onerdigi degerlerdedir ve bu probleme gore AYARLANMADI.",
+  "_uretim": "Üretim: python experiments/mma_bolum10.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

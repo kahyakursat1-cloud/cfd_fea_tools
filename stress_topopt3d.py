@@ -194,12 +194,16 @@ class StressTopo3D:
     def _chain_filter(self, dobj_drho):
         return self.H.T @ (dobj_drho / self.Hs)
 
-    def optimize(self, volfrac, objective="stress", max_iter=60, move=0.2, tol=0.01,
-                 x0=None):
+    def optimize(self, volfrac, objective="stress", max_iter=60, move=0.2,
+                 tol=0.01, x0=None, guncelleyici="oc"):
+        # `guncelleyici`: 'oc' (VARSAYILAN, uretim) ya da 'mma' (aday).
+        # Warm-start'in sebebi OC'nin gerilmede salinmasi; MMA'nin
+        # warm-start OLMADAN kosabilmesi o gerekcenin sinavidir.
         # x0: warm-start (Le 2010 — stress-min kompliyans-tasarımdan başlar; OC stress'te
         # tek-başına kararsız/salınımlı, iyi topoloji başlangıcı şart).
         x = np.full(self.ne, volfrac) if x0 is None else np.clip(x0.copy(), 1e-3, 1.0)
         x[self.passive] = self.emin
+        self._mma_durum = None
         hist = []
         for it in range(1, max_iter + 1):
             rho = self.filt(x)
@@ -211,7 +215,10 @@ class StressTopo3D:
                 obj, drho = self.pnorm_sens(rho, u, K)
             _, vm = self.elem_stress(u)
             peak_vm = float((rho ** self.q * vm).max())
-            xnew = self._oc_step(x, self._chain_filter(drho), volfrac, move)
+            _dx = self._chain_filter(drho)
+            xnew = (self._mma_step(x, _dx, volfrac, move)
+                    if guncelleyici == "mma"
+                    else self._oc_step(x, _dx, volfrac, move))
             ch = float(np.abs(xnew - x).max())
             x = xnew
             hist.append({"it": it, "obj": float(obj), "peak_vm": peak_vm, "ch": ch})
@@ -219,6 +226,30 @@ class StressTopo3D:
                 break
         rho = self.filt(x); rho[self.passive] = self.emin
         return rho, hist
+
+    def _mma_step(self, x, dx, volfrac, move):
+        """MMA adimi — 2B ile AYNI desen: yalniz AKTIF elemanlarda kosar.
+
+        Pasif elemanlara xmin == xmax vermek MMA'nin asimptotlarini sifira
+        cokertir ve cozum patlar (2B'de olculdu: tepe 16.716 vs 2,68).
+        Serbestlik derecesi olmayan bir degiskeni optimizasyona sokmak,
+        MMA'nin kusuru degil cagirmanin.
+        """
+        from mma import MMADurum, mma_adim
+        if self._mma_durum is None:
+            self._mma_durum = MMADurum()
+        act = ~self.passive
+        n = int(act.sum())
+        xa = x[act]
+        hedef = volfrac * self.ne / max(n, 1)
+        f1 = float(xa.sum() / n - hedef)
+        xn_a = mma_adim(xa, dx[act], np.full(n, 1.0 / n), f1,
+                        np.full(n, 1e-3), np.ones(n), self._mma_durum,
+                        move=move)
+        xn = x.copy()
+        xn[act] = xn_a
+        xn[self.passive] = self.emin
+        return xn
 
     def _oc_step(self, x, dx, volfrac, move):
         l1, l2 = 1e-9, 1e9

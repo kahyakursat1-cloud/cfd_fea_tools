@@ -187,9 +187,18 @@ class StressTopo2D:
         return self.H.T @ (dobj_drho / self.Hs)
 
     # ── OC döngüsü ────────────────────────────────────────────────────────────
-    def optimize(self, volfrac, objective="stress", max_iter=80, move=0.2, tol=0.01):
+    def optimize(self, volfrac, objective="stress", max_iter=80, move=0.2,
+                 tol=0.01, guncelleyici="oc"):
+        """`guncelleyici`: 'oc' (VARSAYILAN, uretim) ya da 'mma' (aday).
+
+        VARSAYILAN DEGISMEDI. Raporun kendi kosulu su: MMA'yi uretime almak
+        icin Bolum 10 kiyaslarinin MMA ile YENIDEN kosulmasi ve MMA'nin KENDI
+        durma olcutunun gosterilmesi gerekir. Bu parametre o kosulu
+        olculebilir kilar; secimi degistirmez.
+        """
         x = np.full(self.ne, volfrac)
         x[self.passive] = self.emin
+        self._mma_durum = None
         hist = []
         for it in range(1, max_iter + 1):
             rho = self.filt(x)
@@ -202,7 +211,10 @@ class StressTopo2D:
             _, vm = self.elem_stress(u)
             peak_vm = float((rho ** self.q * vm).max())
             dx = self._chain_filter(drho)
-            xnew = self._oc_step(x, dx, volfrac, move)
+            if guncelleyici == "mma":
+                xnew = self._mma_step(x, dx, volfrac, move)
+            else:
+                xnew = self._oc_step(x, dx, volfrac, move)
             ch = float(np.abs(xnew - x).max())
             x = xnew
             hist.append({"it": it, "obj": float(obj), "peak_vm": peak_vm, "ch": ch})
@@ -210,6 +222,38 @@ class StressTopo2D:
                 break
         rho = self.filt(x); rho[self.passive] = self.emin
         return rho, hist
+
+    def _mma_step(self, x, dx, volfrac, move):
+        """MMA adimi — hacim kisiti f1 = sum(x)/ne - volfrac <= 0.
+
+        OC'den farki: POZITIF duyarliligi ATMAZ. OC'nin `max(-dx, 0)` satiri
+        "bu elemanin yogunlugunu artirmak amaci kotulestirir" bilgisini
+        siliyor; olculdu (L-braket 3B) ki gradyan buyuklugunun %96,9'u tek bir
+        adimda atilabiliyor.
+        """
+        from mma import MMADurum, mma_adim
+        if self._mma_durum is None:
+            self._mma_durum = MMADurum()
+        act = ~self.passive
+        # MMA YALNIZ AKTIF ELEMANLARDA KOSAR. Ilk surum pasif elemanlara
+        # xmin == xmax veriyordu; MMA'nin asimptotlari o araligi sifira
+        # cokertir ve `upp - x` ile `x - low` sifir olur. Sonuc NaN'la
+        # kirilmadi, DAHA KOTU oldu: cozum patladi (tepe 16.716 vs OC'nin
+        # 2,68) ve 6 iterasyonda "durdu". Serbestlik derecesi olmayan bir
+        # degiskeni optimizasyona sokmak, MMA'nin kusuru degil cagirmanin.
+        n = int(act.sum())
+        xa = x[act]
+        # HACIM KISITI AKTIF KUME UZERINDEN. Pasif elemanlar sabittir ve
+        # hedefe katilmazlar; toplam ne'ye bolmek kisiti yanlis olceklerdi.
+        hedef = volfrac * self.ne / max(n, 1)
+        f1 = float(xa.sum() / n - hedef)
+        xn_a = mma_adim(xa, dx[act], np.full(n, 1.0 / n), f1,
+                        np.full(n, 1e-3), np.ones(n), self._mma_durum,
+                        move=move)
+        xn = x.copy()
+        xn[act] = xn_a
+        xn[self.passive] = self.emin
+        return xn
 
     def _oc_step(self, x, dx, volfrac, move):
         # OC: min obj s.t. hacim. dx>0 (obj artıyor) → Be<0 olur; max(0,...) ile kırp.
