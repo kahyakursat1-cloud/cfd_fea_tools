@@ -1,0 +1,109 @@
+{
+  "vaka": "2-yönlü FSI çapası — engel donanım mı, yetenek mi?",
+  "_neden": "Hakem P3 'uygun vaka ~94,1 M hucre' diyor. O sayi gercek ama BIR TEK GEOMETRI AILESINE ait (deponun kendi araci). Kaydin kendi kisiti 'bu bir GEOMETRI-AILESI sorunudur' diyordu ama baska aile hic degerlendirilmedi.",
+  "yapisal_yetenek": {
+    "okunabildi": true,
+    "nlgeom": false,
+    "analiz_tipleri": [
+      "BUCKLE",
+      "FREQUENCY",
+      "STATIC"
+    ],
+    "buyuk_yer_degistirme": false,
+    "zaman_cozunur_yapisal": false
+  },
+  "capalar": {
+    "FSI1": {
+      "rejim": "kararlı",
+      "Re": 20,
+      "uc_sehimi_mm": 0.0227,
+      "bayrak_L_mm": 350.0,
+      "kanal_L_mm": 2500.0,
+      "kanal_H_mm": 410.0,
+      "nlgeom_gerekir": false,
+      "_neden": "Uc sehimi bayrak boyunun %0,0065'i --- kucuk yer-degistirme rejimi, lineer statik gecerli.",
+      "ne_kapatir": "Aktarilan yuk + yapisal yanit YAYIMLANMIS bir referansa karsi dogrulanir. Bugun hicbir FSI vakasinda bu YOK.",
+      "ne_kapatmaz": "GUCLU iki-yonlu geri besleme: sehim akisi kayda deger olcude degistirmez, yani 'fizik tahrik ediyor' iddiasini SINAMAZ.",
+      "butce": {
+        "hucre_boyu_mm": 2.5,
+        "hucre_tekduze_ust_sinir": 164000,
+        "bellek_gb": 0.425,
+        "bos_bellek_gb": 4.14,
+        "bellege_sigar_mi": true
+      },
+      "engeller": [],
+      "ulasilabilir": true
+    },
+    "FSI2": {
+      "rejim": "zamana bağlı",
+      "Re": 100,
+      "uc_sehimi_mm": 80.0,
+      "bayrak_L_mm": 350.0,
+      "kanal_L_mm": 2500.0,
+      "kanal_H_mm": 410.0,
+      "nlgeom_gerekir": true,
+      "_neden": "Uc sehimi bayrak boyunun %23'u --- buyuk yer-degistirme.",
+      "ne_kapatir": "Hakemin istedigi sey: fizikle SURULEN iki-yonlu kuplaj.",
+      "ne_kapatmaz": "3B etkiler; benchmark 2B'dir.",
+      "butce": {
+        "hucre_boyu_mm": 2.5,
+        "hucre_tekduze_ust_sinir": 164000,
+        "bellek_gb": 0.425,
+        "bos_bellek_gb": 4.14,
+        "bellege_sigar_mi": true
+      },
+      "engeller": [
+        "YETENEK: büyük yer-değiştirme (NLGEOM) yok",
+        "YETENEK: zaman-çözünür yapısal analiz yok"
+      ],
+      "ulasilabilir": false
+    },
+    "FSI3": {
+      "rejim": "zamana bağlı",
+      "Re": 200,
+      "uc_sehimi_mm": 35.0,
+      "bayrak_L_mm": 350.0,
+      "kanal_L_mm": 2500.0,
+      "kanal_H_mm": 410.0,
+      "nlgeom_gerekir": true,
+      "_neden": "Uc sehimi bayrak boyunun %10'u --- buyuk yer-degistirme.",
+      "ne_kapatir": "FSI2 ile ayni, daha yuksek Re.",
+      "ne_kapatmaz": "3B etkiler; benchmark 2B'dir.",
+      "butce": {
+        "hucre_boyu_mm": 2.5,
+        "hucre_tekduze_ust_sinir": 164000,
+        "bellek_gb": 0.425,
+        "bos_bellek_gb": 4.14,
+        "bellege_sigar_mi": true
+      },
+      "engeller": [
+        "YETENEK: büyük yer-değiştirme (NLGEOM) yok",
+        "YETENEK: zaman-çözünür yapısal analiz yok"
+      ],
+      "ulasilabilir": false
+    }
+  },
+  "ulasilabilir_capalar": [
+    "FSI1"
+  ],
+  "verdikt": "YAPISAL YETENEK: büyük yer-değiştirme (NLGEOM) YOK, zaman-çözünür yapısal YOK (desteklenen: BUCKLE, FREQUENCY, STATIC). FSI1: ULAŞILABİLİR (164,000 hücre üst sınır, 0.425 GB). FSI2: engel — YETENEK: büyük yer-değiştirme (NLGEOM) yok; YETENEK: zaman-çözünür yapısal analiz yok (164,000 hücre üst sınır, 0.425 GB). FSI3: engel — YETENEK: büyük yer-değiştirme (NLGEOM) yok; YETENEK: zaman-çözünür yapısal analiz yok (164,000 hücre üst sınır, 0.425 GB). BULGU: FSI1 bu makinede ULAŞILABİLİR ve engel DONANIM DEĞİL --- 94,1 M'lik tahmin deponun kendi araç ailesine aitti. Ama FSI1 hakemin sorduğu şeyi KAPATMAZ: küçük sehim rejiminde akış kayda değer ölçüde değişmez, yani 'fizik tahrik ediyor' iddiası sınanmaz. Kapattığı şey ayrı ve bugün EKSİK: aktarılan yükün ve yapısal yanıtın YAYIMLANMIŞ bir referansa karşı doğrulanması. Güçlü geri besleme için gereken FSI2/FSI3'ün engeli bütçe değil YETENEKTİR (NLGEOM).",
+  "_kisit": "BUTCE TEKDUZE AG VARSAYIYOR ve bu bir UST SINIRDIR: gercek kosuda uzak alan kabalasir, hucre sayisi belirgin duser. 'Sigar' hukmu bu yuzden GUVENLI yondedir ama 'sigmaz' hukmu kesin degildir. Ayrica ULASILABILIR demek KOSULDU demek DEGILDIR: hicbir Turek-Hron vakasi bu depoda kosulmadi ve referans degerler burada YALNIZ ulasilabilirlik icin kullanildi, sonuc uretmek icin degil.",
+  "_uretim": "Üretim: python experiments/fsi_capa_ulasilabilirlik.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

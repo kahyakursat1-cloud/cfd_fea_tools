@@ -2881,6 +2881,41 @@ gerçek hücre sayısını yüzey iyileştirme kademesi belirler.
         Üçü de kapatıldı. Onarımdan sonra ağ gerçekten hareket etti ve ilmek
         beş dış iterasyonda yakınsadı --- ama \emph{sebebi fizik değildi};
         bkz. \S\ref{sub:fsi-tahrik}.
+
+        \textbf{2026-08-26 --- engel donanımda sanılıyordu, ölçüldü:
+        yetenekte.} Dış inceleme bu maddeyi donanıma bağladı: ``uygun vaka
+        $\sim$94,1\,M hücre, $\sim$73\,GB''. O sayı gerçektir ama
+        \emph{tek bir geometri ailesine} aittir --- deponun kendi araç
+        gövdesi, 18 senaryo malzeme ve hız taranarak
+        (\texttt{fsi\_tahrik\_fizibilite.json}). O kaydın kendi kısıtı zaten
+        ``bu bir donanım sorunundan çok bir \emph{geometri-ailesi} sorunudur''
+        diyordu; başka aile hiç değerlendirilmemişti.
+
+        Kanonik FSI çapası Turek \& Hron (2006) tam bu iş için tasarlandı:
+        silindir arkasında esnek bayrak, 2B, laminer, yayımlanmış referans
+        değerleriyle. Üç varyantının bütçesi ölçüldü
+        (\texttt{fsi\_capa\_ulasilabilirlik.json}) ve \textbf{üçü de aynı}:
+        164.000 hücre, 0{,}425\,GB. Yani
+        \textbf{donanım engel değil}.
+
+        Engel \textsc{yetenektir} ve yapısal yazıcıdan okundu: NLGEOM
+        YOK, zaman-çözünür yapısal analiz YOK
+        (desteklenen: \texttt{BUCKLE}, \texttt{FREQUENCY}, \texttt{STATIC}).
+        FSI2 ve FSI3'ün uç sehimi bayrak boyunun \%23 ve \%10'udur --- büyük
+        yer-değiştirme rejimi, lineer statik geçersiz.
+
+        FSI1 \emph{ulaşılabilir} (kararlı, Re=20, uç sehimi
+        $0{,}0227$\,mm) ama hakemin sorduğunu \textbf{kapatmaz}: küçük-sehim
+        rejiminde akış kayda değer ölçüde değişmez, yani ``fizik tahrik
+        ediyor'' iddiası sınanmaz. Kapattığı şey ayrı ve bugün eksiktir ---
+        aktarılan yükün ve yapısal yanıtın \emph{yayımlanmış} bir referansa
+        karşı doğrulanması. Bu ayrımı yazmamak, bir çapa koşup ``iki-yönlü
+        FSI doğrulandı'' demeye kapı açardı.
+
+        Hükmün doğru hâli değişmedi ama \emph{gerekçesi} değişti:
+        altyapı doğrulanmıştır, fiziksel kuplaj doğrulaması beklemededir ve
+        onu bekleten şey bir makine değil \emph{eksik bir çözücü
+        yeteneğidir}.
   \item[Süpersonik mutlak $C_d$.] 3B-açık çözüm bu donanımda ulaşılamaz.
   \item[Panel yönteminin indüklenen direnci.] VSPAERO'nun iki $C_{Di}$ çıktısı
         da kuramdan sapar (yakın-alan $-\%21$, Trefftz $+\%62$); bu yüzden
@@ -3325,7 +3360,7 @@ Hakem & İş & Bellek & Hücre & Neyi açar \\
 \#5 & Silindir duvar-çözümlü LES & 62{,}9\,GB & 84{,}7\,M &
   türbülanslı zaman-çözünür çapa \\
 \#12 & Sürülen 2-yönlü FSI (balsa, 70\,m/s) & 73\,GB & 94{,}1\,M &
-  fiziksel olarak sürülen ilk kuplaj \\
+  \emph{araç ailesinde}; kanonik çapada engel donanım DEĞİL, NLGEOM \\
 \#13 & Model-form tablosu & --- & \multicolumn{2}{l}{$\sim$10 yeni çapa koşusu} \\
 \#9 & Sıkı-yakınsama girdi-UQ & --- & \multicolumn{2}{l}{$\sim$30 koşu, yüksek iterasyon} \\
 \bottomrule
