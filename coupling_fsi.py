@@ -294,6 +294,9 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
         "n_cfd_faces": len(polys),
         "n_fea_faces": len(faces),
         "n_fea_nodes": len(fea_nodes),
+        # DUGUM KONUMLARI CAGIRANA GEREKLI: CalculiX dugum numarasi
+        # KONUMA gore baglanir, STL indisine gore degil.
+        "fea_nodes": fea_nodes,
         "n_loaded_nodes": len(forces),
         "p_min_Pa": float(p_pa.min()),
         "p_max_Pa": float(p_pa.max()),
@@ -325,6 +328,62 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
         "total_moment_Nm": [round(float(x), 4) for x in M_face],
         "node_forces": forces,
     }
+
+
+def dugum_eslemesi(fea_nodes, inp_path: str) -> dict:
+    r"""STL köşesi → CalculiX düğüm numarası, KONUMA göre.
+
+    ÖLÇÜLEN KUSUR: `cfd_pressure_to_fea_loads` düğüm anahtarını STL köşe
+    İNDİSİNDEN üretiyor (`i+1`) ve `write_cload` onu doğrudan CalculiX düğüm
+    numarası olarak yazıyordu. Bu, iki ağın düğümleri AYNI SIRADA yazdığını
+    varsayar. Varsaymamalı: `_fsi_esnek` vakasında ilk 8 düğüm STL'in 8
+    köşesinin ta kendisi ama SIRALARI FARKLI --- köşe 4 ile 7 yer değişmiş.
+    Yani iki köşenin yükü yanlış konuma biniyordu.
+
+    Ölçülen etki o vakada küçüktü (moment hatası %0,010; iki köşe birbirine
+    yakın ve yükleri benzer). Ama bu bir tesadüftür, güvence değil: köşe
+    sayısı arttıkça permütasyon keyfîleşir ve etki ölçülmemiştir. Bağlama
+    KONUMA göre yapılırsa sıralama varsayımı tümüyle ortadan kalkar.
+
+    Eşleşmeyen köşe SESSİZCE atlanmaz: sözlükte yoksa çağıran görür.
+    """
+    import re as _re
+
+    import numpy as _np
+    from scipy.spatial import cKDTree as _KD
+
+    metin = Path(inp_path).read_text(errors="replace")
+    i = metin.find("*NODE")
+    j = metin.find("*ELEMENT", i)
+    if i < 0 or j < 0:
+        return {}
+    koor, no = [], []
+    for satir in metin[i:j].splitlines()[1:]:
+        q = satir.split(",")
+        if len(q) < 4:
+            continue
+        try:
+            no.append(int(q[0]))
+            koor.append([float(x) for x in q[1:4]])
+        # sessiz-yutma: kabul — istisna BURADA eleme kriterinin kendisidir.
+        # `*NODE` blogunda sayisal olmayan satir (yorum, devam isareti, ikinci
+        # bir anahtar) DUGUM DEGILDIR; "ayristirilamadi" diye kaydetmek olmayan
+        # bir kusuru rapor etmek olurdu. Bilgi kaybi yok: esleme sonucu
+        # `dugum_eslemesi`nin donusunde SAYILABILIR --- kac kose eslesti,
+        # cagiran gorur ve eslesmeyen kose sozlukte YOKTUR.
+        except ValueError:
+            no.pop() if len(no) > len(koor) else None
+            continue
+    if not koor:
+        return {}
+    d, idx = _KD(_np.asarray(koor)).query(_np.asarray(fea_nodes, float), k=1)
+    # TOLERANS AGIN KENDI OLCEGINDEN: mutlak bir metre degeri, milimetrik bir
+    # modelde her seyi eslestirir, metrelik bir modelde hicbir seyi.
+    kk = _np.asarray(koor)
+    olcek = float(_np.linalg.norm(kk.max(0) - kk.min(0))) + 1e-30
+    tol = 1e-6 * olcek
+    return {int(s + 1): int(no[t]) for s, (t, dd) in enumerate(zip(idx, d))
+            if dd <= tol}
 
 
 def write_cload(node_forces: dict, out_path: str) -> str:

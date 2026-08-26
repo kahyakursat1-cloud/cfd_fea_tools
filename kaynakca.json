@@ -2,6 +2,7 @@
   "vaka": "Kaynakça — kanıt kayıtlarından ve kod sabitlerinden üretildi",
   "_neden": "Rapor onlarca literatur kaynagi kullaniyordu ama ayri bir kaynakca bolumu YOKTU (dis inceleme yakaladi). Elle liste yazmak, raporun kendi avladigi kusuru islemek olurdu: sabit metin, degisen veri.",
   "kaynak_sayisi": 14,
+  "atlanan_dosya": null,
   "verdikt": "14 kaynak üretildi ve rapora bağlandı. Künyeler çapa kayıtlarının `kaynak` alanlarından ve kod sabitlerinden gelir; elle yazılmış bir liste, bir çapa yeni referansa taşındığında sessizce eskirdi. DOI TAMAMLANMAMIŞTIR ve bu kasıtlıdır --- yayına giderken her künye birincil kaynaktan doğrulanmalıdır.",
   "kaynaklar": [
     {

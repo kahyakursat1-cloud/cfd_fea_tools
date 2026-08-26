@@ -187,6 +187,7 @@ def kuplaj_haritasi(vaka: KuplajVakasi):
     from analysis.frd_parser import parse_frd
     from coupling_fsi import (
         cfd_pressure_to_fea_loads,
+        dugum_eslemesi,
         fea_displacement_to_cfd_points,
         write_cload,
         write_point_displacement,
@@ -244,10 +245,28 @@ def kuplaj_haritasi(vaka: KuplajVakasi):
         # onu HIC DAHIL ETMIYORDU: her tur AYNI statik yukle koşar, sabit-nokta
         # ilk adimda saglanir ve dongu "yakinsadi" der. Sahte kesinligin ders
         # kitabi ornegi olurdu. Yeni *CLOAD blogu .inp'e DOGRUDAN yazilir.
-        cload = write_cload(yukler["node_forces"], str(vaka.run_dir / "fsi.cload"))
         # .inp kok dizinde DEGIL alt dizinde olabilir (vehicle_fea `fea/` altina
         # yaziyor); rglob kullanilir.
         inp = next(vaka.run_dir.rglob("*.inp"))
+        # DUGUM NUMARASI KONUMA GORE BAGLANIR, INDISE GORE DEGIL.
+        # Ilk surum STL kose indisini (`i+1`) dogrudan CalculiX dugum numarasi
+        # sayiyordu ve bu, iki agin dugumleri AYNI SIRADA yazdigini varsayar.
+        # OLCULDU: bes FSI vakasinin HEPSINDE ilk 8 dugum STL'in 8 kosesinin
+        # ta kendisi ama SIRALARI FARKLI — ikisi yer degismis, yani iki
+        # kosenin yuku YANLIS KONUMA biniyordu. Olculen etki bu vakalarda
+        # kucuktu (moment hatasi %0,010; kayan iki kose birbirine yakin) ama
+        # bu bir TESADUFTUR: kose sayisi arttikca permutasyon keyfilesir ve
+        # etki olculmemistir. Konuma gore baglamak varsayimi tumuyle kaldirir.
+        _harita = dugum_eslemesi(yukler["fea_nodes"], str(inp))
+        _yuk = yukler["node_forces"]
+        if _harita:
+            _kayan = sum(1 for a, b in _harita.items() if a != b)
+            _yuk = {_harita[k]: v for k, v in _yuk.items() if k in _harita}
+            _esleme_notu = (f"{len(_harita)} eşleşti, "
+                            f"{_kayan} indisten kaydı")
+        else:
+            _esleme_notu = "eşleme YAPILAMADI — indis varsayımı yürürlükte"
+        cload = write_cload(_yuk, str(vaka.run_dir / "fsi.cload"))
         _t = inp.read_text(encoding="utf-8")
         _i = _t.index("*CLOAD")
         _j = _t.find("*", _i + 6)
@@ -291,6 +310,7 @@ def kuplaj_haritasi(vaka: KuplajVakasi):
                             # %0,90 aktarim hatasi mumkun) ama yuksek hatanin
                             # sebebini soyler.
                             "alan_farki_pct": yukler.get("alan_farki_pct"),
+                            "dugum_eslemesi": _esleme_notu,
                             "cload": cload})
         return yeni.ravel()
 

@@ -81,7 +81,14 @@ import sessiz_yutma
 # Ikisi de yeni bir olcum yolunun parcasi: hizlanma artik ASAMA DUVAR SURESINDEN
 # degil ExecutionTime'dan hesaplaniyor (rapordaki 1,96x → 3,10x duzeltmesi).
 # Izlenen sayilar DEGISMEDI: incelenmemis 0, guven yolunda incelenmemis 0.
-TABAN_TOPLAM = 97
+TABAN_TOPLAM = 98
+# 97 -> 98 (2026-08-26): kaynakca.topla — `ast.literal_eval` istisnasi BURADA
+# eleme kriterinin kendisidir. `X_KAYNAK = f(...)` gibi HESAPLANAN bir deger
+# sabit degildir ve kunye olamaz; onu "ayristirilamadi" diye kaydetmek olmayan
+# bir kusuru rapor etmek olurdu. Ayni fonksiyonun OTEKI iki istisnasi (dosya
+# okunamadi / ayristirilamadi) sessizce yutulmuyor: sebep `atlanan` listesine
+# yaziliyor ve kanit dosyasina geciyor, cunku okunamayan bir dosya ICINDEKI
+# KAYNAKLARIN da kaybolmasi demektir.
 # 96 -> 97 (2026-08-23): is_istasyonu_kuyrugu._j — bozuk kanit dosyasi None
 # doner AMA cagiran onu `kanit_eksik` listesine ADIYLA yazar, yani kalem
 # SESSIZCE dusmez. Yutulan sey ayristirma hatasi; hukum kayitta gorunur.
@@ -141,7 +148,11 @@ TABAN_TOPLAM = 97
 # blok bitince okunanlar döner, hiçbiri okunamazsa çağıran "dat frekans
 # taşımıyor" HATASI alır. Gerekçe kodda (kabul etiketi konuldu).
 # İzlenen sayılar DEĞİŞMEDİ: incelenmemiş 0, güven yolunda incelenmemiş 0.
-TABAN_GUVEN_YOLU = 69
+TABAN_GUVEN_YOLU = 70
+# 69 -> 70 (2026-08-26): coupling_fsi.dugum_eslemesi — `*NODE` blogunda
+# sayisal olmayan satir (yorum, devam isareti, ikinci anahtar) DUGUM DEGILDIR;
+# eleme kriterin kendisi. Bilgi kaybi yok: eslesen kose sayisi donuste
+# SAYILABILIR ve eslesmeyen kose sozlukte YOKTUR, yani cagiran gorur.
 # 68 -> 69 (2026-08-23): yukaridaki _j guven yolunda (experiments) ama
 # urettigi sey bir HUKUM degil bir LISTE; eksik kanit adiyla raporlaniyor
 # 67 -> 68 (2026-08-23): yukaridaki _planform_ok_acisi guven yolunda

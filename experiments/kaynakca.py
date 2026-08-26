@@ -53,8 +53,16 @@ def _literatur_mu(s: str) -> bool:
     return bool(_YIL.search(s) and _GOSTERGE.search(s))
 
 
-def topla() -> dict[str, set[str]]:
-    """Kaynakları kanıt dosyalarından VE kod sabitlerinden topla."""
+def topla(atlanan: list[str] | None = None) -> dict[str, set[str]]:
+    """Kaynakları kanıt dosyalarından VE kod sabitlerinden topla.
+
+    ATLANAN DOSYA SESSIZCE KAYBOLMAZ. Okunamayan ya da ayrıştırılamayan bir
+    dosya, İÇİNDEKİ KAYNAKLARIN da kaybolması demektir; sebep `atlanan`
+    listesine yazılır ve kanıt dosyasına geçer. ``Kaç kaynak bulundu''
+    sorusunun yanında ``kaç dosya okunamadı'' durmazsa, eksik bir kaynakça
+    tam görünür.
+    """
+    atlanan = [] if atlanan is None else atlanan
     bulunan: dict[str, set[str]] = {}
     kalip = re.compile(
         r'"(?:kaynak|kunye|referans|referans_kaynak|_kaynak|ref_kaynak|'
@@ -68,7 +76,8 @@ def topla() -> dict[str, set[str]]:
             continue
         try:
             t = p.read_text(encoding="utf-8", errors="replace")
-        except OSError:
+        except OSError as e:
+            atlanan.append(f"{p.name}: okunamadı ({type(e).__name__})")
             continue
         for m in kalip.findall(t):
             if _literatur_mu(m):
@@ -78,7 +87,8 @@ def topla() -> dict[str, set[str]]:
         for p in d.glob("*.py"):
             try:
                 agac = ast.parse(p.read_text(encoding="utf-8", errors="replace"))
-            except (SyntaxError, OSError):
+            except (SyntaxError, OSError) as e:
+                atlanan.append(f"{p.name}: ayrıştırılamadı ({type(e).__name__})")
                 continue
             for n in ast.walk(agac):
                 if not isinstance(n, ast.Assign):
@@ -89,6 +99,11 @@ def topla() -> dict[str, set[str]]:
                         continue
                     try:
                         v = ast.literal_eval(n.value)
+                    # sessiz-yutma: kabul — istisna BURADA eleme kriterinin
+                    # kendisidir. `X_KAYNAK = f(...)` gibi HESAPLANAN bir deger
+                    # sabit degildir ve kunye olamaz; "ayristirilamadi" diye
+                    # kaydetmek, olmayan bir kusuru rapor etmek olurdu. Bilgi
+                    # kaybi yok: aranan sey zaten yalnizca sabit dizgilerdir.
                     except (ValueError, SyntaxError):
                         continue
                     if isinstance(v, str) and _literatur_mu(v):
@@ -140,7 +155,8 @@ def _anahtar(s: str) -> str:
 
 
 def uret() -> dict:
-    ham = topla()
+    atlanan: list[str] = []
+    ham = topla(atlanan)
     b: dict[str, set[str]] = {}
     _imza: dict[str, str] = {}
     for k in sorted(ham, key=len, reverse=True):
@@ -173,6 +189,7 @@ def uret() -> dict:
                    "yazmak, raporun kendi avladigi kusuru islemek olurdu: "
                    "sabit metin, degisen veri."),
         "kaynak_sayisi": len(kayitlar),
+        "atlanan_dosya": atlanan or None,
         "verdikt": (
             f"{len(kayitlar)} kaynak üretildi ve rapora bağlandı. Künyeler "
             f"çapa kayıtlarının `kaynak` alanlarından ve kod sabitlerinden "
