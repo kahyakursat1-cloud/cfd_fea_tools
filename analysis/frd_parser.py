@@ -46,6 +46,9 @@ class FRDResult:
     # alanlar: 'DISP': (N, 3), 'STRESS': (N, 6), 'VON_MISES': (N,)
     # Ayrıştırmada ATLANAN satır sayısı — sıfır değilse tepe gerilme EKSİK olabilir.
     atlanan_satir: dict = field(default_factory=lambda: {"dugum": 0, "sonuc": 0})
+    # Alan basina kac sonuc blogu goruldu. >1 = cok adimli dosya; bu
+    # fonksiyon yalniz SON adimi tasir ve bu SESSIZ kalmamali.
+    adim_sayaci: dict = field(default_factory=dict)
 
     def displacement_magnitude(self) -> np.ndarray | None:
         if "DISP" not in self.fields:
@@ -93,6 +96,9 @@ def parse_frd(frd_path: Path) -> FRDResult:
     # satırlardan birindeyse maksimum SESSİZCE DÜŞÜK çıkar ve SF hükmü iyimser olur.
     # Atlama kaçınılmaz (kısmi/bozuk .frd olur) ama SAYISI görünmeli.
     atlanan = {"dugum": 0, "sonuc": 0}
+    # Bir alanin KAC KEZ yazildigi: >1 ise dosya cok-adimlidir ve elde
+    # yalniz SON adim vardir. Zaman serisi icin `parse_frd_zaman_serisi`.
+    adim_sayaci: dict[str, int] = {}
 
     # State machine
     in_node_block = False
@@ -143,6 +149,11 @@ def parse_frd(frd_path: Path) -> FRDResult:
             if stripped.startswith(" -3"):
                 if in_result_block and current_field_name and current_field_data:
                     arr = np.array(current_field_data, dtype=np.float64)
+                    # COK-ADIMLI DOSYADA BU BIR USTUNE-YAZMADIR ve statikte
+                    # dogrudur. Gecici analizde SESSIZ VERI KAYBIDIR, o
+                    # yuzden kac kez yazildigi SAYILIR ve kayda gecer.
+                    if current_field_name in fields:
+                        adim_sayaci[current_field_name] =                             adim_sayaci.get(current_field_name, 1) + 1
                     fields[current_field_name] = arr
                 in_node_block = False
                 in_result_block = False
@@ -209,8 +220,98 @@ def parse_frd(frd_path: Path) -> FRDResult:
         print(f"[UYARI] .frd ayrıştırmada atlanan satır: {atlanan['dugum']} düğüm, "
               f"{atlanan['sonuc']} sonuç — tepe gerilme EKSİK olabilir "
               f"({frd_path.name})")
+    if any(v > 1 for v in adim_sayaci.values()):
+        print(f"[UYARI] .frd COK ADIMLI ({adim_sayaci}) — bu fonksiyon yalnız "
+              f"SON adımı döndürür. Zaman serisi için "
+              f"parse_frd_zaman_serisi() ({frd_path.name})")
     return FRDResult(points=points, node_ids=node_ids, fields=cleaned,
-                     atlanan_satir=dict(atlanan))
+                     atlanan_satir=dict(atlanan),
+                     adim_sayaci=dict(adim_sayaci))
+
+
+def parse_frd_zaman_serisi(frd_path: Path) -> dict:
+    """Çok-adımlı .frd'den DISP zaman serisi.
+
+    NEDEN AYRI BIR FONKSIYON. `parse_frd` her sonuc blogunu ayni anahtara
+    yazar (`fields[name] = arr`), yani cok-adimli bir dosyada YALNIZ SON
+    ADIM kalir --- ve bunu soylemez. Statik analizde dogru davranis budur;
+    zaman-cozunur analizde SESSIZ VERI KAYBIDIR. Cagiran "sonuclari okudum"
+    sanir, oysa elinde tek bir an vardir.
+
+    Adim zamani `100CL` satirindan alinir --- ucuncu belirtec. Bicim GERCEK
+    bir gecici kosunun ciktisindan okundu, belgeden ya da hatiradan degil:
+
+        100CL  101 2.00000E-04         525                     1    1     1
+
+    Doner: {"zamanlar": (T,), "node_ids": (N,), "DISP": (T, N, 3),
+            "atlanan": {...}}
+    """
+    frd_path = Path(frd_path)
+    if not frd_path.exists():
+        raise FileNotFoundError(f"FRD dosyası yok: {frd_path}")
+    zamanlar: list[float] = []
+    node_ids: list[int] = []
+    adimlar: list[list[list[float]]] = []
+    guncel: list[list[float]] = []
+    guncel_ids: list[int] = []
+    atlanan = {"zaman": 0, "sonuc": 0}
+    disp_blogu = False
+
+    with frd_path.open("r") as f:
+        for line in f:
+            t = line.rstrip()
+            s_t = t.strip()
+            if s_t.startswith("100CL"):
+                parcalar = s_t.split()
+                try:
+                    zamanlar.append(float(parcalar[2]))
+                except (IndexError, ValueError):
+                    atlanan["zaman"] += 1
+                continue
+            if t.startswith(" -4"):
+                parcalar = t.split()
+                disp_blogu = len(parcalar) >= 2 and parcalar[1] == "DISP"
+                guncel, guncel_ids = [], []
+                continue
+            if t.startswith(" -3"):
+                if disp_blogu and guncel:
+                    adimlar.append(guncel)
+                    if not node_ids:
+                        node_ids = list(guncel_ids)
+                disp_blogu = False
+                continue
+            if disp_blogu and t.startswith(" -1"):
+                try:
+                    nid = int(t[3:13])
+                except ValueError:
+                    atlanan["sonuc"] += 1
+                    continue
+                rest = t[13:]
+                vals = []
+                for i in range(0, len(rest), 12):
+                    parca = rest[i:i + 12].strip()
+                    if not parca:
+                        break
+                    try:
+                        vals.append(float(parca))
+                    except ValueError:
+                        break
+                if len(vals) >= 3:
+                    guncel.append(vals[:3])
+                    guncel_ids.append(nid)
+
+    if not adimlar:
+        raise RuntimeError(f"FRD'de DISP adımı yok: {frd_path}")
+    # ZAMAN ile ADIM SAYISI UYUSMUYORSA SESSIZ KALINMAZ: eksik zaman
+    # damgasi, seriyi yanlis eksende okumak demektir.
+    if len(zamanlar) != len(adimlar):
+        atlanan["zaman"] += abs(len(zamanlar) - len(adimlar))
+        n = min(len(zamanlar), len(adimlar))
+        zamanlar, adimlar = zamanlar[:n], adimlar[:n]
+    return {"zamanlar": np.array(zamanlar, float),
+            "node_ids": np.array(node_ids, np.int64),
+            "DISP": np.array(adimlar, float),
+            "atlanan": atlanan}
 
 
 if __name__ == "__main__":

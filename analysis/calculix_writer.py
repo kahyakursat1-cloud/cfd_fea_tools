@@ -10,7 +10,9 @@ Birim sistemi: SI (m, kg, s, N, Pa)
   - kuvvet: N
   - basınç: Pa
 
-Bu modül analiz adımları olarak STATIC, FREQUENCY, BUCKLE destekler.
+Bu modül analiz adımları olarak STATIC, FREQUENCY, BUCKLE ve DYNAMIC
+(zaman-çözünür, doğrudan integrasyon) destekler. STATIC ayrıca büyük
+yer-değiştirme (NLGEOM) ile koşulabilir.
 """
 
 from __future__ import annotations
@@ -105,8 +107,26 @@ class FEACase:
     pressure_loads: list[PressureLoad] = field(default_factory=list)
     force_loads: list[ForceLoad] = field(default_factory=list)
     gravity_loads: list[GravityLoad] = field(default_factory=list)
-    analysis_type: str = "STATIC"   # STATIC, FREQUENCY, BUCKLE
+    analysis_type: str = "STATIC"   # STATIC, FREQUENCY, BUCKLE, DYNAMIC
     num_modes: int = 10              # FREQUENCY/BUCKLE için
+    # ZAMAN-ÇÖZÜNÜR (DYNAMIC) parametreleri.
+    #
+    # NEDEN EKLENDİ: iki-yönlü FSI'nin kanonik çapaları (Turek-Hron FSI2/FSI3)
+    # zamana bağlıdır --- girdap dökülmesi bayrağı salındırır ve cevap bir
+    # denge değil bir HAREKETTİR. Ölçüldü (fsi_capa_ulasilabilirlik.json):
+    # NLGEOM eklendikten sonra o vakaları bekleten TEK yetenek buydu.
+    dinamik_dt: float = 1e-3         # zaman adımı (s)
+    dinamik_sure: float = 1.0        # toplam süre (s)
+    # CalculiX varsayilani alpha=-0.05 (HHT sayisal sonumu). SIFIR yapmak
+    # yuksek-frekans gurultusunu birakir; varsayilan birakildi ve DEGERI
+    # kayda yazilir ki bir cozumdeki genlik dususu "fizik" sanilmasin.
+    dinamik_alpha: float = -0.05
+    # SABIT ZAMAN ADIMI. Varsayilan KAPALI --- CalculiX'in kendi varsayilani
+    # adimi otomatik buyutur ve bu DOGRULUK icin iyidir (sonda kosusunda
+    # 2e-4'ten 1,16e-3'e cikti). Ama KUPLAJDA dt'yi akis dayatir: yapisal
+    # taraf kendi adimini secerse iki cozucu ayri zamanlarda olur. FSI
+    # cagiranlari bunu ACIKCA acar.
+    dinamik_direct: bool = False
     delta_t: float = 0.0             # üniform sıcaklık değişimi (K); termal gerilme için
     # BÜYÜK YER-DEĞİŞTİRME. Varsayılan KAPALI --- açmak yalnız daha "genel"
     # olmaz, ÇÖZÜMÜ DEĞİŞTİRİR ve yayımlanmış sonuçları yeniden üretilemez
@@ -258,18 +278,45 @@ def write_inp(case: FEACase, output_dir: Path) -> Path:
     # NLGEOM koymak CalculiX'i düşürmez ama okuyucuya yapılmayan bir şey
     # yapılmış gibi görünür. İstenmişse ve uygulanamıyorsa DOSYAYA yazılır.
     _nlgeom = bool(getattr(case, "nlgeom", False))
-    _statik = case.analysis_type.upper() not in ("FREQUENCY", "BUCKLE")
+    _tip = case.analysis_type.upper()
+    _statik = _tip not in ("FREQUENCY", "BUCKLE")
     if _nlgeom and not _statik:
         lines.append(f"** NLGEOM İSTENDİ ama {case.analysis_type.upper()} "
                      f"adımında UYGULANMAZ — bu adım doğrusallaştırılmış "
                      f"problemi çözer.")
-    lines.append("*STEP, NLGEOM" if (_nlgeom and _statik) else "*STEP")
-    if case.analysis_type.upper() == "FREQUENCY":
+    # ARTIM TAVANI. CalculiX varsayilani 100'dur ve zaman-cozunur bir kosu
+    # bunu kolayca asar: OLCULDU --- 6 periyot x 40 adim = 240 artim isteyen
+    # bir kosu "*ERROR: max. # of increments reached" ile dustu. Tavan
+    # ISTENEN ADIM SAYISINDAN TURETILIR, sabit yazilmaz; %20 pay birakilir
+    # cunku CalculiX yakinsamada adim kucultebilir.
+    #
+    # `*CONTROLS` bilerek YAZILMIYOR (parametre sirasi bu depoda
+    # dogrulanmadi) ama `INC` tek bir belgeli anahtardir ve gereksinimi
+    # ARIZA MESAJININ KENDISI soyledi.
+    _inc = ""
+    if _tip == "DYNAMIC" and case.dinamik_dt > 0:
+        _gerekli = int(case.dinamik_sure / case.dinamik_dt * 1.2) + 10
+        _inc = f", INC={max(case.max_artim_sayisi, _gerekli)}"
+    elif _nlgeom and _statik:
+        _inc = f", INC={case.max_artim_sayisi}"
+    lines.append(("*STEP, NLGEOM" if (_nlgeom and _statik) else "*STEP") + _inc)
+    if _tip == "FREQUENCY":
         lines.append("*FREQUENCY")
         lines.append(f"{case.num_modes}")
-    elif case.analysis_type.upper() == "BUCKLE":
+    elif _tip == "BUCKLE":
         lines.append("*BUCKLE")
         lines.append(f"{case.num_modes}")
+    elif _tip == "DYNAMIC":
+        # ZAMAN-COZUNUR: dogrudan integrasyon (implicit, HHT-alpha).
+        # Satir: dt, toplam_sure. `alpha` sayisal sonumdur ve KAYDA yazilir
+        # --- birakilan sonum bir cozumdeki genlik dususunu "fizik" gibi
+        # gosterir ve o hata sessizdir.
+        lines.append(f"** dinamik: dt={case.dinamik_dt:g} s, "
+                     f"sure={case.dinamik_sure:g} s, "
+                     f"HHT alpha={case.dinamik_alpha:g} (sayısal sönüm)")
+        lines.append(f"*DYNAMIC, ALPHA={case.dinamik_alpha:g}"
+                     + (", DIRECT" if case.dinamik_direct else ""))
+        lines.append(f"{case.dinamik_dt:g}, {case.dinamik_sure:g}")
     elif _nlgeom:
         # YUK ARTIMLI UYGULANIR. Buyuk yer-degistirmede denge Newton ile
         # cozulur ve tek adimda yakinsamak zorunda degildir; CalculiX'e ilk
@@ -294,7 +341,7 @@ def write_inp(case: FEACase, output_dir: Path) -> Path:
 
     # Konsantre yükler (tüm pressure + force toplamları)
     # BUCKLE: referans yük adımın içinde verilir; özdeğer × bu yük = kritik yük.
-    if nodal_force_accumulator and case.analysis_type.upper() in ("STATIC", "BUCKLE"):
+    if nodal_force_accumulator and _tip in ("STATIC", "BUCKLE", "DYNAMIC"):
         lines.append("*CLOAD")
         for (node_id, dof), val in sorted(nodal_force_accumulator.items()):
             if abs(val) < 1e-12:
@@ -302,7 +349,7 @@ def write_inp(case: FEACase, output_dir: Path) -> Path:
             lines.append(f"{node_id}, {dof}, {val:.6e}")
 
     # Eylemsizlik gövde-kuvveti (g-yükü) — *DLOAD GRAV (yoğunluk *DENSITY'den)
-    if case.gravity_loads and case.analysis_type.upper() == "STATIC":
+    if case.gravity_loads and _tip in ("STATIC", "DYNAMIC"):
         lines.append("*DLOAD")
         for gl in case.gravity_loads:
             d = np.asarray(gl.direction, dtype=np.float64)

@@ -112,9 +112,18 @@ def topla() -> dict:
                    f"({', '.join(x['olcer'] for x in olculemedi)}) — "
                    f"toplam hüküm onları KAPSAMAZ")
     elif acik or kapsam_disi:
+        # HANGI OLCER ACIK, SOYLENIR. Ilk surum yalniz sayiyi yaziyordu
+        # ("1 acik madde") --- 15 karakterlik bir verdikt, deponun kendi
+        # kanit kuralini (hukum >20 karakter, gerekcesiyle) ihlal ediyordu
+        # ve okuyucuya NEREYE bakacagini soylemiyordu. Toplayici da bir
+        # kanit uretir ve ayni kurala tabidir.
+        _acik_olcerler = [f"{x['olcer']} ({x['acik']})"
+                          for x in sonuc if x["olculdu"] and (x["acik"] or 0)]
         verdikt = (f"⚠️ {acik} açık madde"
-                   + (f", {len(set(kapsam_disi))} dosya taranamadı"
-                      if kapsam_disi else ""))
+                   + (f" — {', '.join(_acik_olcerler)}" if _acik_olcerler else "")
+                   + (f"; {len(set(kapsam_disi))} dosya taranamadı"
+                      if kapsam_disi else "")
+                   + ". Ayrıntı: python saglik.py")
     else:
         verdikt = ("✅ Beş ölçer de sıfır açık madde bildiriyor; "
                    "taranamayan dosya yok")

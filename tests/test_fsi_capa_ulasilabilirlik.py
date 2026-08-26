@@ -57,16 +57,32 @@ def test_UC_VARYANT_da_AYNI_BUTCEDE_kaliyor():
     assert len(butceler) == 1, f"varyantlar farklı bütçede: {butceler}"
 
 
-def test_FSI2_ve_FSI3_engeli_YETENEK_diyor():
+def test_FSI2_ve_FSI3_engeli_ASLA_BUTCE_degil():
+    """Bulgunun çekirdeği: bu vakalar bütçe yüzünden kapalı DEĞİL.
+
+    OLCUT BIR ANI DEGIL BIR KURALI BAGLAR. Ilk surum "engeller BOS OLMAMALI
+    ve YETENEK demeli" diyordu --- o gunku durumu pinliyordu. NLGEOM ve
+    *DYNAMIC eklenince engel KALKTI ve test dustu; oysa kalkması ISTENEN
+    seydi. Degismeyen kural su: engel ne olursa olsun BUTCE olmamali,
+    cunku uc varyantin da hucre kestirimi ayni.
+    """
     r = F.olc()
     for ad in ("FSI2", "FSI3"):
         engeller = r["capalar"][ad]["engeller"]
-        assert engeller, f"{ad} engelsiz görünüyor"
-        assert any("YETENEK" in e for e in engeller), \
-            f"{ad} engeli yetenek olarak adlandırılmıyor: {engeller}"
-        # BUTCE ENGELI OLMAMALI --- bulgunun tersi olurdu
-        assert not any("BÜTÇE" in e for e in engeller), \
-            f"{ad} bütçeden düşüyor — bulgu geçersiz"
+        assert not any("BÜTÇE" in e for e in engeller),             f"{ad} bütçeden düşüyor — 'donanım engel değil' bulgusu geçersiz"
+
+
+def test_ENGEL_LISTESI_YETENEK_DENETIMIYLE_tutarli():
+    """Engel listesi yetenek denetiminden TÜRETİLMELİ; ikisi ayrışırsa
+    kayıt kendi içinde çelişir ve hangisinin doğru olduğu bilinemez."""
+    r = F.olc()
+    y = r["yapisal_yetenek"]
+    for ad, v in r["capalar"].items():
+        nl_engel = any("NLGEOM" in e for e in v["engeller"])
+        dn_engel = any("zaman-çözünür" in e for e in v["engeller"])
+        assert nl_engel == (v["nlgeom_gerekir"] and not y["nlgeom"]), ad
+        assert dn_engel == (v["rejim"] == "zamana bağlı"
+                            and not y["zaman_cozunur_yapisal"]), ad
 
 
 def test_FSI1_ULASILABILIR_ama_HAKEMIN_SORDUGUNU_kapatmiyor():
@@ -102,9 +118,18 @@ def test_KAYIT_dosyasi_olcumle_TUTARLI():
     if not KANIT.exists():
         pytest.skip("fsi_capa_ulasilabilirlik.json üretilmemiş")
     d = json.loads(KANIT.read_text(encoding="utf-8"))
-    assert d["ulasilabilir_capalar"] == ["FSI1"]
-    # NLGEOM 2026-08-27'de EKLENDI ve dogrulandi. Ilk surum "is False"
-    # diyordu --- test bir KUSURU degil O GUNKU DURUMU pinliyordu ve
-    # yetenek eklenince duserdi. Olcut artik KAYNAGA baglanir.
+    # ULASILABILIR LISTESI bir ANI degil, YETENEGIN sonucudur.
+    # Ilk surum == ["FSI1"] diyordu ve iki yetenek eklenince dustu ---
+    # oysa listenin buyumesi ISTENEN seydi.
     src = (KOK / "analysis" / "calculix_writer.py").read_text(encoding="utf-8")
     assert d["yapisal_yetenek"]["nlgeom"] == ("NLGEOM" in src.upper())
+    assert "FSI1" in d["ulasilabilir_capalar"],         "en ucuz varyant bile ulaşılamaz görünüyor"
+
+
+def test_ULASILABILIR_KOSULDU_DEMEK_DEGIL():
+    """En tehlikeli okuma. Uc varyantin da engeli kalkinca kayit
+    "dogrulandi" gibi okunabilir; oyle DEGIL --- hicbiri kosulmadi."""
+    r = F.olc()
+    if len(r["ulasilabilir_capalar"]) == len(r["capalar"]):
+        assert "doğrulanmış da DEĞİLLER" in r["verdikt"],             "engel kalktı ama 'koşulmadı' uyarısı yok"
+    assert "KOSULDU demek DEGILDIR" in r["_kisit"]

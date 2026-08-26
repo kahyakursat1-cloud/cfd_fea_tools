@@ -2958,11 +2958,50 @@ $\alpha = PL^2/EI$ & lineer & NLGEOM & elastika & hüküm \\
         $\alpha{=}3$ için bulunan $\delta/L = 0{,}6033$ literatürle
         \emph{tutarlıdır} ama bu depoda birincil kaynaktan teyit edilmedi.
 
-        \noindent Geriye \textbf{zaman-çözünür yapısal analiz} kaldı
-        (\texttt{*DYNAMIC}); FSI2/FSI3 onsuz koşulamaz. Engel yine bütçe
-        değil, ve engelin adı artık kayıttan \emph{türetiliyor} --- ilk
-        sürüm ``(NLGEOM)'' diye sabit yazıyordu ve yetenek eklenince cümle
-        bayatladı.
+        \noindent \textbf{Aynı gün ikinci yetenek de kapatıldı:} zaman-çözünür
+        yapısal analiz (\texttt{*DYNAMIC}, doğrudan integrasyon). Doğrulama bir
+\emph{iç çapraz-doğrulamadır} ve gücü buradan gelir: aynı ağ, aynı sınır
+        koşulları \emph{ayrı} bir çözücü yolundan (\texttt{*FREQUENCY},
+        özdeğer) geçirilir ve iki bağımsız yol aynı frekansı vermelidir.
+        Ankastre kirişe basamak yük uygulanır ve uç salınımının frekansı
+        ölçülür:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrl@{}}
+\toprule
+Yol & $f_1$ (Hz) & \\
+\midrule
+Modal (\texttt{*FREQUENCY}) & 8{,}268 & bağımsız çözücü yolu \\
+Geçici (\texttt{*DYNAMIC}) & \textbf{8{,}279} & modalden \%0{,}137 \\
+Analitik (Euler--Bernoulli) & 8{,}2252 & yardımcı, asıl ölçüt değil \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+        \noindent Üç ölçüt birden sınandı: frekans modalle uyuşuyor
+        (\%0{,}137), sönümsüz seride genlik korunuyor
+        (\%-1{,}1 değişim) ve zaman adımı yarılanınca cevap
+        \%-0{,}486 kayıyor. Sönüm \emph{sıfır} verildi; CalculiX
+        varsayılanı $-0{,}05$'tir ve o bırakılsaydı genlik düşüşü ``fizik''
+        sanılabilirdi --- değer artık dosyaya yazılıyor.
+
+        \textbf{Ölçüm üç kusur buldu, biri diğerlerinden ciddiydi.} (i)
+        \texttt{.dat} frekans sütunu yanlış okundu (beşinci alan sanal
+        kısımdır) ve modal çözücü $0{,}0$ Hz döndürdü --- sıfır bir sayı değil
+        bir hükümdür ve artık öyle ele alınıyor. (ii) İlk kurulum ``yükle
+        sonra aniden kaldır'' için \texttt{write\_inp} çıktısına ikinci bir adımı
+        \emph{elle} ekliyordu; CalculiX reddetti ama asıl kusur başkaydı:
+        elle düzenlenmiş bir dosyayı koşurup ``yazıcı çalışıyor'' demek,
+        yazıcıyı hiç sınamamaktır. Basamak yük aynı frekansı verir ve tek
+        adımdır. (iii) Artım tavanı: CalculiX varsayılanı 100 ve 240 adımlık
+        koşu ``max.\ \# of increments reached'' ile düştü; tavan artık
+        istenen adım sayısından türetiliyor.
+
+        \noindent \textbf{Üç varyantın da önünde ölçülen bir engel kalmadı} ---
+        ama \emph{ulaşılabilir}, \emph{koşuldu} demek değildir: hiçbir
+        Turek--Hron vakası bu depoda koşulmadı ve doğrulanmış da değiller.
+        Engelin adı kayıttan \emph{türetiliyor}; ilk sürüm ``(NLGEOM)'' diye
+        sabit yazıyordu ve yetenek eklenince cümle bayatladı.
   \item[Süpersonik mutlak $C_d$.] 3B-açık çözüm bu donanımda ulaşılamaz.
   \item[Panel yönteminin indüklenen direnci.] VSPAERO'nun iki $C_{Di}$ çıktısı
         da kuramdan sapar (yakın-alan $-\%21$, Trefftz $+\%62$); bu yüzden

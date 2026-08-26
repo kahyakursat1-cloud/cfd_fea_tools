@@ -1,0 +1,81 @@
+{
+  "vaka": "Zaman-çözünür yapısal analiz — serbest titreşim çapası",
+  "_neden": "`*DYNAMIC` eklendi. Bir karti yazmak kolaydir ve sessizce yanlis olabilir: CalculiX kosar, bir seri uretir ve seri fiziksel olarak yanlis olur.",
+  "kiris": {
+    "L_m": 1.0,
+    "b_m": 0.02,
+    "h_m": 0.01,
+    "E_Pa": 70000000000.0,
+    "rho": 2700.0
+  },
+  "f1_analitik_hz": 8.2252,
+  "modal": {
+    "kosdu": true,
+    "f1_hz": 8.2678,
+    "ilk_uc": [
+      8.2678,
+      16.51951,
+      51.82749
+    ],
+    "atlanan_satir": 0
+  },
+  "gecici_kaba": {
+    "kosdu": true,
+    "dt_s": 0.0030237789980405915,
+    "n_adim": 240,
+    "P_N": 5.83333,
+    "atlanan": {
+      "zaman": 0,
+      "sonuc": 0
+    },
+    "f_hz": 8.279095662648194,
+    "periyot_s": 0.12078613906004015,
+    "n_sifir_gecisi": 12,
+    "ilk_ceyrek_tepe_m": 0.016311248900416665,
+    "son_ceyrek_tepe_m": 0.016485776571845235,
+    "genlik_dusus_pct": -1.069983497242271
+  },
+  "gecici_ince": {
+    "kosdu": true,
+    "dt_s": 0.0015118894990202958,
+    "n_adim": 480,
+    "P_N": 5.83333,
+    "atlanan": {
+      "zaman": 0,
+      "sonuc": 0
+    },
+    "f_hz": 8.238822375183256,
+    "periyot_s": 0.1213765699103031,
+    "n_sifir_gecisi": 12,
+    "ilk_ceyrek_tepe_m": 0.01639079133458333,
+    "son_ceyrek_tepe_m": 0.016357644877440475,
+    "genlik_dusus_pct": 0.20222609431260075
+  },
+  "frekans_farki_pct": 0.137,
+  "dt_yarilaninca_fark_pct": -0.486,
+  "genlik_dusus_pct": -1.069983497242271,
+  "frekans_MODALLE_uyusuyor": true,
+  "genlik_KORUNUYOR": true,
+  "dt_BAGIMSIZ": true,
+  "verdikt": "Modal f1 = 8.268 Hz (analitik Euler-Bernoulli 8.225 Hz). Geçici salınım 8.279 Hz --- modalden %+0.14. Genlik düşüşü %-1.1 (sönüm sıfır verildi). dt yarılanınca frekans %-0.49 değişti. Üç ölçüt de sağlandı: frekans bağımsız modal çözücüyle uyuşuyor, sönümsüz seride genlik korunuyor ve cevap zaman adımından bağımsız. `*DYNAMIC` DOĞRULANDI.",
+  "_kisit": "Analitik f1 EULER-BERNOULLI'dir: kayma deformasyonu ve donme eylemsizligi YOK, FEA'da VAR. L/h=100 secildi ki fark kucuk kalsin ama SIFIR degildir --- bu yuzden ASIL olcut modal cozucuyle karsilastirmadir, analitikle degil. Sonum SIFIR verildi (alpha=0); CalculiX varsayilani -0,05'tir ve o birakilsaydi genlik dususu FIZIK sanilabilirdi. Ag bagimsizligi SINANMADI; tek ag.",
+  "_uretim": "Üretim: python experiments/dinamik_dogrulama.py",
+  "_calisma_dizini": "C:\\Users\\Victus\\AppData\\Local\\Temp\\dinamik_x8_36c62",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}
