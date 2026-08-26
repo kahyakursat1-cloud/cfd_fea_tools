@@ -1584,6 +1584,31 @@ okuyan yoldu. Yük yoksa metrikler artık \texttt{null} döner ve gerekçe
 yazılır; kanıt üreticisi o vakayı ölçülen saymaz.
 \end{dikkat}
 
+\begin{dikkat}{Kapının kendisi atıl kalmıştı --- ve sebebi düzeltmenin kendisiydi}
+Dış hakem (2026-08-26) moment artığı için bir \emph{üretim kabul ölçütü}
+istedi. Ölçüt yazılırken kapının bugünkü durumu denetlendi ve daha kötü bir
+şey çıktı: kapı zaten \emph{atıldı}.
+
+\noindent Sebep şemanın düzeltilmesiydi. Korunumlu şemada
+\texttt{aktarim\_hatasi} \emph{kimlik gereği} sıfırdır (ağırlıklar 1'e
+toplanır) --- 24/24 vakada tam $0{,}0000$. Kapı tam da o sayıya bakıyordu,
+yani şema düzeltildiği anda her koşuyu geçirmeye başladı. Bu raporun
+tekrarlayan kusur sınıfı burada \emph{savunmanın kendisinde} çıktı:
+savunma duruyor, üretim yolu ona bilgi taşımayan bir sayı besliyor.
+
+\noindent Gerçek artık moment ve \emph{işe} taşınmıştı (en kötü
+\%13{,}54 ve \%102{,}64) ve oraya bakan yoktu. Kapı artık üç artığın
+\textbf{en büyüğünü} yönetici alır --- en küçüğünü almak onu yeniden
+susturur. Kuvvet artığı tam sıfırken ve moment/iş \emph{verilmemişse} kapı
+\texttt{ÖLÇÜT ATIL} döndürür: yokluk ``geçti'' sayılmaz.
+
+\noindent Eski şema (\texttt{sema="tutarli"}) koşularında kuvvet artığı hâlâ
+anlamlıdır ve hüküm eskisi gibi verilir; bu ayrıca sınandı. Kapı ile
+çağıranın ayrışmaması da bağlandı: bir test sürücünün çağrısını AST ile
+okuyup moment ve iş argümanlarının geçtiğini denetliyor --- kaynak metninde
+alan adı aramak yetmezdi, çünkü aynı adlar kayıtta da geçiyor.
+\end{dikkat}
+
 \noindent Artık bir \emph{doğruluk} hükmü değil bir \emph{aktarım} hükmüdür:
 FEA'ya giden yükün CFD'nin hesapladığından ne kadar saptığını söyler, CFD'nin
 doğru olup olmadığını değil.

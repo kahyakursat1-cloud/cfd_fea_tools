@@ -100,3 +100,59 @@ def test_gecmis_YOKSA_gecerli_sayilmiyor():
     import fsi_surucu as f
     r = f._aktarim_hukmu_ozeti([])
     assert r["yuk_aktarimi_kullanilabilir"] is None
+
+
+def test_KIMLIK_olan_sayiyla_kapi_kurulamaz():
+    """DIŞ HAKEM P1 (2026-08-26): moment artığı için üretim kabul ölçütü.
+
+    Denetlerken kapının kendisinin ATIL olduğu çıktı. Korunumlu şemaya
+    geçince `aktarim_hatasi_pct` KİMLİK gereği sıfır oldu (24/24 vakada tam
+    0,0000) ve kapı ona bakıyordu --- yani her koşuyu geçiriyordu. Savunma
+    duruyordu, üretim yolu ona boş bir sayı besliyordu.
+    """
+    r = aktarim_hukmu(0.0)
+    assert r["kod"] == "OLCUT_ATIL" and r["kullanilabilir"] is None
+    assert "KİMLİKTİR" in r["neden"]
+
+
+def test_HAKIM_ARTIK_ucunun_EN_BUYUGU():
+    """En küçüğü almak kapıyı yine susturur; muhafazakâr yön en büyüğüdür."""
+    r = aktarim_hukmu(0.0, moment_artigi_pct=13.54, is_artigi_pct=102.64,
+                      u_toplam_pct=5.0)
+    assert r["hakim_metrik"] == "arayuz_isi"
+    assert r["kullanilabilir"] is False
+    assert set(r["bilesenler"]) == {"kuvvet", "moment", "arayuz_isi"}
+
+
+def test_ESKI_SEMA_hukmu_DEGISMEDI():
+    """Yanlış-pozitif kapısı: `sema="tutarli"` koşularında kuvvet artığı
+    hâlâ anlamlıdır ve hüküm eskisi gibi verilmeli."""
+    r = aktarim_hukmu(20.0, u_toplam_pct=5.0)
+    assert r["kod"] == "AKTARIM_BANDA_BASKIN" and r["hakim_metrik"] == "kuvvet"
+
+
+def test_KUCUK_artiklar_GECER():
+    """Kapı katı olmamalı: bandın içindeki artık koşuyu düşürmez."""
+    r = aktarim_hukmu(0.0, moment_artigi_pct=0.3, is_artigi_pct=0.5,
+                      u_toplam_pct=5.0)
+    assert r["kullanilabilir"] is True and r["kod"] == "BAND_ICINDE"
+
+
+def test_URETIM_YOLU_kapiyi_UC_ARTIKLA_besliyor():
+    """Kapı ile çağıran ayrışmasın: sürücü moment ve işi TAŞIMALI.
+
+    Kaynak-metni aramak yetmez --- alan adları kayıtta da geçebilir. AST ile
+    çağrının ANAHTAR ARGÜMANLARI denetlenir.
+    """
+    import ast
+
+    src = (KOK / "fsi_surucu.py").read_text(encoding="utf-8")
+    cagri = [n for n in ast.walk(ast.parse(src))
+             if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+             and n.func.id == "aktarim_hukmu"]
+    assert cagri, "üretim yolu kapıyı hiç çağırmıyor"
+    for c in cagri:
+        adlar = {k.arg for k in c.keywords}
+        assert {"moment_artigi_pct", "is_artigi_pct"} <= adlar, (
+            "sürücü kapıya moment/iş artığını vermiyor — kapı kimlik olan "
+            f"kuvvet artığına bakar ve ATIL kalır (verilen: {sorted(adlar)})")

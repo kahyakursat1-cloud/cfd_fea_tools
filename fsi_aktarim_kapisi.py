@@ -75,7 +75,9 @@ BUYUTME_CARPANI_ARALIGI = (0.88, 3.57)
 
 def aktarim_hukmu(aktarim_hatasi_pct: float | None,
                   alan_farki_pct: float | None = None,
-                  u_toplam_pct: float | None = None) -> dict:
+                  u_toplam_pct: float | None = None,
+                  moment_artigi_pct: float | None = None,
+                  is_artigi_pct: float | None = None) -> dict:
     """Yük aktarımı tasarım kararında kullanılabilir mi?
 
     Üç dal, üçü de ölçülen bir sayıya dayanır:
@@ -92,7 +94,36 @@ def aktarim_hukmu(aktarim_hatasi_pct: float | None,
                           "yüzey eşlenemedi). Yokluk 'güvenilir' sayılmaz; "
                           "bu koşunun yük aktarımı DOĞRULANMAMIŞTIR.")}
 
-    a = float(aktarim_hatasi_pct)
+    # HAKIM ARTIK: UC METRIGIN EN BUYUGU.
+    #
+    # KAPI ATIL KALMISTI. Korunumlu semaya gecince `aktarim_hatasi_pct`
+    # KIMLIK GEREGI sifir oldu (agirliklar 1'e toplanir) --- 24/24 vakada
+    # tam 0,0000. Kapi o sayiya bakiyordu, yani artik HER kosuyu geciriyordu:
+    # savunma duruyor, uretim yolu ona bos bir sayi besliyor. Bu deponun
+    # tekrarlayan kusuru ve bu kez KAPININ KENDISINDE.
+    #
+    # Gercek artik moment ve ISE tasindi (en kotu %13,54 ve %102,64) ve
+    # oraya bakan yoktu. Kapi artik UCUNUN EN BUYUGUNU yonetici alir ---
+    # muhafazakar yon budur; en kucugu almak kapiyi yine susturur.
+    _bilesenler = {"kuvvet": float(aktarim_hatasi_pct)}
+    if moment_artigi_pct is not None:
+        _bilesenler["moment"] = float(moment_artigi_pct)
+    if is_artigi_pct is not None:
+        _bilesenler["arayuz_isi"] = float(is_artigi_pct)
+    _hakim_ad = max(_bilesenler, key=lambda k: _bilesenler[k])
+    a = _bilesenler[_hakim_ad]
+    # KIMLIK UYARISI: kuvvet artigi tam sifirsa o sayi BILGI TASIMAZ.
+    _kimlik = (_bilesenler["kuvvet"] < 1e-9 and len(_bilesenler) == 1)
+    if _kimlik:
+        return {"kullanilabilir": None, "kod": "OLCUT_ATIL",
+                "aktarim_pct": 0.0, "hakim_metrik": "kuvvet",
+                "neden": (
+                    "Kuvvet aktarım artığı tam SIFIR --- korunumlu şemada bu "
+                    "bir KİMLİKTİR (ağırlıklar 1'e toplanır), bir bulgu "
+                    "değil. Tek başına bu sayıya bakan bir kapı ATILDIR ve "
+                    "her koşuyu geçirir. Moment ve arayüz işi artıkları "
+                    "VERİLMEDİ, dolayısıyla yük aktarımı hakkında hüküm "
+                    "verilemez.")}
     # ALAN FARKI TEK BASINA REDDETMEZ — VE BU OLCUMLE OGRENILDI.
     # Ilk surum "alan farki > %5 ise reddet" diyordu. 20 vakaya uygulandiginda
     # `MiniHawk_UAV` reddedildi: alan farki %7,46 AMA aktarim hatasi %0,90.
@@ -110,8 +141,10 @@ def aktarim_hukmu(aktarim_hatasi_pct: float | None,
     if a > MUTLAK_RED_PCT:
         return {"kullanilabilir": False, "kod": "AKTARIM_HATASI_BUYUK",
                 "aktarim_pct": a, "alan_farki_pct": _alan,
+                "hakim_metrik": _hakim_ad, "bilesenler": _bilesenler,
                 "neden": (
-                    f"CFD→FEA yük aktarım hatası %{a:.2f} > %{MUTLAK_RED_PCT:g}. "
+                    f"Yük aktarımında hâkim artık ({_hakim_ad}) %{a:.2f} > "
+                    f"%{MUTLAK_RED_PCT:g}. "
                     f"FEA'ya giden yük, CFD'nin hesapladığı yük DEĞİLDİR; "
                     f"gerilme/sehim sonucu tasarım kararında kullanılamaz. Bu bir "
                     f"EŞLEME kusurudur, belirsizlik değildir ve banda gömülemez."
@@ -119,9 +152,11 @@ def aktarim_hukmu(aktarim_hatasi_pct: float | None,
 
     if u_toplam_pct is None:
         return {"kullanilabilir": True, "kod": "BAND_YOK",
-                "aktarim_pct": a,
+                "aktarim_pct": a, "hakim_metrik": _hakim_ad,
+                "bilesenler": _bilesenler,
                 "neden": (
-                    f"Aktarım hatası %{a:.2f}, mutlak eşiğin (%{MUTLAK_RED_PCT:g}) "
+                    f"Hâkim artık ({_hakim_ad}) %{a:.2f}, mutlak eşiğin "
+                    f"(%{MUTLAK_RED_PCT:g}) "
                     f"altında. Koşunun yayımlanan bandı BİLİNMEDİĞİ için "
                     f"banda-göreli denetim ÇALIŞMADI --- hatanın bandı aşıp "
                     f"aşmadığı SORULMAMIŞTIR." + _teshis)}
@@ -130,17 +165,20 @@ def aktarim_hukmu(aktarim_hatasi_pct: float | None,
     if a > u:
         return {"kullanilabilir": False, "kod": "AKTARIM_BANDA_BASKIN",
                 "aktarim_pct": a, "u_toplam_pct": u,
+                "hakim_metrik": _hakim_ad, "bilesenler": _bilesenler,
                 "neden": (
-                    f"Aktarım hatası %{a:.2f}, koşunun kendi yayımlanan bandından "
+                    f"Hâkim artık ({_hakim_ad}) %{a:.2f}, koşunun kendi yayımlanan "
+                    f"bandından "
                     f"(%{u:.2f}) BÜYÜK. Eşleme hatası raporlanan her şeye baskın; "
                     f"band bu koşu için anlamını yitirir." + _teshis)}
 
     return {"kullanilabilir": True, "kod": "BAND_ICINDE",
             "aktarim_pct": a, "u_toplam_pct": u,
+                "hakim_metrik": _hakim_ad, "bilesenler": _bilesenler,
             "alan_farki_pct": _alan,
             "tasarim_niceligi_alt_sinir_pct": round(a * BUYUTME_CARPANI_ARALIGI[0], 2),
             "tasarim_niceligi_ust_sinir_pct": round(a * BUYUTME_CARPANI_ARALIGI[1], 2),
-            "neden": (f"Aktarım hatası %{a:.2f}, yayımlanan bandın (%{u:.2f}) "
+            "neden": (f"Hâkim artık ({_hakim_ad}) %{a:.2f}, yayımlanan bandın (%{u:.2f}) "
                       f"içinde ve mutlak eşiğin altında. TASARIM NİCELİĞİNE "
                       f"KARŞILIĞI: ölçülen büyütme çarpanı "
                       f"{BUYUTME_CARPANI_ARALIGI[0]:g}--"

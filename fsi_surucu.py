@@ -322,6 +322,19 @@ def kuplaj_haritasi(vaka: KuplajVakasi):
                             # %0,90 aktarim hatasi mumkun) ama yuksek hatanin
                             # sebebini soyler.
                             "alan_farki_pct": yukler.get("alan_farki_pct"),
+                            # KAPININ GERCEK GIRDISI. Korunumlu semada
+                            # `aktarim_hatasi_pct` KIMLIK GEREGI sifirdir;
+                            # ona bakan kapi her kosuyu gecirir. Gercek artik
+                            # moment ve ISTEDIR ve bunlar zaten hesaplaniyor,
+                            # yalniz TASINMIYORDU.
+                            "moment_artigi_pct": (
+                                None if yukler.get("moment_conservation_error") is None
+                                else round(100 * float(
+                                    yukler["moment_conservation_error"]), 4)),
+                            "arayuz_isi_artigi_pct": (
+                                None if yukler.get("arayuz_isi_hatasi") is None
+                                else round(100 * float(
+                                    yukler["arayuz_isi_hatasi"]), 4)),
                             "dugum_eslemesi": _esleme_notu,
                             "cload": cload})
         return yeni.ravel()
@@ -411,11 +424,19 @@ def fsi_kos(vaka: KuplajVakasi) -> dict:
 
 
 def _aktarim_hukmu_ozeti(gecmis: list[dict]) -> dict:
-    """Son turun aktarım hatasını hükme bağla — yokluk 'güvenilir' sayılmaz."""
+    """Son turun aktarım artıklarını hükme bağla.
+
+    UC ARTIK DA GECER, biri degil: korunumlu semada kuvvet artigi kimlik
+    geregi sifirdir ve tek basina ona bakan kapi ATILDIR. Yokluk
+    'guvenilir' sayilmaz.
+    """
     from fsi_aktarim_kapisi import aktarim_hukmu
 
     son = gecmis[-1] if gecmis else {}
-    h = aktarim_hukmu(son.get("aktarim_hatasi_pct"), son.get("alan_farki_pct"))
+    h = aktarim_hukmu(son.get("aktarim_hatasi_pct"),
+                      son.get("alan_farki_pct"),
+                      moment_artigi_pct=son.get("moment_artigi_pct"),
+                      is_artigi_pct=son.get("arayuz_isi_artigi_pct"))
     return {"aktarim_hukmu": h,
             "yuk_aktarimi_kullanilabilir": h["kullanilabilir"]}
 
