@@ -940,3 +940,40 @@ def test_rapor_FSI_SEMA_DEGISIKLIGI_kanittan_sapmiyor(tex):
     kor = json.loads((KOK / "fsi_korunum.json").read_text(encoding="utf-8"))
     assert "KİMLİKTİR" in kor["verdikt"], "korunum kanıtı eski şemadan"
     assert max(v["aktarim_hatasi_pct"] for v in kor["vakalar"]) < 1e-3
+
+
+def test_rapor_HICBIR_YERINDE_eski_guncelleyiciyi_uretim_saymiyor(tex):
+    """DIŞ HAKEM BULDU (2026-08-26): §4.9 kodun MMA'ya geçtiğini deneysel
+    kanıtla anlatırken Bölüm 10'un ``Çözüm'' kısmı hâlâ ``Optimizasyon
+    kriteri OC'dir; 3B'de ... sıcak başlatma yapılır'' diyordu.
+
+    Aynı raporun iki bölümü zıt şey söylüyordu ve mevcut testler bunu
+    göremedi: biri §4.9 tablosunu, biri motorun imzasını denetliyordu,
+    hiçbiri Bölüm 10'un PROZASINI okumuyordu. Sayı kapıları prozayı
+    denetlemez --- kapsam boşluğu ölçülmeliydi.
+
+    Bu test raporun TAMAMINI tarar: gerilme-TO'nun güncelleyicisini
+    ``OC'dir'' diye BEYAN eden bir cümle, motorun varsayılanı MMA iken
+    kalamaz.
+    """
+    import inspect
+
+    from stress_topopt2d import StressTopo2D
+    varsayilan = inspect.signature(
+        StressTopo2D.optimize).parameters["guncelleyici"].default
+    if varsayilan != "mma":
+        pytest.skip("motor OC'de — bu test uygulanmaz")
+    # BEYAN KALIBI: "kriteri OC'dir", "guncelleyicisi OC'dir" gibi.
+    for m in re.finditer(r"(?:kriteri|güncelleyicisi|yöntemi)\s+OC'?dir", tex):
+        pencere = tex[max(0, m.start() - 300):m.end() + 300]
+        assert "kompliyans" in pencere and "araç" in pencere.lower(), (
+            "rapor gerilme-TO için 'OC'dir' diyor ama motor varsayılanı "
+            f"MMA (~{tex[:m.start()].count(chr(10)) + 1}. satır)")
+    # SICAK BASLATMA ARTIK ZORUNLU DEGIL: "yapilir" diye dayatan cumle
+    # kalirsa okur onu bugunku davranis sanir.
+    for m in re.finditer(r"sıcak başlatma\}?\s+yapılır", tex):
+        pencere = tex[max(0, m.start() - 500):m.end() + 300]
+        assert "OC'ye özgü" in pencere or "vaktiyle" in pencere, (
+            "rapor sıcak başlatmayı zorunlu gibi yazıyor; ölçüm gerekçenin "
+            "OC'ye özgü olduğunu gösterdi "
+            f"(~{tex[:m.start()].count(chr(10)) + 1}. satır)")

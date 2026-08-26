@@ -124,6 +124,23 @@ def olc() -> dict:
              f"MOMENT KORUNMAZ ve bu GİZLENMİYOR: kuvvet FEA üçgenine "
              f"izdüşürülür, izdüşüm kayması kadar artık kalır --- en kötü "
              f"%{100 * max((k['moment_hatasi'] for k in kayit), default=0):.2f}. "
+             # IS ARTIGI VERDIKTE GIRDI --- OLCULUYORDU AMA OKUNMUYORDU.
+             #
+             # Dis hakem (2026-08-26) "work conservation henuz gosterilmedi"
+             # dedi. Aslinda OLCULUYOR ve KORUNMUYOR: en buyuk artik bu.
+             # Verdikt kuvvet ve momenti yazip isi atliyordu, yani en zayif
+             # metrigi susturuyordu --- olculup okunmayan alan, bu deponun
+             # avladigi kusurun ta kendisi ve bu kez SONUCU IYI gosteriyordu.
+             #
+             # IS ARTIGI MOMENTTEN BUYUK OLMALI ve bu bir kusur degil: x×F,
+             # F⊗x tensorunun yalniz ANTISIMETRIK kismidir; is metrigi
+             # simetrik kismi (uzama/kayma modlarinin yaptigi is) de gorur.
+             f"ARAYÜZ İŞİ DE KORUNMAZ ve artığı momentten BÜYÜKTÜR --- en "
+             f"kötü %{100 * max((k['arayuz_isi_hatasi'] for k in kayit), default=0):.2f}, "
+             f"ortalama %{100 * sum(k['arayuz_isi_hatasi'] for k in kayit) / max(len(kayit), 1):.2f}. "
+             f"Sebebi aynı izdüşüm kaymasıdır ama ölçüt daha güçlü: $x×F$ "
+             f"birinci moment tensörünün yalnız antisimetrik kısmıdır, iş "
+             f"metriği simetrik kısmı da görür. "
              f"Alanı tutan {len(temiz)} vakada aktarım zaten sorunsuzdu; "
              f"şema değişikliğinin kazancı alanı TUTMAYAN vakalardadır.")
             if kayit else "ÖLÇÜLEMEDİ — yüzey-basınç VTK'sı olan vaka yok"),

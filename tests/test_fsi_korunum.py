@@ -192,3 +192,72 @@ def test_KANIT_sifir_yuklu_vakayi_OLCULEN_saymiyor():
         assert v["cfd_alan_m2"] > 0.0 and v["fea_alan_m2"] > 0.0, (
             f"{v['vaka']}: yüzey alanı sıfır — yük yok sayılmalıydı")
         assert v["n_cfd_yuz"] > 0 and v["n_fea_yuz"] > 0
+
+
+def test_VERDIKT_en_zayif_metrigi_de_SOYLUYOR():
+    """DIŞ HAKEM SORDU: kuvvet korunuyor, peki İŞ?
+
+    Ölçü zaten vardı (`arayuz_isi_hatasi`, birinci moment tensörü) ama
+    VERDIKT onu anmıyordu: yalnız kuvvet ve moment yazılıyordu. En büyük
+    artık ise odur. En zayıf metriği susturmak sonucu iyi gösterir --- bu
+    deponun avladığı kusur, bu kez LEHTE çalışıyordu.
+    """
+    import json
+    p = KOK / "fsi_korunum.json"
+    if not p.exists():
+        pytest.skip("fsi_korunum.json üretilmemiş")
+    d = json.loads(p.read_text(encoding="utf-8"))
+    v = [x for x in d["vakalar"] if x.get("arayuz_isi_hatasi") is not None]
+    assert v, "iş metriği hiçbir vakada ölçülmemiş"
+    en_kotu = 100 * max(x["arayuz_isi_hatasi"] for x in v)
+    assert f"{en_kotu:.2f}" in d["verdikt"], \
+        f"iş artığı (%{en_kotu:.2f}) verdiktte yok — en zayıf metrik susturulmuş"
+    assert "ARAYÜZ İŞİ" in d["verdikt"]
+
+
+def test_IS_ARTIGI_EN_KOTU_vakada_momentten_BUYUK():
+    """En kötü iş artığı en kötü moment artığını aşmalı --- ama bu bir
+    TOPLAM hükmüdür, vaka-başına bir yasa DEĞİLDİR.
+
+    OLCUT BIR KEZ FAZLA GENIS KURULDU. Ilk surum "her vakada is >= moment"
+    diyordu ve MiniHawk_UAV'de dustu (is %0,585 < moment %0,646). Sebep
+    kodda degil OLCUTTE: iki oran FARKLI normalize ediliyor ---
+
+        moment: ||ΔM||₂ / Σ_yuz ||x×F||₂
+        is    : ||ΔT||_F / Σ_yuz Σ_ij |F_i x_j|
+
+    Is metriginin paydasi yuz basina 9 bilesenin MUTLAK toplamidir ve
+    momentinkinden buyuktur; dolayisiyla PAY buyuk olsa bile ORAN kucuk
+    cikabilir. Garanti olan sey paylar arasindadir (antisimetrik kismin
+    Frobenius normu tam tensorunkini asamaz), oranlar arasinda degil.
+
+    Testin sinadigi sey bu yuzden TOPLAM: raporun yazdigi iddia da odur.
+    """
+    import json
+    p = KOK / "fsi_korunum.json"
+    if not p.exists():
+        pytest.skip("fsi_korunum.json üretilmemiş")
+    d = json.loads(p.read_text(encoding="utf-8"))
+    v = [x for x in d["vakalar"]
+         if x.get("arayuz_isi_hatasi") is not None
+         and x.get("moment_hatasi") is not None]
+    assert v, "iki metrik birlikte ölçülmemiş"
+    assert max(x["arayuz_isi_hatasi"] for x in v) >         max(x["moment_hatasi"] for x in v),         "en kötü iş artığı momentinkini aşmıyor — rapordaki iddia düştü"
+
+
+def test_RAPOR_uc_metrigi_de_KANITTAN_yaziyor():
+    """Rapor iş artığını da taşımalı; taşımazsa okur 'kuvvet korunuyor'u
+    'aktarım doğru'ya çevirir."""
+    import json
+    tex = KOK / "docs" / "teknik_rapor.tex"
+    p = KOK / "fsi_korunum.json"
+    if not (tex.exists() and p.exists()):
+        pytest.skip("rapor ya da kanıt yok")
+    d = json.loads(p.read_text(encoding="utf-8"))
+    t = tex.read_text(encoding="utf-8")
+    v = d["vakalar"]
+    for ad, deger in (("moment", 100 * max(x["moment_hatasi"] for x in v)),
+                      ("iş", 100 * max(x["arayuz_isi_hatasi"] for x in v))):
+        s = f"{deger:.2f}".replace(".", "{,}")
+        assert s in t, f"{ad} artığı ({s}) raporda yok"
+    assert "antisimetrik" in t, "iki metriğin neden farklı olduğu yazılmıyor"

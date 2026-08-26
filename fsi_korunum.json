@@ -346,7 +346,7 @@
   "kuvvet_kesin_olan": "24/24",
   "moment_kesin_olan": "0/24",
   "moment_artigi_en_kotu": 0.13541,
-  "verdikt": "KORUNUMLU ŞEMA ÜRETİMDE. CFD→FEA aktarım artığı %0.0000 --- 24/24 vakada SIFIR. Bu bir KİMLİKTİR (ağırlıklar 1'e toplanır), bulgu değil: eski şemada aynı vakalarda %72,04'e kadar çıkıyordu. Kuvvet korunumu 24/24 vakada makine hassasiyetinde. MOMENT KORUNMAZ ve bu GİZLENMİYOR: kuvvet FEA üçgenine izdüşürülür, izdüşüm kayması kadar artık kalır --- en kötü %13.54. Alanı tutan 13 vakada aktarım zaten sorunsuzdu; şema değişikliğinin kazancı alanı TUTMAYAN vakalardadır.",
+  "verdikt": "KORUNUMLU ŞEMA ÜRETİMDE. CFD→FEA aktarım artığı %0.0000 --- 24/24 vakada SIFIR. Bu bir KİMLİKTİR (ağırlıklar 1'e toplanır), bulgu değil: eski şemada aynı vakalarda %72,04'e kadar çıkıyordu. Kuvvet korunumu 24/24 vakada makine hassasiyetinde. MOMENT KORUNMAZ ve bu GİZLENMİYOR: kuvvet FEA üçgenine izdüşürülür, izdüşüm kayması kadar artık kalır --- en kötü %13.54. ARAYÜZ İŞİ DE KORUNMAZ ve artığı momentten BÜYÜKTÜR --- en kötü %102.64, ortalama %12.97. Sebebi aynı izdüşüm kaymasıdır ama ölçüt daha güçlü: $x×F$ birinci moment tensörünün yalnız antisimetrik kısmıdır, iş metriği simetrik kısmı da görür. Alanı tutan 13 vakada aktarım zaten sorunsuzdu; şema değişikliğinin kazancı alanı TUTMAYAN vakalardadır.",
   "_kisit": "Artik bir DOGRULUK hukmu degil bir AKTARIM hukmudur: FEA'ya giden yukun CFD'nin hesapladigi yukten ne kadar saptigini soyler, CFD'nin dogru olup olmadigini DEGIL. Ayrica tek yonlu kuplajda olculdu; iki yonlu turda her turda yeniden dogar ve birikir. Esik DAYATILMIYOR — bugun hicbir uretim yolu bu sayiya bakip kosuyu reddetmiyor; sayi once GORUNUR olmali.",
   "_uretim": "Üretim: python experiments/fsi_korunum.py",
   "_ortam": {

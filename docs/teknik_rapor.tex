@@ -1011,8 +1011,11 @@ fark   & --- & \%3{,}25 & \%3{,}34 \\
 \noindent Sondanın kendi Courant'ı 2{,}29'a indi (beyanın 1{,}14 katı), yani
 zaman çözünürlüğü gerçekten 2{,}1 kat arttı --- ve cevap ayırt eşiğinin
 (\%7{,}59, iki standart hata) \emph{içinde} kaldı. \textbf{Zaman adımı bu
-vakada sonucu belirlemiyor}; çapa ailesini yeniden koşmak için sebep yok ve
-geçiş modelinin DES'ten sapması sayısal değil model kaynaklıdır.
+vakada sonucu belirlemiyor}; çapa ailesini yeniden koşmak için sebep yok.
+Sonda, geçiş modelinin DES'ten sapmasında zaman adımının baskın neden
+olduğu hipotezini \emph{desteklemiyor} --- bu, sapmanın model kaynaklı
+olduğunun \emph{kanıtı değildir}. Tek ağda yapılan bir sonda bir
+hipotezi zayıflatabilir, karşıtını kanıtlayamaz.
 
 Kısıt açık: tek ağ, tek bölen. Zaman-adımı duyarlılığı ağa bağlıdır ve bu
 sonuç DES ağına doğrudan taşınmaz; sondanın işi oraya tırmanıp tırmanmamaya
@@ -1640,8 +1643,51 @@ Vaka & aktarım & sehim farkı & büyütme \\
 aktarım hatası tasarım niceliği hatasının \textbf{alt sınırıdır}. En kötü
 vakada yükün büyüklüğü \%30 değişirken dağılımı moment kolunu da değiştirdi.
 
-\textbf{Bedel gizlenmiyor.} Korunumlu şemada kuvvet kesin ama \emph{moment
-değil}: kuvvet FEA üçgenine izdüşürülür ve izdüşüm kayması kadar artık kalır
+\textbf{Bedel gizlenmiyor --- ve dış inceleme onu tam yerinde aradı.}
+Hakem (2026-08-26) şunu sordu: kuvvet korunuyor, peki \emph{iş}? Ölçü
+zaten vardı ve cevap KORUNMUYOR --- dahası en büyük artık odur:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}llr@{}}
+\toprule
+Metrik & Ne sınar & En kötü artık \\
+\midrule
+Kuvvet & $\sum F$ & $\le\!10^{-14}$ (kimlik) \\
+Moment & $\sum x\times F$ (antisimetrik kısım) & \%13{,}54 \\
+Arayüz işi & $\sum F\otimes x$ (tam tensör) & \textbf{\%102{,}64} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Sıralama \emph{beklenen} yöndedir ve bir kusur değildir:
+$x\times F$, birinci moment tensörü $\sum F\otimes x$'in yalnız
+antisimetrik kısmıdır; iş metriği simetrik kısmı --- uzama ve kayma modlarının
+yaptığı işi --- de görür. Üçünün de sebebi aynı izdüşüm kaymasıdır, ölçüt
+gücü farklıdır.
+
+\noindent \textbf{Ama bu bir toplam hükmüdür, vaka-başına bir yasa değil}
+--- ve bu ayrım ölçülerek öğrenildi. İki oran farklı normalize ediliyor:
+moment $\|\Delta M\|_2 / \sum_f \|x\times F\|_2$, iş ise
+$\|\Delta T\|_F / \sum_f \sum_{ij} |F_i x_j|$. İş metriğinin paydası yüz
+başına dokuz bileşenin mutlak toplamıdır, momentinkinden büyüktür;
+dolayısıyla \emph{pay} büyük olsa bile \emph{oran} küçük çıkabilir.
+Nitekim bir vakada çıkıyor (\texttt{MiniHawk\_UAV}: iş \%0{,}585 <
+moment \%0{,}646). Garanti olan sıralama paylar arasındadır ---
+antisimetrik kısmın Frobenius normu tam tensörünkini aşamaz --- oranlar
+arasında değil. Rapordaki iddia bu yüzden \emph{en kötü} artıklar
+üzerinden kurulmuştur ve testi de öyle bağlanmıştır. Ortalama iş artığı \%12{,}97, yani en kötü vaka
+(\texttt{\_fsi\_esnek}) uç bir haldir --- aynı vaka moment artığında da
+en kötü ve yapısal büyütme çarpanında da (3{,}57$\times$).
+
+\noindent Bu sayı verdikte \emph{sonradan} girdi ve girmemesi bir kusurdu:
+ölçü hesaplanıyor, kayda yazılıyor ama hüküm cümlesi yalnız kuvvet ile
+momenti anıyordu. En zayıf metriği susturmak sonucu iyi gösterir ve bu, bu
+raporun baştan sona avladığı kusur sınıfının kendisidir --- bu kez
+\emph{lehimize} çalışıyordu.
+
+\textbf{Bedelin mekanizması.} Korunumlu şemada kuvvet kesin ama
+\emph{moment değil}: kuvvet FEA üçgenine izdüşürülür ve izdüşüm kayması
+kadar artık kalır
 (en kötü \%13{,}54). Eski şema silinmedi --- \texttt{sema="tutarli"} ile hâlâ
 koşulur, çünkü yayımlanmış bir sonucu yeniden üretebilmek şema değişikliğinin
 geri-alınabilir olmasının koşuludur.
@@ -2414,8 +2460,16 @@ ikincisidir.
 Amaç fonksiyonu von Mises gerilmesinin P-norm toplayıcısıyla değiştirilir
 ($P=8$ 2B, $P=12$ 3B), qp-relaksasyonu ($q=0{,}5$) ile gerilme tekilliği
 giderilir ve duyarlılık \textbf{adjoint} yöntemle hesaplanır. Optimizasyon
-kriteri OC'dir; 3B'de gerilme-amacı tek başına salındığı için kompliyans
-tasarımından \emph{sıcak başlatma} yapılır (Le ve ark.\ 2010).
+güncelleyicisi \textbf{MMA}'dır (Svanberg 1987); önceki OC yolu
+\texttt{guncelleyici="oc"} ile korunuyor, çünkü yayımlanmış bir sonucu
+yeniden üretebilmek şema değişikliğinin geri alınabilir olmasının koşuludur.
+
+3B çözüm \emph{soğuk} başlangıçtan koşar. Sıcak başlatma bu bölümde
+vaktiyle zorunlu sayılıyordu (Le ve ark.\ 2010) ve gerekçesi ``gerilme-amacı
+tek başına salınır'' idi; ölçüldüğünde o gerekçenin \emph{OC'ye özgü}
+olduğu çıktı --- MMA sıcak başlatma OLMADAN $0{,}7579$ veriyor, OC ise sıcak
+başlatmayla $0{,}7620$. Karar zinciri ve eşit-hesap-maliyeti kıyası
+\S\ref{sub:mma-uretim}'de.
 
 \subsection*{Doğrulama --- kritik adım}
 
@@ -3339,8 +3393,11 @@ hat, GPU \\
 \end{center}
 
 \begin{dikkat}{Bu sürümde kapanmamış olanlar}
-\textbf{Türbülanslı URANS doğrulaması yok:} zaman-çözünür yol laminer girdap
-dökülmesinde doğrulandı, k--$\omega$ SST ile bağımsız bir çapa henüz yok.
+\textbf{Türbülanslı zaman-çözünür doğrulama kapanmadı:} zaman-çözünür yol
+laminer girdap dökülmesinde doğrulandı; türbülanslı tarafta bağımsız
+referanslı URANS, DES ve SST-LM çapaları \emph{koşuldu} ama hiçbiri
+fiziksel doğrulama ölçütünü geçmedi (\S\ref{sub:gecis-sonuc}). Eksik olan
+çapa değil, geçen bir çapadır.
 \textbf{Model-form:} sekiz hücrenin altısı çapalı (üç ölçüm, üç üst sınır),
 ikisi literatür öncülü. \textbf{Backend:} ortak katmanı atlayan çağrı 36'dan \textbf{1}'e
 düşürüldü; kalan tek satır eşdeğerlik ölçümünün karşılaştırma tabanıdır. Case
