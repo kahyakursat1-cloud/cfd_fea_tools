@@ -281,7 +281,8 @@ def ag_onkosulu(model: str, ag: str = "urans") -> str:
 
 
 def _verdikt(gecerli: bool, aralik: dict, olcum: dict, etiket: str,
-             model: str = MODEL, yplus: dict | None = None) -> str:
+             model: str = MODEL, yplus: dict | None = None,
+             ag: str = "urans", esik_pct: float | None = None) -> str:
     """Hükmü aralıklılık denetimine BAĞLA — sapmadan hüküm çıkarmadan önce.
 
     MODEL DE ARGÜMANDIR. İlk sürüm bunu almıyordu ve kontrol koşusuna
@@ -309,21 +310,103 @@ def _verdikt(gecerli: bool, aralik: dict, olcum: dict, etiket: str,
                 f"(0,9872); (3) AĞ — ölçülen {yp_s}, oysa geçiş modeli "
                 f"y⁺≲1 ister. Üçüncüsü bu ağda kapatılamaz: bu bir KAPANIŞ "
                 "değil AĞ meselesidir.")
-    iyi_cd = abs(s["Cd"]) < 26.88
-    iyi_st = abs(s["St"]) < 29.74
+    # KIYAS AYNI AGDA YAPILIR. Ilk surum sabit sayilara (26,88 / 29,74)
+    # kiyasliyordu; onlar URANS aginin (403.200 hucre, duvar fonksiyonu)
+    # sayilari. Duvar-cozunur DES aginda (2,43 M) kosan bir sonucu onlarla
+    # kiyaslamak IKI SEYI birden degistirir --- ag ve kapanis --- ve farkin
+    # hangisinden geldigi soylenemez. Bu, betigin kendi docstring'inde
+    # savundugu kuralin ihlaliydi.
+    taban = _TABAN.get(ag, _TABAN["urans"])
+    iyi_cd, cd_coz = _duzeldi_mi(s["Cd"], taban["Cd_pct"], esik_pct)
+    iyi_st, st_coz = _duzeldi_mi(s["St"], taban["St_pct"], esik_pct)
+    tb = (f"kıyas tabanı: {taban['ad']} (Cd %{taban['Cd_pct']}, "
+          f"St %{taban['St_pct']}) --- AYNI AĞ")
     if iyi_cd and iyi_st:
         hkm = ("HİPOTEZ DESTEKLENDİ — geçiş modeli devrede ve İKİ sapma da "
-               "tam-türbülanslı kapanışa göre küçüldü.")
+               "aynı ağdaki tam-türbülanslı kapanışa göre AYIRT EDİLEBİLİR "
+               "biçimde küçüldü.")
     elif iyi_cd or iyi_st:
-        hkm = ("HİPOTEZ EKSİK — geçiş modeli devrede ama sapmalardan yalnız "
-               "biri düzeldi; laminer-bağlı-tabaka açıklaması tek başına "
-               "yetmiyor ve o haliyle GERİ ÇEKİLMELİDİR.")
+        hangi = "Cd" if iyi_cd else "St"
+        oteki = "St" if iyi_cd else "Cd"
+        hkm = (f"HİPOTEZ EKSİK — geçiş modeli devrede ve {hangi} düzeldi, ama "
+               f"{oteki} DÜZELMEDİ. Laminer-bağlı-tabaka açıklaması iki sapmayı "
+               f"birden düzeltmeyi öngörüyordu; tek başına yetmiyor ve o haliyle "
+               f"GERİ ÇEKİLMELİDİR.")
     else:
         hkm = ("HİPOTEZ ÇÜRÜDÜ — geçiş modeli devrede (laminer hücre "
                f"%{aralik.get('laminer_hucre_orani_pct')}) ve buna rağmen "
-               "hiçbir sapma düzelmedi; sapmanın kaynağı kapanışın "
-               "türbülanslılığı DEĞİLDİR.")
-    return f"{hkm} Cd %{s['Cd']}, St %{s['St']}{' [' + etiket.strip('_') + ']' if etiket else ''}"
+               "hiçbir sapma AYIRT EDİLEBİLİR biçimde düzelmedi; sapmanın "
+               "kaynağı kapanışın türbülanslılığı DEĞİLDİR.")
+    ek = f" [{etiket.strip('_')}]" if etiket else ""
+    return (f"{hkm} Cd %{s['Cd']} ({cd_coz}), St %{s['St']} ({st_coz}). "
+            f"{tb}.{ek}")
+
+
+# KIYAS TABANLARI — AG BASINA. Her satir o agda AYNI kurulumla kosulmus
+# tam-turbulansli kapanistir; farkin yalniz KAPANISTAN gelmesinin kosulu bu.
+_TABAN = {
+    "urans": {"ad": "3B URANS kOmegaSST (403.200 hücre, duvar fonksiyonu)",
+              "Cd_pct": -26.88, "St_pct": 29.74},
+    "des": {"ad": "3B DES kOmegaSSTDES (2,43 M hücre, duvar-çözünür)",
+            "Cd_pct": -39.16, "St_pct": 38.16},
+}
+
+
+def _duzeldi_mi(yeni_pct: float, taban_pct: float,
+                esik_pct: float | None) -> tuple[bool, str]:
+    """Sapma küçüldü mü --- VE fark AYIRT EDİLEBİLİR mi?
+
+    İlk sürüm yalnız `abs(yeni) < abs(taban)` soruyordu. Bu, ölçüm
+    gürültüsünün içindeki bir oynamayı ``düzelme'' sayar: St sapması 29,74'ten
+    28,58'e gittiğinde 1,16 puanlık fark, periyot saçılması %5,06 olan bir
+    seride ayırt edilemez. Bir hipotezi böyle bir farkla desteklemek, olmayan
+    bir kanıt üretmektir.
+    """
+    fark = abs(taban_pct) - abs(yeni_pct)
+    if esik_pct is None:
+        return fark > 0, "eşik YOK — ayırt edilebilirlik sorulmadı"
+    if abs(fark) <= esik_pct:
+        return False, (f"fark {abs(fark):.2f} puan, ayırt eşiğinin "
+                       f"(%{esik_pct:.2f}) İÇİNDE — değişmedi sayılır")
+    return fark > 0, (f"fark {fark:+.2f} puan, eşiğin (%{esik_pct:.2f}) dışında")
+
+
+def kosu_suresi_dk(case: Path, duvar_saati_s: float) -> float:
+    """Koşunun GERÇEK süresi — çözücünün kendi saatinden, betiğinkinden değil.
+
+    `--oku` ile kayıt yeniden üretildiğinde betiğin duvar saati YENİDEN başlar
+    ve `sure_dk` dakikalar mertebesine düşer. Ölçüldü: 16,9 saatlik bir koşunun
+    kaydı yeniden okununca `sure_dk = 1,5` yazıldı --- yani kanıt dosyası,
+    ölçtüğünü iddia ettiği koşunun süresini DEĞİL, kendi okuma süresini
+    taşıyordu. Bu, raporun avladığı ``sabit metin, değişen veri'' sınıfının
+    ikizi: DEĞİŞEN metin, ölçülmeyen veri.
+
+    `ExecutionTime` OpenFOAM'ın koşu boyunca biriktirdiği süredir ve yeniden
+    okumadan etkilenmez.
+    """
+    log = case / "log.foamRun"
+    if log.exists():
+        import re as _re
+        d = _re.findall(r"ExecutionTime = ([0-9.]+)", log.read_text(errors="replace"))
+        if d:
+            return round(float(d[-1]) / 60.0, 1)
+    return round(duvar_saati_s / 60.0, 1)
+
+
+def _ayirt_esigi(t_ser: list, cd_ser: list, s3) -> float | None:
+    """İki koşunun farkı ÖRNEKLEMEDEN ayırt edilebilir mi? — seriden.
+
+    Sabit bir yüzde eşiği yazmak, bandı ölçmeden hüküm vermek olurdu.
+    Ölçüt `silindir_dt_sondasi.cozunurluk_tabani` ile AYNI: pencere
+    periyotlara bölünür, periyot ortalamalarının standart hatası alınır,
+    2 standart hata eşiktir. İki yerde iki ayrı ölçüt yazmak, aynı sorunun
+    iki farklı cevabını üretirdi.
+    """
+    from silindir_dt_sondasi import cozunurluk_tabani
+
+    periyot = s3.D / (s3.ST_DENEY * s3.U)
+    c = cozunurluk_tabani(t_ser, cd_ser, periyot, s3.PERIYOT_GECIS * periyot)
+    return c["ayirt_esigi_pct"] if c.get("olculdu") else None
 
 
 def _sonda_verdikti(gecerli: bool, aralik: dict, kurulum: dict | None) -> str:
@@ -460,8 +543,12 @@ def main(argv: list[str]) -> int:
         "sinav_gecerli": gecerli and not sonda_mu,
         "sonda": sonda_mu,
         "verdikt": (_sonda_verdikti(gecerli, aralik, kurulum_des) if sonda_mu
-                    else _verdikt(gecerli, aralik, olcum, ti_ad, model, yp)),
-        "sure_dk": round((time.time() - t0) / 60, 1),
+                    else _verdikt(gecerli, aralik, olcum, ti_ad, model,
+                                  yp, ag, _ayirt_esigi(t, cd, s3))),
+        # SURE COZUCUNUN SAATINDEN. Betigin duvar saati `--oku` ile
+        # sifirlanir ve 16,9 saatlik bir kosu "1,5 dk" diye kaydedilir.
+        "sure_dk": kosu_suresi_dk(case, time.time() - t0),
+        "cozucu_saati_kaynagi": "log.foamRun ExecutionTime",
         "_uretim": "Üretim: python experiments/silindir_gecis_3b.py",
     }
     if sonda_mu:

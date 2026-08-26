@@ -948,16 +948,54 @@ engelleyen şey, ikinci kez neden yanlış olduğunun kayıtta durmasıdır.
 
 \noindent Hakemin istediği türbülanslı zaman-çözünür çapa bu yüzden
 \emph{açık kalıyor}: elde olan doğrulanmış çapa laminer rejimdedir ve
-türbülanslı vakayı doğrulamaz. Kapanmasının önündeki engel artık ölçülmüş
-durumda ve sanıldığı yerde değil: kapanış değişikliği \emph{tek başına}
-yetmiyor, duvar-çözünür ağ gerekiyor. O ağ elde var ve model orada çalışıyor;
-tam koşu bu raporun yazıldığı sırada sürüyor (16{,}9 saat). Sonucu üç daldan
-biri olacak ve üçü de yazılabilir: iki sapma birlikte düzelirse mekanizma
-gösterilmiş olur, yalnız biri düzelirse laminer-bağlı-tabaka açıklaması
-\emph{eksiktir} ve o hâliyle geri çekilmelidir, hiçbiri düzelmezse sapmanın
-kaynağı kapanışın türbülanslılığı \emph{değildir}. Hangisi çıkarsa çıksın bu
-kez sonuç anlamlıdır, çünkü modelin gerçekten çalıştığı ölçüldü --- önceki
-dört koşunun hiçbirinde bu doğru değildi.
+türbülanslı vakayı doğrulamaz. Kapanmasının önündeki engel ölçüldü ve
+sanıldığı yerde değildi: kapanış değişikliği \emph{tek başına} yetmiyor,
+duvar-çözünür ağ gerekiyor.
+
+\subsection{Sınav koşuldu: açıklama eksik çıktı}
+\label{sub:gecis-sonuc}
+
+Tam koşu 16{,}9 saatte tamamlandı (2{,}43 M hücre, 4400 adım, 4 çekirdek; çözücünün kendi 	exttt{ExecutionTime}'ından, 13{,}82 s/adım) ve
+model koşu boyunca devrede kaldı (laminer hücre \%4{,}87, $\gamma_{\min}=0{,}0201$).
+Kıyas \emph{aynı ağdaki} tam-türbülanslı kapanışa yapılır --- başka ağdaki bir
+sayıyla kıyaslamak ağ ile kapanışı birlikte değiştirmek olurdu:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}llrr@{}}
+\toprule
+Kapanış & Ağ & $C_d$ sapması & $St$ sapması \\
+\midrule
+kOmegaSSTDES & 2{,}43 M, duvar-çözünür & $-39{,}16\%$ & $+38{,}16\%$ \\
+\textbf{kOmegaSSTLM} & 2{,}43 M, duvar-çözünür & $\mathbf{-45{,}03\%}$ & $\mathbf{+28{,}58\%}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent \textbf{Hipotez EKSİK çıktı.} Açıklama iki sapmanın \emph{birlikte}
+düzelmesini öngörüyordu. $St$ düzeldi ve düzelme gerçek: 9{,}58 puan, ayırt
+eşiğinin (\%1{,}30) çok dışında. Ama $C_d$ \emph{kötüleşti} --- 5{,}87 puan,
+o da eşiğin dışında. Laminer bağlı tabaka dökülme frekansını doğru yöne
+taşıyor, sürüklemeyi taşımıyor.
+
+Ayırt eşiği uydurulmadı: istatistik penceresi periyotlara bölünüp periyot
+ortalamalarının standart hatası alındı; 2 standart hatanın altındaki fark
+örneklemeden ayırt edilemez. Bu ölçüt olmasaydı küçük bir oynama ``düzelme''
+sayılabilirdi.
+
+\begin{dikkat}{Kıyas tabanı hükmü değiştiriyor}
+Hüküm fonksiyonunun ilk sürümü sabit sayılara (\%$-26{,}88$ / \%$+29{,}74$)
+kıyaslıyordu --- onlar \emph{URANS ağının} (403.200 hücre, duvar fonksiyonu)
+sayıları. Duvar-çözünür ağda koşan bir sonucu onlarla kıyaslamak ağ ve kapanışı
+birlikte değiştirir. Fark akademik değil: aynı ölçüm, yanlış tabanla
+``HİPOTEZ ÇÜRÜDÜ'', doğru tabanla ``HİPOTEZ EKSİK'' veriyor. Taban artık ağ
+başına tutuluyor ve hükümde yazılı.
+
+Bir okuma hatası da bu bölümün yazımı sırasında yakalandı ve kayda geçiyor:
+ham \texttt{forceCoeffs} serisi $\pi D^2$ referans alanıyla ölçeklidir ve
+ölçüm rutini $1/\pi$ ile düzeltir. Ham seriden okunan ara değer $C_d$'yi
+\%$+77$ gösteriyordu; doğrusu \%$-45{,}03$. \emph{Ölçekleme rutini zaten
+doğruydu; yanlış olan onu atlayıp ham seriye bakmaktı.}
+\end{dikkat}
 
 \subsection{Optimizasyon güncellemesi: OC daha düşük sayı verir, MMA daha kararlı yakınsar}
 \label{sub:mma}

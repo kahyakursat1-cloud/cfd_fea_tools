@@ -1,6 +1,6 @@
 {
   "vaka": "Geçiş sınavı zinciri — sonda sonrası karar",
-  "durum": "tam_kosu_basladi",
+  "durum": "tam_kosu_bitti",
   "sonda": {
     "gecti": true,
     "min": 0.0201,
@@ -8,9 +8,10 @@
     "verdikt": "SONDA GEÇTİ — geçiş modeli devreye girdi (gammaInt min 0.0201, laminer hücre %4.97) ve bu, dört koşudur olmayan şeydi. Duvar-çözünür ağ engeli kaldırdı. TAM KOŞU ARTIK MEŞRU: sonda 3 periyottur ve St/Cd veremez."
   },
   "_neden": "Tam kosu ~16 saat (olculen 13,0 s/adim x 4400 adim). Sonda o sureyi HARCAMADAN tek soruyu yanitlar: gecis modeli devreye giriyor mu? Karar gammaInt'in olculen minimumuna baglidir, yorum degil.",
-  "zaman": "2026-08-25 13:40",
+  "zaman": "2026-08-26 06:59",
   "_uretim": "Üretim: python experiments/gecis_zinciri.py",
-  "bellek_pct": 55.7,
+  "cikis_kodu": 0,
+  "son_ciktilar": "SA mo\n{\n \"St\": 0.25716,\n \"Cd_ortalama\": 0.6597,\n \"Cl_genlik\": 0.20538,\n \"sapma_pct\": {\n  \"St\": 28.58,\n  \"Cd\": -45.03\n },\n \"salinim\": {\n  \"olculdu\": true,\n  \"frekans_hz\": 0.257162,\n  \"periyot_s\": 3.88859742,\n  \"ortalama\": 0.004102832890255857,\n  \"genlik\": 0.6452352265,\n  \"genlik_pct\": 15726.578,\n  \"periyot_sayisi\": 20,\n  \"pencere_s\": 80.0,\n  \"periyot_sacilmasi_pct\": 5.06,\n  \"_yontem\": \"yukarı-geçiş zamanlarının MEDYAN farkı (doğrusal enterpolasyonlu); düzensiz örneklemede yeniden-örnekleme gerektirmez ama çok-frekanslı sinyalde baskın modu AYIRAMAZ\",\n  \"_uyari\": null\n }\n}\n-> silindir_gecis_3b_dr_des.json\nHİPOTEZ EKSİK — geçiş modeli devrede ama sapmalardan yalnız biri düzeldi; laminer-bağlı-tabaka açıklaması tek başına yetmiyor ve o haliyle GERİ ÇEKİLMELİDİR. Cd %-45.03, St %28.58 [dr_des]\n",
   "_ortam": {
     "python": "3.13.12",
     "paketler": {
@@ -28,5 +29,5 @@
       "calculix": "This is Version 2.17"
     }
   },
-  "verdikt": "SONDA GEÇTİ ve TAM KOŞU BAŞLADI (~16,9 saat, 22 periyot). Kararı ölçüm verdi: aralıklılık eşiği aşıldı."
+  "verdikt": "TAM KOŞU BİTTİ — hüküm koşunun kendi kanıt dosyasında (silindir_gecis_3b_dr_des.json)."
 }

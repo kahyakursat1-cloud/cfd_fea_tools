@@ -6,9 +6,14 @@ beyanı ATILDI (yazım hatası: `adjustableTimeStep` OpenFOAM anahtarı değil).
 0,22 olduğu için ihlal yereldir ve PIMPLE 2 dış düzelticiyle Co≈5 kendiliğinden
 geçersiz değildir --- ama SINANMADAN da geçerli sayılamaz.
 
-SORU KRİTİK YOLDA: geçiş modeli koşusu Cd'yi %77 YÜKSEK veriyor. Bu sapmayı
-kapanışa yazmadan önce zaman adımı elenmelidir; Co≈5'te aşırı-tahmin makul bir
+SORU KRİTİK YOLDA: geçiş modeli koşusu Cd'yi %45,03 DÜŞÜK veriyor --- aynı ağdaki
+DES çapasından (%39,16) 5,87 puan daha kötü. Bu farkı kapanışa yazmadan önce
+zaman adımı elenmelidir; Co≈5'te 2 dış düzelticiyle sayısal sönümleme makul bir
 alternatif açıklamadır.
+
+    (Ara bir okuma Cd'yi %+77 göstermişti: ham `forceCoeffs` serisi πD² referans
+    alanıyla ölçeklidir ve ölçüm rutini 1/π ile düzeltir. Ölçekleme rutini zaten
+    doğruydu; yanlış olan onu atlayıp ham seriye bakmaktı.)
 
 NEDEN AİLEYİ YENİDEN KOŞMUYORUZ: `adjustTimeStep yes` + Co≤2 dt'yi ~2,5 kat
 küçültür ve aile (URANS 3B + DES + geçiş) ~30 saatten ~75--100 saate çıkar.
@@ -132,7 +137,7 @@ def hukum(t: dict, y: dict, salinim_genlik_pct: float | None) -> str:
             f"(%{salinim_genlik_pct:.2f}, 2 standart hata) AŞIYOR. "
             f"Geçici çapaların MUTLAK "
             f"değerleri zaman çözünürlüğüne duyarlıdır; aile Co≤2 ile yeniden "
-            f"koşulmalı ve geçiş modelinin %77'lik aşırı-tahmini KAPANIŞA "
+            f"koşulmalı ve geçiş modelinin aynı ağdaki DES'ten sapması KAPANIŞA "
             f"yazılmadan önce bu ayrılmalıdır.")
 
 
@@ -190,7 +195,8 @@ def main(argv: list[str]) -> int:
         "vaka": f"Silindir 3B — ZAMAN ADIMI sondası (dt/{bolen})",
         "_neden": ("Butun gecici capalar dt=periyot/150'de kostu ve `maxCo 2` "
                    "ATILDI (yazim hatasi). Kararli Courant maksimumu 4,8-5,2. "
-                   "Gecis modelinin %77 asiri-tahmini KAPANISA yazilmadan once "
+                   "Gecis modelinin ayni agdaki DES'ten 5,87 puanlik sapmasi "
+                   "KAPANISA yazilmadan once "
                    "zaman adimi elenmelidir."),
         "taban": tb, "sonda": y, "kurulum": kurulum,
         "taban_salinim_genlik_pct": genlik,

@@ -1,0 +1,92 @@
+{
+  "vaka": "Silindir 3B (des ağı), kOmegaSSTLM — kapanış hipotezinin sınavı",
+  "_neden": "Subkritik Re'de bagli sinir tabaka LAMINERDIR; tam-turbulansli kapanis onu turbulans sayar ve Cd'yi dusuk verir. Bu kosu o aciklamayi SINAR: dogruysa IKI sapma birden duzelmeli.",
+  "kurulum": {
+    "model": "kOmegaSSTLM",
+    "ReThetat_serbest": null,
+    "ag_tipi": "des",
+    "ag": {
+      "aciklama": "3B URANS ile AYNI (403.200 hücre)"
+    },
+    "_degisen_tek_sey": "KAPANIŞ"
+  },
+  "olculen": {
+    "St": 0.25716,
+    "Cd_ortalama": 0.6597,
+    "Cl_genlik": 0.20538,
+    "sapma_pct": {
+      "St": 28.58,
+      "Cd": -45.03
+    },
+    "salinim": {
+      "olculdu": true,
+      "frekans_hz": 0.257162,
+      "periyot_s": 3.88859742,
+      "ortalama": 0.004102832890255857,
+      "genlik": 0.6452352265,
+      "genlik_pct": 15726.578,
+      "periyot_sayisi": 20,
+      "pencere_s": 80.0,
+      "periyot_sacilmasi_pct": 5.06,
+      "_yontem": "yukarı-geçiş zamanlarının MEDYAN farkı (doğrusal enterpolasyonlu); düzensiz örneklemede yeniden-örnekleme gerektirmez ama çok-frekanslı sinyalde baskın modu AYIRAMAZ",
+      "_uyari": null
+    },
+    "yplus": {
+      "min": 0.077472524,
+      "max": 1.4681921,
+      "ort": 0.79515329
+    }
+  },
+  "referans": {
+    "St": 0.2,
+    "St_bandi": [
+      0.19,
+      0.21
+    ],
+    "Cd": 1.2
+  },
+  "kiyas": {
+    "3B URANS (kOmegaSST)": {
+      "Cd_pct": -26.88,
+      "St_pct": 29.74
+    },
+    "3B DES (kOmegaSSTDES)": {
+      "Cd_pct": -39.16,
+      "St_pct": 38.16
+    }
+  },
+  "aralik_denetimi": {
+    "okunabildi": true,
+    "zaman_s": 110.0,
+    "n": 2434320,
+    "min": 0.0201,
+    "ortalama": 0.9534,
+    "laminer_hucre_orani_pct": 4.87,
+    "_ayristirma_sorunlari": null,
+    "devreye_girdi": true,
+    "_olcut": "gammaInt < 0.5 olan hücre VARSA model devrededir; yoksa tam-türbülanslı kOmegaSST'ye dejenere olmuştur ve koşu KAPANIŞ hakkında delil DEĞİLDİR."
+  },
+  "sinav_gecerli": true,
+  "sonda": false,
+  "verdikt": "HİPOTEZ EKSİK — geçiş modeli devrede ve St düzeldi, ama Cd DÜZELMEDİ. Laminer-bağlı-tabaka açıklaması iki sapmayı birden düzeltmeyi öngörüyordu; tek başına yetmiyor ve o haliyle GERİ ÇEKİLMELİDİR. Cd %-45.03 (fark -5.87 puan, eşiğin (%1.30) dışında), St %28.58 (fark +9.58 puan, eşiğin (%1.30) dışında). kıyas tabanı: 3B DES kOmegaSSTDES (2,43 M hücre, duvar-çözünür) (Cd %-39.16, St %38.16) --- AYNI AĞ. [dr_des]",
+  "sure_dk": 1013.3,
+  "cozucu_saati_kaynagi": "log.foamRun ExecutionTime",
+  "_uretim": "Üretim: python experiments/silindir_gecis_3b.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

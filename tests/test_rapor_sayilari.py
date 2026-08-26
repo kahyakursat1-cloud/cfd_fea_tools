@@ -711,3 +711,36 @@ def test_KATMAN_tablosu_kanittan_sapmiyor(tex):
     for ad, d in json.loads(p.read_text(encoding="utf-8"))["katmanlar"].items():
         s = rf"\%{d['pct']:.1f}".replace(".", "{,}")
         assert s in tex, f"{ad}: kapsam ({s}) raporda yok"
+
+
+def test_rapor_GECIS_SONUCU_kanittan_sapmiyor(tex):
+    """Tam koşunun sonucu kanıt dosyasından gelmeli ve 'sürüyor' kalmamalı.
+
+    Hakem (2026-08-24): "rapor hazirlanirken suruyor" ifadesi yayimlanmis
+    belgede hizla bayatlar. Kosu bitti; sayilar ve hukum pinlenir.
+    """
+    import json
+    y = KOK / "silindir_gecis_3b_dr_des.json"
+    if not y.exists():
+        pytest.skip("tam koşu kanıtı yok")
+    d = json.loads(y.read_text(encoding="utf-8"))
+    s = d["olculen"]["sapma_pct"]
+    for deger in (abs(s["Cd"]), abs(s["St"])):
+        t = f"{deger:.2f}".replace(".", "{,}")
+        assert t in tex, f"tam koşu sapması ({t}) raporda yok"
+    a = d["aralik_denetimi"]
+    assert f"{a['laminer_hucre_orani_pct']:.2f}".replace(".", "{,}") in tex
+    # KIYAS AYNI AGDA: DES tabani rapordа yazili olmali
+    assert "39{,}16" in tex and "38{,}16" in tex
+    # HUKUM SINIFI kanitla tutmali
+    assert "EKSİK" in d["verdikt"], "kanıttaki hüküm değişmiş"
+    assert "EKSİK" in tex, "raporun hükmü kanıtla ayrışmış"
+    # BAYAT IFADE KALMAMALI
+    assert "raporun yazıldığı sırada sürüyor" not in tex
+
+
+def test_rapor_OLCEK_HATASI_kayitli(tex):
+    """Ham forceCoeffs serisi πD² ile ölçekli; ham okuma %+77 gösteriyordu.
+    Yanlış ara-okuma kayda geçmeli ki aynı hata tekrarlanmasın."""
+    assert r"1/\pi" in tex or r"1/\pi$" in tex or r"$1/\pi$" in tex
+    assert r"\%$+77$" in tex or "+77" in tex

@@ -212,6 +212,8 @@ _silindir_3b/
 _silindir_3b_kalibre/
 # gecis modeli kosulari (Tu taramasi); kanit JSON'da
 _silindir_gecis_3b*/
+# zaman-adimi sondasi kosulari; kanit JSON'da
+_silindir_dt*/
 _c2d_*/
 
 # ─── 2026-08-13 oturumu: hakem-raporu koşularının case dizinleri ──────────
