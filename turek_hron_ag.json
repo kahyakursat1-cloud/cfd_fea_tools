@@ -1,0 +1,62 @@
+{
+  "vaka": "Turek-Hron geometrisi — FSI çapasının önkoşulu",
+  "_neden": "Iki-yonlu FSI'nin onunde olculen YETENEK engeli kalmadi ama 'ulasilabilir' 'kosuldu' demek degil. Kosmanin onundeki gercek is kanonik benchmark'in AGI.",
+  "geometri": {
+    "kanal_L_m": 2.5,
+    "kanal_H_m": 0.41,
+    "silindir_merkez": [
+      0.2,
+      0.2
+    ],
+    "silindir_r_m": 0.05,
+    "bayrak_kalinlik_m": 0.02,
+    "bayrak_bas_x_m": 0.24899,
+    "bayrak_son_x_m": 0.6,
+    "bayrak_L_m": 0.35101,
+    "z_kalinlik_m": 0.01,
+    "_not": "bayrak_bas_x CEMBERDEN turetilir: 0.2 + sqrt(0.05^2 - 0.01^2)"
+  },
+  "stl": {
+    "uretildi": true,
+    "dugum": 404,
+    "ucgen": 804,
+    "su_gecirmez": true,
+    "hacim_m3": 0.0001485961916459881,
+    "kontur_alani_m2": 0.014859619164598811,
+    "sinirlar": [
+      [
+        0.15000545745247407,
+        0.15000256737951093,
+        0.0
+      ],
+      [
+        0.6,
+        0.2499974326204891,
+        0.01
+      ]
+    ],
+    "beklenen_hacim_m3": 0.00014860688883442023,
+    "hacim_hatasi_pct": -0.007
+  },
+  "geometri_dogru_mu": true,
+  "verdikt": "STL üretildi: 804 üçgen, su-geçirmez=True. Hacim 1.485962e-04 m³, analitik beklenen 1.486069e-04 m³ --- fark %-0.007. Geometri kendi içinde tutarlı. AĞ ADIMI HENÜZ SINANMADI: snappy'nin ince alanda ön/arka yüzleri `empty` bırakıp bırakmadığı ayrı bir ölçümdür ve FSI çapasının gerçek kapısı odur.",
+  "_kisit": "BU BETIK AKIS COZMEZ ve SONUC URETMEZ. Yalnizca geometriyi uretip kendi icinde dogrular (su-gecirmezlik ve ANALITIK hacimle karsilastirma). Agin snappy ile kurulabilirligi ve on/arka yuzlerin 'empty' kalmasi AYRI bir adimdir ve burada SINANMADI. Referans degerler (FSI1: ux=0,0227 mm, uy=0,8209 mm) bu depoda BIRINCIL KAYNAKTAN DOGRULANMADI.",
+  "_uretim": "Üretim: python experiments/turek_hron_ag.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

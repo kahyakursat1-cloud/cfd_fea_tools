@@ -15,7 +15,7 @@ benchmark'ı tam bu iş için tasarlandı: silindir arkasında esnek bayrak, 2B,
 laminer, yayımlanmış referans değerleriyle. Üç varyantı vardır ve
 BİRBİRİNDEN ÇOK FARKLI şeyler ister:
 
-  FSI1  kararlı, Re=20, uç sehimi ~0,0227 mm / 350 mm  -> KÜÇÜK, lineer
+  FSI1  kararlı, Re=20, uç sehimi ~0,821 mm / 350 mm   -> KÜÇÜK, lineer
   FSI2  zamana bağlı, Re=100, uç sehimi ~80 mm         -> BÜYÜK, NLGEOM
   FSI3  zamana bağlı, Re=200, uç sehimi ~35 mm         -> BÜYÜK, NLGEOM
 
@@ -42,15 +42,24 @@ sys.path.insert(0, str(KOK))
 
 CIKTI = KOK / "fsi_capa_ulasilabilirlik.json"
 
-# Turek & Hron (2006) benchmark tanimi. Referans degerler YAYIMLANMISTIR;
-# burada YALNIZ ulasilabilirlik degerlendirilir, sonuc uretilmez.
+# Turek & Hron (2006) benchmark tanimi. Referans degerler YAYIMLANMISTIR
+# ama BU DEPODA BIRINCIL KAYNAKTAN DOGRULANMADI --- burada yalniz
+# ULASILABILIRLIK degerlendirilir, sonuc uretilmez ve bu sayilar bir capa
+# olarak KULLANILMADAN once teyit edilmelidir.
 CAPALAR = {
     "FSI1": {
-        "rejim": "kararlı", "Re": 20, "uc_sehimi_mm": 0.0227,
+        # OLGU DUZELTMESI (2026-08-27): ilk surum `uc_sehimi_mm: 0.0227`
+        # yaziyordu ve bu YATAY bilesendir (ux). Asil sehim DUSEYDIR:
+        # uy = 0,8209 mm. Ikisi de kucuk-yer-degistirme rejimindedir
+        # (uy/L = %0,23) yani hukum degismiyor --- ama etiket yanlisti ve
+        # "%0,0065" hesabi yanlis bilesenden yapiliyordu.
+        "rejim": "kararlı", "Re": 20,
+        "uc_sehimi_ux_mm": 0.0227, "uc_sehimi_uy_mm": 0.8209,
+        "uc_sehimi_mm": 0.8209,
         "bayrak_L_mm": 350.0, "kanal_L_mm": 2500.0, "kanal_H_mm": 410.0,
         "nlgeom_gerekir": False,
-        "_neden": ("Uc sehimi bayrak boyunun %0,0065'i --- kucuk yer-degistirme "
-                   "rejimi, lineer statik gecerli."),
+        "_neden": ("Dusey uc sehimi bayrak boyunun %0,23'u --- kucuk "
+                   "yer-degistirme rejimi, lineer statik gecerli."),
         "ne_kapatir": ("Aktarilan yuk + yapisal yanit YAYIMLANMIS bir referansa "
                        "karsi dogrulanir. Bugun hicbir FSI vakasinda bu YOK."),
         "ne_kapatmaz": ("GUCLU iki-yonlu geri besleme: sehim akisi kayda deger "

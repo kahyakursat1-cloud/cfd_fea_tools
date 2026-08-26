@@ -17,19 +17,21 @@
     "FSI1": {
       "rejim": "kararlı",
       "Re": 20,
-      "uc_sehimi_mm": 0.0227,
+      "uc_sehimi_ux_mm": 0.0227,
+      "uc_sehimi_uy_mm": 0.8209,
+      "uc_sehimi_mm": 0.8209,
       "bayrak_L_mm": 350.0,
       "kanal_L_mm": 2500.0,
       "kanal_H_mm": 410.0,
       "nlgeom_gerekir": false,
-      "_neden": "Uc sehimi bayrak boyunun %0,0065'i --- kucuk yer-degistirme rejimi, lineer statik gecerli.",
+      "_neden": "Dusey uc sehimi bayrak boyunun %0,23'u --- kucuk yer-degistirme rejimi, lineer statik gecerli.",
       "ne_kapatir": "Aktarilan yuk + yapisal yanit YAYIMLANMIS bir referansa karsi dogrulanir. Bugun hicbir FSI vakasinda bu YOK.",
       "ne_kapatmaz": "GUCLU iki-yonlu geri besleme: sehim akisi kayda deger olcude degistirmez, yani 'fizik tahrik ediyor' iddiasini SINAMAZ.",
       "butce": {
         "hucre_boyu_mm": 2.5,
         "hucre_tekduze_ust_sinir": 164000,
         "bellek_gb": 0.425,
-        "bos_bellek_gb": 4.74,
+        "bos_bellek_gb": 5.04,
         "bellege_sigar_mi": true
       },
       "engeller": [],
@@ -50,7 +52,7 @@
         "hucre_boyu_mm": 2.5,
         "hucre_tekduze_ust_sinir": 164000,
         "bellek_gb": 0.425,
-        "bos_bellek_gb": 4.74,
+        "bos_bellek_gb": 5.04,
         "bellege_sigar_mi": true
       },
       "engeller": [],
@@ -71,7 +73,7 @@
         "hucre_boyu_mm": 2.5,
         "hucre_tekduze_ust_sinir": 164000,
         "bellek_gb": 0.425,
-        "bos_bellek_gb": 4.74,
+        "bos_bellek_gb": 5.04,
         "bellege_sigar_mi": true
       },
       "engeller": [],
