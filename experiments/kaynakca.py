@@ -173,6 +173,13 @@ def uret() -> dict:
                    "yazmak, raporun kendi avladigi kusuru islemek olurdu: "
                    "sabit metin, degisen veri."),
         "kaynak_sayisi": len(kayitlar),
+        "verdikt": (
+            f"{len(kayitlar)} kaynak üretildi ve rapora bağlandı. Künyeler "
+            f"çapa kayıtlarının `kaynak` alanlarından ve kod sabitlerinden "
+            f"gelir; elle yazılmış bir liste, bir çapa yeni referansa "
+            f"taşındığında sessizce eskirdi. DOI TAMAMLANMAMIŞTIR ve bu "
+            f"kasıtlıdır --- yayına giderken her künye birincil kaynaktan "
+            f"doğrulanmalıdır."),
         "kaynaklar": [{"kunye": k, "gectigi_yer": sorted(b[k])} for k in kayitlar],
         "_kisit": ("DOI UYDURULMAZ: kayitta ne varsa o basilir. Eksik kunye "
                    "EKSIK GORUNUR ve bu kasitlidir --- tamamlanmis gibi "
