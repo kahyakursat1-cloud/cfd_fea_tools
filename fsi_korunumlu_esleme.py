@@ -98,6 +98,53 @@ def baryentrik(p: np.ndarray, a: np.ndarray, b: np.ndarray,
     return agirlik / np.where(toplam > 1e-30, toplam, 1.0)
 
 
+def esleme_kur(cfd_merkez: np.ndarray, fea_nodes: np.ndarray,
+               faces: np.ndarray, f_centers: np.ndarray) -> dict:
+    """Eşlemeyi REFERANS konfigürasyonda BİR KEZ kur --- her turda değil.
+
+    2-YÖNLÜ FSI'DA ÖLÇÜLEN KUSUR: CFD yüzeyi deforme olurken FEA STL'i
+    referans konumda kalıyor ve her turda yeniden yapılan en-yakın-komşu
+    araması BOZULUYOR. Kayıtlı ölçüm (`_fsi_esnek`, üç tur):
+
+        tur 1   F_z(FEA) 0,6615 N   F_z(CFD) 0,6058 N   aktarım artığı %8,4
+        tur 2   F_z(FEA) 0,4405 N   F_z(CFD) 0,6065 N   aktarım artığı %27,4
+
+    FEA'ya giden kuvvet %33 değişti, CFD yüzeyindeki kuvvet %0,1. Bu
+    aeroelastik geri besleme DEĞİL, eşlemenin bozulmasıdır --- ve sürücü
+    bunu "yakınsama" sanabilirdi.
+
+    ÇÖZÜM MALZEME KOORDİNATIDIR: hangi CFD yüzünün hangi FEA üçgenine, hangi
+    baryentrik ağırlıklarla düştüğü referans konfigürasyonda belirlenir ve
+    deformasyon boyunca TAŞINIR. Üçgen indisi ve ağırlıklar deformasyondan
+    ETKİLENMEZ; değişen yalnız düğümlerin konumudur. Her turda geometrik
+    olarak sıfırdan aramak, yapı deforme oldukça farklı bir yüzeye yük
+    bindirmek demektir.
+    """
+    from scipy.spatial import cKDTree
+
+    _, hedef = cKDTree(f_centers).query(cfd_merkez, k=1)
+    ucgen = faces[hedef]
+    a, b, c = (fea_nodes[ucgen[:, 0]], fea_nodes[ucgen[:, 1]],
+               fea_nodes[ucgen[:, 2]])
+    return {"ucgen": ucgen, "agirlik": baryentrik(cfd_merkez, a, b, c),
+            "n_cfd_yuz": int(len(cfd_merkez)), "n_fea_dugum": int(len(fea_nodes)),
+            "_kurulum": "REFERANS konfigürasyon; deformasyon boyunca taşınır"}
+
+
+def esleme_uygula(esleme: dict, dF_cfd: np.ndarray,
+                  fea_nodes: np.ndarray) -> np.ndarray:
+    """Kurulmuş eşlemeyi uygula --- düğümler DEFORME olmuş olabilir.
+
+    Ağırlıklar ve üçgen indisleri sabittir; yalnız `fea_nodes` değişir. Toplam
+    kuvvet korunumu deformasyondan ETKİLENMEZ çünkü ağırlıklar 1'e toplanır.
+    """
+    ucgen, w = esleme["ucgen"], esleme["agirlik"]
+    node_forces = np.zeros((len(fea_nodes), 3), float)
+    for k in range(3):
+        np.add.at(node_forces, ucgen[:, k], w[:, k:k + 1] * dF_cfd)
+    return node_forces
+
+
 def korunumlu_dagit(dF_cfd: np.ndarray, cfd_merkez: np.ndarray,
                     fea_nodes: np.ndarray, faces: np.ndarray,
                     f_centers: np.ndarray) -> tuple[np.ndarray, dict]:
@@ -112,17 +159,13 @@ def korunumlu_dagit(dF_cfd: np.ndarray, cfd_merkez: np.ndarray,
     farklı olsa da geçerlidir ve mevcut şemanın %56'ya varan hatasının
     sebebini ortadan kaldırır.
     """
-    from scipy.spatial import cKDTree
-
-    _, hedef = cKDTree(f_centers).query(cfd_merkez, k=1)
-    ucgen = faces[hedef]                                  # (C,3) dugum indisi
+    # TEK CEKIRDEK: kurulum + uygulama. Ayni hesabi burada TEKRAR yazmak,
+    # iki uygulamanin zamanla ayrismasi demek olurdu.
+    esleme = esleme_kur(cfd_merkez, fea_nodes, faces, f_centers)
+    ucgen, w = esleme["ucgen"], esleme["agirlik"]
+    node_forces = esleme_uygula(esleme, dF_cfd, fea_nodes)
     a, b, c = (fea_nodes[ucgen[:, 0]], fea_nodes[ucgen[:, 1]],
                fea_nodes[ucgen[:, 2]])
-    w = baryentrik(cfd_merkez, a, b, c)                   # (C,3)
-
-    node_forces = np.zeros_like(fea_nodes)
-    for k in range(3):
-        np.add.at(node_forces, ucgen[:, k], w[:, k:k + 1] * dF_cfd)
 
     # UYGULAMA NOKTASI: agirlikli dugum konumu. Moment artigi bu nokta ile
     # CFD yuz merkezi arasindaki farktan gelir ve OLCULUR.

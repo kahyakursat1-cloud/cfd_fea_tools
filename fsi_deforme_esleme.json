@@ -1,0 +1,1015 @@
+{
+  "vaka": "FSI deforme yüzeyde eşleme — SABİT vs her tur YENİDEN",
+  "_neden": "2-yonlu FSI'da FEA'ya giden kuvvet %33 degisirken CFD yuzeyindeki %0,1 degisiyordu. Bu aeroelastik geri besleme degil, eslemenin bozulmasi.",
+  "olculen_vaka": 25,
+  "dusen": [],
+  "sehimler_mm": [
+    1.0,
+    5.0,
+    20.0,
+    50.0
+  ],
+  "vakalar": [
+    {
+      "vaka": "_fsi_esnek",
+      "n_cfd_yuz": 44,
+      "n_fea_dugum": 8,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 9.8642,
+          "ucgen_atamasi_degisen": 0,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 13.9989,
+          "ucgen_atamasi_degisen": 0,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 15.269,
+          "ucgen_atamasi_degisen": 0,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 15.281,
+          "ucgen_atamasi_degisen": 0,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "_fsi_sinama",
+      "n_cfd_yuz": 36,
+      "n_fea_dugum": 8,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 7.6747,
+          "ucgen_atamasi_degisen": 0,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 14.5872,
+          "ucgen_atamasi_degisen": 0,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 18.4203,
+          "ucgen_atamasi_degisen": 0,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 79.1762,
+          "ucgen_atamasi_degisen": 12,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "a320_Body_A320",
+      "n_cfd_yuz": 335156,
+      "n_fea_dugum": 24020,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 1.8014,
+          "ucgen_atamasi_degisen": 6193,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 5.4022,
+          "ucgen_atamasi_degisen": 29990,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 19.182,
+          "ucgen_atamasi_degisen": 96986,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 36.6474,
+          "ucgen_atamasi_degisen": 158613,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "ciftkuyruk_kucuk",
+      "n_cfd_yuz": 35666,
+      "n_fea_dugum": 1136,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 5.0108,
+          "ucgen_atamasi_degisen": 1059,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 6.7878,
+          "ucgen_atamasi_degisen": 3640,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 16.59,
+          "ucgen_atamasi_degisen": 8573,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 28.424,
+          "ucgen_atamasi_degisen": 14591,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "clean_rocket_fixed_prep",
+      "n_cfd_yuz": 5513,
+      "n_fea_dugum": 1026,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 16.9057,
+          "ucgen_atamasi_degisen": 524,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 43.5164,
+          "ucgen_atamasi_degisen": 1484,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 59.2192,
+          "ucgen_atamasi_degisen": 2776,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 86.5285,
+          "ucgen_atamasi_degisen": 3711,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "dogrulama_kup",
+      "n_cfd_yuz": 2904,
+      "n_fea_dugum": 8,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 0.3798,
+          "ucgen_atamasi_degisen": 49,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 0.9522,
+          "ucgen_atamasi_degisen": 63,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 3.016,
+          "ucgen_atamasi_degisen": 138,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 7.1811,
+          "ucgen_atamasi_degisen": 313,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "fsi_ok30",
+      "n_cfd_yuz": 80,
+      "n_fea_dugum": 8,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 34.5002,
+          "ucgen_atamasi_degisen": 5,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 73.0008,
+          "ucgen_atamasi_degisen": 8,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 95.4335,
+          "ucgen_atamasi_degisen": 12,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 123.8327,
+          "ucgen_atamasi_degisen": 27,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "fsi_tahrik2",
+      "n_cfd_yuz": 120,
+      "n_fea_dugum": 8,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 7.9513,
+          "ucgen_atamasi_degisen": 0,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 16.0514,
+          "ucgen_atamasi_degisen": 0,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 24.5827,
+          "ucgen_atamasi_degisen": 0,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 63.9691,
+          "ucgen_atamasi_degisen": 45,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "fsi_tahrik22",
+      "n_cfd_yuz": 120,
+      "n_fea_dugum": 8,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 7.9552,
+          "ucgen_atamasi_degisen": 0,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 16.0442,
+          "ucgen_atamasi_degisen": 0,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 24.5756,
+          "ucgen_atamasi_degisen": 0,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 63.9612,
+          "ucgen_atamasi_degisen": 45,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "fsi_tahrikH",
+      "n_cfd_yuz": 120,
+      "n_fea_dugum": 8,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 7.9672,
+          "ucgen_atamasi_degisen": 0,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 16.0668,
+          "ucgen_atamasi_degisen": 0,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 24.5869,
+          "ucgen_atamasi_degisen": 0,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 63.9636,
+          "ucgen_atamasi_degisen": 45,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "gci_kup",
+      "n_cfd_yuz": 2904,
+      "n_fea_dugum": 8,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 0.3798,
+          "ucgen_atamasi_degisen": 49,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 0.9522,
+          "ucgen_atamasi_degisen": 63,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 3.016,
+          "ucgen_atamasi_degisen": 138,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 7.1811,
+          "ucgen_atamasi_degisen": 313,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "genel_kapsul_uzun",
+      "n_cfd_yuz": 5288,
+      "n_fea_dugum": 15452,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 10.9165,
+          "ucgen_atamasi_degisen": 393,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 55.4336,
+          "ucgen_atamasi_degisen": 1908,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 77.5213,
+          "ucgen_atamasi_degisen": 3499,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 72.0515,
+          "ucgen_atamasi_degisen": 3882,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "genel_kup800",
+      "n_cfd_yuz": 49232,
+      "n_fea_dugum": 8,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 0.0932,
+          "ucgen_atamasi_degisen": 37,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 0.4108,
+          "ucgen_atamasi_degisen": 428,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 1.6361,
+          "ucgen_atamasi_degisen": 1892,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 4.1268,
+          "ucgen_atamasi_degisen": 4073,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "gondol_dort",
+      "n_cfd_yuz": 260891,
+      "n_fea_dugum": 2008,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 1.4927,
+          "ucgen_atamasi_degisen": 4125,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 3.8976,
+          "ucgen_atamasi_degisen": 18279,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 8.9639,
+          "ucgen_atamasi_degisen": 48409,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 23.0425,
+          "ucgen_atamasi_degisen": 78690,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "gripen_AB_Right",
+      "n_cfd_yuz": 29431,
+      "n_fea_dugum": 682,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 0.2705,
+          "ucgen_atamasi_degisen": 434,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 1.08,
+          "ucgen_atamasi_degisen": 1946,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 4.1238,
+          "ucgen_atamasi_degisen": 6326,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 10.5162,
+          "ucgen_atamasi_degisen": 11473,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "izgara_ld7",
+      "n_cfd_yuz": 20141,
+      "n_fea_dugum": 314,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 5.5694,
+          "ucgen_atamasi_degisen": 690,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 5.4744,
+          "ucgen_atamasi_degisen": 2267,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 6.5751,
+          "ucgen_atamasi_degisen": 4473,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 7.7784,
+          "ucgen_atamasi_degisen": 6022,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "kaldirici_e_kapsulsu",
+      "n_cfd_yuz": 65142,
+      "n_fea_dugum": 128,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 0.1817,
+          "ucgen_atamasi_degisen": 209,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 0.8275,
+          "ucgen_atamasi_degisen": 944,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 2.1597,
+          "ucgen_atamasi_degisen": 3581,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 5.0951,
+          "ucgen_atamasi_degisen": 8368,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "minihawk",
+      "n_cfd_yuz": 24477,
+      "n_fea_dugum": 923,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 5.0262,
+          "ucgen_atamasi_degisen": 709,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 21.4362,
+          "ucgen_atamasi_degisen": 3116,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 34.2935,
+          "ucgen_atamasi_degisen": 7921,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 62.857,
+          "ucgen_atamasi_degisen": 13616,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "MiniHawk_UAV",
+      "n_cfd_yuz": 509,
+      "n_fea_dugum": 923,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 8.109,
+          "ucgen_atamasi_degisen": 17,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 29.6266,
+          "ucgen_atamasi_degisen": 82,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 35.7588,
+          "ucgen_atamasi_degisen": 147,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 56.0625,
+          "ucgen_atamasi_degisen": 251,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "MiniHawk_UAV_duzeltilmis",
+      "n_cfd_yuz": 24477,
+      "n_fea_dugum": 923,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 5.0825,
+          "ucgen_atamasi_degisen": 709,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 21.5742,
+          "ucgen_atamasi_degisen": 3116,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 34.5061,
+          "ucgen_atamasi_degisen": 7921,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 63.1474,
+          "ucgen_atamasi_degisen": 13616,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "minihawk_v2",
+      "n_cfd_yuz": 70,
+      "n_fea_dugum": 2099,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 0.0,
+          "ucgen_atamasi_degisen": 2,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 0.0,
+          "ucgen_atamasi_degisen": 11,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 0.0,
+          "ucgen_atamasi_degisen": 30,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 0.0,
+          "ucgen_atamasi_degisen": 52,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "minihawk_vtol",
+      "n_cfd_yuz": 7442,
+      "n_fea_dugum": 34608,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 13.9707,
+          "ucgen_atamasi_degisen": 548,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 38.502,
+          "ucgen_atamasi_degisen": 1609,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 56.8995,
+          "ucgen_atamasi_degisen": 3103,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 74.1866,
+          "ucgen_atamasi_degisen": 5601,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "multikopter_kucuk",
+      "n_cfd_yuz": 14202,
+      "n_fea_dugum": 760,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 1.2806,
+          "ucgen_atamasi_degisen": 185,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 4.3553,
+          "ucgen_atamasi_degisen": 912,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 15.4451,
+          "ucgen_atamasi_degisen": 3518,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 36.7423,
+          "ucgen_atamasi_degisen": 6557,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "test_sphere",
+      "n_cfd_yuz": 956,
+      "n_fea_dugum": 642,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 2.1176,
+          "ucgen_atamasi_degisen": 72,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 9.148,
+          "ucgen_atamasi_degisen": 296,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 22.9409,
+          "ucgen_atamasi_degisen": 586,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 47.8032,
+          "ucgen_atamasi_degisen": 724,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    },
+    {
+      "vaka": "ucak_okkanat",
+      "n_cfd_yuz": 98986,
+      "n_fea_dugum": 782,
+      "adimlar": [
+        {
+          "sehim_mm": 1.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 0.4487,
+          "ucgen_atamasi_degisen": 1827,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 5.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 1.8535,
+          "ucgen_atamasi_degisen": 6758,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 20.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 6.8311,
+          "ucgen_atamasi_degisen": 16014,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        },
+        {
+          "sehim_mm": 50.0,
+          "sabit_dugum_kaymasi_pct": 0.0,
+          "yeniden_dugum_kaymasi_pct": 23.3604,
+          "ucgen_atamasi_degisen": 28875,
+          "sabit_toplam_kuvvet_hatasi_pct": 0.0,
+          "yeniden_toplam_kuvvet_hatasi_pct": 0.0
+        }
+      ]
+    }
+  ],
+  "ozet": {
+    "sabit_kayma_en_kotu_pct": 0.0,
+    "yeniden_kayma_en_kotu_pct": 123.8327,
+    "toplam_kuvvet_hatasi_en_kotu_pct": 0.0
+  },
+  "verdikt": "25 vakada ölçüldü. Her turda yeniden arama, düğüm yükünün en çok %123.83'ini YALNIZCA deformasyondan dolayı yeniden dağıtıyor; sabit eşlemede kayma %0.0000. TOPLAM KUVVET İKİSİNİ DE AYIRT ETMİYOR (en kötü %0.0000) --- korunumlu şemada ağırlıklar 1'e toplandığı için toplam, hangi üçgen seçilirse seçilsin korunur. Ayırt eden nicelik yükün NEREYE bindiğidir. Üçgen ataması değişmese bile kayma oluşuyor: baryentrik ağırlıklar DEFORME üçgene göre yeniden hesaplanıyor.",
+  "sure_dk": 0.8,
+  "_kisit": "TEK TARAF DEFORME EDILDI: FEA dugumleri hareket ediyor, CFD yuzu referansta kaliyor. Gercek dongude CFD yuzu de hareket eder --- ve sabit eslemenin DOGRU olmasinin sebebi tam budur: iki tarafin AYNI MALZEME NOKTASINDA kalmasi gerekir. Sehim profili konsol benzeri KARESEL secildi; baska bir profil baska bir kayma verir ve bu sayi bir MERTEBE gostergesidir, evrensel bir sabit degil.",
+  "_uretim": "Üretim: python experiments/fsi_deforme_esleme.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

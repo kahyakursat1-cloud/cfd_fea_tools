@@ -153,3 +153,52 @@ def test_duyarlilik_kaniti_ILISKININ_1e1_OLMADIGINI_soyluyor():
     # BETIK KENDI CIKTISINI GIRDI SAYMAMALI
     adlar = [k["vaka"] for k in d["vakalar"]]
     assert len(adlar) == len(set(adlar)), f"vaka tekrarlanmış: {adlar}"
+
+
+def test_SABIT_esleme_deformasyondan_ETKILENMIYOR():
+    """Malzeme koordinatı: üçgen indisi ve ağırlıklar deformasyonla değişmez.
+
+    Her turda geometrik olarak yeniden aramak, yapı deforme oldukça FARKLI
+    bir yüzeye yük bindirmek demektir.
+    """
+    from fsi_korunumlu_esleme import esleme_kur, esleme_uygula
+    r = np.random.default_rng(5)
+    dugum = r.normal(size=(40, 3))
+    faces = np.array([[i, (i + 1) % 40, (i + 2) % 40] for i in range(38)])
+    fc = dugum[faces].mean(axis=1)
+    merkez = r.normal(scale=1.2, size=(120, 3))
+    dF = r.normal(size=(120, 3))
+    e = esleme_kur(merkez, dugum, faces, fc)
+    F0 = esleme_uygula(e, dF, dugum)
+    # DEFORME et — esleme AYNI kalmali
+    deforme = dugum + np.array([0.0, 0.0, 0.3]) * dugum[:, 0:1]
+    F1 = esleme_uygula(e, dF, deforme)
+    assert np.allclose(F0, F1), "sabit eşleme deformasyonla değişti"
+    # KORUNUM deformasyon altinda da gecerli
+    assert np.allclose(F1.sum(axis=0), dF.sum(axis=0), atol=1e-12)
+
+
+def test_TOPLAM_KUVVET_iki_yolu_AYIRT_ETMIYOR():
+    """Ölçütün ayırt edemediği kayda geçmeli: ilk sürümde toplam kuvvetle
+    ölçtüm ve ikisi de %0,0000 verdi --- ölçüt yanlıştı, sonuç değil."""
+    import json
+    y = KOK / "fsi_deforme_esleme.json"
+    if not y.exists():
+        pytest.skip("deforme eşleme ölçülmemiş")
+    d = json.loads(y.read_text(encoding="utf-8"))
+    assert d["ozet"]["toplam_kuvvet_hatasi_en_kotu_pct"] < 1e-3
+    assert "AYIRT ETMİYOR" in d["verdikt"]
+    # AYIRT EDEN olcut: dugum dagilimi
+    assert d["ozet"]["yeniden_kayma_en_kotu_pct"] > 1.0
+    assert d["ozet"]["sabit_kayma_en_kotu_pct"] < 1e-3
+
+
+def test_deforme_kaniti_KISITINI_yaziyor():
+    """Tek taraf deforme edildi ve sehim profili seçildi; sayı bir MERTEBE
+    göstergesidir, evrensel sabit değil."""
+    import json
+    y = KOK / "fsi_deforme_esleme.json"
+    if not y.exists():
+        pytest.skip("deforme eşleme ölçülmemiş")
+    k = json.loads(y.read_text(encoding="utf-8"))["_kisit"]
+    assert "TEK TARAF" in k and "MERTEBE" in k
