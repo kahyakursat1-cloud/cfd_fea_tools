@@ -3525,7 +3525,72 @@ eksik parça çizilmiyor ve figürde adıyla yazılıyor.
 Düşük kapsamın büyük kısmı dış çözücülerle çalışan yollardır: OpenFOAM/WSL
 sürücüsü, CalculiX koşumu, OpenVSP/XFOIL köprüleri, PySide6 arayüzü. Bunlar birim
 testiyle değil \emph{çapa koşularıyla} sınanır ve o koşuların sonuçları kanıt
-dosyalarına yazılıp testlerle bağlanır. Sayı olduğu gibi verilmiştir: ``\%85
+dosyalarına yazılıp testlerle bağlanır.
+
+\textbf{Bu cümle sınandı ve yarısı doğru çıktı.} İddia ölçülebilir: kapsanmamış
+satırların ne kadarı gerçekten bir ekrana ya da dış sürece muhtaç? Karar katmanı
+için zaten yapılan satır-satır sınıflandırma bu iki katmana uygulandı
+(\texttt{experiments/arayuz\_kopru\_kapsami.py}); ekran-bağımlılığı regex'le
+değil \emph{yapısal} olarak belirlenir --- tabanı Qt olan bir sınıfın gövdesindeki
+her ifade widget örneği, o da \texttt{QApplication} gerektirir --- ve dış
+bağımlılık varsayılmaz, modülün ithal ettiği adlar tek tek denenerek ölçülür.
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Katman} & \textbf{Kapsanmamış} & \textbf{Ekran/çözücü istemeyen} & \textbf{Oran} \\
+\midrule
+Arayüz (GUI) & 1087 & 16 & \%1{,}5 \\
+Dış-süreç köprüleri & 685 & 177 & \textbf{\%25{,}8} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Arayüz için cümle ölçümle destekleniyor: 1087 kapsanmamış
+satırın yalnız 16'sı ekransız sürülebilir ve onların da
+7'si \texttt{\_\_main\_\_} iskelesi.
+\textbf{Köprüler için değil:} 685 satırın 177'si ne
+ekran ne çözücü istiyor --- yalnız yazılmamış test. Cümle bu yüzden
+daraltıldı; ölçüm eşiği \%25{,}0 ve köprü katmanı onu aşıyor.
+
+\noindent Toplam oran \%10{,}9 çıkıyor ve eşiğin ALTINDA ---
+ama hüküm ondan verilmedi. Büyük paydalı arayüz katmanı köprüleri eritiyordu ve
+bu, aynı bölümün üç paragraf yukarıda uyardığı kusurun ta kendisi olurdu
+(``toplam yüzde tek başına yanıltıcıdır''). Ölçüm ilk sürümünde tam olarak o
+hatayı yaptı; hüküm katman başına verilecek biçimde düzeltildi.
+
+\begin{dikkat}{Ölçüm bir kapı buldu: vardı, üretim yolu ona ulaşmıyordu}
+Bulgu bir yüzde değil. \texttt{construct2d\_bridge.oku\_sonuc} kuvvet
+katsayılarında NaN/inf arıyor ve gerekçesi kodda yazılı: \texttt{float('nan')
+\textless{}= x} daima yanlıştır, yani kirlenmiş bir çözüm aşağıdaki her
+karşılaştırmadan sessizce geçer. Kapı doğruydu --- \emph{ama hiç
+tetiklenemiyordu}.
+
+\noindent Sebep bir satır yukarıdaydı. Sayılar
+\texttt{[-+]?\textbackslash{}d+…} deseniyle ayrıştırılıyor ve çözüm
+ıraksadığında OpenFOAM o slota \texttt{nan} yazıyor. Desen o belirteci
+\emph{atlıyor}, sütunlar bir kayıyor ve \texttt{nums[1]} artık $F_x$ değil
+$F_y$ oluyor. Ölçüldü: \texttt{5 nan 0.5 0 0 0 0} satırından eski desen
+\texttt{['5','0.5','0','0','0','0']} üretiyor ve $F_x = 0{,}5$ diyor. NaN hiç
+oluşmadığı için kapı susuyor ve sonuç \emph{makul görünen} yanlış bir sayı
+oluyor --- sessiz kirlenme, gürültülü arızadan tehlikelidir.
+
+\noindent Desen düzeltildi (\texttt{nan}/\texttt{inf} de yakalanıyor, işaretli
+biçimleriyle) ve tanınmayan sütun sayısı artık gerekçeli ret veriyor. Gerçek bir
+\texttt{forces.dat} satırında ayrıştırma \emph{değişmedi} --- düzeltmenin temiz
+koşuyu bozmadığı ayrıca sınandı. On beş test yazıldı; eski ayrıştırıcıda altısı
+düşüyor.
+
+\noindent \textbf{Sayı bu yüzden hareket etti ve bu kayda geçmeli.} O on beş
+test yazılınca \texttt{construct2d\_bridge}'in ekransız-sürülebilir
+kapsanmamış satırı 104'ten 74'e düştü; köprü katmanı \%29{,}2'den \%25{,}8'e
+indi. Oran hâlâ eşiğin (\%25) \emph{üstünde} ama artık kıl payı --- yani
+hüküm bugün tek bir modülün birkaç testine bağlı. Bu kırılganlık gizlenmiyor:
+eşik keyfîdir ve buradaki asıl bulgu yüzde değil, \emph{tetiklenemeyen bir
+kapı}dır. Yüzdeyi eşiğin altına indirmek için test yazmak, bu raporun
+eleştirdiği oyunun ta kendisi olurdu; yazılan testler o yüzden kapsam için
+değil \emph{o kapı için} yazıldı.
+\end{dikkat} Sayı olduğu gibi verilmiştir: ``\%85
 kapsam'' demek için testi kolay olanı sayıp zoru dışarıda bırakmak, bu raporun
 savunduğu ilkenin tersi olurdu.
 

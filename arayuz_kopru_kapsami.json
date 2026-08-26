@@ -1,0 +1,336 @@
+{
+  "vaka": "Arayüz + dış-köprü kapsamı — 'çapa koşularıyla sınanır' iddiası",
+  "_neden": "Rapor iki dusuk katmani 'birim testiyle degil capa kosulariyla sinanir' diye savunuyor. Cumle sinanabilir bir iddiadir: kapsanmamis satirlarin ne kadari gercekten ekran ya da dis surec istiyor?",
+  "katmanlar": {
+    "Arayüz (GUI)": {
+      "eksik": 1087,
+      "eksik_io": 38,
+      "eksik_savunma": 35,
+      "eksik_dis_bagimli": 998,
+      "eksik_sinanabilir": 16,
+      "ifade": 1817,
+      "_bunun_girisi": 7,
+      "oran_pct": 1.5,
+      "iddia_comert_mi": false
+    },
+    "Dış-süreç köprüleri": {
+      "eksik": 685,
+      "eksik_io": 81,
+      "eksik_savunma": 30,
+      "eksik_dis_bagimli": 397,
+      "eksik_sinanabilir": 177,
+      "ifade": 1223,
+      "_bunun_girisi": 43,
+      "oran_pct": 25.8,
+      "iddia_comert_mi": true
+    }
+  },
+  "moduller": [
+    {
+      "modul": "construct2d_bridge.py",
+      "kapsam_pct": 60.4,
+      "ifade": 323,
+      "eksik": 128,
+      "eksik_io": 10,
+      "eksik_savunma": 1,
+      "eksik_dis_bagimli": 43,
+      "_ithal_edilemeyen": [],
+      "eksik_sinanabilir": 74,
+      "_bunun_girisi": 12
+    },
+    {
+      "modul": "mesh_generator.py",
+      "kapsam_pct": 70.1,
+      "ifade": 361,
+      "eksik": 108,
+      "eksik_io": 22,
+      "eksik_savunma": 11,
+      "eksik_dis_bagimli": 15,
+      "_ithal_edilemeyen": [],
+      "eksik_sinanabilir": 60,
+      "_bunun_girisi": 9
+    },
+    {
+      "modul": "openvsp_bridge.py",
+      "kapsam_pct": 0.0,
+      "ifade": 286,
+      "eksik": 286,
+      "eksik_io": 22,
+      "eksik_savunma": 16,
+      "eksik_dis_bagimli": 217,
+      "_ithal_edilemeyen": [
+        "vsp"
+      ],
+      "eksik_sinanabilir": 31,
+      "_bunun_girisi": 15
+    },
+    {
+      "modul": "launcher.py",
+      "kapsam_pct": 0.0,
+      "ifade": 158,
+      "eksik": 158,
+      "eksik_io": 13,
+      "eksik_savunma": 8,
+      "eksik_dis_bagimli": 127,
+      "_ithal_edilemeyen": [],
+      "eksik_sinanabilir": 10,
+      "_bunun_girisi": 1
+    },
+    {
+      "modul": "openrocket_bridge.py",
+      "kapsam_pct": 0.0,
+      "ifade": 63,
+      "eksik": 63,
+      "eksik_io": 12,
+      "eksik_savunma": 0,
+      "eksik_dis_bagimli": 42,
+      "_ithal_edilemeyen": [
+        "FlightDataType",
+        "orhelper"
+      ],
+      "eksik_sinanabilir": 9,
+      "_bunun_girisi": 6
+    },
+    {
+      "modul": "material_editor_gui.py",
+      "kapsam_pct": 8.6,
+      "ifade": 244,
+      "eksik": 223,
+      "eksik_io": 3,
+      "eksik_savunma": 2,
+      "eksik_dis_bagimli": 215,
+      "_ithal_edilemeyen": [],
+      "eksik_sinanabilir": 3,
+      "_bunun_girisi": 3
+    },
+    {
+      "modul": "dis_araclar.py",
+      "kapsam_pct": 91.2,
+      "ifade": 57,
+      "eksik": 5,
+      "eksik_io": 2,
+      "eksik_savunma": 0,
+      "eksik_dis_bagimli": 0,
+      "_ithal_edilemeyen": [],
+      "eksik_sinanabilir": 3,
+      "_bunun_girisi": 1
+    },
+    {
+      "modul": "app_parametric.py",
+      "kapsam_pct": 13.6,
+      "ifade": 449,
+      "eksik": 388,
+      "eksik_io": 2,
+      "eksik_savunma": 4,
+      "eksik_dis_bagimli": 380,
+      "_ithal_edilemeyen": [],
+      "eksik_sinanabilir": 2,
+      "_bunun_girisi": 2
+    },
+    {
+      "modul": "app_analyzer.py",
+      "kapsam_pct": 67.1,
+      "ifade": 966,
+      "eksik": 318,
+      "eksik_io": 20,
+      "eksik_savunma": 21,
+      "eksik_dis_bagimli": 276,
+      "_ithal_edilemeyen": [],
+      "eksik_sinanabilir": 1,
+      "_bunun_girisi": 1
+    },
+    {
+      "modul": "xfoil_kesit.py",
+      "kapsam_pct": 28.6,
+      "ifade": 133,
+      "eksik": 95,
+      "eksik_io": 13,
+      "eksik_savunma": 2,
+      "eksik_dis_bagimli": 80,
+      "_ithal_edilemeyen": [],
+      "eksik_sinanabilir": 0,
+      "_bunun_girisi": 0
+    }
+  ],
+  "toplam_eksik": 1772,
+  "ekran_cozucu_GEREKTIRMEYEN_eksik": 193,
+  "toplam_oran_pct": 10.9,
+  "_toplam_neden_hukum_vermez": "Toplam oran YAYIMLANIR ama HUKUM VERMEZ: buyuk paydali katman kucugu eritir. Toplam %10.9, en yuksek oranli katman ise Dış-süreç köprüleri %25.8 (esik %25.0).",
+  "esik_pct": 25.0,
+  "iddia_comert_katmanlar": [
+    "Dış-süreç köprüleri"
+  ],
+  "iddia_comert_mi": true,
+  "_ornekler": [
+    {
+      "modul": "app_analyzer.py",
+      "satir": 1511,
+      "kod": "main()",
+      "giris_noktasi": true
+    },
+    {
+      "modul": "app_parametric.py",
+      "satir": 936,
+      "kod": "window = ParametricAnalysisTool()",
+      "giris_noktasi": true
+    },
+    {
+      "modul": "app_parametric.py",
+      "satir": 937,
+      "kod": "window.show()",
+      "giris_noktasi": true
+    },
+    {
+      "modul": "material_editor_gui.py",
+      "satir": 386,
+      "kod": "lib = MaterialLibrary()",
+      "giris_noktasi": true
+    },
+    {
+      "modul": "material_editor_gui.py",
+      "satir": 387,
+      "kod": "window = MaterialManagerTab(lib)",
+      "giris_noktasi": true
+    },
+    {
+      "modul": "material_editor_gui.py",
+      "satir": 388,
+      "kod": "window.show()",
+      "giris_noktasi": true
+    },
+    {
+      "modul": "launcher.py",
+      "satir": 37,
+      "kod": "ROOT = Path(__file__).resolve().parent",
+      "giris_noktasi": false
+    },
+    {
+      "modul": "launcher.py",
+      "satir": 38,
+      "kod": "PY = sys.executable  # current Python interpreter",
+      "giris_noktasi": false
+    },
+    {
+      "modul": "launcher.py",
+      "satir": 41,
+      "kod": "BG = \"#0a1628\"",
+      "giris_noktasi": false
+    },
+    {
+      "modul": "launcher.py",
+      "satir": 42,
+      "kod": "PANEL = \"#0f2340\"",
+      "giris_noktasi": false
+    },
+    {
+      "modul": "launcher.py",
+      "satir": 43,
+      "kod": "TEAL = \"#06d6d0\"",
+      "giris_noktasi": false
+    },
+    {
+      "modul": "launcher.py",
+      "satir": 44,
+      "kod": "NAVY = \"#118ab2\"",
+      "giris_noktasi": false
+    },
+    {
+      "modul": "launcher.py",
+      "satir": 45,
+      "kod": "GREEN = \"#00d084\"",
+      "giris_noktasi": false
+    },
+    {
+      "modul": "launcher.py",
+      "satir": 46,
+      "kod": "TEXT = \"#e0f7fa\"",
+      "giris_noktasi": false
+    },
+    {
+      "modul": "launcher.py",
+      "satir": 47,
+      "kod": "SUBTEXT = \"#80deea\"",
+      "giris_noktasi": false
+    },
+    {
+      "modul": "launcher.py",
+      "satir": 323,
+      "kod": "main()",
+      "giris_noktasi": true
+    },
+    {
+      "modul": "openvsp_bridge.py",
+      "satir": 15,
+      "kod": "sys.path.insert(0, str(Path(__file__).resolve().parent))",
+      "giris_noktasi": false
+    },
+    {
+      "modul": "openvsp_bridge.py",
+      "satir": 21,
+      "kod": "_VSP = bul(\"openvsp_dll\")",
+      "giris_noktasi": false
+    },
+    {
+      "modul": "openvsp_bridge.py",
+      "satir": 22,
+      "kod": "if _VSP[\"yol\"] and hasattr(os, \"add_dll_directory\"):",
+      "giris_noktasi": false
+    },
+    {
+      "modul": "openvsp_bridge.py",
+      "satir": 23,
+      "kod": "os.add_dll_directory(_VSP[\"yol\"])",
+      "giris_noktasi": false
+    },
+    {
+      "modul": "openvsp_bridge.py",
+      "satir": 24,
+      "kod": "elif _VSP[\"zorunlu\"] and not _VSP[\"yol\"]:",
+      "giris_noktasi": false
+    },
+    {
+      "modul": "openvsp_bridge.py",
+      "satir": 27,
+      "kod": "raise RuntimeError(f\"{_VSP['neden']} Arandi: {_VSP['aranan']}\")",
+      "giris_noktasi": false
+    },
+    {
+      "modul": "openvsp_bridge.py",
+      "satir": 34,
+      "kod": "VLM_SPAN_PANEL = 98",
+      "giris_noktasi": false
+    },
+    {
+      "modul": "openvsp_bridge.py",
+      "satir": 43,
+      "kod": "VLM_UC_KUMELEME = 0.25",
+      "giris_noktasi": false
+    },
+    {
+      "modul": "openvsp_bridge.py",
+      "satir": 50,
+      "kod": "VLM_KAMBUR = True",
+      "giris_noktasi": false
+    }
+  ],
+  "verdikt": "Arayüz (GUI): 1087 eksikten 16'i ekran/çözücü istemiyor (%1.5); Dış-süreç köprüleri: 685 eksikten 177'i ekran/çözücü istemiyor (%25.8). Toplam %10.9 --- ama hüküm TOPLAMDAN verilmez, çünkü büyük paydalı katman küçüğü eritir. EŞİĞİ AŞAN: Dış-süreç köprüleri --- bu katman(lar) için raporun cümlesi fazla cömert ve daraltılmalı: kapsanmamış satırların önemli bir kısmı ne ekran ne çözücü istiyor, yalnız yazılmamış test. Cümle Arayüz (GUI) için ölçümle destekleniyor.",
+  "_kisit": "Desen ayrimi SEZGISELDIR ve `sinanabilir` sayisi bir UST SINIRDIR: okunmadan 'sinanmamis hukum' sayilmaz. Ornekler kayda yazilir ki ayrim denetlenebilsin. Ayrica kapsam SATIR kapsamidir; sinanmis satir dogru sinanmis demek degildir.",
+  "_uretim": "Üretim: python experiments/arayuz_kopru_kapsami.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

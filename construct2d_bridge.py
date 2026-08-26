@@ -599,7 +599,24 @@ def oku_sonuc(case: Path, alpha_deg=0.0, V=50.0, nu=1.48e-5, rho=1.225, chord=1.
     n_son = max(3, len(lines) // 5)
     cl, cd = [], []
     for satir in lines[-n_son:]:
-        nums = re.findall(r'[-+]?\d+\.?\d*[eE]?[-+]?\d*', satir)
+        # `nan`/`inf` DE YAKALANIR --- YOKSA ASAGIDAKI KAPIYA YOL VARMIYOR.
+        #
+        # Eski desen yalniz rakamla baslayan belirteci aliyordu. Cozum
+        # iraksadiginda OpenFOAM o slota `nan` (ya da `-nan`) yaziyor ve desen
+        # onu SESSIZCE ATLIYORDU: sutunlar bir kayiyor, `nums[1]` artik Fx
+        # degil Fy oluyor ve sonuc MAKUL gorunen ama YANLIS bir sayi cikiyor.
+        # Asagidaki NaN/inf kapisi hic tetiklenmiyordu --- kapi vardi, uretim
+        # yolu ona ULASMIYORDU.
+        #
+        # Olculdu: `5 nan 0.5 0 0 0 0` satirindan eski desen ['5','0.5','0',
+        # '0','0','0'] uretiyor ve Fx=0,5 diyor. Sessiz kirlenme, gurultulu
+        # arizadan daha tehlikelidir.
+        nums = re.findall(r'[-+]?(?:\d+\.?\d*[eE]?[-+]?\d*|nan|inf)', satir)
+        if len(nums) < 6:
+            return {"status": "FAILED", "step": "sayisal",
+                    "hata": (f"forces.dat satirinda beklenen 6 bilesen yok "
+                             f"({len(nums)} okundu) — bicim taninmadi"),
+                    "yakinsama": _yakinsama(case)}
         # X-Y duzlem: Fx=nums[1]+nums[4], Fy=nums[2]+nums[5]
         Fx = float(nums[1])+float(nums[4]); Fy = float(nums[2])+float(nums[5])
         cd.append((Fx*math.cos(a)+Fy*math.sin(a))/(q*S))
