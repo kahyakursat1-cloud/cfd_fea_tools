@@ -1,0 +1,124 @@
+{
+  "vaka": "Kaynakça — kanıt kayıtlarından ve kod sabitlerinden üretildi",
+  "_neden": "Rapor onlarca literatur kaynagi kullaniyordu ama ayri bir kaynakca bolumu YOKTU (dis inceleme yakaladi). Elle liste yazmak, raporun kendi avladigi kusuru islemek olurdu: sabit metin, degisen veri.",
+  "kaynak_sayisi": 14,
+  "kaynaklar": [
+    {
+      "kunye": "Abbott, I. H., von Doenhoff, A. E. & Stivers, L. S., 'Summary of Airfoil Data', NACA Report 824 (1945) — NTRS 19930090976, 261 sayfa, tam metin indirildi",
+      "gectigi_yer": [
+        "ar6_referans_tr586.json"
+      ]
+    },
+    {
+      "kunye": "Driver & Seegmiller, AIAA J. 23(2), 1985 — deneysel",
+      "gectigi_yer": [
+        "basamak_ayrilma.json",
+        "basamak_duvar_fonksiyonu.json",
+        "basamak_yplus_ailesi.json",
+        "model_form_bandi.json"
+      ]
+    },
+    {
+      "kunye": "HLPW-1 (2010), NASA Langley 14×22 Ses-altı Tüneli, Re_MAC=4,3e6; tekrarlanabilirlik: Hannon, Washburn, Jenkins & Watson, AIAA 2012-0706, doi:10.2514/6.2012-706",
+      "gectigi_yer": [
+        "capa_referans_denetimi.json"
+      ]
+    },
+    {
+      "kunye": "Hoerner, Fluid-Dynamic Drag (1965); NACA TN-253 (Knight 1926) — blokaj-düzeltilm",
+      "gectigi_yer": [
+        "bluff_duvar_cozunur_fizibilite.json",
+        "capa_yeniden_kosum.json",
+        "gci_kup_arac.json",
+        "model_form_bandi.json",
+        "vehicle_validation.json"
+      ]
+    },
+    {
+      "kunye": "Jacobs, E. N. & Sherman, A., 'Airfoil Section Characteristics as Affected by Variations of the Reynolds Number', NACA Report 586 (1937; 1939 baskısı) — NTRS 19930091662",
+      "gectigi_yer": [
+        "ar6_referans_tr586.json"
+      ]
+    },
+    {
+      "kunye": "Jacobs, E. N., Ward, K. E. & Pinkerton, R. M., 'The Characteristics of 78 Related Airfoil Sections from Tests in the Variable-Density Wind Tunnel', NACA Report 460 (1933)",
+      "gectigi_yer": [
+        "capa_referans_denetimi.json"
+      ]
+    },
+    {
+      "kunye": "Ladson, C. L., NASA TM-4074 (1988) — Langley Düşük-Türbülanslı Basınçlı Tünel, NACA 0012, tripped, Re=6e6. NASA TMR bu seti 'fully turbulent CFD kuvvetleriyle kıyas için en uygun' diyor.",
+      "gectigi_yer": [
+        "ar6_referans_ladson.json",
+        "ar6_referans_tr586.json"
+      ]
+    },
+    {
+      "kunye": "Lz=πD — Breuer, Int. J. Heat Fluid Flow 21 (2000); Travin ve ark., Theor. Comput. Fluid Dyn. 20 (2006). Daha kısa span dökülmeyi yapay olarak korele tutar.",
+      "gectigi_yer": [
+        "silindir_urans_3b.json"
+      ]
+    },
+    {
+      "kunye": "NACA TN-253, Montgomery Knight, Langley Memorial Aeronautical Laboratory, Aralık 1926 — 'Wind Tunnel Standardization Disk Drag' (NTRS 19930087643)",
+      "gectigi_yer": [
+        "capa_birincil_kaynak.json"
+      ]
+    },
+    {
+      "kunye": "Park, Kwon & Choi, KSME Int. J. 12 (1998) ≈1.33; Henderson, Phys. Fluids 7 (1995) ≈1.35 — SAYISAL (DNS/spektral) referans, deneysel değil; bant ±%5 alınır",
+      "gectigi_yer": [
+        "silindir_vorteks.py:CD_KAYNAK"
+      ]
+    },
+    {
+      "kunye": "Roos, F. W. & Willmarth, W. W., 'Some Experimental Results on Sphere and Disk Drag', AIAA Journal 9(2), 1971, s. 285–291, doi:10.2514/3.6164",
+      "gectigi_yer": [
+        "capa_referans_denetimi.json"
+      ]
+    },
+    {
+      "kunye": "Roshko, J. Fluid Mech. 10 (1961); Norberg, J. Fluids Struct. 17 (2003) — DENEYSEL; Re=1e4..1e5 boyunca St = 0,19-0,21 platosu",
+      "gectigi_yer": [
+        "silindir_des_3b.json",
+        "silindir_des_3b_DUVARFONKSIYONU_GECERSIZ.json",
+        "silindir_des_3b_duman.json",
+        "silindir_urans.json",
+        "silindir_urans.py:ST_KAYNAK",
+        "silindir_urans_3b.json"
+      ]
+    },
+    {
+      "kunye": "Subkritik silindir, Re=1e5 civari: Cd ≈ 1,2 (Achenbach, J. Fluid Mech. 34 (1968); Norberg 2003). 2B URANS span-yonu korelasyon kaybini temsil EDEMEZ ve Cd'yi sistematik yuksek verir — bu deger YALNIZ EGILIM olarak raporlanir",
+      "gectigi_yer": [
+        "silindir_urans.py:CD_KAYNAK"
+      ]
+    },
+    {
+      "kunye": "Williamson, J. Fluid Mech. 206 (1989) — DENEYSEL, paralel-dökülme düzeltmeli",
+      "gectigi_yer": [
+        "silindir_vorteks.json",
+        "silindir_vorteks.py:ST_KAYNAK"
+      ]
+    }
+  ],
+  "_kisit": "DOI UYDURULMAZ: kayitta ne varsa o basilir. Eksik kunye EKSIK GORUNUR ve bu kasitlidir --- tamamlanmis gibi gorunen bir kaynakca, tamamlanmamis olandan tehlikelidir. Yayina giderken her kunye birincil kaynaktan (Crossref) dogrulanmalidir.",
+  "_uretim": "Üretim: python experiments/kaynakca.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

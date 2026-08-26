@@ -2495,9 +2495,15 @@ gerçek hücre sayısını yüzey iyileştirme kademesi belirler.
         SINANDI, ancak fiziksel doğrulama ölçütünü GEÇEMEDİ}: 2B subkritik
         silindirde ($Re{=}1{,}4\times10^5$) mekanizma çalıştı --- model
         zaman-çözünür çevrimde koştu, salınım ve y$^+$ ölçüldü --- ama $St$
-        sapması \%$+$37 çıktı. 2B kurulum span-yönü korelasyon kaybını
-        temsil edemez; hücrenin kapanması için ÜÇ-BOYUTLU bir çapa gerekir
-        (\S\ref{sec:urans}).
+        sapması \%$+$37 çıktı. ``2B kurulum span-yönü korelasyon kaybını
+        temsil edemez, üçüncü boyut gerekir'' açıklaması SINANDI ve
+        ÇÜRÜTÜLDÜ: 3B çapa koşuldu, span dekorelasyonu oluşmadı
+        ($C_L$ genliği yalnız \%2{,}6 düştü) ve sapma kapanmadı.
+        Ölçek-çözünürlüklü DES ile geçiş modeli de koşuldu; ikisi de
+        geçemedi. Hücrenin kapanması için gereken şey bir boyut değil,
+        span yapılarını fiziksel olarak çözebilen \emph{duvar-çözümlü LES}
+        çapasıdır --- bütçesi 84{,}7\,M hücre / 62{,}9\,GB ve bu donanımda
+        sığmıyor (\S\ref{sec:urans}, \S\ref{sub:gecis-sonuc}).
   \item[2-yönlü FSI --- ilmek koşuyor, fizik henüz tahrik etmiyor.]
         \label{sec:fsi2}
         Zincirin her halkası ayrı ayrı ölçüldü: FEA deplasmanı CFD yamasına
@@ -2997,12 +3003,14 @@ hangi hücrenin hangi projeye lazım olduğu buradan çıkmaz.
 \midrule
 v1.1 & yüksek & Eski çözücü sarmalayıcısının kaldırılması; tüm yolların
                 \texttt{analysis/} çekirdeğine taşınması \\
-v1.2 & orta   & URANS'ın \emph{türbülanslı} vakada sınanması KOŞULDU (2B ve
-                3B): mekanizma çalıştı, fizik tutmadı ve ``üçüncü boyut''
-                açıklaması ölçümle ÇÜRÜTÜLDÜ ($C_L$ genliği yalnız \%2{,}6
-                düştü); kalan iş ölçek-çözünürlüklü (DES/LES) bir çapa ---
-                bütçesi ÖLÇÜLDÜ ve ulaşılabilir: $\Delta z/D{=}0{,}05$'te
-                2{,}4\,M hücre, 1{,}9\,GB, $\approx$16 saat \\
+v1.2 & orta   & URANS (2B ve 3B), DES ve geçiş modeli KOŞULDU; üçü de fiziksel
+                doğrulamayı GEÇEMEDİ. ``Üçüncü boyut'' açıklaması ölçümle
+                çürütüldü ($C_L$ genliği yalnız \%2{,}6 düştü); ölçek-çözünürlüklü
+                DES koşuldu ($C_d$ \%$-$39{,}16, $St$ \%$+$38{,}16); duvar-çözünür
+                SST-LM koşuldu ve hipotezi YARI destekledi ($St$ 9{,}58 puan
+                düzeldi, $C_d$ 5{,}87 puan kötüleşti). Kalan doğrulama hedefi
+                \emph{duvar-çözümlü LES}; bütçesi ÖLÇÜLDÜ ve bu donanımda
+                SIĞMIYOR: 84{,}7\,M hücre, 62{,}9\,GB \\
 v1.3 & yüksek & Model-form tablosunun kalan İKİ hücresi --- deneysel referanslı
                 çapalarla. Engeller AYRI ve ikisi de ölçülü: küt/duvar-çözümlü
                 hücre yalnız yüksek-Re eğimli gövdede tanımlı ve Ahmed'in
@@ -3129,6 +3137,22 @@ dosyalarından üretilmiştir. Figürler için
 \end{sloppypar}
 
 % ══════════════════════════════ EKLER ══════════════════════════════
+% ══════════════════════════════ KAYNAKLAR ══════════════════════════════
+% ÜRETİLİR, ELLE YAZILMAZ. Kaynaklar çapa kayıtlarının `kaynak` alanlarından
+% ve kod sabitlerinden (*_KAYNAK) toplanır. Elle yazılan bir liste, bir çapa
+% yeni referansa taşındığında sessizce eskirdi --- raporun kendi avladığı
+% kusur. Üretim: python experiments/kaynakca.py
+\section*{Kaynaklar}
+\addcontentsline{toc}{section}{Kaynaklar}
+\input{kaynakca}
+
+\noindent{\footnotesize Bu liste \emph{üretilmiştir}: her künye, o kaynağı
+kullanan çapa kaydının kendi \texttt{kaynak} alanından ya da kod sabitinden
+gelir ve köşeli parantez içinde nerede geçtiği yazılıdır. DOI tamamlanmamıştır
+ve bu kasıtlıdır --- tamamlanmış gibi görünen bir kaynakça, tamamlanmamış
+olandan daha tehlikelidir. Yayına giderken her künye birincil kaynaktan
+doğrulanmalıdır.}
+
 \appendix
 \renewcommand{\thesection}{EK-\Alph{section}}
 \setcounter{section}{0}
@@ -3168,8 +3192,14 @@ V\&V zincirini eksiksiz izleyebilir.
   \item[Endüstriyel ön-tasarım.] Kavramsal aşamada eğilim analizi ve
         tasarım-alanı taraması için uygundur. Sertifikasyon ya da nihai tasarım
         doğrulaması için \emph{uygun değildir}.
-  \item[Uygun olmadığı yerler.] Duvar-çözünür geçiş ($y^+<1$), yüksek Mach
-        ayrılmalı akış, çok-fazlı akış, yanma, zaman-çözünür aeroakustik.
+  \item[Üretim-geçerlilik zarfı dışında.] Duvar-çözünür geçiş ($y^+<1$,
+        SST-LM): \emph{uygulanmıştır ancak doğrulanmamıştır} --- model
+        duvar-çözünür ağda gerçekten çalışıyor ($\gamma_{\min}=0{,}0201$,
+        laminer hücre \%4{,}87) ama fiziksel doğrulamayı geçmedi
+        (\S\ref{sub:gecis-sonuc}). ``Uygun değil'' ile ``uygulandı,
+        doğrulanmadı'' aynı şey değildir.
+  \item[Hiç uygulanmamış.] Yüksek Mach ayrılmalı akış, çok-fazlı akış,
+        yanma, zaman-çözünür aeroakustik.
 \end{description}
 
 % ══════════════════════════════ 8B ══════════════════════════════
@@ -3292,9 +3322,14 @@ dosyalarına yazılıp testlerle bağlanır. Sayı olduğu gibi verilmiştir: ``
 kapsam'' demek için testi kolay olanı sayıp zoru dışarıda bırakmak, bu raporun
 savunduğu ilkenin tersi olurdu.
 
-Bu kural bir kez daha sınandı. ``Kapsam \%47'' cümlesini yumuşatmanın kolay yolu,
+Bu kural bir kez daha sınandı. Toplam kapsam cümlesini yumuşatmanın kolay yolu,
 hüküm üreten 15 modülü ayrı bir küme sayıp \%85 yazmaktı --- ve o sayı gerçekten
-öyle çıkıyor. Yayımlanmadı: manşet \%47{,}9 olarak durmaktadır. Bunun yerine
+öyle çıkıyor. Yayımlanmadı: manşet, o koşuda ne ölçüldüyse odur ve bugün
+\%50{,}7'dir.\footnote{Bu cümle bir sürüm boyunca \emph{donmuş} bir sayı
+taşıdı (\%47{,}9) ve kapsam \%50{,}7'ye çıktığında güncellenmedi --- yani
+raporun kendi savunduğu ``sabit metin, değişen veri'' kusurunu bu paragraf
+işledi. Dış inceleme yakaladı. Sayı artık ölçümle birlikte güncellenen tabloya
+bağlı ve testle denetleniyor.} Bunun yerine
 kapsanmamış satırlar \emph{tek tek okundu}
 (\texttt{experiments/karar\_katmani\_kapsami.py}). O 15 modülde kapsanmayan 382
 satırın 108'i metin/CLI üretimi, 44'ü savunma (\texttt{except}/\texttt{pass});
