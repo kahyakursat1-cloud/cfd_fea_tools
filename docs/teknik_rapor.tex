@@ -982,6 +982,43 @@ ortalamalarının standart hatası alındı; 2 standart hatanın altındaki fark
 örneklemeden ayırt edilemez. Bu ölçüt olmasaydı küçük bir oynama ``düzelme''
 sayılabilirdi.
 
+\begin{dikkat}{Zaman adımı elendi --- 100 saatlik tekrar, 2 saatlik ölçümle}
+Bu sapmayı kapanışa yazmadan önce bir alternatif açıklama vardı ve
+sınanmadan reddedilemezdi. Bütün geçici çapalar $\Delta t = T/150$'de koştu ve
+\texttt{maxCo 2} beyanı \emph{atıldı}: kod \texttt{adjustableTimeStep} yazıyordu,
+OpenFOAM'ın anahtarı \texttt{adjustTimeStep}. Tanınmayan anahtar sessizce
+geçiştirilir, varsayılan (\texttt{no}) yürürlükte kalır ve \texttt{maxCo}
+hükümsüzleşir. Ölçülen kararlı Courant maksimumu 5{,}19 --- beyanın 2{,}6 katı.
+Log'da tek bir \texttt{deltaT =} satırı yok; $63{,}4/0{,}025$ tam olarak adım
+sayısını veriyor.
+
+Aileyi $Co\!\leq\!2$ ile yeniden koşmak $\sim$75--100 saat sürerdi. Onun
+yerine ucuz ağda (403.200 hücre) $\Delta t/2$ ile bir sonda koşuldu (2{,}1 saat):
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+ & $\Delta t$ & $C_d$ & $St$ \\
+\midrule
+taban  & 0{,}03333 & 0{,}8775 & 0{,}25948 \\
+sonda  & 0{,}01667 & 0{,}8490 & 0{,}26815 \\
+\midrule
+fark   & --- & \%3{,}25 & \%3{,}34 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Sondanın kendi Courant'ı 2{,}29'a indi (beyanın 1{,}14 katı), yani
+zaman çözünürlüğü gerçekten 2{,}1 kat arttı --- ve cevap ayırt eşiğinin
+(\%7{,}59, iki standart hata) \emph{içinde} kaldı. \textbf{Zaman adımı bu
+vakada sonucu belirlemiyor}; çapa ailesini yeniden koşmak için sebep yok ve
+geçiş modelinin DES'ten sapması sayısal değil model kaynaklıdır.
+
+Kısıt açık: tek ağ, tek bölen. Zaman-adımı duyarlılığı ağa bağlıdır ve bu
+sonuç DES ağına doğrudan taşınmaz; sondanın işi oraya tırmanıp tırmanmamaya
+karar verdirmekti ve cevap hayır.
+\end{dikkat}
+
 \begin{dikkat}{Kıyas tabanı hükmü değiştiriyor}
 Hüküm fonksiyonunun ilk sürümü sabit sayılara (\%$-26{,}88$ / \%$+29{,}74$)
 kıyaslıyordu --- onlar \emph{URANS ağının} (403.200 hücre, duvar fonksiyonu)

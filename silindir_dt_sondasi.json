@@ -1,0 +1,72 @@
+{
+  "vaka": "Silindir 3B — ZAMAN ADIMI sondası (dt/2)",
+  "_neden": "Butun gecici capalar dt=periyot/150'de kostu ve `maxCo 2` ATILDI (yazim hatasi). Kararli Courant maksimumu 4,8-5,2. Gecis modelinin %77 asiri-tahmini KAPANISA yazilmadan once zaman adimi elenmelidir.",
+  "taban": {
+    "Cd": 0.8775,
+    "St": 0.25948,
+    "Cl_genlik": 1.27818,
+    "dt_s": 0.03333333333333333,
+    "hucre": 403200,
+    "model": "kOmegaSST"
+  },
+  "sonda": {
+    "Cd": 0.849,
+    "St": 0.26815,
+    "Cl_genlik": 1.2356,
+    "dt_s": 0.016666666666666666
+  },
+  "kurulum": {
+    "dt_s": 0.016666666666666666,
+    "bolen": 2,
+    "adim": 6600,
+    "son_s": 110.0,
+    "_degisen_tek_sey": "ZAMAN ADIMI"
+  },
+  "taban_salinim_genlik_pct": 7.594,
+  "cozunurluk": {
+    "olculdu": true,
+    "n_periyot": 16,
+    "periyot_ortalamalari_sd": 0.39748,
+    "standart_hata": 0.09937,
+    "ayirt_esigi_pct": 7.594,
+    "_olcut": "2 standart hata; altındaki fark örneklemeden ayırt EDİLEMEZ ve zaman adımına yazılamaz"
+  },
+  "courant": {
+    "taban": null,
+    "sonda": {
+      "olculdu": true,
+      "n_adim": 4072,
+      "kararli_max": 2.2865,
+      "baslangic_sicramasi": 1.9946,
+      "son_max": 2.1405,
+      "ortalama_ort": 0.1091,
+      "beyan_maxCo": 2.0,
+      "adjustTimeStep": false,
+      "beyan_uygulaniyor_mu": false,
+      "asim_katı": 1.14,
+      "_olcut": "kararli_max: ilk üçte-birlik dilim (başlangıç geçişi) atılarak okunan Courant maksimumu",
+      "_not": "`maxCo` yalnız `adjustTimeStep yes` iken uygulanır; aksi halde beyandır, kapı DEĞİLDİR."
+    }
+  },
+  "verdikt": "ZAMAN ADIMI CEVABI SÜRÜKLEMİYOR — dt yarıya inince Cd farkı %3.25, St %3.34, ayırt eşiğinin (%7.59, 2 standart hata) İÇİNDE. Çapa ailesini yeniden koşmak için sebep YOK; Co≈5 bu vakada sonucu belirlemiyor. Bu, ~100 saatlik tekrarı ~3 saatlik ölçümle eleyen karardır.",
+  "sure_dk": 127.6,
+  "_kisit": "Tek ag (403.200 hucre, duvar fonksiyonu) ve tek bolen. Zaman-adimi duyarliligi AGA BAGLIDIR; bu sonuc DES agina (2,43 M hucre, duvar-cozunur) dogrudan tasinmaz, yalniz oraya tirmanip tirmanmamaya karar verdirir.",
+  "_uretim": "Üretim: python experiments/silindir_dt_sondasi.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

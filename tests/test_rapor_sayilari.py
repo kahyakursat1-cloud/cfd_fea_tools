@@ -744,3 +744,28 @@ def test_rapor_OLCEK_HATASI_kayitli(tex):
     Yanlış ara-okuma kayda geçmeli ki aynı hata tekrarlanmasın."""
     assert r"1/\pi" in tex or r"1/\pi$" in tex or r"$1/\pi$" in tex
     assert r"\%$+77$" in tex or "+77" in tex
+
+
+def test_rapor_DT_SONDASI_kanittan_sapmiyor(tex):
+    """dt sondası ~100 saatlik tekrarı eledi; sayıları kanıta pinli olmalı."""
+    import json
+    y = KOK / "silindir_dt_sondasi.json"
+    if not y.exists():
+        pytest.skip("dt sondası kanıtı yok")
+    d = json.loads(y.read_text(encoding="utf-8"))
+    # HASSASIYET: rapor iki ondalikla yaziyor, kanit tam duyuyor (7,594 vs
+    # 7,59). Ikisini birden kabul et --- ama YALNIZ bu ikisini; uc basamak
+    # farkli bir sayi yazilmis olsaydi test dusmeli.
+    for deger in (d["taban"]["Cd"], d["sonda"]["Cd"],
+                  d["cozunurluk"]["ayirt_esigi_pct"]):
+        adaylar = {f"{deger}".replace(".", "{,}"),
+                   f"{deger:.2f}".replace(".", "{,}")}
+        assert any(a in tex for a in adaylar), (
+            f"dt sondası sayısı ({' ya da '.join(sorted(adaylar))}) raporda yok")
+    # HUKUM SINIFI kanitla tutmali
+    assert "SÜRÜKLEMİYOR" in d["verdikt"], "kanıttaki hüküm değişmiş"
+    assert "belirlemiyor" in tex, "raporun hükmü kanıtla ayrışmış"
+    # SONDANIN KENDI COURANT'I: cozunurlugun GERCEKTEN arttiginin kaniti
+    c = d["courant"]["sonda"]
+    assert c["kararli_max"] < 3.0, "sonda Courant'ı düşmemiş — çözünürlük artmamış"
+    assert f"{c['kararli_max']:.2f}".replace(".", "{,}") in tex
