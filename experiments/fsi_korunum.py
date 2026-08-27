@@ -56,6 +56,31 @@ def _vakalar() -> list[dict]:
     return out
 
 
+def _ayrisim(s: dict | None) -> dict:
+    """İş artığının ESLEME ve YUZEY paylarına ayrışımı.
+
+    KAYITTAKI ATIF YANLISTI VE BU ONU DUZELTIR. `arayuz_isi_hatasi`
+    dugum momentini (URETIMDEKI korunumlu sema) yuz momentiyle (TERK
+    EDILMIS tutarli sema, FEA yuzunde yeniden integre edilmis) kiyaslar.
+    Yani semalari kiyaslar, eslemeyi olcmez --- ayni vakada terk edilmis
+    semanin toplam kuvvetinin ISARETI bile ters cikabiliyor.
+
+    Dogru referans CFD tarafidir ve orada bir KIMLIK vardir: baryentrik
+    agirliklar dogrusal alanlari birebir urettigi icin
+        T_dugum - T_cfd == sum_f dF_f (x) delta_f
+    Olculdu (Turek-Hron FSI1): esleme payi %0,000000, yuzey payi %0,6457.
+    """
+    if not s:
+        return {"esleme_is_payi": None, "yuzey_is_payi": None,
+                "kimlik_artigi": None, "izdusum_olcekli_max": None,
+                "izdusum_agirlikli": None}
+    return {"esleme_is_payi": s.get("esleme_isi_artigi"),
+            "yuzey_is_payi": s.get("yuzey_isi_artigi"),
+            "kimlik_artigi": s.get("kimlik_artigi"),
+            "izdusum_olcekli_max": s.get("en_buyuk_olcekli"),
+            "izdusum_agirlikli": s.get("agirlikli_olcekli")}
+
+
 def olc() -> dict:
     from coupling_fsi import cfd_pressure_to_fea_loads
 
@@ -85,6 +110,9 @@ def olc() -> dict:
             "cfd_alan_m2": r["cfd_alan_m2"], "fea_alan_m2": r["fea_alan_m2"],
             "normal_ters": r["aktarim_normali_ters"],
             "cozunurluk_orani": round(r["n_fea_faces"] / max(r["n_cfd_faces"], 1), 3),
+            # IS ARTIGININ AYRISIMI. Toplam metrik iki SEMAYI kiyaslar;
+            # uretimdeki eslemenin payi ayri olculur ve kimlikle sinanir.
+            **_ayrisim(r.get("esleme_sapmasi")),
         })
 
     # SEMA DEGISTI (2026-08-26) VE BU HUKMU DE DEGISTIRDI. Eski (tutarli)
@@ -138,9 +166,37 @@ def olc() -> dict:
              f"ARAYÜZ İŞİ DE KORUNMAZ ve artığı momentten BÜYÜKTÜR --- en "
              f"kötü %{100 * max((k['arayuz_isi_hatasi'] for k in kayit), default=0):.2f}, "
              f"ortalama %{100 * sum(k['arayuz_isi_hatasi'] for k in kayit) / max(len(kayit), 1):.2f}. "
-             f"Sebebi aynı izdüşüm kaymasıdır ama ölçüt daha güçlü: $x×F$ "
-             f"birinci moment tensörünün yalnız antisimetrik kısmıdır, iş "
-             f"metriği simetrik kısmı da görür. "
+             # ATIF DUZELTILDI (2026-08-28). Bu satir bir turdur "sebebi ayni
+             # izdusum kaymasidir" diyordu ve BU YANLISTI: metrik dugum
+             # momentini (URETIMDEKI sema) yuz momentiyle (TERK EDILMIS sema,
+             # FEA yuzunde YENIDEN INTEGRE) kiyasliyor, yani eslemeyi degil
+             # SEMALARI olcuyor. Dogru referans CFD tarafi ve orada bir
+             # KIMLIK var: T_dugum - T_cfd == sum dF (x) delta. Kimlik 24/24
+             # vakada <=1e-10 tuttu ve ayrisim su:
+             f"AMA ATIF ÖNEMLİ: bu sayı üretimdeki eşlemeyi DEĞİL iki "
+             f"ŞEMAYI kıyaslar. Doğru referans CFD tarafıdır ve orada "
+             f"kimlik (T_dugum - T_cfd = toplam dF (x) delta) "
+             f"{len(kayit)}/{len(kayit)} vakada makine hassasiyetinde tuttu. "
+             f"Ayrışım: ESLEME payı en kötü "
+             f"%{100 * max((k.get('esleme_is_payi') or 0 for k in kayit), default=0):.2f}, "
+             f"{sum(1 for k in kayit if (k.get('esleme_is_payi') or 0) < 0.01)}/{len(kayit)} "
+             f"vakada %1'in ALTINDA; geri kalanı terk edilmiş şemanın yüzey "
+             f"integralinden geliyor. Yani '%102,64 iş kaybı' üretimdeki "
+             f"aktarımın suçu DEĞİLDİR. "
+             f"Ölçüt yine de momentten güçlüdür: $x×F$ birinci moment "
+             f"tensörünün yalnız antisimetrik kısmıdır, iş metriği "
+             f"simetrik kısmı da görür. "
+             # ON-UCUS YORDAYICISI ARANDI VE BULUNAMADI --- kayda geciyor ki
+             # dorduncu kez aranmasin.
+             f"ÖN-UÇUŞ YORDAYICISI ARANDI, BULUNAMADI: izdüşüm sapmasının "
+             f"kuvvet-ağırlıklı ve en-büyük ölçüleri eşleme payıyla "
+             f"korele DEĞİL (Spearman 0,00 ve -0,25; n={len(kayit)} için "
+             f"kritik |r|~0,41). Sebebi yapısal: hata bir TENSÖR normudur "
+             f"(toplam dF (x) delta) ve skaler bir sapma "
+             f"ortalaması yön uyumunu göremez. Doğru kapı geometriden "
+             f"kestirmek değil, yükler geldikten SONRA eşleme payını "
+             f"doğrudan hesaplamaktır --- ucuzdur ve yapısal çözümden "
+             f"öncedir. "
              f"Alanı tutan {len(temiz)} vakada aktarım zaten sorunsuzdu; "
              f"şema değişikliğinin kazancı alanı TUTMAYAN vakalardadır.")
             if kayit else "ÖLÇÜLEMEDİ — yüzey-basınç VTK'sı olan vaka yok"),

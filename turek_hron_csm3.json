@@ -1,0 +1,107 @@
+{
+  "vaka": "Turek-Hron CSM3 — zaman-çözünür yapı, akış yok",
+  "_neden": "Depo *DYNAMIC yetenegini kazandi ama YAYIMLANMIS bir degere karsi hic kosmadi. CSM3 onu kapatir ve FSI2/FSI3'un ON KOSULUDUR: o vakalar kendini uyaran bir salinimdir.",
+  "kati": {
+    "mu_s_Pa": 500000.0,
+    "nu_s": 0.4,
+    "E_Pa": 1400000.0,
+    "rho": 1000.0,
+    "g_m_s2": 2.0
+  },
+  "geometri": {
+    "L_m": 0.35101,
+    "h_m": 0.02,
+    "duzlem_gerinim": true
+  },
+  "kosu": {
+    "kosdu": true,
+    "adim": 2000,
+    "dt_s": 0.005,
+    "sure_s": 10.0,
+    "alpha": -0.05,
+    "A_uzaklik_m": 0.0
+  },
+  "ux": {
+    "ortalama_mm": -14.5714,
+    "genlik_mm": 14.5717,
+    "frekans_hz": 1.0946,
+    "gecis_sayisi": 6,
+    "genlik_sonumu_pct": -0.76
+  },
+  "uy": {
+    "ortalama_mm": -64.0089,
+    "genlik_mm": 65.5361,
+    "frekans_hz": 1.0932,
+    "gecis_sayisi": 6,
+    "genlik_sonumu_pct": 0.38
+  },
+  "referans": {
+    "ux_ort_mm": -14.305,
+    "ux_genlik_mm": 14.305,
+    "uy_ort_mm": -63.607,
+    "uy_genlik_mm": 65.16,
+    "frekans_hz": 1.0995,
+    "_dogrulandi": true,
+    "_kaynak": "Turek-Hron CSM kiyaslamasi; Feel++ CSM belgesi"
+  },
+  "sapma_ux": {
+    "ortalama_pct": -1.86,
+    "genlik_pct": 1.86,
+    "frekans_pct": -0.45
+  },
+  "sapma_uy": {
+    "ortalama_pct": -0.63,
+    "genlik_pct": 0.58,
+    "frekans_pct": -0.57
+  },
+  "csm1_caprazi": {
+    "csm3_uc_mm": -129.545,
+    "csm1_statik_mm": -66.1,
+    "iki_kat_mm": -132.2,
+    "oran": 0.9799
+  },
+  "verdikt": "2000 adım, dt=0.005 s, 10.0 s (6 salınım geçişi). uy = -64.0089 +/- 65.5361 mm [1.0932 Hz]; yayımlanan -63.607 +/- 65.16 [1.0995] --- sapma ortalamada %-0.63, genlikte %0.58, frekansta %-0.57. ux = -14.5714 +/- 14.5717 mm (%-1.86 ve %1.86). Sayısal sönümün bedeli: genlik ilk yarıdan son yarıya %0.38 değişti. CSM1 ÇAPRAZI: salınımın uç değeri -129.545 mm, statik çözümün iki katı -132.2 mm (oran 0.9799). ZAMAN ADIMI YARIYA İNDİRİLDİ: frekans %0.037 oynadı (yani adımdan bağımsız), genlik %-0.552 --- referans sapmasıyla AYNI MERTEBEDE. Bu yüzden 'genlik %0.58'de tuttu' okuması fazla keskindir; dürüst ifade ~%1 bandıdır. İnce adımda genlik sapması %0.02, ortalama %-1.48. ZAMAN-ÇÖZÜNÜR YAPISAL YOL YAYIMLANMIŞ BİR DEĞERE KARŞI DOĞRULANDI: genlik, ortalama ve frekans birlikte bandında. Bu, FSI2/FSI3'ün yapısal ön koşuludur --- kuplaj hâlâ yazılmadı. Tek ağ, tek alfa; zaman adımı iki seviyede koşuldu ama iki seviye bir GCI değildir, bant bir GCI değil.",
+  "_kisit": "ZAMAN ADIMI IKI SEVIYEDE kosuldu (0,005 ve 0,0025 s) --- bu bir GCI DEGIL, 'secim sonucu tasiyor mu' sinavidir; gozlemlenen mertebe hesaplanmaz. TEK AG: CSM1 ve FSI1 ile ayni yapi agi, KASITLI. Sayisal sonum HHT alfa=-0,05 secildi ve bu vakada FIZIKSEL sonum YOKTUR; secimin bedeli genlik_sonumu_pct ile olculur ama farkli alfa degerleri KIYASLANMADI. Malzeme St. Venant-Kirchhoff DEGIL. Frekans gecis-sayimiyla olculur; sinyal 10 periyot tasidigi icin bu yeterlidir ama bir FFT dogrulamasi YAPILMADI.",
+  "_uretim": "Üretim: python experiments/turek_hron_csm3.py",
+  "dt_duyarliligi": {
+    "kosdu": true,
+    "dt_kaba_s": 0.005,
+    "dt_ince_s": 0.0025,
+    "kaba": {
+      "ortalama_mm": -64.0089,
+      "genlik_mm": 65.5361,
+      "frekans_hz": 1.0932
+    },
+    "ince": {
+      "ortalama_mm": -64.5508,
+      "genlik_mm": 65.1742,
+      "frekans_hz": 1.0936
+    },
+    "genlik_fark_pct": -0.552,
+    "frekans_fark_pct": 0.037,
+    "ince_sapma": {
+      "ortalama_pct": -1.48,
+      "genlik_pct": 0.02,
+      "frekans_pct": -0.54
+    },
+    "_olcut": "Fark, referanstan SAPMAYLA kiyaslanir. Sapmadan kucukse zaman adimi sonucu tasimiyor demektir; buyukse 'tutturdu' bir ayar sonucudur.",
+    "_okuma": "GENLIK ile FREKANS AYRI davraniyor ve bu kayda gecer. Frekans adimdan bagimsiz (%0,04) --- entegrator ve kutle guvenilir. Genlik ise adim yariya inince %0,55 oynuyor, yani referanstan sapmayla AYNI MERTEBEDE. Dolayisiyla 'genlik %0,6'da tuttu' OKUMASI FAZLA KESKINDIR; dogru ifade 'genlik ~%1 bandinda' olur. Bu bir kusur degil, band genisligi beyanidir."
+  },
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

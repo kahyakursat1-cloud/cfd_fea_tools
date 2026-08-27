@@ -79,9 +79,12 @@ def test_KAPI_DONGUYU_GERCEKTEN_DURDURUYOR():
     tetiklenmemiş de olabilir. Kod yolunu ayrıca denetle."""
     src = (KOK / "experiments" / "turek_hron_fsi1_iki_yonlu.py").read_text(
         encoding="utf-8")
-    i = src.index('if cfd["checkMesh_hata"]:')
-    assert "return _ozetle" in src[i:i + 400], (
-        "checkMesh hatası okunuyor ama döngü durmuyor")
+    # OLCUT DONUS BICIMINE DEGIL "DONGU DURUYOR MU"YA baglanir: ilk surum
+    # `return _ozetle` ariyordu ve dongu kendi kayitlarini dondurmeye
+    # cevrilince testin kendisi dustu --- kapi yerindeydi.
+    for kapi in ('if cfd["checkMesh_hata"]:', 'if cfd["vtk_aday"] != 1:'):
+        i = src.index(kapi)
+        assert "return " in src[i:i + 500], f"{kapi} okunuyor ama dongu durmuyor"
 
 
 def test_DIS_SINIRLAR_KIMILDAMIYOR(kanit):
@@ -203,3 +206,40 @@ def test_RAPOR_kanittan_sapmiyor(kanit):
         s = f"{deger}".replace(".", "{,}")
         assert s in t, f"{s} raporda yok"
     assert str(len(kanit["turlar"])) in t
+
+
+def test_SONUM_YARICAPI_SONUCU_TASIMIYOR(kanit):
+    """Ağ hareketi bir Laplace çözümü değil, KİNEMATİK bir seçim --- ve
+    kayıtta ``sonuç bundan ne kadar etkileniyor SINANMADI'' diye
+    duruyordu. Yarıçap dört kat değiştirilerek ölçüldü.
+
+    ÖLÇÜT REFERANS SAPMASIYLA KIYASLANIR, mutlak bir eşikle değil: seçimin
+    yayılımı sapmadan küçükse sonucu taşımıyordur. Büyük olsaydı ``%2,3
+    sapma'' bir fizik sonucu değil bir AYAR sonucu olurdu ve öyle
+    raporlanması gerekirdi."""
+    d = kanit.get("sonum_duyarliligi")
+    if not d:
+        pytest.skip("süpürme koşulmamış")
+    kosan = [k for k in d["kosular"] if k["uy_mm"] is not None]
+    assert len(kosan) >= 3, f"süpürme eksik: {d['kosular']}"
+    r = [k["sonum_r_m"] for k in kosan]
+    assert max(r) / min(r) >= 4.0, (
+        f"yarıçap yalnız {max(r) / min(r):.1f} kat tarandı --- duyarsızlık "
+        "iddiası bu kadar dar bir bantla kurulamaz")
+    assert d["uy_yayilim_pct"] < abs(kanit["sapma"]["uy_pct"]), (
+        f"ağ-hareketi yayılımı %{d['uy_yayilim_pct']}, referans sapması "
+        f"%{kanit['sapma']['uy_pct']} --- seçim sonucu taşıyor demektir")
+
+
+def test_URETIM_YARICAPI_SUPURMENIN_ICINDE(kanit):
+    """Süpürme üretim değerini içermezse, yayımlanan sayının bandın
+    neresinde durduğu bilinmez."""
+    from turek_hron_fsi1_iki_yonlu import SONUM_R
+    d = kanit.get("sonum_duyarliligi")
+    if not d:
+        pytest.skip("süpürme koşulmamış")
+    assert SONUM_R in [k["sonum_r_m"] for k in d["kosular"]]
+    uretim = next(k for k in d["kosular"] if k["sonum_r_m"] == SONUM_R)
+    assert uretim["uy_mm"] == pytest.approx(
+        kanit["turlar"][-1]["uy_mm"], rel=1e-9), (
+        "süpürmedeki üretim koşusu ana kayıtla ayrışıyor")

@@ -318,6 +318,8 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
     total_F = dF_face.sum(axis=0)
 
     _kayma_F = None
+    _sapma = None
+    _delta = None
     _esleme = esleme
     if sema == "korunumlu":
         from fsi_korunumlu_esleme import (
@@ -342,6 +344,46 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
         if _esleme is None:
             _esleme = esleme_kur(cfd_centers, fea_nodes, faces, f_centers)
         node_forces = esleme_uygula(_esleme, dF_cfd_yuz, fea_nodes)
+        # ── IZDUSUM SAPMASI: is artiginin SEBEBI, benzeri degil ───────────
+        # Baryentrik agirliklar DOGRUSAL fonksiyonlari birebir uretir, yani
+        #     sum_k w_k x_k = x_cfd      (nokta ucgenin duzleminde ve icinde)
+        # oldugu her yerde birinci moment TAM korunur. Korunmadigi yerde
+        # hata KIMLIK olarak sudur:
+        #     M_dugum - M_yuz = sum_f dF_f (x) delta_f,   delta_f = x_proj - x_cfd
+        # Yani "arayuz isi korunmuyor" bulgusunun sebebi bir sema kusuru
+        # DEGIL, alici yuzeyin verici yuzeyi cozememesidir. delta iki
+        # bilesen tasir: duzlem-disi ofset ve (agirliklar kirpildigi icin)
+        # ucgen disina dusen noktalarin duzlem-ici kaydirmasi.
+        #
+        # BU OLCUM YORDAYICIDIR VE UCUZDUR: kuplaji kosmadan once bile
+        # bakilabilir. Kimligin kendisi `kimlik_artigi` ile HER KOSUDA
+        # sinanir --- aciklamanin dogru oldugu varsayilmaz.
+        _u, _w = _esleme["ucgen"], _esleme["agirlik"]
+        _proj = np.einsum("fk,fkj->fj", _w, fea_nodes[_u])
+        _delta = _proj - cfd_centers
+        _dmag = np.linalg.norm(_delta, axis=1)
+        _olcek = float(np.sqrt(f_areas.mean())) if len(f_areas) else 0.0
+        _sapma = {
+            "ortalama_m": float(_dmag.mean()), "en_buyuk_m": float(_dmag.max()),
+            "fea_yuz_olcegi_m": round(_olcek, 8),
+            "ortalama_olcekli": (round(float(_dmag.mean()) / _olcek, 4)
+                                 if _olcek > 0 else None),
+            "en_buyuk_olcekli": (round(float(_dmag.max()) / _olcek, 4)
+                                 if _olcek > 0 else None),
+            # KUVVET-AGIRLIKLI OLCU: ON-UCUS KAPISININ BAKACAGI SAYI BUDUR.
+            # En buyuk delta YORDAYICI DEGIL --- olculdu: `genel_kapsul_uzun`
+            # delta_max 56,7 yuz boyu ama esleme payi %0,026, cunku o
+            # yuzlerde kuvvet kucuk. Hata Σ dF (x) delta oldugundan
+            # ilgilenilen nicelik KUVVETLE agirliklanmis sapmadir.
+            "agirlikli_olcekli": (
+                round(float((np.linalg.norm(dF_cfd_yuz, axis=1) * _dmag).sum()
+                            / (np.linalg.norm(dF_cfd_yuz, axis=1).sum() + 1e-30)
+                            / _olcek), 4) if _olcek > 0 else None),
+            "_not": ("delta = baryentrik yeniden-kurulan nokta eksi CFD yuz "
+                     "merkezi. FEA yuz olcegi sqrt(ortalama yuz alani); "
+                     "olcekli deger 1'i astiginda CFD yuzu kendi ucgeninden "
+                     "bir yuz boyu uzaga dusuyor demektir."),
+        }
     else:
         # ESKI SEMA — yuzey kuvvetini 3 dugume esit dagit. Bu adim korunumlu
         # ama ONCESI degil: kuvvet FEA aginda YENIDEN INTEGRE edilmisti.
@@ -452,6 +494,46 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
     t_throughput = float(np.abs(np.einsum("fi,fj->fij", dF_face, f_centroids)).sum())
     is_err = float(np.linalg.norm(T_node - T_face) / (t_throughput + 1e-30))
 
+    # ── KIMLIK SINAVI: is artigi GERCEKTEN izdusum sapmasi mi? ───────────
+    # Yukaridaki aciklama ("hata = sum dF (x) delta") bir IDDIADIR ve burada
+    # SINANIR. Kimlik tutuyorsa is artigini azaltmanin yolu semayi
+    # degistirmek DEGIL, alici yuzeyi verici yuzeyi cozecek kadar
+    # inceltmektir --- yani sonuc bir TASARIM KURALIdir, bir arastirma
+    # konusu degil. Tutmuyorsa aciklama yanlistir ve oyle raporlanmalidir.
+    if _sapma is not None:
+        # DOGRU REFERANS T_cfd'DIR, T_face DEGIL --- ve bu ayrim onemlidir.
+        # `is_err` yukarida T_node'u T_face ile kiyaslar; T_face ESKI
+        # (tutarli) semanin FEA yuzunde YENIDEN INTEGRE ettigi kuvvetten
+        # kurulur ve o semanin kendi hatasini tasir (ayni vakada toplam
+        # kuvvetin ISARETI bile ters cikabiliyor). Yani `is_err` semalari
+        # kiyaslar, ESLEMEYI olcmez.
+        #
+        # Uretimdeki eslemenin isi koruyup korumadigi sorusu T_cfd'ye karsi
+        # sorulur ve orada kimlik TAM tutar:
+        #     T_node - T_cfd  ==  sum_f dF_cfd_f (x) delta_f
+        # Olculdu (Turek-Hron FSI1): esleme payi %0,000000, yuzey payi
+        # %0,6457 --- yani kayittaki "arayuz isi korunmuyor" bulgusunun
+        # tamami yuzey-integrali farkindan geliyordu.
+        _T_cfd = np.einsum("fi,fj->ij", dF_cfd_yuz, cfd_centers)
+        _T_kimlik = np.einsum("fi,fj->ij", dF_cfd_yuz, _delta)
+        _pay = np.linalg.norm(T_node - _T_cfd)
+        _sapma["kimlik_artigi"] = float(
+            np.linalg.norm((T_node - _T_cfd) - _T_kimlik) / (_pay + 1e-30))
+        _sapma["esleme_isi_artigi"] = float(_pay / (t_throughput + 1e-30))
+        _sapma["yuzey_isi_artigi"] = float(
+            np.linalg.norm(_T_cfd - T_face) / (t_throughput + 1e-30))
+        _sapma["_kimlik"] = (
+            "T_dugum - T_cfd  ==  sum_f dF_cfd_f (x) delta_f. Artik ~0 ise "
+            "eslemenin is kaybi TAM OLARAK izdusum sapmasidir --- ve bu "
+            "AZALTILIR: alici yuzeyi verici yuzeyi cozecek kadar inceltmek "
+            "yeter, sema degistirmek gerekmez.")
+        _sapma["_ayrisim"] = (
+            "arayuz_isi_hatasi = ESLEME payi + YUZEY payi. Esleme payi "
+            "uretimdeki semanin sucudur; yuzey payi ESKI semanin FEA "
+            "yuzunde yeniden integre etmesinden gelir ve uretim yolunda "
+            "yoktur. Ikisini tek sayida toplamak, uretimi terk edilmis "
+            "semanin hatasiyla suclamak olur.")
+
     # ═══ SIFIR YUK: KORUNUM METRIGI TANIMSIZDIR, "KUSURSUZ" DEGIL ═══
     #
     # Olculdu (minihawk_v2): yuzey-basinc VTK'si p=0 tasiyordu (bos cikarim) ve
@@ -524,6 +606,8 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
         # gorunmezdi: yanlis isaretli bir kayma da "bir kuvvet" olarak
         # makul gorunur. Cagiran bunu cozucunun kendi viskoz kuvvetiyle
         # karsilastirabilsin diye yalniz kayma toplami da doner.
+        # IZDUSUM SAPMASI: is artiginin YORDAYICISI ve SEBEBI.
+        "esleme_sapmasi": _sapma,
         "kayma_tasindi": bool(gradU is not None),
         "kayma_kuvveti_N": (None if _kayma_F is None else
                             [float(x) for x in _kayma_F]),

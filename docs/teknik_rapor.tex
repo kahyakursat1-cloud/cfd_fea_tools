@@ -292,8 +292,9 @@ Malzeme & \texttt{materials.json}, kaynaklı ve sürümlü & 10 malzeme \\
 \multicolumn{3}{@{}l}{\textbf{Kuplaj ve optimizasyon}}\\
 1-yönlü FSI & CFD basıncı $\rightarrow$ FEA düğüm kuvveti &
   üç korunum metriği; aktarım artığı ölçülür (\S\ref{sub:fsi-korunum}) \\
-2-yönlü FSI & Aitken ilmek + hareketli ağ; uçtan uca koşuyor &
-  \textbf{fiziksel tahrik henüz gösterilmedi} (\S\ref{sec:fsi2}) \\
+2-yönlü FSI & Kararlı: Turek--Hron FSI1 uçtan uca &
+  dört yayımlanmış nicelik \%$2{,}4$ bandında; zaman-bağımlı
+  (FSI2/FSI3) \textbf{yazılmadı} (\S\ref{sec:fsi2}) \\
 Topoloji opt. & SIMP, CFD-yüklü, \emph{gerilme farkındalıklı} &
   adjoint FD-doğrulanmış (\S\ref{sec:topopt}) \\
 \midrule
@@ -1361,10 +1362,20 @@ kaydırır ve sınav düşer --- ölçülen sonuç $E_2$ okumasından \%93 uzakt
 
 \begin{dikkat}{Kapsam dışı kalanlar --- adıyla}
 Yapısal çözücü şunlar için \emph{doğrulanmamıştır} ve bunlar üretim yolunda
-da yoktur: temas, plastisite/malzeme doğrusalsızlığı, geometrik
-doğrusalsızlık (\texttt{NLGEOM}), yorulma, sürünme, birleşim/bağlantı
-elemanı modelleri, çatlak/kırılma. Analiz tipleri \texttt{STATIC},
-\texttt{FREQUENCY} ve \texttt{BUCKLE} ile sınırlıdır.
+da yoktur: temas, plastisite/malzeme doğrusalsızlığı, yorulma, sürünme,
+birleşim/bağlantı elemanı modelleri, çatlak/kırılma.
+
+Doğrulanan analiz tipleri: \texttt{STATIC}, \texttt{FREQUENCY},
+\texttt{BUCKLE} ve \texttt{DYNAMIC}. \emph{Geometrik} doğrusalsızlık
+(\texttt{NLGEOM}) da elastik büyük-deformasyon çapalarıyla doğrulanmıştır
+(elastika \%$0{,}3$; Turek--Hron CSM1 \%$0{,}11$) --- bu, malzeme
+doğrusalsızlığını \emph{kapsamaz} ve ikisi karıştırılmamalıdır.
+
+\textsc{Bu paragraf bir kez bayatladı.} Yetenekler eklendikten sonra da
+``NLGEOM doğrulanmamıştır ve üretim yolunda yoktur'' diyordu ve raporun
+ilerisi bunun tersini söylüyordu; iç çelişkiyi dış bir hakem yakaladı.
+Kapsam cümlesi, yeteneği ekleyen kişinin aynı anda güncellemesi gereken
+bir yerdir --- ve bugün bunu denetleyen bir kapı yoktur.
 
 Ortotropik çapanın kendi sınırları da yazılı: malzeme eksenleri global
 çerçevededir (yazıcı \texttt{*ORIENTATION} üretmiyor), yani \emph{eğik lif
@@ -1737,8 +1748,59 @@ Arayüz işi & $\sum F\otimes x$ (tam tensör) & \textbf{\%102{,}64} \\
 \noindent Sıralama \emph{beklenen} yöndedir ve bir kusur değildir:
 $x\times F$, birinci moment tensörü $\sum F\otimes x$'in yalnız
 antisimetrik kısmıdır; iş metriği simetrik kısmı --- uzama ve kayma modlarının
-yaptığı işi --- de görür. Üçünün de sebebi aynı izdüşüm kaymasıdır, ölçüt
-gücü farklıdır.
+yaptığı işi --- de görür.
+
+\begin{dikkat}{\%102,64 üretimdeki eşlemenin suçu değildi --- atıf düzeltildi}
+Bu tablo bir turdur ``üçünün de sebebi aynı izdüşüm kaymasıdır'' diyordu ve
+dış bir hakem, haklı olarak, arayüz işi korunumunu deponun en ciddi FSI
+problemi ilan etti. \textbf{Atıf yanlıştı ve düzeltmesi ölçümden geldi.}
+
+\texttt{arayuz\_isi\_hatasi} iki tensörü kıyaslıyor: düğüm momenti
+(\emph{üretimdeki} korunumlu şema, CFD yüzlerinden) ve yüz momenti
+(\emph{terk edilmiş} tutarlı şema, FEA yüzünde yeniden integre edilmiş).
+Yani metrik şemaları kıyaslıyor, eşlemeyi ölçmüyor --- aynı vakada terk
+edilmiş şemanın toplam kuvvetinin işareti bile ters çıkabiliyor.
+
+Doğru referans CFD tarafıdır ve orada bir \emph{kimlik} var. Baryentrik
+ağırlıklar doğrusal alanları birebir ürettiği için
+\[
+  T_{\text{düğüm}} - T_{\text{CFD}} \;=\; \sum_f d\mathbf{F}_f \otimes
+  \boldsymbol{\delta}_f,\qquad
+  \boldsymbol{\delta}_f = \textstyle\sum_k w_k \mathbf{x}_k - \mathbf{x}_{\text{cfd},f}
+\]
+olur; yani eşlemenin iş kaybı \emph{tam olarak} izdüşüm sapmasıdır. Kimlik
+24 vakanın 24'ünde $\le 10^{-10}$ tuttu ve ayrışım şu:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Vaka & Toplam & \textbf{Eşleme payı} & Yüzey payı \\
+\midrule
+\texttt{\_fsi\_esnek}     & \%102{,}64 & \textbf{\%24{,}10} & \%78{,}60 \\
+\texttt{gripen\_AB\_Right} & \%76{,}72  & \%0{,}0023 & \%76{,}72 \\
+\texttt{\_fsi\_sinama}    & \%28{,}81  & \%8{,}29   & \%21{,}04 \\
+\midrule
+\multicolumn{4}{@{}l}{19/24 vakada eşleme payı \%1'in altında} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Yani üretimdeki eşleme birinci momenti çoğu vakada makine
+hassasiyetine yakın koruyor; en kötü payı \%$24{,}1$ ve o vakanın alıcı
+yüzeyi \emph{on iki} üçgenden ibaret. Sonuç bir tasarım kuralıdır, bir
+araştırma konusu değil: mortar ya da RBF'ye geçmek gerekmez, alıcı yüzeyin
+verici yüzeyi çözmesi yeter.
+
+\textbf{Ve bir hipotez daha düştü.} Bundan ``$\delta$'ya bakıp kuplajı
+koşmadan uyarı verelim'' fikri çıkarılıp denendi: izdüşüm sapmasının
+kuvvet-ağırlıklı ve en-büyük ölçüleri eşleme payıyla \emph{korele değil}
+(Spearman $0{,}00$ ve $-0{,}25$; $n=24$ için kritik $|r|\approx 0{,}41$).
+Sebebi yapısal --- hata bir tensör normudur ve skaler bir sapma ortalaması
+yön uyumunu göremez. Doğru kapı geometriden kestirmek değil, yükler
+geldikten \emph{sonra} eşleme payını doğrudan hesaplamaktır: ucuzdur ve
+yapısal çözümden öncedir. Çürüyen fikir kayıtta duruyor ki dördüncü kez
+aranmasın.
+\end{dikkat}
 
 \noindent \textbf{Ama bu bir toplam hükmüdür, vaka-başına bir yasa değil}
 --- ve bu ayrım ölçülerek öğrenildi. İki oran farklı normalize ediliyor:
@@ -2849,8 +2911,21 @@ gerçek hücre sayısını yüzey iyileştirme kademesi belirler.
         span yapılarını fiziksel olarak çözebilen \emph{duvar-çözümlü LES}
         çapasıdır --- bütçesi 84{,}7\,M hücre / 62{,}9\,GB ve bu donanımda
         sığmıyor (\S\ref{sec:urans}, \S\ref{sub:gecis-sonuc}).
-  \item[2-yönlü FSI --- ilmek koşuyor, fizik henüz tahrik etmiyor.]
+  \item[2-yönlü FSI --- kararlı vaka doğrulandı, zaman-bağımlı açık.]
         \label{sec:fsi2}
+        \textbf{Bu maddenin başlığı 2026-08-28'de değişti ve gerekçesi
+        aşağıdaki tarihçenin sonundadır.} Turek--Hron FSI1 uçtan uca
+        koşuldu: altı turda sabit nokta, yayımlanan dört niceliğin dördü de
+        \%$2{,}4$ bandında ($u_y$ \%$2{,}34$, $u_x$ \%$1{,}32$, sürükleme
+        \%$-0{,}08$, taşıma \%$-1{,}83$). Yani ``fizik tahrik etmiyor''
+        ifadesi artık yalnız \emph{araç-geometrisi} deneylerinin tarihçesi
+        için doğrudur; kanonik çapada geri besleme ölçüldü ve yükü
+        \%$32$ düşürüyor. Zaman-bağımlı kendinden-uyarımlı kuplaj
+        (FSI2/FSI3) hâlâ yazılmadı --- yapısal ön koşulu CSM3 ile
+        doğrulandı, kuplajın kendisi değil.
+
+        \medskip
+        \noindent\textsc{Aşağısı, o hükmün nasıl değiştiğinin tarihçesidir.}
         Zincirin her halkası ayrı ayrı ölçüldü: FEA deplasmanı CFD yamasına
         rijit ötelemeyi $8{,}7\times10^{-19}$\,m hatayla taşıyor (gerçek ağ
         geometrisinde; birim testi sentetik noktalarla yapıyordu), ağ
@@ -3203,6 +3278,17 @@ Taşıma (N/m) & 1{,}1094 & 1{,}119 & \%-0{,}86 \\
         akış ağı, tek yapı ağı, lineer yapı ve kinematik bir ağ-hareketi
         seçimi.
 
+        \noindent \textbf{O kinematik seçimin bedeli ölçüldü.} Ağ hareketi
+        bir Laplace çözümü değil, Gauss sönümlü bir yayma --- ve sönüm
+        yarıçapının sonucu taşıyıp taşımadığı kayıtta ``sınanmadı'' diye
+        duruyordu. Yarıçap dört kat tarandı ($15$, $30$, $60$ mm) ve uç
+        sehimi $0{,}8379$--$0{,}8413$ mm arasında kaldı: yayılım
+        \%$0{,}407$, yani referanstan sapmanın (\%$2{,}34$) altında. Seçim
+        sonucu taşımıyor. Ölçüt mutlak bir eşik değil, \emph{sapmayla
+        kıyas}: yayılım sapmadan büyük çıksaydı ``\%$2{,}3$'' bir fizik
+        sonucu değil bir ayar sonucu olurdu ve öyle raporlanması
+        gerekirdi.
+
         \begin{dikkat}{Birinci koşu sessizce yanlıştı --- ve üç doğru ölçüm onu bulamadı}
         Bu sonuca ikinci denemede ulaşıldı. Birincisi yedi turda ``sabit
         noktaya'' ulaşıp $u_y = 1{,}4496$ mm veriyordu, yani referansın
@@ -3280,6 +3366,58 @@ Taşıma (N/m) & 1{,}1094 & 1{,}119 & \%-0{,}86 \\
         N/m, toplam $1{,}111$ N/m, yani bayrak payı \%$57{,}2$. Ağ ailesi
         boyunca bu pay \%$56{,}9$--$57{,}5$ arasında kaldı, yani ayrık
         çözünürlüğe duyarsız.
+
+        \medskip
+        \noindent \textbf{CSM3: zaman-çözünür yapısal yol da çapalandı.}
+        Depo \texttt{*DYNAMIC} yeteneğini kazanmıştı ama onu yayımlanmış
+        bir değere karşı hiç koşmamıştı; doğrulaması iç tutarlılıktı. CSM3
+        aynı bayrağı akışsız koşar, farkı yükün $t=0$'da aniden
+        uygulanması: yapı statik denge etrafında salınır. NLGEOM ve
+        HHT-$\alpha$ birlikte çalışır.
+
+        \begin{center}\small
+        \begin{tabular}{lrrr}
+        \toprule
+        & bu depo & Turek--Hron & sapma \\
+        \midrule
+        $u_y$ ortalama [mm] & $-64{,}0089$ & $-63{,}607$ & \%$-0{,}63$ \\
+        $u_y$ genlik [mm]   & $65{,}5361$  & $65{,}160$  & \%$0{,}58$ \\
+        frekans [Hz]        & $1{,}0932$   & $1{,}0995$  & \%$-0{,}57$ \\
+        $u_x$ ortalama [mm] & $-14{,}5714$ & $-14{,}305$ & \%$-1{,}86$ \\
+        \bottomrule
+        \end{tabular}
+        \end{center}
+
+        \noindent Üç kanal ayrı sınanır ve bu kasıtlıdır: ortalama ile
+        genlik rijitlik/yük tarafını, frekans kütle/entegratör tarafını
+        gösterir. Yanlış bir kütleyle doğru bir genlik elde edilebilir ama
+        frekans kayar; üçünün birden tutması tek kanalın tutmasından çok
+        daha güçlü bir ifadedir.
+
+        \noindent İki koşu birbirini de denetliyor: sönümsüz bir serbest
+        salınım statik dengenin iki katına gider. CSM3'ün uç değeri
+        $-129{,}545$ mm, CSM1 statiğinin iki katı $-132{,}2$ mm, oran
+        $0{,}980$ --- aradaki fark geometrik nonlineerliktir. Sayısal
+        sönümün bedeli de ölçüldü: genlik ilk yarıdan son yarıya yalnız
+        \%$0{,}38$ değişti, yani seçilen $\alpha = -0{,}05$ genliği
+        taşımıyor.
+
+        \noindent \textbf{Zaman adımı da sınandı ve bandı genişletti.}
+        Adım yarıya indirildiğinde ($0{,}0025$ s, $4000$ adım) frekans
+        \%$0{,}037$ oynadı --- yani entegratör ve kütle adımdan bağımsız.
+        Genlik ise \%$0{,}552$ oynadı, yani \emph{referanstan sapmayla aynı
+        mertebede}. Bu yüzden ``genlik \%$0{,}58$'de tuttu'' okuması fazla
+        keskindir; dürüst ifade genliğin \%$1$ bandında olduğudur. İnce
+        adımda genlik sapması \%$0{,}02$'ye inerken ortalama sapması
+        \%$-1{,}48$'e çıkıyor, yani inceltme bir kanalı yaklaştırıp
+        öbürünü uzaklaştırıyor. İki seviye bir GCI değildir ve gözlemlenen
+        mertebe hesaplanmadı; sınanan şey ``seçim sonucu taşıyor mu''
+        sorusudur.
+
+        \noindent Bu, FSI2/FSI3'ün \emph{yapısal} ön koşuludur. O vakalar
+        kendini uyaran salınımlardır ve yapısal taraf zamanda yanlışsa
+        kuplaj turu da yanlış olur. Kuplajın kendisi hâlâ yazılmadı; tek
+        ağ, tek $\alpha$ ile bant bir GCI değildir.
 
         \begin{dikkat}{Bir yazım kusuru: üretilen girdiyi elle düzenlemek}
         CSM1 bir yan kusuru da açığa çıkardı. Düzlem-gerinim kısıtını

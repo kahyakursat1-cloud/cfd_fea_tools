@@ -194,8 +194,8 @@ def _kuvvet_oku() -> list | None:
     return [(p[i] + v[i]) / Z_KALINLIK for i in range(3)]
 
 
-def _deforme(P0: np.ndarray, dugum: np.ndarray,
-             u: np.ndarray) -> tuple[np.ndarray, dict]:
+def _deforme(P0: np.ndarray, dugum: np.ndarray, u: np.ndarray,
+             sonum_r: float = SONUM_R) -> tuple[np.ndarray, dict]:
     """Yapı yer değiştirmesini ağa yay --- bayrakta birebir, uzakta sıfır."""
     from scipy.spatial import cKDTree
     # DEFORMASYON z'DEN BAGIMSIZ OLMAK ZORUNDA. Ilk surum 3B en-yakin-komsu
@@ -213,7 +213,7 @@ def _deforme(P0: np.ndarray, dugum: np.ndarray,
     np.add.at(u2, ters, u)
     u2 /= np.bincount(ters, minlength=len(tekil))[:, None]
     d, i = cKDTree(tekil).query(P0[:, :2], k=1)
-    agirlik = np.exp(-(d / SONUM_R) ** 2)[:, None]
+    agirlik = np.exp(-(d / sonum_r) ** 2)[:, None]
     yd = agirlik * u2[i]
     yd[:, 2] = 0.0
     # DIS SINIR KAPISI. Sonum yaricapinin "uzak sinirlara ulasmiyor" iddiasi
@@ -231,9 +231,9 @@ def _deforme(P0: np.ndarray, dugum: np.ndarray,
     }
 
 
-def olc() -> dict:
+def _dongu(sonum_r: float) -> tuple[list, str | None]:
     if not CFD1_VAKA.exists():
-        return _ozetle([], "CFD1 vakası yok — önce turek_hron_cfd1.py")
+        return [], "CFD1 vakası yok — önce turek_hron_cfd1.py"
     P0 = _kur()
     mesh = _bayrak_agi()
     stl = IS / "bayrak_prep.stl"
@@ -248,18 +248,17 @@ def olc() -> dict:
     u_yapi = np.zeros_like(mesh.points)      # yapisal yer degistirme alani
     tur_kayit, onceki = [], None
     for tur in range(1, MAX_TUR + 1):
-        P, ag_bilgi = _deforme(P0, mesh.points, u_yapi)
+        P, ag_bilgi = _deforme(P0, mesh.points, u_yapi, sonum_r)
         _nokta_yaz(P)
         cfd = _cfd_kos()
         if not cfd["kosdu"]:
-            return _ozetle(tur_kayit, f"tur {tur}: CFD düştü ({cfd['cikti']})")
+            return tur_kayit, (f"tur {tur}: CFD düştü ({cfd['cikti']})")
         # KAPI DONGUYU GERCEKTEN DURDURUR. Ilk kosuda `checkMesh_hata` 2.
         # turdan itibaren True idi ve dongu ALDIRMADAN 7 tur kostu; sonuc
         # kendi kapisini gecmemis bir agdan geliyordu. Bu deponun en sik
         # kusuru: kapi VAR ama uretim yolu onu OKUMUYOR.
         if cfd["checkMesh_hata"]:
-            return _ozetle(tur_kayit,
-                           f"tur {tur}: checkMesh ag hatasi bildirdi "
+            return tur_kayit, (f"tur {tur}: checkMesh ag hatasi bildirdi "
                            f"(bkz {VAKA.name}/log.checkMesh); deforme ag "
                            f"kendi kapisini gecmeden sonuc alinmaz")
         # BAYAT VERI KAPISI. Ilk kosuyu gecersiz kilan kusur buydu ve
@@ -268,15 +267,14 @@ def olc() -> dict:
         # her turda TEK aday olur; birden cok cikarsa yuk hangi turdan
         # geldigi BILINMEZ ve dongu durmali.
         if cfd["vtk_aday"] != 1:
-            return _ozetle(tur_kayit,
-                           f"tur {tur}: {cfd['vtk_aday']} VTK adayi var; "
+            return tur_kayit, (f"tur {tur}: {cfd['vtk_aday']} VTK adayi var; "
                            f"tur artiklari temizlenmemis ve yuk BAYAT "
                            f"olabilir")
         yuk = cfd_pressure_to_fea_loads(str(cfd["vtk"]), str(stl), rho=RHO,
                                         p_is_kinematic=True, kayma=True,
                                         mu_pa_s=RHO * NU)
         if yuk["status"] != "SUCCESS":
-            return _ozetle(tur_kayit, f"tur {tur}: aktarım düştü ({yuk})")
+            return tur_kayit, (f"tur {tur}: aktarım düştü ({yuk})")
         stl_dugum = np.asarray(yuk["fea_nodes"], float)
         kuvvet = np.zeros_like(stl_dugum)
         for n, f in yuk["node_forces"].items():
@@ -286,11 +284,11 @@ def olc() -> dict:
         np.add.at(hk, es, kuvvet)
         fea = _fea_kos(mesh, hk, IS)
         if not fea.get("kosdu"):
-            return _ozetle(tur_kayit, f"tur {tur}: FEA düştü ({fea['neden']})")
+            return tur_kayit, (f"tur {tur}: FEA düştü ({fea['neden']})")
 
         yeni = _dugum_yerdegistirme(mesh, IS)
         if yeni is None:
-            return _ozetle(tur_kayit, f"tur {tur}: yer değiştirme alanı okunamadı")
+            return tur_kayit, (f"tur {tur}: yer değiştirme alanı okunamadı")
         u_yapi = (1 - OMEGA) * u_yapi + OMEGA * yeni
         tasima = _kuvvet_oku()
         tur_kayit.append({
@@ -309,7 +307,44 @@ def olc() -> dict:
             onceki = fea["uy_mm"]
             break
         onceki = fea["uy_mm"]
-    return _ozetle(tur_kayit, None)
+    return tur_kayit, None
+
+
+# SONUM YARICAPI DUYARLILIGI. Ag hareketi bir Laplace cozumu degil, KINEMATIK
+# bir secim --- ve secimin sonucu tasiyip tasimadigi kayitta "SINANMADI" diye
+# duruyordu. Uc yaricap kosulur: yari, uretim, iki kat. Sonuc bunlar arasinda
+# oynuyorsa "%2,34 sapma" bir fizik sonucu degil bir ayar sonucudur.
+SONUM_SUPURME = (0.015, 0.03, 0.06)
+
+
+def olc() -> dict:
+    turlar, neden = _dongu(SONUM_R)
+    r = _ozetle(turlar, neden)
+    if neden is None:
+        supurme = []
+        for sr in SONUM_SUPURME:
+            tl, nd = (turlar, None) if sr == SONUM_R else _dongu(sr)
+            supurme.append({
+                "sonum_r_m": sr, "tur": len(tl),
+                "neden": nd,
+                "uy_mm": None if nd or not tl else tl[-1]["uy_mm"],
+                "tasima_N_m": None if nd or not tl else tl[-1]["tasima_N_m"],
+            })
+        r["sonum_duyarliligi"] = _supurme_ozeti(supurme)
+    return r
+
+
+def _supurme_ozeti(supurme: list) -> dict:
+    iyi = [s for s in supurme if s["uy_mm"] is not None]
+    d = {"kosular": supurme}
+    if len(iyi) >= 2:
+        v = [s["uy_mm"] for s in iyi]
+        d["uy_yayilim_pct"] = round(100 * (max(v) - min(v)) / abs(v[0]), 3)
+        d["_olcut"] = (
+            "Yayilim, referanstan sapmayla (%2,3) KIYASLANIR: sapmadan "
+            "kucukse ag-hareketi secimi sonucu tasimiyor demektir. Buyukse "
+            "sonuc bir AYAR sonucudur ve oyle raporlanmalidir.")
+    return d
 
 
 def _dugum_yerdegistirme(mesh, work: Path):

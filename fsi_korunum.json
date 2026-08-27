@@ -15,7 +15,12 @@
       "cfd_alan_m2": 0.023474,
       "fea_alan_m2": 0.0257,
       "normal_ters": false,
-      "cozunurluk_orani": 0.273
+      "cozunurluk_orani": 0.273,
+      "esleme_is_payi": 0.2409877694243628,
+      "yuzey_is_payi": 0.7860160860819626,
+      "kimlik_artigi": 3.6182391185519103e-16,
+      "izdusum_olcekli_max": 0.8764,
+      "izdusum_agirlikli": 0.2658
     },
     {
       "vaka": "_fsi_sinama",
@@ -29,7 +34,12 @@
       "cfd_alan_m2": 0.019873,
       "fea_alan_m2": 0.02808,
       "normal_ters": false,
-      "cozunurluk_orani": 0.333
+      "cozunurluk_orani": 0.333,
+      "esleme_is_payi": 0.08286463799292874,
+      "yuzey_is_payi": 0.21044597916196306,
+      "kimlik_artigi": 1.2339590302186479e-16,
+      "izdusum_olcekli_max": 0.8151,
+      "izdusum_agirlikli": 0.2165
     },
     {
       "vaka": "a320_Body_A320",
@@ -43,7 +53,12 @@
       "cfd_alan_m2": 12.244772,
       "fea_alan_m2": 12.132834,
       "normal_ters": false,
-      "cozunurluk_orani": 0.144
+      "cozunurluk_orani": 0.144,
+      "esleme_is_payi": 0.00019179248914141775,
+      "yuzey_is_payi": 0.005505802484809547,
+      "kimlik_artigi": 2.2039573585874918e-12,
+      "izdusum_olcekli_max": 11.4332,
+      "izdusum_agirlikli": 0.2986
     },
     {
       "vaka": "ciftkuyruk_kucuk",
@@ -57,7 +72,12 @@
       "cfd_alan_m2": 2.177669,
       "fea_alan_m2": 2.179756,
       "normal_ters": false,
-      "cozunurluk_orani": 0.064
+      "cozunurluk_orani": 0.064,
+      "esleme_is_payi": 0.0014640987488562325,
+      "yuzey_is_payi": 0.0089117346650149,
+      "kimlik_artigi": 3.766153327536685e-13,
+      "izdusum_olcekli_max": 10.7368,
+      "izdusum_agirlikli": 0.9175
     },
     {
       "vaka": "clean_rocket_fixed_prep",
@@ -71,7 +91,12 @@
       "cfd_alan_m2": 0.166594,
       "fea_alan_m2": 0.168668,
       "normal_ters": false,
-      "cozunurluk_orani": 0.371
+      "cozunurluk_orani": 0.371,
+      "esleme_is_payi": 0.0004839737984627397,
+      "yuzey_is_payi": 0.02280322875001554,
+      "kimlik_artigi": 3.4247192043989455e-13,
+      "izdusum_olcekli_max": 5.6465,
+      "izdusum_agirlikli": 0.7113
     },
     {
       "vaka": "dogrulama_kup",
@@ -85,7 +110,12 @@
       "cfd_alan_m2": 1.5,
       "fea_alan_m2": 1.5,
       "normal_ters": false,
-      "cozunurluk_orani": 0.004
+      "cozunurluk_orani": 0.004,
+      "esleme_is_payi": 0.0009212092775175393,
+      "yuzey_is_payi": 0.04460976328253088,
+      "kimlik_artigi": 2.2778674171004565e-13,
+      "izdusum_olcekli_max": 0.3285,
+      "izdusum_agirlikli": 0.0288
     },
     {
       "vaka": "fsi_ok30",
@@ -99,7 +129,12 @@
       "cfd_alan_m2": 0.02323,
       "fea_alan_m2": 0.024773,
       "normal_ters": false,
-      "cozunurluk_orani": 0.15
+      "cozunurluk_orani": 0.15,
+      "esleme_is_payi": 0.0031053899546366476,
+      "yuzey_is_payi": 0.5829723182201502,
+      "kimlik_artigi": 1.1000846686893318e-13,
+      "izdusum_olcekli_max": 1.0694,
+      "izdusum_agirlikli": 0.3945
     },
     {
       "vaka": "fsi_tahrik2",
@@ -113,7 +148,12 @@
       "cfd_alan_m2": 0.022927,
       "fea_alan_m2": 0.02468,
       "normal_ters": false,
-      "cozunurluk_orani": 0.1
+      "cozunurluk_orani": 0.1,
+      "esleme_is_payi": 0.0336909589178073,
+      "yuzey_is_payi": 0.04889056768137678,
+      "kimlik_artigi": 3.982578636979224e-15,
+      "izdusum_olcekli_max": 1.0241,
+      "izdusum_agirlikli": 0.2433
     },
     {
       "vaka": "fsi_tahrik22",
@@ -127,7 +167,12 @@
       "cfd_alan_m2": 0.022927,
       "fea_alan_m2": 0.02468,
       "normal_ters": false,
-      "cozunurluk_orani": 0.1
+      "cozunurluk_orani": 0.1,
+      "esleme_is_payi": 0.03374077556414607,
+      "yuzey_is_payi": 0.047821948485174126,
+      "kimlik_artigi": 8.54133089888909e-15,
+      "izdusum_olcekli_max": 1.0241,
+      "izdusum_agirlikli": 0.2434
     },
     {
       "vaka": "fsi_tahrikH",
@@ -141,7 +186,12 @@
       "cfd_alan_m2": 0.022927,
       "fea_alan_m2": 0.02468,
       "normal_ters": false,
-      "cozunurluk_orani": 0.1
+      "cozunurluk_orani": 0.1,
+      "esleme_is_payi": 0.03373374364374444,
+      "yuzey_is_payi": 0.04742303554424188,
+      "kimlik_artigi": 3.8724900772535215e-15,
+      "izdusum_olcekli_max": 1.0241,
+      "izdusum_agirlikli": 0.2434
     },
     {
       "vaka": "gci_kup",
@@ -155,7 +205,12 @@
       "cfd_alan_m2": 1.5,
       "fea_alan_m2": 1.5,
       "normal_ters": false,
-      "cozunurluk_orani": 0.004
+      "cozunurluk_orani": 0.004,
+      "esleme_is_payi": 0.0009212092775175393,
+      "yuzey_is_payi": 0.04460976328253088,
+      "kimlik_artigi": 2.2778674171004565e-13,
+      "izdusum_olcekli_max": 0.3285,
+      "izdusum_agirlikli": 0.0288
     },
     {
       "vaka": "genel_kapsul_uzun",
@@ -169,7 +224,12 @@
       "cfd_alan_m2": 0.96034,
       "fea_alan_m2": 0.961227,
       "normal_ters": false,
-      "cozunurluk_orani": 5.843
+      "cozunurluk_orani": 5.843,
+      "esleme_is_payi": 0.00026212029446238917,
+      "yuzey_is_payi": 0.0292662281360747,
+      "kimlik_artigi": 6.75630252368944e-13,
+      "izdusum_olcekli_max": 56.7294,
+      "izdusum_agirlikli": 2.8383
     },
     {
       "vaka": "genel_kup800",
@@ -183,7 +243,12 @@
       "cfd_alan_m2": 3.84,
       "fea_alan_m2": 3.84,
       "normal_ters": false,
-      "cozunurluk_orani": 0.0
+      "cozunurluk_orani": 0.0,
+      "esleme_is_payi": 0.002231867903461079,
+      "yuzey_is_payi": 0.027301830718907013,
+      "kimlik_artigi": 3.6404791459989084e-13,
+      "izdusum_olcekli_max": 0.3526,
+      "izdusum_agirlikli": 0.0233
     },
     {
       "vaka": "gondol_dort",
@@ -197,7 +262,12 @@
       "cfd_alan_m2": 11.304302,
       "fea_alan_m2": 11.116372,
       "normal_ters": false,
-      "cozunurluk_orani": 0.015
+      "cozunurluk_orani": 0.015,
+      "esleme_is_payi": 0.004288864641469582,
+      "yuzey_is_payi": 0.005909549149532371,
+      "kimlik_artigi": 6.922514890993081e-14,
+      "izdusum_olcekli_max": 13.9967,
+      "izdusum_agirlikli": 1.2985
     },
     {
       "vaka": "gripen_AB_Right",
@@ -211,7 +281,12 @@
       "cfd_alan_m2": 1.536574,
       "fea_alan_m2": 0.770944,
       "normal_ters": false,
-      "cozunurluk_orani": 0.04
+      "cozunurluk_orani": 0.04,
+      "esleme_is_payi": 2.27687740608298e-05,
+      "yuzey_is_payi": 0.7671944711179046,
+      "kimlik_artigi": 1.2258396184644256e-10,
+      "izdusum_olcekli_max": 1.3199,
+      "izdusum_agirlikli": 0.0665
     },
     {
       "vaka": "izgara_ld7",
@@ -225,7 +300,12 @@
       "cfd_alan_m2": 0.533988,
       "fea_alan_m2": 0.534462,
       "normal_ters": false,
-      "cozunurluk_orani": 0.031
+      "cozunurluk_orani": 0.031,
+      "esleme_is_payi": 0.0029530640262879007,
+      "yuzey_is_payi": 0.04584208559968238,
+      "kimlik_artigi": 9.724175678783335e-14,
+      "izdusum_olcekli_max": 6.7664,
+      "izdusum_agirlikli": 0.6506
     },
     {
       "vaka": "kaldirici_e_kapsulsu",
@@ -239,7 +319,12 @@
       "cfd_alan_m2": 3.000965,
       "fea_alan_m2": 3.001106,
       "normal_ters": false,
-      "cozunurluk_orani": 0.004
+      "cozunurluk_orani": 0.004,
+      "esleme_is_payi": 0.0048154255147528835,
+      "yuzey_is_payi": 0.014451883809613434,
+      "kimlik_artigi": 8.627936880842736e-14,
+      "izdusum_olcekli_max": 2.5222,
+      "izdusum_agirlikli": 0.3065
     },
     {
       "vaka": "minihawk",
@@ -253,7 +338,12 @@
       "cfd_alan_m2": 1.135085,
       "fea_alan_m2": 1.137829,
       "normal_ters": false,
-      "cozunurluk_orani": 0.075
+      "cozunurluk_orani": 0.075,
+      "esleme_is_payi": 0.00289717721921731,
+      "yuzey_is_payi": 0.011189102608270107,
+      "kimlik_artigi": 2.1834910157639732e-13,
+      "izdusum_olcekli_max": 14.0695,
+      "izdusum_agirlikli": 2.5658
     },
     {
       "vaka": "MiniHawk_UAV",
@@ -267,7 +357,12 @@
       "cfd_alan_m2": 1.058846,
       "fea_alan_m2": 1.137829,
       "normal_ters": false,
-      "cozunurluk_orani": 3.611
+      "cozunurluk_orani": 3.611,
+      "esleme_is_payi": 0.005268476988537916,
+      "yuzey_is_payi": 0.00633520995897408,
+      "kimlik_artigi": 2.7510004194629817e-14,
+      "izdusum_olcekli_max": 12.8161,
+      "izdusum_agirlikli": 2.6475
     },
     {
       "vaka": "MiniHawk_UAV_duzeltilmis",
@@ -281,7 +376,12 @@
       "cfd_alan_m2": 1.135085,
       "fea_alan_m2": 1.137829,
       "normal_ters": false,
-      "cozunurluk_orani": 0.075
+      "cozunurluk_orani": 0.075,
+      "esleme_is_payi": 0.002985468855172716,
+      "yuzey_is_payi": 0.010509771009954136,
+      "kimlik_artigi": 5.785642491709967e-13,
+      "izdusum_olcekli_max": 14.0695,
+      "izdusum_agirlikli": 2.5543
     },
     {
       "vaka": "minihawk_vtol",
@@ -295,7 +395,12 @@
       "cfd_alan_m2": 0.199186,
       "fea_alan_m2": 0.200132,
       "normal_ters": false,
-      "cozunurluk_orani": 9.3
+      "cozunurluk_orani": 9.3,
+      "esleme_is_payi": 0.00027750120036732076,
+      "yuzey_is_payi": 0.008902947065409086,
+      "kimlik_artigi": 2.354041019941812e-12,
+      "izdusum_olcekli_max": 33.9092,
+      "izdusum_agirlikli": 0.3141
     },
     {
       "vaka": "multikopter_kucuk",
@@ -309,7 +414,12 @@
       "cfd_alan_m2": 0.176352,
       "fea_alan_m2": 0.176415,
       "normal_ters": false,
-      "cozunurluk_orani": 0.107
+      "cozunurluk_orani": 0.107,
+      "esleme_is_payi": 0.006919394904832683,
+      "yuzey_is_payi": 0.01312915894352792,
+      "kimlik_artigi": 4.943548798912232e-14,
+      "izdusum_olcekli_max": 4.6613,
+      "izdusum_agirlikli": 0.632
     },
     {
       "vaka": "test_sphere",
@@ -323,7 +433,12 @@
       "cfd_alan_m2": 0.031139,
       "fea_alan_m2": 0.031266,
       "normal_ters": false,
-      "cozunurluk_orani": 1.339
+      "cozunurluk_orani": 1.339,
+      "esleme_is_payi": 0.0008378887284940563,
+      "yuzey_is_payi": 0.001214875123386013,
+      "kimlik_artigi": 2.6933564733605065e-13,
+      "izdusum_olcekli_max": 0.0773,
+      "izdusum_agirlikli": 0.0345
     },
     {
       "vaka": "ucak_okkanat",
@@ -337,7 +452,12 @@
       "cfd_alan_m2": 3.132269,
       "fea_alan_m2": 3.12828,
       "normal_ters": false,
-      "cozunurluk_orani": 0.016
+      "cozunurluk_orani": 0.016,
+      "esleme_is_payi": 0.0014579798202525912,
+      "yuzey_is_payi": 0.011831510013619135,
+      "kimlik_artigi": 2.743726707724861e-13,
+      "izdusum_olcekli_max": 10.4282,
+      "izdusum_agirlikli": 0.5983
     }
   ],
   "olculemeyen": [
@@ -346,7 +466,7 @@
   "kuvvet_kesin_olan": "24/24",
   "moment_kesin_olan": "0/24",
   "moment_artigi_en_kotu": 0.13541,
-  "verdikt": "KORUNUMLU ŞEMA ÜRETİMDE. CFD→FEA aktarım artığı %0.0000 --- 24/24 vakada SIFIR. Bu bir KİMLİKTİR (ağırlıklar 1'e toplanır), bulgu değil: eski şemada aynı vakalarda %72,04'e kadar çıkıyordu. Kuvvet korunumu 24/24 vakada makine hassasiyetinde. MOMENT KORUNMAZ ve bu GİZLENMİYOR: kuvvet FEA üçgenine izdüşürülür, izdüşüm kayması kadar artık kalır --- en kötü %13.54. ARAYÜZ İŞİ DE KORUNMAZ ve artığı momentten BÜYÜKTÜR --- en kötü %102.64, ortalama %12.97. Sebebi aynı izdüşüm kaymasıdır ama ölçüt daha güçlü: $x×F$ birinci moment tensörünün yalnız antisimetrik kısmıdır, iş metriği simetrik kısmı da görür. Alanı tutan 13 vakada aktarım zaten sorunsuzdu; şema değişikliğinin kazancı alanı TUTMAYAN vakalardadır.",
+  "verdikt": "KORUNUMLU ŞEMA ÜRETİMDE. CFD→FEA aktarım artığı %0.0000 --- 24/24 vakada SIFIR. Bu bir KİMLİKTİR (ağırlıklar 1'e toplanır), bulgu değil: eski şemada aynı vakalarda %72,04'e kadar çıkıyordu. Kuvvet korunumu 24/24 vakada makine hassasiyetinde. MOMENT KORUNMAZ ve bu GİZLENMİYOR: kuvvet FEA üçgenine izdüşürülür, izdüşüm kayması kadar artık kalır --- en kötü %13.54. ARAYÜZ İŞİ DE KORUNMAZ ve artığı momentten BÜYÜKTÜR --- en kötü %102.64, ortalama %12.97. AMA ATIF ÖNEMLİ: bu sayı üretimdeki eşlemeyi DEĞİL iki ŞEMAYI kıyaslar. Doğru referans CFD tarafıdır ve orada kimlik (T_dugum - T_cfd = toplam dF (x) delta) 24/24 vakada makine hassasiyetinde tuttu. Ayrışım: ESLEME payı en kötü %24.10, 19/24 vakada %1'in ALTINDA; geri kalanı terk edilmiş şemanın yüzey integralinden geliyor. Yani '%102,64 iş kaybı' üretimdeki aktarımın suçu DEĞİLDİR. Ölçüt yine de momentten güçlüdür: $x×F$ birinci moment tensörünün yalnız antisimetrik kısmıdır, iş metriği simetrik kısmı da görür. ÖN-UÇUŞ YORDAYICISI ARANDI, BULUNAMADI: izdüşüm sapmasının kuvvet-ağırlıklı ve en-büyük ölçüleri eşleme payıyla korele DEĞİL (Spearman 0,00 ve -0,25; n=24 için kritik |r|~0,41). Sebebi yapısal: hata bir TENSÖR normudur (toplam dF (x) delta) ve skaler bir sapma ortalaması yön uyumunu göremez. Doğru kapı geometriden kestirmek değil, yükler geldikten SONRA eşleme payını doğrudan hesaplamaktır --- ucuzdur ve yapısal çözümden öncedir. Alanı tutan 13 vakada aktarım zaten sorunsuzdu; şema değişikliğinin kazancı alanı TUTMAYAN vakalardadır.",
   "_kisit": "Artik bir DOGRULUK hukmu degil bir AKTARIM hukmudur: FEA'ya giden yukun CFD'nin hesapladigi yukten ne kadar saptigini soyler, CFD'nin dogru olup olmadigini DEGIL. Ayrica tek yonlu kuplajda olculdu; iki yonlu turda her turda yeniden dogar ve birikir. Esik DAYATILMIYOR — bugun hicbir uretim yolu bu sayiya bakip kosuyu reddetmiyor; sayi once GORUNUR olmali.",
   "_uretim": "Üretim: python experiments/fsi_korunum.py",
   "_ortam": {

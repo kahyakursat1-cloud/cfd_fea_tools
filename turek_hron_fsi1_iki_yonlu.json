@@ -113,6 +113,33 @@
   "verdikt": "6 tur koşuldu. Uç sehimi ilk turda 1.56055 mm, son turda 0.84012 mm; son tur-arası değişim 7.4e-05 mm. Deforme ağdaki taşıma 0.7498 N/m (kaynak: rijit 1.119, deforme 0.7638). Yayımlanan FSI1 0.8209 mm --- sapma %2.34. Yayımlanan DÖRT niceliğin dördü de üretildi: uy %2.34, ux %1.32, sürükleme %-0.08, taşıma %-1.83. Geri besleme kanalı HESAPLA değil KOŞUYLA kapandı ve bu, bu deponun FSI tarafında tam bir kıyaslama vakasını uçtan uca ürettiği ilk sonuçtur. BANT BİR GCI DEĞİLDİR: tek akış ağı, tek yapı ağı, lineer yapı ve kinematik bir ağ-hareketi seçimi. Ayrıca bu sonuca İKİNCİ denemede ulaşıldı --- birincisi tur artıklarını temizlemediği için her turda bayat (rijit) basıncı okuyor ve %77 sapan sahte bir 'sabit nokta' üretiyordu.",
   "_kisit": "AG-BAGIMSIZLIGI SINANMADI: tek akis agi, tek yapi agi. Yapisal model LINEER; sehim/uzunluk %0,24 oldugu icin NLGEOM katkisi ikinci mertebedir ama OLCULMEDI. Ag hareketi Gauss sonumlu bir KINEMATIK secimdir, Laplace cozumu degil --- sonum yaricapi degisirse ag kalitesi degisir, cozum bundan ne kadar etkileniyor SINANMADI. FSI1 KARARLIDIR; bu tur zaman bagimliligi hakkinda hicbir sey soylemez.",
   "_uretim": "Üretim: python experiments/turek_hron_fsi1_iki_yonlu.py",
+  "sonum_duyarliligi": {
+    "kosular": [
+      {
+        "sonum_r_m": 0.015,
+        "tur": 6,
+        "neden": null,
+        "uy_mm": 0.83787,
+        "tasima_N_m": 0.7491
+      },
+      {
+        "sonum_r_m": 0.03,
+        "tur": 6,
+        "neden": null,
+        "uy_mm": 0.84012,
+        "tasima_N_m": 0.7498
+      },
+      {
+        "sonum_r_m": 0.06,
+        "tur": 6,
+        "neden": null,
+        "uy_mm": 0.84128,
+        "tasima_N_m": 0.7497
+      }
+    ],
+    "uy_yayilim_pct": 0.407,
+    "_olcut": "Yayilim, referanstan sapmayla (%2,3) KIYASLANIR: sapmadan kucukse ag-hareketi secimi sonucu tasimiyor demektir. Buyukse sonuc bir AYAR sonucudur ve oyle raporlanmalidir."
+  },
   "_ortam": {
     "python": "3.13.12",
     "paketler": {
