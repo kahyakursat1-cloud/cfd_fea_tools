@@ -1,0 +1,83 @@
+{
+  "vaka": "Turek-Hron 2B ağı — gmsh + gmshToFoam yolu",
+  "_neden": "Ag kapisi snappy'nin `empty` yamali agi REDDETTIGINI olctu ve tek alternatif 'elle blockMesh O-grid' SANILDI. Ucuncu yol vardi ve depo onu zaten kullaniyor: gmsh. Sinanmadan bir yol kapali ilan edilirse, kapanan yol o degil ONU DENEMEK olur.",
+  "msh": {
+    "uretildi": true,
+    "dugum": 67268,
+    "hexa": 33168,
+    "prizma": 0,
+    "govde_yuzeyi": 4,
+    "onarka_yuzeyi": 2,
+    "hucre_boyu_govde_m": 0.0025,
+    "bayrak_bas_x": 0.24898979485566358
+  },
+  "of_adimlari": [
+    {
+      "komut": "gmshToFoam turek_hron_2b.msh > log.gmshToFoam 2>&1",
+      "rc": 0,
+      "kuyruk": "region 4 to Foam patch 1\nMapping region 1 to Foam patch 2\nMapping region 2 to Foam patch 3\nMapping region 3 to Foam patch 4\nMapping region 5 to Foam patch 5\nMapping region 7 to Foam cellZone 0\nCells:\n    total:33168\n    hex  :33168\n    prism:0\n    pyr  :0\n    tet  :0\n\nCellZones:\nZone\tSize\n    0\t33168\n\nSkipping tag  at line 167725\nPatch 0 gets name yanlar\nPatch 1 gets name alt\nPatch 2 gets name giris\nPatch 3 gets name cikis\nPatch 4 gets name ust\nPatch 5 gets name govde\n\nFinding faces of patch 0\nFinding faces of patch 1\nFinding faces of patch 2\nFinding faces of patch 3\nFinding faces of patch 4\nFinding faces of patch 5\n\nFaceZones:\nZone\tSize\n\nWriting zone 0 to cellZone akiskan and cellSet\nEnd"
+    }
+  ],
+  "sinir": {
+    "okunabildi": true,
+    "yamalar": {
+      "yanlar": {
+        "tip": "empty",
+        "nFaces": 66336
+      },
+      "alt": {
+        "tip": "patch",
+        "nFaces": 218
+      },
+      "giris": {
+        "tip": "patch",
+        "nFaces": 72
+      },
+      "cikis": {
+        "tip": "patch",
+        "nFaces": 22
+      },
+      "ust": {
+        "tip": "patch",
+        "nFaces": 210
+      },
+      "govde": {
+        "tip": "patch",
+        "nFaces": 410
+      }
+    }
+  },
+  "checkMesh": {
+    "rc": 0,
+    "hucre": 33168,
+    "mesh_ok": true,
+    "max_nonortho": 34.705,
+    "max_skewness": 0.817578,
+    "kuyruk": "a = 0.000618013.  Face area magnitudes OK.\n    Min volume = 2.19291e-08. Max volume = 6.18013e-06.  Total volume = 0.0101014.  Cell volumes OK.\n    Mesh non-orthogonality Max: 34.705 average: 5.3411\n    Non-orthogonality check OK.\n    Face pyramids OK.\n    Max skewness = 0.817578 OK.\n    Coupled point location match (average 0) OK.\n\nMesh OK.\n\nEnd\n\n"
+  },
+  "yanlar_empty_kaldi": true,
+  "govde_yamasi_var": true,
+  "empty_yuz_bolu_hucre": 2.0,
+  "z_yonunde_tek_hucre": true,
+  "kapi_gecildi": true,
+  "verdikt": "gmsh: 67268 düğüm, 33168 hekza + 0 prizma. 33168 hücre, non-ortho 34.705, skewness 0.817578. KAPI GEÇİLDİ: ön/arka `empty`, z'de tek hücre, gövde yaması var. snappy'nin reddettiği şey gmsh yoluyla KURULABİLİYOR --- 'elle blockMesh O-grid şart' tahmini ÇÜRÜDÜ. Akış hâlâ ÇÖZÜLMEDİ ve ağ kalitesi hükme sokulmadı.",
+  "_kisit": "BU BETIK AKIS COZMEZ. Ag KURULABILIRLIGINI olcer; kalite (non-ortho, skewness) kayda gecer ama hukme SOKULMAZ --- kapiyi gecen bir ag, iyi bir ag demek degildir. Hucre boyu SECILDI (bayrak kalinligi / 8), ag-bagimsizligi SINANMADI. Ucgen/dortgen karisimi olabilir: gmsh recombine tam dortgen GARANTI ETMEZ ve kalan ucgenler prizma hucre uretir.",
+  "_uretim": "Üretim: python experiments/turek_hron_gmsh.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

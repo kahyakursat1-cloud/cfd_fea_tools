@@ -215,6 +215,8 @@ _silindir_gecis_3b*/
 # zaman-adimi sondasi kosulari; kanit JSON'da
 _silindir_dt*/
 turek_hron_case/
+turek_hron_gmsh_case/
+turek_hron_2b.msh
 _c2d_*/
 
 # ─── 2026-08-13 oturumu: hakem-raporu koşularının case dizinleri ──────────

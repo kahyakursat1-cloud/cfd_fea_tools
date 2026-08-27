@@ -3018,8 +3018,50 @@ Analitik (Euler--Bernoulli) & 8{,}2252 & yardımcı, asıl ölçüt değil \\
         bu yoldan kurulamaz. Bilinen üçüncü yol --- snappy'yi 3B koşup sonra
         \texttt{createPatch} ile yüzleri \texttt{empty} yapmak --- z yönünde
         bölünmeyi engellemez (snappy izotropik böler), yani 2B'lik yine
-        kaybolur. Turek--Hron için ağ elle \texttt{blockMeshDict} ile (silindir
-        çevresinde O-grid) kurulmalıdır ve bu ayrı, büyük bir iştir.
+        kaybolur.
+
+        \textbf{Bu noktada rapora bir TAHMİN yazıldı ve o tahmin ÇÜRÜDÜ.}
+        Cümle şuydu: ``Turek--Hron için ağ elle \texttt{blockMeshDict} ile
+        (silindir çevresinde O-grid) kurulmalıdır ve bu ayrı, büyük bir
+        iştir.'' Ölçülmemiş bir kestirimin olgu gibi yazılması --- tam da bu
+        raporun avladığı davranış, bu kez \emph{yeni yazılan} bir satırda.
+
+        \noindent Üçüncü bir yol vardı ve depo onu \emph{zaten kullanıyordu}:
+        \textbf{gmsh}. Tet ağı için kurulu, 2B düzlemsel alanı deliğiyle
+        birlikte doğal olarak mesh'liyor, tek katman ekstrüzyonu destekliyor
+        ve \texttt{gmshToFoam} bu kurulumda mevcut. Denendi ve
+        \texttt{turek\_hron\_gmsh.json} kapının geçildiğini ölçtü:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrl@{}}
+\toprule
+Ölçüt & Değer & \\
+\midrule
+Hücre & 33.168 & tümü hekza, prizma yok \\
+Ön/arka yama & \texttt{empty} & 2B korundu \\
+empty yüz / hücre & 2{,}0 & z'de tek hücre \\
+Maks.\ non-ortogonallik & 34{,}705 & eşik 70 \\
+Maks.\ çarpıklık & 0{,}817578 & eşik 4 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+        \noindent Ders \emph{ağ hakkında değil}: sınanmadan bir yol kapalı
+        ilan edilirse, kapanan yol o değil \emph{onu denemek} olur. Kapının
+        kendisi doğruydu ve snappy gerçekten reddediyor --- yanlış olan,
+        kalan tek seçeneğin ne olduğuna dair ölçülmemiş kanaatti.
+
+        \noindent Bu yolda da iki sayım kusuru çıktı ve ikisi de kendi
+        kaydımdaydı: (i) \texttt{getElementsByType} (elemanTag, düğümTag)
+        döndürüyor ve ikincisi sayılıyordu --- hekza sayısı 8 kat fazla
+        görünüyordu (265.344 yerine 33.168); iki sayı yan yana durduğu
+        için fark \emph{görülebilirdi} ve görülmedi. (ii) non-ortogonallik
+        düzenli-ifadesi \texttt{checkMesh}'in \texttt{Max:} biçimini değil
+        \texttt{= } biçimini arıyordu ve \emph{çarpıklık satırını} yakalayıp iki
+        metriği de aynı sayı gösteriyordu. Biçim gerçek çıktıdan okundu.
+
+        \noindent Ağ hazır; \textbf{akış hâlâ çözülmedi} ve ağ kalitesi hükme
+        sokulmadı --- kapıyı geçen bir ağ, iyi bir ağ demek değildir.
 
         \noindent Kapının \emph{önce} sorulmasının kazandırdığı şey budur: ağ
         kurma denemelerine saatler harcanmadan yol kapandı ve engelin \emph{yeri}
