@@ -371,30 +371,58 @@ def _bayrak_kuvvet_bilesenleri(vaka: Path) -> dict | None:
     İkincisi, ve asıl olanı: ``kuplaj yalnız basınç taşır'' cümlesinin
     BEDELİ ölçülür. Bu bedel cümleden okunmaz; burada sayıya döner.
     """
-    fn = vaka / "system" / "bayrakKuvvet"
-    fn.write_text('type forces;\nlibs ("libforces.so");\npatches (bayrak);\n'
-                  'rho rhoInf;\nrhoInf 1000.0;\nCofR (0.2 0.2 0);\n',
-                  encoding="utf-8")
+    for ad, yama in (("bayrakKuvvet", "bayrak"), ("silindirKuvvet", "silindir")):
+        (vaka / "system" / ad).write_text(
+            f'type forces;\nlibs ("libforces.so");\npatches ({yama});\n'
+            'rho rhoInf;\nrhoInf 1000.0;\nCofR (0.2 0.2 0);\n',
+            encoding="utf-8")
     yol = windows_to_wsl_path(vaka)
     # postProcess YETMEZ: viskoz gerilme icin momentum modeli kurulmali,
     # bunu yalniz cozucu-farkindalikli foamPostProcess yapar (olculdu:
     # postProcess "No valid model for viscous stress calculation" der).
-    linux_run(f"cd '{yol}' && source /opt/openfoam11/etc/bashrc && "
-              f"foamPostProcess -solver incompressibleFluid "
-              f"-func bayrakKuvvet -latestTime > log.bayrakKuvvet 2>&1",
-              timeout=900)
-    dat = sorted(vaka.glob("postProcessing/bayrakKuvvet/*/force*.dat"))
-    if not dat:
+    for ad in ("bayrakKuvvet", "silindirKuvvet"):
+        linux_run(f"cd '{yol}' && source /opt/openfoam11/etc/bashrc && "
+                  f"foamPostProcess -solver incompressibleFluid "
+                  f"-func {ad} -latestTime > log.{ad} 2>&1", timeout=900)
+
+    def _oku(ad):
+        dat = sorted(vaka.glob(f"postProcessing/{ad}/*/force*.dat"))
+        if not dat:
+            return None
+        son = [s for s in dat[-1].read_text(encoding="utf-8").splitlines()
+               if s.strip() and not s.startswith("#")]
+        if not son:
+            return None
+        sayi = [float(x) for x in
+                re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?",
+                           son[-1].split("(", 1)[1])]
+        return None if len(sayi) < 6 else (sayi[0:3], sayi[3:6])
+
+    b = _oku("bayrakKuvvet")
+    if b is None:
         return None
-    son = [s for s in dat[-1].read_text(encoding="utf-8").splitlines()
-           if s.strip() and not s.startswith("#")]
-    if not son:
-        return None
-    sayi = [float(x) for x in re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?",
-                                         son[-1].split("(", 1)[1])]
-    if len(sayi) < 6:
-        return None
-    return {"basinc_N": sayi[0:3], "viskoz_N": sayi[3:6]}
+    d = {"basinc_N": b[0], "viskoz_N": b[1]}
+    # DAGILIM: FSI1 bilmecesinde ELENMEYEN son aday budur. Akis cozucusu
+    # (surukleme %0,1), ag (dort seviyeli aile) ve yapi (CSM1 %0,2) sirayla
+    # elendi; geriye tasimanin silindir ile bayrak arasinda NASIL
+    # paylasildigi kaldi. Toplam dogru olsa bile pay yanlis olabilir ve
+    # bayragi egen sey PAYDIR.
+    s = _oku("silindirKuvvet")
+    if s is not None:
+        by = b[0][1] + b[1][1]
+        sy = s[0][1] + s[1][1]
+        d["dagilim"] = {
+            "bayrak_Fy_N_m": round(by / Z_KALINLIK, 4),
+            "silindir_Fy_N_m": round(sy / Z_KALINLIK, 4),
+            "toplam_Fy_N_m": round((by + sy) / Z_KALINLIK, 4),
+            "bayrak_payi_pct": round(100 * by / (by + sy), 1),
+            "_not": ("Yayimlanan kaynak yalnizca TOPLAMI verir; pay "
+                     "kiyaslanamaz. Ama yapinin dogrulanmis olmasi paya bir "
+                     "KISIT koyar: yayimlanan FSI1 sehimini uretmek icin "
+                     "bayragin tasidigi enine yuk bizimkinin ~%57'si "
+                     "olmaliydi."),
+        }
+    return d
 
 
 def _kayma_bedeli(bilesen: dict | None, fea, hacim_kuvvet,
@@ -455,6 +483,11 @@ def _kayma_bedeli(bilesen: dict | None, fea, hacim_kuvvet,
         "ux_basinc_arti_viskoz_mm": round(ux(Fp + Fv), 5),
         "ux_referans_mm": REF["ux_mm"],
         "ux_kalan_oran": round(REF["ux_mm"] / ux(Fp + Fv), 2),
+        # DAGILIM CAGIRANA TASINIR. Ilk yazimda `_bayrak_kuvvet_bilesenleri`
+        # onu uretiyordu ama bu fonksiyon kendi sozlugunu kurup ATIYORDU ---
+        # uretilip hic okunmayan alan, bu deponun kendi olcerinin avladigi
+        # kusur sinifi.
+        "dagilim": bilesen.get("dagilim"),
     }
 
 

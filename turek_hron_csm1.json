@@ -1,0 +1,73 @@
+{
+  "vaka": "Turek-Hron CSM1 — yapı, yerçekimi altında, akış yok",
+  "_neden": "Iki-yonlu FSI1'de yapisal model DOLAYLI elenmisti (ux/EA cikarimi). CSM1 onu DOGRUDAN ve yayimlanmis bir degere karsi sinar; ustelik sehim/uzunluk %19 oldugu icin NLGEOM'u da zorlar.",
+  "kati": {
+    "mu_s_Pa": 500000.0,
+    "nu_s": 0.4,
+    "E_Pa": 1400000.0,
+    "rho": 1000.0,
+    "g_m_s2": 2.0
+  },
+  "geometri": {
+    "L_m": 0.35101,
+    "h_m": 0.02,
+    "duzlem_gerinim": true
+  },
+  "lineer": {
+    "kosdu": true,
+    "nlgeom": false,
+    "artim": 40,
+    "A_uzaklik_m": 0.0,
+    "ux_mm": -0.000490185,
+    "uy_mm": -68.1002,
+    "uz_mm": -1.04e-07
+  },
+  "nlgeom": {
+    "kosdu": true,
+    "nlgeom": true,
+    "artim": 40,
+    "A_uzaklik_m": 0.0,
+    "ux_mm": -7.20291,
+    "uy_mm": -66.17530000000001,
+    "uz_mm": -1.00703e-07
+  },
+  "sapma_lineer": {
+    "ux_pct": 99.99,
+    "uy_pct": -3.03
+  },
+  "sapma_nlgeom": {
+    "ux_pct": -0.22,
+    "uy_pct": -0.11
+  },
+  "referans": {
+    "ux_mm": -7.187,
+    "uy_mm": -66.1,
+    "_dogrulandi": true,
+    "_kaynak": "Turek-Hron CSM kiyaslamasi; Feel++ CSM belgesi"
+  },
+  "referans_kinematigi": {
+    "ux_kinematik_mm": 7.4685,
+    "ux_referans_mm": 7.187,
+    "oran": 1.039
+  },
+  "verdikt": "Referans çifti kendi içinde tutarlı: uy=-66.1 mm bir konsolda 7.4685 mm kısalma gerektirir, verilen ux 7.187 mm (oran 1.039). LİNEER çözüm uy=-68.100 mm (%-3.03) --- büyük yer değiştirme rejiminde beklendiği gibi kullanılamaz. NLGEOM: ux=-7.203 mm, uy=-66.175 mm; yayımlanan -7.187 ve -66.1 --- sapma %-0.22 ve %-0.11. YAPISAL ZİNCİR YAYIMLANMIŞ BİR DEĞERE KARŞI DOĞRULANDI: ağ, malzeme, düzlem gerinim seçimi ve büyük-yer-değiştirme yolu birlikte %5 bandında. Bu, FSI1'de yapılan DOLAYLI elemeyi doğrudan bir ölçümle değiştirir --- iki-yönlü koşuda kalan %77'lik sapmanın kaynağı yapıda DEĞİLDİR. Tek ağ, tek artım sayısı; bant bir GCI değil.",
+  "_kisit": "AG-BAGIMSIZLIGI SINANMADI: FSI1 ile AYNI yapi agi kullanildi (NX=70, NY=6, C3D10) --- bu KASITLIDIR, cunku sinanan sey o agdir. Artim sayisi (40) sonucu etkileyebilir ve yakinsatilmadi. Malzeme St. Venant-Kirchhoff DEGIL, CalculiX'in NLGEOM ile kullandigi lineer-elastik buyuk-yerdegistirme modelidir; %19 sehimde ikisi arasindaki fark kucuktur ama SIFIR degildir ve OLCULMEDI.",
+  "_uretim": "Üretim: python experiments/turek_hron_csm1.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

@@ -102,13 +102,16 @@ def _p_alan() -> str:
             + "  yanlar { type empty; }\n}\n")
 
 
-def _kur(vaka: Path) -> None:
+def _kur(vaka: Path, msh: Path | None = None) -> None:
+    """`msh` verilmezse uretim agi kullanilir --- varsayilan DEGISMEDI.
+    Ag-bagimsizligi ailesi ayni iskeleyi farkli aglarla kurabilsin diye
+    parametrelendi (`turek_hron_ag_bagimsizligi.py`)."""
     if vaka.exists():
         shutil.rmtree(vaka)
     (vaka / "system").mkdir(parents=True)
     (vaka / "0").mkdir()
     (vaka / "constant").mkdir()
-    shutil.copy(MSH, vaka / "turek_hron_2b.msh")
+    shutil.copy(msh or MSH, vaka / "turek_hron_2b.msh")
     (vaka / "0" / "U").write_text(_U_alan(), encoding="utf-8")
     (vaka / "0" / "p").write_text(_p_alan(), encoding="utf-8")
     (vaka / "constant" / "physicalProperties").write_text(

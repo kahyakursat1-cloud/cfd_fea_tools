@@ -79,7 +79,14 @@
     "ux_basinc_yalniz_mm": -0.00189,
     "ux_basinc_arti_viskoz_mm": 0.0162,
     "ux_referans_mm": 0.0227,
-    "ux_kalan_oran": 1.4
+    "ux_kalan_oran": 1.4,
+    "dagilim": {
+      "bayrak_Fy_N_m": 0.636,
+      "silindir_Fy_N_m": 0.475,
+      "toplam_Fy_N_m": 1.111,
+      "bayrak_payi_pct": 57.2,
+      "_not": "Yayimlanan kaynak yalnizca TOPLAMI verir; pay kiyaslanamaz. Ama yapinin dogrulanmis olmasi paya bir KISIT koyar: yayimlanan FSI1 sehimini uretmek icin bayragin tasidigi enine yuk bizimkinin ~%57'si olmaliydi."
+    }
   },
   "tek_yon_bedeli": {
     "tasima_cfd1_Nm": 1.119,

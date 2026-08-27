@@ -118,7 +118,13 @@ def _bayrak_mi(xm: float, ym: float) -> bool:
             and abs(ym - MERKEZ[1]) <= BAYRAK_KALINLIK / 2 + 1e-9)
 
 
-def msh_yaz(yol: Path) -> dict:
+def msh_yaz(yol: Path, olcek: float = 1.0) -> dict:
+    """`olcek` hucre boyunu carpar --- 1.0 URETIM AGIDIR, degistirmez.
+
+    Ag-bagimsizligi calismasi (`turek_hron_ag_bagimsizligi.py`) ayni
+    geometriden bir aile uretmek icin buna ihtiyac duyar. Parametre
+    EKLENDI, varsayilan KORUNDU: mevcut cagiranlarin hicbiri etkilenmez.
+    """
     import gmsh
     gmsh.initialize()
     try:
@@ -134,8 +140,8 @@ def msh_yaz(yol: Path) -> dict:
         gmsh.model.mesh.field.setNumbers(d, "CurvesList", gruplar["govde"])
         t = gmsh.model.mesh.field.add("Threshold")
         gmsh.model.mesh.field.setNumber(t, "InField", d)
-        gmsh.model.mesh.field.setNumber(t, "SizeMin", H_GOVDE)
-        gmsh.model.mesh.field.setNumber(t, "SizeMax", H_UZAK)
+        gmsh.model.mesh.field.setNumber(t, "SizeMin", H_GOVDE * olcek)
+        gmsh.model.mesh.field.setNumber(t, "SizeMax", H_UZAK * olcek)
         gmsh.model.mesh.field.setNumber(t, "DistMin", 2 * YARICAP)
         gmsh.model.mesh.field.setNumber(t, "DistMax", 10 * YARICAP)
         gmsh.model.mesh.field.setAsBackgroundMesh(t)
@@ -213,7 +219,7 @@ def msh_yaz(yol: Path) -> dict:
                 "silindir_yuzeyi": len(sinif["silindir"]),
                 "bayrak_yuzeyi": len(sinif["bayrak"]),
                 "onarka_yuzeyi": len(onarka),
-                "hucre_boyu_govde_m": H_GOVDE, "bayrak_bas_x": bilgi["xb"]}
+                "hucre_boyu_govde_m": H_GOVDE * olcek, "olcek": olcek, "bayrak_bas_x": bilgi["xb"]}
     finally:
         gmsh.finalize()
 

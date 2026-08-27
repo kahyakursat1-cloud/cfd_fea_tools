@@ -3217,8 +3217,57 @@ Taşıma (N/m) & 1{,}1094 & 1{,}119 & \%-0{,}86 \\
         düzeltilip ölçüldükten sonra bilinebilirdi.
         \end{dikkat}
 
-        \noindent Ağ-bağımsızlığı hâlâ sınanmadı: aktarım yüzeyi on kat
-        inceltildi, akış ağı ve yapı ağı incelmedi. Yapısal model lineer.
+        \medskip
+        \noindent \textbf{Kalan iki aday da ölçümle elendi.} Verdiğim iki
+        gerekçeden biri (yapının doğruluğu) bir \emph{çıkarımdı}, öbürü
+        (ağın yeterliliği) bir \emph{varsayımdı}. İkisi de koşuldu.
+
+        \noindent \emph{Ağ}
+        (\texttt{experiments/turek\_hron\_ag\_bagimsizligi.py}). Aynı
+        geometriden dört seviyeli bir aile
+        üretildi (hücre boyu $r=1{,}3$ ile ölçeklendi, $12\,855$ ile
+        $55\,971$ hücre arası; üretim ağı aileye dâhil). Sürükleme yayılımı
+        \%$0{,}167$, taşıma yayılımı \%$3{,}089$. Taşıma sürüklemeden
+        \emph{yirmi kat} daha duyarlı çıktı, yani ``taşıma bu geometride
+        ayrıklaştırmaya en duyarlı nicelik'' gerekçesi doğrulandı --- ama
+        \%3'lük bir yayılım \%77'lik sapmayı açıklamıyor. Sürüklemede
+        gözlemlenen mertebe negatif çıktı ($p=-0{,}897$); bu bir kusur
+        değil, Richardson'ın uygulanamadığının işareti, çünkü seviyeler
+        arası fark gürültü mertebesinde. Kayıt bu yüzden hem GCI'yi hem
+        çıplak yayılımı taşıyor.
+
+        \noindent \emph{Yapı.} CSM1 koşuldu: aynı bayrak, aynı malzeme,
+        akış yok, tek yük yerçekimi ($g = 2$ m/s$^2$). Bu, FSI1'den
+        \emph{daha zor} bir sınavdır --- sehim/uzunluk \%$19$, yani büyük
+        yer değiştirme rejimi ve NLGEOM zorunlu. Sonuç: $u_y = 66{,}175$ mm,
+        $u_x = 7{,}203$ mm; yayımlanan değerler $66{,}10$ ve $7{,}187$ mm.
+        Sapma \%$0{,}11$ ve \%$0{,}22$. Aynı ağ lineer koşulduğunda
+        $68{,}100$ mm veriyor, yani NLGEOM gerçekten devrede ve katkısı
+        \%$3$.
+
+        \noindent Böylece yapısal zincir --- ağ, malzeme, düzlem gerinim
+        seçimi ve büyük-yer-değiştirme yolu --- yayımlanmış bir değere
+        karşı birlikte doğrulanmış oldu. Bu, bu deponun FSI tarafındaki en
+        güçlü çapasıdır ve akış hiç işin içine girmez.
+
+        \begin{dikkat}{Geriye ne kaldı}
+        Dört aday sırayla elendi: akış çözücüsü (sürükleme \%$0{,}1$), ağ
+        (\%$3$), yapı (\%$0{,}2$) ve aktarım (çözücünün kendi yüzey
+        integraliyle \%$0{,}03$). Kalan tek aday, taşımanın silindir ile
+        bayrak arasındaki \emph{dağılımıdır}. Ölçüldü: rijit durumda bayrak
+        $0{,}636$ N/m, silindir $0{,}475$ N/m, toplam $1{,}111$ N/m --- yani
+        bayrak payı \%$57{,}2$. Yayımlanan kaynak yalnız toplamı verdiği için
+        pay doğrudan kıyaslanamaz. Ama yapının doğrulanmış olması paya bir
+        \emph{kısıt} koyar: yayımlanan FSI1 sehimini üretmek için bayrağın
+        taşıdığı enine yükün bizimkinin yaklaşık yarısı olması gerekirdi.
+
+        Bu bir açıklama değil, daraltılmış bir sorudur. Rapor onu böyle
+        bırakıyor: kapanmamış, ama yeri belli.
+        \end{dikkat}
+
+        \noindent Yapısal ağın bağımsızlığı hâlâ sınanmadı (CSM1 kasıtlı
+        olarak FSI1'in ağıyla koşuldu, çünkü sınanan o ağdı) ve FSI1'in
+        kendi ağ duyarlılığı rijit aileden türetilmez.
 
         \medskip
         \noindent \textbf{``Peki bu her yerde mi önemli?'' --- deponun kendi
