@@ -1,0 +1,79 @@
+{
+  "vaka": "Turek-Hron CFD1 — rijit bayrak, kararlı, Re=20",
+  "_neden": "'Ag hazir' ile 'capa kosuldu' arasinda akis adimi var. CFD1 kuplaji SINAMAZ ama FSI1'in ONKOSULUDUR: akis tarafi yanlissa kuplaj dogru olamaz ve o hatayi kuplajda aramak saatler yer.",
+  "kosul": {
+    "rho": 1000.0,
+    "nu": 0.001,
+    "U_ort": 0.2,
+    "D": 0.1,
+    "Re": 20.000000000000004,
+    "giris": "parabolik",
+    "model": "laminer",
+    "iterasyon_tavani": 3000
+  },
+  "referans": {
+    "surukleme_N": 14.29,
+    "tasima_N": 1.119,
+    "_dogrulandi": false
+  },
+  "adimlar": [
+    {
+      "komut": "gmshToFoam turek_hron_2b.msh > log.gmshToFoam 2>&1",
+      "rc": 0,
+      "kuyruk": "region 4 to Foam patch 1\nMapping region 1 to Foam patch 2\nMapping region 2 to Foam patch 3\nMapping region 3 to Foam patch 4\nMapping region 5 to Foam patch 5\nMapping region 7 to Foam cellZone 0\nCells:\n    total:33168\n    hex  :33168\n    prism:0\n    pyr  :0\n    tet  :0\n\nCellZones:\nZone\tSize\n    0\t33168\n\nSkipping tag  at line 167725\nPatch 0 gets name yanlar\nPatch 1 gets name alt\nPatch 2 gets name giris\nPatch 3 gets name cikis\nPatch 4 gets name ust\nPatch 5 gets name govde\n\nFinding faces of patch 0\nFinding faces of patch 1\nFinding faces of patch 2\nFinding faces of patch 3\nFinding faces of patch 4\nFinding faces of patch 5\n\nFaceZones:\nZone\tSize\n\nWriting zone 0 to cellZone akiskan and cellSet\nEnd"
+    },
+    {
+      "komut": "simpleFoam > log.simpleFoam 2>&1",
+      "rc": 0,
+      "kuyruk": "umulative = -5.13664e-05\nExecutionTime = 14.5045 s  ClockTime = 21 s\n\nTime = 445s\n\nsmoothSolver:  Solving for Ux, Initial residual = 8.22595e-07, Final residual = 7.15794e-08, No Iterations 8\nsmoothSolver:  Solving for Uy, Initial residual = 9.89758e-07, Final residual = 8.38367e-08, No Iterations 8\nGAMG:  Solving for p, Initial residual = 2.57045e-07, Final residual = 2.15934e-09, No Iterations 4\nGAMG:  Solving for p, Initial residual = 1.44373e-08, Final residual = 9.58936e-10, No Iterations 2\ntime step continuity errors : sum local = 1.95888e-09, global = 1.19754e-10, cumulative = -5.13663e-05\nExecutionTime = 14.5325 s  ClockTime = 21 s\n\n\nSIMPLE solution converged in 445 iterations\n\nEnd"
+    }
+  ],
+  "kuvvet": {
+    "okundu": true,
+    "n_kayit": 45,
+    "z_kalinlik_m": 0.01,
+    "birim_derinlik_olcegi": 100.0,
+    "ham_surukleme_N": 0.1428231225,
+    "ham_tasima_N": 0.011093883225,
+    "surukleme_N": 14.28231225,
+    "tasima_N": 1.1093883225,
+    "surukleme_band_N": 4.999999997368221e-07,
+    "tasima_band_N": 0.0013384899999999839,
+    "kuyruk_ornek": 4,
+    "_birim": "N/m (birim derinlik) --- ham deger z dilimine aitti"
+  },
+  "rezidueller": {
+    "okundu": true,
+    "son": {
+      "Ux": 8.22595e-07,
+      "Uy": 9.89758e-07,
+      "p": 1.44373e-08
+    },
+    "yakinsadi": true,
+    "iterasyon": 445
+  },
+  "sapma": {
+    "surukleme_pct": -0.05,
+    "tasima_pct": -0.86
+  },
+  "verdikt": "445 iterasyon, son rezidüeller {'Ux': 8.22595e-07, 'Uy': 9.89758e-07, 'p': 1.44373e-08}. Sürükleme 14.2823 N (±0.0000), taşıma 1.1094 N (±0.0013). Yayımlanan CFD1: sürükleme 14.29 N, taşıma 1.119 N --- sapma %-0.05 ve %-0.86. Sürükleme referansın %5 bandında ve koşu yakınsadı. AMA referans bu depoda doğrulanmadı ve ağ-bağımsızlığı sınanmadı --- bu bir EĞİLİM sonucudur, çapa değil.",
+  "_kisit": "REFERANS DEGERLER BU DEPODA BIRINCIL KAYNAKTAN DOGRULANMADI; karsilastirma icin yazildilar ve bir CAPA HUKMUNE temel yapilmadan once teyit edilmelidir. Ayrica AG-BAGIMSIZLIGI SINANMADI --- tek ag, tek cozunurluk; sapmanin ne kadari ayriklastirmadan geldigi BILINMIYOR. CFD1 kuplaji sinamaz.",
+  "_uretim": "Üretim: python experiments/turek_hron_cfd1.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

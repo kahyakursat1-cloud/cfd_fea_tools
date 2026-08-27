@@ -113,11 +113,23 @@ def _controldict_YAZANLAR() -> list[str]:
 
 
 def test_controldict_yazan_dosya_sayisi_bilinir():
-    """ADR kararı: mass-refactor iptal. Ama sayı sessizce artmasın."""
+    """ADR kararı: mass-refactor iptal. Ama sayı sessizce artmasın.
+
+    TABAN 21 -> 22 (2026-08-27): `experiments/turek_hron_cfd1.py`.
+    Gerekçe ÖLÇÜLMÜŞTÜR, kanaat değil: `analysis/openfoam_runner`
+    snappyHexMesh üzerine kuruludur ve snappy 2B ağı REDDEDİYOR --- kendi
+    hatası, ayar değil ("Mesh provided is not fully 3D as required for mesh
+    relaxation after snapping", `turek_hron_ag_kapisi.json`). Turek-Hron
+    2B bir benchmark'tır, dolayısıyla kanonik katmanı KULLANAMAZ ve kendi
+    iskelesini kurmak zorundadır.
+
+    Artış bilinçli ve bu satır sessiz kalmasını engelliyor. Ölçer haklıydı:
+    borç gerçekten büyüdü --- ama bu kez borcun sebebi ihmal değil, kanonik
+    katmanın ölçülmüş bir kapsam sınırı.
+    """
     yazanlar = _controldict_YAZANLAR()
-    assert len(yazanlar) <= 21, (
-        f"{len(yazanlar)} dosya kendi controlDict'ini YAZIYOR (ölçülen taban "
-        f"21): {yazanlar}. Yeni case iskelesi yazmadan "
+    assert len(yazanlar) <= 22, (
+        f"{len(yazanlar)} dosya kendi controlDict'ini YAZIYOR (ölçülen taban 22): {yazanlar}. Yeni case iskelesi yazmadan "
         f"analysis/openfoam_runner'a bak")
 
 

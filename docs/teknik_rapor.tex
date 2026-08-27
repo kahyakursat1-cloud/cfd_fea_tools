@@ -3060,8 +3060,48 @@ Maks.\ çarpıklık & 0{,}817578 & eşik 4 \\
         \texttt{= } biçimini arıyordu ve \emph{çarpıklık satırını} yakalayıp iki
         metriği de aynı sayı gösteriyordu. Biçim gerçek çıktıdan okundu.
 
-        \noindent Ağ hazır; \textbf{akış hâlâ çözülmedi} ve ağ kalitesi hükme
-        sokulmadı --- kapıyı geçen bir ağ, iyi bir ağ demek değildir.
+        \noindent Ağ kalitesi hükme sokulmadı --- kapıyı geçen bir ağ, iyi bir
+        ağ demek değildir.
+
+        \textbf{Akış çözüldü: CFD1.} FSI1'den önce \emph{rijit} bayrakla
+        kararlı akış koşuldu (Re$\,{=}\,$20, laminer, parabolik giriş). CFD1
+        kuplajı sınamaz ama FSI1'in önkoşuludur: akış tarafı yanlışsa kuplaj
+        doğru olamaz ve o hatayı kuplajda aramak saatler yer.
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+ & bu koşu & yayımlanan & sapma \\
+\midrule
+Sürükleme (N/m) & 14{,}2823 & 14{,}29 & \textbf{\%-0{,}05} \\
+Taşıma (N/m) & 1{,}1094 & 1{,}119 & \%-0{,}86 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+        \noindent Koşu 445 iterasyonda yakınsadı (rezidüeller
+        $\sim\!10^{-7}$). Bu, deponun \emph{ilk} yayımlanmış-referanslı 2B akış
+        karşılaştırmasıdır.
+
+        \begin{dikkat}{Bir birim tuzağı --- ve yanlış cevap da makul görünüyordu}
+        İlk koşu sürüklemeyi $0{,}1428$ N verdi. Referans $14{,}29$ olduğu için
+        sapma \%$-99{,}0$ çıktı ve ``fizik yanlış'' gibi göründü. Oran ise
+        \emph{tam olarak} 100'dü, yani $1/0{,}01$: 2B ağın z kalınlığı. Çözücü
+        o dilime ait kuvveti verir; Turek--Hron ise \textbf{birim derinlik}
+        başına yayımlar.
+
+        Tuzağın sinsi yanı, yanlış sonucun da makul görünmesidir: $0{,}1428$ N
+        bir kuvvettir, işareti doğrudur, koşu yakınsamıştır. Yalnız
+        \emph{referansla karşılaştırma} açığa çıkardı --- karşılaştırma olmasaydı
+        sayı yayımlanabilirdi. Normalizasyon artık kodda ve testi ham/normalize
+        oranının kalınlık çarpanına eşit olduğunu denetliyor.
+        \end{dikkat}
+
+        \noindent \textbf{Ama bu bir çapa değil, bir eğilimdir} ve iki sebeple:
+        yayımlanan değerler bu depoda birincil kaynaktan \emph{doğrulanmadı},
+        ve ağ-bağımsızlığı sınanmadı --- tek ağ, tek çözünürlük, yani sapmanın
+        ne kadarının ayrıklaştırmadan geldiği bilinmiyor. FSI1 (kuplaj) hâlâ
+        koşulmadı.
 
         \noindent Kapının \emph{önce} sorulmasının kazandırdığı şey budur: ağ
         kurma denemelerine saatler harcanmadan yol kapandı ve engelin \emph{yeri}
