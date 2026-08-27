@@ -3170,10 +3170,55 @@ Taşıma (N/m) & 1{,}1094 & 1{,}119 & \%-0{,}86 \\
         çevrildi ve ders kayıtta duruyor.
         \end{dikkat}
 
-        \noindent \textbf{Düşey kanal açık kalıyor.} Onun düzeltmesi
-        \emph{hesaplandı}, koşulmadı; kapatmak için iki-yönlü koşu gerekir ve
-        o yazılmadı. Ağ-bağımsızlığı da sınanmadı: aktarım yüzeyi on kat
-        inceltildi, yapı ağı ve akış ağı incelmedi.
+        \medskip
+        \noindent \textbf{Düşey kanal da koşuldu --- ve kapanmadı.} Geri
+        besleme gerekçesi \emph{hesaplanmış} bir iddiaydı, o yüzden
+        koşuldu: Dirichlet--Neumann sabit-nokta turu, akış çöz $\to$ yük
+        taşı $\to$ yapı çöz $\to$ CFD ağını deforme et. Ağ hareketi
+        doğrudan \texttt{points} dosyası üzerinden, bayrak yüzeyinde
+        yapının değeriyle ve akışkana doğru Gauss sönümle; dinamik-ağ
+        çözücüsü ve \texttt{dynamicMeshDict} ailesi hiç girmiyor, çünkü
+        hareket $1{,}4$ mm ve topoloji değişmiyor.
+
+        \noindent \textbf{7} turda sabit noktaya ulaşıldı (son tur-arası
+        değişim $0{,}00037$ mm). Uç sehimi $1{,}5606 \to 1{,}4496$ mm; taşıma
+        $1{,}1107 \to 0{,}4884$ N/m. Yani geri besleme \emph{gerçekten}
+        çalışıyor ve yükü düşürüyor, ama \%$56$ düşürüyor: kaynağın kendi
+        rijit/deforme çifti ($1{,}119 \to 0{,}7638$) \%$32$ diyor. Sapma
+        \%$90$'dan \%$77$'ye indi, kapanmadı.
+
+        \noindent \textbf{Kalan farkın yeri daraltılabiliyor.} Sürükleme
+        $14{,}2847$ N/m ile yayımlanan $14{,}295$'in \%$0{,}1$'inde, yani
+        akış çözücüsü ve viskoz kanal yerli yerinde. Yapısal model de
+        elenir: $u_x$ referansı \%$1{,}3$ bandında tutturuyor ve $u_x$
+        doğrudan $EA$'ya bağlı, dolayısıyla $E$ ya da kesit $1{,}8$ kat
+        yanlış olsaydı $u_x$ da o kadar kayardı. Geriye akış tarafındaki
+        \emph{dağılım} kalıyor: taşıma silindir ile bayrak arasında yeniden
+        paylaşılıyor ve bu paylaşım ağ-bağımsızlığı sınanmamış tek bir
+        çözümden geliyor. Sıradaki soru budur.
+
+        \begin{dikkat}{Kapı ateş etti, döngü duymadı}
+        İlk koşuda \texttt{checkMesh} ikinci turdan itibaren hata
+        bildiriyordu ve döngü aldırmadan yedi tur koştu; sonuç kendi
+        kapısını geçmemiş bir ağdan geliyordu. Bu, bu deponun en sık
+        tekrarlayan kusurudur ve bu kez ölçümün kendi içinde çıktı.
+
+        Hatanın kendisi de öğreticiydi. Düşen tek denetim ``kenarlar
+        boş-olmayan yönlerle hizalı değil'' idi; ortogonallik $34{,}7$,
+        çarpıklık $0{,}82$, hacimler pozitif, hepsi temiz. Yani kusur bir
+        kalite kusuru değil, \emph{iki boyutluluk varsayımının}
+        kırılmasıydı: ağ hareketi 3B en-yakın-komşu kullanıyordu ve ön/arka
+        düzlemdeki nokta çiftleri farklı yapısal düğümlere düşüyordu.
+        Sorgu $(x,y)$'ye indirilip yer değiştirme $z$ sütunu boyunca
+        ortalanınca denetim temizlendi.
+
+        Sonuç $1{,}4498 \to 1{,}4496$ mm oldu; yani hizalama kusuru cevabı
+        değiştirmiyordu. Bu, kapıyı gereksiz yapmaz. Önemsiz olduğu ancak
+        düzeltilip ölçüldükten sonra bilinebilirdi.
+        \end{dikkat}
+
+        \noindent Ağ-bağımsızlığı hâlâ sınanmadı: aktarım yüzeyi on kat
+        inceltildi, akış ağı ve yapı ağı incelmedi. Yapısal model lineer.
 
         \medskip
         \noindent \textbf{``Peki bu her yerde mi önemli?'' --- deponun kendi

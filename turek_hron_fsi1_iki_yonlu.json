@@ -1,0 +1,138 @@
+{
+  "vaka": "Turek-Hron FSI1 — İKİ YÖNLÜ kuplaj",
+  "_neden": "Tek-yonlu kosuda dusey sehim %90 fazlaydi ve gerekcesi biliniyordu: akis RIJIT bayrakla cozuluyordu. O gerekce HESAPLANMISTI; bu betik onu KOSAR.",
+  "ayar": {
+    "max_tur": 12,
+    "tol_mm": 0.001,
+    "omega": 0.6,
+    "sonum_r_m": 0.03,
+    "_ag_hareketi": "dogrudan points dosyasi, Gauss sonum"
+  },
+  "turlar": [
+    {
+      "tur": 1,
+      "uy_mm": 1.56055,
+      "ux_mm": 0.02299,
+      "degisim_mm": null,
+      "tasima_N_m": 1.1107,
+      "surukleme_N_m": 14.2823,
+      "checkMesh_hata": false,
+      "max_yerdegistirme_mm": 0.0,
+      "dis_sinir_max_mm": 0.0,
+      "dis_sinir_nokta": 1044,
+      "aktarilan_Fy_N": 0.00636104
+    },
+    {
+      "tur": 2,
+      "uy_mm": 1.48626,
+      "ux_mm": 0.02299,
+      "degisim_mm": 0.07429,
+      "tasima_N_m": 0.7083,
+      "surukleme_N_m": 14.2835,
+      "checkMesh_hata": false,
+      "max_yerdegistirme_mm": 0.937615,
+      "dis_sinir_max_mm": 0.0,
+      "dis_sinir_nokta": 1044,
+      "aktarilan_Fy_N": 0.00627926
+    },
+    {
+      "tur": 3,
+      "uy_mm": 1.4642,
+      "ux_mm": 0.02299,
+      "degisim_mm": 0.02206,
+      "tasima_N_m": 0.5665,
+      "surukleme_N_m": 14.2842,
+      "checkMesh_hata": false,
+      "max_yerdegistirme_mm": 1.268072,
+      "dis_sinir_max_mm": 0.0,
+      "dis_sinir_nokta": 1044,
+      "aktarilan_Fy_N": 0.00625062
+    },
+    {
+      "tur": 4,
+      "uy_mm": 1.45463,
+      "ux_mm": 0.02299,
+      "degisim_mm": 0.00957,
+      "tasima_N_m": 0.5148,
+      "surukleme_N_m": 14.2846,
+      "checkMesh_hata": false,
+      "max_yerdegistirme_mm": 1.387036,
+      "dis_sinir_max_mm": 0.0,
+      "dis_sinir_nokta": 1044,
+      "aktarilan_Fy_N": 0.00624029
+    },
+    {
+      "tur": 5,
+      "uy_mm": 1.45114,
+      "ux_mm": 0.02299,
+      "degisim_mm": 0.00349,
+      "tasima_N_m": 0.4968,
+      "surukleme_N_m": 14.2847,
+      "checkMesh_hata": false,
+      "max_yerdegistirme_mm": 1.428872,
+      "dis_sinir_max_mm": 0.0,
+      "dis_sinir_nokta": 1044,
+      "aktarilan_Fy_N": 0.00623658
+    },
+    {
+      "tur": 6,
+      "uy_mm": 1.44998,
+      "ux_mm": 0.02299,
+      "degisim_mm": 0.00116,
+      "tasima_N_m": 0.4906,
+      "surukleme_N_m": 14.2847,
+      "checkMesh_hata": false,
+      "max_yerdegistirme_mm": 1.443515,
+      "dis_sinir_max_mm": 0.0,
+      "dis_sinir_nokta": 1044,
+      "aktarilan_Fy_N": 0.00623533
+    },
+    {
+      "tur": 7,
+      "uy_mm": 1.44961,
+      "ux_mm": 0.02299,
+      "degisim_mm": 0.00037,
+      "tasima_N_m": 0.4884,
+      "surukleme_N_m": 14.2847,
+      "checkMesh_hata": false,
+      "max_yerdegistirme_mm": 1.44867,
+      "dis_sinir_max_mm": 0.0,
+      "dis_sinir_nokta": 1044,
+      "aktarilan_Fy_N": 0.00623492
+    }
+  ],
+  "referans": {
+    "ux_mm": 0.0227,
+    "uy_mm": 0.8209,
+    "_dogrulandi": true,
+    "_kaynak": "Turek-Hron FSI kiyaslamasi; Feel++ belgesiyle teyit"
+  },
+  "tasima_referans": {
+    "rijit_cfd1": 1.119,
+    "deforme_fsi1": 0.7638
+  },
+  "sapma": {
+    "uy_pct": 76.59,
+    "ux_pct": 1.28
+  },
+  "verdikt": "7 tur koşuldu. Uç sehimi ilk turda 1.56055 mm, son turda 1.44961 mm; son tur-arası değişim 0.00037 mm. Deforme ağdaki taşıma 0.4884 N/m (kaynak: rijit 1.119, deforme 0.7638). Yayımlanan FSI1 0.8209 mm --- sapma %76.59. GERİ BESLEME ÇALIŞTI AMA AŞIRI: taşıma turlar boyunca %-56.0 düştü, kaynağın kendi rijit/deforme çifti ise %-31.7 diyor. Sürükleme buna karşın 14.2847 N/m ile referansın (14,295) %0,1'inde. YAPISAL MODEL ELENİR: tek-yönlü koşuda ux referansı %1,3 bandında tutturdu ve ux doğrudan EA'ya bağlıdır --- E ya da kesit 1,8 kat yanlış olsaydı ux da o kadar kayardı. Geriye AKIŞ tarafı kalıyor: taşıma silindir ile bayrak arasında yeniden dağılıyor ve bu ayrışma ağ-bağımsızlığı SINANMAMIŞ bir çözümden geliyor. Sıradaki soru budur, ve bu betiğin cevabı DEĞİLDİR.",
+  "_kisit": "AG-BAGIMSIZLIGI SINANMADI: tek akis agi, tek yapi agi. Yapisal model LINEER; sehim/uzunluk %0,23 oldugu icin NLGEOM katkisi ikinci mertebedir ama OLCULMEDI. Ag hareketi Gauss sonumlu bir KINEMATIK secimdir, Laplace cozumu degil --- sonum yaricapi degisirse ag kalitesi degisir, cozum bundan ne kadar etkileniyor SINANMADI. FSI1 KARARLIDIR; bu tur zaman bagimliligi hakkinda hicbir sey soylemez.",
+  "_uretim": "Üretim: python experiments/turek_hron_fsi1_iki_yonlu.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}
