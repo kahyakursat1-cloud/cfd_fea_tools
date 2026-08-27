@@ -12,19 +12,23 @@ NE KAPATIR: aktarım zincirinin UÇTAN UCA doğruluğu. Yanlış bir eşleme,
 yanlış bir birim ya da yanlış bir normal burada GÖRÜNÜR --- iç metrikler
 bunların hiçbirini yakalamaz (hepsi kendi içinde tutarlı kalır).
 
-NE BULDU: iki ayrı KAPSAM boşluğu, ikisi de sayıya döküldü.
-  1. Kuplaj BASINÇ-YALNIZ çalışır. Bu bayrakta çözücünün kendi yüzey
-     integrali viskoz eksenel kuvveti basıncınkinin 9,6 KATI verir. Uç
-     yer değiştirmesinin x bileşeni bu yüzden bir mertebe küçük çıkar;
-     viskoz terim elle eklenince referansın 1,4 katına yaklaşır. Yani ux
-     bu depoda EKSİK KAYMA GERİLMESİ için duyarlı bir dedektördür.
-  2. Akış RİJİT bayrakla çözülür. Kaynağın kendi taşıma değerleri
-     (rijit 1,119 / deforme 0,7638 N/m) geri beslemenin yükü %32
-     düşürdüğünü söyler; ham %85'lik düşey sapma bu oranla ölçeklenince
-     %26'ya iner.
+NE BULDU: iki ayrı KAPSAM boşluğu, ikisi de sayıya döküldü. Biri sonra
+KAPATILDI, öbürü açık kaldı.
 
-NE KAPATMAZ: kalan farkı. Yukarıdaki iki düzeltme HESAPLANDI, koşulmadı.
-``Fizik tahrik ediyor'' iddiası hâlâ FSI2/FSI3'ün işidir.
+  1. [KAPANDI] Kuplaj BASINÇ-YALNIZ çalışıyordu. Bu bayrakta çözücünün
+     kendi yüzey integrali viskoz eksenel kuvveti basıncınkinin 9,6 KATI
+     verdi ve uç yer değiştirmesinin x bileşeni bir mertebe küçük çıktı
+     (-0,0019 mm, referans 0,0227). Kuplaja viskoz çekme kanalı eklendi
+     (grad(U) üzerinden; toplamı çözücünün kendi kuvvetiyle %1 içinde) ve
+     ölçülen ux 0,0230 mm oldu --- referanstan %1,3. Bu bir HESAP değil,
+     kanal açıkken YENİDEN KOŞULMUŞ bir ölçümdür.
+  2. [AÇIK] Akış RİJİT bayrakla çözülüyor. Kaynağın kendi taşıma
+     değerleri (rijit 1,119 / deforme 0,7638 N/m) geri beslemenin yükü
+     %32 düşürdüğünü söyler; ham %90'lık düşey sapma bu oranla
+     ölçeklenince %30'a iner. Bu düzeltme HESAPLANDI, koşulmadı.
+
+NE KAPATMAZ: düşey kanalı. ``Fizik tahrik ediyor'' iddiası hâlâ
+FSI2/FSI3'ün işidir.
 
 NASIL YANLIŞ GİTTİ (kayda değer): ilk sürüm bu sapmayı REFERANSA attı ---
 ``çift kendi içinde tutarsız'' diye bir kapı yazdım ve kapı, eksenel
@@ -57,7 +61,7 @@ from turek_hron_ag import (  # noqa: E402
     Z_KALINLIK,
     bayrak_bas_x,
 )
-from turek_hron_cfd1 import RHO  # noqa: E402
+from turek_hron_cfd1 import NU, RHO  # noqa: E402
 from turek_hron_cfd1 import VAKA as CFD_VAKA
 
 from analysis.backend import linux_run  # noqa: E402
@@ -73,8 +77,6 @@ MU_S = 0.5e6
 NU_S = 0.4
 E_S = 2 * MU_S * (1 + NU_S)
 RHO_S = 1000.0
-# Yayimlanan FSI1 uc yer degistirmesi (A noktasi, bayrak ucu ortasi).
-# BU DEPODA BIRINCIL KAYNAKTAN DOGRULANMADI.
 # Yayimlanan FSI1 uc yer degistirmesi (A noktasi = bayrak ucu ortasi),
 # Turek-Hron kiyaslama onerisi. 2026-08-27'de bagimsiz bir kaynaktan
 # (Feel++ kiyaslama belgesi) TEYIT EDILDI --- daha once yalniz
@@ -192,9 +194,20 @@ def _bayrak_stl(yol: Path, nx: int = 160) -> dict:
 
 def _vtk_uret(vaka: Path) -> Path | None:
     yol = windows_to_wsl_path(vaka)
+    # grad(U) VISKOZ CEKME ICIN URETILIR. wallShearStress KULLANILMAZ:
+    # OpenFOAM 11'in o fonksiyon nesnesi bu laminer vakada her yuzde TAM
+    # sifir yaziyor (hem foamPostProcess hem cozucu-ici kosuda denendi),
+    # oysa ayni kosuda `forces` viskoz kuvveti dogru veriyor. grad(U)
+    # son-islem kipinde calisiyor ve U/p'ye DOKUNMUYOR --- yani CFD1
+    # kanitini bozmadan alan ekler.
+    (vaka / "system" / "gradU").write_text(
+        'type grad;\nlibs ("libfieldFunctionObjects.so");\nfield U;\n',
+        encoding="utf-8")
     # -ascii ZORUNLU: kuplaj ayristiricisi satir-tabanlidir, BINARY okumaz.
     linux_run(f"cd '{yol}' && source /opt/openfoam11/etc/bashrc && "
-              f"foamToVTK -latestTime -ascii > log.foamToVTK 2>&1", timeout=1200)
+              f"foamPostProcess -solver incompressibleFluid -func gradU "
+              f"-latestTime > log.gradU 2>&1 && "
+              f"foamToVTK -latestTime -ascii > log.foamToVTK 2>&1", timeout=1800)
     aday = sorted(vaka.glob("VTK/bayrak/bayrak_*.vtk"))
     return aday[-1] if aday else None
 
@@ -263,8 +276,12 @@ def _tek_kosu(vtk: Path, nx: int, mesh) -> tuple[dict, dict, dict, np.ndarray]:
     stl = work / "bayrak_prep.stl"
     stl_bilgi = _bayrak_stl(stl, nx)
     from coupling_fsi import cfd_pressure_to_fea_loads
+    # kayma=True: VISKOZ CEKME DE TASINIR. Bu betik once basinc-yalniz
+    # kosuldu ve eksigi OLCTU (viskoz eksenel kuvvet basincin 9,6 kati);
+    # kanal acildiktan sonra ayni olcum onu KAPATIP kapatmadigini gosterir.
     yukler = cfd_pressure_to_fea_loads(str(vtk), str(stl), rho=RHO,
-                                       p_is_kinematic=True)
+                                       p_is_kinematic=True,
+                                       kayma=True, mu_pa_s=RHO * NU)
     # STL dugumleri ile HACIM agi dugumleri AYNI DEGIL: kuvvetler konuma
     # gore hacim agina tasinir. (Depo bu dersi dugum-eslemesinde odedi:
     # indis varsaymak permutasyon uretiyordu.)
@@ -380,7 +397,8 @@ def _bayrak_kuvvet_bilesenleri(vaka: Path) -> dict | None:
     return {"basinc_N": sayi[0:3], "viskoz_N": sayi[3:6]}
 
 
-def _kayma_bedeli(bilesen: dict | None, fea, hacim_kuvvet) -> dict | None:
+def _kayma_bedeli(bilesen: dict | None, fea, hacim_kuvvet,
+                  kayma_acik: bool = False) -> dict | None:
     """Basınç-yalnız aktarımın EKSİK BIRAKTIĞI yük ve onun uç etkisi.
 
     BU KAPI BİR HATADAN DOĞDU. Önceki sürüm referans çiftini ``kendi içinde
@@ -392,6 +410,12 @@ def _kayma_bedeli(bilesen: dict | None, fea, hacim_kuvvet) -> dict | None:
     tutarlıdır, EKSİK OLAN BİZİM YÜKÜMÜZDÜ.
 
     Ders kaydedilir çünkü yönü kritikti: kapı kusuru DIŞ kaynağa atıyordu.
+
+    ÖLÇÜM BİR SEFERLİK DEĞİL. Boşluk görülünce kuplaja viskoz çekme kanalı
+    eklendi (`kayma=True`); bu kayıt artık kanal AÇIKKEN de aynı soruyu
+    sorar. `aktarim_capasi_TOPLAM_pct` taşınan eksenel kuvveti çözücünün
+    basınç+viskoz toplamıyla karşılaştırır --- kanal doğru bağlandıysa o
+    yüzde küçüktür; bağlanmadıysa (ya da işaret dönerse) BÜYÜR ve düşer.
     """
     if not bilesen or not (fea and fea.get("kosdu")):
         return None
@@ -410,16 +434,22 @@ def _kayma_bedeli(bilesen: dict | None, fea, hacim_kuvvet) -> dict | None:
         "aktarilan_Fx_N": round(aktarilan, 8),
         "aktarilan_Fy_N": round(float(hacim_kuvvet[:, 1].sum()), 8),
         "aktarim_capasi_pct": round(100 * (aktarilan - Fp) / abs(Fp), 3),
+        "aktarim_capasi_TOPLAM_pct": round(
+            100 * (aktarilan - (Fp + Fv)) / abs(Fp + Fv), 3),
+        "kayma_kanali_acik": bool(kayma_acik),
         "aktarim_capasi_Fy_pct": round(
             100 * (float(hacim_kuvvet[:, 1].sum()) - bilesen["basinc_N"][1])
             / abs(bilesen["basinc_N"][1]), 3),
         "_capa_notu": (
-            "Fy ÇAPASI GÜÇLÜ OLANDIR: düşey yükü bayrağın üst ve alt "
-            "yüzündeki ~290 CFD yüzü taşır, aktarım orada %0,03 içinde "
-            "oturur. Fx neredeyse tümüyle UÇ yüzünden gelir --- iki CFD "
-            "yüzü. Orada ortalama alacak bir şey yoktur ve %4,8 sapma "
-            "aktarımın kusuru değil, iki yüzün ayrıklaştırmasıdır. İki "
-            "yüzdeyi aynı kefeye koymak yanlış okuma olurdu."),
+            "HANGİ YÜZDEYE BAKILACAĞI KANALIN AÇIK OLUP OLMAMASINA BAĞLI. "
+            "Kayma kapalıyken taşınan eksenel kuvvet yalnız basıncı "
+            "temsil eder, bu yüzden çapa `aktarim_capasi_pct`'dir. Kanal "
+            "açıkken taşınan kuvvet basınç+viskoz toplamına karşılık gelir "
+            "ve doğru çapa `aktarim_capasi_TOPLAM_pct`'dir; kapalı-kanal "
+            "yüzdesi o durumda yüzlerce çıkar ve BİR KUSUR DEĞİL, yanlış "
+            "paydadır. Düşey çapa (`aktarim_capasi_Fy_pct`) her iki "
+            "durumda da geçerlidir ve daha güçlüdür: düşey yükü ~290 CFD "
+            "yüzü taşır, eksenel yükü büyük ölçüde iki uç yüzü."),
         "viskoz_basinc_orani_x": round(abs(Fv / Fp), 2),
         "ux_basinc_yalniz_mm": round(ux(Fp), 5),
         "ux_basinc_arti_viskoz_mm": round(ux(Fp + Fv), 5),
@@ -494,15 +524,18 @@ def _ozetle(stl, yukler, fea, neden, hacim_kuvvet=None, kiris=None,
         "fea": fea,
         "kiris_capasi": kiris,
         "referans": REF,
-        "kayma_bedeli": _kayma_bedeli(bilesen, fea, hacim_kuvvet),
+        "kayma_bedeli": _kayma_bedeli(bilesen, fea, hacim_kuvvet,
+                                      bool((yukler or {}).get("kayma_tasindi"))),
         "tek_yon_bedeli": _tek_yon_bedeli(fea),
         "sapma": sapma,
         "verdikt": _hukum(yuk_ozet, fea, sapma, neden, kiris,
-                          _kayma_bedeli(bilesen, fea, hacim_kuvvet),
+                          _kayma_bedeli(bilesen, fea, hacim_kuvvet,
+                                        bool((yukler or {}).get("kayma_tasindi"))),
                           _tek_yon_bedeli(fea)),
         "_kisit": (
-            "BASINC-YALNIZ aktarim: viskoz duvar gerilmesi TASINMAZ ve bu "
-            "vakada eksenel yukun BASKIN bileseni odur (olculdu). "
+            "VISKOZ CEKME grad(U)'dan kurulur ve sinira BIRINCI MERTEBEDEN "
+            "ekstrapole edilir; toplami cozucunun kendi kuvvetiyle %1 "
+            "icinde ortusuyor ama daha keskin bir yuzeyde bu fark buyur. "
             "TEK YONLU aktarim: akis rijit bayrakla bir kez cozuldu; "
             "kaynagin kendi CFD1/FSI1 tasima orani geri beslemenin yuku "
             "%32 dusurdugunu soyluyor, bu betik onu DUZELTMEZ yalniz "
@@ -536,15 +569,24 @@ def _hukum(yuk, fea, sapma, neden, kiris, kayma, tekyon) -> str:
         s += (f"EKSENEL KANAL: çözücünün kendi yüzey integralinde bayrağın "
               f"basınç Fx'i {kayma['cozucu_basinc_Fx_N']:.3e} N, viskoz Fx'i "
               f"{kayma['cozucu_viskoz_Fx_N']:.3e} N --- viskoz bileşen "
-              f"{kayma['viskoz_basinc_orani_x']} kat büyük ve kuplaj onu "
-              f"TAŞIMIYOR. Aktardığımız düşey kuvvet çözücünün basınç "
-              f"integralinden %{kayma['aktarim_capasi_Fy_pct']} sapıyor "
-              f"(eksenelde %{kayma['aktarim_capasi_pct']}, çünkü onu "
-              f"yalnız iki uç yüzü taşır) --- yani aktarım doğru "
-              f"çalışıyor; eksik olan BİLEŞEN. Basınç-yalnız "
-              f"ux={kayma['ux_basinc_yalniz_mm']:.4f} mm, viskoz eklenince "
-              f"{kayma['ux_basinc_arti_viskoz_mm']:.4f} mm; referans "
-              f"{REF['ux_mm']} mm ({kayma['ux_kalan_oran']} kat). ")
+              f"{kayma['viskoz_basinc_orani_x']} kat büyük. ")
+        if kayma["kayma_kanali_acik"]:
+            s += (f"Kuplaj bu kanalı ARTIK TAŞIYOR: aktarılan eksenel kuvvet "
+                  f"çözücünün basınç+viskoz toplamından "
+                  f"%{kayma['aktarim_capasi_TOPLAM_pct']}, düşey kuvvet ise "
+                  f"%{kayma['aktarim_capasi_Fy_pct']} sapıyor. Ölçülen "
+                  f"ux={fea['ux_mm']:.4f} mm, referans {REF['ux_mm']} mm "
+                  f"(sapma %{sapma['ux_pct']}) --- yani eksenel kanal "
+                  f"HESAPLAMAYLA değil ÖLÇÜMLE kapandı. ")
+        else:
+            s += (f"Kuplaj onu TAŞIMIYOR. Aktardığımız düşey kuvvet "
+                  f"çözücünün basınç integralinden "
+                  f"%{kayma['aktarim_capasi_Fy_pct']} sapıyor --- aktarım "
+                  f"doğru çalışıyor; eksik olan BİLEŞEN. Basınç-yalnız "
+                  f"ux={kayma['ux_basinc_yalniz_mm']:.4f} mm, viskoz "
+                  f"eklenince {kayma['ux_basinc_arti_viskoz_mm']:.4f} mm; "
+                  f"referans {REF['ux_mm']} mm "
+                  f"({kayma['ux_kalan_oran']} kat). ")
     if tekyon and tekyon["uy_olceklenmis_mm"] is not None:
         s += (f"DÜŞEY KANAL: kaynak taşımayı rijitte {TASIMA_CFD1}, "
               f"deformede {TASIMA_FSI1} N/m veriyor (oran "
@@ -553,6 +595,15 @@ def _hukum(yuk, fea, sapma, neden, kiris, kayma, tekyon) -> str:
               f"{tekyon['uy_olceklenmis_mm']:.4f} mm olur ve referanstan "
               f"%{tekyon['kalan_sapma_pct']} sapar --- ham "
               f"%{sapma['uy_pct']} yerine. ")
+    acik = bool(kayma and kayma["kayma_kanali_acik"])
+    if acik:
+        return s + (
+            "SONUÇ: eksenel kanal KAPANDI --- yayımlanmış bir referansa "
+            "karşı %1 bandında bir uçtan-uca doğrulama, bu depoda FSI "
+            "tarafında ilk. Düşey kanal AÇIK ve gerekçesi biliniyor: akış "
+            "rijit bayrakla çözülüyor. Onun ölçeklenmiş kalıntısı "
+            "HESAPLANMIŞTIR, ölçülmemiştir; kapatmak için iki-yönlü koşu "
+            "gerekir ve o yazılmadı. Yani ux bir GEÇMEDİR, uy DEĞİLDİR.")
     return s + (
         "SONUÇ: sapmanın iki kanalı da ADLANDIRILDI ve ikisi de zincirin "
         "kusuru değil KAPSAMI. Eksenel kanal basınç-yalnız aktarımın, düşey "

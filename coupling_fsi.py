@@ -7,19 +7,24 @@ dF = -p * n * A hesaplar, FEA STL dugumlerine en-yakin esleme ile aktarir.
 Korunum garantisi: toplam kuvvet yeniden dagitildigi icin
 sum(F_FEA) == sum(F_CFD) (makine hassasiyetinde).
 
-BASINC-YALNIZ. VISKOZ DUVAR GERILMESI TASINMAZ ve bu, adin ("basinc ->
-yuk") gizledigi bir KAPSAM SINIRIDIR, bir ayrinti degil. Bedeli 2026-08-27'de
-Turek-Hron FSI1 bayraginda OLCULDU (`experiments/turek_hron_fsi1.py`,
-cozucunun kendi forces fonksiyonuyla):
+VARSAYILAN BASINC-YALNIZDIR ve bu, adin gizledigi bir KAPSAM SINIRIYDI.
+Bedeli 2026-08-27'de Turek-Hron FSI1 bayraginda OLCULDU
+(`experiments/turek_hron_fsi1.py`, cozucunun kendi forces fonksiyonuyla):
 
     bayrak eksenel kuvvet   basinc  -3,017e-03 N
                             viskoz  +2,887e-02 N   -> viskoz 9,6 KAT buyuk
 
-Yani ince, akisa PARALEL bir yuzeyde bu modulun tasidigi eksenel yuk
-gercegin ~%10'udur. Enine (basinc-baskin) yonde ayni vakada aktarim
+Yani ince, akisa PARALEL bir yuzeyde basinc-yalniz aktarim eksenel yukun
+ancak ~%10'unu tasir. Enine (basinc-baskin) yonde ayni vakada aktarim
 cozucunun integraliyle %0,03 icinde ortustu --- yani kusur aktarimda
-DEGIL, kapsamdadir. Kanat/bayrak gibi narin yuzeylerde eksenel gerilme
-ya da uzama onemliyse bu modul TEK BASINA yetmez.
+DEGIL, kapsamdaydi.
+
+`kayma=True` (ve `mu_pa_s`) ile viskoz cekme de tasinir; grad(U) alanindan
+kurulur ve toplami cozucunun `forces` ciktisiyla %1 icinde ortusur. Kanat/
+bayrak gibi narin yuzeylerde eksenel gerilme ya da uzama onemliyse bu
+secenek ZORUNLUDUR. Varsayilan KAPALI birakildi cunku ek bir
+son-islem adimi (grad(U) uretimi) ve dinamik viskozite ister; sessizce
+acilsaydi alan bulunamayan her cagri duserdi.
 
 Endustri pratigi: ASME V&V, bir-yonlu aero-yapisal coupling.
 """
@@ -133,6 +138,38 @@ def _parse_legacy_vtk(vtk_path: Path):
     return points, polys, p_cell, p_loc
 
 
+def _vtk_vektor_alani(vtk_path: Path, ad: str):
+    """Ayni legacy VTK'dan ADI VERILEN vektor alanini oku -> ((N,3), 'CELL'|'POINT').
+
+    AYRI FONKSIYON, cunku `_parse_legacy_vtk`'nin dondurdugu 4'lu dokuz yerde
+    aciliyor; arite degistirmek dokuzunu birden kirardi. Tarama ucuz (tek
+    dosya, tek gecis) ve kirilma riski sifir.
+    """
+    lines = vtk_path.read_text(errors="replace").splitlines()
+    if any(s.strip().upper() == "BINARY" for s in lines[:6]):
+        raise ValueError(f"{vtk_path.name} BINARY; foamToVTK -ascii gerekir.")
+    yer, i, n = None, 0, len(lines)
+    while i < n:
+        t = lines[i].split()
+        if t and t[0] in ("CELL_DATA", "POINT_DATA"):
+            yer = t[0].split("_")[0]
+        elif t and t[0] == ad and len(t) >= 4:
+            ncomp, ntup = int(t[1]), int(t[2])
+            vals: list[float] = []
+            j = i + 1
+            while len(vals) < ncomp * ntup and j < n:
+                tok = lines[j].split()
+                if not tok or not _is_num(tok[0]):
+                    break
+                vals.extend(float(x) for x in tok)
+                j += 1
+            if len(vals) < ncomp * ntup:
+                return None, None
+            return np.array(vals[:ncomp * ntup]).reshape(ntup, ncomp), yer
+        i += 1
+    return None, None
+
+
 def _is_num(s):
     try:
         float(s); return True
@@ -164,7 +201,9 @@ def _poly_geometry(points, polys):
 
 def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
                                rho: float = 1.225, p_is_kinematic: bool = True,
-                               sema: str = "korunumlu", esleme: dict | None = None):
+                               sema: str = "korunumlu", esleme: dict | None = None,
+                               kayma: bool = False,
+                               mu_pa_s: float | None = None):
     """CFD duvar basincini FEA STL dugum kuvvetlerine donustur.
 
     vtk_patch     : foamToVTK aircraft patch .vtk yolu
@@ -214,6 +253,48 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
     # Statik basinci Pa'ya cevir (incompressible kinematic p)
     p_pa = p_poly * rho if p_is_kinematic else p_poly
 
+    # ── VISKOZ DUVAR CEKMESI (istege bagli) ──────────────────────────────
+    # BASINC-YALNIZ AKTARIM AKISA PARALEL YUZEYLERDE YUKUN COGUNU KACIRIR:
+    # Turek-Hron bayraginda olculdu, viskoz eksenel kuvvet basincinkinin
+    # 9,6 kati (`experiments/turek_hron_fsi1.py`).
+    #
+    # NEDEN wallShearStress DEGIL: OpenFOAM 11'in o fonksiyon nesnesi bu
+    # laminer vakada HER YUZDE TAM SIFIR yaziyor --- hem foamPostProcess
+    # hem cozucu-ici kosuda denendi, ikisinde de uniform (0 0 0). Ayni
+    # kosuda `forces` viskoz kuvveti dogru veriyor, yani viskozite orada
+    # var. Alan yolu kapali oldugu icin cekme grad(U)'dan KURULUR:
+    #     t_visc = mu (grad U + grad U^T) . n_disa
+    # n_disa KATIDAN disari bakar --- yani BASINC terimiyle AYNI normal.
+    # Cauchy cekmesi t = sigma . n_s katiya etkiyen kuvveti verir; basinc
+    # icin t = -p n_s (kodda oyle) ve viskoz icin t = +mu (...) n_s. Ilk
+    # yazimda buraya fazladan bir eksi koydum ve dogrulama isareti ANINDA
+    # dusurdu: -2,859e-02 yerine cozucu +2,887e-02 diyordu.
+    #
+    # ISARET VE BUYUKLUK UYDURULMADI, OLCULDU: bu ifade bayrakta
+    # 2,859e-02 N verdi, cozucunun kendi `forces` fonksiyonu 2,887e-02 N
+    # --- %0,96 fark, grad(U)'nun sinira BIRINCI MERTEBEDEN
+    # ekstrapolasyonundan. Dogrulama `kayma_kuvveti_N` alaninda her kosuda
+    # raporlanir ki isaret sessizce donmesin.
+    gradU = None
+    if kayma:
+        if mu_pa_s is None:
+            return {"status": "FAILED",
+                    "error": "kayma=True ama mu_pa_s verilmedi; dinamik "
+                             "viskozite TAHMIN EDILMEZ"}
+        G, g_yer = _vtk_vektor_alani(vtk_path, "grad(U)")
+        if G is None or G.shape[1] != 9:
+            return {"status": "FAILED",
+                    "error": "kayma=True ama VTK'da grad(U) yok "
+                             "(foamPostProcess -solver ... -func gradU)"}
+        if g_yer == "POINT" or len(G) == len(points):
+            G = np.array([G[list(p)].mean(axis=0) for p in polys])
+        elif len(G) != len(polys):
+            return {"status": "FAILED",
+                    "error": f"grad(U) ({len(G)}) poligon ({len(polys)}) "
+                             f"ile uyumsuz"}
+        gradU = G.reshape(-1, 3, 3)
+        gradU = gradU + np.transpose(gradU, (0, 2, 1))
+
     # FEA STL: tutarli disa-normaller (trimesh watertight mesh icin duzeltir)
     mesh = trimesh.load(fea_stl, force='mesh')
     trimesh.repair.fix_normals(mesh)
@@ -231,8 +312,12 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
 
     # Yuzey kuvveti: dF = -p * n * A  (STL disa-normali guvenilir)
     dF_face = (-p_on_face[:, None]) * f_normals * f_areas[:, None]   # (F,3)
+    if gradU is not None:
+        t_face = mu_pa_s * np.einsum("kij,kj->ki", gradU[nearest], f_normals)
+        dF_face = dF_face + t_face * f_areas[:, None]
     total_F = dF_face.sum(axis=0)
 
+    _kayma_F = None
     _esleme = esleme
     if sema == "korunumlu":
         from fsi_korunumlu_esleme import (
@@ -246,6 +331,14 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
         _n_cfd, _ = disa_yonlendir(cfd_centers, cfd_normals,
                                    f_centers, f_normals)
         dF_cfd_yuz = (-p_pa[:, None]) * _n_cfd * cfd_areas[:, None]
+        if gradU is not None:
+            # AYNI _n_cfd KULLANILIR: cekme de normal yonune bagli oldugu
+            # icin isaret duzeltmesi ONA DA uygulanmali. Ayri isaret
+            # kullanmak, basinc ve kayma bilesenlerini ters yonlerde
+            # toplamak olurdu.
+            _kayma = mu_pa_s * np.einsum("kij,kj->ki", gradU, _n_cfd)
+            _kayma_F = (_kayma * cfd_areas[:, None]).sum(axis=0)
+            dF_cfd_yuz = dF_cfd_yuz + _kayma * cfd_areas[:, None]
         if _esleme is None:
             _esleme = esleme_kur(cfd_centers, fea_nodes, faces, f_centers)
         node_forces = esleme_uygula(_esleme, dF_cfd_yuz, fea_nodes)
@@ -427,6 +520,13 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
             "ise gerçekten korunmayan adımı ölçer: basıncın CFD yüzlerinden "
             "FEA yüzlerine en-yakın-komşu ile taşınması."),
         "total_moment_Nm": [round(float(x), 4) for x in M_face],
+        # KAYMA KANALI AYRI RAPORLANIR. Toplama gomulseydi isaret hatasi
+        # gorunmezdi: yanlis isaretli bir kayma da "bir kuvvet" olarak
+        # makul gorunur. Cagiran bunu cozucunun kendi viskoz kuvvetiyle
+        # karsilastirabilsin diye yalniz kayma toplami da doner.
+        "kayma_tasindi": bool(gradU is not None),
+        "kayma_kuvveti_N": (None if _kayma_F is None else
+                            [float(x) for x in _kayma_F]),
         "node_forces": forces,
     }
 

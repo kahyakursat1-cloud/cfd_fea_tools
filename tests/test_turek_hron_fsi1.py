@@ -82,21 +82,36 @@ def test_AKTARIM_COZUNURLUGU_YAKINSADI_ve_SONUCU_DEGISTIRMIYOR(kanit):
     assert len(Fy) == 1, f"korunumlu şemada Fy çözünürlükle değişemez: {Fy}"
 
 
-def test_VISKOZ_BILESEN_TASINMIYOR_ve_BEDELI_OLCULDU(kanit):
-    """Bu deponun kuplajı basınç-yalnızdır. Cümle olarak vardı; BEDELİ
-    yoktu. Artık çözücünün kendi integralinden ölçülüyor."""
+def test_VISKOZ_BILESENIN_BASKIN_OLDUGU_hala_dogru(kanit):
+    """Bu vakanın öğrettiği ders viskoz eksenel kuvvetin baskınlığıdır.
+    Baskın değilse vaka artık bu dersi taşımıyordur ve kayıt yeniden
+    yazılmalıdır --- sessizce geçerli sayılmamalı."""
     k = kanit.get("kayma_bedeli")
     if not k:
         pytest.skip("kayma_bedeli yok")
-    assert k["viskoz_basinc_orani_x"] > 1.0, (
-        "viskoz eksenel kuvvet basınçtan küçükse bu vaka artık bu dersi "
-        "öğretmiyordur --- kayıt buna göre yeniden yazılmalı")
-    # Viskoz eklenince referansa YAKLASMALI; yaklasmiyorsa aciklama yanlistir.
+    assert k["viskoz_basinc_orani_x"] > 1.0
+
+
+def test_KAYMA_KANALI_ACIK_ve_EKSENELI_KAPATTI(kanit):
+    """Boşluk ölçüldükten sonra KAPATILDI. Bu test kapanmanın HESAPLA
+    değil ÖLÇÜMLE olduğunu bağlar: kanal açık olmalı ve koşulan FEA'nın
+    kendi ux'i referansa oturmalı."""
+    k, fea, sapma = (kanit.get("kayma_bedeli"), kanit["fea"],
+                     kanit.get("sapma"))
+    if not k or not fea.get("kosdu"):
+        pytest.skip("ölçüm yok")
+    assert k["kayma_kanali_acik"] is True, (
+        "kanal kapandıysa ux sapması geri gelir; kayıt bunu söylemeli")
+    assert abs(sapma["ux_pct"]) < 10.0, (
+        f"eksenel kanal açıkken ux sapması %{sapma['ux_pct']} --- "
+        "kapanma iddiası bu veriyle desteklenmiyor")
+    # Basinc-yalniz TAHMINI hala kayitta ve GERCEKTEN kotu olmali;
+    # yoksa "kanal fark yaratti" iddiasi bos kalir.
     yalniz = abs(k["ux_referans_mm"] - k["ux_basinc_yalniz_mm"])
-    ekli = abs(k["ux_referans_mm"] - k["ux_basinc_arti_viskoz_mm"])
-    assert ekli < yalniz, (
-        f"viskoz terim eklenince referansa yaklaşmıyor ({yalniz} -> {ekli}); "
-        "eksik-kayma açıklaması bu veriyle desteklenmiyor")
+    olculen = abs(k["ux_referans_mm"] - fea["ux_mm"])
+    assert olculen < yalniz / 3, (
+        f"kanal açıldıktan sonraki hata ({olculen:.4f}) basınç-yalnız "
+        f"hatadan ({yalniz:.4f}) belirgin küçük değil")
 
 
 def test_AKTARIM_COZUCUNUN_KENDI_INTEGRALIYLE_CAPALI(kanit):
@@ -107,8 +122,16 @@ def test_AKTARIM_COZUCUNUN_KENDI_INTEGRALIYLE_CAPALI(kanit):
         pytest.skip("kayma_bedeli yok")
     assert abs(k["aktarim_capasi_Fy_pct"]) < 1.0, (
         f"düşey aktarım çözücüden %{k['aktarim_capasi_Fy_pct']} sapıyor")
-    # Fx'in daha genis sapmasi ACIKLANMIS olmali; sessizce durmamali.
-    assert "uç yüzü" in k["_capa_notu"] or "UÇ" in k["_capa_notu"]
+    # DOGRU PAYDA KANALA BAGLIDIR ve bu ayrim kayitta ACIK olmali:
+    # kanal acikken basinc-yalniz yuzde yuzlerce cikar ve bir kusur DEGIL,
+    # yanlis paydadir. Testin kendisi de dogru paydayi secmeli.
+    if k["kayma_kanali_acik"]:
+        assert abs(k["aktarim_capasi_TOPLAM_pct"]) < 5.0, (
+            f"eksenel aktarım çözücünün basınç+viskoz toplamından "
+            f"%{k['aktarim_capasi_TOPLAM_pct']} sapıyor")
+    else:
+        assert abs(k["aktarim_capasi_pct"]) < 10.0
+    assert "payda" in k["_capa_notu"]
 
 
 def test_TEK_YON_BEDELI_KAYNAKTAN_KURULDU_tahminden_degil(kanit):
@@ -124,17 +147,20 @@ def test_TEK_YON_BEDELI_KAYNAKTAN_KURULDU_tahminden_degil(kanit):
         "desteklenmiyor")
 
 
-def test_HUKUM_GECTI_DEMIYOR(kanit):
-    """En tehlikeli okuma: iki kanal adlandırıldı = doğrulandı. Kalan fark
-    HESAPLANDI, ölçülmedi."""
+def test_HUKUM_IKI_KANALI_AYIRIYOR_hepsini_gecmis_saymiyor(kanit):
+    """En tehlikeli okuma: bir kanal kapandı = doğrulandı. Düşey kanalın
+    düzeltmesi HESAPLANDI, ölçülmedi ve hüküm bunu ayrı söylemeli."""
     v = kanit["verdikt"]
-    assert "GEÇME DEĞİLDİR" in v
-    assert "hesaplandı, ölçülmedi" in v
+    acik = (kanit.get("kayma_bedeli") or {}).get("kayma_kanali_acik")
+    if acik:
+        assert "ux bir GEÇMEDİR, uy DEĞİLDİR" in v
+        assert "HESAPLANMIŞTIR, ölçülmemiştir" in v
+    else:
+        assert "GEÇME DEĞİLDİR" in v
 
 
-def test_KISIT_basinc_yalniz_ve_tek_yonlu_oldugunu_SOYLUYOR(kanit):
+def test_KISIT_tek_yonlu_oldugunu_SOYLUYOR(kanit):
     k = kanit["_kisit"]
-    assert "BASINC-YALNIZ" in k
     assert "TEK YONLU" in k
     assert "LINEER" in k
 

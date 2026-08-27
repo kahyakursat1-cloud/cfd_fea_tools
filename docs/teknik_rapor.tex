@@ -3102,12 +3102,12 @@ Taşıma (N/m) & 1{,}1094 & 1{,}119 & \%-0{,}86 \\
         ne kadarının ayrıklaştırmadan geldiği bilinmiyor.
 
         \medskip
-        \noindent \textbf{FSI1 koşuldu ve iki kapsam boşluğunu sayıya döktü.}
-        Basınç bayrağa aktarıldı, yapı (C3D10, düzlem gerinim, $E=1{,}4$ MPa)
-        çözüldü ve uç yer değiştirmesi okundu: $u_y = 1{,}5184$ mm,
-        $u_x = 0{,}0017$ mm. Yayımlanan FSI1 değerleri $0{,}8209$ ve
-        $0{,}0227$ mm. Ham sapma \%$85$ ve \%$-93$; yani ilk bakışta zincir
-        çökmüş görünüyor. Üç eleme onu parçalarına ayırdı.
+        \noindent \textbf{FSI1 koşuldu, iki kapsam boşluğunu sayıya döktü ve
+        birini kapattı.} Basınç bayrağa aktarıldı, yapı (C3D10, düzlem
+        gerinim, $E=1{,}4$ MPa) çözüldü ve uç yer değiştirmesi okundu:
+        $u_y = 1{,}5184$ mm, $u_x = 0{,}0017$ mm. Yayımlanan FSI1 değerleri
+        $0{,}8209$ ve $0{,}0227$ mm. Ham sapma \%$85$ ve \%$-93$; yani ilk
+        bakışta zincir çökmüş görünüyor. Üç eleme onu parçalarına ayırdı.
 
         \noindent \emph{Yapı değil.} Aynı düğüm kuvvetlerinin kapalı-form
         konsol çözümü $1{,}5208$ mm verdi; FEA ondan \%$0{,}16$ sapıyor.
@@ -3127,9 +3127,31 @@ Taşıma (N/m) & 1{,}1094 & 1{,}119 & \%-0{,}86 \\
         Viskoz terim elle eklendiğinde $u_x$ $-0{,}0019$ mm'den $0{,}0162$
         mm'ye çıkıyor ve referansın $1{,}4$ katına yaklaşıyor. Düşey kanalda
         ise kaynağın kendi taşıma değerleri (rijit $1{,}119$, deforme
-        $0{,}7638$ N/m) geri beslemenin yükü \%$32$ düşürdüğünü söylüyor; bu
-        oranla ölçeklenince sehim $1{,}0364$ mm olup sapma \%$85$'ten
-        \%$26$'ya iniyor.
+        $0{,}7638$ N/m) geri beslemenin yükü \%$32$ düşürdüğünü söylüyor.
+
+        \medskip
+        \noindent \textbf{Eksenel kanal sonra hesapla değil ölçümle
+        kapatıldı.} Kuplaja viskoz çekme kanalı eklendi. Alan yolu kapalı
+        çıktı: OpenFOAM 11'in \texttt{wallShearStress} fonksiyon nesnesi bu
+        laminer vakada her yüzde \emph{tam sıfır} yazıyor, hem
+        \texttt{foamPostProcess} hem çözücü-içi koşuda; aynı koşuda
+        \texttt{forces} viskoz kuvveti doğru veriyor, yani viskozite orada
+        var. Çekme bu yüzden $\nabla U$'dan kuruldu:
+        $t = \mu (\nabla U + \nabla U^{T})\cdot n_s$, basınç terimiyle
+        \emph{aynı} normalle. İlk yazımda buraya fazladan bir eksi koydum ve
+        doğrulama işareti anında düşürdü. Toplanan viskoz kuvvet
+        $2{,}8591{\times}10^{-2}$ N, çözücünün kendi değeri
+        $2{,}8865{\times}10^{-2}$ N: \%$0{,}95$ fark, $\nabla U$'nun sınıra
+        birinci mertebeden ekstrapolasyonundan.
+
+        \noindent Kanal açıkken FSI1 yeniden koşuldu:
+        $u_x = 0{,}0230$ mm, referans $0{,}0227$ mm, sapma \%$1{,}3$.
+        Aktarılan eksenel kuvvet çözücünün basınç+viskoz toplamından
+        \%$-1{,}6$, düşey kuvvet \%$0{,}14$ sapıyor. Düşey sehim
+        $1{,}5605$ mm'ye çıktı; kaynağın taşıma oranıyla ölçeklenince
+        $1{,}0652$ mm olup sapma \%$90$'dan \%$30$'a iniyor.
+        \textbf{Yani $u_x$ bir geçmedir, $u_y$ değildir:} biri koşularak,
+        öbürü yalnız hesaplanarak kapandı.
 
         \begin{dikkat}{Kusuru dışarıya atan kapı}
         Bu ölçümün ilk sürümü sapmayı \emph{referansa} yükledi. Bir kapı
@@ -3148,9 +3170,10 @@ Taşıma (N/m) & 1{,}1094 & 1{,}119 & \%-0{,}86 \\
         çevrildi ve ders kayıtta duruyor.
         \end{dikkat}
 
-        \noindent \textbf{Bu bir geçme değildir.} İki düzeltme de
-        \emph{hesaplandı}, koşulmadı. Kapatmak için viskoz gerilmenin de
-        aktarılması ve iki-yönlü koşu gerekir; ikisi de yazılmadı.
+        \noindent \textbf{Düşey kanal açık kalıyor.} Onun düzeltmesi
+        \emph{hesaplandı}, koşulmadı; kapatmak için iki-yönlü koşu gerekir ve
+        o yazılmadı. Ağ-bağımsızlığı da sınanmadı: aktarım yüzeyi on kat
+        inceltildi, yapı ağı ve akış ağı incelmedi.
 
         \noindent Kapının \emph{önce} sorulmasının kazandırdığı şey budur: ağ
         kurma denemelerine saatler harcanmadan yol kapandı ve engelin \emph{yeri}
