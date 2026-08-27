@@ -1,15 +1,18 @@
 """Turek--Hron CSM1 --- yapısal zincirin AKIŞSIZ, yayımlanmış çapası.
 
-NEDEN BU ÖLÇÜM ŞİMDİ. İki-yönlü FSI1 koşusunda düşey sehim referansın %77
-üstünde kaldı ve üç aday sırayla elendi: akış çözücüsü (sürükleme
-yayımlanan değerin %0,1'inde), ağ (dört seviyeli aile, taşıma yayılımı
-%3,1) ve yapısal model. Ama yapısal modelin elenmesi DOLAYLIYDI: ux
-referansı %1,3 bandında tutturuyor, ux ise EA'ya bağlı, dolayısıyla E ya da
-kesit 1,8 kat yanlış olamaz. Doğru ama bir ÇIKARIM.
+NEDEN BU ÖLÇÜM. Depoda yapısal zincirin doğruluğu hep DOLAYLI
+gerekçelerle taşınıyordu: kiriş teorisiyle uyum, elastika çözümüyle
+NLGEOM doğrulaması, ux'in EA'ya bağlı olması. Hepsi doğru, hepsi çıkarım.
+CSM1 aynı yapıyı DOĞRUDAN ve yayımlanmış bir değere karşı sınar.
 
-CSM1 aynı yapıyı DOĞRUDAN sınar ve akışı hiç işin içine sokmaz: aynı
-bayrak, aynı malzeme, tek yük olarak yerçekimi (g = 2 m/s^2). Yayımlanan
-uç yer değiştirmesi ux = -7,187 mm ve uy = -66,10 mm.
+(Betik bir hata avı sırasında yazıldı: o sırada iki-yönlü FSI1 sehimi
+referansın %77 üstündeydi ve yapı şüphelilerden biriydi. Kusur sonradan
+o döngünün kendi bayat-veri yolunda bulundu; ama bu ölçümün değeri
+avdan bağımsızdır ve yerinde durur.)
+
+KURULUM: aynı bayrak, aynı malzeme, akış yok, tek yük olarak yerçekimi
+(g = 2 m/s^2). Yayımlanan uç yer değiştirmesi ux = -7,187 mm ve
+uy = -66,10 mm.
 
 BU KIYASLAMA FSI1'DEN DAHA ZORDUR. Sehim/uzunluk = %19, yani BÜYÜK yer
 değiştirme rejimi: lineer teori burada geçmez ve NLGEOM zorunludur.
@@ -152,10 +155,11 @@ def _sapma(r) -> dict | None:
 def _ozetle(lineer, nl) -> dict:
     return {
         "vaka": "Turek-Hron CSM1 — yapı, yerçekimi altında, akış yok",
-        "_neden": ("Iki-yonlu FSI1'de yapisal model DOLAYLI elenmisti "
-                   "(ux/EA cikarimi). CSM1 onu DOGRUDAN ve yayimlanmis bir "
-                   "degere karsi sinar; ustelik sehim/uzunluk %19 oldugu "
-                   "icin NLGEOM'u da zorlar."),
+        "_neden": ("Deponun yapisal tarafindaki guven hep DOLAYLI "
+                   "tasiniyordu: kiris teorisi, elastika, ux/EA cikarimi. "
+                   "CSM1 ayni yapiyi DOGRUDAN ve yayimlanmis bir degere "
+                   "karsi sinar; ustelik sehim/uzunluk %19 oldugu icin "
+                   "NLGEOM'u da zorlar."),
         "kati": {"mu_s_Pa": MU_S, "nu_s": NU_S, "E_Pa": E_S, "rho": RHO_S,
                  "g_m_s2": G},
         "geometri": {"L_m": round(BAYRAK_SON_X - bayrak_bas_x(), 5),
@@ -197,16 +201,16 @@ def _hukum(lineer, nl) -> str:
         return s + (
             "YAPISAL ZİNCİR YAYIMLANMIŞ BİR DEĞERE KARŞI DOĞRULANDI: ağ, "
             "malzeme, düzlem gerinim seçimi ve büyük-yer-değiştirme yolu "
-            "birlikte %5 bandında. Bu, FSI1'de yapılan DOLAYLI elemeyi "
-            "doğrudan bir ölçümle değiştirir --- iki-yönlü koşuda kalan "
-            "%77'lik sapmanın kaynağı yapıda DEĞİLDİR. Tek ağ, tek artım "
+            "birlikte %5 bandında. Bu, deponun yapısal tarafında bugüne "
+            "kadar DOLAYLI taşınan güveni (kiriş teorisi, elastika, ux/EA "
+            "çıkarımı) doğrudan bir ölçümle değiştirir. Tek ağ, tek artım "
             "sayısı; bant bir GCI değil.")
     return s + (
-        "YAPISAL ZİNCİR YAYIMLANMIŞ DEĞERİ ÜRETMEDİ. Bu, FSI1'de yapılan "
-        "dolaylı elemeyi ÇÜRÜTÜR: ux/EA çıkarımı eksenel rijitliği "
-        "sınıyordu, CSM1 ise EĞİLME rijitliğini sınar ve ikisi aynı şey "
-        "değildir. Sıradaki soru artık kuplajda değil YAPIDA: ağ, düzlem "
-        "gerinim seçimi, ya da büyük-yer-değiştirme yolu.")
+        "YAPISAL ZİNCİR YAYIMLANMIŞ DEĞERİ ÜRETMEDİ. Bu, deponun yapısal "
+        "tarafındaki dolaylı gerekçeleri ÇÜRÜTÜR: ux/EA çıkarımı eksenel "
+        "rijitliği sınıyordu, CSM1 ise EĞİLME rijitliğini sınar ve ikisi "
+        "aynı şey değildir. Sıradaki soru YAPIDADIR: ağ, düzlem gerinim "
+        "seçimi, ya da büyük-yer-değiştirme yolu.")
 
 
 def main() -> int:

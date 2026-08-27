@@ -1,13 +1,14 @@
 """CFD1 ağ ailesi: bir turdur açık duran kısıt kapandı --- ve ADAYI ELEDİ.
 
-CFD1 kaydında ``ağ-bağımsızlığı SINANMADI'' notu duruyordu. İki-yönlü FSI1
-onu bir soruya çevirdi: düşey sehim referansın %77 üstünde kaldı, akış
-çözücüsü ve yapı elendi, geriye taşımanın silindir/bayrak dağılımı kaldı
-ve taşıma bu geometride 5 mm'lik bir eksen kaçıklığından doğduğu için
-ayrıklaştırmaya en duyarlı nicelik.
+CFD1 kaydında ``ağ-bağımsızlığı SINANMADI'' notu bir turdur duruyordu.
+Dört seviye koşuldu ve not kapandı: sürükleme yayılımı %0,17, taşıma
+%3,1. Taşıma sürüklemeden yirmi kat duyarlı çıktı, yani ``taşıma bu
+geometride 5 mm'lik eksen kaçıklığından doğar'' gerekçesi doğrulandı.
 
-Dört seviye koşuldu. Taşıma yayılımı %3,1 --- yani ağ da elenir ve kalan
-sapma bu aileyle AÇIKLANMIYOR. Negatif bir sonuçtur ve değeri budur.
+Aile bir hata avı sırasında yazıldı: o gün iki-yönlü FSI1 sehimi
+referansın %77 üstündeydi ve ağ şüphelilerden biriydi. Ağ elendi ve kusur
+sonradan o döngünün kendi bayat-veri yolunda bulundu. Testler bu yüzden
+AVA değil ÖLÇÜME bağlanır --- av anlatısı değişse de aile geçerli kalır.
 
 SÜRÜKLEMEDE GÖZLEMLENEN MERTEBE NEGATİF ÇIKTI (p<0). Bu bir kusur değil,
 Richardson'ın uygulanamadığının işaretidir: seviyeler arası fark (%0,17)
@@ -92,13 +93,13 @@ def test_TASIMA_SURUKLEMEDEN_DAHA_DUYARLI(kanit):
         "veriyle desteklenmiyor")
 
 
-def test_HUKUM_ELEMEYI_ACIKCA_SOYLUYOR(kanit):
-    """Bu ölçümün değeri negatif sonucudur; hüküm onu saklamamalı."""
+def test_HUKUM_YAYILIMI_ve_KAPATTIGI_NOTU_SOYLUYOR(kanit):
+    """Hüküm, ailenin ne ölçtüğünü ve neyi kapattığını söylemeli."""
     v = kanit["verdikt"]
-    yay = kanit["tasima"]["yayilim_pct"]
-    if yay <= 20.0:
-        assert "AÇIKLANMIYOR" in v
-        assert "%77" in v
+    assert str(kanit["tasima"]["yayilim_pct"]) in v
+    assert str(kanit["surukleme"]["yayilim_pct"]) in v
+    assert "SINANMADI" in v, (
+        "hüküm hangi kısıtı kapattığını söylemiyor")
 
 
 def test_KISIT_RIJIT_oldugunu_ve_YAPI_AGINI_DISLADIGINI_soyluyor(kanit):

@@ -1,18 +1,18 @@
 """Turek--Hron CFD1: ağ-bağımsızlığı --- kayıtta bir turdur açık duran kısıt.
 
-NEDEN ŞİMDİ. CFD1 sürüklemeyi %0,05, taşımayı %0,86 içinde tutturdu ve o
-gün not düşüldü: ``bu bir çapa değil, bir eğilimdir --- ağ-bağımsızlığı
-SINANMADI''. İki-yönlü FSI1 koşusu o notu bir soruya çevirdi. Orada düşey
-sehim referansın %77 üstünde kaldı ve iki eleme yapıldı:
+NEDEN. CFD1 sürüklemeyi %0,05, taşımayı %0,86 içinde tutturdu ve o gün
+not düşüldü: ``bu bir çapa değil, bir eğilimdir --- ağ-bağımsızlığı
+SINANMADI''. Bu betik o notu kapatır.
 
-  - akış çözücüsü elenir: sürükleme yayımlanan değerin %0,1'inde,
-  - yapısal model elenir: ux referansı %1,3 bandında ve ux doğrudan EA'ya
-    bağlı, yani E ya da kesit 1,8 kat yanlış olsaydı ux da kayardı.
+ÇALIŞMA BİR HATA AVI SIRASINDA YAZILDI VE AV YANLIŞ YERDEYDİ. O sırada
+iki-yönlü FSI1 koşusu düşey sehimi referansın %77 üstünde veriyordu; ağ,
+en güçlü şüphelilerden biriydi. Sonradan görüldü ki kusur ağda değil,
+iki-yönlü döngünün kendisindeydi (tur artıkları temizlenmediği için her
+tur bayat basıncı okuyordu). Düzeltilince FSI1 %2,3'e oturdu.
 
-Geriye TAŞIMANIN silindir ile bayrak arasındaki DAĞILIMI kaldı. Taşıma bu
-geometride 5 mm'lik bir eksen kaçıklığından doğar ve ayrıklaştırmaya
-sürüklemeden çok daha duyarlıdır. Yani ``ağ yeterli mi'' sorusu artık
-genel bir V&V nezaketi değil, ELENMEMİŞ TEK ADAY.
+ÖLÇÜMÜN DEĞERİ BUNDAN ETKİLENMEZ: soru ``ağ yeterli mi'' idi ve cevap
+alındı. Yanlış olan gerekçe değil, o gün hangi sorunun ACİL olduğuna dair
+tahminimdi.
 
 NE ÖLÇER. Aynı geometriden dört seviyeli bir aile üretir (hücre boyu
 ölçeklenir, sabit oran), her seviyede CFD1'i koşar ve sürükleme ile
@@ -135,11 +135,9 @@ def _ozetle(sev: list) -> dict:
     return {
         "vaka": "Turek-Hron CFD1 — ağ-bağımsızlığı ailesi",
         "_neden": ("CFD1 kaydinda 'ag-bagimsizligi SINANMADI' notu bir "
-                   "turdur duruyordu. Iki-yonlu FSI1 onu bir SORUYA "
-                   "cevirdi: akis cozucusu ve yapisal model elendi, "
-                   "geriye tasimanin silindir/bayrak DAGILIMI kaldi ve "
-                   "tasima bu geometride 5 mm'lik eksen kacikligindan "
-                   "dogdugu icin ayriklastirmaya en duyarli nicelik."),
+                   "turdur duruyordu. Tasima bu geometride 5 mm'lik eksen "
+                   "kacikligindan dogar ve ayriklastirmaya suruklemeden "
+                   "cok daha duyarlidir; not bu yuzden bos degildi."),
         "olcekler": list(OLCEKLER), "inceltme_orani": R,
         "seviyeler": sev,
         "surukleme": sur, "tasima": tas,
@@ -177,21 +175,20 @@ def _hukum(sev, sur, tas) -> str:
     if sur.get("lsr") or tas.get("lsr"):
         s += (f"LSR: sürükleme {(sur.get('lsr') or {}).get('u_pct')}, "
               f"taşıma {(tas.get('lsr') or {}).get('u_pct')}. ")
-    # ASIL SORU: tasima bandi, FSI1'de kalan %77'lik sapmayi ACIKLAYABILIR MI?
     yay_t = tas.get("yayilim_pct")
-    if yay_t is not None and yay_t > 20.0:
+    if yay_t is None:
+        return s + "Taşıma yayılımı hesaplanamadı."
+    if yay_t > 20.0:
         return s + (
-            "TAŞIMA AĞA GÜÇLÜ BAĞLI: yayılım tek başına FSI1'de kalan "
-            "sapmayla aynı mertebede. Bu, iki-yönlü koşunun bıraktığı "
-            "adayı DESTEKLER --- ama tek başına kanıtlamaz, çünkü FSI1 "
-            "deforme ağda koşar ve bu aile rijittir.")
-    if yay_t is not None:
-        return s + (
-            f"TAŞIMA AĞA GÜÇLÜ BAĞLI DEĞİL (%{yay_t}): FSI1'de kalan %77'lik "
-            "sapma bu aileyle AÇIKLANMIYOR. Geriye kalan adaylar ayrı "
-            "sorulmalı: deforme ağın kendi çözünürlüğü, yapısal ağ, ya da "
-            "kuplaj kurulumunda henüz bakılmamış bir varsayım.")
-    return s + "Taşıma yayılımı hesaplanamadı."
+            "TAŞIMA AĞA GÜÇLÜ BAĞLI: bu ailedeki yayılım tek başına "
+            "iki-yönlü FSI1'in referansa uzaklığıyla aynı mertebede, yani "
+            "o sonucun bandı ağ tarafından belirleniyor demektir.")
+    return s + (
+        f"TAŞIMA AĞA GÜÇLÜ BAĞLI DEĞİL (%{yay_t}) ve bu bir ELEMEDİR: "
+        "iki-yönlü FSI1'de görülen sapma bu aileyle açıklanamaz. Nitekim "
+        "açıklanmadı --- kusur ağda değil, o döngünün kendi bayat-veri "
+        "yolundaydı. Bu ailenin kalıcı değeri, CFD1 kaydında bir turdur "
+        "duran 'ağ-bağımsızlığı SINANMADI' notunu kapatmasıdır.")
 
 
 def main() -> int:

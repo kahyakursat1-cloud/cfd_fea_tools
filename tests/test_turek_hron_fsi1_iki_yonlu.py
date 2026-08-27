@@ -1,12 +1,29 @@
-"""İki-yönlü FSI1: geri besleme KOŞULDU ve referansı ÜRETMEDİ.
+"""İki-yönlü FSI1: yayımlanan DÖRT nicelik de %2,4 bandında üretildi.
 
-Bu ölçümün değeri olumlu bir sonuç değil, bir ELEMEDİR. Tek-yönlü koşu
-düşey sehimi %90 fazla vermişti ve gerekçe ``akış rijit bayrakla
-çözülüyor'' diye HESAPLANMIŞTI. Koşulunca geri beslemenin gerçekten
-çalıştığı görüldü --- ama fazla çalıştı: taşıma %56 düştü, kaynağın kendi
-rijit/deforme çifti %32 diyor. Sapma %90'dan %77'ye indi, kapanmadı.
+    uy  0,8401 mm   yayimlanan 0,8209   %2,34
+    ux  0,0230 mm   yayimlanan 0,0227   %1,32
+    surukleme       14,2835 / 14,295    %-0,08
+    tasima          0,7498  / 0,7638    %-1,83
 
-İKİ KUSUR YOL BOYUNCA DÜŞTÜ:
+Bu, deponun FSI tarafında tam bir kıyaslama vakasını uçtan uca ürettiği
+ilk sonuçtur.
+
+BU SONUCA İKİNCİ DENEMEDE ULAŞILDI VE BİRİNCİSİ SESSİZCE YANLIŞTI. İlk
+koşu 7 turda ``sabit noktaya'' ulaşıp uy=1,4496 mm veriyordu, yani %77
+sapma. Sebep döngünün kendisiydi: zaman dizinleri turlar arasında
+birikiyordu ve OpenFOAM'ın `-latestTime`'ı sayıca en büyüğü seçtiği için
+her tur 1. TURUN (rijit) alanını okuyordu. Yük sabit olduğu için ``sabit
+nokta'' da oluşuyordu.
+
+Yakalanması zordu çünkü İKİ KANAL AYRIŞMIŞTI ve ayrışma bir FİZİK BULGUSU
+gibi okunabiliyordu: çözücünün forces.dat'ı aynı dosyaya eklendiği ve son
+satırı okunduğu için TAZEYDİ. Taşıma her tur düşüyor, aktarılan bayrak
+yükü sabit kalıyordu. Bunu ``taşıma silindir ile bayrak arasında yeniden
+dağılıyor'' diye okudum ve üç eleme koşusu yazdım (ağ ailesi, CSM1,
+dağılım ölçümü); üçü de doğru sonuç verdi, üçü de kusuru bulamadı ---
+çünkü kusur onların hiçbirinde değildi.
+
+ÜÇ KUSUR YOL BOYUNCA DÜŞTÜ:
 
   1. Ağ hareketi 3B en-yakın-komşu kullanıyordu; ön ve arka düzlemdeki
      nokta çiftleri farklı FEA düğümlerine düşüyor, aradaki kenar z
@@ -17,11 +34,15 @@ rijit/deforme çifti %32 diyor. Sapma %90'dan %77'ye indi, kapanmadı.
   2. Kapı FİRE VERİYORDU AMA DÖNGÜ OKUMUYORDU: `checkMesh_hata` ikinci
      turdan itibaren True idi ve döngü aldırmadan yedi tur koştu. Bu
      deponun en sık kusuru. Kapı artık döngüyü durduruyor.
+  3. BAYAT VERİ: yukarıda anlatılan `-latestTime` kusuru. Artık her tur
+     başında artıklar siliniyor, VTK seçimi SAYICA yapılıyor ve aday
+     sayısı 1 değilse döngü duruyor.
 
-Düzeltmeden sonra sonuç 1,4498 -> 1,4496 mm oldu, yani hizalama kusuru
-sonucu bozmuyordu. Bu da kayda geçer: fire veren bir kapının koruduğu
-niceliğin önemsiz çıkması, kapıyı gereksiz YAPMAZ --- önemli olup
-olmadığı ancak ölçülerek bilinir.
+Birinci ve ikinci kusur düzeltildiğinde sonuç 1,4498 -> 1,4496 mm oldu,
+yani hizalama kusuru cevabı bozmuyordu; sonucu değiştiren üçüncüsüydü.
+Bu da kayda geçer: fire veren bir kapının koruduğu niceliğin önemsiz
+çıkması, kapıyı gereksiz YAPMAZ --- önemli olup olmadığı ancak ölçülerek
+bilinir.
 """
 from __future__ import annotations
 
@@ -73,13 +94,20 @@ def test_DIS_SINIRLAR_KIMILDAMIYOR(kanit):
             f"tur {t['tur']}: dış sınır {t['dis_sinir_max_mm']} mm kaydı")
 
 
-def test_AG_HAREKETI_UC_SEHIMIYLE_TUTARLI(kanit):
-    """Ağdaki en büyük yer değiştirme, yapının uç sehimini AŞAMAZ ---
-    aşıyorsa yayma ağırlığı 1'i geçiyordur ve ağ yapıyı takip etmiyordur."""
-    for t in kanit["turlar"][1:]:
-        assert t["max_yerdegistirme_mm"] <= abs(t["uy_mm"]) * 1.05 + 1e-9, (
-            f"tur {t['tur']}: ağ {t['max_yerdegistirme_mm']} mm, yapı "
-            f"{t['uy_mm']} mm")
+def test_AG_HAREKETI_YAPIYI_ASMIYOR(kanit):
+    """Ağ, yapının GÖRDÜĞÜ en büyük sehimden fazla hareket edemez ---
+    aşıyorsa yayma ağırlığı 1'i geçiyordur.
+
+    ÖLÇÜT BİR KEZ YANLIŞ KURULDU: ağ hareketini AYNI turun sehimiyle
+    kıyaslıyordum. Oysa k. tur ağı, k-1. turun (gevşetilmiş) sehimiyle
+    deforme edilir; 2. turda ağ 0,94 mm hareket ederken yapı 0,75 mm
+    veriyordu ve test bunu ihlal sandı. Doğru üst sınır ÖNCEKİ turlardır.
+    """
+    for i, t in enumerate(kanit["turlar"][1:], start=1):
+        tavan = max(abs(o["uy_mm"]) for o in kanit["turlar"][:i])
+        assert t["max_yerdegistirme_mm"] <= tavan * 1.05 + 1e-9, (
+            f"tur {t['tur']}: ağ {t['max_yerdegistirme_mm']} mm, önceki "
+            f"turların tavanı {tavan} mm")
 
 
 def test_SABIT_NOKTAYA_ULASILDI(kanit):
@@ -99,6 +127,36 @@ def test_GERI_BESLEME_GERCEKTEN_CALISTI(kanit):
     assert dusus < -5.0, f"taşıma yalnız %{dusus:.1f} değişti; kuplaj âtıl"
 
 
+def test_AKTARILAN_YUK_de_DEGISIYOR(kanit):
+    """BAYAT-VERİ KAPISI. İlk koşuyu geçersiz kılan kusurun imzası tam
+    buydu: çözücünün taşıması düşüyor ama AKTARILAN yük sabit kalıyordu,
+    çünkü her tur aynı (rijit) VTK okunuyordu. İki kanal birlikte
+    hareket etmiyorsa yük bayattır."""
+    ilk, son = kanit["turlar"][0], kanit["turlar"][-1]
+    d_yuk = abs(100 * (son["aktarilan_Fy_N"] - ilk["aktarilan_Fy_N"])
+                / ilk["aktarilan_Fy_N"])
+    assert d_yuk > 5.0, (
+        f"aktarılan yük yalnız %{d_yuk:.2f} değişti; çözücünün taşıması "
+        "düşerken bu sabit kalıyorsa okunan VTK bayattır")
+
+
+def test_HER_TURDA_TEK_VTK_ADAYI(kanit):
+    """Temizlik çalışıyorsa tur başına tek aday olur. Birden çoksa
+    `-latestTime` hangi turu seçtiği BİLİNMEZ."""
+    kotu = [t["tur"] for t in kanit["turlar"] if t.get("vtk_aday") != 1]
+    assert not kotu, f"birden çok VTK adayı olan turlar: {kotu}"
+
+
+def test_YAYIMLANAN_DORT_NICELIK_de_URETILDI(kanit):
+    """Asıl iddia. uy tek başına tutturulabilir (yanlış bir yükle yanlış
+    bir yapıdan da çıkabilir); dördü birden tutturmak zordur."""
+    s = kanit["sapma"]
+    assert abs(s["uy_pct"]) < 5.0, f"uy %{s['uy_pct']}"
+    assert abs(s["ux_pct"]) < 5.0, f"ux %{s['ux_pct']}"
+    assert abs(kanit["surukleme_sapma_pct"]) < 2.0
+    assert abs(kanit["tasima_sapma_pct"]) < 5.0
+
+
 def test_ILK_TUR_TEK_YONLU_KOSUYLA_AYNI(kanit):
     """İlk tur deforme edilmemiş ağda koşar, yani tek-yönlü sonucu
     yeniden üretmelidir. Üretmiyorsa iki betik ayrışmıştır."""
@@ -115,22 +173,15 @@ def test_ILK_TUR_TEK_YONLU_KOSUYLA_AYNI(kanit):
         "taşımıyor demektir")
 
 
-def test_HUKUM_YAPISAL_MODELI_GEREKCEYLE_ELIYOR(kanit):
-    """Eleme yapılmasaydı 'kalan fark bilinmiyor' derdik. ux kanalı EA'ya
-    bağlı olduğu için yapısal modeli eleyebiliyor ve hüküm bunu söylemeli."""
+def test_HUKUM_BANDIN_GCI_OLMADIGINI_SOYLUYOR(kanit):
+    """En tehlikeli okuma: 'dört nicelik de tuttu' = 'GCI bandı var'.
+    Tek ağ, tek yapı ağı, lineer yapı, kinematik ağ hareketi."""
     v = kanit["verdikt"]
     if abs(kanit["sapma"]["uy_pct"]) < 10.0:
-        pytest.skip("sapma kapanmış; eleme cümlesi gerekmiyor")
-    assert "YAPISAL MODEL ELENİR" in v
-    assert "ux" in v and "EA" in v
-
-
-def test_HUKUM_KAPANDI_DEMIYOR(kanit):
-    """En tehlikeli okuma: 'iki-yönlü koştu' = 'doğrulandı'."""
-    v = kanit["verdikt"]
-    if abs(kanit["sapma"]["uy_pct"]) >= 10.0:
-        assert "AŞIRI" in v or "kapanmadı" in v or "sapma sürüyor" in v
-        assert "bu betiğin cevabı DEĞİLDİR" in v
+        assert "BANT BİR GCI DEĞİLDİR" in v
+        assert "İKİNCİ denemede" in v, (
+            "ilk koşunun sessizce yanlış olduğu hükümden düşerse ders "
+            "kaybolur")
 
 
 def test_KISIT_ag_bagimsizligi_ve_LINEER_yapiyi_soyluyor(kanit):

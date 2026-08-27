@@ -1,11 +1,12 @@
 """CSM1: yapısal zincir YAYIMLANMIŞ bir değere karşı doğrulandı (%0,2).
 
 Bu deponun FSI tarafındaki en güçlü çapası budur ve akış hiç işin içine
-girmez. İki-yönlü FSI1'de yapısal model DOLAYLI elenmişti: ux referansı
-%1,3 bandında tutturuyor, ux ise EA'ya bağlı. Doğru bir çıkarım ama
-EĞİLME rijitliğini sınamıyordu. CSM1 onu doğrudan sınar --- aynı bayrak,
-aynı malzeme, tek yük yerçekimi --- ve sehim/uzunluk %19 olduğu için
-NLGEOM'u da zorlar.
+girmez. Deponun yapısal tarafındaki güven hep DOLAYLI taşınıyordu: kiriş
+teorisiyle uyum, elastika çözümüyle NLGEOM doğrulaması, ux'in EA'ya bağlı
+olması. Hepsi doğru, hepsi çıkarım ve hiçbiri EĞİLME rijitliğini
+yayımlanmış bir değere bağlamıyordu. CSM1 onu doğrudan sınar --- aynı
+bayrak, aynı malzeme, tek yük yerçekimi --- ve sehim/uzunluk %19 olduğu
+için NLGEOM'u da zorlar.
 
 BU ÖLÇÜM BİR YAZIM KUSURUNU DA AÇIĞA ÇIKARDI. FSI1'de düzlem-gerinim
 kısıtını .inp METNİNE ELLE enjekte etmiştim. Burada `*STATIC`'in artım
@@ -132,13 +133,14 @@ def test_KISIT_agin_ve_MALZEME_MODELININ_sinirini_soyluyor(kanit):
     assert "Artim sayisi" in k
 
 
-def test_HUKUM_FSI1_ELEMESINI_BAGLIYOR(kanit):
-    """Bu ölçümün amacı FSI1'deki dolaylı elemeyi doğrudan hale
-    getirmekti; hüküm bunu söylemezse bağlantı kaybolur."""
+def test_HUKUM_DOLAYLI_GUVENI_DOGRUDANA_CEVIRDIGINI_SOYLUYOR(kanit):
+    """Bu ölçümün amacı, yapısal tarafta dolaylı taşınan güveni (kiriş
+    teorisi, elastika, ux/EA çıkarımı) doğrudan bir ölçümle
+    değiştirmekti; hüküm bunu söylemezse bağlantı kaybolur."""
     v = kanit["verdikt"]
-    assert "FSI1" in v
     if abs(kanit["sapma_nlgeom"]["uy_pct"]) < 5.0:
-        assert "yapıda DEĞİLDİR" in v
+        assert "DOLAYLI" in v
+        assert "YAYIMLANMIŞ BİR DEĞERE KARŞI DOĞRULANDI" in v
 
 
 def test_RAPOR_kanittan_sapmiyor(kanit):

@@ -18,9 +18,28 @@ her biri ayrı bir hata yüzeyi olurdu. Nokta yer değiştirmesi bayrak
 yüzeyinde YAPININ değeridir ve akışkana doğru Gauss ağırlıkla söner;
 diğer sınırlar sabit kalır.
 
+SONUÇ: yayımlanan dört niceliğin dördü de %2,4 bandında üretildi ---
+uy %2,34, ux %1,32, sürükleme %-0,08, taşıma %-1,83.
+
+BU SONUCA İKİNCİ DENEMEDE ULAŞILDI VE BİRİNCİSİ SESSİZCE YANLIŞTI.
+İlk koşu 7 turda ``sabit noktaya'' ulaşıp uy=1,4496 mm veriyordu, yani
+referansın %77 üstünde. Sebep bu betiğin kendi döngüsündeydi: zaman
+dizinleri turlar arasında BİRİKİYORDU. 1. tur 445'te yakınsadı, sonraki
+turlar 439-441'de; OpenFOAM'ın `-latestTime`'ı sayıca en büyüğü seçtiği
+için her tur 445'i, yani 1. TURUN RİJİT alanını okudu. Yapı hep aynı
+rijit basıncı gördü ve ``sabit nokta'' da yük sabit olduğu için oluştu.
+
+Yakalanması zordu çünkü İKİ KANAL AYRIŞMIŞTI ve ayrışma bir FİZİK BULGUSU
+gibi okunabiliyordu: çözücünün kendi forces.dat'ı aynı dosyaya EKLENİYOR,
+son satırı okunduğu için o kanal tazeydi. Yani taşıma her tur düşüyor,
+aktarılan bayrak yükü sabit kalıyordu. Bunu ``taşıma silindir ile bayrak
+arasında yeniden dağılıyor'' diye okudum ve üç ayrı eleme koşusu yazdım
+(ağ ailesi, CSM1, dağılım ölçümü). Üçü de doğru sonuç verdi ve üçü de
+kusuru bulamadı --- çünkü kusur onların hiçbirinde değil, BURADAYDI.
+
 NE KAPATMAZ: ağ-bağımsızlığı (tek akış ağı, tek yapı ağı) ve zaman
 bağımlılığı (FSI1 kararlıdır, FSI2/FSI3 değil). Yapısal model LİNEER;
-sehim/uzunluk %0,23 olduğu için NLGEOM'un katkısı ikinci mertebedir ama
+sehim/uzunluk %0,24 olduğu için NLGEOM'un katkısı ikinci mertebedir ama
 ÖLÇÜLMEDİ.
 
     python experiments/turek_hron_fsi1_iki_yonlu.py
@@ -112,7 +131,30 @@ def _nokta_yaz(P: np.ndarray) -> None:
     yol.write_text(t[:bas] + "(\n" + govde + "\n" + t[son:], encoding="utf-8")
 
 
+def _temizle() -> None:
+    """Tur ARTIKLARINI sil --- `-latestTime` yalnız BU turu görsün.
+
+    BU KUSUR ILK KOSUYU GECERSIZ KILDI ve sessizdi. Zaman dizinleri
+    turlar arasi birikiyordu: 1. tur 445'te, sonraki turlar 439-441'de
+    yakinsadi. OpenFOAM'in `-latestTime`'i SAYICA en buyugu secer, yani
+    445'i --- 1. turun (RIJIT ag) alanini. Boylece yapi her turda ayni
+    rijit basinci gordu, "sabit nokta" da yuk sabit oldugu icin olustu.
+
+    Neden yakalanmasi zordu: cozucunun kendi forces.dat'i ayni dosyaya
+    EKLENIYOR ve son satiri okundugu icin O KANAL TAZEYDI. Yani tasima her
+    tur degisiyor, aktarilan bayrak yuku degismiyordu --- ve bu ikisinin
+    ayrisması bir fizik bulgusu gibi okunabilirdi. Nitekim okunmustu.
+    """
+    for d in VAKA.glob("[0-9]*"):
+        if d.is_dir() and d.name != "0":
+            shutil.rmtree(d)
+    for ad in ("VTK", "postProcessing"):
+        if (VAKA / ad).exists():
+            shutil.rmtree(VAKA / ad)
+
+
 def _cfd_kos() -> dict:
+    _temizle()
     yol = windows_to_wsl_path(VAKA)
     r = linux_run(
         f"cd '{yol}' && source /opt/openfoam11/etc/bashrc && "
@@ -124,8 +166,13 @@ def _cfd_kos() -> dict:
         timeout=3600)
     log = (VAKA / "log.checkMesh")
     kotu = "***" in log.read_text(errors="replace") if log.exists() else None
-    vtk = sorted(VAKA.glob("VTK/bayrak/bayrak_*.vtk"))
+    # DIZIN TEMIZLENDIGI ICIN TEK DOSYA OLMALI. Birden cok cikarsa
+    # temizlik calismamistir ve SAYICA en buyugu secmek gerekir --- ad
+    # siralamasi burada YANLIS cevap verir ("bayrak_98" > "bayrak_445").
+    vtk = sorted(VAKA.glob("VTK/bayrak/bayrak_*.vtk"),
+                 key=lambda p: int(p.stem.rsplit("_", 1)[1]))
     return {"kosdu": bool(vtk), "vtk": vtk[-1] if vtk else None,
+            "vtk_aday": len(vtk),
             "checkMesh_hata": kotu, "cikti": (r.stdout or "")[-200:]}
 
 
@@ -215,6 +262,16 @@ def olc() -> dict:
                            f"tur {tur}: checkMesh ag hatasi bildirdi "
                            f"(bkz {VAKA.name}/log.checkMesh); deforme ag "
                            f"kendi kapisini gecmeden sonuc alinmaz")
+        # BAYAT VERI KAPISI. Ilk kosuyu gecersiz kilan kusur buydu ve
+        # SESSIZDI: turlar arasi birikeen zaman dizinleri yuzunden
+        # `-latestTime` onceki turun alanini seciyordu. Temizlik calisiyorsa
+        # her turda TEK aday olur; birden cok cikarsa yuk hangi turdan
+        # geldigi BILINMEZ ve dongu durmali.
+        if cfd["vtk_aday"] != 1:
+            return _ozetle(tur_kayit,
+                           f"tur {tur}: {cfd['vtk_aday']} VTK adayi var; "
+                           f"tur artiklari temizlenmemis ve yuk BAYAT "
+                           f"olabilir")
         yuk = cfd_pressure_to_fea_loads(str(cfd["vtk"]), str(stl), rho=RHO,
                                         p_is_kinematic=True, kayma=True,
                                         mu_pa_s=RHO * NU)
@@ -244,6 +301,7 @@ def olc() -> dict:
             "tasima_N_m": None if tasima is None else round(tasima[1], 4),
             "surukleme_N_m": None if tasima is None else round(tasima[0], 4),
             "checkMesh_hata": cfd["checkMesh_hata"],
+            "vtk_aday": cfd["vtk_aday"],
             **ag_bilgi,
             "aktarilan_Fy_N": round(float(hk[:, 1].sum()), 8),
         })
@@ -285,7 +343,8 @@ def _ozetle(turlar: list, neden: str | None) -> dict:
         "vaka": "Turek-Hron FSI1 — İKİ YÖNLÜ kuplaj",
         "_neden": ("Tek-yonlu kosuda dusey sehim %90 fazlaydi ve gerekcesi "
                    "biliniyordu: akis RIJIT bayrakla cozuluyordu. O gerekce "
-                   "HESAPLANMISTI; bu betik onu KOSAR."),
+                   "HESAPLANMISTI; bu betik onu KOSAR ve yayimlanan dort "
+                   "nicelige karsi %2,4 bandinda kapatir."),
         "ayar": {"max_tur": MAX_TUR, "tol_mm": TOL_MM, "omega": OMEGA,
                  "sonum_r_m": SONUM_R,
                  "_ag_hareketi": "dogrudan points dosyasi, Gauss sonum"},
@@ -294,10 +353,17 @@ def _ozetle(turlar: list, neden: str | None) -> dict:
         "tasima_referans": {"rijit_cfd1": TASIMA_CFD1, "deforme_fsi1":
                             TASIMA_FSI1},
         "sapma": sapma,
+        "surukleme_sapma_pct": (
+            None if not turlar or turlar[-1].get("surukleme_N_m") is None
+            else round(100 * (turlar[-1]["surukleme_N_m"] - 14.295) / 14.295, 2)),
+        "tasima_sapma_pct": (
+            None if not turlar or turlar[-1].get("tasima_N_m") is None
+            else round(100 * (turlar[-1]["tasima_N_m"] - TASIMA_FSI1)
+                       / TASIMA_FSI1, 2)),
         "verdikt": _hukum(turlar, sapma, neden),
         "_kisit": (
             "AG-BAGIMSIZLIGI SINANMADI: tek akis agi, tek yapi agi. "
-            "Yapisal model LINEER; sehim/uzunluk %0,23 oldugu icin NLGEOM "
+            "Yapisal model LINEER; sehim/uzunluk %0,24 oldugu icin NLGEOM "
             "katkisi ikinci mertebedir ama OLCULMEDI. Ag hareketi Gauss "
             "sonumlu bir KINEMATIK secimdir, Laplace cozumu degil --- sonum "
             "yaricapi degisirse ag kalitesi degisir, cozum bundan ne kadar "
@@ -327,9 +393,19 @@ def _hukum(turlar: list, sapma, neden) -> str:
                     "bir yakınsama değeri DEĞİLDİR ve referansla "
                     "karşılaştırılamaz.")
     if abs(sapma["uy_pct"]) < 10.0:
-        return s + ("Sabit noktaya ulaşıldı ve düşey sehim referansın %10 "
-                    "bandında: geri besleme kanalı HESAPLA değil KOŞUYLA "
-                    "kapandı. Tek ağ, lineer yapı --- bant bir GCI değil.")
+        d_sur = 100 * (son["surukleme_N_m"] - 14.295) / 14.295
+        d_tas = 100 * (son["tasima_N_m"] - TASIMA_FSI1) / TASIMA_FSI1
+        return s + (
+            f"Yayımlanan DÖRT niceliğin dördü de üretildi: uy "
+            f"%{sapma['uy_pct']}, ux %{sapma['ux_pct']}, sürükleme "
+            f"%{d_sur:.2f}, taşıma %{d_tas:.2f}. Geri besleme kanalı "
+            f"HESAPLA değil KOŞUYLA kapandı ve bu, bu deponun FSI tarafında "
+            f"tam bir kıyaslama vakasını uçtan uca ürettiği ilk sonuçtur. "
+            f"BANT BİR GCI DEĞİLDİR: tek akış ağı, tek yapı ağı, lineer "
+            f"yapı ve kinematik bir ağ-hareketi seçimi. Ayrıca bu sonuca "
+            f"İKİNCİ denemede ulaşıldı --- birincisi tur artıklarını "
+            f"temizlemediği için her turda bayat (rijit) basıncı okuyor ve "
+            f"%77 sapan sahte bir 'sabit nokta' üretiyordu.")
     # KALAN FARKIN YERI DARALTILABILIYOR ve bu elemeyi kayit yapar.
     d_tasima = (100 * (son["tasima_N_m"] - ilk["tasima_N_m"])
                 / ilk["tasima_N_m"]) if son.get("tasima_N_m") else None

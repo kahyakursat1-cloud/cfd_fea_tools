@@ -3171,98 +3171,132 @@ Taşıma (N/m) & 1{,}1094 & 1{,}119 & \%-0{,}86 \\
         \end{dikkat}
 
         \medskip
-        \noindent \textbf{Düşey kanal da koşuldu --- ve kapanmadı.} Geri
-        besleme gerekçesi \emph{hesaplanmış} bir iddiaydı, o yüzden
-        koşuldu: Dirichlet--Neumann sabit-nokta turu, akış çöz $\to$ yük
-        taşı $\to$ yapı çöz $\to$ CFD ağını deforme et. Ağ hareketi
-        doğrudan \texttt{points} dosyası üzerinden, bayrak yüzeyinde
-        yapının değeriyle ve akışkana doğru Gauss sönümle; dinamik-ağ
-        çözücüsü ve \texttt{dynamicMeshDict} ailesi hiç girmiyor, çünkü
-        hareket $1{,}4$ mm ve topoloji değişmiyor.
+        \medskip
+        \noindent \textbf{Düşey kanal da koşuldu ve kapandı.} Geri besleme
+        gerekçesi \emph{hesaplanmış} bir iddiaydı, o yüzden koşuldu:
+        Dirichlet--Neumann sabit-nokta turu, akış çöz $\to$ yük taşı $\to$
+        yapı çöz $\to$ CFD ağını deforme et. Ağ hareketi doğrudan
+        \texttt{points} dosyası üzerinden, bayrak yüzeyinde yapının
+        değeriyle ve akışkana doğru Gauss sönümle; dinamik-ağ çözücüsü ve
+        \texttt{dynamicMeshDict} ailesi hiç girmiyor, çünkü hareket bir
+        milimetre mertebesinde ve topoloji değişmiyor.
 
-        \noindent \textbf{7} turda sabit noktaya ulaşıldı (son tur-arası
-        değişim $0{,}00037$ mm). Uç sehimi $1{,}5606 \to 1{,}4496$ mm; taşıma
-        $1{,}1107 \to 0{,}4884$ N/m. Yani geri besleme \emph{gerçekten}
-        çalışıyor ve yükü düşürüyor, ama \%$56$ düşürüyor: kaynağın kendi
-        rijit/deforme çifti ($1{,}119 \to 0{,}7638$) \%$32$ diyor. Sapma
-        \%$90$'dan \%$77$'ye indi, kapanmadı.
+        \noindent \textbf{6} turda sabit noktaya ulaşıldı (son tur-arası
+        değişim $0{,}000074$ mm) ve yayımlanan \emph{dört} niceliğin dördü
+        de üretildi:
 
-        \noindent \textbf{Kalan farkın yeri daraltılabiliyor.} Sürükleme
-        $14{,}2847$ N/m ile yayımlanan $14{,}295$'in \%$0{,}1$'inde, yani
-        akış çözücüsü ve viskoz kanal yerli yerinde. Yapısal model de
-        elenir: $u_x$ referansı \%$1{,}3$ bandında tutturuyor ve $u_x$
-        doğrudan $EA$'ya bağlı, dolayısıyla $E$ ya da kesit $1{,}8$ kat
-        yanlış olsaydı $u_x$ da o kadar kayardı. Geriye akış tarafındaki
-        \emph{dağılım} kalıyor: taşıma silindir ile bayrak arasında yeniden
-        paylaşılıyor ve bu paylaşım ağ-bağımsızlığı sınanmamış tek bir
-        çözümden geliyor. Sıradaki soru budur.
+        \begin{center}\small
+        \begin{tabular}{lrrr}
+        \toprule
+        & bu depo & Turek--Hron & sapma \\
+        \midrule
+        $u_y$ [mm]      & $0{,}8401$  & $0{,}8209$ & \%$2{,}34$ \\
+        $u_x$ [mm]      & $0{,}0230$  & $0{,}0227$ & \%$1{,}32$ \\
+        sürükleme [N/m] & $14{,}2835$ & $14{,}295$ & \%$-0{,}08$ \\
+        taşıma [N/m]    & $0{,}7498$  & $0{,}7638$ & \%$-1{,}83$ \\
+        \bottomrule
+        \end{tabular}
+        \end{center}
 
-        \begin{dikkat}{Kapı ateş etti, döngü duymadı}
-        İlk koşuda \texttt{checkMesh} ikinci turdan itibaren hata
-        bildiriyordu ve döngü aldırmadan yedi tur koştu; sonuç kendi
-        kapısını geçmemiş bir ağdan geliyordu. Bu, bu deponun en sık
-        tekrarlayan kusurudur ve bu kez ölçümün kendi içinde çıktı.
+        \noindent Bu, bu deponun FSI tarafında tam bir kıyaslama vakasını
+        uçtan uca ürettiği ilk sonuçtur. Bant bir GCI \emph{değildir}: tek
+        akış ağı, tek yapı ağı, lineer yapı ve kinematik bir ağ-hareketi
+        seçimi.
 
-        Hatanın kendisi de öğreticiydi. Düşen tek denetim ``kenarlar
-        boş-olmayan yönlerle hizalı değil'' idi; ortogonallik $34{,}7$,
-        çarpıklık $0{,}82$, hacimler pozitif, hepsi temiz. Yani kusur bir
-        kalite kusuru değil, \emph{iki boyutluluk varsayımının}
-        kırılmasıydı: ağ hareketi 3B en-yakın-komşu kullanıyordu ve ön/arka
-        düzlemdeki nokta çiftleri farklı yapısal düğümlere düşüyordu.
-        Sorgu $(x,y)$'ye indirilip yer değiştirme $z$ sütunu boyunca
-        ortalanınca denetim temizlendi.
+        \begin{dikkat}{Birinci koşu sessizce yanlıştı --- ve üç doğru ölçüm onu bulamadı}
+        Bu sonuca ikinci denemede ulaşıldı. Birincisi yedi turda ``sabit
+        noktaya'' ulaşıp $u_y = 1{,}4496$ mm veriyordu, yani referansın
+        \%$77$ üstünde. Sebep döngünün kendisiydi: zaman dizinleri turlar
+        arasında birikiyordu. Birinci tur $445$'te yakınsadı, sonrakiler
+        $439$--$441$'de; OpenFOAM'ın \texttt{-latestTime}'ı sayıca en
+        büyüğü seçtiği için her tur $445$'i, yani \emph{birinci turun
+        rijit alanını} okudu. Yük sabit olduğu için ``sabit nokta'' da
+        oluştu.
 
-        Sonuç $1{,}4498 \to 1{,}4496$ mm oldu; yani hizalama kusuru cevabı
-        değiştirmiyordu. Bu, kapıyı gereksiz yapmaz. Önemsiz olduğu ancak
-        düzeltilip ölçüldükten sonra bilinebilirdi.
+        Yakalanması zordu çünkü iki kanal ayrışmıştı ve ayrışma bir
+        \emph{fizik bulgusu} gibi okunabiliyordu: çözücünün
+        \texttt{forces.dat}'ı aynı dosyaya eklendiği ve son satırı
+        okunduğu için tazeydi. Taşıma her tur düşüyor, aktarılan bayrak
+        yükü sabit kalıyordu. Bunu ``taşıma silindir ile bayrak arasında
+        yeniden dağılıyor'' diye okudum ve üç eleme koşusu yazdım. Üçü de
+        doğru sonuç verdi. Üçü de kusuru bulamadı, çünkü kusur onların
+        hiçbirinde değildi.
+
+        Ders, elenen adayların değersizliği değil, \emph{elemenin nereye
+        bakmadığıdır}. Bir ölçüm zincirinin parçalarını tek tek
+        doğrulamak, parçaları birbirine bağlayan koşum kodunu doğrulamaz
+        --- ve bu depoda hata en sık orada çıkıyor. Döngü artık her tur
+        başında artıkları siliyor, VTK'yı sayıca seçiyor ve aday sayısı
+        bire eşit değilse duruyor.
         \end{dikkat}
 
+        \noindent \textbf{Yol boyunca düşen öteki iki kusur.} Ağ hareketi
+        önce 3B en-yakın-komşu kullanıyordu; ön ve arka düzlemdeki nokta
+        çiftleri farklı yapısal düğümlere düşüyor, aradaki kenar $z$
+        ekseninden sapıyordu. \texttt{checkMesh} bunu yakaladı ($2349$
+        kenar) --- ama ortogonallik $34{,}7$, çarpıklık $0{,}82$, hacimler
+        pozitif, hepsi temizdi. Yani kusur bir kalite kusuru değil, iki
+        boyutluluk varsayımının kırılmasıydı. Sorgu $(x,y)$'ye indirilip
+        yer değiştirme $z$ sütunu boyunca ortalanınca denetim temizlendi.
+        İkincisi daha tanıdıktı: \texttt{checkMesh} ikinci turdan itibaren
+        hata bildiriyordu ve döngü aldırmadan yedi tur koştu. Kapı vardı,
+        okuyan yoktu.
+
         \medskip
-        \noindent \textbf{Kalan iki aday da ölçümle elendi.} Verdiğim iki
-        gerekçeden biri (yapının doğruluğu) bir \emph{çıkarımdı}, öbürü
-        (ağın yeterliliği) bir \emph{varsayımdı}. İkisi de koşuldu.
+        \noindent \textbf{Elenen üç aday, kendi başlarına duran ölçümler.}
+        Yanlış bir avın peşinde üretildiler ama hiçbiri av anlatısına
+        bağlı değil.
 
         \noindent \emph{Ağ}
         (\texttt{experiments/turek\_hron\_ag\_bagimsizligi.py}). Aynı
-        geometriden dört seviyeli bir aile
-        üretildi (hücre boyu $r=1{,}3$ ile ölçeklendi, $12\,855$ ile
-        $55\,971$ hücre arası; üretim ağı aileye dâhil). Sürükleme yayılımı
-        \%$0{,}167$, taşıma yayılımı \%$3{,}089$. Taşıma sürüklemeden
-        \emph{yirmi kat} daha duyarlı çıktı, yani ``taşıma bu geometride
-        ayrıklaştırmaya en duyarlı nicelik'' gerekçesi doğrulandı --- ama
-        \%3'lük bir yayılım \%77'lik sapmayı açıklamıyor. Sürüklemede
+        geometriden dört seviyeli bir aile üretildi (hücre boyu $r=1{,}3$
+        ile ölçeklendi, $12\,855$ ile $55\,971$ hücre arası; üretim ağı
+        aileye dâhil). Sürükleme yayılımı \%$0{,}167$, taşıma yayılımı
+        \%$3{,}089$. Taşıma sürüklemeden \emph{yirmi kat} daha duyarlı
+        çıktı, yani ``taşıma bu geometride $5$ mm'lik eksen kaçıklığından
+        doğar'' gerekçesi doğrulandı. Bu, CFD1 kaydında bir turdur duran
+        ``ağ-bağımsızlığı sınanmadı'' notunu kapatır. Sürüklemede
         gözlemlenen mertebe negatif çıktı ($p=-0{,}897$); bu bir kusur
         değil, Richardson'ın uygulanamadığının işareti, çünkü seviyeler
         arası fark gürültü mertebesinde. Kayıt bu yüzden hem GCI'yi hem
         çıplak yayılımı taşıyor.
 
-        \noindent \emph{Yapı.} CSM1 koşuldu: aynı bayrak, aynı malzeme,
-        akış yok, tek yük yerçekimi ($g = 2$ m/s$^2$). Bu, FSI1'den
-        \emph{daha zor} bir sınavdır --- sehim/uzunluk \%$19$, yani büyük
-        yer değiştirme rejimi ve NLGEOM zorunlu. Sonuç: $u_y = 66{,}175$ mm,
+        \noindent \emph{Yapı} (\texttt{experiments/turek\_hron\_csm1.py}).
+        CSM1 koşuldu: aynı bayrak, aynı malzeme, akış yok, tek yük
+        yerçekimi ($g = 2$ m/s$^2$). Bu, FSI1'den \emph{daha zor} bir
+        sınavdır --- sehim/uzunluk \%$19$, yani büyük yer değiştirme
+        rejimi ve NLGEOM zorunlu. Sonuç: $u_y = 66{,}175$ mm,
         $u_x = 7{,}203$ mm; yayımlanan değerler $66{,}10$ ve $7{,}187$ mm.
         Sapma \%$0{,}11$ ve \%$0{,}22$. Aynı ağ lineer koşulduğunda
         $68{,}100$ mm veriyor, yani NLGEOM gerçekten devrede ve katkısı
-        \%$3$.
-
-        \noindent Böylece yapısal zincir --- ağ, malzeme, düzlem gerinim
+        \%$3$. Böylece yapısal zincir --- ağ, malzeme, düzlem gerinim
         seçimi ve büyük-yer-değiştirme yolu --- yayımlanmış bir değere
-        karşı birlikte doğrulanmış oldu. Bu, bu deponun FSI tarafındaki en
-        güçlü çapasıdır ve akış hiç işin içine girmez.
+        karşı birlikte doğrulanmış oldu; bugüne kadar bu güven kiriş
+        teorisi, elastika ve $u_x/EA$ çıkarımıyla \emph{dolaylı}
+        taşınıyordu.
 
-        \begin{dikkat}{Geriye ne kaldı}
-        Dört aday sırayla elendi: akış çözücüsü (sürükleme \%$0{,}1$), ağ
-        (\%$3$), yapı (\%$0{,}2$) ve aktarım (çözücünün kendi yüzey
-        integraliyle \%$0{,}03$). Kalan tek aday, taşımanın silindir ile
-        bayrak arasındaki \emph{dağılımıdır}. Ölçüldü: rijit durumda bayrak
-        $0{,}636$ N/m, silindir $0{,}475$ N/m, toplam $1{,}111$ N/m --- yani
-        bayrak payı \%$57{,}2$. Yayımlanan kaynak yalnız toplamı verdiği için
-        pay doğrudan kıyaslanamaz. Ama yapının doğrulanmış olması paya bir
-        \emph{kısıt} koyar: yayımlanan FSI1 sehimini üretmek için bayrağın
-        taşıdığı enine yükün bizimkinin yaklaşık yarısı olması gerekirdi.
+        \noindent \emph{Dağılım.} Taşımanın silindir ile bayrak arasındaki
+        payı ölçüldü (rijit): bayrak $0{,}636$ N/m, silindir $0{,}475$
+        N/m, toplam $1{,}111$ N/m, yani bayrak payı \%$57{,}2$. Ağ ailesi
+        boyunca bu pay \%$56{,}9$--$57{,}5$ arasında kaldı, yani ayrık
+        çözünürlüğe duyarsız.
 
-        Bu bir açıklama değil, daraltılmış bir sorudur. Rapor onu böyle
-        bırakıyor: kapanmamış, ama yeri belli.
+        \begin{dikkat}{Bir yazım kusuru: üretilen girdiyi elle düzenlemek}
+        CSM1 bir yan kusuru da açığa çıkardı. Düzlem-gerinim kısıtını
+        FSI1'de \texttt{.inp} \emph{metnine} elle enjekte etmiştim. CSM1'de
+        \texttt{*STATIC} bir artım satırı taşıyor (``$0.1,\ 1.0$'') ve
+        eklenen blok onu \texttt{*BOUNDARY} verisi hâline getirdi;
+        CalculiX girdiyi reddetti. Lineer adımda o satır olmadığı için
+        FSI1'de sessizce çalışıyordu. Yazıcının \texttt{FixedBC}'si zaten
+        \texttt{dof\_start}/\texttt{dof\_end} taşıyor --- elle düzenlemeye
+        hiç gerek yoktu.
+
+        Kusuru kilitleyen testin ölçütü de iki kez fazla geniş kuruldu:
+        önce ``kaynakta \texttt{*BOUNDARY} geçmesin'' (kendi açıklama
+        satırını suçladı), sonra ``hiç \texttt{write\_text} olmasın''
+        (kanıt dosyasını yazan satırı suçladı). Doğru ölçüt mekanizmaya
+        bağlandı: sözdizimi ağacında, yalnız \texttt{write\_inp}'ten doğan
+        yola geri yazmak.
         \end{dikkat}
 
         \noindent Yapısal ağın bağımsızlığı hâlâ sınanmadı (CSM1 kasıtlı

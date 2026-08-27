@@ -1,6 +1,6 @@
 {
   "vaka": "Turek-Hron CSM1 — yapı, yerçekimi altında, akış yok",
-  "_neden": "Iki-yonlu FSI1'de yapisal model DOLAYLI elenmisti (ux/EA cikarimi). CSM1 onu DOGRUDAN ve yayimlanmis bir degere karsi sinar; ustelik sehim/uzunluk %19 oldugu icin NLGEOM'u da zorlar.",
+  "_neden": "Deponun yapisal tarafindaki guven hep DOLAYLI tasiniyordu: kiris teorisi, elastika, ux/EA cikarimi. CSM1 ayni yapiyi DOGRUDAN ve yayimlanmis bir degere karsi sinar; ustelik sehim/uzunluk %19 oldugu icin NLGEOM'u da zorlar.",
   "kati": {
     "mu_s_Pa": 500000.0,
     "nu_s": 0.4,
@@ -50,7 +50,7 @@
     "ux_referans_mm": 7.187,
     "oran": 1.039
   },
-  "verdikt": "Referans çifti kendi içinde tutarlı: uy=-66.1 mm bir konsolda 7.4685 mm kısalma gerektirir, verilen ux 7.187 mm (oran 1.039). LİNEER çözüm uy=-68.100 mm (%-3.03) --- büyük yer değiştirme rejiminde beklendiği gibi kullanılamaz. NLGEOM: ux=-7.203 mm, uy=-66.175 mm; yayımlanan -7.187 ve -66.1 --- sapma %-0.22 ve %-0.11. YAPISAL ZİNCİR YAYIMLANMIŞ BİR DEĞERE KARŞI DOĞRULANDI: ağ, malzeme, düzlem gerinim seçimi ve büyük-yer-değiştirme yolu birlikte %5 bandında. Bu, FSI1'de yapılan DOLAYLI elemeyi doğrudan bir ölçümle değiştirir --- iki-yönlü koşuda kalan %77'lik sapmanın kaynağı yapıda DEĞİLDİR. Tek ağ, tek artım sayısı; bant bir GCI değil.",
+  "verdikt": "Referans çifti kendi içinde tutarlı: uy=-66.1 mm bir konsolda 7.4685 mm kısalma gerektirir, verilen ux 7.187 mm (oran 1.039). LİNEER çözüm uy=-68.100 mm (%-3.03) --- büyük yer değiştirme rejiminde beklendiği gibi kullanılamaz. NLGEOM: ux=-7.203 mm, uy=-66.175 mm; yayımlanan -7.187 ve -66.1 --- sapma %-0.22 ve %-0.11. YAPISAL ZİNCİR YAYIMLANMIŞ BİR DEĞERE KARŞI DOĞRULANDI: ağ, malzeme, düzlem gerinim seçimi ve büyük-yer-değiştirme yolu birlikte %5 bandında. Bu, deponun yapısal tarafında bugüne kadar DOLAYLI taşınan güveni (kiriş teorisi, elastika, ux/EA çıkarımı) doğrudan bir ölçümle değiştirir. Tek ağ, tek artım sayısı; bant bir GCI değil.",
   "_kisit": "AG-BAGIMSIZLIGI SINANMADI: FSI1 ile AYNI yapi agi kullanildi (NX=70, NY=6, C3D10) --- bu KASITLIDIR, cunku sinanan sey o agdir. Artim sayisi (40) sonucu etkileyebilir ve yakinsatilmadi. Malzeme St. Venant-Kirchhoff DEGIL, CalculiX'in NLGEOM ile kullandigi lineer-elastik buyuk-yerdegistirme modelidir; %19 sehimde ikisi arasindaki fark kucuktur ama SIFIR degildir ve OLCULMEDI.",
   "_uretim": "Üretim: python experiments/turek_hron_csm1.py",
   "_ortam": {

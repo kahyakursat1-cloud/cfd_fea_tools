@@ -1,6 +1,6 @@
 {
   "vaka": "Turek-Hron FSI1 — İKİ YÖNLÜ kuplaj",
-  "_neden": "Tek-yonlu kosuda dusey sehim %90 fazlaydi ve gerekcesi biliniyordu: akis RIJIT bayrakla cozuluyordu. O gerekce HESAPLANMISTI; bu betik onu KOSAR.",
+  "_neden": "Tek-yonlu kosuda dusey sehim %90 fazlaydi ve gerekcesi biliniyordu: akis RIJIT bayrakla cozuluyordu. O gerekce HESAPLANMISTI; bu betik onu KOSAR ve yayimlanan dort nicelige karsi %2,4 bandinda kapatir.",
   "ayar": {
     "max_tur": 12,
     "tol_mm": 0.001,
@@ -17,6 +17,7 @@
       "tasima_N_m": 1.1107,
       "surukleme_N_m": 14.2823,
       "checkMesh_hata": false,
+      "vtk_aday": 1,
       "max_yerdegistirme_mm": 0.0,
       "dis_sinir_max_mm": 0.0,
       "dis_sinir_nokta": 1044,
@@ -24,81 +25,73 @@
     },
     {
       "tur": 2,
-      "uy_mm": 1.48626,
-      "ux_mm": 0.02299,
-      "degisim_mm": 0.07429,
+      "uy_mm": 0.75392,
+      "ux_mm": 0.023,
+      "degisim_mm": 0.80663,
       "tasima_N_m": 0.7083,
       "surukleme_N_m": 14.2835,
       "checkMesh_hata": false,
+      "vtk_aday": 1,
       "max_yerdegistirme_mm": 0.937615,
       "dis_sinir_max_mm": 0.0,
       "dis_sinir_nokta": 1044,
-      "aktarilan_Fy_N": 0.00627926
+      "aktarilan_Fy_N": 0.0037725
     },
     {
       "tur": 3,
-      "uy_mm": 1.4642,
-      "ux_mm": 0.02299,
-      "degisim_mm": 0.02206,
-      "tasima_N_m": 0.5665,
-      "surukleme_N_m": 14.2842,
+      "uy_mm": 0.85038,
+      "ux_mm": 0.023,
+      "degisim_mm": 0.096463,
+      "tasima_N_m": 0.7554,
+      "surukleme_N_m": 14.2834,
       "checkMesh_hata": false,
-      "max_yerdegistirme_mm": 1.268072,
+      "vtk_aday": 1,
+      "max_yerdegistirme_mm": 0.828466,
       "dis_sinir_max_mm": 0.0,
       "dis_sinir_nokta": 1044,
-      "aktarilan_Fy_N": 0.00625062
+      "aktarilan_Fy_N": 0.00407694
     },
     {
       "tur": 4,
-      "uy_mm": 1.45463,
-      "ux_mm": 0.02299,
-      "degisim_mm": 0.00957,
-      "tasima_N_m": 0.5148,
-      "surukleme_N_m": 14.2846,
+      "uy_mm": 0.83875,
+      "ux_mm": 0.023,
+      "degisim_mm": 0.011634,
+      "tasima_N_m": 0.7493,
+      "surukleme_N_m": 14.2834,
       "checkMesh_hata": false,
-      "max_yerdegistirme_mm": 1.387036,
+      "vtk_aday": 1,
+      "max_yerdegistirme_mm": 0.842721,
       "dis_sinir_max_mm": 0.0,
       "dis_sinir_nokta": 1044,
-      "aktarilan_Fy_N": 0.00624029
+      "aktarilan_Fy_N": 0.00403853
     },
     {
       "tur": 5,
-      "uy_mm": 1.45114,
-      "ux_mm": 0.02299,
-      "degisim_mm": 0.00349,
-      "tasima_N_m": 0.4968,
-      "surukleme_N_m": 14.2847,
+      "uy_mm": 0.84019,
+      "ux_mm": 0.023,
+      "degisim_mm": 0.001445,
+      "tasima_N_m": 0.7499,
+      "surukleme_N_m": 14.2834,
       "checkMesh_hata": false,
-      "max_yerdegistirme_mm": 1.428872,
+      "vtk_aday": 1,
+      "max_yerdegistirme_mm": 0.841442,
       "dis_sinir_max_mm": 0.0,
       "dis_sinir_nokta": 1044,
-      "aktarilan_Fy_N": 0.00623658
+      "aktarilan_Fy_N": 0.00404251
     },
     {
       "tur": 6,
-      "uy_mm": 1.44998,
-      "ux_mm": 0.02299,
-      "degisim_mm": 0.00116,
-      "tasima_N_m": 0.4906,
-      "surukleme_N_m": 14.2847,
+      "uy_mm": 0.84012,
+      "ux_mm": 0.023,
+      "degisim_mm": 7.4e-05,
+      "tasima_N_m": 0.7498,
+      "surukleme_N_m": 14.2835,
       "checkMesh_hata": false,
-      "max_yerdegistirme_mm": 1.443515,
+      "vtk_aday": 1,
+      "max_yerdegistirme_mm": 0.841798,
       "dis_sinir_max_mm": 0.0,
       "dis_sinir_nokta": 1044,
-      "aktarilan_Fy_N": 0.00623533
-    },
-    {
-      "tur": 7,
-      "uy_mm": 1.44961,
-      "ux_mm": 0.02299,
-      "degisim_mm": 0.00037,
-      "tasima_N_m": 0.4884,
-      "surukleme_N_m": 14.2847,
-      "checkMesh_hata": false,
-      "max_yerdegistirme_mm": 1.44867,
-      "dis_sinir_max_mm": 0.0,
-      "dis_sinir_nokta": 1044,
-      "aktarilan_Fy_N": 0.00623492
+      "aktarilan_Fy_N": 0.00404178
     }
   ],
   "referans": {
@@ -112,11 +105,13 @@
     "deforme_fsi1": 0.7638
   },
   "sapma": {
-    "uy_pct": 76.59,
-    "ux_pct": 1.28
+    "uy_pct": 2.34,
+    "ux_pct": 1.32
   },
-  "verdikt": "7 tur koşuldu. Uç sehimi ilk turda 1.56055 mm, son turda 1.44961 mm; son tur-arası değişim 0.00037 mm. Deforme ağdaki taşıma 0.4884 N/m (kaynak: rijit 1.119, deforme 0.7638). Yayımlanan FSI1 0.8209 mm --- sapma %76.59. GERİ BESLEME ÇALIŞTI AMA AŞIRI: taşıma turlar boyunca %-56.0 düştü, kaynağın kendi rijit/deforme çifti ise %-31.7 diyor. Sürükleme buna karşın 14.2847 N/m ile referansın (14,295) %0,1'inde. YAPISAL MODEL ELENİR: tek-yönlü koşuda ux referansı %1,3 bandında tutturdu ve ux doğrudan EA'ya bağlıdır --- E ya da kesit 1,8 kat yanlış olsaydı ux da o kadar kayardı. Geriye AKIŞ tarafı kalıyor: taşıma silindir ile bayrak arasında yeniden dağılıyor ve bu ayrışma ağ-bağımsızlığı SINANMAMIŞ bir çözümden geliyor. Sıradaki soru budur, ve bu betiğin cevabı DEĞİLDİR.",
-  "_kisit": "AG-BAGIMSIZLIGI SINANMADI: tek akis agi, tek yapi agi. Yapisal model LINEER; sehim/uzunluk %0,23 oldugu icin NLGEOM katkisi ikinci mertebedir ama OLCULMEDI. Ag hareketi Gauss sonumlu bir KINEMATIK secimdir, Laplace cozumu degil --- sonum yaricapi degisirse ag kalitesi degisir, cozum bundan ne kadar etkileniyor SINANMADI. FSI1 KARARLIDIR; bu tur zaman bagimliligi hakkinda hicbir sey soylemez.",
+  "surukleme_sapma_pct": -0.08,
+  "tasima_sapma_pct": -1.83,
+  "verdikt": "6 tur koşuldu. Uç sehimi ilk turda 1.56055 mm, son turda 0.84012 mm; son tur-arası değişim 7.4e-05 mm. Deforme ağdaki taşıma 0.7498 N/m (kaynak: rijit 1.119, deforme 0.7638). Yayımlanan FSI1 0.8209 mm --- sapma %2.34. Yayımlanan DÖRT niceliğin dördü de üretildi: uy %2.34, ux %1.32, sürükleme %-0.08, taşıma %-1.83. Geri besleme kanalı HESAPLA değil KOŞUYLA kapandı ve bu, bu deponun FSI tarafında tam bir kıyaslama vakasını uçtan uca ürettiği ilk sonuçtur. BANT BİR GCI DEĞİLDİR: tek akış ağı, tek yapı ağı, lineer yapı ve kinematik bir ağ-hareketi seçimi. Ayrıca bu sonuca İKİNCİ denemede ulaşıldı --- birincisi tur artıklarını temizlemediği için her turda bayat (rijit) basıncı okuyor ve %77 sapan sahte bir 'sabit nokta' üretiyordu.",
+  "_kisit": "AG-BAGIMSIZLIGI SINANMADI: tek akis agi, tek yapi agi. Yapisal model LINEER; sehim/uzunluk %0,24 oldugu icin NLGEOM katkisi ikinci mertebedir ama OLCULMEDI. Ag hareketi Gauss sonumlu bir KINEMATIK secimdir, Laplace cozumu degil --- sonum yaricapi degisirse ag kalitesi degisir, cozum bundan ne kadar etkileniyor SINANMADI. FSI1 KARARLIDIR; bu tur zaman bagimliligi hakkinda hicbir sey soylemez.",
   "_uretim": "Üretim: python experiments/turek_hron_fsi1_iki_yonlu.py",
   "_ortam": {
     "python": "3.13.12",
