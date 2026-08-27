@@ -1,0 +1,266 @@
+{
+  "vaka": "Basınç-yalnız yük aktarımının eksik bıraktığı pay",
+  "_neden": "Turek-Hron bayraginda basinc-yalniz aktarim eksenel yukun ~%10'unu tasiyordu. 'Her yerde sart' da 'orada ozeldi' de TAHMIN olurdu; depo kendi kosularinda basinc/viskoz ayrimini zaten diskte tutuyor.",
+  "esik_pct": 5.0,
+  "_esik_gerekcesi": "%5 BAK esigidir, YANLIS esigi degil. Turek-Hron'da eksenel pay %90 idi ve sonucu bir mertebe kaydirdi; %5'lik bir pay bu deponun sayisal bandlarinin (GCI %1-3) icinde kaybolmaz ama mertebe de degistirmez.",
+  "taranan_dosya": 195,
+  "aileler": [
+    {
+      "aile": "_a4new",
+      "n": 1,
+      "viskoz_tam_sifir_kayit": 0,
+      "eksik_oran_min_pct": 2.12,
+      "eksik_oran_max_pct": 2.12,
+      "eksik_bilesen_max_pct": 2.11,
+      "esigi_asiyor": false
+    },
+    {
+      "aile": "_a4test",
+      "n": 1,
+      "viskoz_tam_sifir_kayit": 0,
+      "eksik_oran_min_pct": 2.47,
+      "eksik_oran_max_pct": 2.47,
+      "eksik_bilesen_max_pct": 2.46,
+      "esigi_asiyor": false
+    },
+    {
+      "aile": "_a8_K2",
+      "n": 1,
+      "viskoz_tam_sifir_kayit": 0,
+      "eksik_oran_min_pct": 0.96,
+      "eksik_oran_max_pct": 0.96,
+      "eksik_bilesen_max_pct": 0.96,
+      "esigi_asiyor": false
+    },
+    {
+      "aile": "_a8_K3",
+      "n": 1,
+      "viskoz_tam_sifir_kayit": 0,
+      "eksik_oran_min_pct": 0.95,
+      "eksik_oran_max_pct": 0.95,
+      "eksik_bilesen_max_pct": 0.94,
+      "esigi_asiyor": false
+    },
+    {
+      "aile": "_a8_duvar_cozunur",
+      "n": 1,
+      "viskoz_tam_sifir_kayit": 0,
+      "eksik_oran_min_pct": 0.95,
+      "eksik_oran_max_pct": 0.95,
+      "eksik_bilesen_max_pct": 0.94,
+      "esigi_asiyor": false
+    },
+    {
+      "aile": "_re_esleme",
+      "n": 8,
+      "viskoz_tam_sifir_kayit": 0,
+      "eksik_oran_min_pct": 0.72,
+      "eksik_oran_max_pct": 166.24,
+      "eksik_bilesen_max_pct": 166.24,
+      "esigi_asiyor": true
+    },
+    {
+      "aile": "_relaxtest",
+      "n": 1,
+      "viskoz_tam_sifir_kayit": 0,
+      "eksik_oran_min_pct": 15.85,
+      "eksik_oran_max_pct": 15.85,
+      "eksik_bilesen_max_pct": 15.85,
+      "esigi_asiyor": true
+    },
+    {
+      "aile": "cfd_mesh_sweep_cases",
+      "n": 20,
+      "viskoz_tam_sifir_kayit": 0,
+      "eksik_oran_min_pct": 0.0,
+      "eksik_oran_max_pct": 45.49,
+      "eksik_bilesen_max_pct": 45.49,
+      "esigi_asiyor": true
+    },
+    {
+      "aile": "gci_cg_re35_L1",
+      "n": 3,
+      "viskoz_tam_sifir_kayit": 0,
+      "eksik_oran_min_pct": 3.48,
+      "eksik_oran_max_pct": 4.45,
+      "eksik_bilesen_max_pct": 4.44,
+      "esigi_asiyor": false
+    },
+    {
+      "aile": "gci_cg_re35_L2",
+      "n": 3,
+      "viskoz_tam_sifir_kayit": 0,
+      "eksik_oran_min_pct": 4.12,
+      "eksik_oran_max_pct": 9.76,
+      "eksik_bilesen_max_pct": 9.72,
+      "esigi_asiyor": true
+    },
+    {
+      "aile": "gci_cg_re35_L3",
+      "n": 3,
+      "viskoz_tam_sifir_kayit": 0,
+      "eksik_oran_min_pct": 4.71,
+      "eksik_oran_max_pct": 11.78,
+      "eksik_bilesen_max_pct": 11.75,
+      "esigi_asiyor": true
+    },
+    {
+      "aile": "gci_cg_re35_L4",
+      "n": 3,
+      "viskoz_tam_sifir_kayit": 0,
+      "eksik_oran_min_pct": 1.6,
+      "eksik_oran_max_pct": 4.27,
+      "eksik_bilesen_max_pct": 4.26,
+      "esigi_asiyor": false
+    },
+    {
+      "aile": "gci_cg_re35_L4_a0",
+      "n": 3,
+      "viskoz_tam_sifir_kayit": 0,
+      "eksik_oran_min_pct": 8.84,
+      "eksik_oran_max_pct": 58.76,
+      "eksik_bilesen_max_pct": 58.76,
+      "esigi_asiyor": true
+    },
+    {
+      "aile": "gci_cg_teshis_ilkhucre",
+      "n": 3,
+      "viskoz_tam_sifir_kayit": 0,
+      "eksik_oran_min_pct": 0.0,
+      "eksik_oran_max_pct": 6.28,
+      "eksik_bilesen_max_pct": 6.27,
+      "esigi_asiyor": true
+    },
+    {
+      "aile": "turek_hron_cfd1_case",
+      "n": 3,
+      "viskoz_tam_sifir_kayit": 0,
+      "eksik_oran_min_pct": 91.89,
+      "eksik_oran_max_pct": 410.45,
+      "eksik_bilesen_max_pct": 410.45,
+      "esigi_asiyor": true
+    },
+    {
+      "aile": "validation",
+      "n": 2,
+      "viskoz_tam_sifir_kayit": 0,
+      "eksik_oran_min_pct": 1.31,
+      "eksik_oran_max_pct": 158.11,
+      "eksik_bilesen_max_pct": 158.11,
+      "esigi_asiyor": true
+    }
+  ],
+  "esigi_asan_aile": [
+    "_re_esleme",
+    "_relaxtest",
+    "cfd_mesh_sweep_cases",
+    "gci_cg_re35_L2",
+    "gci_cg_re35_L3",
+    "gci_cg_re35_L4_a0",
+    "gci_cg_teshis_ilkhucre",
+    "turek_hron_cfd1_case",
+    "validation"
+  ],
+  "cevapsiz_aile": [
+    {
+      "aile": "_basarim",
+      "dosya": 9
+    },
+    {
+      "aile": "_basarim_minihawk",
+      "dosya": 9
+    },
+    {
+      "aile": "_doe_runs",
+      "dosya": 7
+    },
+    {
+      "aile": "_silindir_dt2",
+      "dosya": 1
+    },
+    {
+      "aile": "_silindir_gecis_3b",
+      "dosya": 1
+    },
+    {
+      "aile": "_silindir_gecis_3b_dr",
+      "dosya": 1
+    },
+    {
+      "aile": "_silindir_gecis_3b_dr_des",
+      "dosya": 1
+    },
+    {
+      "aile": "_silindir_gecis_3b_dr_des_sonda3",
+      "dosya": 1
+    },
+    {
+      "aile": "_silindir_gecis_3b_dr_kOmegaSST",
+      "dosya": 1
+    },
+    {
+      "aile": "_silindir_gecis_3b_ti0.001",
+      "dosya": 1
+    },
+    {
+      "aile": "_silindir_urans",
+      "dosya": 1
+    },
+    {
+      "aile": "_silindir_vorteks",
+      "dosya": 1
+    },
+    {
+      "aile": "_uq_gurultu",
+      "dosya": 1
+    },
+    {
+      "aile": "_uq_iter",
+      "dosya": 1
+    },
+    {
+      "aile": "_uq_runs",
+      "dosya": 1
+    },
+    {
+      "aile": "test_cfd_run",
+      "dosya": 1
+    },
+    {
+      "aile": "tmr_cfd",
+      "dosya": 10
+    },
+    {
+      "aile": "validation_anchors_runs",
+      "dosya": 15
+    },
+    {
+      "aile": "vehicle_runs",
+      "dosya": 75
+    }
+  ],
+  "cevapsizlik_sebep_dagilimi": {
+    "vektor blogu yok (forceCoeffs bicimi: yalniz Cd/Cl)": 138
+  },
+  "_cevapsizlik_sebebi": "Bu ailelerde diskte YALNIZ forceCoeffs.dat var. O fonksiyon nesnesi Cd/Cl yazar ve basinc/viskoz AYRIMI TASIMAZ. Yani sorunun cevabi 'onemsiz' degil, 'bilinmiyor'.",
+  "verdikt": "16 vaka ailesinde basınç/viskoz ayrımı okundu; 19 ailede (138 dosya) AYRIM YOK. 9 ailede atılan viskoz yük, taşınanın %5.0'ini aşıyor: _re_esleme, _relaxtest, cfd_mesh_sweep_cases, gci_cg_re35_L2, gci_cg_re35_L3, gci_cg_re35_L4_a0, gci_cg_teshis_ilkhucre, turek_hron_cfd1_case, validation. En yüksek turek_hron_cfd1_case (3 koşu): %410.45. CEVAPSIZ AİLELER ASIL BULGUDUR: _basarim, _basarim_minihawk, _doe_runs, _silindir_dt2, _silindir_gecis_3b, _silindir_gecis_3b_dr, _silindir_gecis_3b_dr_des, _silindir_gecis_3b_dr_des_sonda3, _silindir_gecis_3b_dr_kOmegaSST, _silindir_gecis_3b_ti0.001, _silindir_urans, _silindir_vorteks, _uq_gurultu, _uq_iter, _uq_runs, test_cfd_run, tmr_cfd, validation_anchors_runs, vehicle_runs yalnızca forceCoeffs yazıyor, yani Cd/Cl --- basınç/viskoz ayrımı hiç kaydedilmemiş. Bunların içinde ÜRETİM araç yolu da var. Yani basınç-yalnız aktarımın orada savunulabilir olup olmadığı bilinmiyor ve bugüne kadar SORULAMAZDI; sorulabilmesi için vaka yazıcısının `forces` fonksiyonunu da eklemesi gerekir. Aşan ailelerde `kayma=True` yolu vardır. Aşmayanlarda basınç-yalnız savunulabilir --- ama yalnız YÜK BÜYÜKLÜĞÜ anlamında: yapısal yanıt yalnız Turek-Hron'da ölçüldü, ötekilerde ölçülmedi.",
+  "_kisit": "YUK-BUYUKLUGU taramasidir, YAPISAL YANIT taramasi DEGIL: kucuk bir bilesen yanlis yerdeyse buyuk moment uretebilir, tersi de olur. Yuzdeler 'sehim su kadar yanlis' DEMEZ, yalnizca sorunun nerede sorulmasi gerektigini soyler. Ayrica `forces` kaydinin yama kumesi FEA'ya aktarilan yuzeyle AYNI olmak zorunda degil; oran yonlendiricidir, duzeltme katsayisi degil. Son zaman adimi alinir --- salinimli kosuda o an temsili olmayabilir.",
+  "_uretim": "Üretim: python experiments/kayma_payi.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

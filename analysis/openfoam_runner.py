@@ -837,6 +837,23 @@ def _write_control_dict(case_dir: Path, case: CFDCase, surface_name: str,
         f"        lRef            {lref:.6f};\n"
         f"        Aref            {Aref:.6f};\n"
         "    }\n"
+        # BASINC/VISKOZ AYRIMI DA YAZILIR. forceCoeffs yalniz Cd/Cl verir ve
+        # o ayrimi TASIMAZ; bu yuzden "FEA'ya giden basinc-yalniz yuk bu
+        # vakada yeterli mi" sorusu bu depoda 138 kayit boyunca
+        # SORULAMIYORDU (`experiments/kayma_payi.py`). Turek-Hron bayraginda
+        # ayni sorunun cevabi "hayir"di: viskoz eksenel kuvvet basincin 9,6
+        # kati cikti ve uc yer degistirmesini bir mertebe kaydirdi. Ek
+        # maliyet yok --- ayni libforces.so, ayni yamalar.
+        "    kuvvetBilesenleri\n    {\n"
+        "        type            forces;\n"
+        "        libs            (\"libforces.so\");\n"
+        "        writeControl    timeStep;\n"
+        "        writeInterval   50;\n"
+        f"        patches         ({surface_name});\n"
+        "        rho             rhoInf;\n"
+        f"        rhoInf          {case.rho};\n"
+        "        CofR            (0 0 0);\n"
+        "    }\n"
     )
     # İz-düzlemi örnekleme (far-field momentum-açığı drag için U,p) — akış-dik kesit
     if wake_x is not None:
