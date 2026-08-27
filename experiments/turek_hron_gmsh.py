@@ -84,7 +84,11 @@ def _yamalar(gmsh, yuzey: int) -> dict:
     degisince siralama kayar ve "3 numarali kenar giristir" varsayimi
     sessizce yanlis olur. Siniflandirma kenarin ORTA NOKTASINA bakar.
     """
-    gruplar = {"giris": [], "cikis": [], "ust": [], "alt": [], "govde": []}
+    # GOVDE IKIYE AYRILIR: FSI'de yuk yalniz BAYRAGA gider. Tek yama
+    # olsaydi silindirin basinci de yapiya bindirilir ve sehim yanlis
+    # cikardi --- silindir RIJIT bir mesnettir, yuk tasiyan uye degil.
+    gruplar = {"giris": [], "cikis": [], "ust": [], "alt": [],
+               "silindir": [], "bayrak": [], "govde": []}
     for _, kenar in gmsh.model.getBoundary([(2, yuzey)], oriented=False):
         x0, y0b, _, x1, y1b, _ = gmsh.model.getBoundingBox(1, kenar)
         xm, ym = (x0 + x1) / 2, (y0b + y1b) / 2
@@ -98,7 +102,20 @@ def _yamalar(gmsh, yuzey: int) -> dict:
             gruplar["alt"].append(kenar)
         else:
             gruplar["govde"].append(kenar)
+            gruplar["bayrak" if _bayrak_mi(xm, ym) else "silindir"].append(kenar)
     return gruplar
+
+
+def _bayrak_mi(xm: float, ym: float) -> bool:
+    """Kenar orta noktası bayrağa mı ait? KONUMDAN, etiketten DEĞİL.
+
+    Bayrak x >= x_bas ve |y - y_merkez| <= kalinlik/2 seridindedir. Cember
+    yayinin o seritteki parcasi fuse ile ZATEN silinmistir (bayragin
+    icinde kalir), yani yay hicbir parcasiyla bu olcute takilmaz.
+    """
+    xb = bayrak_bas_x()
+    return (xm > xb + 1e-9
+            and abs(ym - MERKEZ[1]) <= BAYRAK_KALINLIK / 2 + 1e-9)
 
 
 def msh_yaz(yol: Path) -> dict:
@@ -146,7 +163,8 @@ def msh_yaz(yol: Path) -> dict:
             bb = gmsh.model.getBoundingBox(2, etiket)
             return (bb[5] - bb[2]) < Z_DUZLEM_TOL
         # Ekstruzyon sonrasi yan yuzeyleri KONUMDAN yeniden siniflandir.
-        sinif = {k: [] for k in ("giris", "cikis", "ust", "alt", "govde")}
+        sinif = {k: [] for k in ("giris", "cikis", "ust", "alt",
+                                 "silindir", "bayrak", "govde")}
         for s in yan:
             bb = gmsh.model.getBoundingBox(2, s)
             xm, ym = (bb[0] + bb[3]) / 2, (bb[1] + bb[4]) / 2
@@ -162,9 +180,13 @@ def msh_yaz(yol: Path) -> dict:
                 sinif["alt"].append(s)
             else:
                 sinif["govde"].append(s)
+                sinif["bayrak" if _bayrak_mi(xm, ym) else "silindir"].append(s)
         onarka = [x for x in yan + [yuzey] if _z_duzlemi(x)]
 
-        for ad, yuzeyler in list(sinif.items()) + [("yanlar", onarka)]:
+        # `govde` fiziksel grup olarak YAZILMAZ: alt gruplarla (silindir,
+        # bayrak) ORTUSUR ve gmshToFoam ayni yuzu iki yamaya koyamaz.
+        # Kuvvet karsilastirmasi icin ikisi BIRLIKTE kullanilir.
+        for ad, yuzeyler in [(k, v) for k, v in sinif.items() if k != "govde"]                 + [("yanlar", onarka)]:
             if yuzeyler:
                 g = gmsh.model.addPhysicalGroup(2, yuzeyler)
                 gmsh.model.setPhysicalName(2, g, ad)
@@ -188,6 +210,8 @@ def msh_yaz(yol: Path) -> dict:
         return {"uretildi": True, "dugum": int(dugum),
                 "hexa": int(len(hexa_tag)), "prizma": int(len(prizma_tag)),
                 "govde_yuzeyi": len(sinif["govde"]),
+                "silindir_yuzeyi": len(sinif["silindir"]),
+                "bayrak_yuzeyi": len(sinif["bayrak"]),
                 "onarka_yuzeyi": len(onarka),
                 "hucre_boyu_govde_m": H_GOVDE, "bayrak_bas_x": bilgi["xb"]}
     finally:
@@ -208,16 +232,36 @@ def _kos(vaka: Path, komut: str, tmo: int = 900) -> dict:
     return {"komut": komut, "rc": r.returncode, "kuyruk": kuyruk[:900]}
 
 
-def _empty_yap(vaka: Path) -> None:
-    """`yanlar` yamasını `empty` yap --- gmshToFoam hepsini `patch` yazar.
+def _yama_tipleri(vaka: Path) -> None:
+    """Yama tiplerini düzelt --- gmshToFoam HEPSİNİ `patch` yazar.
 
-    createPatch YERINE dosya duzenlemesi: createPatch bir sozluk daha
-    ister ve bu adim tek bir tip degisikligidir. Degisiklik yapisaldir
-    (regex yama ADINA baglanir), sirasina degil.
+    `yanlar` -> empty (2B'ligin kaynagi) ve duvarlar -> wall.
+
+    DUVAR TIPI KOZMETIK DEGILDIR: `forces` fonksiyonu viskoz katkiyi duvar
+    yamasindan okur; `patch` tipinde kayma-gerilmesi katkisi eksik
+    kalabilir ve suruklemede SESSIZ bir eksiklik olur.
+
+    `createPatch` YERINE dosya duzenlemesi: o arac bir sozluk daha ister ve
+    bu adim yalniz tip degisikligidir. Degisiklik YAPISALDIR --- regex yama
+    ADINA baglanir, dosyadaki sirasina degil.
     """
     p = vaka / "constant" / "polyMesh" / "boundary"
     t = p.read_text(errors="replace")
-    t = re.sub(r"(yanlar\s*\{[^}]*?type\s+)\w+;", r"\1empty;", t, flags=re.S)
+
+    # GERI-REFERANS YERINE ACIK FONKSIYON. Bu satir bir kez BOZUK
+    # yazildi: `\1` geri-referansi dosyaya 0x01 KONTROL KARAKTERI
+    # olarak dustu ve regex yama ADINI silip yerine "empty;" yazdi.
+    # boundary dosyasi bozuldu, gmshToFoam "Patch 0 gets name ya" dedi ve
+    # ag SESSIZCE yamasiz kaldi. Acik fonksiyon o sinifi imkansiz kilar:
+    # yakalanan grup DEGISKENDEN gelir, kacis dizisinden degil.
+    def _degistir(yeni_tip: str):
+        return lambda m: m.group(1) + yeni_tip + ";"
+
+    t = re.sub(r"(yanlar\s*\{[^}]*?type\s+)\w+;",
+               _degistir("empty"), t, flags=re.S)
+    for duvar in ("ust", "alt", "silindir", "bayrak"):
+        t = re.sub(rf"(\b{duvar}\s*\{{[^}}]*?type\s+)\w+;",
+                   _degistir("wall"), t, flags=re.S)
     p.write_text(t, encoding="utf-8")
 
 
@@ -253,7 +297,7 @@ def olc() -> dict:
                     tmo=1200)]
     sinir = kalite = None
     if adimlar[-1]["rc"] == 0:
-        _empty_yap(VAKA)
+        _yama_tipleri(VAKA)
         sinir = _boundary_oku(VAKA)
         kalite = _kos(VAKA, "checkMesh -constant > log.checkMesh 2>&1", tmo=900)
         kalite = {"rc": kalite["rc"], **_checkmesh_oku(VAKA)}
@@ -293,7 +337,10 @@ def _checkmesh_oku(vaka: Path) -> dict:
 def _ozetle(msh, adimlar, sinir, kalite) -> dict:
     y = (sinir or {}).get("yamalar", {})
     yan = y.get("yanlar", {})
-    govde = y.get("govde", {})
+    #  yamasi ARTIK YOK (silindir + bayrak olarak ayrildi).
+    # Kapi olcutu ikisinin TOPLAMINA bakar.
+    govde = {"nFaces": (y.get("silindir", {}).get("nFaces", 0)
+                        + y.get("bayrak", {}).get("nFaces", 0))}
     hucre = (kalite or {}).get("hucre")
     oran = (yan.get("nFaces", 0) / hucre) if (hucre and yan) else None
     tek = oran is not None and abs(oran - 2.0) < 1e-9

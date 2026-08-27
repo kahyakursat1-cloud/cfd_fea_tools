@@ -126,3 +126,38 @@ def test_iki_kutuphane_ayni_ADI_farkli_BIRIMDE_tutuyor():
     md = MaterialLibrary().get_material("Aluminum 6061")
     fr = FR["aluminum_6061"]
     assert md.youngs_modulus == pytest.approx(fr.youngs_modulus / 1000.0, rel=0.05)
+
+
+# ============================================================================
+# E/rho ALT SINIRI: kapi KENDI E bandiyla celisiyordu (2026-08-27)
+# ============================================================================
+# Bu blok bir YANLIS POZITIFTEN dogdu. Kapinin E bandi 1 MPa'ya kadar iner
+# ("elastomer ... elmas" diye de yazar), ama E/rho alt siniri 1e4 idi: bir
+# elastomer gercekci yogunlukta 500-1500 verir. Yani kapi, KENDI kabul
+# ettigi malzeme sinifini reddediyordu. Kusur uydurma bir vakayla degil,
+# Turek-Hron FSI1'in yayimlanmis katisiyla goruldu (mu=0,5 MPa, nu=0,4 ->
+# E=1,4 MPa, rho=1000).
+#
+# Iki test bir arada durur: biri bandin GENISLEDIGINI, digeri hala
+# YAKALADIGINI sinar. Yalniz birincisi olsaydi bandi sonsuza acmak da
+# testi gecerdi.
+
+def test_YUMUSAK_KATI_gecer_TurekHron_FSI1(_=None):
+    """Yayımlanmış bir kıyaslama malzemesi kapıdan geçmelidir."""
+    from analysis.birim_kapisi import malzeme_denetle, pa_dogrula
+    E = 2 * 0.5e6 * (1 + 0.4)
+    assert malzeme_denetle("tk_solid", E, "Pa", 1000.0, nu=0.4) == []
+    pa_dogrula("tk_solid", E, 1000.0)          # yukselmemeli
+
+
+def test_BAND_GENISLEDI_ama_BIRIM_HATASINI_HALA_YAKALIYOR():
+    """Yanlış-negatif kapısı. Kapının VAR OLMA sebebi 10^3'lük kaymalardır;
+    alt sınır 1e2'ye inince o tespit gücü korunmalıdır."""
+    from analysis.birim_kapisi import E_RHO_ORANI, malzeme_denetle
+    assert E_RHO_ORANI[0] == 1e2
+    # Al 6061: 69 GPa. GPa degeri Pa alanina yazilirsa (69 Pa) yakalanmali.
+    assert malzeme_denetle("al_gpa_pa", 69.0, "Pa", 2700.0)
+    # MPa degeri Pa alanina yazilirsa (69000 Pa) da yakalanmali.
+    assert malzeme_denetle("al_mpa_pa", 69000.0, "Pa", 2700.0)
+    # Celik dogru birimde gecmeli --- olcut fazla genis degil.
+    assert malzeme_denetle("celik", 210e9, "Pa", 7850.0, nu=0.3) == []

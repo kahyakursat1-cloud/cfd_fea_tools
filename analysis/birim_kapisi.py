@@ -10,7 +10,7 @@ görünen" bir sonuç üretir.
 YÖNTEM: birim etiketine GÜVENMEZ, fiziğe bakar. Katı mühendislik malzemelerinde
   E ∈ [1 MPa, 1.5 TPa]        (elastomer … elmas)
   E/σ_y ∈ [20, 3000]          (boyutsuz — birim hatasında 10³ kayar)
-  E/ρ ∈ [1e4, 1e9] m²/s²      (özgül sertlik; Pa/(kg/m³))
+  E/ρ ∈ [1e2, 1e9] m²/s²      (özgül sertlik; Pa/(kg/m³))
 Bu üçünün ikisi boyutsuz-benzeri olduğu için ölçek hatasını birim etiketinden
 BAĞIMSIZ yakalar: E ve σ_y birlikte yanlış birimdeyse E/ρ, tek başına yanlışsa
 E/σ_y patlar.
@@ -23,7 +23,19 @@ from __future__ import annotations
 
 E_PA_BANDI = (1e6, 1.5e12)
 E_SIGMA_ORANI = (20.0, 3000.0)
-E_RHO_ORANI = (1e4, 1e9)
+# ALT SINIR 1e4 -> 1e2 (2026-08-27). Eski deger KAPININ KENDI E BANDIYLA
+# CELISIYORDU: E bandi 1 MPa'ya (elastomer) kadar iniyor, ama gercekci bir
+# elastomer yogunlugunda (rho ~ 1000-2000) oran 500-1000 cikar --- yani E
+# bandinin kabul ettigi her yumusak katiyi E/rho bandi reddediyordu. Kusur
+# UYDURMA bir vakayla degil, Turek-Hron FSI1'in KENDI katisiyla goruldu:
+# mu_s = 0,5 MPa, nu = 0,4 -> E = 1,4 MPa, rho = 1000 -> E/rho = 1400.
+# Yayimlanmis bir kiyaslama malzemesi kapidan geri dondu.
+# YENI ALT SINIR NIYE 1e2: dalga hizi sqrt(E/rho) = 10 m/s. Kapinin
+# yakalamak icin VAR OLDUGU hatalar 10^3 ve ustu kayar (GPa->Pa: 69/2700 =
+# 0,026; MPa->Pa: 69000/2700 = 26) ve ikisi de 1e2'nin ALTINDA kalir, yani
+# tespit gucu korunur. Yeni kabul edilen bolge (E 1-250 MPa arasi yumusak
+# polimer/elastomer) fiziksel olarak GERCEKTIR.
+E_RHO_ORANI = (1e2, 1e9)
 RHO_BANDI = (10.0, 25000.0)          # köpük … tungsten
 NU_BANDI = (-1.0, 0.5)
 

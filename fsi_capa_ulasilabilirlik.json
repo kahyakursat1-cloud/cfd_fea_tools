@@ -31,7 +31,7 @@
         "hucre_boyu_mm": 2.5,
         "hucre_tekduze_ust_sinir": 164000,
         "bellek_gb": 0.425,
-        "bos_bellek_gb": 5.04,
+        "bos_bellek_gb": 4.07,
         "bellege_sigar_mi": true
       },
       "engeller": [],
@@ -52,7 +52,7 @@
         "hucre_boyu_mm": 2.5,
         "hucre_tekduze_ust_sinir": 164000,
         "bellek_gb": 0.425,
-        "bos_bellek_gb": 5.04,
+        "bos_bellek_gb": 4.07,
         "bellege_sigar_mi": true
       },
       "engeller": [],
@@ -73,7 +73,7 @@
         "hucre_boyu_mm": 2.5,
         "hucre_tekduze_ust_sinir": 164000,
         "bellek_gb": 0.425,
-        "bos_bellek_gb": 5.04,
+        "bos_bellek_gb": 4.07,
         "bellege_sigar_mi": true
       },
       "engeller": [],
@@ -85,7 +85,7 @@
     "FSI2",
     "FSI3"
   ],
-  "verdikt": "YAPISAL YETENEK: büyük yer-değiştirme (NLGEOM) VAR, zaman-çözünür yapısal VAR (desteklenen: BUCKLE, DYNAMIC, FREQUENCY, STATIC). FSI1: ULAŞILABİLİR (164,000 hücre üst sınır, 0.425 GB). FSI2: ULAŞILABİLİR (164,000 hücre üst sınır, 0.425 GB). FSI3: ULAŞILABİLİR (164,000 hücre üst sınır, 0.425 GB). BULGU: FSI1 bu makinede ULAŞILABİLİR ve engel DONANIM DEĞİL --- 94,1 M'lik tahmin deponun kendi araç ailesine aitti. Ama FSI1 hakemin sorduğu şeyi KAPATMAZ: küçük sehim rejiminde akış kayda değer ölçüde değişmez, yani 'fizik tahrik ediyor' iddiası sınanmaz. Kapattığı şey ayrı ve bugün EKSİK: aktarılan yükün ve yapısal yanıtın YAYIMLANMIŞ bir referansa karşı doğrulanması. FSI2/FSI3'ün önünde artık ölçülen bir engel YOK --- koşulmadıkları için doğrulanmış da DEĞİLLER.",
+  "verdikt": "YAPISAL YETENEK: büyük yer-değiştirme (NLGEOM) VAR, zaman-çözünür yapısal VAR (desteklenen: BUCKLE, DYNAMIC, FREQUENCY, STATIC). FSI1: ULAŞILABİLİR (164,000 hücre üst sınır, 0.425 GB). FSI2: ULAŞILABİLİR (164,000 hücre üst sınır, 0.425 GB). FSI3: ULAŞILABİLİR (164,000 hücre üst sınır, 0.425 GB). BULGU: FSI1 bu makinede ULAŞILABİLİR ve engel DONANIM DEĞİL --- 94,1 M'lik tahmin deponun kendi araç ailesine aitti. Ama FSI1 hakemin sorduğu şeyi KAPATMAZ: küçük sehim rejiminde akış kayda değer ölçüde değişmez, yani 'fizik tahrik ediyor' iddiası sınanmaz. Kapattığı şey ayrı: aktarılan yükün ve yapısal yanıtın YAYIMLANMIŞ bir referansa karşı doğrulanması. KOŞULDU (turek_hron_fsi1.json): uy=1.5184 mm, referans 0.8209 mm. Ölçülen kapsam boşluğu: kuplaj basınç-yalnız çalışıyor ve bu vakada viskoz eksenel kuvvet basıncınkinin 9.57 katı. FSI2/FSI3'ün önünde artık ölçülen bir engel YOK --- koşulmadıkları için doğrulanmış da DEĞİLLER.",
   "_kisit": "BUTCE TEKDUZE AG VARSAYIYOR ve bu bir UST SINIRDIR: gercek kosuda uzak alan kabalasir, hucre sayisi belirgin duser. 'Sigar' hukmu bu yuzden GUVENLI yondedir ama 'sigmaz' hukmu kesin degildir. Ayrica ULASILABILIR demek KOSULDU demek DEGILDIR: hicbir Turek-Hron vakasi bu depoda kosulmadi ve referans degerler burada YALNIZ ulasilabilirlik icin kullanildi, sonuc uretmek icin degil.",
   "_uretim": "Üretim: python experiments/fsi_capa_ulasilabilirlik.py",
   "_ortam": {

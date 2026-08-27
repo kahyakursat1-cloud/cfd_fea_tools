@@ -3097,11 +3097,60 @@ Taşıma (N/m) & 1{,}1094 & 1{,}119 & \%-0{,}86 \\
         oranının kalınlık çarpanına eşit olduğunu denetliyor.
         \end{dikkat}
 
-        \noindent \textbf{Ama bu bir çapa değil, bir eğilimdir} ve iki sebeple:
-        yayımlanan değerler bu depoda birincil kaynaktan \emph{doğrulanmadı},
-        ve ağ-bağımsızlığı sınanmadı --- tek ağ, tek çözünürlük, yani sapmanın
-        ne kadarının ayrıklaştırmadan geldiği bilinmiyor. FSI1 (kuplaj) hâlâ
-        koşulmadı.
+        \noindent \textbf{Ama bu bir çapa değil, bir eğilimdir} çünkü
+        ağ-bağımsızlığı sınanmadı: tek ağ, tek çözünürlük, yani sapmanın
+        ne kadarının ayrıklaştırmadan geldiği bilinmiyor.
+
+        \medskip
+        \noindent \textbf{FSI1 koşuldu ve iki kapsam boşluğunu sayıya döktü.}
+        Basınç bayrağa aktarıldı, yapı (C3D10, düzlem gerinim, $E=1{,}4$ MPa)
+        çözüldü ve uç yer değiştirmesi okundu: $u_y = 1{,}5184$ mm,
+        $u_x = 0{,}0017$ mm. Yayımlanan FSI1 değerleri $0{,}8209$ ve
+        $0{,}0227$ mm. Ham sapma \%$85$ ve \%$-93$; yani ilk bakışta zincir
+        çökmüş görünüyor. Üç eleme onu parçalarına ayırdı.
+
+        \noindent \emph{Yapı değil.} Aynı düğüm kuvvetlerinin kapalı-form
+        konsol çözümü $1{,}5208$ mm verdi; FEA ondan \%$0{,}16$ sapıyor.
+        Yapısal model bu yükün altında bağımsız doğrulanmıştır.
+
+        \noindent \emph{Aktarım çözünürlüğü de değil.} Aktarım yüzeyi $x$
+        boyunca 17'den 161 istasyona çıkarıldı (10 kat); sehim $1{,}5292 \to
+        1{,}5184$ mm, yani \%$0{,}7$ bandında sabit kaldı ve kök momenti dört
+        hanede değişmedi.
+
+        \noindent \emph{Eksik olan yükün bir bileşeni ile akışın rijitliği.}
+        Çözücünün kendi yüzey integrali bayrakta basınç ekseneli
+        $-3{,}017{\times}10^{-3}$ N, viskoz ekseneli $+2{,}887{\times}10^{-2}$
+        N veriyor: viskoz bileşen $9{,}57$ kat büyük ve bu deponun kuplajı
+        onu taşımıyor. Düşey yönde aynı karşılaştırma \%$0{,}03$ içinde
+        oturuyor, yani aktarımın kendisi çalışıyor; eksik olan kapsamdır.
+        Viskoz terim elle eklendiğinde $u_x$ $-0{,}0019$ mm'den $0{,}0162$
+        mm'ye çıkıyor ve referansın $1{,}4$ katına yaklaşıyor. Düşey kanalda
+        ise kaynağın kendi taşıma değerleri (rijit $1{,}119$, deforme
+        $0{,}7638$ N/m) geri beslemenin yükü \%$32$ düşürdüğünü söylüyor; bu
+        oranla ölçeklenince sehim $1{,}0364$ mm olup sapma \%$85$'ten
+        \%$26$'ya iniyor.
+
+        \begin{dikkat}{Kusuru dışarıya atan kapı}
+        Bu ölçümün ilk sürümü sapmayı \emph{referansa} yükledi. Bir kapı
+        yazdım: enine yüklenen bir konsolun ucu $x$'te yalnız kinematik
+        olarak kısalır, $0{,}6\,u_y^2/L$; $u_y = 0{,}8209$ mm bunun için
+        $0{,}0022$ mm verir, oysa referans $0{,}0227$ mm diyordu. Kapı
+        ``çift kendi içinde tutarsız, sayılar hatırlanarak girilmiş''
+        hükmünü bastı.
+
+        Kapının eksenel terimi \emph{bizim taşıdığımız} kuvvetten
+        kuruluyordu ve bu modül yalnız basınç taşır. Çözücünün kendi
+        çıktısı alındığında eksenel yükün baskın bileşeninin viskoz olduğu
+        ve referansın tutarlı olduğu görüldü. Yönü kritikti: ölçüt kendi
+        körlüğünü dış kaynağın hatası olarak okumuştu. Kapı, referansı
+        sınayan bir denetimden yükün eksik bileşenini ölçen bir denetime
+        çevrildi ve ders kayıtta duruyor.
+        \end{dikkat}
+
+        \noindent \textbf{Bu bir geçme değildir.} İki düzeltme de
+        \emph{hesaplandı}, koşulmadı. Kapatmak için viskoz gerilmenin de
+        aktarılması ve iki-yönlü koşu gerekir; ikisi de yazılmadı.
 
         \noindent Kapının \emph{önce} sorulmasının kazandırdığı şey budur: ağ
         kurma denemelerine saatler harcanmadan yol kapandı ve engelin \emph{yeri}
@@ -3111,11 +3160,13 @@ Taşıma (N/m) & 1{,}1094 & 1{,}119 & \%-0{,}86 \\
         ve kimse okumuyordu. Bu raporun avladığı kusur, bu kez ölçümün
         \emph{kendisinde}.
 
-        \noindent Hüküm değişmedi ama gerekçesi bir kez daha yer değiştirdi:
-        altyapı ve çözücü yetenekleri hazır, \emph{ağ} hazır değil.
-        Hiçbir Turek--Hron vakası koşulmadı ve doğrulanmış da değiller.
-        Engelin adı kayıttan \emph{türetiliyor}; ilk sürüm ``(NLGEOM)'' diye
-        sabit yazıyordu ve yetenek eklenince cümle bayatladı.
+        \noindent Hüküm dört kez yer değiştirdi ve her seferinde bir önceki
+        gerekçe \emph{tahmindi}: önce donanım, sonra çözücü yeteneği, sonra
+        ağ, sonra referansın kendisi. Dördü de denenince düştü. Bugünkü
+        durum: CFD1 ve FSI1 koşuldu, FSI2/FSI3 koşulmadı ve doğrulanmış
+        değiller. Gerekçe metni kayıttan \emph{türetiliyor}; hem kalan-engel
+        hem doğrulama-durumu cümleleri sabit yazılmıştı ve ikisi de
+        bayatlayınca ayrı ayrı kanıt dosyasına bağlandı.
   \item[Süpersonik mutlak $C_d$.] 3B-açık çözüm bu donanımda ulaşılamaz.
   \item[Panel yönteminin indüklenen direnci.] VSPAERO'nun iki $C_{Di}$ çıktısı
         da kuramdan sapar (yakın-alan $-\%21$, Trefftz $+\%62$); bu yüzden

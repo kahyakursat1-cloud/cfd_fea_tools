@@ -87,7 +87,8 @@ def _U_alan() -> str:
             + "      }\n      operator==(v);\n    #};\n  }\n"
             + "  cikis { type zeroGradient; }\n"
             + "  ust { type noSlip; }\n  alt { type noSlip; }\n"
-            + "  govde { type noSlip; }\n  yanlar { type empty; }\n}\n")
+            + "  silindir { type noSlip; }\n  bayrak { type noSlip; }\n"
+            + "  yanlar { type empty; }\n}\n")
 
 
 def _p_alan() -> str:
@@ -96,7 +97,9 @@ def _p_alan() -> str:
             + "boundaryField\n{\n  giris { type zeroGradient; }\n"
             + "  cikis { type fixedValue; value uniform 0; }\n"
             + "  ust { type zeroGradient; }\n  alt { type zeroGradient; }\n"
-            + "  govde { type zeroGradient; }\n  yanlar { type empty; }\n}\n")
+            + "  silindir { type zeroGradient; }\n"
+            + "  bayrak { type zeroGradient; }\n"
+            + "  yanlar { type empty; }\n}\n")
 
 
 def _kur(vaka: Path) -> None:
@@ -123,7 +126,7 @@ def _kur(vaka: Path) -> None:
         + f"stopAt endTime;\nendTime {ITER};\ndeltaT 1;\n"
         + "writeControl timeStep;\nwriteInterval 500;\npurgeWrite 2;\n"
         + "functions\n{\n  kuvvetler\n  {\n    type forces;\n"
-        + "    libs (\"libforces.so\");\n    patches (govde);\n"
+        + "    libs (\"libforces.so\");\n    patches (silindir bayrak);\n"
         + f"    rho rhoInf;\n    rhoInf {RHO};\n"
         + f"    CofR ({MERKEZ[0]} {MERKEZ[1]} 0);\n"
         + "    writeControl timeStep;\n    writeInterval 10;\n  }\n}\n",

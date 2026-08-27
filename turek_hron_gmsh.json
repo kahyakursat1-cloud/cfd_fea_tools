@@ -7,6 +7,8 @@
     "hexa": 33168,
     "prizma": 0,
     "govde_yuzeyi": 4,
+    "silindir_yuzeyi": 1,
+    "bayrak_yuzeyi": 3,
     "onarka_yuzeyi": 2,
     "hucre_boyu_govde_m": 0.0025,
     "bayrak_bas_x": 0.24898979485566358
@@ -15,7 +17,7 @@
     {
       "komut": "gmshToFoam turek_hron_2b.msh > log.gmshToFoam 2>&1",
       "rc": 0,
-      "kuyruk": "region 4 to Foam patch 1\nMapping region 1 to Foam patch 2\nMapping region 2 to Foam patch 3\nMapping region 3 to Foam patch 4\nMapping region 5 to Foam patch 5\nMapping region 7 to Foam cellZone 0\nCells:\n    total:33168\n    hex  :33168\n    prism:0\n    pyr  :0\n    tet  :0\n\nCellZones:\nZone\tSize\n    0\t33168\n\nSkipping tag  at line 167725\nPatch 0 gets name yanlar\nPatch 1 gets name alt\nPatch 2 gets name giris\nPatch 3 gets name cikis\nPatch 4 gets name ust\nPatch 5 gets name govde\n\nFinding faces of patch 0\nFinding faces of patch 1\nFinding faces of patch 2\nFinding faces of patch 3\nFinding faces of patch 4\nFinding faces of patch 5\n\nFaceZones:\nZone\tSize\n\nWriting zone 0 to cellZone akiskan and cellSet\nEnd"
+      "kuyruk": "tch 3\nMapping region 3 to Foam patch 4\nMapping region 6 to Foam patch 5\nMapping region 5 to Foam patch 6\nMapping region 8 to Foam cellZone 0\nCells:\n    total:33168\n    hex  :33168\n    prism:0\n    pyr  :0\n    tet  :0\n\nCellZones:\nZone\tSize\n    0\t33168\n\nSkipping tag  at line 167726\nPatch 0 gets name yanlar\nPatch 1 gets name alt\nPatch 2 gets name giris\nPatch 3 gets name cikis\nPatch 4 gets name ust\nPatch 5 gets name bayrak\nPatch 6 gets name silindir\n\nFinding faces of patch 0\nFinding faces of patch 1\nFinding faces of patch 2\nFinding faces of patch 3\nFinding faces of patch 4\nFinding faces of patch 5\nFinding faces of patch 6\n\nFaceZones:\nZone\tSize\n\nWriting zone 0 to cellZone akiskan and cellSet\nEnd"
     }
   ],
   "sinir": {
@@ -26,7 +28,7 @@
         "nFaces": 66336
       },
       "alt": {
-        "tip": "patch",
+        "tip": "wall",
         "nFaces": 218
       },
       "giris": {
@@ -38,12 +40,16 @@
         "nFaces": 22
       },
       "ust": {
-        "tip": "patch",
+        "tip": "wall",
         "nFaces": 210
       },
-      "govde": {
-        "tip": "patch",
-        "nFaces": 410
+      "bayrak": {
+        "tip": "wall",
+        "nFaces": 292
+      },
+      "silindir": {
+        "tip": "wall",
+        "nFaces": 118
       }
     }
   },

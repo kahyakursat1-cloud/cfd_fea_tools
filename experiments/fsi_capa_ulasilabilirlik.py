@@ -178,6 +178,34 @@ def _ozetle(yetenek: dict, sonuc: dict) -> dict:
     }
 
 
+def _fsi1_durumu() -> str:
+    """FSI1 doğrulaması KOŞULDU MU --- kanıt dosyasından, sabit metinden değil.
+
+    Bu satır ``bugün EKSİK'' diye SABİT yazılıydı ve FSI1 koşulunca bayatladı.
+    Aynı kusuru bu betiğin kalan-engel cümlesinde bir kez düzeltmiştik; ikinci
+    kez aynı yerde çıktı. Ölçüt basit: kanıt dosyası var mı, ve kendi hükmü ne
+    diyor.
+    """
+    kanit = KOK / "turek_hron_fsi1.json"
+    if not kanit.exists():
+        return "BU DOĞRULAMA HENÜZ KOŞULMADI. "
+    try:
+        d = json.loads(kanit.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        return f"Kanıt dosyası okunamadı ({e}); doğrulama durumu bilinmiyor. "
+    fea = d.get("fea") or {}
+    if not fea.get("kosdu"):
+        return "Koşuldu ama yapısal adım düştü; sonuç yok. "
+    kayma = d.get("kayma_bedeli") or {}
+    s = (f"KOŞULDU (turek_hron_fsi1.json): uy={fea['uy_mm']:.4f} mm, "
+         f"referans {d['referans']['uy_mm']} mm. ")
+    if kayma:
+        s += (f"Ölçülen kapsam boşluğu: kuplaj basınç-yalnız çalışıyor ve "
+              f"bu vakada viskoz eksenel kuvvet basıncınkinin "
+              f"{kayma['viskoz_basinc_orani_x']} katı. ")
+    return s
+
+
 def _hukum(yetenek: dict, sonuc: dict, ulasilabilir: list) -> str:
     s = ("YAPISAL YETENEK: büyük yer-değiştirme (NLGEOM) "
          f"{'VAR' if yetenek.get('nlgeom') else 'YOK'}, zaman-çözünür yapısal "
@@ -198,9 +226,9 @@ def _hukum(yetenek: dict, sonuc: dict, ulasilabilir: list) -> str:
               f"ailesine aitti. Ama {', '.join(kucuk)} hakemin sorduğu şeyi "
               f"KAPATMAZ: küçük sehim rejiminde akış kayda değer ölçüde "
               f"değişmez, yani 'fizik tahrik ediyor' iddiası sınanmaz. "
-              f"Kapattığı şey ayrı ve bugün EKSİK: aktarılan yükün ve "
-              f"yapısal yanıtın YAYIMLANMIŞ bir referansa karşı "
-              f"doğrulanması. ")
+              f"Kapattığı şey ayrı: aktarılan yükün ve yapısal yanıtın "
+              f"YAYIMLANMIŞ bir referansa karşı doğrulanması. "
+              + _fsi1_durumu())
         # KALAN ENGEL SABIT YAZILMAZ, OLCUMDEN TURETILIR. Ilk surum
         # "(NLGEOM)" diye yaziyordu; NLGEOM eklenince cumle BAYATLADI ---
         # yetenek degisti, gerekce degismedi. Bu deponun avladigi kusur,

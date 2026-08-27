@@ -1,0 +1,143 @@
+{
+  "vaka": "Turek-Hron FSI1 — aktarılan yük ve yapısal yanıt",
+  "_neden": "Bugune kadar FSI tarafinda olculen her sey IC tutarlilikti; hicbiri 'FEA'ya giden yuk DOGRU MU' sorusunu sormuyordu cunku karsilastirilacak bir DIS referans yoktu.",
+  "kati": {
+    "mu_s_Pa": 500000.0,
+    "nu_s": 0.4,
+    "E_Pa": 1400000.0,
+    "rho": 1000.0,
+    "_E_turetildi": "E = 2 mu (1+nu)"
+  },
+  "ag": {
+    "nx": 70,
+    "ny": 6,
+    "nz": 1,
+    "eleman": "C3D10",
+    "duzlem_gerinim": true
+  },
+  "stl": {
+    "nx": 160,
+    "ny": 9,
+    "nz": 5,
+    "ucgen": 9140,
+    "su_gecirmez": true,
+    "hacim_isaret_pozitif": true,
+    "x_adimi_m": 0.002194,
+    "alan_m2": 0.021460612308639992
+  },
+  "yuk_aktarimi": {
+    "toplam_kuvvet_N": [
+      -0.0032,
+      0.0064,
+      0.0
+    ],
+    "aktarim_hatasi_pct": 0.0,
+    "moment_artigi_pct": 0.0,
+    "arayuz_isi_artigi_pct": 0.6457,
+    "sema": "korunumlu",
+    "n_yuklu_dugum": 290
+  },
+  "fea": {
+    "kosdu": true,
+    "A_dugum": 5464,
+    "A_konum": [
+      0.6,
+      0.2,
+      0.005
+    ],
+    "A_uzaklik_m": 0.0,
+    "ux_mm": 0.00167892,
+    "uy_mm": 1.5183600000000002,
+    "uz_mm": -1.19677e-05
+  },
+  "kiris_capasi": {
+    "uy_mm": 1.52083,
+    "L_m": 0.35101,
+    "I_m4": 6.666666666666668e-09,
+    "E_duzlem_Pa": 1666666.7,
+    "narinlik_L_h": 17.55
+  },
+  "referans": {
+    "ux_mm": 0.0227,
+    "uy_mm": 0.8209,
+    "_dogrulandi": true,
+    "_kaynak": "Turek-Hron FSI kiyaslamasi; Feel++ belgesiyle teyit"
+  },
+  "kayma_bedeli": {
+    "cozucu_basinc_Fx_N": -0.00301749,
+    "cozucu_viskoz_Fx_N": 0.02886516,
+    "cozucu_basinc_Fy_N": 0.00635236,
+    "cozucu_viskoz_Fy_N": 7.32e-06,
+    "aktarilan_Fx_N": -0.00316158,
+    "aktarilan_Fy_N": 0.00635073,
+    "aktarim_capasi_pct": -4.775,
+    "aktarim_capasi_Fy_pct": -0.026,
+    "_capa_notu": "Fy ÇAPASI GÜÇLÜ OLANDIR: düşey yükü bayrağın üst ve alt yüzündeki ~290 CFD yüzü taşır, aktarım orada %0,03 içinde oturur. Fx neredeyse tümüyle UÇ yüzünden gelir --- iki CFD yüzü. Orada ortalama alacak bir şey yoktur ve %4,8 sapma aktarımın kusuru değil, iki yüzün ayrıklaştırmasıdır. İki yüzdeyi aynı kefeye koymak yanlış okuma olurdu.",
+    "viskoz_basinc_orani_x": 9.57,
+    "ux_basinc_yalniz_mm": -0.00189,
+    "ux_basinc_arti_viskoz_mm": 0.0162,
+    "ux_referans_mm": 0.0227,
+    "ux_kalan_oran": 1.4
+  },
+  "tek_yon_bedeli": {
+    "tasima_cfd1_Nm": 1.119,
+    "tasima_fsi1_Nm": 0.7638,
+    "olcek": 0.6826,
+    "uy_olceklenmis_mm": 1.03639,
+    "uy_referans_mm": 0.8209,
+    "kalan_sapma_pct": 26.3
+  },
+  "sapma": {
+    "ux_pct": -92.6,
+    "uy_pct": 84.96
+  },
+  "verdikt": "Aktarılan toplam kuvvet [-0.0032, 0.0064, 0.0] N (290 yüklü düğüm, şema korunumlu); aktarım artığı %0.0. Uç yer değiştirmesi ux=0.0017 mm, uy=1.5184 mm. Yayımlanan FSI1: ux=0.0227 mm, uy=0.8209 mm --- sapma %-92.6 ve %84.96. AYNI yükün konsol-kiriş çözümü 1.5208 mm; FEA ondan %-0.16 sapıyor --- yani yapısal model bu yükün ALTINDA doğrulanmıştır ve sapmanın kaynağı DEĞİLDİR. EKSENEL KANAL: çözücünün kendi yüzey integralinde bayrağın basınç Fx'i -3.017e-03 N, viskoz Fx'i 2.887e-02 N --- viskoz bileşen 9.57 kat büyük ve kuplaj onu TAŞIMIYOR. Aktardığımız düşey kuvvet çözücünün basınç integralinden %-0.026 sapıyor (eksenelde %-4.775, çünkü onu yalnız iki uç yüzü taşır) --- yani aktarım doğru çalışıyor; eksik olan BİLEŞEN. Basınç-yalnız ux=-0.0019 mm, viskoz eklenince 0.0162 mm; referans 0.0227 mm (1.4 kat). DÜŞEY KANAL: kaynak taşımayı rijitte 1.119, deformede 0.7638 N/m veriyor (oran 0.6826). Bizim akışımız RİJİT olduğu için sehim bu oranda fazla çıkmalıdır; ölçeklendiğinde 1.0364 mm olur ve referanstan %26.3 sapar --- ham %84.96 yerine. SONUÇ: sapmanın iki kanalı da ADLANDIRILDI ve ikisi de zincirin kusuru değil KAPSAMI. Eksenel kanal basınç-yalnız aktarımın, düşey kanal tek-yönlü kuplajın bedelidir. Yapı kiriş teorisiyle, aktarım çözücünün kendi integraliyle bağımsız doğrulandı. BU BİR GEÇME DEĞİLDİR: kalan fark hesaplandı, ölçülmedi; kapatmak için viskoz gerilme aktarımı ve iki-yönlü koşu gerekir.",
+  "_kisit": "BASINC-YALNIZ aktarim: viskoz duvar gerilmesi TASINMAZ ve bu vakada eksenel yukun BASKIN bileseni odur (olculdu). TEK YONLU aktarim: akis rijit bayrakla bir kez cozuldu; kaynagin kendi CFD1/FSI1 tasima orani geri beslemenin yuku %32 dusurdugunu soyluyor, bu betik onu DUZELTMEZ yalniz BEKLENEN sapmayi kurar. 'Fizik tahrik ediyor' iddiasi hala FSI2/FSI3'un isidir. Ag-bagimsizligi SINANMADI (tek akis agi, tek yapi agi; aktarim yuzeyi 10 kat inceltildi, yapi agi DEGIL). Yercekimi UYGULANMADI. Yapisal model LINEER.",
+  "_uretim": "Üretim: python experiments/turek_hron_fsi1.py",
+  "cozunurluk_merdiveni": [
+    {
+      "nx": 16,
+      "ucgen": 200,
+      "x_adimi_m": 0.021938,
+      "Fy_N": 0.00635073,
+      "kok_momenti_Nm": 0.0007091817,
+      "uy_mm": 1.52924,
+      "n_yuklu_dugum": 70
+    },
+    {
+      "nx": 40,
+      "ucgen": 488,
+      "x_adimi_m": 0.008775,
+      "Fy_N": 0.00635073,
+      "kok_momenti_Nm": 0.0007066572,
+      "uy_mm": 1.5178,
+      "n_yuklu_dugum": 166
+    },
+    {
+      "nx": 160,
+      "ucgen": 9140,
+      "x_adimi_m": 0.002194,
+      "Fy_N": 0.00635073,
+      "kok_momenti_Nm": 0.0007070015,
+      "uy_mm": 1.51836,
+      "n_yuklu_dugum": 290
+    }
+  ],
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

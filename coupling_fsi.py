@@ -7,6 +7,20 @@ dF = -p * n * A hesaplar, FEA STL dugumlerine en-yakin esleme ile aktarir.
 Korunum garantisi: toplam kuvvet yeniden dagitildigi icin
 sum(F_FEA) == sum(F_CFD) (makine hassasiyetinde).
 
+BASINC-YALNIZ. VISKOZ DUVAR GERILMESI TASINMAZ ve bu, adin ("basinc ->
+yuk") gizledigi bir KAPSAM SINIRIDIR, bir ayrinti degil. Bedeli 2026-08-27'de
+Turek-Hron FSI1 bayraginda OLCULDU (`experiments/turek_hron_fsi1.py`,
+cozucunun kendi forces fonksiyonuyla):
+
+    bayrak eksenel kuvvet   basinc  -3,017e-03 N
+                            viskoz  +2,887e-02 N   -> viskoz 9,6 KAT buyuk
+
+Yani ince, akisa PARALEL bir yuzeyde bu modulun tasidigi eksenel yuk
+gercegin ~%10'udur. Enine (basinc-baskin) yonde ayni vakada aktarim
+cozucunun integraliyle %0,03 icinde ortustu --- yani kusur aktarimda
+DEGIL, kapsamdadir. Kanat/bayrak gibi narin yuzeylerde eksenel gerilme
+ya da uzama onemliyse bu modul TEK BASINA yetmez.
+
 Endustri pratigi: ASME V&V, bir-yonlu aero-yapisal coupling.
 """
 
@@ -22,6 +36,15 @@ def _parse_legacy_vtk(vtk_path: Path):
     """
     text = vtk_path.read_text(errors="replace")
     lines = text.splitlines()
+    # BINARY KAPISI: bu ayristirici SATIR-TABANLIdir ve yalniz ASCII okur.
+    # BINARY bir dosyada okuma sessizce YANLIS olabilir --- ikili baytlarin
+    # cogu sayisal jeton vermez, read_floats erken durur ve GERCEKTEN OLANDAN
+    # AZ nokta dondurur. Cokme garanti degildir; bu yuzden bicim burada
+    # acikca reddedilir. Cozum cagiranda: foamToVTK -ascii.
+    if any(s.strip().upper() == "BINARY" for s in lines[:6]):
+        raise ValueError(
+            f"{vtk_path.name} BINARY biciminde; bu ayristirici yalniz ASCII "
+            "legacy VTK okur. foamToVTK'yi -ascii ile calistirin.")
     n = len(lines)
     i = 0
 
