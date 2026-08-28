@@ -79,8 +79,33 @@ def _kanit() -> dict:
             "taranamayan": []}
 
 
+def _iki_hiz() -> dict:
+    """Aynı sözleşmeyi paylaşan yollar ayrışıyor mu.
+
+    2026-08-28'de araç yolunda ölçülmüş bir yük kusuru bulundu (yapıya
+    aerodinamik yükün dörtte biri uygulanıyordu) ve HAYATTA KALMA sebebi
+    yapısaldı: FSI yolu aynı ölçütü çoktan çürütmüştü, ders ötekine
+    taşınmamıştı. Ölçer bu riski varsayımdan ölçüme çevirir.
+
+    AÇIK MADDE = sözleşmesini tutmayan uygulama + kayıtsız aday. İkincisi
+    asıl olandır: bugünkü kusur kayıtlı bir uygulama DEĞİLDİ, ham bir
+    maske atamasıydı; yalnız kayıtlılara bakan bir ölçer onu göremezdi.
+    """
+    import iki_hiz as m
+    o = m.olc()
+    ayrisan = [a for s in o["sozlesmeler"] for a in s["ayrisan"]]
+    aday = o["kayitsiz_adaylar"]
+    n_uyg = sum(len(s["uygulamalar"]) for s in o["sozlesmeler"])
+    return {"toplam": n_uyg, "acik": len(ayrisan) + len(aday),
+            "detay": f"{len(ayrisan)} ayrışan uygulama, {len(aday)} kayıtsız "
+                     f"aday / {n_uyg} uygulama, "
+                     f"{len(o['sozlesmeler'])} sözleşme",
+            "taranamayan": [a["dosya"] for a in aday if a.get("neden")]}
+
+
 OLCERLER = [
     ("sessiz_yutma", "hata sebebi yutuluyor mu", _sessiz_yutma),
+    ("iki_hiz", "aynı sözleşmeyi paylaşan yollar ayrışıyor mu", _iki_hiz),
     ("oksuz_savunma", "savunma çağrılıyor mu", _oksuz_savunma),
     ("oksuz_alan", "üretilen alan okunuyor mu", _oksuz_alan),
     ("kanal_ayrismasi", "bir kanal söylüyor öbürü susuyor mu", _kanal_ayrismasi),
@@ -125,9 +150,13 @@ def topla() -> dict:
                       if kapsam_disi else "")
                    + ". Ayrıntı: python saglik.py")
     else:
-        verdikt = ("✅ Beş ölçer de sıfır açık madde bildiriyor; "
-                   "taranamayan dosya yok")
-    return {"vaka": "Depo sağlık toplayıcısı — beş öz-denetim ölçeri",
+        # SAYI SAYILIR, YAZILMAZ. "Beş ölçer" elle yazılıydı ve altıncı
+        # ölçer eklenince yanlış oldu --- bu toplayıcının kendi avladığı
+        # kusur sınıfı, kendi hükmünde.
+        verdikt = (f"✅ {len(OLCERLER)} ölçerin hepsi sıfır açık madde "
+                   f"bildiriyor; taranamayan dosya yok")
+    return {"vaka": (f"Depo sağlık toplayıcısı — {len(OLCERLER)} "
+                     f"öz-denetim ölçeri"),
             "_uretim": "Üretim: python saglik.py --json",
             "verdikt": verdikt, "acik_toplam": acik,
             "olculemeyen": [x["olcer"] for x in olculemedi],

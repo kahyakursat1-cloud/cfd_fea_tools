@@ -133,7 +133,7 @@ bir eşleme şeması değil, **alıcı FEA yüzeyinin CFD yük dağılımını
 çözebilmesi**. Çok daha ucuz ve mühendislik olarak doğru sıra. Yine de
 en kötü %24,1 küçümsenecek değil.
 
-### V1.2b — iki-hızlı katmanın DENETLENMESİ (yeni, bugün doğdu)
+### V1.2b — iki-hızlı katmanın DENETLENMESİ ✅ BİTTİ (2026-08-28)
 
 Bugünkü yük kusuru teknik değil **yapısal** bir sebeple hayatta kaldı:
 `fsi_korunumlu_esleme.disa_yonlendir` centroid ölçütünü zaten çürütmüş ve
@@ -143,9 +143,21 @@ devam ediyordu. İki yol yan yana, biri dersi öğrenmiş öteki duymamış.
 Bu, CLAUDE.md'nin "iki-hızlı uyarı"sının ilk **ölçülmüş** bedeli (yükün
 %70'i). Gereken şey büyük bir refactor değil — o riskli ve ayrı iş. Gereken:
 bir düzeltme yapıldığında *"aynı kusur hangi öteki yolda duruyor"* sorusunu
-soran bir denetim. Somut ilk adım: yön/normal, alan-integrali ve yük-aktarımı
-gibi **aynı işi yapan** fonksiyon ailelerini eşleştirip ayrışmalarını listeleyen
-bir ölçer (`saglik.py`'nin kanal-ayrışması ölçerinin kod tarafındaki karşılığı).
+soran bir denetim. **Yapıldı:** `iki_hiz.py`, `saglik.py`'nin altıncı ölçeri. İki iş yapar:
+
+1. Kayıtlı uygulamaları paylaştıkları sözleşmeye karşı **davranışla** sınar.
+   İlk sözleşme *"yönlendirme bütünseldir"* — üç uygulama (araç yolu, FSI
+   eşlemesi, ölçüm betiği) geçiyor.
+2. **Kayıtsız aday** tarar: sözleşmenin konusu olan işi yapıp kayıtta
+   bulunmayan kod. Bugünkü kusuru yakalayacak olan budur — kusur kayıtlı bir
+   uygulama DEĞİLDİ, ham bir maske atamasıydı. Depoda bugün 0 aday.
+
+**Kısıt yazılı:** kod-klonu dedektörü değil; sözleşmeler elle bildirilir.
+Ölçtüğü şey "iki-hızlı katman temiz" değil, "bildirilen sözleşmelerde
+ayrışma yok".
+
+**Kalan borç:** ikinci bir sözleşme ailesi (alan integrali / yük aktarımı)
+henüz bildirilmedi.
 
 ### V1.3 — kampanya planlayıcısı
 

@@ -26,10 +26,13 @@ def rapor():
     return saglik.topla()
 
 
-def test_bes_olcer_de_kosuyor(rapor):
+def test_KAYITLI_olcerlerin_HEPSI_kosuyor(rapor):
+    """Sayı ELLE tutulmuyor artık. Test `== 5` diyordu ve altıncı ölçer
+    eklenince düştü --- oysa hemen altındaki satır zaten KAYDA bağlıyor ve
+    asıl sınanan şey oydu: kayıtlı her ölçer raporda, aynı sırayla."""
     r = rapor
-    assert len(r["olcerler"]) == 5
     assert [x["olcer"] for x in r["olcerler"]] == [a for a, _, _ in saglik.OLCERLER]
+    assert len(r["olcerler"]) == len(saglik.OLCERLER)
     for x in r["olcerler"]:
         assert x["olculdu"] is True, f"{x['olcer']}: {x['detay']}"
         assert x["soru"], x["olcer"]

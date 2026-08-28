@@ -1,0 +1,32 @@
+{
+  "vaka": "İki-hızlı katman — aynı sözleşmeyi paylaşan yollar ayrışıyor mu",
+  "_neden": "2026-08-28: arac yolunda yuzey normalleri YUZ BASINA ters ceviriliyordu ve yapiya yukun dortte biri uygulaniyordu. FSI yolu ayni olcutu coktan curutmustu. Ders bir yolda ogrenilmis, otekine tasinmamisti.",
+  "sozlesmeler": [
+    {
+      "sozlesme": "yonlendirme_butunsel",
+      "soru": "yüzey yönlendirmesi hepsi-ya-hiçbiri mi",
+      "uygulamalar": [
+        {
+          "uygulama": "vehicle_fea._disa_yonlendir",
+          "tutuyor": true,
+          "kusurlar": []
+        },
+        {
+          "uygulama": "fsi_korunumlu_esleme.disa_yonlendir",
+          "tutuyor": true,
+          "kusurlar": []
+        },
+        {
+          "uygulama": "experiments/alici_yuzey_yeterliligi._kuresel_yonlendir",
+          "tutuyor": true,
+          "kusurlar": []
+        }
+      ],
+      "ayrisan": []
+    }
+  ],
+  "kayitsiz_adaylar": [],
+  "verdikt": "3/3 kayıtlı uygulama paylaştığı sözleşmeyi tutuyor ve kayıtsız aday yok. Bu bir AYRIŞMA hükmüdür — bildirilmemiş bir sözleşme varsa ölçer onu göremez.",
+  "_kisit": "Kod-klonu dedektoru DEGILDIR. Sozlesmeler ELLE bildirilir ve olcer yalniz bildirilenin ihlalini arar; yeni bir fizik yolu eklendiginde sozlesmesi de eklenmelidir. Aday taramasi da tek bir SOZDIZIMI imzasina bakar --- ayni kusurun baska bir yazilisi bu imzaya girmeyebilir.",
+  "_uretim": "Üretim: python iki_hiz.py"
+}

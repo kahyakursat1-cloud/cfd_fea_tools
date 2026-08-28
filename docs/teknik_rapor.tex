@@ -1624,6 +1624,55 @@ düzeltildi'' değil, \emph{``aynı kusur hangi öteki yolda duruyor''}
 olmalı.
 \end{dikkat}
 
+\noindent \textbf{Ve bu soru bir ölçere dönüştürüldü.} \texttt{iki\_hiz}
+aynı sözleşmeyi paylaşan yolları sınar ve \texttt{saglik}'in altıncı
+ölçeri olarak koşar. Yaptığı iki şeyden \emph{ikincisi} asıl değeri
+taşır. Birincisi kayıtlı uygulamaları paylaştıkları sözleşmeye karşı
+\emph{davranışla} sınamaktır --- burada sözleşme ``yönlendirme
+bütünseldir'': sarımı tutarlı bir yüzeyde ya hiçbir yüze dokunulur ya
+hepsi çevrilir, bir alt kümeyi çevirmek yüzeyin tutarlılığını bozar. Üç
+uygulama (araç yolu, FSI eşlemesi, ölçüm betiği) bu sınavdan geçiyor.
+
+\noindent İkincisi \emph{kayıtsız aday} taramasıdır ve bugünkü kusuru
+yakalayacak olan budur: kusur kayıtlı bir uygulama \emph{değildi}, ham
+bir maske atamasıydı. Yalnız kayıtlılara bakan bir ölçer onu göremezdi.
+Tarama, normal dizisinin bir alt kümesinin işaretini çeviren atamaları
+arar; depoda bugün sıfır aday var.
+
+\begin{dikkat}{Aday ölçütü yine iddiasından genişti --- üç yanlış pozitif}
+İlk yazımda ölçüt ``normal dizisine maskeyle/indeksle atama'' idi ve üç
+şeyi suçladı: \texttt{coupling\_fsi.\_poly\_geometry}'de döngüde dizi
+doldurma, \texttt{fea\_runner}'da düğüm normali toplama,
+\texttt{vehicle\_pipeline}'da düz bir Python listesine birim vektör
+yazma. Üçü de meşru. Kusurun imzası \emph{doldurma} değil \emph{işaret
+çevirmedir}; ölçüt sözdizimine değil işleme bağlandı (negatif çarpan ya
+da tekli eksi). Ölçütün her iki tarafı da testle bağlı: gerçek kusurun
+sözdizimi ve ikinci bir yazılışı yakalanıyor, üç meşru desen
+yakalanmıyor.
+
+\noindent Sınav geometrisinin kendisi de bir kez yanlış seçildi. İlk
+sentetik gövdem ince bir levhaydı ve eski ölçütü hiç kırmadı ---
+\emph{dışbükey} bir cisimde ``normal, ağırlık merkezinden dışarı baksın''
+her zaman doğrudur. Kusur dışbükey olmayan gövdede doğar; sınav iki ayrık
+küple kuruldu ve bir test sınav geometrisinin eski ölçütü gerçekten
+kırdığını denetliyor. Aksi halde ``üç uygulama da geçti'' hiçbir şey
+demezdi.
+\end{dikkat}
+
+\noindent \textbf{Ölçerin kendi kısıtı yazılı.} Bu bir kod-klonu
+dedektörü değildir: sözleşmeler \emph{elle} bildirilir ve ölçer yalnız
+bildirilenin ihlalini arar. Yeni bir fizik yolu eklendiğinde sözleşmesi
+de eklenmelidir --- ölçer bunu kendiliğinden bilemez ve bilir gibi
+yapmaz. Aday taraması da tek bir sözdizimi imzasına bakar; aynı kusurun
+başka bir yazılışı o imzaya girmeyebilir. Ölçtüğü şey ``iki-hızlı katman
+temiz'' değil, \emph{``bildirilen sözleşmelerde ayrışma yok''}dur.
+
+\noindent Küçük bir yan bulgu, aynı sınıfın toplayıcının kendi hükmünde
+çıkması oldu: \texttt{saglik} ``Beş ölçer de sıfır açık madde bildiriyor''
+diyordu ve altıncı eklenince cümle yanlış oldu. Sayı artık sayılıyor.
+Aynı sabit iki testte ve bu raporda da duruyordu; üçü de kayda
+bağlandı.
+
 \subsection{Tahrik bandı arandı: harita yanıt verdi, ama yanlış sebeple}
 \label{sub:fsi-tahrik}
 
@@ -4370,10 +4419,10 @@ kapılar, bantlar, geçerlilik sınıfı, kanıt bütünlüğü.\\[2pt]
 \textbf{Kuplaj} (\texttt{coupling\_fsi}, \texttt{fsi\_twoway},
 \texttt{fsi\_surucu}) --- CFD$\leftrightarrow$FEA yük/deplasman aktarımı,
 Aitken sabit-nokta ve kuplaj turunu süren sürücü.\\[2pt]
-\textbf{Öz-denetim} (\texttt{sessiz\_yutma}, \texttt{oksuz\_alan},
+\textbf{Öz-denetim} (\texttt{sessiz\_yutma}, \texttt{iki\_hiz}, \texttt{oksuz\_alan},
 \texttt{oksuz\_savunma}, \texttt{kanal\_ayrismasi}, \texttt{kanit}) --- deponun
-kendi tekrarlayan kusur sınıflarını mekanikleştiren beş ölçer; \texttt{saglik}
-beşini tek komutta toplar ve kendi kapsamını da beyan eder.
+kendi tekrarlayan kusur sınıflarını mekanikleştiren ölçerler; \texttt{saglik}
+hepsini tek komutta toplar, sayıyı \emph{sayar} (elle yazmaz) ve kendi kapsamını da beyan eder.
 \end{anafikir}
 
 \begin{center}\footnotesize
