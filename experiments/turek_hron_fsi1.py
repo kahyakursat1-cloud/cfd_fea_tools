@@ -222,32 +222,30 @@ def _fea_kos(mesh, dugum_kuvvet: np.ndarray, work: Path) -> dict:
     P = mesh.points
     # ANKASTRE: bayragin silindire tutturuldugu kesit (x = x_bas).
     ankastre = np.where(P[:, 0] < xb + 1e-9)[0] + 1
+    # HER SEY YAZICININ KENDI YOLUYLA --- URETILEN .inp ELLE DUZENLENMIYOR.
+    #
+    # Bu fonksiyon bir turdur `metin.replace("*STATIC", ...)` ile hem
+    # duzlem-gerinim kisitini hem CLOAD blogunu enjekte ediyordu. Desen
+    # KIRILGAN: NLGEOM ya da DYNAMIC acildiginda `*STATIC` bir artim satiri
+    # tasir ve enjeksiyon onu blogun icine iterek girdiyi bozar --- CSM1'de
+    # tam bu oldu ve CalculiX girdiyi reddetti. Lineer adimda o satir
+    # olmadigi icin kusur BURADA SESSIZDI.
+    #
+    # DUZLEM GERINIM: z yonu tutulur. Turek-Hron 2B'dir; z serbest
+    # birakilirsa problem duzlem GERILME olur ve rijitlik degisir.
+    z_dugum = np.where((P[:, 2] < 1e-12) | (P[:, 2] > Z_KALINLIK - 1e-12))[0] + 1
     case = FEACase(
         name="fsi1_bayrak", mesh=mesh,
         material=FEAMaterial(name="tk_solid", youngs_modulus_pa=E_S,
                              poisson_ratio=NU_S, density_kg_m3=RHO_S),
-        fixed_bcs=[FixedBC(node_ids=ankastre, name="ANKASTRE")],
+        fixed_bcs=[FixedBC(node_ids=ankastre, name="ANKASTRE"),
+                   FixedBC(node_ids=z_dugum, name="ZDUZLEM",
+                           dof_start=3, dof_end=3)],
+        dugum_kuvvetleri={n: tuple(float(x) for x in f)
+                          for n, f in enumerate(dugum_kuvvet, start=1)
+                          if float(np.abs(f).max()) > 1e-14},
     )
-    inp = write_inp(case, work)
-    # DUZLEM GERINIM: z yonu tutulur. Turek-Hron 2B'dir; z serbest
-    # birakilirsa problem duzlem GERILME olur ve rijitlik degisir.
-    metin = inp.read_text(encoding="utf-8")
-    z_dugum = np.where((P[:, 2] < 1e-12) | (P[:, 2] > Z_KALINLIK - 1e-12))[0] + 1
-    blok = ["*NSET, NSET=ZDUZLEM"]
-    blok += [", ".join(str(int(n)) for n in z_dugum[i:i + 8])
-             for i in range(0, len(z_dugum), 8)]
-    blok += ["*BOUNDARY", "ZDUZLEM, 3, 3, 0.0"]
-    metin = metin.replace("*STEP", "\n".join(blok[:1] + blok[1:-2]) + "\n*STEP")
-    metin = metin.replace("*STATIC", "*STATIC\n" + "\n".join(blok[-2:]), 1)
-    # CLOAD: aktarilan dugum kuvvetleri
-    cload = ["*CLOAD"]
-    for n, f in enumerate(dugum_kuvvet, start=1):
-        for dof in range(3):
-            if abs(f[dof]) > 1e-14:
-                cload.append(f"{n}, {dof + 1}, {f[dof]:.8e}")
-    metin = metin.replace("*STATIC", "*STATIC\n" + "\n".join(cload), 1)
-    inp.write_text(metin, encoding="utf-8")
-    r = _run(inp)
+    r = _run(write_inp(case, work))
     if not r.success:
         return {"kosdu": False, "neden": (r.stderr or r.stdout)[-300:]}
     frd = parse_frd(r.frd_path)

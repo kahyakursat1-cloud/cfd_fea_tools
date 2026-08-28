@@ -106,6 +106,12 @@ class FEACase:
     fixed_bcs: list[FixedBC] = field(default_factory=list)
     pressure_loads: list[PressureLoad] = field(default_factory=list)
     force_loads: list[ForceLoad] = field(default_factory=list)
+    # DUGUM-BASINA SERBEST KUVVET: {dugum_no (1-tabanli): (Fx, Fy, Fz)}.
+    # FSI aktariminin urettigi yuk boyledir --- her dugumde ayri ve 3
+    # bilesenli. `ForceLoad` bunu ifade edemez (tek yonde TOPLAM dagitir),
+    # ve bu eksik uc cagiraninin .inp metnini ELLE duzenlemesine yol
+    # aciyordu. Bkz. write_inp icindeki gerekce.
+    dugum_kuvvetleri: dict[int, tuple] = field(default_factory=dict)
     gravity_loads: list[GravityLoad] = field(default_factory=list)
     analysis_type: str = "STATIC"   # STATIC, FREQUENCY, BUCKLE, DYNAMIC
     num_modes: int = 10              # FREQUENCY/BUCKLE için
@@ -269,6 +275,27 @@ def write_inp(case: FEACase, output_dir: Path) -> Path:
                 key = (int(n), axis + 1)
                 nodal_force_accumulator[key] = (
                     nodal_force_accumulator.get(key, 0.0) + f_per_node[axis]
+                )
+
+    # Dugum-basina SERBEST kuvvet -> ayni birikece
+    #
+    # NEDEN GEREKLI. `ForceLoad` bir TOPLAM kuvveti tek yonde dugumlere esit
+    # dagitir; FSI aktariminin urettigi yuk ise dugum basina AYRI ve 3
+    # bilesenlidir, yani o siniftan ifade EDILEMEZ. Bu eksik yuzunden uc
+    # cagiran (vehicle_fea, turek_hron_fsi1 x2) uretilen .inp METNINI elle
+    # duzenliyordu: `txt.replace("*STATIC", "*STATIC\n" + cload, 1)`.
+    #
+    # O DESEN KIRILGAN VE BEDELI OLCULDU. NLGEOM acildiginda `*STATIC` bir
+    # artim satiri tasir ("0.1, 1.0") ve enjeksiyon onu CLOAD blogunun
+    # icine iter; CalculiX girdiyi reddeder. CSM1'de tam bu oldu. Lineer
+    # adimda o satir olmadigi icin kusur SESSIZDI --- yani vehicle_fea'da
+    # NLGEOM'un acildigi gun patlayacak gizli bir kusurdu.
+    for _n, _f in (case.dugum_kuvvetleri or {}).items():
+        for axis in (0, 1, 2):
+            if abs(float(_f[axis])) > 1e-14:
+                key = (int(_n), axis + 1)
+                nodal_force_accumulator[key] = (
+                    nodal_force_accumulator.get(key, 0.0) + float(_f[axis])
                 )
 
     # ─── ANALİZ ADIMI ───

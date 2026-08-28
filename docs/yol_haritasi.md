@@ -75,6 +75,10 @@ Hepsi mevcut parçaların birleştirilmesi; yeni fizik yok.
 4. **Nonlinear/Dynamic FEA'yı GUI'ye taşı.** Arka uç bitti ve yayımlanmış
    değere karşı doğrulandı; kullanıcıya görünmeyen bir yetenek duruyor.
    Öneride P1'di, buraya alındı — maliyeti saatler, değeri bugün.
+   **Ön koşulu bugün kapandı:** üretim yolu `.inp` metnini elle
+   düzenliyordu (`txt.replace("*STATIC", ...)`) ve NLGEOM açılır açılmaz
+   patlayacaktı; `FEACase.dugum_kuvvetleri` eklenip üç enjeksiyon birden
+   kaldırıldı.
 5. ~~**Benchmark orkestrasyonu**~~ **BİTTİ** —
    `experiments/turek_hron_kiyaslama.py`: sekiz aşamalı zincirin tek
    tablosu, `--kos` ile eksikleri koşar. Sayıları yeniden hesaplamaz,
@@ -112,6 +116,21 @@ Ağırlıklı amaç (compliance + gerilme + kütle), Pareto cephesi; minimum
 ### V2.0
 
 Sıkıştırılabilir CFD + V&V, temas/plastisite, kompozit hasar, GPU/HPC.
+
+---
+
+## Kapsam kararı: tez önerisi
+
+FSI/Turek–Hron çalışması **tez önerisinin kapsamı dışındadır** ve öyle
+kalacak. Öneri AS1–AS4 üzerine kurulu (baskı parametreleri → geometri
+sapması → aerodinamik katsayı → belirsizlik bütçesi) ve 36 aydan 24 aya
+bilinçli daraltılmış. `tez_onerisi.tex`'te FSI'nin hiç geçmemesi bir
+unutma değil, o daraltmanın sonucu; kendi kanıt denetimi de 29/29 temiz.
+
+Bugünkü yanlışlanabilirlik örneği (δ ön-uçuş yordayıcısı öngörüsü kuruldu,
+n=24 için kritik |r|≈0,41 ölçütüyle sınandı, Spearman 0,00 / −0,25 çıktı ve
+geri çekildi) **öneriye değil**, tez yazılırken *"yapılması planlananlar"*
+bölümüne girecek. Karar 2026-08-28.
 
 ---
 

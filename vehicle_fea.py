@@ -22,7 +22,13 @@ import numpy as np
 import trimesh
 from scipy.spatial import cKDTree
 
-from analysis.calculix_writer import FEACase, FEAMaterial, FixedBC, write_inp
+from analysis.calculix_writer import (
+    FEACase,
+    FEAMaterial,
+    FixedBC,
+    GravityLoad,
+    write_inp,
+)
 from analysis.ccx_runner import run_ccx
 from analysis.frd_parser import parse_frd
 from analysis.tet_mesher import generate_tet_mesh
@@ -542,24 +548,34 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
         return out
 
     cb(40, f"CalculiX statik çözüm ({tet.num_nodes:,} düğüm)...")
-    case = FEACase(name="yapisal_kontrol", mesh=tet, material=mat,
-                   fixed_bcs=[FixedBC(node_ids=fixed)], analysis_type="STATIC",
-                   delta_t=delta_t)
-    inp = write_inp(case, run_dir / "fea")
-    txt = inp.read_text(encoding="utf-8")
-    inject = _cload_lines(mp["node_forces"])
-    if g_yuk:                                   # manevra g-yükü: n·g eylemsizlik (-z)
-        dz = -1.0 if g_yuk >= 0 else 1.0
-        inject += (f"\n*DLOAD\nEALL, GRAV, {abs(g_yuk) * 9.81:.6e}, "
-                   f"0.0, 0.0, {dz:.1f}")
+    # YUKLER YAZICININ KENDI YOLUYLA --- URETILEN .inp ELLE DUZENLENMIYOR.
+    #
+    # Bu blok bir turdur `txt.replace("*STATIC", "*STATIC" + inject, 1)`
+    # yapiyordu ve o desen KIRILGANDI: NLGEOM acildiginda `*STATIC` bir
+    # artim satiri tasir ("0.1, 1.0") ve enjeksiyon onu CLOAD blogunun
+    # icine iterek girdiyi bozar. Lineer adimda o satir olmadigi icin kusur
+    # SESSIZDI --- yani bu yolda NLGEOM'un acildigi gun patlayacakti.
+    # Ayni desen Turek-Hron CSM1'de gercekten patladi ve ders oradan geldi.
+    dugum_yuk = {int(n): tuple(float(x) for x in f)
+                 for n, f in mp["node_forces"].items()}
     if itki_n:                                  # motor itkisi: aft (min-x) patch'e +x dağıtık
         xc = tet.points[:, 0]
         aft = np.where(xc < xc.min() + 0.03 * (xc.max() - xc.min()))[0] + 1
         if len(aft):
             fper = itki_n / len(aft)
-            inject += "\n*CLOAD\n" + "\n".join(f"{int(n)}, 1, {fper:.6e}" for n in aft)
-    txt = txt.replace("*STATIC", "*STATIC\n" + inject, 1)
-    inp.write_text(txt, encoding="utf-8")
+            for n in aft:
+                v = dugum_yuk.get(int(n), (0.0, 0.0, 0.0))
+                dugum_yuk[int(n)] = (v[0] + fper, v[1], v[2])
+    yercekimi = []
+    if g_yuk:                                   # manevra g-yükü: n·g eylemsizlik (-z)
+        dz = -1.0 if g_yuk >= 0 else 1.0
+        yercekimi = [GravityLoad(accel_m_s2=abs(g_yuk) * 9.81,
+                                 direction=(0.0, 0.0, dz))]
+    case = FEACase(name="yapisal_kontrol", mesh=tet, material=mat,
+                   fixed_bcs=[FixedBC(node_ids=fixed)], analysis_type="STATIC",
+                   delta_t=delta_t, dugum_kuvvetleri=dugum_yuk,
+                   gravity_loads=yercekimi)
+    inp = write_inp(case, run_dir / "fea")
     ccx = run_ccx(inp, timeout=3600)
     if not ccx.success:
         return {"status": "FAILED", "error": f"ccx başarısız: {ccx.stderr[-400:]}"}

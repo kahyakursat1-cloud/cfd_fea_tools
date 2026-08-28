@@ -3435,11 +3435,87 @@ Taşıma (N/m) & 1{,}1094 & 1{,}119 & \%-0{,}86 \\
         (kanıt dosyasını yazan satırı suçladı). Doğru ölçüt mekanizmaya
         bağlandı: sözdizimi ağacında, yalnız \texttt{write\_inp}'ten doğan
         yola geri yazmak.
+
+        \textbf{Ve aynı desen ÜRETİM yolunda da duruyordu.} Sonradan
+        arandı: \texttt{vehicle\_fea} yük bloğunu tam aynı biçimde
+        (\texttt{txt.replace("*STATIC", \dots)}) enjekte ediyordu. Orada
+        analiz hep lineer olduğu için kusur hiç görünmemişti --- ama
+        \texttt{NLGEOM} arayüze taşındığı gün patlayacaktı. Kök sebep bir
+        eksik yetenekti: yazıcının \texttt{ForceLoad}'ı bir \emph{toplam}
+        kuvveti tek yönde düğümlere eşit dağıtır, oysa FSI aktarımının
+        ürettiği yük düğüm başına ayrı ve üç bileşenlidir; o sınıfla
+        anlatılamadığı için herkes metni düzenliyordu.
+        \texttt{FEACase.dugum\_kuvvetleri} boşluğu kapattı ve üç enjeksiyon
+        birden kalktı. FSI1 yeniden koşuldu: $u_x$ ve $u_y$ birebir aynı,
+        yani göç davranışı korudu.
         \end{dikkat}
 
         \noindent Yapısal ağın bağımsızlığı hâlâ sınanmadı (CSM1 kasıtlı
         olarak FSI1'in ağıyla koşuldu, çünkü sınanan o ağdı) ve FSI1'in
         kendi ağ duyarlılığı rijit aileden türetilmez.
+
+        \medskip
+        \noindent \textbf{Ölçümden karara: yük bütünlüğü kapısı.} Viskoz
+        payının ölçülmesi tek başına bir hüküm üretmez; onu tüketen bir yol
+        gerekir. \texttt{classify\_fea} artık bir \texttt{yuk\_bileseni}
+        alıyor ve üç dala ayrılıyor: kayma taşındıysa sınıf düşmez, pay
+        ölçülüp \%$5$'in altındaysa düşmez, pay \emph{ölçülmediyse} ya da
+        eşiği aşıyorsa sonuç yalnız eğilimdir.
+
+        Kritik olan orta daldır: \textbf{yokluk iyilik sayılmaz.}
+        ``Bilinmiyor'' kolu eşikten bağımsız çalışır, çünkü deponun $195$
+        kuvvet kaydının $138$'inde basınç/viskoz ayrımı hiç yazılmamıştır.
+        Kapının yanlış-pozitif tarafı da kapalı: \texttt{yuk\_bileseni}
+        verilmezse kural hiç çalışmaz --- elle yüklenen bir brakette ya da
+        modal analizde CFD aktarımı yoktur ve ilgisiz bir sonucu sıkmak
+        yanlış olurdu. Eşik, tarama betiğinden tek kaynaktan okunur ve bir
+        test hem okunduğunu hem \emph{kullanıldığını} sınar.
+
+        \medskip
+        \noindent \textbf{Zincirin tek tablosu.} Turek--Hron çalışması
+        dokuz betiğe dağılmıştı ve her biri kendi kanıtını yazıyordu;
+        ``bu platform FSI'da nerede duruyor'' sorusu dokuz JSON'u elle
+        açmayı gerektiriyordu. \texttt{experiments/turek\_hron\_kiyaslama.py}
+        sekiz aşamayı tek tabloda toplar ve \texttt{-{}-kos} ile eksikleri
+        koşar. Yönetici \emph{yol} bilir, \emph{değer} bilmez: sayıları
+        kanıt dosyalarından okur ve bir test zincir tanımı dışında sabit
+        sayı bulunmasını yasaklar. Bayatlık da durumun parçasıdır ---
+        kanıtı kendi betiğinden eski olan aşama ``geçti'' sayılmaz.
+
+        \noindent İlk koşusunda iki aşamayı bayat buldu: ağ üretimi ve
+        CFD1. O betiklere ağ ailesi için parametre eklenmiş, kanıt
+        yenilenmemişti. Yenilendiğinde sayılar birebir aynı çıktı (ağ
+        üretimi deterministik) --- ama CFD1'in hükmü hâlâ ``ağ-bağımsızlığı
+        sınanmadı'' diyordu, oysa aile onu kapatmıştı. Aynı bayatlama
+        sınıfının dördüncü örneği; o cümle de artık kanıttan türetiliyor.
+
+        \begin{dikkat}{Yeşil bir suit, hiçbir şey sınamıyordu}
+        Aynı yenileme yedi testi sessizce devre dışı bıraktı. Eşleme--yüzey
+        ayrışımının bütün testleri CFD1 vakasının yüzey VTK'sına bağlıydı
+        ve o dosya \emph{başka} bir betiğin yan ürünü. CFD1 yeniden
+        koşulunca vaka dizini sıfırdan kuruldu, VTK silindi ve yedi test
+        birden atlandı. Suit ``hepsi geçti'' dedi; o dosyada hiçbir şey
+        sınanmamıştı. Atlama sayısının ikiden dokuza çıktığını fark
+        etmeseydim görünmezdi.
+
+        Kimlik ise saf cebirdir ve Turek--Hron'a ihtiyacı yoktur; artık
+        sentetik girdiyle de sınanıyor ve bir test sentetik testlerin
+        atlanabilir olmamasını kilitliyor.
+
+        \textbf{Aynı yerde ikinci bir kusur çıktı ve o daha incelikliydi.}
+        Kimlik artığını \emph{kendi} büyüklüğüne, yani
+        $\|T_{\text{düğüm}} - T_{\text{CFD}}\|$'ye bölüyordum. Eşleme
+        kusursuz olduğunda o büyüklük sıfıra gider ve oran yuvarlama
+        gürültüsüne döner --- yani metrik \emph{tam da iyi durumda}
+        anlamsızlaşıyordu. Bu, bu raporun daha önce anlattığı ``sıfır yükte
+        kusursuz korunum'' tuzağının aynısı, bu kez kimlik sınavında.
+        Payda \emph{throughput} yapıldı ve gerçek sonuç ortaya çıktı:
+        Turek--Hron FSI1'de $4{,}85\times10^{-9} \to 5{,}12\times10^{-18}$,
+        yirmi dört vakada en kötüsü $2{,}79\times10^{-15}$. Test bandı
+        $10^{-6}$'dan $10^{-12}$'ye çekildi; bir cebirsel özdeşlikte gevşek
+        bir bant gerçek bir ihlali gizlerdi. Ayrışım değişmedi --- düzeltme
+        bulguyu \emph{güçlendirdi}.
+        \end{dikkat}
 
         \medskip
         \noindent \textbf{``Peki bu her yerde mi önemli?'' --- deponun kendi
