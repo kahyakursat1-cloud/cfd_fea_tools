@@ -1132,16 +1132,78 @@ def classify_vlm(alpha_deg: float, mach: float, *, Cl: float | None = None,
     return v
 
 
+# VISKOZ PAY ESIGI. Uydurulmadi: `experiments/kayma_payi.py` deponun 195
+# kuvvet kaydini tarayip ayni esigi kullaniyor ve gerekcesi orada yazili
+# --- %5 "BAK" esigidir, "yanlis" esigi degil. Tek kaynak olsun diye
+# oradan okunur; kopyalanirsa iki yer ayrisir.
+def _viskoz_esik_pct() -> float:
+    """Eşik tarama betiğinden --- ON KOŞUL SINANIR, İSTİSNA YUTULMAZ.
+
+    Dosya yoksa geri düşüş değeri kullanılır (kaynaktakiyle AYNI ve testte
+    bağlı). Dosya VARSA import hatası YÜKSELİR: "betik yok" ile "betik
+    bozuk" aynı gösterilirse ikincisi sessizce eşiği geri düşüşe kaydırır.
+    """
+    import sys
+    from pathlib import Path
+    dizin = Path(__file__).resolve().parent / "experiments"
+    if not (dizin / "kayma_payi.py").exists():
+        return 5.0
+    if str(dizin) not in sys.path:
+        sys.path.insert(0, str(dizin))
+    from kayma_payi import ESIK_PCT
+    return float(ESIK_PCT)
+
+
+def _yuk_butunlugu(y: dict | None) -> list[Verdict]:
+    """Yük CFD'den taşındıysa BÜTÜN mü taşındı --- üç dal, üçü de açık."""
+    if not y:
+        return []
+    if y.get("kayma_tasindi"):
+        return [Verdict("Yük bütünlüğü (basınç + viskoz)", VALIDATED, True,
+                        _mesaj("FEA_YUK_TAM"), "FEA_YUK_TAM", {})]
+    pay = y.get("viskoz_pay_pct")
+    if pay is None:
+        # YOKLUK IYILIK SAYILMAZ. Bu dal esikten BAGIMSIZDIR.
+        return [Verdict("Yük bütünlüğü (viskoz pay)", TREND, False,
+                        _mesaj("FEA_YUK_VISKOZ_BILINMIYOR"),
+                        "FEA_YUK_VISKOZ_BILINMIYOR", {})]
+    esik = _viskoz_esik_pct()
+    if float(pay) > esik:
+        _p = {"pay": float(pay), "esik": esik}
+        return [Verdict("Yük bütünlüğü (viskoz pay)", TREND, False,
+                        _mesaj("FEA_YUK_VISKOZ_BUYUK", **_p),
+                        "FEA_YUK_VISKOZ_BUYUK", _p)]
+    return [Verdict("Yük bütünlüğü (viskoz pay)", VALIDATED, True,
+                    _mesaj("FEA_YUK_TAM"), "FEA_YUK_TAM",
+                    {"pay": float(pay), "esik": esik})]
+
+
 def classify_fea(has_singularity: bool = False,
                  buckling_margin: float | None = None,
                  referans_hata_pct: float | None = None,
-                 nicelik: str = "gerilme") -> list[Verdict]:
+                 nicelik: str = "gerilme",
+                 yuk_bileseni: dict | None = None) -> list[Verdict]:
     """FEA yapısal çıktılarının zarf sınıfı (tasarım-güvenli kısım).
 
     buckling_margin: λ_kritik / yük (verilirse stabilite verdikti eklenir). λ>1 stabil.
     referans_hata_pct: kapalı-forma karşı |q−q_ref|/|q_ref| [%]. Verilirse KAPI olarak
         kullanılır; verilmezse eski davranış (yalnız raporlama) korunur.
     nicelik: FEA_KABUL_SINIRI anahtarı — gerilme / yer_degistirme / ozdeger.
+    yuk_bileseni: yük bir CFD yüzeyinden taşındıysa aktarımın BÜTÜNLÜĞÜ.
+        `{"kayma_tasindi": bool, "viskoz_pay_pct": float | None}`.
+
+    YÜK BÜTÜNLÜĞÜ KAPISI --- ÖLÇÜMDEN DOĞDU. `coupling_fsi` varsayılan
+    olarak yalnız BASINÇ taşır. Turek--Hron bayrağında çözücünün kendi
+    yüzey integrali viskoz eksenel kuvveti basıncınkinin 9,6 KATI verdi ve
+    uç yer değiştirmesinin x bileşeni bir mertebe yanlış çıktı; kanal
+    açılınca sapma %1,3'e indi. Depodaki 195 kuvvet kaydının 138'inde ise
+    basınç/viskoz ayrımı HİÇ yazılmamış --- yani o vakalarda cevap
+    ``önemsiz'' değil ``BİLİNMİYOR''.
+
+    Kapı bu yüzden yokluğu iyilik saymaz: pay ölçülmemişse sınıf İNDİRİLİR.
+    `yuk_bileseni=None` ise kural HİÇ çalışmaz --- elle uygulanan yükte ya
+    da modal analizde CFD aktarımı yoktur ve ilgisiz bir sonucu sıkmak
+    yanlış olurdu.
     """
     sinir = FEA_KABUL_SINIRI.get(nicelik, FEA_KABUL_SINIRI["gerilme"]) * 100.0
     if referans_hata_pct is not None and referans_hata_pct > sinir:
@@ -1150,6 +1212,7 @@ def classify_fea(has_singularity: bool = False,
                         _mesaj("FEA_REFERANS_HATASI", **_p), "FEA_REFERANS_HATASI", _p)]
     v = [Verdict("Gerilme (temsili, %99-persentil)", VALIDATED, True,
                  _mesaj("FEA_GERILME_GECERLI"), "FEA_GERILME_GECERLI", {})]
+    v.extend(_yuk_butunlugu(yuk_bileseni))
     if has_singularity:
         v.append(Verdict("Tepe gerilme (tekillik noktası)", TREND, False,
                          _mesaj("FEA_TEKILLIK"), "FEA_TEKILLIK", {}))

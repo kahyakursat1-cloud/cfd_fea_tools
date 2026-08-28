@@ -516,10 +516,18 @@ def cfd_pressure_to_fea_loads(vtk_patch: str, fea_stl: str,
         # tamami yuzey-integrali farkindan geliyordu.
         _T_cfd = np.einsum("fi,fj->ij", dF_cfd_yuz, cfd_centers)
         _T_kimlik = np.einsum("fi,fj->ij", dF_cfd_yuz, _delta)
-        _pay = np.linalg.norm(T_node - _T_cfd)
+        # PAYDA THROUGHPUT'TUR, ||T_node - T_cfd|| DEGIL --- ve bu ayrim
+        # OLCUMLE ogrenildi. Ilk surum farki KENDI buyuklugune boluyordu;
+        # esleme kusursuz oldugunda o buyukluk sifira gider ve oran
+        # YUVARLAMA GURULTUSUNE doner. Sentetik duz yamada 5,4e-06 cikti ve
+        # "kimlik tutmuyor" gibi okundu --- oysa hem pay hem payda sifirdi.
+        # Bu deponun daha once avladigi "sifir yukte kusursuz korunum"
+        # tuzaginin aynisi, bu kez KIMLIK SINAVINDA.
         _sapma["kimlik_artigi"] = float(
-            np.linalg.norm((T_node - _T_cfd) - _T_kimlik) / (_pay + 1e-30))
-        _sapma["esleme_isi_artigi"] = float(_pay / (t_throughput + 1e-30))
+            np.linalg.norm((T_node - _T_cfd) - _T_kimlik)
+            / (t_throughput + 1e-30))
+        _sapma["esleme_isi_artigi"] = float(
+            np.linalg.norm(T_node - _T_cfd) / (t_throughput + 1e-30))
         _sapma["yuzey_isi_artigi"] = float(
             np.linalg.norm(_T_cfd - T_face) / (t_throughput + 1e-30))
         _sapma["_kimlik"] = (

@@ -278,9 +278,11 @@ def _ozetle(adimlar, kuvvet, rez, neden) -> dict:
         "_kisit": (
             "REFERANS DEGERLER BU DEPODA BIRINCIL KAYNAKTAN DOGRULANMADI; "
             "karsilastirma icin yazildilar ve bir CAPA HUKMUNE temel "
-            "yapilmadan once teyit edilmelidir. Ayrica AG-BAGIMSIZLIGI "
-            "SINANMADI --- tek ag, tek cozunurluk; sapmanin ne kadari "
-            "ayriklastirmadan geldigi BILINMIYOR. CFD1 kuplaji sinamaz."),
+            "yapilmadan once teyit edilmelidir --- bu yuzden sonuc CAPA "
+            "DEGIL. AG-BAGIMSIZLIGI ayrica sinandi "
+            "(turek_hron_ag_bagimsizligi.py, dort seviye) ama o da bir GCI "
+            "vermiyor: suruklemede gozlemlenen mertebe negatif cikti. "
+            "CFD1 kuplaji sinamaz."),
         "_uretim": "Üretim: python experiments/turek_hron_cfd1.py",
     }
 
@@ -307,10 +309,34 @@ def _hukum(adimlar, kuvvet, rez, sapma, neden) -> str:
           f"%{sapma['tasima_pct']}. ")
     if abs(sapma["surukleme_pct"]) < 5.0 and rez.get("yakinsadi"):
         return s + ("Sürükleme referansın %5 bandında ve koşu yakınsadı. "
-                    "AMA referans bu depoda doğrulanmadı ve ağ-bağımsızlığı "
-                    "sınanmadı --- bu bir EĞİLİM sonucudur, çapa değil.")
+                    + _ag_bagimsizligi_notu())
     return s + ("Sonuç referanstan sapıyor ya da koşu yakınsamadı; "
                 "ağ-bağımsızlığı sınanmadan sapmanın kaynağı ayrılamaz.")
+
+
+def _ag_bagimsizligi_notu() -> str:
+    """Ağ-bağımsızlığı KAPANDI MI --- kanıttan, sabit metinden değil.
+
+    Bu cümle bir turdur ``ağ-bağımsızlığı sınanmadı'' diye SABİT yazılıydı
+    ve `turek_hron_ag_bagimsizligi.py` onu kapatınca BAYATLADI. Kıyaslama
+    yöneticisi (`turek_hron_kiyaslama.py`) ilk koşusunda bu kaydı bayat
+    işaretledi ve kusur oradan çıktı. Aynı sınıf bu depoda dördüncü kez.
+    """
+    kanit = KOK / "turek_hron_ag_bagimsizligi.json"
+    if not kanit.exists():
+        return ("AMA referans bu depoda doğrulanmadı ve ağ-bağımsızlığı "
+                "SINANMADI --- bu bir EĞİLİM sonucudur, çapa değil.")
+    try:
+        d = json.loads(kanit.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        return (f"Ağ-bağımsızlığı kaydı okunamadı ({type(e).__name__}); "
+                "durum bilinmiyor, sonuç EĞİLİM sayılır.")
+    return (
+        f"Ağ-bağımsızlığı AYRICA sınandı (dört seviye): sürükleme yayılımı "
+        f"%{d['surukleme'].get('yayilim_pct')}, taşıma yayılımı "
+        f"%{d['tasima'].get('yayilim_pct')}. Yine de bu bir GCI beyanı "
+        f"DEĞİLDİR --- sürüklemede gözlemlenen mertebe negatif çıktı, yani "
+        f"Richardson uygulanamıyor; ayrıntı o kayıtta.")
 
 
 def main() -> int:

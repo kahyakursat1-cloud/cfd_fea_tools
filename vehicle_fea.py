@@ -672,6 +672,39 @@ def yapisal_hukum(out: dict) -> dict:
             "supheli": fizik.get("verdict") == "suspect"}
 
 
+def _viskoz_pay_pct(run_dir: Path) -> float | None:
+    """Bu koşunun CFD kaydında viskoz/basınç payı --- YOKSA None.
+
+    KAPININ BESLENDIGI YER BURASI. `classify_fea` yük bütünlüğüne bakar ama
+    bu yol basınç-yalnızdır (`_map_pressure_to_tet` viskoz çekmeyi
+    taşımaz), dolayısıyla tek soru payın BİLİNİP bilinmediğidir.
+
+    Eski koşularda bilinmiyor: 195 kuvvet kaydının 138'i yalnız
+    `forceCoeffs` yazmış ve o dosya basınç/viskoz ayrımını taşımaz. Yeni
+    koşularda biliniyor, çünkü vaka yazıcısına `forces` fonksiyonu eklendi
+    (`analysis/openfoam_runner`, `kuvvetBilesenleri`). Yani bu fonksiyon
+    zamanla daha çok vakada sayı döndürür ve o zamana kadar kapı dürüstçe
+    'bilinmiyor' der.
+    """
+    import sys as _sys
+    _dizin = Path(__file__).resolve().parent / "experiments"
+    # ON KOSUL ACIKCA SINANIR, ISTISNA YUTULMAZ. `try/except ImportError`
+    # yazmak burada iki farkli seyi ayni gosterirdi: "tarama betigi yok"
+    # (mesru, olculemez) ve "betik BOZUK" (bir kusur, gurultuyle
+    # duyulmali). Dosya yoksa None doneriz; varsa import HATA VERIRSE o
+    # hata YUKSELIR.
+    if not (_dizin / "kayma_payi.py").exists():
+        return None
+    if str(_dizin) not in _sys.path:
+        _sys.path.insert(0, str(_dizin))
+    from kayma_payi import _oku, _pay
+    for dat in sorted(Path(run_dir).glob("**/postProcessing/**/force*.dat")):
+        d, _ = _oku(dat)
+        if d is not None:
+            return _pay(**d).get("eksik_oran_pct")
+    return None
+
+
 def _append_report(run_dir: Path, out: dict):
     rapor = run_dir / "rapor" / "RAPOR.md"
     if not rapor.exists():
@@ -695,7 +728,12 @@ def _append_report(run_dir: Path, out: dict):
     # (temsili gerilme/SF DOĞRULANMIŞ; tekillik tepesi EĞİLİM). Mekanizmada anlamsız.
     if not out.get("gecersiz"):
         from validity_envelope import banner_md, classify_fea
-        md.append(banner_md(classify_fea(has_singularity=bool(singular))))
+        # YUK BUTUNLUGU KAPIYA TASINIR. Bu yol basinc-yalnizdir;
+        # gecilmezse kapi hic calismaz ve savunma atil kalir.
+        md.append(banner_md(classify_fea(
+            has_singularity=bool(singular),
+            yuk_bileseni={"kayma_tasindi": False,
+                          "viskoz_pay_pct": _viskoz_pay_pct(run_dir)})))
     md += [f"- Model: **{out.get('model', 'dolu katı')}**  ",
           f"- Malzeme: **{out['malzeme']}**, mesnet: {out['mesnet']}  ",
           f"- Mesh: {out['dugum']:,} düğüm / {out['eleman']:,} "

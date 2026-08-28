@@ -165,6 +165,40 @@ GEREKCE: dict[str, dict[str, str]] = {
                "buckling): representative stress and safety factor are usable in a design "
                "decision."),
     },
+    # YUK BUTUNLUGU --- basinc-yalniz aktarimin bedeli olculdu ve
+    # siniflandirmaya baglandi (2026-08-28). Turek-Hron bayraginda viskoz
+    # eksenel kuvvet basincinkinin 9,6 kati cikti; depodaki 195 kaydin
+    # 138'inde ise ayrim HIC kaydedilmemis, yani cevap "onemsiz" degil
+    # "bilinmiyor".
+    "FEA_YUK_VISKOZ_BILINMIYOR": {
+        "tr": ("Yük CFD yüzeyinden taşındı ama basınç/viskoz ayrımı "
+               "ÖLÇÜLMEDİ. Viskoz kayma yükü taşınmadıysa ve payı "
+               "bilinmiyorsa sonuç tasarım-sınıfı alamaz: aynı kıyaslamada "
+               "o pay basıncın 9,6 katına çıktı. Çözüm: CFD vakasında "
+               "`forces` fonksiyonunu koş (basınç/viskoz ayrı yazar) ya da "
+               "aktarımı `kayma=True` ile koş."),
+        "en": ("Loads were transferred from a CFD surface but the "
+               "pressure/viscous split was NOT measured. If viscous "
+               "traction was not transferred and its share is unknown, the "
+               "result cannot be design-grade: in the same benchmark that "
+               "share reached 9.6x the pressure contribution."),
+    },
+    "FEA_YUK_VISKOZ_BUYUK": {
+        "tr": ("Yük basınç-yalnız taşındı ama viskoz pay %{pay:.1f} "
+               "(eşik %{esik:.0f}). Taşınmayan bileşen yapının gördüğü "
+               "yükün kayda değer bir kısmıdır; sonuç yalnız eğilimdir. "
+               "Aktarımı `kayma=True` ile yeniden koşun."),
+        "en": ("Loads were transferred pressure-only but the viscous share "
+               "is {pay:.1f}% (threshold {esik:.0f}%). The omitted "
+               "component is a material part of the load the structure "
+               "sees; the result is trend-grade only."),
+    },
+    "FEA_YUK_TAM": {
+        "tr": ("Yük bütünlüğü: yüzey çekmesi basınç ve viskoz bileşenleriyle "
+               "birlikte taşındı."),
+        "en": ("Load completeness: surface traction transferred with both "
+               "pressure and viscous components."),
+    },
     "FEA_TEKILLIK": {
         "tr": ("Sivri-köşe tekilliği: tepe değer mesh inceldikçe büyür, fiziksel değil — "
                "temsili (%99-persentil) değeri kullanın."),

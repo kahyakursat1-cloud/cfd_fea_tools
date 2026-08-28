@@ -60,17 +60,30 @@ ucuzdur ve yapısal çözümden öncedir.
 
 Hepsi mevcut parçaların birleştirilmesi; yeni fizik yok.
 
-1. **Load Completeness Gate.** Viskoz payı bilinmiyorsa sonuç `DESIGN`
-   sınıfı alamaz. Gerekçe ölçülü: 195 kayıttan 138'inde (üretim araç yolu
-   dâhil) basınç/viskoz ayrımı hiç kaydedilmemiş, okunabilen 16 ailenin
-   9'unda viskoz pay %5'i aşıyor, Turek–Hron bayrağında %410.
-2. **FSI Transfer Health kartı** — `esleme_is_payi` üzerinden, toplam
-   artık üzerinden **değil**. Kart ayrışımı göstermeli, yoksa okur yine
-   toplamı üretime yazar.
-3. **Nonlinear/Dynamic FEA'yı GUI'ye taşı.** Arka uç bitti ve yayımlanmış
+1. ~~**Load Completeness Gate.**~~ **BİTTİ** (`validity_envelope.classify_fea`
+   `yuk_bileseni` alır; üç dal: kayma taşındı / pay küçük / pay bilinmiyor
+   ya da büyük → EĞİLİM). Eşik `kayma_payi.ESIK_PCT`'ten tek kaynaktan
+   okunuyor. `vehicle_fea` payı koşu dizininden okuyup kapıya taşıyor ve
+   bir AST testi bunu kilitliyor. Gerekçe ölçülü: 195 kayıttan 138'inde
+   ayrım hiç kaydedilmemiş, okunabilen 16 ailenin 9'unda pay %5'i aşıyor,
+   Turek–Hron bayrağında %410.
+2. ~~**Aktarım kapısı doğru artığa baksın.**~~ **BİTTİ** — `aktarim_hukmu`
+   artık `esleme_is_payi_pct` alıyor; ayrışım yoksa toplama düşüyor ama
+   bunu hükümde açıkça söylüyor. `fsi_surucu` payı üretip taşıyor.
+3. **FSI Transfer Health kartı** — ölçüm hazır, eksik olan GUI. Kart
+   ayrışımı göstermeli, yoksa okur yine toplamı üretime yazar.
+4. **Nonlinear/Dynamic FEA'yı GUI'ye taşı.** Arka uç bitti ve yayımlanmış
    değere karşı doğrulandı; kullanıcıya görünmeyen bir yetenek duruyor.
    Öneride P1'di, buraya alındı — maliyeti saatler, değeri bugün.
-4. **Benchmark orkestrasyonu** — 9 betiği tek komuta bağla.
+5. ~~**Benchmark orkestrasyonu**~~ **BİTTİ** —
+   `experiments/turek_hron_kiyaslama.py`: sekiz aşamalı zincirin tek
+   tablosu, `--kos` ile eksikleri koşar. Sayıları yeniden hesaplamaz,
+   kanıt dosyalarından okur (yönetici YOL bilir, DEĞER bilmez; bir test
+   bunu AST ile kilitliyor). **BAYATLIK da durumun parçası** ve ilk
+   koşusunda iki aşamayı bayat buldu: `gmsh` ve `CFD1` kanıtları kendi
+   betiklerinden eskiydi. Yenilenince sayılar birebir aynı çıktı ama
+   CFD1'in hükmü hâlâ "ağ-bağımsızlığı sınanmadı" diyordu --- o cümle de
+   kanıttan türetilir yapıldı.
 
 ### V1.2 — kampanya planlayıcısı
 

@@ -1,0 +1,189 @@
+{
+  "vaka": "Turek-Hron kıyaslama zinciri — toplu durum",
+  "_neden": "Zincir dokuz betige dagilmis ve her biri kendi kanitini yaziyor. 'Bu platform FSI'da nerede duruyor' sorusunun cevabi bugune kadar dokuz JSON'u elle acmayi gerektiriyordu: olcum var, TOPLU HUKUM yoktu.",
+  "asamalar": [
+    {
+      "ad": "ağ (gmsh)",
+      "durum": "KOŞTU",
+      "kanit": "turek_hron_gmsh.json",
+      "bayat": false,
+      "olcum": [],
+      "asan": [],
+      "verdikt_ozet": "gmsh: 67268 düğüm, 33168 hekza + 0 prizma. 33168 hücre, non-ortho 34.705, skewness 0.817578. KAPI GEÇİLDİ: ön/arka `empty`, z'de tek hücre, gövde yaması var. snappy'nin reddettiği şey gmsh yoluyla KURULABİLİYOR --- 'elle"
+    },
+    {
+      "ad": "ağ kapısı",
+      "durum": "KOŞTU",
+      "kanit": "turek_hron_ag_kapisi.json",
+      "bayat": false,
+      "olcum": [],
+      "asan": [],
+      "verdikt_ozet": "KAPI GEÇİLMEDİ --- ve engel ayar değil ARACIN KENDİSİ: snappyHexMesh, `empty` yamalı bir ağı REDDEDİYOR (\"Mesh provided is not fully 3D as required for mesh relaxation after snapping\"). Yani bu depoda gövde-etrafı ağ kur"
+    },
+    {
+      "ad": "CFD1 (rijit)",
+      "durum": "BANDINDA",
+      "kanit": "turek_hron_cfd1.json",
+      "bayat": false,
+      "olcum": [
+        {
+          "etiket": "sürükleme",
+          "deger_pct": -0.05,
+          "band": 2.0,
+          "durum": "içinde"
+        },
+        {
+          "etiket": "taşıma",
+          "deger_pct": -0.86,
+          "band": 5.0,
+          "durum": "içinde"
+        }
+      ],
+      "asan": [],
+      "verdikt_ozet": "445 iterasyon, son rezidüeller {'Ux': 8.22595e-07, 'Uy': 9.89758e-07, 'p': 1.44373e-08}. Sürükleme 14.2823 N (±0.0000), taşıma 1.1094 N (±0.0013). Yayımlanan CFD1: sürükleme 14.29 N, taşıma 1.119 N --- sapma %-0.05 ve %-"
+    },
+    {
+      "ad": "CFD1 ağ ailesi",
+      "durum": "BANDINDA",
+      "kanit": "turek_hron_ag_bagimsizligi.json",
+      "bayat": false,
+      "olcum": [
+        {
+          "etiket": "sürükleme yayılımı",
+          "deger_pct": 0.167,
+          "band": 5.0,
+          "durum": "içinde"
+        },
+        {
+          "etiket": "taşıma yayılımı",
+          "deger_pct": 3.089,
+          "band": 10.0,
+          "durum": "içinde"
+        }
+      ],
+      "asan": [],
+      "verdikt_ozet": "4 seviye koşuldu (55971-12855 hücre). Sürükleme yayılımı %0.167, taşıma yayılımı %3.089. GCI (en ince): sürükleme %-0.271 (p=-0.897, monoton=True), taşıma %0.94 (p=2.362, monoton=True). LSR: sürükleme 0.09, taşıma 9.27. "
+    },
+    {
+      "ad": "CSM1 (yapı, statik)",
+      "durum": "BANDINDA",
+      "kanit": "turek_hron_csm1.json",
+      "bayat": false,
+      "olcum": [
+        {
+          "etiket": "uy",
+          "deger_pct": -0.11,
+          "band": 5.0,
+          "durum": "içinde"
+        },
+        {
+          "etiket": "ux",
+          "deger_pct": -0.22,
+          "band": 10.0,
+          "durum": "içinde"
+        }
+      ],
+      "asan": [],
+      "verdikt_ozet": "Referans çifti kendi içinde tutarlı: uy=-66.1 mm bir konsolda 7.4685 mm kısalma gerektirir, verilen ux 7.187 mm (oran 1.039). LİNEER çözüm uy=-68.100 mm (%-3.03) --- büyük yer değiştirme rejiminde beklendiği gibi kullanı"
+    },
+    {
+      "ad": "CSM3 (yapı, geçici)",
+      "durum": "BANDINDA",
+      "kanit": "turek_hron_csm3.json",
+      "bayat": false,
+      "olcum": [
+        {
+          "etiket": "uy ortalama",
+          "deger_pct": -0.63,
+          "band": 5.0,
+          "durum": "içinde"
+        },
+        {
+          "etiket": "uy genlik",
+          "deger_pct": 0.58,
+          "band": 5.0,
+          "durum": "içinde"
+        },
+        {
+          "etiket": "frekans",
+          "deger_pct": -0.57,
+          "band": 3.0,
+          "durum": "içinde"
+        }
+      ],
+      "asan": [],
+      "verdikt_ozet": "2000 adım, dt=0.005 s, 10.0 s (6 salınım geçişi). uy = -64.0089 +/- 65.5361 mm [1.0932 Hz]; yayımlanan -63.607 +/- 65.16 [1.0995] --- sapma ortalamada %-0.63, genlikte %0.58, frekansta %-0.57. ux = -14.5714 +/- 14.5717 m"
+    },
+    {
+      "ad": "FSI1 (tek yönlü)",
+      "durum": "BANDINDA",
+      "kanit": "turek_hron_fsi1.json",
+      "bayat": false,
+      "olcum": [
+        {
+          "etiket": "ux",
+          "deger_pct": 1.3,
+          "band": 10.0,
+          "durum": "içinde"
+        }
+      ],
+      "asan": [],
+      "verdikt_ozet": "Aktarılan toplam kuvvet [0.0254, 0.0064, 0.0] N (290 yüklü düğüm, şema korunumlu); aktarım artığı %3.379136. Uç yer değiştirmesi ux=0.0230 mm, uy=1.5605 mm. Yayımlanan FSI1: ux=0.0227 mm, uy=0.8209 mm --- sapma %1.3 ve %"
+    },
+    {
+      "ad": "FSI1 (iki yönlü)",
+      "durum": "BANDINDA",
+      "kanit": "turek_hron_fsi1_iki_yonlu.json",
+      "bayat": false,
+      "olcum": [
+        {
+          "etiket": "uy",
+          "deger_pct": 2.34,
+          "band": 5.0,
+          "durum": "içinde"
+        },
+        {
+          "etiket": "ux",
+          "deger_pct": 1.32,
+          "band": 5.0,
+          "durum": "içinde"
+        },
+        {
+          "etiket": "sürükleme",
+          "deger_pct": -0.08,
+          "band": 2.0,
+          "durum": "içinde"
+        },
+        {
+          "etiket": "taşıma",
+          "deger_pct": -1.83,
+          "band": 5.0,
+          "durum": "içinde"
+        }
+      ],
+      "asan": [],
+      "verdikt_ozet": "6 tur koşuldu. Uç sehimi ilk turda 1.56055 mm, son turda 0.84012 mm; son tur-arası değişim 7.4e-05 mm. Deforme ağdaki taşıma 0.7498 N/m (kaynak: rijit 1.119, deforme 0.7638). Yayımlanan FSI1 0.8209 mm --- sapma %2.34. Ya"
+    }
+  ],
+  "kosulan": [],
+  "verdikt": "8 aşamalı zincir. Tümü koştu; ölçüt taşıyan 6 aşamanın 6'i kendi bandında. BU BİR GCI BEYANI DEĞİLDİR: bandlar kabul eşikleridir, sayısal belirsizlik değil. Zaman-bağımlı kuplaj (FSI2/FSI3) zincirde YOK --- yapısal ön koşulu CSM3 ile doğrulandı, kuplajın kendisi yazılmadı.",
+  "_kisit": "SAYILAR BURADA HESAPLANMAZ, kanit dosyalarindan OKUNUR --- bu dosya YOL bilir, DEGER bilmez. Bandlar BEYANDIR ve her asamanin kendi kaydindaki kisitlarin yerine GECMEZ: 'bandinda' demek 'GCI var' demek degildir. FSI2/FSI3 zincire DAHIL DEGILDIR cunku kuplaj yazilmadi; olmayan bir asamayi 'basarisiz' gostermek yanlis olurdu. Tek yonlu FSI1'in uy sapmasi olcut ALINMAZ --- akis rijit bayrakla cozuldugu icin tutturmasi beklenmez ve bunu o asamanin kendi kaydi acikliyor.",
+  "_uretim": "Üretim: python experiments/turek_hron_kiyaslama.py",
+  "_ortam": {
+    "python": "3.13.12",
+    "paketler": {
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "trimesh": "4.11.5",
+      "gmsh": "4.15.2",
+      "matplotlib": "3.10.8",
+      "psutil": "7.2.2"
+    },
+    "os": "Windows 11",
+    "cekirdek": 28,
+    "cozucu": {
+      "openfoam": "Build: 11-e1fc8c682ae6",
+      "calculix": "This is Version 2.17"
+    }
+  }
+}

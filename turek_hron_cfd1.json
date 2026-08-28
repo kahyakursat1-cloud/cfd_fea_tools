@@ -25,7 +25,7 @@
     {
       "komut": "simpleFoam > log.simpleFoam 2>&1",
       "rc": 0,
-      "kuyruk": "umulative = -5.13664e-05\nExecutionTime = 14.5865 s  ClockTime = 20 s\n\nTime = 445s\n\nsmoothSolver:  Solving for Ux, Initial residual = 8.22595e-07, Final residual = 7.15794e-08, No Iterations 8\nsmoothSolver:  Solving for Uy, Initial residual = 9.89758e-07, Final residual = 8.38367e-08, No Iterations 8\nGAMG:  Solving for p, Initial residual = 2.57045e-07, Final residual = 2.15934e-09, No Iterations 4\nGAMG:  Solving for p, Initial residual = 1.44373e-08, Final residual = 9.58936e-10, No Iterations 2\ntime step continuity errors : sum local = 1.95888e-09, global = 1.19754e-10, cumulative = -5.13663e-05\nExecutionTime = 14.6148 s  ClockTime = 20 s\n\n\nSIMPLE solution converged in 445 iterations\n\nEnd"
+      "kuyruk": "umulative = -5.13664e-05\nExecutionTime = 14.6266 s  ClockTime = 21 s\n\nTime = 445s\n\nsmoothSolver:  Solving for Ux, Initial residual = 8.22595e-07, Final residual = 7.15794e-08, No Iterations 8\nsmoothSolver:  Solving for Uy, Initial residual = 9.89758e-07, Final residual = 8.38367e-08, No Iterations 8\nGAMG:  Solving for p, Initial residual = 2.57045e-07, Final residual = 2.15934e-09, No Iterations 4\nGAMG:  Solving for p, Initial residual = 1.44373e-08, Final residual = 9.58936e-10, No Iterations 2\ntime step continuity errors : sum local = 1.95888e-09, global = 1.19754e-10, cumulative = -5.13663e-05\nExecutionTime = 14.6563 s  ClockTime = 21 s\n\n\nSIMPLE solution converged in 445 iterations\n\nEnd"
     }
   ],
   "kuvvet": {
@@ -56,8 +56,8 @@
     "surukleme_pct": -0.05,
     "tasima_pct": -0.86
   },
-  "verdikt": "445 iterasyon, son rezidüeller {'Ux': 8.22595e-07, 'Uy': 9.89758e-07, 'p': 1.44373e-08}. Sürükleme 14.2823 N (±0.0000), taşıma 1.1094 N (±0.0013). Yayımlanan CFD1: sürükleme 14.29 N, taşıma 1.119 N --- sapma %-0.05 ve %-0.86. Sürükleme referansın %5 bandında ve koşu yakınsadı. AMA referans bu depoda doğrulanmadı ve ağ-bağımsızlığı sınanmadı --- bu bir EĞİLİM sonucudur, çapa değil.",
-  "_kisit": "REFERANS DEGERLER BU DEPODA BIRINCIL KAYNAKTAN DOGRULANMADI; karsilastirma icin yazildilar ve bir CAPA HUKMUNE temel yapilmadan once teyit edilmelidir. Ayrica AG-BAGIMSIZLIGI SINANMADI --- tek ag, tek cozunurluk; sapmanin ne kadari ayriklastirmadan geldigi BILINMIYOR. CFD1 kuplaji sinamaz.",
+  "verdikt": "445 iterasyon, son rezidüeller {'Ux': 8.22595e-07, 'Uy': 9.89758e-07, 'p': 1.44373e-08}. Sürükleme 14.2823 N (±0.0000), taşıma 1.1094 N (±0.0013). Yayımlanan CFD1: sürükleme 14.29 N, taşıma 1.119 N --- sapma %-0.05 ve %-0.86. Sürükleme referansın %5 bandında ve koşu yakınsadı. Ağ-bağımsızlığı AYRICA sınandı (dört seviye): sürükleme yayılımı %0.167, taşıma yayılımı %3.089. Yine de bu bir GCI beyanı DEĞİLDİR --- sürüklemede gözlemlenen mertebe negatif çıktı, yani Richardson uygulanamıyor; ayrıntı o kayıtta.",
+  "_kisit": "REFERANS DEGERLER BU DEPODA BIRINCIL KAYNAKTAN DOGRULANMADI; karsilastirma icin yazildilar ve bir CAPA HUKMUNE temel yapilmadan once teyit edilmelidir --- bu yuzden sonuc CAPA DEGIL. AG-BAGIMSIZLIGI ayrica sinandi (turek_hron_ag_bagimsizligi.py, dort seviye) ama o da bir GCI vermiyor: suruklemede gozlemlenen mertebe negatif cikti. CFD1 kuplaji sinamaz.",
   "_uretim": "Üretim: python experiments/turek_hron_cfd1.py",
   "_ortam": {
     "python": "3.13.12",

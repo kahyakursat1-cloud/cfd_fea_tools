@@ -76,12 +76,36 @@ def test_KOSU_YAKINSADI(kanit):
 
 
 def test_REFERANSIN_DOGRULANMADIGI_KAYITTA(kanit):
-    """En tehlikeli okuma: '%0,05 sapma' = 'doğrulandı'. Referans bu depoda
-    birincil kaynaktan teyit edilmedi ve ağ-bağımsızlığı sınanmadı."""
+    """En tehlikeli okuma: '%0,05 sapma' = 'doğrulandı'.
+
+    CFD1'in referansı (sürükleme 14,29 / taşıma 1,119) bu depoda birincil
+    kaynaktan TEYİT EDİLMEDİ --- FSI1/CSM referansları edildi, bu edilmedi
+    ve ikisi karıştırılmamalı. Kısıt bunu söylemeli.
+
+    ÖLÇÜT BİR KEZ BAYATLADI: eski hâli hükümde 'çapa değil' arıyordu ve
+    ağ-bağımsızlığı ayrıca sınanınca o cümle kanıttan türetilir oldu.
+    Test artık HÜKÜM METNİNE değil KISIT BEYANINA bağlanıyor --- proza
+    değişebilir, beyan değişemez.
+    """
     assert kanit["referans"]["_dogrulandi"] is False
     assert "BIRINCIL KAYNAKTAN DOGRULANMADI" in kanit["_kisit"]
-    assert "AG-BAGIMSIZLIGI" in kanit["_kisit"]
-    assert "capa degil" in kanit["verdikt"] or "çapa değil" in kanit["verdikt"]
+    assert "CAPA DEGIL" in kanit["_kisit"]
+
+
+def test_AG_BAGIMSIZLIGI_DURUMU_KANITTAN_TURETILIYOR(kanit):
+    """Bu cümle bir turdur 'sınanmadı' diye SABİT yazılıydı ve aile onu
+    kapatınca bayatladı; kıyaslama yöneticisi kaydı bayat işaretleyince
+    ortaya çıktı. Artık kanıttan türetiliyor ve test iki ucu bağlar."""
+    import json as _j
+    aile = KOK / "turek_hron_ag_bagimsizligi.json"
+    if not aile.exists():
+        assert "SINANMADI" in kanit["verdikt"], (
+            "aile koşulmamışken hüküm sınandığını ima ediyor")
+        return
+    d = _j.loads(aile.read_text(encoding="utf-8"))
+    for deger in (d["surukleme"]["yayilim_pct"], d["tasima"]["yayilim_pct"]):
+        assert str(deger) in kanit["verdikt"], (
+            f"aile koşuldu ama {deger} hükme ulaşmıyor")
 
 
 def test_CFD1_KUPLAJI_SINAMADIGINI_soyluyor(kanit):
