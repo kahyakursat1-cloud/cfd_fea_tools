@@ -3518,6 +3518,71 @@ Taşıma (N/m) & 1{,}1094 & 1{,}119 & \%-0{,}86 \\
         \end{dikkat}
 
         \medskip
+        \noindent \textbf{Bir yol haritası maddesi, yapılmadan önce
+        ölçülüp kapandı.} Sıradaki iş ``NLGEOM'u arayüze taşı'' idi ve
+        gerekçesi makuldü: büyük yer değiştirmede lineer statik yanlıştır.
+        Ama ``büyük'' nerede başlıyor? Literatürden bir sayı almak kolaydı;
+        bu depo o cümleyi kendi ağıyla, kendi çözücüsüyle ve kendi eleman
+        tipiyle sınamadan yazmamalı. CSM1 ölçümü ucuza verir: yapı,
+        yerçekimi, akış yok, bir çift koşu on saniye. Yerçekimi süpürüldü
+        ve her noktada lineer çözüm NLGEOM'a karşı ölçüldü
+        (\texttt{experiments/buyuk\_yer\_degistirme\_esigi.py}).
+
+        \noindent Sonuç iki ayrı niceliği ayırdı ve ikisi aynı cevabı
+        vermedi. Enine sehimde sapma temiz bir güç yasası izliyor:
+        \[
+            \varepsilon_{u_y}\,[\%] = 0{,}0077 \cdot
+            \left(\tfrac{\delta}{L}\,[\%]\right)^{2{,}02},
+            \qquad \text{en kötü bağıl artık } \%1{,}4,
+        \]
+        $\delta/L$ \%0{,}48--18{,}9 bandında. Üstel \emph{ölçüldü};
+        ikinci-mertebe kinematik $2$ bekletir ama bekleyiş kanıt değildir.
+        Buradan \%1 hata için eşik $\delta/L = \%11{,}1$ çıkar. Eksenel
+        kısalmada ise sapma bandın tamamında \%99{,}7--99{,}99 ve
+        $\delta/L$'den \emph{bağımsız}: lineer kinematikte ikinci-mertebe
+        kısalma terimi yoktur, yani mertebe olarak eksiktir. ``$\delta/L$
+        şu eşiği aşarsa NLGEOM aç'' tek başına yanlış bir kuraldır.
+
+        \noindent \textbf{Asıl bulgu bundan sonra geldi.} Üretim yolundaki
+        mekanizma kapısı $\delta/L > \%5$'te sonucu zaten \emph{geçersiz}
+        ilan ediyor. Ölçülen doğrusal-olmayanlık eşiği \%11{,}1 ise onun
+        \emph{üstünde} --- yani geçerli pencerenin tamamı lineerin içinde
+        kalıyor ve o pencerede NLGEOM'u açmak enine sehmi düzeltmez.
+        Düzeltecek bir şey yok. Yol haritası maddesi bu ölçümle kapandı;
+        sessizce düşürülmedi, gerekçesi ölçüldü.
+
+        \noindent Eksenel yolun burada besleme yapmamasının sebebi kapının
+        nazik olması değil, mesnet presetlerinin \emph{tek yüz} tutmasıdır:
+        uç eksenel serbesttir, kısalma engellenmez, zar sertleşmesi doğmaz.
+        İki ucu eksenel tutulu bir yapıda aynı kısalma engellenir, eksenel
+        çekme doğar ve lineer çözüm bu banttan çok önce bozulur. Ölçülen
+        eşik bu yüzden bir \emph{alt sınırdır}, güvenli taraf değil. Kapı
+        bu gerekçeyi yazıyor ve iki test onu bağlıyor: biri mekanizma
+        tavanının \%11{,}1'in altında kalmasını, öteki preset ailesinin tek
+        düzlem tutmayı sürdürmesini. İkisinden biri değişirse gerekçe
+        yeniden ölçülmek zorunda.
+
+        \begin{dikkat}{Ölçüt yine kendi çıktı çözünürlüğümü ölçtü}
+        Güç yasasının ilk uydurması ``tutmuyor'' hükmü aldı: en kötü bağıl
+        artık \%6{,}9, eşiğim \%5. Yasayı çürütmüş gibi görünüyordu. Artığı
+        taşıyan iki nokta bandın alt ucundaydı ve oradaki sehim farkı
+        $0{,}034$ ve $0{,}238$ mikrondu --- ama asıl sorun o değildi:
+        sapmayı üç ondalığa yuvarlıyordum ve en küçük nokta $-0{,}002$
+        çıkıyordu, yani \emph{iki kuantum}. Ölçüt fiziği değil kendi çıktı
+        çözünürlüğümü ölçmüştü. Yuvarlama altı ondalığa çekilince artık
+        \%1{,}4'e indi ve yasa bandın tamamında tuttu; üstel $2{,}0008$'den
+        $2{,}0196$'ya oynadı, yani ikinci mertebe her iki halde de
+        duruyordu.
+
+        Bu, bu raporun saydığı ölçüt-kusurlarının dokuzuncusu ve sınıfı
+        tanıdık: yeni bir eşik yazıldığında ilk çıktısı hem yanlış-pozitif
+        hem yanlış-negatif tarafından sınanmalı. Burada yanlış-negatif
+        taraf koşuda yakalandı; yanlış-pozitif taraf ise bir testle
+        bağlandı --- üstel büyüyen sentetik bir sinyale ölçüt ``tutuyor''
+        demiyor.
+        \end{dikkat}
+
+        \medskip
         \noindent \textbf{``Peki bu her yerde mi önemli?'' --- deponun kendi
         koşularına soruldu.} Bir bayrakta ölçülen şeyden ``her vakada şart''
         da ``orada özeldi'' de çıkarılamaz; ikisi de tahmin olurdu. OpenFOAM'ın
@@ -4497,7 +4562,7 @@ kanıt artık ortam parmak izi de taşır: Python, sayısal kütüphaneler, işl
 sistemi, çekirdek sayısı. Paket listesinin tamamı değil --- gürültü, gerçek bir
 değişikliği görünmez yapar; kişisel veri de değil --- kanıt dosyaları paylaşılır.
 
-\texttt{python kanit.py -{}-ortam} bugün 88 kanıtın parmak izi \emph{taşımadığını}
+\texttt{python kanit.py -{}-ortam} bugün 89 kanıtın parmak izi \emph{taşımadığını}
 (damga eklenmeden önce üretilmiş) ve hiçbirinin başka bir ortamda üretilmediğini
 raporlar. Eksik alan ``farksızlık'' sayılmaz: parmak izi olmayan bir kanıt için
 cevap ``aynı'' değil, ``karşılaştırılamaz''dır.

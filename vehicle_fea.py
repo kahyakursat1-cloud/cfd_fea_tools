@@ -115,6 +115,52 @@ def _mechanism_check(max_disp_mm, lmax_m, fixed_n, total_n) -> str | None:
     return None
 
 
+# Lineer statigin GEOMETRIK gecerlilik esigi --- ALINTI DEGIL, BU DEPONUN
+# KENDI OLCUMU. experiments/buyuk_yer_degistirme_esigi.py CSM1 konsolunu
+# yercekimi supurmesiyle kosar ve lineer cozumu NLGEOM'a karsi olcer:
+#
+#   uy_sapma_pct = 0,0077 * (delta/L pct) ** 2,02      (en kotu artik %1,4)
+#
+# Us 2,02 olculdu, varsayilmadi. %1 enine-sehim hatasi icin delta/L = %11,1.
+LINEER_GECERLI_DELTA_L_PCT = 11.1
+
+
+def _lineer_gecerlilik(max_disp_mm, lmax_m) -> dict | None:
+    """Lineer statigin geometrik gecerlilik PAYI --- olculen esige gore.
+
+    BU KAPI BIR SEYI SOYLUYOR VE BASKA BIR SEYI SOYLEMIYOR.
+
+    SOYLUYOR: enine sehim buyuklugu icin lineer cozum, mekanizma kapisinin
+    izin verdigi butun bantta yeterlidir. Mekanizma kapisi delta/L > %5'te
+    sonucu zaten GECERSIZ ilan eder; olculen dogrusal-olmayanlik esigi ise
+    %11,1'dir. Yani gecerli pencerenin TAMAMI lineerin icindedir ve bu
+    yolda NLGEOM'u acmak enine sehmi duzeltmez --- duzeltecek bir sey yok.
+    (Roadmap'teki "NLGEOM'u arayuze tasi" maddesi bu olcumle kapandi.)
+
+    SOYLEMIYOR: eksenel/duzlem-ici yuk yolunun dogru oldugunu. Ayni olcum
+    ux sapmasini butun bantta ~%100 buldu ve esikten BAGIMSIZ oldugunu
+    gosterdi: lineer kinematikte ikinci-mertebe kisalma terimi yoktur.
+    Burada bunun bir hukum uretmemesinin sebebi kapinin nazik olmasi degil,
+    mesnet PRESETLERININ tek yuzu tutmasidir --- uc eksenel SERBEST, kisalma
+    engellenmiyor, dolayisiyla zar sertlesmesi dogmuyor. Iki ucu eksenel
+    TUTULU bir yapida bu gecerli olmaz ve lineer cozum bu banttan cok once
+    bozulur. Preset ailesi degisirse BU GEREKCE de yeniden olculmelidir.
+    """
+    if max_disp_mm is None or not lmax_m:
+        return None
+    oran = 100.0 * max_disp_mm / (lmax_m * 1000.0)
+    return {
+        "delta_L_pct": round(oran, 3),
+        "olculen_esik_pct": LINEER_GECERLI_DELTA_L_PCT,
+        "yeterli": bool(oran <= LINEER_GECERLI_DELTA_L_PCT),
+        "kanit": "buyuk_yer_degistirme_esigi.json",
+        "_kapsam": ("Enine sehim icin. Eksenel/duzlem-ici yol lineerde "
+                    "mertebe olarak yoktur; mesnet presetleri tek yuzu "
+                    "tuttugu (uc eksenel serbest) icin burada besleme "
+                    "yapmaz."),
+    }
+
+
 def _stress_assessment(vm_field, yield_mpa: float, uygulanan_yuk_n=None,
                        max_disp_mm=None) -> dict | None:
     """Tekillik-dayanıklı gerilme özeti. Sivri iç köşede tepe von Mises bir
@@ -474,6 +520,11 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
                "sabit_dugum": int(len(fixed)),
                "toplam_kuvvet_N": mp["toplam_kuvvet_N"],
                "max_sehim_mm": round(max_disp_mm, 4) if max_disp_mm else None,
+               # KABUK YOLU DA KAPIYI GORUR. Kapiyi yalniz dolu-kati yoluna
+               # koymak bu deponun tekrar eden kusuru olurdu: kapi var, ikinci
+               # uretim yolu onu cagirmiyor. Ustelik kabuk model DAHA ESNEK
+               # (sehim ust-sinir egilimli), yani esige once BURASI yaklasir.
+               "lineer_gecerlilik": _lineer_gecerlilik(max_disp_mm, lmax),
                **sa,
                "gecersiz": mech,
                "_not": ("Üniform kalınlıklı kabuk: spar/kaburga/iç yapı yok — "
@@ -600,6 +651,7 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
            "itki_n": itki_n or None,
            "delta_t_k": delta_t or None,
            "max_sehim_mm": round(max_disp_mm, 4) if max_disp_mm else None,
+           "lineer_gecerlilik": _lineer_gecerlilik(max_disp_mm, lmax),
            "ince_ozellik_cozunurlugu": ince_coz,
            **sa,
            "gecersiz": mech,

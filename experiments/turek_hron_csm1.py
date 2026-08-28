@@ -65,7 +65,7 @@ REF = {"ux_mm": -7.187, "uy_mm": -66.10, "_dogrulandi": True,
 ARTIM = 40
 
 
-def _kos(nlgeom: bool) -> dict:
+def _kos(nlgeom: bool, g: float = G) -> dict:
     from analysis.calculix_writer import (
         FEACase,
         FEAMaterial,
@@ -76,7 +76,10 @@ def _kos(nlgeom: bool) -> dict:
     from analysis.ccx_runner import run_ccx
     from analysis.frd_parser import parse_frd
 
-    work = IS / ("nlgeom" if nlgeom else "lineer")
+    # g ADI DIZINE GIRER: esik supurmesi ayni fonksiyonu farkli yerçekimiyle
+    # cagirir ve ortak dizin bir kosunun .frd'sini otekine okuturdu. Bu depoda
+    # BAYAT VERI kusuru tam boyle olusmustu (iki-yonlu FSI1).
+    work = IS / f"{'nlgeom' if nlgeom else 'lineer'}_g{g:g}"
     if work.exists():
         shutil.rmtree(work)
     work.mkdir(parents=True)
@@ -100,7 +103,7 @@ def _kos(nlgeom: bool) -> dict:
                    FixedBC(node_ids=np.where(
                        (P[:, 2] < 1e-12) | (P[:, 2] > Z_KALINLIK - 1e-12)
                    )[0] + 1, name="ZDUZLEM", dof_start=3, dof_end=3)],
-        gravity_loads=[GravityLoad(accel_m_s2=G, direction=(0.0, -1.0, 0.0))],
+        gravity_loads=[GravityLoad(accel_m_s2=g, direction=(0.0, -1.0, 0.0))],
         nlgeom=nlgeom, max_artim_sayisi=ARTIM,
     )
     r = run_ccx(write_inp(case, work))
@@ -117,7 +120,7 @@ def _kos(nlgeom: bool) -> dict:
         return {"kosdu": False, "neden": "A noktası frd'de yok"}
     i = aday[0]
     u = frd.fields["DISP"][sira[int(i + 1)]]
-    return {"kosdu": True, "nlgeom": nlgeom, "artim": ARTIM,
+    return {"kosdu": True, "nlgeom": nlgeom, "artim": ARTIM, "g_m_s2": g,
             "A_uzaklik_m": float(mesafe[i]),
             "ux_mm": float(u[0]) * 1000, "uy_mm": float(u[1]) * 1000,
             "uz_mm": float(u[2]) * 1000}

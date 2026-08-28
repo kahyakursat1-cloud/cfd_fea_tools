@@ -21,7 +21,7 @@ yazılmasın diye buraya alınıyor; eksik olan **ürün katmanı**, fizik deği
 | Surface Traction Transfer | `coupling_fsi.cfd_pressure_to_fea_loads(kayma=True)`; `t = -p n + mu (grad U + grad U^T) n` | `turek_hron_fsi1.json` — toplam viskoz kuvvet çözücünün `forces` çıktısıyla %0,95 | varsayılan/isim, **Load Completeness Gate**, GUI'de yük bileşimi |
 | Report Integrity Gate | `experiments/rapor_butunlugu.py` + `tests/test_rapor_kapsam_senkronu.py` | `rapor_butunlugu.json` | bayat **sayı** denetimi, DOI, tek `report_check()` girişi |
 | FSI Benchmark Manager | 9 betik: ağ, ağ-ailesi, CFD1, FSI1, FSI1-iki-yönlü, CSM1, CSM3 | `turek_hron_*.json` | orkestrasyon + tek komut + GUI |
-| Nonlinear/Dynamic FEA | `NLGEOM` ve `*DYNAMIC` yazıcıda | CSM1 %0,11 · CSM3 üç kanal <%1 | yalnız GUI |
+| Nonlinear/Dynamic FEA | `NLGEOM` ve `*DYNAMIC` yazıcıda | CSM1 %0,11 · CSM3 üç kanal <%1 | GUI maddesi ÖLÇÜLÜP kapandı (V1.1/4) |
 | FSI Transfer Quality (ölçüm) | kuvvet/moment/iş + **eşleme–yüzey ayrışımı** | `fsi_korunum.json` | kart, heatmap, kapı eşiği |
 | V&V Campaign (parçalar) | `vehicle_pipeline` ağ ailesi + GCI/LSR | `mesh_duyarlilik` | **planlayıcı** (maliyet/süre, "yayımlamak için ne gerekli") |
 
@@ -72,13 +72,32 @@ Hepsi mevcut parçaların birleştirilmesi; yeni fizik yok.
    bunu hükümde açıkça söylüyor. `fsi_surucu` payı üretip taşıyor.
 3. **FSI Transfer Health kartı** — ölçüm hazır, eksik olan GUI. Kart
    ayrışımı göstermeli, yoksa okur yine toplamı üretime yazar.
-4. **Nonlinear/Dynamic FEA'yı GUI'ye taşı.** Arka uç bitti ve yayımlanmış
-   değere karşı doğrulandı; kullanıcıya görünmeyen bir yetenek duruyor.
-   Öneride P1'di, buraya alındı — maliyeti saatler, değeri bugün.
-   **Ön koşulu bugün kapandı:** üretim yolu `.inp` metnini elle
-   düzenliyordu (`txt.replace("*STATIC", ...)`) ve NLGEOM açılır açılmaz
-   patlayacaktı; `FEACase.dugum_kuvvetleri` eklenip üç enjeksiyon birden
-   kaldırıldı.
+4. ~~**Nonlinear/Dynamic FEA'yı GUI'ye taşı.**~~ **ÖLÇÜLDÜ VE KAPANDI —
+   yapılmasına gerek çıkmadı.** Ön koşulu önce kapatıldı: üretim yolu
+   `.inp` metnini elle düzenliyordu (`txt.replace("*STATIC", ...)`) ve
+   NLGEOM açılır açılmaz patlayacaktı; `FEACase.dugum_kuvvetleri` eklenip
+   üç enjeksiyon birden kaldırıldı. Ardından asıl soru soruldu: **büyük
+   yer değiştirme nerede başlıyor?** Literatürden bir sayı almak yerine
+   ölçüldü (`experiments/buyuk_yer_degistirme_esigi.py`; CSM1 konsolu,
+   yerçekimi süpürmesi, bir çift koşu 10 s):
+
+   - Enine sehim: `sapma% = 0,0077·(δ/L %)^2,02`, en kötü artık %1,4,
+     band δ/L %0,48–18,9. Üstel **ölçüldü**, varsayılmadı. → %1 hata için
+     eşik **δ/L = %11,1**.
+   - Eksenel kısalma: bandın tamamında %99,7–99,99 yanlış ve **eşikten
+     bağımsız** — lineer kinematikte ikinci-mertebe terim yok.
+
+   **Sonuç:** üretim yolundaki mekanizma kapısı δ/L > %5'te sonucu zaten
+   GEÇERSİZ ilan ediyor; ölçülen eşik (%11,1) onun üstünde. Geçerli
+   pencerenin tamamı lineerin içinde, dolayısıyla o pencerede NLGEOM enine
+   sehmi düzeltmez. Madde gerekçesiyle kapandı, sessizce düşürülmedi.
+
+   **Ne zaman geri açılır:** eksenel yolun besleme yapmaması mesnet
+   presetlerinin **tek yüz** tutmasına dayanıyor (uç eksenel serbest → zar
+   sertleşmesi yok). İki ucu tutulu bir preset ailesi eklenirse lineer bu
+   banttan çok önce bozulur. Ölçülen eşik bir **alt sınırdır**.
+   `vehicle_fea._lineer_gecerlilik` gerekçeyi yazıyor; iki test bağlıyor
+   (mekanizma tavanı < %11,1 · presetler tek düzlem).
 5. ~~**Benchmark orkestrasyonu**~~ **BİTTİ** —
    `experiments/turek_hron_kiyaslama.py`: sekiz aşamalı zincirin tek
    tablosu, `--kos` ile eksikleri koşar. Sayıları yeniden hesaplamaz,

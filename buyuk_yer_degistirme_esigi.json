@@ -1,0 +1,109 @@
+{
+  "vaka": "CSM1 konsolu — yerçekimi süpürmesi, lineer vs NLGEOM",
+  "uretim": "Üretim: python experiments/buyuk_yer_degistirme_esigi.py",
+  "sonuc": "✅ δ/L %0.48–%18.9 bandında enine sehim sapması 0.007698·(δ/L)^2.02 yasasını izliyor (en kötü artık %1.4); üstel ölçüldü, varsayılmadı. %1 hata için eşik δ/L = %11.1. Eksenel kısalma ise bandın TAMAMINDA %99.74–%99.99 yanlış ve eşikten bağımsız: lineer kinematikte ikinci-mertebe kısalma terimi yoktur. Konsol ekseninde SERBEST uçludur (zar sertleşmesi yok); eksenel tutulu yapıda bu eşik geçmez, ALT SINIRDIR.",
+  "_neden": "NLGEOM arayuze tasiniyor; 'ne zaman ac' sorusunun cevabi bu depoda ALINTI degil OLCUM olmali.",
+  "_kapsam_siniri": "Konsol ekseninde SERBEST uctur — zar sertlesmesi yok. Eksenel TUTULU bir yapida lineer cozum bu banttan cok once bozulur; buradaki esik bir ALT SINIRDIR.",
+  "L_mm": 351.01,
+  "noktalar": [
+    {
+      "g_m_s2": 0.05,
+      "kosdu": true,
+      "uy_lineer_mm": -1.7025,
+      "uy_nlgeom_mm": -1.70247,
+      "ux_lineer_mm": -1.2e-05,
+      "ux_nlgeom_mm": -0.004726,
+      "delta_L_pct": 0.485,
+      "uy_sapma_pct": -0.001762,
+      "ux_sapma_pct": 99.740707
+    },
+    {
+      "g_m_s2": 0.1,
+      "kosdu": true,
+      "uy_lineer_mm": -3.40501,
+      "uy_nlgeom_mm": -3.40476,
+      "ux_lineer_mm": -2.5e-05,
+      "ux_nlgeom_mm": -0.018878,
+      "delta_L_pct": 0.97,
+      "uy_sapma_pct": -0.007343,
+      "ux_sapma_pct": 99.870173
+    },
+    {
+      "g_m_s2": 0.25,
+      "kosdu": true,
+      "uy_lineer_mm": -8.51252,
+      "uy_nlgeom_mm": -8.50857,
+      "ux_lineer_mm": -6.1e-05,
+      "ux_nlgeom_mm": -0.117825,
+      "delta_L_pct": 2.424,
+      "uy_sapma_pct": -0.046424,
+      "ux_sapma_pct": 99.947997
+    },
+    {
+      "g_m_s2": 0.5,
+      "kosdu": true,
+      "uy_lineer_mm": -17.025,
+      "uy_nlgeom_mm": -16.9935,
+      "ux_lineer_mm": -0.000123,
+      "ux_nlgeom_mm": -0.470125,
+      "delta_L_pct": 4.8413,
+      "uy_sapma_pct": -0.185365,
+      "ux_sapma_pct": 99.973933
+    },
+    {
+      "g_m_s2": 1.0,
+      "kosdu": true,
+      "uy_lineer_mm": -34.0501,
+      "uy_nlgeom_mm": -33.8002,
+      "ux_lineer_mm": -0.000245,
+      "ux_nlgeom_mm": -1.86367,
+      "delta_L_pct": 9.6294,
+      "uy_sapma_pct": -0.739345,
+      "ux_sapma_pct": 99.986849
+    },
+    {
+      "g_m_s2": 2.0,
+      "kosdu": true,
+      "uy_lineer_mm": -68.1002,
+      "uy_nlgeom_mm": -66.1753,
+      "ux_lineer_mm": -0.00049,
+      "ux_nlgeom_mm": -7.20291,
+      "delta_L_pct": 18.8528,
+      "uy_sapma_pct": -2.908789,
+      "ux_sapma_pct": 99.993195
+    }
+  ],
+  "esik_uy_1pct": {
+    "durum": "olculdu",
+    "tavan_pct": 1.0,
+    "son_gecen_delta_L_pct": 9.6294,
+    "ilk_kalan_delta_L_pct": 18.8528
+  },
+  "esik_uy_5pct": {
+    "durum": "supurmenin TAMAMI tavanin altinda — esik bandin USTUNDE, bu merdivenle olculemez",
+    "tavan_pct": 5.0,
+    "en_buyuk_sinanan_delta_L_pct": 18.8528
+  },
+  "eksenel_hukum": {
+    "olculdu": true,
+    "n": 6,
+    "ux_sapma_min_pct": 99.741,
+    "ux_sapma_maks_pct": 99.993,
+    "delta_L_bandi_pct": [
+      0.485,
+      18.8528
+    ],
+    "esikten_bagimsiz": true
+  },
+  "uy_yasasi": {
+    "olculdu": true,
+    "n": 6,
+    "us": 2.0196,
+    "katsayi": 0.007698,
+    "en_kotu_bagil_artik": 0.0141,
+    "tutuyor": true,
+    "_bicim": "uy_sapma_pct = katsayi * (delta_L_pct ** us)",
+    "delta_L_esik_1pct": 11.131,
+    "delta_L_esik_5pct": 24.697
+  }
+}
