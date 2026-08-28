@@ -124,7 +124,102 @@ def _u_alici(P, tris, n, A, c):
     return _kuresel_yonlendir(c, n, A)
 
 
+# ══════════════════════════════ SOZLESME 2 ══════════════════════════════
+# YUK AKTARIMI KORUNUMLUDUR. Bir yuzey kuvveti alici duguMlere dagitilirken
+# TOPLAM degismez: sum F_dugum == sum dF_yuz, makine hassasiyetinde. Bu bir
+# yaklasim degil KIMLIKTIR --- agirliklar 1'e toplanir.
+#
+# ESKI SEMA BUNU TUTMUYORDU: basinci tasiyip kuvveti ALICI yuzeyde yeniden
+# integre ediyordu ve alanlar farkliysa toplam da farkli cikiyordu
+# (olculdu: aerodinamik kuvvetten medyan %9,5 sapma, 23 kosu).
+
+def _bozuk_alanli():
+    """Üçgen alanları BİRBİRİNDEN FARKLI bir yüzey --- sınavın can alıcı
+    parçası.
+
+    Küpün on iki üçgeni EŞİT alanlıdır ve alan-farkı etkisi orada yok
+    olur: eski (korunumsuz) şema bile küpte korunum sınavını GEÇTİ. Yani
+    sınav bir şey sınamıyordu. Bu, aynı oturumda ikinci kez yapılan hata
+    --- yönlendirme sınavında da dışbükey bir kutu seçilmiş ve eski ölçütü
+    kırmamıştı. Sınav geometrisi kusuru İŞLETMELİDİR.
+
+    Köşeler rastgele kaydırılır; kapalılık ve sarım korunur, yalnız alanlar
+    dağılır.
+    """
+    P, tris, _, _, _ = _kup()
+    P = P + np.random.default_rng(3).normal(0, 0.22, P.shape)
+    v1, v2 = P[tris[:, 1]] - P[tris[:, 0]], P[tris[:, 2]] - P[tris[:, 0]]
+    cr = np.cross(v1, v2)
+    A = 0.5 * np.linalg.norm(cr, axis=1)
+    n = cr / (2 * A[:, None] + 1e-30)
+    return P, tris, n, A, P[tris].mean(axis=1)
+
+
+def _sozlesme_korunumlu(dagit) -> dict:
+    """`dagit(dF_cfd, cfd_merkez, dugumler, yuzler, yuz_merkez) -> F_dugum`
+    toplami koruyor mu."""
+    rng = np.random.default_rng(7)
+    kusur = []
+    for ad, kur in (("kup", _kup), ("kup_ters", lambda: _kup(True)),
+                    ("bozuk_alanli", _bozuk_alanli)):
+        P, tris, n, A, c = kur()
+        # CFD yuzleri: alici ucgenlerin merkezlerinden RASTGELE kaydirilmis
+        # noktalar --- birebir ortusme OLMASIN ki kimlik gercekten sinansin.
+        cfd_c = c + rng.normal(0, 0.05, c.shape)
+        dF = rng.normal(0, 1.0, cfd_c.shape)
+        try:
+            F = np.asarray(dagit(dF, cfd_c, P, tris, c), float)
+        except Exception as e:                              # noqa: BLE001
+            kusur.append(f"{ad}: {type(e).__name__}: {e}"[:120])
+            continue
+        artik = float(np.linalg.norm(F.sum(axis=0) - dF.sum(axis=0))
+                      / (np.linalg.norm(dF.sum(axis=0)) + 1e-30))
+        if artik > 1e-10:
+            kusur.append(f"{ad}: korunum artığı {artik:.3e} — toplam kuvvet "
+                         "KORUNMUYOR")
+    return {"tutuyor": not kusur, "kusurlar": kusur}
+
+
+def _d_korunumlu(dF, cfd_c, P, tris, c):
+    from fsi_korunumlu_esleme import korunumlu_dagit
+    return korunumlu_dagit(dF, cfd_c, P, tris, c)[0]
+
+
+def _d_t6(dF, cfd_c, P, tris, c):
+    """Araç yolunun T6 dağıtımı --- kuadratik şekil fonksiyonlarıyla.
+
+    Korunum T6'da da KİMLİKTİR: şekil fonksiyonları 1'e toplanır. Sınav
+    burada lineer üçgen kullandığı için düğüm listesi köşelerden kurulur;
+    ölçülen şey ağırlıkların toplamıdır, eleman tipi değil.
+    """
+    from fsi_korunumlu_esleme import esleme_kur
+    from vehicle_fea import t6_sekil
+    esleme = esleme_kur(cfd_c, P, tris, c)
+    w, ucgen = esleme["agirlik"], esleme["ucgen"]
+    N = t6_sekil(w)
+    F = np.zeros_like(P, dtype=float)
+    # T6 sekil fonksiyonlarinin KOSE bileseni + kenar-orta bileseni; sinav
+    # agi lineer oldugundan kenar-orta paylari kose dugumlerine BOLUNUR.
+    # (Toplami degistirmez --- sinanan sey zaten toplam.)
+    for k in range(3):
+        np.add.at(F, ucgen[:, k], N[:, k:k + 1] * dF)
+    for k, (i, j) in enumerate(((0, 1), (1, 2), (2, 0))):
+        np.add.at(F, ucgen[:, i], 0.5 * N[:, 3 + k:4 + k] * dF)
+        np.add.at(F, ucgen[:, j], 0.5 * N[:, 3 + k:4 + k] * dF)
+    return F
+
+
 SOZLESMELER = [
+    {
+        "ad": "yuk_aktarimi_korunumlu",
+        "soru": "yüzey kuvveti düğümlere dağıtılırken toplam korunuyor mu",
+        "sinav": _sozlesme_korunumlu,
+        "uygulamalar": [
+            ("fsi_korunumlu_esleme.korunumlu_dagit", _d_korunumlu),
+            ("vehicle_fea.t6_sekil (araç yolu dağıtımı)", _d_t6),
+        ],
+        "aday_imzasi": "korunumsuz_yeniden_integrasyon",
+    },
     {
         "ad": "yonlendirme_butunsel",
         "soru": "yüzey yönlendirmesi hepsi-ya-hiçbiri mi",

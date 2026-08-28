@@ -3,6 +3,23 @@
   "_neden": "2026-08-28: arac yolunda yuzey normalleri YUZ BASINA ters ceviriliyordu ve yapiya yukun dortte biri uygulaniyordu. FSI yolu ayni olcutu coktan curutmustu. Ders bir yolda ogrenilmis, otekine tasinmamisti.",
   "sozlesmeler": [
     {
+      "sozlesme": "yuk_aktarimi_korunumlu",
+      "soru": "yüzey kuvveti düğümlere dağıtılırken toplam korunuyor mu",
+      "uygulamalar": [
+        {
+          "uygulama": "fsi_korunumlu_esleme.korunumlu_dagit",
+          "tutuyor": true,
+          "kusurlar": []
+        },
+        {
+          "uygulama": "vehicle_fea.t6_sekil (araç yolu dağıtımı)",
+          "tutuyor": true,
+          "kusurlar": []
+        }
+      ],
+      "ayrisan": []
+    },
+    {
       "sozlesme": "yonlendirme_butunsel",
       "soru": "yüzey yönlendirmesi hepsi-ya-hiçbiri mi",
       "uygulamalar": [
@@ -26,7 +43,7 @@
     }
   ],
   "kayitsiz_adaylar": [],
-  "verdikt": "3/3 kayıtlı uygulama paylaştığı sözleşmeyi tutuyor ve kayıtsız aday yok. Bu bir AYRIŞMA hükmüdür — bildirilmemiş bir sözleşme varsa ölçer onu göremez.",
+  "verdikt": "5/5 kayıtlı uygulama paylaştığı sözleşmeyi tutuyor ve kayıtsız aday yok. Bu bir AYRIŞMA hükmüdür — bildirilmemiş bir sözleşme varsa ölçer onu göremez.",
   "_kisit": "Kod-klonu dedektoru DEGILDIR. Sozlesmeler ELLE bildirilir ve olcer yalniz bildirilenin ihlalini arar; yeni bir fizik yolu eklendiginde sozlesmesi de eklenmelidir. Aday taramasi da tek bir SOZDIZIMI imzasina bakar --- ayni kusurun baska bir yazilisi bu imzaya girmeyebilir.",
   "_uretim": "Üretim: python iki_hiz.py"
 }

@@ -1673,6 +1673,64 @@ diyordu ve altıncı eklenince cümle yanlış oldu. Sayı artık sayılıyor.
 Aynı sabit iki testte ve bu raporda da duruyordu; üçü de kayda
 bağlandı.
 
+\medskip
+\noindent \textbf{Ve ölçüm bir göç kararına dönüştü.} Alıcı-yüzey ölçümü
+araç yolunun uyguladığı yükün aerodinamik kuvvetten medyan \%$9{,}5$
+saptığını göstermişti (23 koşu, dokuzunda \%$10$'un üstünde). Sapmanın
+kaynağı şemaydı: basınç taşınıp kuvvet alıcı yüzeyde yeniden integre
+ediliyordu ve alanlar farklıysa toplam da farklı çıkıyordu. Deponun kendi
+şema kıyası da bunu $24/24$ vakada momentte daha kötü bulmuştu. Yani daha
+iyi şema \emph{zaten vardı} --- yalnız öteki yolda.
+
+\noindent Araç yolu korunumlu şemaya taşındı: kuvvet CFD yüzünde kurulur
+ve barizentrik ağırlıklarla alıcı düğümlere dağıtılır. Ağırlıklar $1$'e
+toplandığı için $\sum \mathbf{F}_{\text{düğüm}} = \sum d\mathbf{F}_{
+\text{CFD}}$ bir \emph{kimliktir}, yaklaşım değil. Ölçüldü: korunum artığı
+$4{,}8\times10^{-15}$ ve her koşuda yeniden ölçülüyor.
+
+\begin{dikkat}{Korunum ile tutarlılık çakışıyordu --- T6 ikisini birden
+verdi}
+Göçün önünde gerçek bir engel vardı. Barizentrik ağırlıklar \emph{lineer}
+üçgenindir ve üç \textsc{köşeye} gider; oysa C3D10 yüzeyi T6'dır ve bu
+rapor daha önce ölçmüştü ki üniform basınçta tutarlı yük köşelere değil
+\emph{kenar-orta} düğümlere gider (çember çapası: köşe-yükleme \%$7{,}2$,
+T6 \%$1{,}3$). Köşe dağıtımı korunumu sağlar ama tutarlılığı bozardı.
+
+\noindent Çözüm ikisini birden verir: aynı barizentrik noktada
+\emph{kuadratik} şekil fonksiyonları kullanılır,
+\[
+  N_i = w_i(2w_i-1), \qquad N_{ij} = 4\,w_i w_j .
+\]
+Korunum yine kimliktir ($\sum N = 1$, ölçüldü: $8{,}9\times10^{-16}$) ve
+üniform basınçta integral alınınca eski kuralın kendisine iner (köşe $0$,
+kenar-orta $A/3$; ölçüldü). Yani eski davranışın \emph{genellemesidir},
+değişiklik değil --- çember çapasının doğruladığı davranış korunur.
+\end{dikkat}
+
+\noindent Kabuk yolu da aynı anda taşındı. Yalnız dolu-katı yolunu taşımak,
+bu bölümün az önce ölçer kurduğu kusurun ta kendisi olurdu: iki yol yan
+yana, biri dersi öğrenmiş öteki duymamış. Ve \texttt{iki\_hiz}'e ikinci
+sözleşme ailesi bildirildi --- ``yük aktarımı korunumludur'' --- iki
+uygulamayla.
+
+\begin{dikkat}{Sınav geometrisi ikinci kez kusuru işletmiyordu}
+Korunum sözleşmesinin negatif kontrolü ilk koşusunda \emph{geçti}: eski
+şemayı taklit eden sahte uygulama sınavdan geçiverdi. Sebep sınav
+geometrisiydi --- küpün on iki üçgeni \textsc{eşit alanlıdır} ve
+alan-farkı etkisi orada yok olur. Sınav hiçbir şey sınamıyordu.
+
+\noindent Bu, aynı oturumda ikinci kez yapılan hata. Yönlendirme sınavında
+da dışbükey bir kutu seçilmiş ve eski ölçütü kırmamıştı; orada iki ayrık
+küple düzeltilmişti. Burada köşeler kaydırıldı ve alan oranı $7{,}2$'ye
+çıkarıldı. İki test artık sınav geometrilerinin kusuru gerçekten
+işlettiğini denetliyor --- aksi halde ``beş uygulama da geçti'' bir şey
+demezdi.
+\end{dikkat}
+
+\noindent Eski ölçüm silinmedi, \emph{tarihsel} diye etiketlendi ve
+üretilmeye devam ediyor: göçün gerekçesi odur, silmek gerekçeyi silmek
+olurdu. Bugünkü sapma tanımı gereği sıfırdır.
+
 \subsection{Tahrik bandı arandı: harita yanıt verdi, ama yanlış sebeple}
 \label{sub:fsi-tahrik}
 

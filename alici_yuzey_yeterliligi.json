@@ -1,12 +1,12 @@
 {
-  "vaka": "Alıcı (FEA) yüzey yeterliliği — araç yolunun UYGULADIĞI yük",
+  "vaka": "Alıcı (FEA) yüzey yeterliliği — ESKİ şemanın uyguladığı yük (TARİHSEL; üretim korunumlu şemaya taşındı)",
   "_neden": "Arac yolu (vehicle_fea) basinci tasiyip kuvveti ALICI yuzeyde yeniden integre eder; FSI surucusu ise korunumlu semayi kullanir. Yuzey payinin 'uretim yolunda yoktur' hukmu yalniz IKINCISI icin dogru. Bu betik birincisinin hatasini dogrudan olcer.",
   "olculen_vaka": 23,
   "acik_yuzey_hukumsuz": [
     {
       "vaka": "gripen_AB_Right",
       "kapalilik_alici": 0.67612,
-      "kuvvet_farki_pct": 91.073
+      "kuvvet_farki_eski_sema_pct": 91.073
     }
   ],
   "dusen": [
@@ -40,7 +40,7 @@
         -0.0018,
         -0.03586
       ],
-      "kuvvet_farki_pct": 241.1446,
+      "kuvvet_farki_eski_sema_pct": 241.1446,
       "kuvvet_buyuklugu_N": 0.025053
     },
     {
@@ -63,7 +63,7 @@
         0.0024,
         -5e-05
       ],
-      "kuvvet_farki_pct": 100.1188,
+      "kuvvet_farki_eski_sema_pct": 100.1188,
       "kuvvet_buyuklugu_N": 0.559622
     },
     {
@@ -86,7 +86,7 @@
         0.03453,
         0.00649
       ],
-      "kuvvet_farki_pct": 59.3824,
+      "kuvvet_farki_eski_sema_pct": 59.3824,
       "kuvvet_buyuklugu_N": 0.120834
     },
     {
@@ -109,7 +109,7 @@
         0.00363,
         0.15149
       ],
-      "kuvvet_farki_pct": 42.8549,
+      "kuvvet_farki_eski_sema_pct": 42.8549,
       "kuvvet_buyuklugu_N": 0.106443
     },
     {
@@ -132,7 +132,7 @@
         0.21232,
         6.92344
       ],
-      "kuvvet_farki_pct": 21.024,
+      "kuvvet_farki_eski_sema_pct": 21.024,
       "kuvvet_buyuklugu_N": 14.08269
     },
     {
@@ -155,7 +155,7 @@
         -0.86128,
         1.56971
       ],
-      "kuvvet_farki_pct": 13.7453,
+      "kuvvet_farki_eski_sema_pct": 13.7453,
       "kuvvet_buyuklugu_N": 16.672004
     },
     {
@@ -178,7 +178,7 @@
         -0.19093,
         -0.90218
       ],
-      "kuvvet_farki_pct": 11.4525,
+      "kuvvet_farki_eski_sema_pct": 11.4525,
       "kuvvet_buyuklugu_N": 16.632888
     },
     {
@@ -201,7 +201,7 @@
         -0.19093,
         -0.90218
       ],
-      "kuvvet_farki_pct": 11.4525,
+      "kuvvet_farki_eski_sema_pct": 11.4525,
       "kuvvet_buyuklugu_N": 16.632888
     },
     {
@@ -224,7 +224,7 @@
         -0.25637,
         -1.117
       ],
-      "kuvvet_farki_pct": 10.0608,
+      "kuvvet_farki_eski_sema_pct": 10.0608,
       "kuvvet_buyuklugu_N": 91.982323
     },
     {
@@ -247,7 +247,7 @@
         0.09357,
         -2.77505
       ],
-      "kuvvet_farki_pct": 9.7068,
+      "kuvvet_farki_eski_sema_pct": 9.7068,
       "kuvvet_buyuklugu_N": 30.267102
     },
     {
@@ -270,7 +270,7 @@
         0.05167,
         0.1082
       ],
-      "kuvvet_farki_pct": 9.4858,
+      "kuvvet_farki_eski_sema_pct": 9.4858,
       "kuvvet_buyuklugu_N": 0.6961
     },
     {
@@ -293,7 +293,7 @@
         -0.00786,
         10.68874
       ],
-      "kuvvet_farki_pct": 9.4668,
+      "kuvvet_farki_eski_sema_pct": 9.4668,
       "kuvvet_buyuklugu_N": 9.876493
     },
     {
@@ -316,7 +316,7 @@
         0.00091,
         0.66204
       ],
-      "kuvvet_farki_pct": 9.4231,
+      "kuvvet_farki_eski_sema_pct": 9.4231,
       "kuvvet_buyuklugu_N": 0.605991
     },
     {
@@ -339,7 +339,7 @@
         0.003,
         2.1887
       ],
-      "kuvvet_farki_pct": 9.4154,
+      "kuvvet_farki_eski_sema_pct": 9.4154,
       "kuvvet_buyuklugu_N": 2.003547
     },
     {
@@ -362,7 +362,7 @@
         0.00091,
         0.66154
       ],
-      "kuvvet_farki_pct": 9.3772,
+      "kuvvet_farki_eski_sema_pct": 9.3772,
       "kuvvet_buyuklugu_N": 0.605792
     },
     {
@@ -385,7 +385,7 @@
         -0.00519,
         10.77844
       ],
-      "kuvvet_farki_pct": 9.2406,
+      "kuvvet_farki_eski_sema_pct": 9.2406,
       "kuvvet_buyuklugu_N": 9.978575
     },
     {
@@ -408,7 +408,7 @@
         0.06525,
         -6.32478
       ],
-      "kuvvet_farki_pct": 8.7554,
+      "kuvvet_farki_eski_sema_pct": 8.7554,
       "kuvvet_buyuklugu_N": 70.212245
     },
     {
@@ -431,7 +431,7 @@
         -0.01655,
         -0.09006
       ],
-      "kuvvet_farki_pct": 8.3715,
+      "kuvvet_farki_eski_sema_pct": 8.3715,
       "kuvvet_buyuklugu_N": 3.213761
     },
     {
@@ -454,7 +454,7 @@
         -0.07174,
         2.41188
       ],
-      "kuvvet_farki_pct": 6.5344,
+      "kuvvet_farki_eski_sema_pct": 6.5344,
       "kuvvet_buyuklugu_N": 15.478063
     },
     {
@@ -477,7 +477,7 @@
         -0.1482,
         -0.78576
       ],
-      "kuvvet_farki_pct": 6.0178,
+      "kuvvet_farki_eski_sema_pct": 6.0178,
       "kuvvet_buyuklugu_N": 0.777071
     },
     {
@@ -500,7 +500,7 @@
         0.00851,
         -0.01772
       ],
-      "kuvvet_farki_pct": 5.1403,
+      "kuvvet_farki_eski_sema_pct": 5.1403,
       "kuvvet_buyuklugu_N": 2.521424
     },
     {
@@ -523,7 +523,7 @@
         0.04998,
         4.62796
       ],
-      "kuvvet_farki_pct": 4.5405,
+      "kuvvet_farki_eski_sema_pct": 4.5405,
       "kuvvet_buyuklugu_N": 6.532655
     },
     {
@@ -546,7 +546,7 @@
         0.02075,
         0.02266
       ],
-      "kuvvet_farki_pct": 1.3172,
+      "kuvvet_farki_eski_sema_pct": 1.3172,
       "kuvvet_buyuklugu_N": 0.238661
     }
   ],
@@ -558,7 +558,7 @@
     "bir_pct_altinda": 0,
     "on_pct_ustunde": 9
   },
-  "verdikt": "23 koşuda ölçüldü. Araç yolunun FEA'ya uyguladığı toplam kuvvet, aerodinamik kuvvetten medyan %9.47, en kötü %241.14 sapıyor (_fsi_sinama; alan farkı %41.30). %1'in altında 0/23, %10'un üstünde 9/23. Bu fark ŞEMADAN gelir: basınç taşınıp kuvvet alıcı yüzeyde yeniden integre ediliyor, dolayısıyla alanlar farklıysa kuvvet de farklı çıkar. FSI sürücüsünün korunumlu şemasında bu terim KİMLİK olarak sıfırdır.",
+  "verdikt": "23 koşuda ölçüldü. Araç yolunun FEA'ya uyguladığı toplam kuvvet, aerodinamik kuvvetten medyan %9.47, en kötü %241.14 sapıyordu (_fsi_sinama; alan farkı %41.30). %1'in altında 0/23, %10'un üstünde 9/23. Bu fark ŞEMADAN gelir: basınç taşınıp kuvvet alıcı yüzeyde yeniden integre ediliyordu, dolayısıyla alanlar farklıysa kuvvet de farklı çıkıyordu. BU ÖLÇÜM TARİHSELDİR: üretim 2026-08-28'de korunumlu şemaya taşındı (kuvvet CFD yüzünde kurulup baryzentrik ağırlıklarla dağıtılıyor), yani bugünkü sapma TANIMI GEREĞİ sıfırdır ve `korunum_artigi` her koşuda ölçülüyor.",
   "_kisit": "ACIK yuzeyler hukumsuz birakilir: kinematik basinc bir sabite kadar tanimlidir ve o sabit yalniz KAPALI yuzeyde sifirlanir. Olculen sey TOPLAM KUVVET farkidir; moment ve yerel dagilim ayrica bozulabilir ve bu betik onlari olcmez. Alici yuzey olarak kosunun STL'i alinir --- tet agi ondan uretildigi icin yuzey ucgenlemesi ayni ailededir, ama birebir ayni ag DEGILDIR.",
   "_uretim": "Üretim: python experiments/alici_yuzey_yeterliligi.py"
 }

@@ -124,14 +124,24 @@ Hepsi mevcut parçaların birleştirilmesi; yeni fizik yok.
    `Şekil N.` ailesi görünmüyordu). Kapak damgası da artık ölçümden
    üretiliyor (`docs/rapor_damga.py`).
 
-### V1.2 — FSI alıcı-ağ yeterliliği (hakemin yeni P1'i)
+### V1.2 — FSI alıcı-ağ yeterliliği ✅ BİTTİ (2026-08-28)
 
 Hakem RBF/mortar önerisini **geri çekti** ve yerine bunu koydu; ayrışım
 onu haklı çıkarıyor: `_fsi_esnek`'in %102,64'ünün yalnız %24,10'u gerçek
 eşleme, %78,60'ı yüzey/yeniden-integrasyon farkı. Yani çare daha zengin
 bir eşleme şeması değil, **alıcı FEA yüzeyinin CFD yük dağılımını
-çözebilmesi**. Çok daha ucuz ve mühendislik olarak doğru sıra. Yine de
-en kötü %24,1 küçümsenecek değil.
+çözebilmesi**. Çok daha ucuz ve mühendislik olarak doğru sıra.
+
+**Ölçüldü ve iki ayrı sonuç çıktı.** (a) Eşleme payı: gerçek geometrilerde
+15/15 vakada %1'in altında; en kötü %24,1 olan vakanın alıcı yüzeyi 12
+üçgenlik bir sınama kutusu. Yeterliliğin doğal ölçütü sanılan *çözünürlük
+oranı* hiçbir şey yordamıyor (ρ=+0,01 / −0,33, kritik 0,52). (b) Araç
+yolunun UYGULADIĞI yük aerodinamik kuvvetten medyan %9,5 sapıyordu — bu
+eşleme değil ŞEMA hatasıydı.
+
+**Sonuç:** araç yolu (dolu-katı + kabuk) korunumlu şemaya taşındı. Korunum
+artığı 4,8e-15 ve her koşuda ölçülüyor. T6 tutarlılığı korundu (kuadratik
+şekil fonksiyonları; üniform basınçta eski kurala iniyor).
 
 ### V1.2b — iki-hızlı katmanın DENETLENMESİ ✅ BİTTİ (2026-08-28)
 
@@ -156,8 +166,13 @@ soran bir denetim. **Yapıldı:** `iki_hiz.py`, `saglik.py`'nin altıncı ölçe
 Ölçtüğü şey "iki-hızlı katman temiz" değil, "bildirilen sözleşmelerde
 ayrışma yok".
 
-**Kalan borç:** ikinci bir sözleşme ailesi (alan integrali / yük aktarımı)
-henüz bildirilmedi.
+**İkinci sözleşme ailesi bildirildi (2026-08-28):** *"yük aktarımı
+korunumludur"* — `fsi_korunumlu_esleme.korunumlu_dagit` ve araç yolunun T6
+dağıtımı. Negatif kontrol eski şemayı reddediyor.
+
+**Sınav geometrisi iki kez kusuru işletmiyordu** ve ikisi de düzeltildi:
+yönlendirmede dışbükey kutu (→ iki ayrık küp), korunumda eşit-alanlı küp
+(→ alan oranı 7,2). İki test sınavların yeterliliğini bağlıyor.
 
 ### V1.3 — kampanya planlayıcısı
 

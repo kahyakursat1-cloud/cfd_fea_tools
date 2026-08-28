@@ -29,8 +29,15 @@ kuvvet hesaplanır:
     F_cfd = sum_f  (-p_f) n_f A_f          CFD yüzeyi üzerinde
     F_fea = sum_g  (-p_{en yakin}) n_g A_g  ALICI yüzey üzerinde
 
-İkisi arasındaki fark, araç yolunun FEA'ya uyguladığı yükün aerodinamik
-yükten sapmasıdır. Alıcı-yüzey yeterliliği bu farkla ÖLÇÜLÜR.
+İkisi arasındaki fark, ESKİ şemanın FEA'ya uyguladığı yükün aerodinamik
+yükten sapmasıdır.
+
+SONUÇ VE SONRASI. Medyan %9,5, 23 koşunun 9'unda %10'un üstünde. Bu ölçüm
+üretim yolunun korunumlu şemaya taşınmasının GEREKÇESİDİR; taşındıktan
+sonra sapma tanımı gereği sıfırdır (ağırlıklar 1'e toplanır) ve
+`_map_pressure_to_tet` her koşuda `korunum_artigi` döndürür. Betik
+TARİHSEL kaydı üretmeye devam eder --- silmek, taşınmanın gerekçesini
+silmek olurdu.
 
     python experiments/alici_yuzey_yeterliligi.py
 Çıktı: alici_yuzey_yeterliligi.json
@@ -111,8 +118,15 @@ def olc_vaka(vtk: Path, stl: Path) -> dict | None:
         return None
     # CFD yuzeyi uzerindeki GERCEK aerodinamik kuvvet
     F_cfd = (-c["p_pa"][:, None] * c["normal"] * c["alan"][:, None]).sum(axis=0)
-    # URETIM SEMASI: en yakin CFD hucresinin basinci, ALICI yuzeyin kendi
-    # alani ve normaliyle yeniden integre edilir.
+    # ESKI SEMA (2026-08-28'e kadar uretimdeydi): en yakin CFD hucresinin
+    # basinci, ALICI yuzeyin KENDI alani ve normaliyle yeniden integre
+    # edilir. Alanlar farkliysa toplam kuvvet de farkli cikar.
+    #
+    # BU OLCUM ARTIK TARIHSELDIR ve oyle etiketlenir. Uretim korunumlu
+    # semaya tasindi: kuvvet CFD yuzunde kurulup baryzentrik agirliklarla
+    # dagitiliyor ve toplam KIMLIK olarak korunuyor, yani bugunku sapma
+    # TANIMI GEREGI sifirdir. Betigi eski sayilari uretmeye devam eder
+    # halde birakmak, kanitin bayatlamasi olurdu.
     _, en_yakin = cKDTree(c["merkez"]).query(a["merkez"], k=1)
     F_fea = (-c["p_pa"][en_yakin][:, None] * a["normal"]
              * a["alan"][:, None]).sum(axis=0)
@@ -146,7 +160,7 @@ def olc_vaka(vtk: Path, stl: Path) -> dict | None:
             / (float(c["alan"].sum()) + 1e-30), 4),
         "F_cfd_N": [round(float(x), 5) for x in F_cfd],
         "F_fea_N": [round(float(x), 5) for x in F_fea],
-        "kuvvet_farki_pct": (round(100.0 * fark / n_cfd, 4)
+        "kuvvet_farki_eski_sema_pct": (round(100.0 * fark / n_cfd, 4)
                              if n_cfd > 1e-12 else None),
         "kuvvet_buyuklugu_N": round(n_cfd, 6),
     }
@@ -196,13 +210,14 @@ def _ozetle(kayit: list[dict], dusen: list[dict]) -> dict:
     # HUKUM YALNIZ KAPALI YUZEYLERDEN. Acik yuzeyde basinc sabiti
     # sifirlanmaz ve kiyasa yapay bir kuvvet katar; onlari ayni tabloda
     # hukumlemek olculemeyeni olculmus gostermek olurdu.
-    olculen = [k for k in kayit if k["kuvvet_farki_pct"] is not None
+    olculen = [k for k in kayit if k["kuvvet_farki_eski_sema_pct"] is not None
                and k["hukum_verilebilir"]]
-    acik = [k for k in kayit if k["kuvvet_farki_pct"] is not None
+    acik = [k for k in kayit if k["kuvvet_farki_eski_sema_pct"] is not None
             and not k["hukum_verilebilir"]]
-    sirali = sorted(olculen, key=lambda k: -k["kuvvet_farki_pct"])
+    sirali = sorted(olculen, key=lambda k: -k["kuvvet_farki_eski_sema_pct"])
     return {
-        "vaka": "Alıcı (FEA) yüzey yeterliliği — araç yolunun UYGULADIĞI yük",
+        "vaka": ("Alıcı (FEA) yüzey yeterliliği — ESKİ şemanın uyguladığı "
+                 "yük (TARİHSEL; üretim korunumlu şemaya taşındı)"),
         "_neden": ("Arac yolu (vehicle_fea) basinci tasiyip kuvveti ALICI "
                    "yuzeyde yeniden integre eder; FSI surucusu ise korunumlu "
                    "semayi kullanir. Yuzey payinin 'uretim yolunda yoktur' "
@@ -211,7 +226,7 @@ def _ozetle(kayit: list[dict], dusen: list[dict]) -> dict:
         "olculen_vaka": len(olculen),
         "acik_yuzey_hukumsuz": [
             {"vaka": k["vaka"], "kapalilik_alici": k["kapalilik_alici"],
-             "kuvvet_farki_pct": k["kuvvet_farki_pct"]} for k in acik],
+             "kuvvet_farki_eski_sema_pct": k["kuvvet_farki_eski_sema_pct"]} for k in acik],
         "dusen": dusen,
         "vakalar": sirali,
         "ozet": _istatistik(olculen),
@@ -230,7 +245,7 @@ def _ozetle(kayit: list[dict], dusen: list[dict]) -> dict:
 def _istatistik(k: list[dict]) -> dict:
     if not k:
         return {"olculdu": False}
-    v = sorted(x["kuvvet_farki_pct"] for x in k)
+    v = sorted(x["kuvvet_farki_eski_sema_pct"] for x in k)
     return {
         "olculdu": True, "n": len(v),
         "medyan_pct": v[len(v) // 2],
@@ -244,17 +259,19 @@ def _hukum(k: list[dict]) -> str:
     if not k:
         return "ÖLÇÜLEMEDİ: hiçbir vakada yüzey ve STL birlikte bulunamadı."
     s = _istatistik(k)
-    en = max(k, key=lambda x: x["kuvvet_farki_pct"])
+    en = max(k, key=lambda x: x["kuvvet_farki_eski_sema_pct"])
     return (
         f"{s['n']} koşuda ölçüldü. Araç yolunun FEA'ya uyguladığı toplam "
         f"kuvvet, aerodinamik kuvvetten medyan %{s['medyan_pct']:.2f}, en "
-        f"kötü %{s['en_kotu_pct']:.2f} sapıyor ({en['vaka']}; alan farkı "
+        f"kötü %{s['en_kotu_pct']:.2f} sapıyordu ({en['vaka']}; alan farkı "
         f"%{en['alan_farki_pct']:.2f}). %1'in altında {s['bir_pct_altinda']}"
         f"/{s['n']}, %10'un üstünde {s['on_pct_ustunde']}/{s['n']}. Bu fark "
         f"ŞEMADAN gelir: basınç taşınıp kuvvet alıcı yüzeyde yeniden "
-        f"integre ediliyor, dolayısıyla alanlar farklıysa kuvvet de farklı "
-        f"çıkar. FSI sürücüsünün korunumlu şemasında bu terim KİMLİK "
-        f"olarak sıfırdır.")
+        f"integre ediliyordu, dolayısıyla alanlar farklıysa kuvvet de "
+        f"farklı çıkıyordu. BU ÖLÇÜM TARİHSELDİR: üretim 2026-08-28'de "
+        f"korunumlu şemaya taşındı (kuvvet CFD yüzünde kurulup baryzentrik "
+        f"ağırlıklarla dağıtılıyor), yani bugünkü sapma TANIMI GEREĞİ "
+        f"sıfırdır ve `korunum_artigi` her koşuda ölçülüyor.")
 
 
 def main() -> int:
@@ -266,7 +283,7 @@ def main() -> int:
                      encoding="utf-8")
     for k in o["vakalar"][:12]:
         print(f"  {k['vaka'][:28]:<28} kuvvet farkı "
-              f"{k['kuvvet_farki_pct']:8.3f}%   alan farkı "
+              f"{k['kuvvet_farki_eski_sema_pct']:8.3f}%   alan farkı "
               f"{k['alan_farki_pct']:7.3f}%   "
               f"{k['n_cfd_yuz']:>7}→{k['n_alici_yuz']:<7}")
     print()

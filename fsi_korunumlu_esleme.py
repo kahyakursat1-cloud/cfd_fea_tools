@@ -126,7 +126,12 @@ def esleme_kur(cfd_merkez: np.ndarray, fea_nodes: np.ndarray,
     ucgen = faces[hedef]
     a, b, c = (fea_nodes[ucgen[:, 0]], fea_nodes[ucgen[:, 1]],
                fea_nodes[ucgen[:, 2]])
-    return {"ucgen": ucgen, "agirlik": baryentrik(cfd_merkez, a, b, c),
+    # `hedef` de DONER: kuadratik (T6) alicida kenar-orta dugumlere ulasmak
+    # icin ucgenin INDISI gerekir, dugum kimlikleri yetmez. Cagiranin ayni
+    # KDTree sorgusunu TEKRAR yapmasi ikinci bir esleme kaynagi yaratirdi
+    # ve bu modulun kendi kurali onu yasakliyor ("tek cekirdek").
+    return {"ucgen": ucgen, "hedef": hedef,
+            "agirlik": baryentrik(cfd_merkez, a, b, c),
             "n_cfd_yuz": int(len(cfd_merkez)), "n_fea_dugum": int(len(fea_nodes)),
             "_kurulum": "REFERANS konfigürasyon; deformasyon boyunca taşınır"}
 

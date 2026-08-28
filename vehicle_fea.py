@@ -215,6 +215,40 @@ def _material(key: str) -> FEAMaterial:
                                 alpha_per_k=alpha)
 
 
+def t6_sekil(w: np.ndarray) -> np.ndarray:
+    """Baryzentrik `w` noktasında T6 (kuadratik üçgen) şekil fonksiyonları.
+
+    NEDEN GEREKLİ. Korunumlu dağıtım bir CFD yüz kuvvetini alıcı üçgene
+    taşır ve baryzentrik ağırlıklarla düğümlere böler --- ama o ağırlıklar
+    LİNEER üçgenindir, yani üç KÖŞEYE gider. C3D10 yüzeyi T6'dır ve bu
+    depo ölçmüştür ki üniform basınçta tutarlı yük köşelere DEĞİL
+    kenar-orta düğümlere gider (çember çapası: köşe-yükleme \\%7,2, T6
+    \\%1,3). Köşe dağıtımı korunumu sağlar ama tutarlılığı bozardı.
+
+    Çözüm ikisini birden verir: aynı baryzentrik noktada T6 şekil
+    fonksiyonları kullanılır.
+
+        köşe i      N_i  = w_i (2 w_i - 1)
+        kenar (i,j) N_ij = 4 w_i w_j
+
+    KORUNUM YİNE KİMLİKTİR: ağırlıklar 1'e toplanır. (Σw=1 iken
+    Σ w_i(2w_i-1) + 4Σ_{i<j} w_i w_j = 2Σw_i² - 1 + 4S ve
+    Σw_i² = 1 - 2S olduğundan sonuç tam 1.)
+
+    Üniform basınçta üçgen üzerinde integral alınırsa klasik sonuç geri
+    gelir: köşe 0, kenar-orta A/3 --- yani eski davranışın genellemesidir.
+
+    Düğüm sırası CalculiX/gmsh T6 sırasıdır: 0,1,2 köşe; 3=(0,1),
+    4=(1,2), 5=(2,0) kenar-ortaları.
+    """
+    w = np.asarray(w, float)
+    w1, w2, w3 = w[..., 0], w[..., 1], w[..., 2]
+    return np.stack([
+        w1 * (2 * w1 - 1), w2 * (2 * w2 - 1), w3 * (2 * w3 - 1),
+        4 * w1 * w2, 4 * w2 * w3, 4 * w3 * w1,
+    ], axis=-1)
+
+
 def _disa_yonlendir(P, tris, normals, areas, centers):
     """Yüzey normallerini dışa çevirir --- TEK TEK DEĞİL, TOPLUCA.
 
@@ -286,22 +320,51 @@ def _map_pressure_to_tet(vtk_patch, tet, rho=1.225) -> dict:
     centers = P[tris].mean(axis=1)
     normals, _yon = _disa_yonlendir(P, tris, normals, areas, centers)
 
-    _, nearest = cKDTree(cfd_centers).query(centers, k=1)
-    dF = (-p_pa[nearest][:, None]) * normals * areas[:, None]
-    total = dF.sum(axis=0)
+    # ── KORUNUMLU AKTARIM ───────────────────────────────────────────────
+    # ESKI SEMA BASINCI TASIYIP KUVVETI ALICI YUZEYDE YENIDEN INTEGRE
+    # EDIYORDU: her FEA ucgeni en yakin CFD hucresinin basincini alir ve
+    # kuvveti KENDI alani/normaliyle kurardi. Alanlar farkliysa toplam
+    # kuvvet de farkli cikar ve olculdu: aerodinamik kuvvetten medyan
+    # %9,5 sapma (23 kosu, `alici_yuzey_yeterliligi`). Deponun kendi sema
+    # kiyasi da bu semayi 24/24 vakada momentte daha kotu bulmustu.
+    #
+    # KORUNUMLU SEMADA KUVVET CFD YUZUNDE KURULUR ve baryzentrik
+    # agirliklarla FEA dugumlerine dagitilir; agirliklar 1'e toplandigi
+    # icin toplam kuvvet KIMLIK olarak korunur.
+    from coupling_fsi import _poly_geometry
+    from fsi_korunumlu_esleme import disa_yonlendir, esleme_kur
 
-    # Tutarlı nodal yük: T3 (C3D4) → köşe A/3; T6 (C3D10) → kenar-orta A/3, köşe 0
-    # (kuadratik şekil-fonksiyonu integrali; bkz. calculix_writer basınç yolu).
-    load_nodes = full_tris[:, 3:6] if quadratic else tris
+    cfd_c, cfd_n, cfd_A = _poly_geometry(points, polys)
+    # CFD sarimi ice ya da disa bakabilir; ALICININ dis-normaline hizalanir
+    # (alici yukarida kuresel olarak zaten disa yonlendirildi).
+    cfd_n, _ters = disa_yonlendir(cfd_c, cfd_n, centers, normals)
+    dF_cfd = (-p_pa[:, None]) * cfd_n * cfd_A[:, None]
+    total = dF_cfd.sum(axis=0)
+
+    esleme = esleme_kur(cfd_c, P, tris, centers)
+    hedef, w = esleme["hedef"], esleme["agirlik"]
+    # Tutarlı nodal yük: T3 (C3D4) → köşe ağırlıkları; T6 (C3D10) → aynı
+    # baryzentrik noktada KUADRATIK şekil fonksiyonları (köşe w(2w-1),
+    # kenar-orta 4w_i w_j). Üniform basınçta bu, eski kuralın kendisine
+    # (köşe 0, kenar-orta A/3) indirgenir — genelleme, değişiklik değil.
+    if quadratic:
+        N, dugumler = t6_sekil(w), full_tris[hedef]
+    else:
+        N, dugumler = w, tris[hedef]
     node_forces = np.zeros_like(P)
-    for fi in range(len(tris)):
-        share = dF[fi] / 3.0
-        for nid in load_nodes[fi]:
-            node_forces[nid] += share
+    for k in range(N.shape[1]):
+        np.add.at(node_forces, dugumler[:, k], N[:, k:k + 1] * dF_cfd)
+
     forces = {int(i + 1): tuple(node_forces[i]) for i in range(len(P))
               if np.linalg.norm(node_forces[i]) > 1e-9}
+    # KORUNUM BIR IDDIA DEGIL, OLCULUR: dagitilan toplam ile CFD yuzundeki
+    # toplam makine hassasiyetinde AYNI olmali. Ayrisirsa sema bozulmustur.
+    _artik = float(np.linalg.norm(node_forces.sum(axis=0) - total)
+                   / (np.linalg.norm(total) + 1e-30))
     return {"status": "SUCCESS", "node_forces": forces,
             "toplam_kuvvet_N": [round(float(x), 3) for x in total],
+            "korunum_artigi": _artik,
+            "cfd_normali_ters_cevrildi": bool(_ters),
             "n_yuklu_dugum": len(forces)}
 
 
@@ -314,19 +377,35 @@ def _map_pressure_to_shell(vtk_patch, m: trimesh.Trimesh, rho=1.225) -> dict:
         p_poly = np.array([p_arr[list(poly)].mean() for poly in polys])
     else:
         p_poly = np.asarray(p_arr)
-    cfd_centers = np.array([points[list(poly)].mean(axis=0) for poly in polys])
     p_pa = p_poly * rho
-    _, nearest = cKDTree(cfd_centers).query(m.triangles_center, k=1)
-    dF = (-p_pa[nearest][:, None]) * m.face_normals * m.area_faces[:, None]
-    node_forces = np.zeros_like(m.vertices)
-    for fi, f in enumerate(m.faces):
-        share = dF[fi] / 3.0
-        for nid in f:
-            node_forces[nid] += share
-    forces = {int(i + 1): tuple(node_forces[i]) for i in range(len(m.vertices))
+    # KABUK YOLU DA KORUNUMLU. Dolu-katı yolu korunumlu şemaya taşınırken
+    # bunu ESKI şemada bırakmak, bugün ölçer kurduğum kusurun ta kendisi
+    # olurdu: iki yol yan yana, biri dersi öğrenmiş öteki duymamış.
+    # Kabuk ağı lineer üçgenlerden (T3) oluşur, yani baryzentrik ağırlıklar
+    # doğrudan köşelere gider --- T6'ya gerek yok.
+    from coupling_fsi import _poly_geometry
+    from fsi_korunumlu_esleme import disa_yonlendir, esleme_kur
+
+    cfd_c, cfd_n, cfd_A = _poly_geometry(points, polys)
+    f_c = np.asarray(m.triangles_center)
+    cfd_n, _ters = disa_yonlendir(cfd_c, cfd_n, f_c,
+                                  np.asarray(m.face_normals))
+    dF_cfd = (-p_pa[:, None]) * cfd_n * cfd_A[:, None]
+    V = np.asarray(m.vertices, float)
+    esleme = esleme_kur(cfd_c, V, np.asarray(m.faces), f_c)
+    ucgen, w = esleme["ucgen"], esleme["agirlik"]
+    node_forces = np.zeros_like(V)
+    for k in range(3):
+        np.add.at(node_forces, ucgen[:, k], w[:, k:k + 1] * dF_cfd)
+    forces = {int(i + 1): tuple(node_forces[i]) for i in range(len(V))
               if np.linalg.norm(node_forces[i]) > 1e-9}
+    toplam = dF_cfd.sum(axis=0)
+    _artik = float(np.linalg.norm(node_forces.sum(axis=0) - toplam)
+                   / (np.linalg.norm(toplam) + 1e-30))
     return {"status": "SUCCESS", "node_forces": forces,
-            "toplam_kuvvet_N": [round(float(x), 3) for x in dF.sum(axis=0)]}
+            "toplam_kuvvet_N": [round(float(x), 3) for x in toplam],
+            "korunum_artigi": _artik,
+            "cfd_normali_ters_cevrildi": bool(_ters)}
 
 
 def _kiris_zinciri(V: np.ndarray, sec: np.ndarray, sirala_ekseni: int) -> list[tuple[int, int]]:
