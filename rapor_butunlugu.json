@@ -2,7 +2,7 @@
   "vaka": "Rapor PDF bütünlüğü — dizgi kapısı",
   "_neden": "Dis hakem 61 sayfalik PDF'de 32 adet '§??' saydi, bos icindekiler ve cift 'Sekil 1' bildirdi ve P0 saydi. Sebep yazimda degil URETIM ADIMINDAYDI: pdflatex bir kez kosulmustu, oysa capraz referanslar ikinci gecişte cozulur. Hicbir sey bunu denetlemiyordu.",
   "olcum": {
-    "sayfa_metni_bayt": 201474,
+    "sayfa_metni_bayt": 202561,
     "cozulmemis_ham": 0,
     "cozulmemis_bicim": {
       "§??": 0,

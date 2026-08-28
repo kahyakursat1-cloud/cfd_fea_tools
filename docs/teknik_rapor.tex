@@ -1602,6 +1602,28 @@ aday anlamlı değil, çünkü yordanacak bir şey yok. Bu, bu raporun daha önc
 kaydettiği ikinci geri çekilen öngörüdür: birincisi izdüşüm kaymasının
 $\delta$ yordayıcı olduğu öngörüsüydü.
 
+\begin{dikkat}{Ders bir yolda öğrenilmişti, ötekine taşınmamıştı}
+Kusurun asıl açıklaması teknik değil yapısal. FSI sürücüsünün eşleme
+modülü (\texttt{fsi\_korunumlu\_esleme.disa\_yonlendir}) tam bu ölçütü
+\emph{zaten} çürütmüş ve gerekçesini kendi gövdesine yazmıştı: ``yüzey
+merkezinden gövde merkezine olan vektörle iç çarpım kapalı ve şişkin bir
+cisimde çalışır; bir levhada iki yüz de merkeze aynı uzaklıktadır ve
+toplam iç çarpımın işareti gürültüdür.'' Orada ölçüt terk edilip yönlendirme
+FEA dış-normaline eşleştirilmişti.
+
+\noindent Araç yolu ise aynı ölçütü kullanmaya devam etti. İki yol yan
+yana duruyordu; biri dersi öğrenmiş, öteki hiç duymamıştı. Turek--Hron
+zincirinin bu kusurdan \emph{etkilenmemesinin} sebebi de budur --- zincir
+düzeltilmiş yoldan geçiyor ve yeniden koşulduğunda sekiz aşamanın hepsi,
+ölçüt taşıyan altısının altısı kendi bandında kalıyor.
+
+\noindent Bu, bu belgenin ``iki-hızlı katman'' başlığı altında saydığı
+riskin ilk somut bedelidir: risk artık varsayımsal değil, ölçülmüş bir
+yük hatasıdır. Bir düzeltme yapıldığında sorulacak soru ``bu kusur nerede
+düzeltildi'' değil, \emph{``aynı kusur hangi öteki yolda duruyor''}
+olmalı.
+\end{dikkat}
+
 \subsection{Tahrik bandı arandı: harita yanıt verdi, ama yanlış sebeple}
 \label{sub:fsi-tahrik}
 

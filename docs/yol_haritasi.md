@@ -133,6 +133,20 @@ bir eşleme şeması değil, **alıcı FEA yüzeyinin CFD yük dağılımını
 çözebilmesi**. Çok daha ucuz ve mühendislik olarak doğru sıra. Yine de
 en kötü %24,1 küçümsenecek değil.
 
+### V1.2b — iki-hızlı katmanın DENETLENMESİ (yeni, bugün doğdu)
+
+Bugünkü yük kusuru teknik değil **yapısal** bir sebeple hayatta kaldı:
+`fsi_korunumlu_esleme.disa_yonlendir` centroid ölçütünü zaten çürütmüş ve
+gerekçesini kendi gövdesine yazmıştı; `vehicle_fea` aynı ölçütü kullanmaya
+devam ediyordu. İki yol yan yana, biri dersi öğrenmiş öteki duymamış.
+
+Bu, CLAUDE.md'nin "iki-hızlı uyarı"sının ilk **ölçülmüş** bedeli (yükün
+%70'i). Gereken şey büyük bir refactor değil — o riskli ve ayrı iş. Gereken:
+bir düzeltme yapıldığında *"aynı kusur hangi öteki yolda duruyor"* sorusunu
+soran bir denetim. Somut ilk adım: yön/normal, alan-integrali ve yük-aktarımı
+gibi **aynı işi yapan** fonksiyon ailelerini eşleştirip ayrışmalarını listeleyen
+bir ölçer (`saglik.py`'nin kanal-ayrışması ölçerinin kod tarafındaki karşılığı).
+
 ### V1.3 — kampanya planlayıcısı
 
 Önerinin "en çok fark yaratır" dediği madde. Ağ ailesi + GCI/LSR arka uçta

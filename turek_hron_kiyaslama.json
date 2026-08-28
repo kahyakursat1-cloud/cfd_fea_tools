@@ -162,7 +162,7 @@
         }
       ],
       "asan": [],
-      "verdikt_ozet": "6 tur koşuldu. Uç sehimi ilk turda 1.56055 mm, son turda 0.84012 mm; son tur-arası değişim 7.4e-05 mm. Deforme ağdaki taşıma 0.7498 N/m (kaynak: rijit 1.119, deforme 0.7638). Yayımlanan FSI1 0.8209 mm --- sapma %2.34. Ya"
+      "verdikt_ozet": "6 tur koşuldu. Uç sehimi ilk turda 1.56055 mm, son turda 0.84012 mm; son tur-arası değişim 7.8e-05 mm. Deforme ağdaki taşıma 0.7498 N/m (kaynak: rijit 1.119, deforme 0.7638). Yayımlanan FSI1 0.8209 mm --- sapma %2.34. Ya"
     }
   ],
   "kosulan": [],
