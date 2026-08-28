@@ -1,0 +1,564 @@
+{
+  "vaka": "Alıcı (FEA) yüzey yeterliliği — araç yolunun UYGULADIĞI yük",
+  "_neden": "Arac yolu (vehicle_fea) basinci tasiyip kuvveti ALICI yuzeyde yeniden integre eder; FSI surucusu ise korunumlu semayi kullanir. Yuzey payinin 'uretim yolunda yoktur' hukmu yalniz IKINCISI icin dogru. Bu betik birincisinin hatasini dogrudan olcer.",
+  "olculen_vaka": 23,
+  "acik_yuzey_hukumsuz": [
+    {
+      "vaka": "gripen_AB_Right",
+      "kapalilik_alici": 0.67612,
+      "kuvvet_farki_pct": 91.073
+    }
+  ],
+  "dusen": [
+    {
+      "vaka": "clean_rocket",
+      "neden": "vtk ya da stl diskte yok"
+    },
+    {
+      "vaka": "clean_rocket_fixed",
+      "neden": "vtk ya da stl diskte yok"
+    }
+  ],
+  "vakalar": [
+    {
+      "vaka": "_fsi_sinama",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 36,
+      "n_alici_yuz": 12,
+      "cfd_alan_m2": 0.019873,
+      "alici_alan_m2": 0.02808,
+      "alan_farki_pct": 41.297,
+      "F_cfd_N": [
+        0.00486,
+        0.00358,
+        0.02431
+      ],
+      "F_fea_N": [
+        0.0054,
+        -0.0018,
+        -0.03586
+      ],
+      "kuvvet_farki_pct": 241.1446,
+      "kuvvet_buyuklugu_N": 0.025053
+    },
+    {
+      "vaka": "fsi_ok30",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 80,
+      "n_alici_yuz": 12,
+      "cfd_alan_m2": 0.02323,
+      "alici_alan_m2": 0.024773,
+      "alan_farki_pct": 6.6393,
+      "F_cfd_N": [
+        0.01139,
+        0.00031,
+        0.55951
+      ],
+      "F_fea_N": [
+        -0.01723,
+        0.0024,
+        -5e-05
+      ],
+      "kuvvet_farki_pct": 100.1188,
+      "kuvvet_buyuklugu_N": 0.559622
+    },
+    {
+      "vaka": "clean_rocket_fixed_prep",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 5513,
+      "n_alici_yuz": 2048,
+      "cfd_alan_m2": 0.166594,
+      "alici_alan_m2": 0.168668,
+      "alan_farki_pct": 1.2446,
+      "F_cfd_N": [
+        0.12082,
+        -5e-05,
+        0.00184
+      ],
+      "F_fea_N": [
+        0.18352,
+        0.03453,
+        0.00649
+      ],
+      "kuvvet_farki_pct": 59.3824,
+      "kuvvet_buyuklugu_N": 0.120834
+    },
+    {
+      "vaka": "_fsi_esnek",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 44,
+      "n_alici_yuz": 12,
+      "cfd_alan_m2": 0.023474,
+      "alici_alan_m2": 0.0257,
+      "alan_farki_pct": 9.4812,
+      "F_cfd_N": [
+        0.00545,
+        -0.00126,
+        0.1063
+      ],
+      "F_fea_N": [
+        0.00161,
+        0.00363,
+        0.15149
+      ],
+      "kuvvet_farki_pct": 42.8549,
+      "kuvvet_buyuklugu_N": 0.106443
+    },
+    {
+      "vaka": "a320_Body_A320",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 335156,
+      "n_alici_yuz": 48398,
+      "cfd_alan_m2": 12.244772,
+      "alici_alan_m2": 12.132834,
+      "alan_farki_pct": 0.9142,
+      "F_cfd_N": [
+        12.2487,
+        0.07225,
+        6.94884
+      ],
+      "F_fea_N": [
+        9.29137,
+        0.21232,
+        6.92344
+      ],
+      "kuvvet_farki_pct": 21.024,
+      "kuvvet_buyuklugu_N": 14.08269
+    },
+    {
+      "vaka": "ucak_okkanat",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 98986,
+      "n_alici_yuz": 1560,
+      "cfd_alan_m2": 3.132269,
+      "alici_alan_m2": 3.12828,
+      "alan_farki_pct": 0.1273,
+      "F_cfd_N": [
+        16.51047,
+        -0.08182,
+        2.31375
+      ],
+      "F_fea_N": [
+        18.53293,
+        -0.86128,
+        1.56971
+      ],
+      "kuvvet_farki_pct": 13.7453,
+      "kuvvet_buyuklugu_N": 16.672004
+    },
+    {
+      "vaka": "dogrulama_kup",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 2904,
+      "n_alici_yuz": 12,
+      "cfd_alan_m2": 1.5,
+      "alici_alan_m2": 1.5,
+      "alan_farki_pct": 0.0,
+      "F_cfd_N": [
+        16.61539,
+        -0.18391,
+        -0.74018
+      ],
+      "F_fea_N": [
+        18.51336,
+        -0.19093,
+        -0.90218
+      ],
+      "kuvvet_farki_pct": 11.4525,
+      "kuvvet_buyuklugu_N": 16.632888
+    },
+    {
+      "vaka": "gci_kup",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 2904,
+      "n_alici_yuz": 12,
+      "cfd_alan_m2": 1.5,
+      "alici_alan_m2": 1.5,
+      "alan_farki_pct": 0.0,
+      "F_cfd_N": [
+        16.61539,
+        -0.18391,
+        -0.74018
+      ],
+      "F_fea_N": [
+        18.51336,
+        -0.19093,
+        -0.90218
+      ],
+      "kuvvet_farki_pct": 11.4525,
+      "kuvvet_buyuklugu_N": 16.632888
+    },
+    {
+      "vaka": "genel_kup800",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 49232,
+      "n_alici_yuz": 12,
+      "cfd_alan_m2": 3.84,
+      "alici_alan_m2": 3.84,
+      "alan_farki_pct": 0.0,
+      "F_cfd_N": [
+        91.97704,
+        -0.26977,
+        -0.948
+      ],
+      "F_fea_N": [
+        101.22969,
+        -0.25637,
+        -1.117
+      ],
+      "kuvvet_farki_pct": 10.0608,
+      "kuvvet_buyuklugu_N": 91.982323
+    },
+    {
+      "vaka": "kaldirici_e_kapsulsu",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 65142,
+      "n_alici_yuz": 252,
+      "cfd_alan_m2": 3.000965,
+      "alici_alan_m2": 3.001106,
+      "alan_farki_pct": 0.0047,
+      "F_cfd_N": [
+        29.74582,
+        0.34026,
+        -5.58283
+      ],
+      "F_fea_N": [
+        30.57481,
+        0.09357,
+        -2.77505
+      ],
+      "kuvvet_farki_pct": 9.7068,
+      "kuvvet_buyuklugu_N": 30.267102
+    },
+    {
+      "vaka": "genel_kapsul_uzun",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 5288,
+      "n_alici_yuz": 30900,
+      "cfd_alan_m2": 0.96034,
+      "alici_alan_m2": 0.961227,
+      "alan_farki_pct": 0.0924,
+      "F_cfd_N": [
+        0.68281,
+        0.05379,
+        0.12422
+      ],
+      "F_fea_N": [
+        0.74683,
+        0.05167,
+        0.1082
+      ],
+      "kuvvet_farki_pct": 9.4858,
+      "kuvvet_buyuklugu_N": 0.6961
+    },
+    {
+      "vaka": "minihawk",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 24477,
+      "n_alici_yuz": 1838,
+      "cfd_alan_m2": 1.135085,
+      "alici_alan_m2": 1.137829,
+      "alan_farki_pct": 0.2417,
+      "F_cfd_N": [
+        1.35741,
+        0.00013,
+        9.78277
+      ],
+      "F_fea_N": [
+        1.5884,
+        -0.00786,
+        10.68874
+      ],
+      "kuvvet_farki_pct": 9.4668,
+      "kuvvet_buyuklugu_N": 9.876493
+    },
+    {
+      "vaka": "fsi_tahrik22",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 120,
+      "n_alici_yuz": 12,
+      "cfd_alan_m2": 0.022927,
+      "alici_alan_m2": 0.02468,
+      "alan_farki_pct": 7.6471,
+      "F_cfd_N": [
+        0.0056,
+        9e-05,
+        0.60597
+      ],
+      "F_fea_N": [
+        -0.00515,
+        0.00091,
+        0.66204
+      ],
+      "kuvvet_farki_pct": 9.4231,
+      "kuvvet_buyuklugu_N": 0.605991
+    },
+    {
+      "vaka": "fsi_tahrik2",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 120,
+      "n_alici_yuz": 12,
+      "cfd_alan_m2": 0.022927,
+      "alici_alan_m2": 0.02468,
+      "alan_farki_pct": 7.6471,
+      "F_cfd_N": [
+        0.01841,
+        0.00029,
+        2.00346
+      ],
+      "F_fea_N": [
+        -0.01717,
+        0.003,
+        2.1887
+      ],
+      "kuvvet_farki_pct": 9.4154,
+      "kuvvet_buyuklugu_N": 2.003547
+    },
+    {
+      "vaka": "fsi_tahrikH",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 120,
+      "n_alici_yuz": 12,
+      "cfd_alan_m2": 0.022927,
+      "alici_alan_m2": 0.02468,
+      "alan_farki_pct": 7.6471,
+      "F_cfd_N": [
+        0.00559,
+        9e-05,
+        0.60577
+      ],
+      "F_fea_N": [
+        -0.00517,
+        0.00091,
+        0.66154
+      ],
+      "kuvvet_farki_pct": 9.3772,
+      "kuvvet_buyuklugu_N": 0.605792
+    },
+    {
+      "vaka": "MiniHawk_UAV_duzeltilmis",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 24477,
+      "n_alici_yuz": 1838,
+      "cfd_alan_m2": 1.135085,
+      "alici_alan_m2": 1.137829,
+      "alan_farki_pct": 0.2417,
+      "F_cfd_N": [
+        1.37054,
+        -7e-05,
+        9.88401
+      ],
+      "F_fea_N": [
+        1.59459,
+        -0.00519,
+        10.77844
+      ],
+      "kuvvet_farki_pct": 9.2406,
+      "kuvvet_buyuklugu_N": 9.978575
+    },
+    {
+      "vaka": "gondol_dort",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 260891,
+      "n_alici_yuz": 4012,
+      "cfd_alan_m2": 11.304302,
+      "alici_alan_m2": 11.116372,
+      "alan_farki_pct": 1.6625,
+      "F_cfd_N": [
+        70.07049,
+        -0.29085,
+        -4.44984
+      ],
+      "F_fea_N": [
+        75.91413,
+        0.06525,
+        -6.32478
+      ],
+      "kuvvet_farki_pct": 8.7554,
+      "kuvvet_buyuklugu_N": 70.212245
+    },
+    {
+      "vaka": "multikopter_kucuk",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 14202,
+      "n_alici_yuz": 1516,
+      "cfd_alan_m2": 0.176352,
+      "alici_alan_m2": 0.176415,
+      "alan_farki_pct": 0.0357,
+      "F_cfd_N": [
+        3.21101,
+        0.00075,
+        -0.13282
+      ],
+      "F_fea_N": [
+        3.47607,
+        -0.01655,
+        -0.09006
+      ],
+      "kuvvet_farki_pct": 8.3715,
+      "kuvvet_buyuklugu_N": 3.213761
+    },
+    {
+      "vaka": "ciftkuyruk_kucuk",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 35666,
+      "n_alici_yuz": 2268,
+      "cfd_alan_m2": 2.177669,
+      "alici_alan_m2": 2.179756,
+      "alan_farki_pct": 0.0958,
+      "F_cfd_N": [
+        15.31366,
+        -0.02136,
+        2.24983
+      ],
+      "F_fea_N": [
+        16.31073,
+        -0.07174,
+        2.41188
+      ],
+      "kuvvet_farki_pct": 6.5344,
+      "kuvvet_buyuklugu_N": 15.478063
+    },
+    {
+      "vaka": "minihawk_vtol",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 7442,
+      "n_alici_yuz": 69212,
+      "cfd_alan_m2": 0.199186,
+      "alici_alan_m2": 0.200132,
+      "alan_farki_pct": 0.475,
+      "F_cfd_N": [
+        0.15622,
+        -0.11542,
+        -0.7524
+      ],
+      "F_fea_N": [
+        0.15674,
+        -0.1482,
+        -0.78576
+      ],
+      "kuvvet_farki_pct": 6.0178,
+      "kuvvet_buyuklugu_N": 0.777071
+    },
+    {
+      "vaka": "izgara_ld7",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 20141,
+      "n_alici_yuz": 624,
+      "cfd_alan_m2": 0.533988,
+      "alici_alan_m2": 0.534462,
+      "alan_farki_pct": 0.0888,
+      "F_cfd_N": [
+        2.52129,
+        -0.025,
+        -0.00783
+      ],
+      "F_fea_N": [
+        2.6461,
+        0.00851,
+        -0.01772
+      ],
+      "kuvvet_farki_pct": 5.1403,
+      "kuvvet_buyuklugu_N": 2.521424
+    },
+    {
+      "vaka": "MiniHawk_UAV",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 509,
+      "n_alici_yuz": 1838,
+      "cfd_alan_m2": 1.058846,
+      "alici_alan_m2": 1.137829,
+      "alan_farki_pct": 7.4594,
+      "F_cfd_N": [
+        4.3286,
+        0.0272,
+        4.89265
+      ],
+      "F_fea_N": [
+        4.4605,
+        0.04998,
+        4.62796
+      ],
+      "kuvvet_farki_pct": 4.5405,
+      "kuvvet_buyuklugu_N": 6.532655
+    },
+    {
+      "vaka": "test_sphere",
+      "kapalilik_cfd": 0.0,
+      "kapalilik_alici": 0.0,
+      "hukum_verilebilir": true,
+      "n_cfd_yuz": 956,
+      "n_alici_yuz": 1280,
+      "cfd_alan_m2": 0.031139,
+      "alici_alan_m2": 0.031266,
+      "alan_farki_pct": 0.4091,
+      "F_cfd_N": [
+        0.23667,
+        0.02099,
+        0.02248
+      ],
+      "F_fea_N": [
+        0.23354,
+        0.02075,
+        0.02266
+      ],
+      "kuvvet_farki_pct": 1.3172,
+      "kuvvet_buyuklugu_N": 0.238661
+    }
+  ],
+  "ozet": {
+    "olculdu": true,
+    "n": 23,
+    "medyan_pct": 9.4668,
+    "en_kotu_pct": 241.1446,
+    "bir_pct_altinda": 0,
+    "on_pct_ustunde": 9
+  },
+  "verdikt": "23 koşuda ölçüldü. Araç yolunun FEA'ya uyguladığı toplam kuvvet, aerodinamik kuvvetten medyan %9.47, en kötü %241.14 sapıyor (_fsi_sinama; alan farkı %41.30). %1'in altında 0/23, %10'un üstünde 9/23. Bu fark ŞEMADAN gelir: basınç taşınıp kuvvet alıcı yüzeyde yeniden integre ediliyor, dolayısıyla alanlar farklıysa kuvvet de farklı çıkar. FSI sürücüsünün korunumlu şemasında bu terim KİMLİK olarak sıfırdır.",
+  "_kisit": "ACIK yuzeyler hukumsuz birakilir: kinematik basinc bir sabite kadar tanimlidir ve o sabit yalniz KAPALI yuzeyde sifirlanir. Olculen sey TOPLAM KUVVET farkidir; moment ve yerel dagilim ayrica bozulabilir ve bu betik onlari olcmez. Alici yuzey olarak kosunun STL'i alinir --- tet agi ondan uretildigi icin yuzey ucgenlemesi ayni ailededir, ama birebir ayni ag DEGILDIR.",
+  "_uretim": "Üretim: python experiments/alici_yuzey_yeterliligi.py"
+}

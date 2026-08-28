@@ -95,8 +95,20 @@ def test_gercek_vakalarda_KAYMA_var():
             continue
         v = np.asarray(trimesh.load(stl, force="mesh").vertices)
         m = dugum_eslemesi(v, str(inp_p))
-        if m:
-            bulunan += 1
-            assert len(m) == len(v), f"{inp_p}: {len(m)}/{len(v)} eşleşti"
+        # OLCUT "HIC EStlESME VAR MI" DEGIL, "BU .inp STL'DEN MI KURULDU".
+        # Ikisi ayni sanilmisti ve test bir kez yanlis otti: uretim yolu
+        # (`vehicle_fea`) FEA agini gmsh ile YENIDEN orer, yani dugumleri
+        # STL koselerinden farklidir; 1026 kosenin 1'i tesadufen tutunca
+        # test "1/1026 eslesti" diye dustu. Oysa orada eslesmemesi DOGRU.
+        # FSI surucusunun .inp'si ise dogrudan STL'den kurulur ve orada
+        # KISMI eslesme gercek bir kusurdur.
+        oran = len(m) / max(len(v), 1)
+        if oran < 0.05:
+            continue                      # yeniden orulmus ag — kapsam disi
+        bulunan += 1
+        assert oran > 0.5, (
+            f"{inp_p}: {len(m)}/{len(v)} eşleşti — ne STL-tabanlı ne de "
+            "yeniden örülmüş; belirsiz eşleşme incelenmeli")
+        assert len(m) == len(v), f"{inp_p}: {len(m)}/{len(v)} eşleşti"
     if bulunan == 0:
         pytest.skip("FEA girdisi olan vaka yok (gitignore)")

@@ -36,6 +36,43 @@ AYLAR = ("Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz",
          "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık")
 
 
+def _damgasiz_kanit() -> int | None:
+    """Ortam parmak izi TASIMAYAN kanit dosyasi sayisi.
+
+    UCUNCU ELLE TASINAN SAYIYDI. Rapor "bugun 89 kanitin parmak izi
+    tasimadigini soyluyor" diyordu ve her yeni kanit dosyasinda bir
+    ELLE duzeltme gerekiyordu; bir kez 22 bayat kaldigi olcuLmus.
+    Olcut URETICININ KENDI OLCUTUDUR (`kanit` + `ortam.fark`); burada
+    ayri bir sayim kurmak iki kaynak yaratirdi.
+    """
+    import sys as _s
+    _s.path.insert(0, str(KOK))
+    try:
+        import json as _j
+
+        import kanit
+        import ortam as _o
+    # sessiz-yutma: kabul — olcum modulu yoksa damga sayiyi YAZMAZ ve
+    # rapor eski degeri tasimaya devam eder; sessizce 0 yazmak yanlis
+    # olurdu
+    except ImportError:
+        return None
+    bugun = _o.parmak_izi()
+    n = 0
+    for k in kanit.manifest():
+        if k["sinif"] != "kanit":
+            continue
+        try:
+            d = _j.loads((KOK / k["dosya"]).read_text(encoding="utf-8-sig"))
+        # sessiz-yutma: kabul — okunamayan kanit "damgasiz" SAYILMAZ;
+        # sayilsaydi okuma hatasi eksik damga gibi gorunurdu
+        except (OSError, ValueError):
+            continue
+        if _o.fark(d.get("_ortam"), bugun)["ayni"] is None:
+            n += 1
+    return n
+
+
 def _yetkili_kod_satiri() -> int:
     """Kod satirini OLCEN yer `experiments/rapor_sayilari`dir; damga onu
     cagirir. Ayri bir sayim kurmak raporun icinde iki farkli "kod satiri"
@@ -95,7 +132,8 @@ def olc() -> dict:
             and n.name.startswith("test_"))
     return {"satir_kod": satir_kod, "satir_toplam": satir_toplam,
             "test_dosya": test_dosya, "test_fn": test_fn,
-            "atlanan": atlanan, "surum": _surum(), "tarih": _tarih()}
+            "atlanan": atlanan, "damgasiz_kanit": _damgasiz_kanit(),
+            "surum": _surum(), "tarih": _tarih()}
 
 
 def _surum() -> str:
@@ -130,7 +168,9 @@ def yaz(d: dict) -> str:
         "\\newcommand{\\raporTestDosya}{" + str(d["test_dosya"]) + "}\n"
         "\\newcommand{\\raporTestFn}{" + _binlik(d["test_fn"]) + "}\n"
         "\\newcommand{\\raporSurum}{" + d["surum"] + "}\n"
-        "\\newcommand{\\raporTarih}{" + d["tarih"] + "}\n")
+        "\\newcommand{\\raporTarih}{" + d["tarih"] + "}\n"
+        + ("\\newcommand{\\raporKanitDamgasiz}{%d}\n" % d["damgasiz_kanit"]
+           if d["damgasiz_kanit"] is not None else ""))
 
 
 def main() -> int:

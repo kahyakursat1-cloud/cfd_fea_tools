@@ -1488,6 +1488,120 @@ bağlıyor. Sıkılaşma yönündeki fark uyarı üretmez --- onu da tehlike gib
 göstermek uyarıyı değersizleştirirdi; ölçütün bu iki tarafı ayrı ayrı
 sınanıyor.
 
+\subsection{Alıcı yüzey soruldu, yük yolunda bir kusur bulundu}
+\label{sub:alici-yuzey}
+
+Dış hakem ``FSI Receiver Mesh Adequacy'' istedi ve gerekçe olarak
+iş-ayrışımındaki yüzey payını (en kötü \%$78{,}6$) gösterdi. Bu raporun
+kendi kaydı ise yüzey payının ``eski şemadan gelen, üretim yolunda
+\emph{bulunmayan}'' bir fark olduğunu söylüyordu. İkisi birden doğru
+olamazdı ve bakınca üçüncü bir şey çıktı: depoda \textbf{iki ayrı üretim
+yolu} var ve farklı eşleme şemaları kullanıyorlar. \texttt{coupling\_fsi}
+(FSI sürücüsü) korunumludur --- CFD yüzünde hesaplanan \emph{kuvvet}
+barizentrik ağırlıklarla dağıtılır ve toplam kimlik olarak korunur.
+\texttt{vehicle\_fea} (araç akışı) ise en yakın CFD hücresinin
+\emph{basıncını} alıp kuvveti alıcı yüzeyin kendi alanı ve normaliyle
+\emph{yeniden integre eder}. Yüzey payı birincisinde yoktur, ikincisinde
+vardır. Cümle eksikti, yanlış değil --- ama eksikliği bir kusuru
+gizliyordu.
+
+\begin{dikkat}{Yüzey normalleri yüz başına ters çevriliyordu}
+Araç yolu alıcı yüzeyin normallerini şu ölçütle düzeltiyordu:
+\emph{normal, gövde ağırlık merkezinden dışarı baksın}. Ölçüt yalnız
+\textsc{yıldız-şekilli} cisimlerde doğrudur. İnce/uzun bir gövdede
+merkez$-$cg vektörüne veter ya da açıklık yönü hükmeder, kalınlık yönü
+değil: hücum kenarında merkez$-$cg $\approx +x$ iken dış normal
+$\approx -x$'tir ve ölçüt onu \emph{ters çevirir}.
+
+\noindent Kaç yüzü bozduğu ölçüldü (gmsh'in kendi tutarlı sarımından
+başlayarak): roket \%$0{,}5$ $\cdot$ çiftkuyruk \%$18{,}7$ $\cdot$ gripen
+\%$29{,}8$ $\cdot$ A320 \%$42{,}6$. Bedeli toplam yükte görüldü ---
+\texttt{ciftkuyruk\_kucuk}, aynı basınç alanı ve aynı ağ:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\textbf{Normal} & $|F|$ (N) & \textbf{çözücü sürüklemesine göre} \\
+\midrule
+sarım (doğru)      & $15{,}58$ & $-\%0{,}9$ \\
+centroid (üretim)  & $4{,}65$  & $-\%70{,}3$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Yapıya aerodinamik yükün \emph{dörtte biri} uygulanıyordu;
+sehim ve gerilme de o oranda yanlıştı. \textbf{Hiçbir mevcut kapı
+ötmedi}: ağ kaliteliydi, çözüm yakınsamıştı, girdi dosyası geçerliydi,
+gerilme alanı düzgündü, geçerlilik sınıfı üretildi. Çünkü hiçbiri
+\emph{uygulanan yükü bağımsız bir sayıyla} karşılaştırmıyordu.
+
+Doğru ölçüt sarımdır ve sınanacak tek şey sarımın içe mi dışa mı
+baktığıdır --- bu \emph{küresel} bir sorudur. Diverjans teoremiyle
+çevrelenen hacim ölçülür; negatifse tümü birden çevrilir, tek tek yüze
+dokunulmaz. (Ölçüldü: roket $|\sum \mathbf{n}A|/A = 5{,}3\times10^{-17}$,
+hacim $+0{,}00286$; çiftkuyruk $1{,}2\times10^{-16}$, $+0{,}04936$ ---
+ikisi de kapalı ve sarımı zaten dışa.)
+\end{dikkat}
+
+\noindent \textbf{Kapı, kusurun sınıfına göre yazıldı.} Artık her statik
+yol uyguladığı yükü çözücünün bildirdiği kuvvetle karşılaştırıyor.
+Çapa toplam sürüklemedir, aktarım ise basınç-yalnızdır; beklenen fark
+sıfır \emph{değildir} ve viskoz payı kadardır. Kapı üç dala ayrılır:
+viskoz payı biliniyorsa bant ondan kurulur ve hüküm verilir; pay
+bilinmiyorsa hüküm \textsc{karar yok}'tur --- ince bir roket gövdesinde
+sürüklemenin \%$80$'i sürtünme olabilir ve basınç-yalnız aktarımın o kadar
+düşük kalması \emph{doğru} davranıştır (ölçüldü: \texttt{clean\_rocket},
+$-\%81{,}5$). Kaba bir banda vurup ``tutmuyor'' demek doğru sonucu kusurlu
+gösterirdi.
+
+\noindent Üçüncü dal paydan \emph{bağımsız} çalışır ve fiziktendir: viskoz
+sürükleme daima pozitiftir, dolayısıyla basınç payı toplamı aşamaz ve
+işaret değiştiremez. Bu iki sınır viskoz payı hiç bilinmese de hüküm
+verir. Kapı bugünkü kusurun ürettiği $3{,}22$ N'u reddediyor, düzeltilmiş
+$15{,}44$ N'u geçiriyor; her iki taraf da testle bağlı.
+
+\begin{dikkat}{Aynı kusur ölçüm betiğimde de vardı ve çapa olmasa
+görülmezdi}
+Alıcı-yüzey yeterliliğini ölçmek için yazdığım betik \emph{aynı} centroid
+ölçütünü kullanıyordu ve ilk sonuçları saçmaydı: kuvvet farkı A320'de
+\%$3767$, medyan \%$25{,}8$. Sayılar ``üretimde felaket'' diye okunabilirdi.
+Önce kendi sondamı denetledim: A320'de $F_{\text{CFD}}$ $(4{,}04$,
+$0{,}18$, $-39{,}40)$ N çıkıyordu, oysa çözücü sürüklemeyi $15{,}14$ N ve
+taşımayı $+6{,}77$ N bildiriyor. Sarım normalleriyle sonuç
+$(12{,}25$, $0{,}07$, $6{,}95)$ oldu: taşıma \%$2{,}7$, sürüklemenin basınç
+payı \%$81$ --- ikisi de fiziksel. Düzeltilmiş betiğin medyanı
+\%$9{,}5$'tir.
+
+Ders bu raporda bir kez daha geçiyor: \emph{şaşırtıcı bir sayı önce kendi
+ölçüm aracını suçlar}. Bağımsız bir çapa (çözücünün $C_d$/$C_l$ kaydı)
+olmasaydı yanlış sonda yanlış bir felaket ilan edecekti.
+\end{dikkat}
+
+\noindent Hakemin asıl sorusu --- eşleme payı --- ayrıca ölçüldü ve
+cevabı beklenenden keskin çıktı. Yirmi dört vaka iki aileye ayrılıyor:
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+\textbf{Aile} & $n$ & \textbf{medyan} & \textbf{en kötü} & $<\%1$ \\
+\midrule
+alıcı yüzey 12 üçgen (sınama kutusu) & $9$  & \%$3{,}37$ & \%$24{,}10$ & $4/9$ \\
+gerçek geometri                      & $15$ & \%$0{,}15$ & \%$0{,}69$  & $15/15$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Yani hakemin ``en kötü \%$24{,}1$ küçümsenemez'' uyarısı doğru
+ama o vakanın alıcı yüzeyi on iki üçgenlik bir kutudur --- üretimde
+kullanılmayan bir sınama fikstürü. Gerçek geometrilerde eşleme payı
+$15/15$ vakada \%$1$'in altındadır. Dahası, yeterliliğin doğal ölçütü
+sanılan \emph{çözünürlük oranı} (verici/alıcı yüz sayısı) hiçbir şey
+yordamıyor: Spearman $\rho = +0{,}01$ (tüm vakalar) ve $-0{,}33$ (yalnız
+gerçek geometriler), kritik $|\rho| \approx 0{,}52$. Gerçek ailede hiçbir
+aday anlamlı değil, çünkü yordanacak bir şey yok. Bu, bu raporun daha önce
+kaydettiği ikinci geri çekilen öngörüdür: birincisi izdüşüm kaymasının
+$\delta$ yordayıcı olduğu öngörüsüydü.
+
 \subsection{Tahrik bandı arandı: harita yanıt verdi, ama yanlış sebeple}
 \label{sub:fsi-tahrik}
 
@@ -4588,7 +4702,7 @@ kanıt artık ortam parmak izi de taşır: Python, sayısal kütüphaneler, işl
 sistemi, çekirdek sayısı. Paket listesinin tamamı değil --- gürültü, gerçek bir
 değişikliği görünmez yapar; kişisel veri de değil --- kanıt dosyaları paylaşılır.
 
-\texttt{python kanit.py -{}-ortam} bugün 89 kanıtın parmak izi \emph{taşımadığını}
+\texttt{python kanit.py -{}-ortam} bugün \raporKanitDamgasiz{} kanıtın parmak izi \emph{taşımadığını}
 (damga eklenmeden önce üretilmiş) ve hiçbirinin başka bir ortamda üretilmediğini
 raporlar. Eksik alan ``farksızlık'' sayılmaz: parmak izi olmayan bir kanıt için
 cevap ``aynı'' değil, ``karşılaştırılamaz''dır.

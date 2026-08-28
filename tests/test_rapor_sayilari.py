@@ -427,10 +427,24 @@ def test_rapor_ORTAM_damgasiz_kanit_sayisi_CANLI_olcumle_ayni(tex):
         1 for k in kanit.manifest() if k["sinif"] == "kanit"
         and _o.fark(json.loads((KOK / k["dosya"]).read_text(encoding="utf-8-sig"))
                     .get("_ortam"), bugun)["ayni"] is None)
-    m = re.search(r"kanit\.py -\{\}-ortam\} bugün (\d+) kanıtın", tex)
-    assert m, "rapor ortam kapsamını hiç yazmıyor mu?"
+    # SAYI ARTIK ELLE TASINMIYOR. Rapor `\raporKanitDamgasiz` makrosunu
+    # kullanir; makro `docs/rapor_damga.py` tarafindan AYNI olcutle
+    # uretilir. Bu yuzden test iki sey sinar: raporun makroyu kullandigini
+    # (elle yazilmis bir sayi geri gelmesin) ve damganin CANLI olcumden
+    # sapmadigini. Ucuncu elle tasinan sayiydi ve her yeni kanit
+    # dosyasinda bir duzeltme istiyordu.
+    assert "\\raporKanitDamgasiz" in tex, "rapor sayıyı elle yazıyor"
+    assert not re.search(r"-ortam\} bugün \d+ kanıtın", tex), (
+        "rapor ortam sayısını yine elle yazmış")
+    damga = KOK / "docs" / "rapor_damga.tex"
+    if not damga.exists():
+        pytest.skip("rapor_damga.tex yok (python docs/rapor_damga.py)")
+    m = re.search(r"raporKanitDamgasiz\}\{(\d+)\}",
+                  damga.read_text(encoding="utf-8"))
+    assert m, "damgada raporKanitDamgasiz yok"
     assert int(m.group(1)) == damgasiz, (
-        f"raporda {m.group(1)}, canlı ölçümde {damgasiz} damgasız kanıt")
+        f"damga {m.group(1)}, canlı ölçümde {damgasiz} damgasız kanıt — "
+        "`python docs/rapor_damga.py` ile yenileyin")
 
 
 def test_rapor_CAPA_cozucu_surumunu_kanittan_yaziyor(tex):

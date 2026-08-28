@@ -81,7 +81,13 @@ import sessiz_yutma
 # Ikisi de yeni bir olcum yolunun parcasi: hizlanma artik ASAMA DUVAR SURESINDEN
 # degil ExecutionTime'dan hesaplaniyor (rapordaki 1,96x → 3,10x duzeltmesi).
 # Izlenen sayilar DEGISMEDI: incelenmemis 0, guven yolunda incelenmemis 0.
-TABAN_TOPLAM = 99
+TABAN_TOPLAM = 101
+# 99 -> 101 (2026-08-28): docs/rapor_damga._damgasiz_kanit — IKI yutma.
+# (a) ImportError: olcum modulu yoksa damga sayiyi HIC YAZMAZ ve rapor eski
+#     degeri tasir; sessizce 0 yazmak "hicbir kanit damgasiz" gibi okunurdu.
+# (b) okunamayan kanit dosyasi "damgasiz" SAYILMAZ; sayilsaydi bir okuma
+#     hatasi eksik damga gibi gorunur ve sayiyi sisirirdi.
+# Izlenen sayilar DEGISMEDI: incelenmemis 0, guven yolunda incelenmemis 0.
 # 98 -> 99 (2026-08-28): docs/rapor_damga._git — `git` yoksa None doner ve
 # SEBEP CAGIRANA TASINIR: kapak "sürüm bilinmiyor (git yok)" basar, yani
 # okur eksigi GORUR. Istisnanin tipi burada karar degistirmez; git ya vardir

@@ -215,6 +215,53 @@ def _material(key: str) -> FEAMaterial:
                                 alpha_per_k=alpha)
 
 
+def _disa_yonlendir(P, tris, normals, areas, centers):
+    """Yüzey normallerini dışa çevirir --- TEK TEK DEĞİL, TOPLUCA.
+
+    ÖNCEKİ KOD YÜZ BAŞINA KARAR VERİYORDU ve bu ÖLÇÜLEBİLİR BİR HATAYDI:
+
+        cg = P.mean(axis=0)
+        flip = np.einsum("ij,ij->i", normals, centers - cg) < 0
+        normals[flip] *= -1
+
+    Ölçüt ``normal, gövde merkezinden dışarı baksın'' yalnız YILDIZ-ŞEKİLLİ
+    (dışbükeye yakın) cisimlerde doğrudur. İnce/uzun bir gövdede merkez--cg
+    vektörüne veter ya da açıklık yönü hükmeder, kalınlık yönü değil: hücum
+    kenarında merkez--cg ~ +x iken dış normal ~ -x'tir ve ölçüt onu TERS
+    ÇEVİRİR. Ölçüldü --- kaç yüzü bozduğu (gmsh'in kendi tutarlı sarımından
+    başlayarak): roket %0,5 · çiftkuyruk %18,7 · gripen %29,8 · A320 %42,6.
+
+    BEDELİ TOPLAM YÜKTE GÖRÜLDÜ. `ciftkuyruk_kucuk`, aynı basınç alanı ve
+    aynı ağ: sarım normalleriyle |F| = 15,58 N (çözücünün bildirdiği
+    sürükleme 15,653 N --- %0,9), centroid ölçütüyle |F| = 4,65 N. Yani
+    yapıya aerodinamik yükün DÖRTTE BİRİ uygulanıyordu; sehim ve gerilme
+    de o oranda yanlıştı.
+
+    DOĞRU ÖLÇÜT SARIMDIR. gmsh hacim ağının sınır üçgenlerini tutarlı
+    sarımla yazar; sınanması gereken tek şey sarımın içe mi dışa mı
+    baktığıdır ve bu KÜRESEL bir sorudur. Diverjans teoremiyle kapalı
+    yüzeyin çevrelediği hacim ölçülür: pozitifse sarım dışadır, negatifse
+    TÜMÜ birden çevrilir. Tek tek yüze dokunulmaz.
+
+    (Ölçüldü: roket |Σ n·A|/A = 5,3e-17, hacim +0,00286; çiftkuyruk
+    1,2e-16, +0,04936 --- ikisi de kapalı ve sarımı zaten dışa.)
+    """
+    hacim = float((np.einsum("ij,ij->i", centers, normals) * areas).sum() / 3.0)
+    if hacim < 0:
+        return -normals, "sarım içe bakıyordu, TÜMÜ çevrildi"
+    return normals, "sarım dışa"
+
+
+def _yuzey_kapali_mi(normals, areas) -> float:
+    """Kapalılık ölçüsü: |Σ n·A| / ΣA. Kapalı yüzeyde ~0.
+
+    Yönlendirme AÇIK yüzeyde de çalışır ama diverjans hacmi orada fiziksel
+    bir hacim değildir; hüküm verirken bu oran birlikte raporlanır.
+    """
+    return float(np.linalg.norm((normals * areas[:, None]).sum(axis=0))
+                 / (areas.sum() + 1e-30))
+
+
 def _map_pressure_to_tet(vtk_patch, tet, rho=1.225) -> dict:
     """CFD yüzey basıncını (kinematik p) tet yüzey düğüm kuvvetlerine eşler."""
     points, polys, p_arr, p_loc = _parse_legacy_vtk(Path(vtk_patch))
@@ -237,10 +284,7 @@ def _map_pressure_to_tet(vtk_patch, tet, rho=1.225) -> dict:
     areas = 0.5 * np.linalg.norm(cross, axis=1)
     normals = cross / (2 * areas[:, None] + 1e-30)
     centers = P[tris].mean(axis=1)
-    # Dışa-normal garantisi: hacim merkezinden dışarı bakmalı
-    cg = P.mean(axis=0)
-    flip = np.einsum("ij,ij->i", normals, centers - cg) < 0
-    normals[flip] *= -1
+    normals, _yon = _disa_yonlendir(P, tris, normals, areas, centers)
 
     _, nearest = cKDTree(cfd_centers).query(centers, k=1)
     dF = (-p_pa[nearest][:, None]) * normals * areas[:, None]
@@ -525,6 +569,12 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
                # uretim yolu onu cagirmiyor. Ustelik kabuk model DAHA ESNEK
                # (sehim ust-sinir egilimli), yani esige once BURASI yaklasir.
                "lineer_gecerlilik": _lineer_gecerlilik(max_disp_mm, lmax),
+               # UYGULANAN YUK BAGIMSIZ BIR SAYIYLA KIYASLANIR. Kabuk
+               # yolu da cagirir --- kapiyi tek yola koymak bu deponun
+               # tekrar eden kusuru.
+               "uygulanan_yuk": _uygulanan_yuk_denetimi(
+                   mp["toplam_kuvvet_N"], sonuc,
+                   _viskoz_pay_pct(run_dir)),
                **sa,
                "gecersiz": mech,
                "_not": ("Üniform kalınlıklı kabuk: spar/kaburga/iç yapı yok — "
@@ -652,6 +702,8 @@ def run_structural_check(run_dir, material="aluminum_6061", constraint="y_min",
            "delta_t_k": delta_t or None,
            "max_sehim_mm": round(max_disp_mm, 4) if max_disp_mm else None,
            "lineer_gecerlilik": _lineer_gecerlilik(max_disp_mm, lmax),
+           "uygulanan_yuk": _uygulanan_yuk_denetimi(
+               mp["toplam_kuvvet_N"], sonuc, _viskoz_pay_pct(run_dir)),
            "ince_ozellik_cozunurlugu": ince_coz,
            **sa,
            "gecersiz": mech,
@@ -738,6 +790,84 @@ def yapisal_hukum(out: dict) -> dict:
             "metin": metin, "engel": False, "gerekce": gerekce,
             "sf": sf, "sf_temsili": sf_t, "tekillik": bool(singular),
             "supheli": fizik.get("verdict") == "suspect"}
+
+
+def _uygulanan_yuk_denetimi(toplam_kuvvet_N, sonuc: dict,
+                            viskoz_pay_pct: float | None) -> dict | None:
+    """FEA'ya UYGULANAN yük, çözücünün bildirdiği kuvvetle tutuyor mu.
+
+    BU KAPI OLSAYDI BUGÜNKÜ KUSUR ÜRETİME HİÇ GİRMEZDİ. Yüzey normalleri
+    yüz başına ters çevriliyordu ve `ciftkuyruk_kucuk`'ta yapıya
+    aerodinamik yükün dörtte biri uygulanıyordu (4,65 N / 15,65 N). Ağ
+    kaliteliydi, çözüm yakınsamıştı, `.inp` geçerliydi, gerilme alanı
+    düzgündü --- hiçbir mevcut kapı ötmedi, çünkü hiçbiri UYGULANAN YÜKÜ
+    BAĞIMSIZ BİR SAYIYLA karşılaştırmıyordu.
+
+    ÇAPA: çözücünün sürükleme kuvveti. Aktarım basınç-yalnızdır, çözücünün
+    sürüklemesi ise viskozu da içerir; bu yüzden beklenen fark SIFIR
+    DEĞİLDİR ve viskoz payı kadardır. Pay biliniyorsa bant ondan kurulur,
+    bilinmiyorsa kapı bunu SÖYLER ve yalnız kaba bir mertebe sınaması
+    yapar --- 'bilinmiyor'u 'sorun yok' saymak bu deponun tekrar eden
+    kusuru olurdu.
+    """
+    # SEBEP KAYBOLMAZ. Ilk surumde bu iki dal `return None` yapiyordu ve
+    # kapi HIC CALISMADAN yok oluyordu --- tam da bu kapinin yakalamak icin
+    # yazildigi kusur sinifi. Bir kuvvet vektoru ayristirilamiyorsa bu
+    # sessizce gecilecek bir sey degil, ADIYLA soylenecek bir kusurdur.
+    try:
+        F = np.asarray(toplam_kuvvet_N, dtype=float)
+    except (TypeError, ValueError) as e:
+        return {"olculdu": False,
+                "neden": f"uygulanan kuvvet ayrıştırılamadı: "
+                         f"{type(e).__name__}: {e}"}
+    if F.shape != (3,):
+        return {"olculdu": False,
+                "neden": f"uygulanan kuvvet 3-bileşenli değil: şekil "
+                         f"{tuple(F.shape)}"}
+    surukleme = sonuc.get("drag_N")
+    if not surukleme or float(surukleme) <= 0:
+        return {"olculdu": False,
+                "neden": "çözücü sürükleme kuvveti kayıtta yok — çapa yok"}
+    capa = float(surukleme)
+    # Surukleme x eksenindedir (vaka yazicisi dragDir = (1,0,0) yazar).
+    uygulanan = float(F[0])
+    sapma = 100.0 * (uygulanan - capa) / capa
+    out = {"olculdu": True, "capa_surukleme_N": round(capa, 4),
+           "uygulanan_x_N": round(uygulanan, 4), "sapma_pct": round(sapma, 3)}
+
+    # ── FIZIKSEL KUTU: VISKOZ PAYI BILINMESE DE GECERLI ──────────────────
+    # Viskoz surukleme daima POZITIFTIR (akisa karsi). Dolayisiyla basinc
+    # payi toplam suruklemeyi ASAMAZ ve isaret degistiremez. Bu iki sinir
+    # paydan BAGIMSIZ birer kusur testidir.
+    if uygulanan > 1.05 * capa:
+        return {**out, "hukum": "TUTMUYOR",
+                "neden": ("basınç-yalnız aktarım toplam sürüklemeyi AŞIYOR; "
+                          "viskoz sürükleme pozitif olduğundan bu fiziksel "
+                          "olarak mümkün değil")}
+    if uygulanan < -0.05 * capa:
+        return {**out, "hukum": "TUTMUYOR",
+                "neden": ("basınç payı sürükleme yönünde NEGATİF; sürükleme "
+                          "üreten bir gövdede basınç tek başına itki veremez "
+                          "— yüzey normalleri ya da eşleme şüpheli")}
+
+    # ── BANT: YALNIZ VISKOZ PAYI BILINIYORSA HUKUM VERILIR ───────────────
+    # "Bilinmiyor" ile "sorun yok" AYRI SEYLERDIR. Ince bir roket govdesinde
+    # suruklemenin %80'i surtunme olabilir ve basinc-yalniz aktarimin o kadar
+    # dusuk kalmasi DOGRU davranistir; kaba bir banda vurup "tutmuyor" demek
+    # dogru sonucu kusurlu gosterirdi (olculdu: clean_rocket, sapma -%81,5).
+    if viskoz_pay_pct is None:
+        return {**out, "hukum": "KARAR YOK",
+                "neden": ("viskoz payı BİLİNMİYOR, dolayısıyla sapmanın ne "
+                          "kadarının basınç-yalnız aktarımdan geldiği "
+                          "söylenemez. Fiziksel sınırlar (0 ≤ basınç payı ≤ "
+                          "toplam) tutuyor. Payı ölçmek için koşuda "
+                          "`kuvvetBilesenleri` gerekir.")}
+    bant = max(5.0, 2.0 * float(viskoz_pay_pct))
+    return {**out, "bant_pct": round(bant, 3),
+            "hukum": "TUTUYOR" if abs(sapma) <= bant else "TUTMUYOR",
+            "neden": (f"viskoz payı %{float(viskoz_pay_pct):.2f}; "
+                      f"basınç-yalnız aktarımın bu kadar düşük kalması "
+                      f"BEKLENİR, bant iki katı alındı (%{bant:.2f}).")}
 
 
 def _viskoz_pay_pct(run_dir: Path) -> float | None:
