@@ -119,9 +119,42 @@ def test_HAKIM_ARTIK_ucunun_EN_BUYUGU():
     """En küçüğü almak kapıyı yine susturur; muhafazakâr yön en büyüğüdür."""
     r = aktarim_hukmu(0.0, moment_artigi_pct=13.54, is_artigi_pct=102.64,
                       u_toplam_pct=5.0)
-    assert r["hakim_metrik"] == "arayuz_isi"
+    assert r["hakim_metrik"] == "arayuz_isi_TOPLAM"
     assert r["kullanilabilir"] is False
-    assert set(r["bilesenler"]) == {"kuvvet", "moment", "arayuz_isi"}
+    assert set(r["bilesenler"]) == {"kuvvet", "moment", "arayuz_isi_TOPLAM"}
+    # AYRISIM VERILMEDIGI ICIN TOPLAM KULLANILDI ve bu SOYLENMELI: toplam
+    # terk edilmis semanin hatasini da tasir, yani kapi gereginden sikidir.
+    assert "ayrışımı VERİLMEDİ" in r["neden"]
+
+
+def test_AYRISIM_VERILINCE_ESLEME_PAYI_HAKIM_OLUR():
+    """DÜZELTME (2026-08-28), ölçümden. `arayuz_isi_hatasi` iki ŞEMAYI
+    kıyaslar: düğüm momenti (üretimdeki korunumlu şema) ve yüz momenti
+    (TERK EDİLMİŞ tutarlı şema, FEA yüzünde yeniden integre edilmiş).
+    Toplamı yönetici artık yapmak, üretimi terk edilmiş şemanın hatasıyla
+    suçlamaktır.
+
+    Ölçülen vaka `gripen_AB_Right`: toplam %76,72 ama eşleme payı %0,0023.
+    Toplama bakan kapı onu REDDEDERDİ.
+    """
+    r = aktarim_hukmu(0.0, moment_artigi_pct=0.0, is_artigi_pct=76.72,
+                      esleme_is_payi_pct=0.0023, u_toplam_pct=5.0)
+    assert r["hakim_metrik"] == "esleme_isi"
+    assert "arayuz_isi_TOPLAM" not in r["bilesenler"]
+    assert r["kullanilabilir"] is not False, (
+        "eşleme payı on binde iki olan bir koşu reddediliyor --- kapı hâlâ "
+        "terk edilmiş şemanın hatasına bakıyor")
+    assert "AYRIŞIM:" in r["neden"]
+
+
+def test_AYRISIM_GERCEKTEN_KOTU_OLANI_REDDEDIYOR():
+    """YANLIŞ-NEGATİF KAPISI. Düzeltme, kapıyı kör yapmamalı: eşleme payı
+    gerçekten büyük olan vaka (`_fsi_esnek`: toplam %102,64, eşleme %24,10)
+    reddedilmeye devam etmeli."""
+    r = aktarim_hukmu(0.0, moment_artigi_pct=13.54, is_artigi_pct=102.64,
+                      esleme_is_payi_pct=24.10, u_toplam_pct=5.0)
+    assert r["hakim_metrik"] == "esleme_isi"
+    assert r["kullanilabilir"] is False
 
 
 def test_ESKI_SEMA_hukmu_DEGISMEDI():

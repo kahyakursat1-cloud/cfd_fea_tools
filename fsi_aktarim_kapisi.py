@@ -31,10 +31,19 @@ koşunun KENDİ yayımlanan belirsizlik bandından büyük mü? Büyükse eşlem
 raporlanan her şeye baskındır ve band anlamsızdır. Bu, subkritik kapanış
 kapısıyla aynı desendir --- ölçülen hatayı beyan edilen banda karşı sınamak.
 
-KAPI BİR ÇÖZÜM DEĞİL, BİR DÜRÜSTLÜK KATMANIDIR. En-yakın-komşu eşlemenin
-yerini korunumlu bir projeksiyon (mortar, RBF, alan-ağırlıklı) almadıkça
-%56'lık hata KAYBOLMAZ; bu kapı yalnız o koşunun tasarım kararına girmesini
-engeller. Asıl iş hâlâ açıktır ve kuyrukta öyle işaretlidir.
+KAPI BİR ÇÖZÜM DEĞİL, BİR DÜRÜSTLÜK KATMANIDIR: %56'lık aktarım hatası bu
+kapıyla KAYBOLMAZ, yalnız o koşunun tasarım kararına girmesi engellenir.
+
+AMA ÇÖZÜMÜN NE OLDUĞU DEĞİŞTİ (2026-08-28, ölçümden). Bu satır bir turdur
+``mortar/RBF gerekir'' diyordu. Baryentrik ağırlıklar doğrusal alanları
+birebir ürettiği için birinci moment bir KİMLİKLE korunur:
+
+    T_düğüm - T_cfd  ==  Σ_f dF_f ⊗ δ_f ,   δ_f = Σ_k w_k x_k - x_cfd,f
+
+24/24 vakada ≤1e-10 tuttu ve eşleme payı 19 vakada %1'in altında, en kötü
+%24,10 (alıcı yüzeyi ON İKİ üçgen olan vaka). Yani şema değiştirmek
+gerekmiyor; alıcı yüzeyin verici yüzeyi ÇÖZMESİ yetiyor. Açık kalan iş
+mortar değil, aktarım yüzeyi çözünürlüğünün bir kural hâline getirilmesi.
 """
 from __future__ import annotations
 
@@ -77,7 +86,8 @@ def aktarim_hukmu(aktarim_hatasi_pct: float | None,
                   alan_farki_pct: float | None = None,
                   u_toplam_pct: float | None = None,
                   moment_artigi_pct: float | None = None,
-                  is_artigi_pct: float | None = None) -> dict:
+                  is_artigi_pct: float | None = None,
+                  esleme_is_payi_pct: float | None = None) -> dict:
     """Yük aktarımı tasarım kararında kullanılabilir mi?
 
     Üç dal, üçü de ölçülen bir sayıya dayanır:
@@ -108,8 +118,28 @@ def aktarim_hukmu(aktarim_hatasi_pct: float | None,
     _bilesenler = {"kuvvet": float(aktarim_hatasi_pct)}
     if moment_artigi_pct is not None:
         _bilesenler["moment"] = float(moment_artigi_pct)
-    if is_artigi_pct is not None:
-        _bilesenler["arayuz_isi"] = float(is_artigi_pct)
+    # IS BILESENI OLARAK **ESLEME PAYI** ALINIR, TOPLAM ARTIK DEGIL.
+    #
+    # DUZELTME (2026-08-28), OLCUMDEN. `arayuz_isi_hatasi` iki SEMAYI
+    # kiyaslar: dugum momenti (URETIMDEKI korunumlu sema) ve yuz momenti
+    # (TERK EDILMIS tutarli sema, FEA yuzunde YENIDEN INTEGRE edilmis).
+    # Ayni vakada terk edilmis semanin toplam kuvvetinin ISARETI bile ters
+    # cikabiliyor. Yani o sayiyi yonetici artik yapmak, URETIMI terk
+    # edilmis semanin hatasiyla suclamaktir.
+    #
+    # Dogru referans CFD tarafidir ve orada bir KIMLIK vardir:
+    #     T_dugum - T_cfd == sum_f dF_f (x) delta_f
+    # 24/24 vakada <=1e-10 tuttu. Ayrisim (fsi_korunum.json):
+    #     gripen_AB_Right  toplam %76,72  ESLEME %0,0023
+    #     _fsi_esnek       toplam %102,64 ESLEME %24,10
+    # Toplama bakan bir kapi gripen'i REDDEDERDI --- oysa oradaki eslemenin
+    # hatasi on binde iki. _fsi_esnek ise gercekten reddi hak ediyor.
+    if esleme_is_payi_pct is not None:
+        _bilesenler["esleme_isi"] = float(esleme_is_payi_pct)
+    elif is_artigi_pct is not None:
+        # GERI DUSUS: ayrisim yoksa toplam kullanilir ama bu MUHAFAZAKAR
+        # olmaktan cok FAZLA SIKIdir ve hukumde acikca soylenir.
+        _bilesenler["arayuz_isi_TOPLAM"] = float(is_artigi_pct)
     _hakim_ad = max(_bilesenler, key=lambda k: _bilesenler[k])
     a = _bilesenler[_hakim_ad]
     # KIMLIK UYARISI: kuvvet artigi tam sifirsa o sayi BILGI TASIMAZ.
@@ -137,6 +167,22 @@ def aktarim_hukmu(aktarim_hatasi_pct: float | None,
                    f"farklı (eşik %{ALAN_KIMLIK_ESIGI_PCT:g}) — iki yüzey aynı "
                    f"geometriyi temsil etmiyor olabilir; en-yakın-komşu eşleme "
                    f"bu durumda bozulur.")
+    # AYRISIM VARSA TOPLAM DA YAZILIR --- ama TESHIS olarak, HUKUM olarak
+    # degil. Okur toplami gorup uretime yazmasin diye fark ACIKCA soylenir.
+    if esleme_is_payi_pct is not None and is_artigi_pct is not None:
+        _teshis += (
+            f" AYRIŞIM: arayüz işi TOPLAM artığı %{float(is_artigi_pct):.2f}, "
+            f"bunun eşleme payı %{float(esleme_is_payi_pct):.2f}. Hüküm "
+            f"EŞLEME payına bakar; toplamın kalanı terk edilmiş (tutarlı) "
+            f"şemanın FEA yüzünde yeniden integre etmesinden gelir ve "
+            f"üretim yolunda YOKTUR.")
+    elif is_artigi_pct is not None:
+        _teshis += (
+            f" UYARI: arayüz işi ayrışımı VERİLMEDİ, toplam artık "
+            f"(%{float(is_artigi_pct):.2f}) yönetici alındı. Bu kapıyı "
+            f"gereğinden SIKI yapar --- ölçülen 24 vakada toplamın en "
+            f"kötüsü %102,64 iken eşleme payı %24,10 idi ve 19'unda %1'in "
+            f"altındaydı. `esleme_is_payi_pct` verilirse hüküm keskinleşir.")
 
     if a > MUTLAK_RED_PCT:
         return {"kullanilabilir": False, "kod": "AKTARIM_HATASI_BUYUK",

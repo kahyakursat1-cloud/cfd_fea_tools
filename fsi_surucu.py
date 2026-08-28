@@ -54,6 +54,16 @@ class KuplajVakasi:
     esleme: dict | None = None
 
 
+def _yuzde(x, basamak: int = 6):
+    """Oranı yüzdeye çevir --- YOKLUK ile SIFIR ayrı kalsın.
+
+    `0.0` geçerli bir ölçümdür (korunumlu şemada sık) ve `None` "ölçülmedi"
+    demektir. Doğruluk sınamasıyla (`if x:`) yazılsaydı sıfır ölçüm sessizce
+    "ölçülmedi"ye dönerdi ve kapı ölçüt-âtıl dalına düşerdi.
+    """
+    return None if x is None else round(100 * float(x), basamak)
+
+
 def _fea_yuzey(vaka: KuplajVakasi):
     """FEA yüzey düğümleri (K,3) ve onları taşıyan STL yolu."""
     import trimesh
@@ -335,6 +345,17 @@ def kuplaj_haritasi(vaka: KuplajVakasi):
                                 None if yukler.get("arayuz_isi_hatasi") is None
                                 else round(100 * float(
                                     yukler["arayuz_isi_hatasi"]), 4)),
+                            # ESLEME PAYI: kapinin BAKMASI GEREKEN sayi.
+                            # Toplam is artigi terk edilmis semanin FEA
+                            # yuzunde yeniden integre etmesini de tasir;
+                            # uretimdeki eslemeyi olcen pay ayridir ve
+                            # `coupling_fsi` onu ayrisim olarak veriyor.
+                            # Tasinmazsa kapi toplama bakar ve gereginden
+                            # SIKI olur --- olculdu: gripen_AB_Right toplam
+                            # %76,72 iken esleme payi %0,0023.
+                            "esleme_is_payi_pct": _yuzde(
+                                (yukler.get("esleme_sapmasi") or {})
+                                .get("esleme_isi_artigi")),
                             "dugum_eslemesi": _esleme_notu,
                             "cload": cload})
         return yeni.ravel()
@@ -436,7 +457,8 @@ def _aktarim_hukmu_ozeti(gecmis: list[dict]) -> dict:
     h = aktarim_hukmu(son.get("aktarim_hatasi_pct"),
                       son.get("alan_farki_pct"),
                       moment_artigi_pct=son.get("moment_artigi_pct"),
-                      is_artigi_pct=son.get("arayuz_isi_artigi_pct"))
+                      is_artigi_pct=son.get("arayuz_isi_artigi_pct"),
+                      esleme_is_payi_pct=son.get("esleme_is_payi_pct"))
     return {"aktarim_hukmu": h,
             "yuk_aktarimi_kullanilabilir": h["kullanilabilir"]}
 

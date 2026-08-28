@@ -92,3 +92,36 @@ def test_SURUCU_bu_alanlari_TURA_yaziyor():
     for gerekli in ("Fz_fea_N", "Fz_cfd_N", "aktarim_hatasi_pct"):
         assert gerekli in alanlar, (
             f"tur kaydında '{gerekli}' yok — aktarım-sürülü kapısı beslenemez")
+
+
+def test_ESLEME_PAYI_URETIM_YOLUNDAN_KAPIYA_ULASIYOR():
+    """Kapı doğru sayıya bakıyor olabilir ama üretim yolu ona o sayıyı
+    BESLEMİYORSA savunma yine âtıldır --- bu deponun baskın kusuru.
+
+    Bu test iki ucu birden bağlar: sürücünün tur kaydında alan ÜRETİLİYOR
+    mu, ve hüküm fonksiyonu onu kapıya TAŞIYOR mu.
+    """
+    import ast
+
+    src = (KOK / "fsi_surucu.py").read_text(encoding="utf-8")
+    assert '"esleme_is_payi_pct"' in src, (
+        "sürücü tur kaydında eşleme payını üretmiyor")
+    agac = ast.parse(src)
+    tasiyor = False
+    for n in ast.walk(agac):
+        if (isinstance(n, ast.Call)
+                and getattr(n.func, "id", "") == "aktarim_hukmu"):
+            tasiyor = any(k.arg == "esleme_is_payi_pct" for k in n.keywords)
+    assert tasiyor, (
+        "aktarim_hukmu çağrısı esleme_is_payi_pct taşımıyor; kapı toplam "
+        "artığa bakmaya devam eder ve gereğinden SIKI olur")
+
+
+def test_SIFIR_OLCUM_ile_OLCULMEDI_AYRI_KALIYOR():
+    """`0.0` geçerli bir ölçümdür (korunumlu şemada sık) ve `None`
+    'ölçülmedi' demektir. Doğruluk sınamasıyla yazılsaydı sıfır ölçüm
+    sessizce 'ölçülmedi'ye dönerdi ve kapı ölçüt-âtıl dalına düşerdi."""
+    from fsi_surucu import _yuzde
+    assert _yuzde(None) is None
+    assert _yuzde(0.0) == 0.0
+    assert _yuzde(0.000023) == 0.0023
