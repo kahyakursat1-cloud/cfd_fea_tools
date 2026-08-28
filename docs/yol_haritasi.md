@@ -108,18 +108,43 @@ Hepsi mevcut parçaların birleştirilmesi; yeni fizik yok.
    CFD1'in hükmü hâlâ "ağ-bağımsızlığı sınanmadı" diyordu --- o cümle de
    kanıttan türetilir yapıldı.
 
-### V1.2 — kampanya planlayıcısı
+6. ~~**Tarihsel/güncel hüküm yönetimi**~~ **BİTTİ** (2026-08-28) —
+   ikinci dış hakem raporunun P0'ı. Ölçüm zaten vardı (`hukum_tazeligi`:
+   23 koşunun 15'inde kalem-düzeyi hüküm bayat, **on beşi de gevşek
+   yönde**) ama tek çağıranı kendi testiydi. Koşu Geçmişi'ne
+   *"Bugünkü kurallarla yeniden değerlendir"* düğmesi eklendi: kayıtlı
+   hüküm ile bugünkü hüküm yan yana, gevşemede **V&V POLİTİKASI DEĞİŞTİ**
+   bandı. Çözücü yeniden koşulmuyor; kayıt değiştirilmiyor (iki test AST
+   ile bağlıyor); sıkılaşma yönünde uyarı çıkmıyor.
+7. ~~**Rapor bütünlük kapısı genişletildi**~~ **BİTTİ** (2026-08-28) —
+   hakem, kapının "bütün" dediği PDF'te iki kusur buldu ve ikisi de
+   ölçütün iddiasından dar olmasındandı: ham LaTeX kalıntısı (`??`
+   aranıyordu, oysa LaTeX hiç `\ref` görmemişti) ve çakışan şekil
+   numaralandırması (yalnız `Şekil N:` sayılıyordu, elle yazılan
+   `Şekil N.` ailesi görünmüyordu). Kapak damgası da artık ölçümden
+   üretiliyor (`docs/rapor_damga.py`).
+
+### V1.2 — FSI alıcı-ağ yeterliliği (hakemin yeni P1'i)
+
+Hakem RBF/mortar önerisini **geri çekti** ve yerine bunu koydu; ayrışım
+onu haklı çıkarıyor: `_fsi_esnek`'in %102,64'ünün yalnız %24,10'u gerçek
+eşleme, %78,60'ı yüzey/yeniden-integrasyon farkı. Yani çare daha zengin
+bir eşleme şeması değil, **alıcı FEA yüzeyinin CFD yük dağılımını
+çözebilmesi**. Çok daha ucuz ve mühendislik olarak doğru sıra. Yine de
+en kötü %24,1 küçümsenecek değil.
+
+### V1.3 — kampanya planlayıcısı
 
 Önerinin "en çok fark yaratır" dediği madde. Ağ ailesi + GCI/LSR arka uçta
 var; eksik olan **"bu sonucu yayımlamak için ne gerekli"** sorusunu
 maliyetle cevaplayan katman: kaç seviye, tahmini süre/RAM, hangi ek koşular.
 
-### V1.3 — doğrulama zarfı panosu + kanıt görüntüleyici
+### V1.4 — doğrulama zarfı panosu + kanıt görüntüleyici
 
 `DOĞRULANMIŞ / EĞİLİM / ZARF-DIŞI` sınıfları zaten üretiliyor; eksik olan
 görünürlük ve "bu hücreyi hangi çapa destekliyor" bağlantısı.
 
-### V1.4 — FSI ağ GCI'si, sonra FSI2/FSI3
+### V1.5 — FSI ağ GCI'si, sonra FSI2/FSI3
 
 - FSI1 için akış **ve yapı** ağ duyarlılığı. Akış ailesi kurulu
   (`turek_hron_ag_bagimsizligi.py`), yapı ailesi yok.
@@ -127,7 +152,7 @@ görünürlük ve "bu hücreyi hangi çapa destekliyor" bağlantısı.
   kuplajın kendisi yazılmadı. Ağ hareketinin Gauss sönümden gerçek bir
   Laplace çözümüne geçmesi gerekebilir.
 
-### V1.5 — çok amaçlı TO + imalat kısıtları
+### V1.6 — çok amaçlı TO + imalat kısıtları
 
 Ağırlıklı amaç (compliance + gerilme + kütle), Pareto cephesi; minimum
 üye boyu, simetri, çekme yönü, korunan arayüzler.
