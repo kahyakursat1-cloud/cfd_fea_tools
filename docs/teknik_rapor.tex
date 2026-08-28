@@ -20,6 +20,7 @@
 \usepackage[hidelinks]{hyperref}
 \usepackage{titlesec}
 \usepackage{tocloft}   % icindekiler numara kutusu — EK-A/B/C sigmasi icin
+\input{rapor_damga}   % URETILMIS: python docs/rapor_damga.py
 
 \titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{0.6em}{}
 \titlespacing*{\section}{0pt}{14pt}{6pt}
@@ -122,7 +123,7 @@ Built-in Verification, Validation and Uncertainty Quantification\par}
 \end{tikzpicture}
 
 \vspace{2mm}
-{\scriptsize\textbf{Şekil 1.} Uçtan uca akış. Ayırt edici olan son üç kutudur:
+{\scriptsize\refstepcounter{figure}\textbf{Şekil \thefigure.} Uçtan uca akış. Ayırt edici olan son üç kutudur:
 sayı üretildikten sonra \emph{belirsizliği ölçülür}, \emph{geçerliliği
 sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 
@@ -155,14 +156,14 @@ sınanır} ve \emph{yayımlanıp yayımlanmayacağına karar verilir}.\par}
 \end{tikzpicture}
 
 \vspace{2mm}
-{\scriptsize\textbf{Şekil 2.} Katmanlı mimari. \texttt{analysis/} kanonik
+{\scriptsize\refstepcounter{figure}\textbf{Şekil \thefigure.} Katmanlı mimari. \texttt{analysis/} kanonik
 çekirdektir; yeni kod case iskelesini tekrar yazmaz.\par}
 
 \vfill
 {\footnotesize
 OpenFOAM 11 $\cdot$ CalculiX $\cdot$ OpenVSP/VSPAERO $\cdot$ XFOIL 6.99\\[1mm]
-38.224 satır Python $\cdot$ 188 test dosyası $\cdot$ 1.917 geçen test\\[3mm]
-22 Ağustos 2026\par}
+\raporSatirKod{} satır çekirdek kod $\cdot$ \raporTestDosya{} test dosyası $\cdot$ \raporTestFn{} test fonksiyonu\\[3mm]
+\raporTarih{} $\cdot$ sürüm \raporSurum\par}
 \end{titlepage}
 
 % ══════════════════════════════ ÖZET ══════════════════════════════
@@ -245,7 +246,7 @@ Karar zincirini yazılıma taşımak:
 \end{tikzpicture}
 \end{center}
 
-\noindent{\scriptsize\textbf{Şekil 3.} Fark, çözücüde değil çözücüden
+\noindent{\scriptsize\refstepcounter{figure}\textbf{Şekil \thefigure.} Fark, çözücüde değil çözücüden
 \emph{sonrasındadır}.\par}
 
 \subsection*{Sonuç}
@@ -290,11 +291,13 @@ Tekillik bekçisi & sayısal tekilliği gerçek $K_t$'den ayırır &
 Malzeme & \texttt{materials.json}, kaynaklı ve sürümlü & 10 malzeme \\
 \midrule
 \multicolumn{3}{@{}l}{\textbf{Kuplaj ve optimizasyon}}\\
-1-yönlü FSI & CFD basıncı $\rightarrow$ FEA düğüm kuvveti &
+1-yönlü FSI & CFD yüzey traction'ı (basınç \emph{ve} viskoz kayma)
+  $\rightarrow$ FEA düğüm kuvvetleri &
   üç korunum metriği; aktarım artığı ölçülür (\S\ref{sub:fsi-korunum}) \\
-2-yönlü FSI & Kararlı: Turek--Hron FSI1 uçtan uca &
-  dört yayımlanmış nicelik \%$2{,}4$ bandında; zaman-bağımlı
-  (FSI2/FSI3) \textbf{yazılmadı} (\S\ref{sec:fsi2}) \\
+2-yönlü FSI & Kararlı: Turek--Hron FSI1 \emph{yeniden üretildi} &
+  dört yayımlanmış nicelik \%$2{,}4$ bandında; \textbf{ayrıklaştırma-UQ
+  tamamlanmadı} (tek akış + tek yapı ağı); zaman-bağımlı (FSI2/FSI3)
+  \textbf{yazılmadı} (\S\ref{sec:fsi2}) \\
 Topoloji opt. & SIMP, CFD-yüklü, \emph{gerilme farkındalıklı} &
   adjoint FD-doğrulanmış (\S\ref{sec:topopt}) \\
 \midrule
@@ -367,7 +370,7 @@ bir düzeltme adımı üretir. Yayımlamamak da bir sonuçtur ve raporlanır.
 \end{tikzpicture}
 \end{center}
 
-\noindent{\scriptsize\textbf{Şekil 4.} Karar motoru. Kırmızı oklar ret
+\noindent{\scriptsize\refstepcounter{figure}\textbf{Şekil \thefigure.} Karar motoru. Kırmızı oklar ret
 yollarıdır; her biri \emph{adı konmuş} bir gerekçe üretir. Kapıların bir kısmı
 çözücüden \emph{önce} çalışır ve boşa geçecek saatleri engeller.\par}
 
@@ -1463,6 +1466,28 @@ muhafazakârdır. Yeniden-hüküm rapor üreticisinin kendi yolundan geçiyor --
 ayrı bir sınıflandırma kurmak ikinci kaynak yaratır ve ölçer, kodla kayıt
 arasındaki farkı değil kendi yorumuyla kod arasındaki farkı ölçerdi.
 
+\medskip
+\noindent \textbf{Ölçüm vardı, okuyanı yoktu --- ve bu deponun baskın
+kusuru tam olarak budur.} Bayatlık ölçülüyordu, ama
+\texttt{hukum\_tazeligi} modülünün tek çağıranı kendi testiydi. Koşu
+geçmişine bakan bir kullanıcı bayat hükmü olduğu gibi, üstelik
+\emph{daha gevşek} biçimde görüyordu. Ölçüm artık arayüze bağlı: koşu
+geçmişinde tek satır seçilip \emph{``Bugünkü kurallarla yeniden
+değerlendir''} denince kayıt bugünkü karar motorundan geçer ve iki hüküm
+yan yana konur. Gevşeme yönünde fark varsa kartın üstünde
+``\textsc{V\&V politikası değişti --- yeniden değerlendirme gerekli}''
+bandı çıkar.
+
+\noindent İki ayrıntı kasıtlıdır. Birincisi, \emph{çözücü yeniden
+koşulmaz}; yalnız kayıt bugünkü kuraldan geçirilir, bu yüzden işlem koşu
+başına saniyeler sürer ve tabloya sütun olarak değil istek üzerine
+çalışır. İkincisi, kayıt \emph{değiştirilmez}: hüküm koşunun üretildiği
+andaki kodun ifadesidir ve üstüne bugünkünü yazmak tarihi siler. Bir test
+her iki yolda da kayda geri yazan bir çağrı olmadığını sözdizimi ağacından
+bağlıyor. Sıkılaşma yönündeki fark uyarı üretmez --- onu da tehlike gibi
+göstermek uyarıyı değersizleştirirdi; ölçütün bu iki tarafı ayrı ayrı
+sınanıyor.
+
 \subsection{Tahrik bandı arandı: harita yanıt verdi, ama yanlış sebeple}
 \label{sub:fsi-tahrik}
 
@@ -1608,8 +1633,8 @@ ile FEA yüzeyindekinin farkı.
 olması gereken üç metrik hepsinde $\le\!10^{-12}$; aktarım artığı
 ise \%0{,}2--\%56{,}3.
 \emph{Aşağıdaki tablo ESKİ (tutarlı) şemanın ölçümüdür ve tarihseldir:}
-şema bu bulgu yüzünden değiştirildi (\S
-ef{sub:fsi-korunumlu}) ve aynı
+şema bu bulgu yüzünden değiştirildi
+(\S\ref{sub:fsi-korunumlu}) ve aynı
 vakalarda aktarım artığı bugün \%0{,}0000'dır.
 
 \begin{center}\footnotesize
@@ -4074,7 +4099,8 @@ Hakem & İş & Bellek & Hücre & Neyi açar \\
 \#5 & Silindir duvar-çözümlü LES & 62{,}9\,GB & 84{,}7\,M &
   türbülanslı zaman-çözünür çapa \\
 \#12 & Sürülen 2-yönlü FSI (balsa, 70\,m/s) & 73\,GB & 94{,}1\,M &
-  \emph{araç ailesinde}; kanonik çapada engel donanım DEĞİL, NLGEOM \\
+  \emph{araç ailesinde}; kanonik çapada engel donanım DEĞİL,
+  zaman-bağımlı kuplaj ilmeğinin \textbf{yazılmamış} olması \\
 \#13 & Model-form tablosu & --- & \multicolumn{2}{l}{$\sim$10 yeni çapa koşusu} \\
 \#9 & Sıkı-yakınsama girdi-UQ & --- & \multicolumn{2}{l}{$\sim$30 koşu, yüksek iterasyon} \\
 \bottomrule
@@ -4397,10 +4423,10 @@ olarak değil. Kanıt dosyası zincirin tamamını taşır: üretim komutu
 \toprule
 \textbf{Ölçüt} & \textbf{Değer} & \textbf{Kaynak} \\
 \midrule
-Kod satırı (kök + \texttt{analysis/}) & 38.224 & \texttt{rapor\_sayilari.py} \\
+Kod satırı (kök + \texttt{analysis/}) & \raporSatirKod{} & \texttt{rapor\_sayilari.py} \\
 Kök modül & 99 & \texttt{rapor\_sayilari.py} \\
 Deney / çapa betiği & 107 & \texttt{experiments/} \\
-Test dosyası & 188 & \texttt{tests/test\_*.py} \\
+Test dosyası & \raporTestDosya{} & \texttt{tests/test\_*.py} \\
 Geçen test & 1.917 & \texttt{pytest -q}; raporun kendi sayısını denetleyen
   modül sayıma girmez (sonucu ölçülen niceliğe bağlı) \\
 Geçen test (coverage açık) & 1.917 & \texttt{-{}-cov}; ikisi \textbf{aynı koşuda} ölçüldü \\

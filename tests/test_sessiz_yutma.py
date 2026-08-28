@@ -81,7 +81,14 @@ import sessiz_yutma
 # Ikisi de yeni bir olcum yolunun parcasi: hizlanma artik ASAMA DUVAR SURESINDEN
 # degil ExecutionTime'dan hesaplaniyor (rapordaki 1,96x → 3,10x duzeltmesi).
 # Izlenen sayilar DEGISMEDI: incelenmemis 0, guven yolunda incelenmemis 0.
-TABAN_TOPLAM = 98
+TABAN_TOPLAM = 99
+# 98 -> 99 (2026-08-28): docs/rapor_damga._git — `git` yoksa None doner ve
+# SEBEP CAGIRANA TASINIR: kapak "sürüm bilinmiyor (git yok)" basar, yani
+# okur eksigi GORUR. Istisnanin tipi burada karar degistirmez; git ya vardir
+# ya yoktur ve iki durumda da cikti ayni cumleyi yazar.
+# Not: ayni betikte IKI yutma daha var (dosya okunamadi / ayristirilamadi)
+# ama onlar sayima GIRMEDI --- sebebi `atlanan` listesine yaziyor ve cikti
+# "sayilar EKSIK" uyarisi basiyor, yani sessiz degiller.
 # 97 -> 98 (2026-08-26): kaynakca.topla — `ast.literal_eval` istisnasi BURADA
 # eleme kriterinin kendisidir. `X_KAYNAK = f(...)` gibi HESAPLANAN bir deger
 # sabit degildir ve kunye olamaz; onu "ayristirilamadi" diye kaydetmek olmayan

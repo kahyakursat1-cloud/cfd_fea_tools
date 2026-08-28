@@ -13,6 +13,7 @@ her hücre-sayısı ifadesi `model_form_bandi.json`'daki özetle uyuşmalı.
 from __future__ import annotations
 
 import json
+import pathlib
 import re
 import sys
 from pathlib import Path
@@ -213,30 +214,59 @@ def _satir_sayilari(tex: str) -> list[int]:
     return [int(x.replace(".", "")) for x in ham]
 
 
-def test_kod_satiri_raporda_TEK_deger(tex):
-    """Hakem bulgusu: kapakta 31.322, kalite tablosunda 31.307 yazıyordu.
-    On beş satırlık fark önemsiz; AYRIŞMANIN KENDİSİ önemli, çünkü rapor tam
-    da bunu avlayan bir sistemi anlatıyor."""
-    d = _satir_sayilari(tex)
-    assert len(d) >= 2, f"kod satırı ifadesi bulunamadı ({d})"
-    assert len(set(d)) == 1, f"rapor farklı satır sayıları söylüyor: {sorted(set(d))}"
+def test_KOD_SATIRI_ELLE_TASINMIYOR(tex):
+    """ESKI TEST: raporda gecen tum "kod satiri" degerleri AYNI mi.
+    (Hakem bulgusuydu: kapakta 31.322, kalite tablosunda 31.307.)
+
+    ARTIK SAPMA YAPISAL OLARAK IMKANSIZ: her iki yer de ``\\raporSatirKod``
+    makrosunu kullaniyor ve makro ``docs/rapor_damga.py`` tarafindan
+    olcumden uretiliyor. Dolayisiyla testin sinadigi sey degisti ---
+    sayilarin esitligi degil, ELLE TASINAN bir sayinin GERI GELMEMESI.
+
+    Bu bir gevsetme degil: eski test iki sayinin ayrismasini KOSU ANINDA
+    yakaliyordu; bu test ayrisabilecek bir sayinin kaynaga girmesini
+    yakaliyor, yani bir adim ONCE.
+    """
+    assert "\\raporSatirKod" in tex, "kapak/tablo makroyu kullanmiyor"
+    elle = re.findall(r"(\d{2}\.\d{3}) satır Python", tex)
+    elle += re.findall(r"analysis/\}\) & (\d{2}\.\d{3}) &", tex)
+    assert elle == [], f"kod satiri yine ELLE yazilmis: {elle}"
 
 
-def test_kod_satiri_OLCUMDEN_sapmiyor(tex, olcum):
-    """Tolerans var (rapor her commit'te derlenmiyor) ama sapma büyürse söyle."""
-    d = _satir_sayilari(tex)
-    gercek = olcum["kod_satiri"]
-    sapma = abs(d[0] - gercek) / gercek * 100
-    assert sapma < 3.0, (f"rapor {d[0]} satır diyor, ölçüm {gercek} "
-                         f"(%{sapma:.1f} sapma) — `python experiments/"
-                         "rapor_sayilari.py` ile güncelleyin")
+def test_DAMGA_CANLI_OLCUMDEN_SAPMIYOR():
+    """Makro bir dosyadan geliyor; o dosya ile GERCEK kod ayrisirsa kapak
+    yine bayat sayi basar --- yalnizca bu kez gorunmez bicimde.
+
+    Kiyas CANLI olcumle yapilir, onbellege alinmis `rapor_sayilari.json`
+    ile degil: onbellege bakmak bayatligi bir dosya oteye tasirdi.
+    Tolerans, deponun zaten kabul ettigi gerekceyle ayni --- rapor her
+    commit'te derlenmiyor, bu yuzden birkac yuz satirlik gecikme kusur
+    degil; buyuyen sapma kusurdur.
+    """
+    import sys as _s
+    kok = pathlib.Path(__file__).resolve().parents[1]
+    _s.path.insert(0, str(kok / "experiments"))
+    from rapor_sayilari import kod_satiri
+
+    damga = kok / "docs" / "rapor_damga.tex"
+    if not damga.exists():
+        pytest.skip("rapor_damga.tex yok (python docs/rapor_damga.py)")
+    metin = damga.read_text(encoding="utf-8")
+    m = re.search(r"raporSatirKod\}\{([\d.]+)\}", metin)
+    assert m, "damgada raporSatirKod yok"
+    damgali = int(m.group(1).replace(".", ""))
+    canli = kod_satiri()
+    sapma = abs(damgali - canli) / canli * 100
+    assert sapma < 3.0, (
+        f"damga {damgali} satir diyor, canli olcum {canli} (%{sapma:.1f}) "
+        "--- `python docs/rapor_damga.py` ile yenileyin")
 
 
-def test_test_dosyasi_sayisi_OLCUMLE_uyusuyor(tex, olcum):
-    m = re.search(r"Test dosyası & (\d+) &", tex)
-    assert m, "kalite tablosunda test dosyası satırı yok"
-    assert int(m.group(1)) == olcum["test_dosyasi"], (
-        f"rapor {m.group(1)}, ölçüm {olcum['test_dosyasi']} test dosyası")
+def test_TEST_DOSYASI_da_ELLE_TASINMIYOR(tex):
+    assert "\\raporTestDosya" in tex
+    assert not re.search(r"Test dosyası & \d+ &", tex), (
+        "test dosyasi sayisi yine elle yazilmis"
+    )
 
 
 def test_ELLE_yazilmis_bolum_atfi_KALMADI(tex):

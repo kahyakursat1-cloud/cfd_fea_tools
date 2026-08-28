@@ -2,7 +2,7 @@
   "vaka": "Rapor PDF bütünlüğü — dizgi kapısı",
   "_neden": "Dis hakem 61 sayfalik PDF'de 32 adet '§??' saydi, bos icindekiler ve cift 'Sekil 1' bildirdi ve P0 saydi. Sebep yazimda degil URETIM ADIMINDAYDI: pdflatex bir kez kosulmustu, oysa capraz referanslar ikinci gecişte cozulur. Hicbir sey bunu denetlemiyordu.",
   "olcum": {
-    "sayfa_metni_bayt": 195535,
+    "sayfa_metni_bayt": 196773,
     "cozulmemis_ham": 0,
     "cozulmemis_bicim": {
       "§??": 0,
@@ -12,12 +12,31 @@
       "[??]": 0
     },
     "icindekiler_girdi": 19,
-    "sekil_numaralari": 11,
+    "sekil_numaralari": 15,
     "tekrar_eden_sekil": {},
+    "sekil_monoton": true,
+    "sekil_sirasi": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "ham_latex_kalintisi": [],
     "pdf_bayat": false,
     "tex_var": true
   },
-  "verdikt": "Bütün: çözülmemiş referans yok, içindekiler 19 girdi taşıyor, 11 şekil numarası tekil, PDF kaynağından yeni. Bu bir DİZGİ hükmüdür --- içeriğin kanıtla uyumu ayrı testlerin işidir.",
+  "verdikt": "Bütün: çözülmemiş referans yok, ham LaTeX kalıntısı yok, içindekiler 19 girdi taşıyor, 15 şekil numarası tekil ve artan, PDF kaynağından yeni. Bu bir DİZGİ hükmüdür --- içeriğin kanıtla uyumu ayrı testlerin işidir.",
   "_kisit": "DIZGI butunlugu kapisidir, ICERIK dogrulugunu denetlemez --- sayilarin kanitla uyumu ayri testlerin isi. 'Sekil ??' gibi alt bicimler pdftotext'in satir kirmasina bagli olarak bolunebilir; bu yuzden asil olcut HAM '??' sayimidir ve bicim dokumu yalnizca teshis icindir. pdftotext yoksa kapi SESSIZCE gecmez, acikca 'olculemedi' der.",
   "_uretim": "Üretim: python experiments/rapor_butunlugu.py",
   "_ortam": {

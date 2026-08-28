@@ -305,6 +305,17 @@ class KosularDialog(QDialog):
         btn_rapor = QPushButton("📄 Raporu Aç")
         btn_rapor.clicked.connect(self._rapor_ac)
         row.addWidget(btn_rapor)
+        # KAYITLI HUKUM BAYATLAR VE BAYATLIK GEVSEK YONDEDIR. Kod
+        # sikistiginda eski sonuc.json eski hukmu tasimaya devam eder;
+        # depoda 23 kosunun 15'inde kalem-duzeyi hukum bayat ve on besi de
+        # kayit "VALIDATED / tasarim-guvenli EVET" derken bugunku kod
+        # "TREND / HAYIR" diyor. Olcum vardi (hukum_tazeligi), TUKETICISI
+        # YOKTU --- bu deponun baskin kusuru. Dugme onu buraya baglar.
+        # Kosu basina ~4-9 s tuttugu icin tabloya sutun olarak degil ISTEK
+        # UZERINE calisir; ve eski kaydi YENIDEN YAZMAZ, yalniz farki gosterir.
+        btn_pol = QPushButton("⚖ Bugünkü kurallarla yeniden değerlendir")
+        btn_pol.clicked.connect(self._politika_kiyasla)
+        row.addWidget(btn_pol)
         row.addStretch(1)
         btn_close = QPushButton("Kapat")
         btn_close.clicked.connect(self.accept)
@@ -314,6 +325,76 @@ class KosularDialog(QDialog):
     def _secili(self) -> list[dict]:
         rows = sorted({i.row() for i in self.tbl.selectedIndexes()})
         return [self.kayitlar[r] for r in rows]
+
+    def _politika_kiyasla(self):
+        """Seçili koşunun KAYITLI hükmü ile BUGÜNKÜ hükmünü yan yana koyar.
+
+        İki alan ayrı tutulur ve kayıt üzerine YAZILMAZ: hüküm, koşunun
+        üretildiği andaki kodun ifadesidir; üstüne bugünkünü yazmak tarihi
+        siler ve koşunun girdileri tam geri kurulamıyorsa yanlış da olabilir.
+        Gösterilen şey farkın kendisi ve YÖNÜ.
+        """
+        sec = self._secili()
+        if len(sec) != 1:
+            self.det.setPlainText("Politika kıyası için TEK satır seçin.")
+            return
+        yol = sec[0].get("yol")
+        if not yol:
+            self.det.setPlainText("Bu kaydın koşu dizini bilinmiyor.")
+            return
+        self.det.setPlainText(
+            f"{sec[0].get('ad')} bugünkü karar motorundan geçiriliyor "
+            "(çözücü YENİDEN KOŞULMUYOR; birkaç saniye)…")
+        QApplication.processEvents()
+        try:
+            import hukum_tazeligi
+            r = hukum_tazeligi.tek(yol)
+        except Exception as e:                        # noqa: BLE001
+            self.det.setPlainText(f"Politika kıyası yapılamadı: "
+                                  f"{type(e).__name__}: {e}")
+            return
+        self.det.setMarkdown(self._politika_md(r))
+
+    @staticmethod
+    def _politika_md(r: dict) -> str:
+        ad = r.get("kosu", "—")
+        durum = r.get("durum")
+        if durum == "kapsam-disi":
+            return (f"## {ad}\n\n**Kapsam dışı** — {r.get('neden')}.\n\n"
+                    "> Başarısız ya da kalem-düzeyi hükmü olmayan bir koşuda "
+                    "bayatlık sorusu yoktur.")
+        if durum == "olculemedi":
+            return (f"## {ad}\n\n**Ölçülemedi** — {r.get('neden')}.\n\n"
+                    "> Ölçülemeyen koşu TAZE sayılmaz.")
+        if durum == "taze":
+            return (f"## {ad}\n\n✅ **Kayıtlı hüküm bugünkü kodla AYNI.**\n\n"
+                    "Bu koşunun geçerlilik kalemleri, bugünkü karar motoru "
+                    "yeniden çalıştırıldığında birebir aynı çıkıyor.")
+        gevsek = r.get("gevseyen", 0)
+        md = [f"## {ad}", ""]
+        if gevsek:
+            md += ["> ⚠️ **V&V POLİTİKASI DEĞİŞTİ — YENİDEN DEĞERLENDİRME "
+                   "GEREKLİ.** Kayıtlı hüküm bugünküden **daha gevşek**: "
+                   f"{gevsek} kalemde kayıt, bugünkü aracın vermeyeceği bir "
+                   "güvence vaat ediyor.", ""]
+        else:
+            md += ["> Kayıtlı hüküm bugünkünden farklı, ama fark **sıkılaşma** "
+                   "yönünde — yani yalnız muhafazakâr.", ""]
+        md += ["| Nicelik | Kayıt anındaki hüküm | Bugünkü politika | Yön |",
+               "|---|---|---|---|"]
+        for f in r.get("farklar", []):
+            ok = {"gevşek": "⚠️ gevşek", "sıkı": "sıkı", "aynı": "aynı"}
+            md.append(f"| {f['nicelik']} | {f['kayitli']} "
+                      f"(tasarım-güvenli: "
+                      f"{'EVET' if f['kayitli_tasarim_guvenli'] else 'HAYIR'}) "
+                      f"| {f['bugun']} (tasarım-güvenli: "
+                      f"{'EVET' if f['bugun_tasarim_guvenli'] else 'HAYIR'}) "
+                      f"| {ok.get(f['yon'], f['yon'])} |")
+        md += ["", "> Kayıt **değiştirilmedi**. Hüküm, koşunun üretildiği "
+                   "andaki kodun ifadesidir; üstüne bugünkünü yazmak tarihi "
+                   "siler ve koşunun girdileri tam geri kurulamıyorsa yanlış "
+                   "da olabilir. Bu pencere farkı gösterir, kaydı düzeltmez."]
+        return "\n".join(md)
 
     def _karsilastir(self):
         sec = self._secili()

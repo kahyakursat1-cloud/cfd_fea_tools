@@ -61,6 +61,24 @@ def _metin(pdf: Path) -> tuple[str | None, str]:
     return t, ""
 
 
+# Kirilan bir makronun DIZILMIS kalintisi. Susluler dizgide yenildigi
+# icin desen "{" ARAMAZ --- ilk denememde ariyordu ve kusuru hic
+# bulamadi. Aranan sey: kirilan makronun kuyrugu + etiket ad-uzayi.
+_KALINTI = re.compile(
+    r"(?:ef|able|ig|ite|mph|extbf|exttt)(?:sub|sec|fig|tab|eq):"
+    r"[A-Za-z0-9:_-]+")
+
+
+def ham_latex_kalintisi(metin: str) -> list[str]:
+    """Dizilmis metne sizmis LaTeX kalintilari (tekil, sirali).
+
+    Modul duzeyinde, cunku olcut DAVRANISLA sinanmali: bir test gercek
+    bir sizinti dizgesini verip yakalandigini, temiz bir metni verip
+    yakalanmadigini gorebilsin.
+    """
+    return sorted(set(_KALINTI.findall(metin)))
+
+
 def olc() -> dict:
     if not PDF.exists():
         return _ozetle(None, "PDF yok — önce docs/ içinde pdflatex koşulmalı")
@@ -83,8 +101,27 @@ def olc() -> dict:
 
     # 3) SEKIL NUMARALARI: ayni numara iki kez basiliyorsa numaralandirma
     #    sifirlanmis demektir (hakem "cift Sekil 1" gordu).
-    say = collections.Counter(re.findall(r"Şekil (\d+):", t))
+    #
+    #    OLCUT BIR KEZ FAZLA DARDI VE KAPI IDDIASINDAN AZ SEY OLCUYORDU.
+    #    Yalniz "Sekil N:" (iki nokta) araniyordu --- yani `\caption`
+    #    ailesini. Elle yazilmis TikZ basliklari ise "Sekil N." (nokta)
+    #    biciminde ve AYRI bir numaralandirma yuruTuyordu; ikisi 1-4'te
+    #    cakisiyordu ve kapi "11 numara tekil" diyordu. Hakem cakismayi
+    #    gordu, kapi gormedi. Artik HER IKI bicim de sayilir.
+    say = collections.Counter(re.findall(r"Şekil (\d+)[:.]", t))
     tekrar = {k: v for k, v in say.items() if v > 1}
+    # Ve numaralar ARTAN olmali: tekrar olmadan da atlama/geri sarma
+    # numaralandirmanin bozuldugunu gosterir.
+    sira = [int(x) for x in re.findall(r"Şekil (\d+)[:.]", t)]
+    monoton = sira == sorted(set(sira)) if sira else True
+
+    # 5) HAM LaTeX KALINTISI. "\S\ref{...}" satir sonunda kirilinca LaTeX
+    #    hic \ref gormez: cikti "??" DEGIL, duz metin "efsub:fsi-korunum"
+    #    olur. Kapinin "cozulmemis referans yok" iddiasi bu kusuru
+    #    kapsamiyordu --- hakem sayfa 21'de gordu. Susluler dizgide
+    #    yenildigi icin desen "{" ARAMAZ; kirilan makronun kuyrugu +
+    #    etiket ad-uzayi aranir.
+    kalinti = ham_latex_kalintisi(t)
 
     # 4) BAYATLIK: PDF kaynagindan eskiyse denetlenen sey YAYIMLANAN sey
     #    degildir. Bu kapiyi bugun ogrendik --- ayni sinif hatayi FSI
@@ -100,6 +137,9 @@ def olc() -> dict:
         "icindekiler_girdi": toc_girdi,
         "sekil_numaralari": len(say),
         "tekrar_eden_sekil": tekrar,
+        "sekil_monoton": monoton,
+        "sekil_sirasi": sira,
+        "ham_latex_kalintisi": sorted(set(kalinti)),
         "pdf_bayat": bayat,
         "tex_var": TEX.exists(),
     }, None)
@@ -138,16 +178,37 @@ def _hukum(d: dict | None, neden: str | None) -> str:
                      f"gösteriyor")
     if d["tekrar_eden_sekil"]:
         sorun.append(f"tekrar eden şekil numarası {d['tekrar_eden_sekil']}")
+    elif not d.get("sekil_monoton", True):
+        # ELIF: tekrar zaten bildirildiyse ayni kusuru iki kez saymayalim.
+        sorun.append(f"şekil numaraları artan değil: {d['sekil_sirasi']}")
+    if d.get("ham_latex_kalintisi"):
+        sorun.append("ham LaTeX kalıntısı metne sızmış: "
+                     + ", ".join(d["ham_latex_kalintisi"]))
     if d["pdf_bayat"]:
         sorun.append("PDF kaynağından ESKİ")
     if sorun:
+        # TAVSIYE KUSURA GORE VERILIR. Once tek bir cumle vardi ("pdflatex'i
+        # 2-3 kez kos") ve kapi genisletilince o tavsiye YANLIS oldu: ham
+        # kalinti ve cakisan numaralandirma yeniden derlemekle gecmez,
+        # KAYNAK duzeltmesi ister. Yanlis bir care, kusurun kendisi kadar
+        # zarar verir --- kullanici uc kez derler ve "gecmiyor" der.
+        care = []
+        if d["cozulmemis_ham"] or d["pdf_bayat"]:
+            care.append("çapraz referanslar oturana kadar pdflatex'i "
+                        "(tipik 2-3 kez) koş")
+        if d.get("ham_latex_kalintisi"):
+            care.append("KAYNAK düzeltmesi: kırılan makro satır sonunda "
+                        "bölünmüş, tek satıra al")
+        if d["tekrar_eden_sekil"] or not d.get("sekil_monoton", True):
+            care.append("KAYNAK düzeltmesi: elle numaralanan başlıkları "
+                        "gerçek sayaca bağla (\\refstepcounter{figure})")
         return ("RAPOR YAYINA HAZIR DEĞİL: " + "; ".join(sorun)
-                + ". Düzeltme genelde tek satır: pdflatex'i çapraz "
-                  "referanslar oturana kadar (tipik 2-3 kez) koş.")
-    return (f"Bütün: çözülmemiş referans yok, içindekiler "
-            f"{d['icindekiler_girdi']} girdi taşıyor, {d['sekil_numaralari']} "
-            f"şekil numarası tekil, PDF kaynağından yeni. Bu bir DİZGİ "
-            f"hükmüdür --- içeriğin kanıtla uyumu ayrı testlerin işidir.")
+                + ". Çare: " + "; ".join(care) + ".")
+    return (f"Bütün: çözülmemiş referans yok, ham LaTeX kalıntısı yok, "
+            f"içindekiler {d['icindekiler_girdi']} girdi taşıyor, "
+            f"{d['sekil_numaralari']} şekil numarası tekil ve artan, PDF "
+            f"kaynağından yeni. Bu bir DİZGİ hükmüdür --- içeriğin kanıtla "
+            f"uyumu ayrı testlerin işidir.")
 
 
 def main() -> int:

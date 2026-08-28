@@ -59,36 +59,68 @@ def _yon(eski: str, yeni: str) -> str:
     return "gevşek" if a < b else ("sıkı" if a > b else "aynı")
 
 
+def tek(yol: Path | str) -> dict:
+    """TEK koşunun kayıtlı hükmü ile bugünkü hükmünü karşılaştırır.
+
+    Arayüz bunu ister: kullanıcı bir koşuya bakarken "bu hüküm hangi
+    kuralların altında verildi" sorusunun cevabı orada olmalı. `tara()`
+    tüm depoyu gezer ve koşu başına ~4 s tutar --- bir tabloyu doldurmak
+    için değil, seçili koşu için çağrılır.
+
+    `tara()` de BUNU çağırır. Ayrı bir yol yazmak ikinci bir ölçüt kaynağı
+    yaratırdı; bu modülün kendi kısıtı zaten onu yasaklıyor.
+
+    durum: "taze" | "bayat" | "olculemedi" | "kapsam-disi"
+    """
+    yol = Path(yol)
+    sj = yol / "sonuc.json" if yol.is_dir() else yol
+    ad = sj.parent.name
+    try:
+        d = json.loads(sj.read_text(encoding="utf-8"))
+    # sessiz-yutma: kabul — bozuk kayıt ADIYLA listeleniyor, atlanmıyor
+    except (OSError, json.JSONDecodeError) as e:
+        return {"kosu": ad, "durum": "olculemedi", "neden": f"okunamadı: {e}"}
+    eski = (d.get("validity") or {}).get("kalemler")
+    if d.get("status") != "ok" or not eski:
+        # KAPSAM DISI ile OLCULEMEDI AYRI: basarisiz ya da hukumsuz bir
+        # kosuda bayatlik SORUSU YOKTUR; onu "olculemedi" saymak kapiyi
+        # gereksiz kirmizi gosterirdi.
+        return {"kosu": ad, "durum": "kapsam-disi",
+                "neden": ("koşu 'ok' değil" if d.get("status") != "ok"
+                          else "kayıtta kalem-düzeyi hüküm yok")}
+    try:
+        yeni = (_yeniden_hukum(d) or {}).get("kalemler")
+    except Exception as e:      # noqa: BLE001 — sebep KAYDEDILIYOR
+        return {"kosu": ad, "durum": "olculemedi",
+                "neden": f"{type(e).__name__}: {e}"[:120]}
+    e_t = [tuple(x) for x in eski]
+    y_t = [tuple(x) for x in (yeni or [])]
+    ortak = {"kosu": ad, "kayitli": [list(x) for x in e_t],
+             "bugun": [list(x) for x in y_t]}
+    if e_t == y_t:
+        return {**ortak, "durum": "taze", "farklar": [], "gevseyen": 0}
+    farklar = [{"nicelik": a[0], "kayitli": a[1], "bugun": b[1],
+                "yon": _yon(a[1], b[1]),
+                "kayitli_tasarim_guvenli": a[2], "bugun_tasarim_guvenli": b[2]}
+               for a, b in zip(e_t, y_t) if a != b]
+    return {**ortak, "durum": "bayat", "farklar": farklar,
+            "gevseyen": sum(1 for f in farklar if f["yon"] == "gevşek")}
+
+
 def tara(kok: Path | None = None) -> dict:
     kok = kok or (KOK / "vehicle_runs")
     taze, bayat, olcumsuz = [], [], []
     for sj in sorted(kok.glob("*/sonuc.json")):
-        try:
-            d = json.loads(sj.read_text(encoding="utf-8"))
-        # sessiz-yutma: kabul — bozuk kayıt ADIYLA listeleniyor, atlanmıyor
-        except json.JSONDecodeError as e:
-            olcumsuz.append({"kosu": sj.parent.name, "neden": f"okunamadı: {e}"})
+        r = tek(sj)
+        if r["durum"] == "kapsam-disi":
             continue
-        eski = (d.get("validity") or {}).get("kalemler")
-        if d.get("status") != "ok" or not eski:
-            continue
-        try:
-            yeni = (_yeniden_hukum(d) or {}).get("kalemler")
-        except Exception as e:      # noqa: BLE001 — sebep KAYDEDILIYOR
-            olcumsuz.append({"kosu": sj.parent.name,
-                             "neden": f"{type(e).__name__}: {e}"[:120]})
-            continue
-        e_t = [tuple(x) for x in eski]
-        y_t = [tuple(x) for x in (yeni or [])]
-        if e_t == y_t:
-            taze.append(sj.parent.name)
-            continue
-        farklar = [{"nicelik": a[0], "kayitli": a[1], "bugun": b[1],
-                    "yon": _yon(a[1], b[1]),
-                    "kayitli_tasarim_guvenli": a[2], "bugun_tasarim_guvenli": b[2]}
-                   for a, b in zip(e_t, y_t) if a != b]
-        bayat.append({"kosu": sj.parent.name, "farklar": farklar,
-                      "gevseyen": sum(1 for f in farklar if f["yon"] == "gevşek")})
+        if r["durum"] == "olculemedi":
+            olcumsuz.append({"kosu": r["kosu"], "neden": r["neden"]})
+        elif r["durum"] == "taze":
+            taze.append(r["kosu"])
+        else:
+            bayat.append({"kosu": r["kosu"], "farklar": r["farklar"],
+                          "gevseyen": r["gevseyen"]})
     return {"taze": taze, "bayat": bayat, "olcumsuz": olcumsuz}
 
 
