@@ -70,8 +70,33 @@ Hepsi mevcut parçaların birleştirilmesi; yeni fizik yok.
 2. ~~**Aktarım kapısı doğru artığa baksın.**~~ **BİTTİ** — `aktarim_hukmu`
    artık `esleme_is_payi_pct` alıyor; ayrışım yoksa toplama düşüyor ama
    bunu hükümde açıkça söylüyor. `fsi_surucu` payı üretip taşıyor.
-3. **FSI Transfer Health kartı** — ölçüm hazır, eksik olan GUI. Kart
-   ayrışımı göstermeli, yoksa okur yine toplamı üretime yazar.
+3. ~~**FSI Transfer Health kartı**~~ **BİTTİ** (2026-09-05) —
+   `fsi_aktarim_karti.py` (konsol + saf okuyucu) ve `AktarimSagligiDialog`
+   (GUI, ana ekranda "🔗 FSI Aktarım Sağlığı"). Tablo eşleme payını,
+   yüzey yeniden-integrasyon payını ve toplamı AYRI sütunlarda gösterir;
+   hangi sayının hükme girdiğini yazar.
+
+   Neden ayrı sütun: `gripen_AB_Right` toplamda %76,72 ama eşlemesi %0,00
+   — toplama bakan bir okur çalışan bir vakayı reddederdi. `fsi_ok30` aynı
+   şekilde: toplam %58,60, eşleme %0,31.
+
+   Kart sayı ÜRETMEZ (`turek_hron_kiyaslama`'daki kuralın aynısı: yönetici
+   YOL bilir, DEĞER bilmez); payları `fsi_korunum.json`'dan okur, hükmü
+   `aktarim_hukmu`'ndan alır. Bir AST testi `satirlar()` içinde aritmetik
+   olmadığını ve kartın kendi eşiğini taşımadığını bağlıyor.
+
+   Ayrışımın YOKLUĞU satırın üstünde durur ("AYRIŞIM YOK") — sessiz geri
+   düşüş kartın önlemek için var olduğu yanılgının ta kendisi olurdu.
+   Kimliği (`T_düğüm − T_CFD = Σ dF ⊗ δ`) tutmayan bir satırda paylar
+   gösterilmez: sayı vardır ama dayanağı yoktur.
+
+   İki test enjeksiyonla ayrımsayıcı bulundu, biri **ilk sürümde değildi**:
+   kart ayrışımı hükme hiç vermediğinde döngü gövdesi bir kez bile
+   çalışmıyor ve test sessizce geçiyordu — deponun imza kusuru, testin
+   kendi içinde. Döngünün koştuğu ayrıca bağlandı.
+
+   Pencere offscreen Qt ile gerçekten kuruluyor ve hücre metinleri
+   okunuyor; kaynak-metin denetimi kartın açıldığını göstermez.
 4. ~~**Nonlinear/Dynamic FEA'yı GUI'ye taşı.**~~ **ÖLÇÜLDÜ VE KAPANDI —
    yapılmasına gerek çıkmadı.** Ön koşulu önce kapatıldı: üretim yolu
    `.inp` metnini elle düzenliyordu (`txt.replace("*STATIC", ...)`) ve

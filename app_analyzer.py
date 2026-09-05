@@ -442,6 +442,138 @@ class KosularDialog(QDialog):
             self.det.setPlainText("Seçili koşunun raporu yok/bulunamadı.")
 
 
+class AktarimSagligiDialog(QDialog):
+    """CFD→FEA yük aktarımının sağlığı, AYRIŞIMIYLA birlikte.
+
+    Ölçüm 2026-08-28'de bitti; eksik olan onu okuyan katmandı ve yol
+    haritasının kendi cümlesi neyi riske attığını söylüyordu: *"Kart ayrışımı
+    göstermeli, yoksa okur yine toplamı üretime yazar."*
+
+    Tek sayı iki zıt vakayı aynı gösterir:
+
+        gripen_AB_Right   toplam %76,72   EŞLEME %0,00
+        _fsi_esnek        toplam %102,64  EŞLEME %24,10
+
+    Toplama bakan bir okur gripen'i reddederdi; oradaki eşlemenin hatası
+    sıfıra yuvarlanıyor ve kalan, terk edilmiş şemanın FEA yüzünde yeniden
+    integre etmesinden geliyor --- üretim yolunda YOK. Bu yüzden tablo hem
+    payları hem toplamı gösterir ve hangisinin hükme girdiğini yazar.
+
+    Sayıyı bu pencere ÜRETMEZ: `fsi_aktarim_karti` kanıttan okur, hükmü
+    `fsi_aktarim_kapisi.aktarim_hukmu` verir.
+    """
+
+    _KOL = [("vaka", "Vaka"), ("hakim_metrik", "Hâkim"), ("hakim_pct", "Hâkim artık"),
+            ("esleme_pay_pct", "Eşleme payı"), ("yuzey_pay_pct", "Yüzey payı"),
+            ("toplam_pct", "Toplam artık"), ("alan_farki_pct", "Alan farkı"),
+            ("_hukum", "Hüküm")]
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setWindowTitle("🔗 FSI Aktarım Sağlığı")
+        self.resize(1040, 600)
+        lay = QVBoxLayout(self)
+
+        import fsi_aktarim_karti
+        self._satirlar = fsi_aktarim_karti.satirlar()
+        ozet = fsi_aktarim_karti.ozet(self._satirlar)
+
+        if not self._satirlar:
+            lay.addWidget(QLabel(
+                "Kanıt yok: fsi_korunum.json bulunamadı.\n"
+                "Üretmek için: python experiments/fsi_korunum.py"))
+            btn = QPushButton("Kapat")
+            btn.clicked.connect(self.accept)
+            lay.addWidget(btn)
+            return
+
+        bas = QLabel(
+            f"<b>{ozet['vaka']} vaka</b> — {ozet['ayrisimi_olan']}'inde ayrışım var, "
+            f"{ozet['ayrisimi_olmayan']}'inde YOK (toplam kullanıldı), "
+            f"{ozet['reddedilen']}'i reddedildi, "
+            f"{ozet['hukum_verilemeyen']}'inde hüküm verilemedi.")
+        bas.setWordWrap(True)
+        lay.addWidget(bas)
+
+        self.tbl = QTableWidget(len(self._satirlar), len(self._KOL))
+        self.tbl.setHorizontalHeaderLabels([b for _, b in self._KOL])
+        self.tbl.setSelectionBehavior(QTableWidget.SelectRows)
+        self.tbl.setEditTriggers(QTableWidget.NoEditTriggers)
+        for i, r in enumerate(self._satirlar):
+            for j, (a, _) in enumerate(self._KOL):
+                self.tbl.setItem(i, j, QTableWidgetItem(self._hucre(r, a)))
+        self.tbl.resizeColumnsToContents()
+        self.tbl.itemSelectionChanged.connect(self._detay)
+        lay.addWidget(self.tbl, 2)
+
+        self.det = QTextBrowser()
+        lay.addWidget(self.det, 1)
+        self.det.setMarkdown(
+            "Bir satır seçin: hükmün gerekçesi, ayrışımın dayandığı kimlik ve "
+            "hangi sayının hükme girdiği burada yazılı.")
+
+        row = QHBoxLayout()
+        row.addStretch(1)
+        btn_close = QPushButton("Kapat")
+        btn_close.clicked.connect(self.accept)
+        row.addWidget(btn_close)
+        lay.addLayout(row)
+
+    @staticmethod
+    def _hucre(r: dict, alan: str) -> str:
+        if alan == "_hukum":
+            temel = {True: "KULLANILIR", False: "REDDEDİLDİ",
+                     None: "HÜKÜM YOK"}[r["kullanilabilir"]]
+            # AYRIŞIMIN YOKLUĞU SATIRIN ÜSTÜNDE DURUR. Sessiz bırakılsaydı
+            # okur toplam artığı eşleme payı sanardı --- kartın var oluş
+            # sebebi olan yanılgının ta kendisi.
+            return temel if r["ayrisim_var"] else f"{temel} · AYRIŞIM YOK"
+        v = r.get(alan)
+        if v is None:
+            return "—"
+        if alan.endswith("_pct"):
+            return f"%{float(v):.2f}"
+        return str(v)
+
+    def _detay(self):
+        rows = sorted({i.row() for i in self.tbl.selectedIndexes()})
+        if len(rows) != 1:
+            return
+        r = self._satirlar[rows[0]]
+        md = [f"## {r['vaka']}", ""]
+        if r["ayrisim_var"]:
+            md += [
+                f"**Hüküm EŞLEME payına bakıyor: %{float(r['esleme_pay_pct']):.4f}.**",
+                "",
+                f"Toplam arayüz işi artığı %{float(r['toplam_pct']):.2f}; "
+                f"bunun %{float(r['yuzey_pay_pct']):.2f}'i terk edilmiş "
+                "(tutarlı) şemanın FEA yüzünde yeniden integre etmesinden "
+                "gelir ve üretim yolunda YOKTUR. Toplama bakmak üretimi, "
+                "kullanılmayan bir şemanın hatasıyla suçlar.",
+                "",
+                f"Ayrışımın dayandığı kimlik artığı: `{r['kimlik_artigi']:.3g}` "
+                f"(eşik `{__import__('fsi_aktarim_karti').KIMLIK_ESIGI:g}`).",
+            ]
+        else:
+            md += [
+                "**AYRIŞIM YOK — hüküm TOPLAM artığa bakıyor.**", "",
+                "Bu, kapıyı gereğinden SIKI yapar: ölçülen 24 vakada toplamın "
+                "en kötüsü %102,64 iken eşleme payı %24,10 idi ve 19'unda "
+                "%1'in altındaydı. Buradaki sayı bir üst sınırdır, eşleme "
+                "hatası değildir.",
+            ]
+            if not r["kimlik_saglam"]:
+                md += ["", f"Sebep: ayrışımın kimlik artığı "
+                           f"`{r['kimlik_artigi']:.3g}` eşiği aşıyor, yani "
+                           "paylar bir sayı ama DAYANAĞI yok."]
+        md += ["", "### Bileşenler", "",
+               f"- kuvvet artığı: %{float(r['kuvvet_pct'] or 0):.4g}",
+               f"- moment artığı: %{float(r['moment_pct'] or 0):.4g}",
+               f"- hâkim metrik: **{r['hakim_metrik']}**",
+               "", "### Kapının gerekçesi", "", r["hukum"].get("neden", "—")]
+        self.det.setMarkdown("\n".join(md))
+
+
 class KuyrukDialog(QDialog):
     """İş kuyruğu görünümü: bekleyen/koşan/biten işler + worker başlat (ayrık süreç —
     GUI kapansa da kuyruk koşar; kilit dosyası ikinci worker'ı engeller)."""
@@ -862,6 +994,16 @@ class AnalyzerWindow(QMainWindow):
                                "(belirsizlik-bandına göre ayırt-edilebilirlik hükmüyle).")
         btn_kosular.clicked.connect(lambda: KosularDialog(self).exec())
         grid.addWidget(btn_kosular, 2, 2)
+        # OLCUM VARDI, TUKETICISI YOKTU --- bu deponun baskin kusuru, bu kez
+        # FSI aktariminda. Ayrisim 2026-08-28'de olculdu (esleme payi / yuzey
+        # yeniden-integrasyon payi) ama ekranda tek sayi bile yoktu; okur
+        # toplami gorup uretime yazacakti. Dugme ayrisimi buraya baglar.
+        btn_aktarim = QPushButton("🔗  FSI Aktarım Sağlığı")
+        btn_aktarim.setToolTip(
+            "CFD→FEA yük aktarımı: eşleme payı ile yüzey yeniden-integrasyon "
+            "payı AYRI. Toplama bakan bir okur çalışan vakaları reddeder.")
+        btn_aktarim.clicked.connect(lambda: AktarimSagligiDialog(self).exec())
+        grid.addWidget(btn_aktarim, 3, 0, 1, 3)
         right.addWidget(gb_res, 1)
 
         layout.addLayout(left, 1)
