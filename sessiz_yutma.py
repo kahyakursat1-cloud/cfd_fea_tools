@@ -30,7 +30,13 @@ for _akis in (sys.stdout, sys.stderr):
 # `experiments` ÖNCE atlanıyordu — oysa V&V ÇAPALARI orada üretiliyor (düz levha,
 # basamak, FEA doğrulamaları). Kanıt üreten kodun sessizliği en az hüküm veren kodunki
 # kadar önemlidir; kapsama alındı.
-ATLA = {"tests", "__pycache__", ".venv", "Construct2D", "sources",
+# `.claude` bu deponun kaynağı DEĞİL: ajan iskelesi ve altındaki `worktrees/`
+# geçici GÖLGE KOPYALAR. Sayaç onları da sayıyordu ve iki bayat worktree
+# toplamı 101'den 252'ye çıkarıp bu kapıyı düşürmüştü (2026-09-05) --- kusur
+# depoda değil, kapının kendi ölçütündeydi: iddiası "depoda sessiz yutma",
+# saydığı "depoda + gölge kopyalarda". Kapının KÖR OLMADIĞI ayrıca ölçüldü:
+# gerçek depoya enjekte edilen `except: pass` hâlâ düşürüyor.
+ATLA = {"tests", "__pycache__", ".venv", "Construct2D", "sources", ".claude",
         "vehicle_runs", "_basamak", "_duz_levha", "nx_geo", "nx_geo_egitim", "nx_geo_kor"}
 # Hükme/sayıya dönüşen katman — buradaki sessizlik mühendisi yanıltır.
 #
