@@ -156,7 +156,7 @@ def uretici_kod(ad: str) -> str:
         # olarak `gci_{lbl}.json` geçiyor ve kendini üretici sanıyordu.
         if f.name == Path(__file__).name:
             continue
-        if set(f.parts) & {"tests", "__pycache__", ".venv", "Construct2D", "sources"}:
+        if set(f.parts) & {"tests", "__pycache__", ".venv", "Construct2D", "sources", "k220"}:
             continue
         try:
             t = f.read_text(encoding="utf-8", errors="replace")

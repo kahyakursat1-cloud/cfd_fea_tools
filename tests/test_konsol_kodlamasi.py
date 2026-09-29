@@ -16,7 +16,7 @@ from pathlib import Path
 KOK = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(KOK))
 
-ATLA = ("tests/", ".venv", "build/", "__pycache__")
+ATLA = ("tests/", ".venv", "build/", "__pycache__", "k220/")
 
 
 def _kaynaklar():

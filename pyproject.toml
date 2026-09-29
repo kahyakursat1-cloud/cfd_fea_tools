@@ -76,7 +76,7 @@ py-modules = []
 [tool.ruff]
 target-version = "py311"
 line-length = 100
-extend-exclude = ["Construct2D", "sources"]
+extend-exclude = ["Construct2D", "sources", "k220"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM"]
@@ -118,7 +118,7 @@ python_version = "3.11"
 warn_unused_ignores = true
 warn_redundant_casts = true
 ignore_missing_imports = true   # gmsh/trimesh/PySide6 stub yok
-exclude = ["Construct2D/", "build/", "tests/fixtures/"]
+exclude = ["Construct2D/", "build/", "tests/fixtures/", "k220/"]
 # Aşamalı benimseme: katı mod yeni kod icin Faz 4'te acilacak
 check_untyped_defs = false
 

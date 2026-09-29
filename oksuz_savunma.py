@@ -57,9 +57,9 @@ AD_IZI = re.compile(r"kapi|gate|hukum|hüküm|dogrula|doğrula|gecerli|geçerli"
 # cagiriyor. V&V betigi mesru bir tuketicidir; onu gormeyen olcer yanlis
 # pozitif uretir ve yanlis pozitif ureten olcer kullanilmaz hale gelir.
 ATLA_TANIM = {"tests", "experiments", ".git", "__pycache__", "build", "dist",
-              "tmr_cfd", "_cgrid_calisma"}
+              "tmr_cfd", "_cgrid_calisma", "k220"}
 ATLA_CAGRI = {"tests", ".git", "__pycache__", "build", "dist",
-              "tmr_cfd", "_cgrid_calisma"}
+              "tmr_cfd", "_cgrid_calisma", "k220"}
 
 # MUAFIYET — incelendi, cagrilmamasi KABUL. Gerekce ZORUNLU: gerekcesiz muafiyet
 # olcerin kendisini susturur ve bu depoda "olcemedim" ile "iyi" karistirilmaz.

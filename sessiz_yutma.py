@@ -36,7 +36,7 @@ for _akis in (sys.stdout, sys.stderr):
 # depoda değil, kapının kendi ölçütündeydi: iddiası "depoda sessiz yutma",
 # saydığı "depoda + gölge kopyalarda". Kapının KÖR OLMADIĞI ayrıca ölçüldü:
 # gerçek depoya enjekte edilen `except: pass` hâlâ düşürüyor.
-ATLA = {"tests", "__pycache__", ".venv", "Construct2D", "sources", ".claude",
+ATLA = {"tests", "__pycache__", ".venv", "Construct2D", "sources", ".claude", "k220",
         "vehicle_runs", "_basamak", "_duz_levha", "nx_geo", "nx_geo_egitim", "nx_geo_kor"}
 # Hükme/sayıya dönüşen katman — buradaki sessizlik mühendisi yanıltır.
 #

@@ -59,7 +59,7 @@ def _kaynak_dosyalari() -> list[Path]:
     out = []
     for p in sorted(KOK.rglob("*.py")):
         r = p.relative_to(KOK).as_posix()
-        if r.startswith(("tests/", ".venv/", "_")) or "site-packages" in r:
+        if r.startswith(("tests/", ".venv/", "_", "k220/")) or "site-packages" in r:
             continue
         out.append(p)
     return out

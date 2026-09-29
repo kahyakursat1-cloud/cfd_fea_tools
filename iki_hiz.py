@@ -43,7 +43,7 @@ sys.path.insert(0, str(KOK))
 
 CIKTI = KOK / "iki_hiz.json"
 
-ATLA = (".venv", "build", "__pycache__", ".git", "tests")
+ATLA = (".venv", "build", "__pycache__", ".git", "tests", "k220")
 
 
 # ══════════════════════════════ SOZLESME 1 ══════════════════════════════

@@ -173,6 +173,11 @@ design_explore_*.json
 kuyruk.jsonl
 kuyruk.lock
 
+# ─── k220: hibe/başvuru/tez-makale çalışma alanı (2026-09-29'da içeri taşındı) ───
+# Projeyle ilgili ama KOD DEĞİL; kişisel başvuru belgeleri içerir ve bu depo
+# GitHub'a push ediliyor. Kanıtları bu deponun JSON'larından mutlak yolla okur.
+k220/
+
 # Gecelik gercek-cozucu regresyonu ciktisi (uretilen)
 regresyon_sonuc.json
 

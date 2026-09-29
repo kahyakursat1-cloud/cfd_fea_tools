@@ -43,7 +43,7 @@ def _yerel_modul_adlari() -> set[str]:
     Yalnız kök dizine bakmak yetmiyordu: `experiments/` içindeki modüller
     birbirini ithal ediyor ve tarama onları "beyan edilmemiş paket" sanıyordu.
     """
-    return ({p.stem for p in KOK.rglob("*.py")}
+    return ({p.stem for p in KOK.rglob("*.py") if "k220" not in p.relative_to(KOK).parts}
             | {"analysis", "solvers", "post_processing", "tests", "experiments"})
 
 # Yalnız KÖPRÜ modülleri tarafından ithal edilen dış araçlar. Başsız yol bunlara

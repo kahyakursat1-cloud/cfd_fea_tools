@@ -15,7 +15,7 @@ from analysis.thresholds import RESIDUAL_TARGET
 ROOT = Path(__file__).resolve().parent.parent
 # `.claude` = ajan iskelesi + `worktrees/` gölge kopyaları; bu deponun kaynağı
 # değil. Envanter onları da sayınca her ad-hoc yazıcı iki kez görünüyordu.
-ATLA = {"Construct2D", "sources", "__pycache__", ".venv", ".claude"}
+ATLA = {"Construct2D", "sources", "__pycache__", ".venv", ".claude", "k220"}
 
 _BLOK = re.compile(r"residualControl\s*\{(.*?)\}", re.S)
 _ALAN = re.compile(r'"?\(?([pU])[^"]*"?\)?\s+([0-9.]+e?-?[0-9]*)\s*;', re.I)

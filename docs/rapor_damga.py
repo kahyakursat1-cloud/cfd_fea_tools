@@ -30,7 +30,7 @@ HERE = Path(__file__).resolve().parent
 KOK = HERE.parent
 CIKTI = HERE / "rapor_damga.tex"
 
-ATLA = (".venv", "build", "__pycache__", ".git")
+ATLA = (".venv", "build", "__pycache__", ".git", "k220")
 
 AYLAR = ("Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz",
          "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık")
